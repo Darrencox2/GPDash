@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased;
+    font-feature-settings: "cv11", "ss01";
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white/95 backdrop-blur rounded-lg shadow-lg border border-white/20;
+  }
+  
+  .btn-primary {
+    @apply bg-purple-600 text-white font-medium py-2 px-4 rounded-md text-sm
+           hover:bg-purple-700 transition-colors duration-150 
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply bg-white/90 text-slate-700 border border-slate-200 font-medium py-1.5 px-3 rounded-md text-sm
+           hover:bg-white hover:border-slate-300 transition-colors duration-150;
+  }
+  
+  .btn-success {
+    @apply bg-emerald-600 text-white font-medium py-1.5 px-3 rounded-md text-sm
+           hover:bg-emerald-700 transition-colors duration-150;
+  }
+  
+  .day-pill {
+    @apply px-3 py-1.5 rounded-md border border-slate-200 bg-white/90 font-medium text-slate-600 text-sm
+           transition-colors duration-150 hover:border-purple-300 hover:bg-white;
+  }
+  
+  .day-pill.active {
+    @apply bg-purple-600 text-white border-purple-600;
+  }
+  
+  .toggle-btn {
+    @apply w-10 h-5 rounded-full relative transition-colors duration-150 cursor-pointer;
+  }
+  
+  .toggle-btn::after {
+    content: '';
+    @apply absolute w-4 h-4 rounded-full bg-white top-0.5 transition-all duration-150 shadow-sm;
+  }
+  
+  .toggle-btn.on {
+    @apply bg-emerald-600;
+  }
+  
+  .toggle-btn.on::after {
+    @apply left-5;
+  }
+  
+  .toggle-btn.off {
+    @apply bg-red-500;
+  }
+  
+  .toggle-btn.off::after {
+    @apply left-0.5;
+  }
+  
+  .toggle-btn.dayoff {
+    @apply bg-purple-500;
+  }
+  
+  .toggle-btn.dayoff::after {
+    @apply left-0.5;
+  }
+  
+  .clinician-card {
+    @apply p-3 rounded-md border transition-colors duration-150 min-h-[72px];
+  }
+  
+  .clinician-card.present {
+    @apply border-emerald-300 bg-emerald-100;
+  }
+  
+  .clinician-card.absent {
+    @apply border-red-300 bg-red-100;
+  }
+  
+  .clinician-card.dayoff {
+    @apply border-purple-300 bg-purple-100;
+  }
+  
+  .clinician-card.non-coverer {
+    @apply border-slate-200 bg-slate-50;
+  }
+  
+  .initials-badge {
+    @apply inline-flex items-center justify-center w-9 h-9 rounded-full text-xs font-semibold;
+  }
+  
+  .initials-badge.present {
+    @apply bg-emerald-200 text-emerald-800;
+  }
+  
+  .initials-badge.absent {
+    @apply bg-red-200 text-red-800;
+  }
+  
+  .initials-badge.dayoff {
+    @apply bg-purple-200 text-purple-800;
+  }
+  
+  .initials-badge.non-coverer {
+    @apply bg-slate-200 text-slate-500;
+  }
+  
+  .initials-badge.neutral {
+    @apply bg-slate-100 text-slate-700;
+  }
+  
+  .status-tag {
+    @apply text-xs font-medium px-1.5 py-0.5 rounded;
+  }
+  
+  .status-tag.present {
+    @apply bg-emerald-200 text-emerald-800;
+  }
+  
+  .status-tag.absent {
+    @apply bg-red-200 text-red-800;
+  }
+  
+  .status-tag.dayoff {
+    @apply bg-purple-200 text-purple-800;
+  }
+  
+  .status-tag.non-coverer {
+    @apply bg-slate-200 text-slate-500;
+  }
+  
+  /* Animated progress bar */
+  @keyframes progress-slide {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(400%);
+    }
+  }
+  
+  .animate-progress {
+    animation: progress-slide 1.2s ease-in-out infinite;
+  }
+}
