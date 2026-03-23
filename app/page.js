@@ -5,6 +5,11 @@ import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generat
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LoginScreen from '@/components/LoginScreen';
+import BuddyDaily from '@/components/buddy/BuddyDaily';
+import BuddyWeek from '@/components/buddy/BuddyWeek';
+import TeamMembers from '@/components/buddy/TeamMembers';
+import TeamRota from '@/components/buddy/TeamRota';
+import BuddySettings from '@/components/buddy/BuddySettings';
 import HuddleToday from '@/components/huddle/HuddleToday';
 import HuddleForward from '@/components/huddle/HuddleForward';
 import HuddleSettings from '@/components/huddle/HuddleSettings';
@@ -29,10 +34,6 @@ function AppContent() {
   const [selectedWeek, setSelectedWeek] = useState(() => getWeekStart(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => getCurrentDay());
   const [activeSection, setActiveSection] = useState('huddle-today');
-  const [showAddClinician, setShowAddClinician] = useState(false);
-  const [newClinician, setNewClinician] = useState({ name: '', role: '', initials: '', sessions: 6 });
-  const [settingsSaved, setSettingsSaved] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -56,16 +57,11 @@ function AppContent() {
     }
   }, [data?.teamnetUrl]);
 
-  // Load persisted huddle CSV data and messages from Redis
   useEffect(() => {
     if (data && !huddleLoadedRef.current) {
       huddleLoadedRef.current = true;
-      if (data.huddleCsvData) {
-        setHuddleData(data.huddleCsvData);
-      }
-      if (data.huddleMessages) {
-        setHuddleMessages(Array.isArray(data.huddleMessages) ? data.huddleMessages : Object.values(data.huddleMessages));
-      }
+      if (data.huddleCsvData) setHuddleData(data.huddleCsvData);
+      if (data.huddleMessages) setHuddleMessages(Array.isArray(data.huddleMessages) ? data.huddleMessages : Object.values(data.huddleMessages));
     }
   }, [data]);
 
@@ -138,164 +134,60 @@ function AppContent() {
     }
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    loadData(password);
-  };
+  const handleLogin = (e) => { e.preventDefault(); loadData(password); };
+  const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
 
-  const ensureArray = (val) => {
-    if (!val) return [];
-    if (Array.isArray(val)) return val;
-    return Object.values(val);
-  };
-
-  const getDateKey = () => {
-    const dayIndex = DAYS.indexOf(selectedDay);
-    const date = new Date(selectedWeek);
-    date.setDate(date.getDate() + dayIndex);
-    return date.toISOString().split('T')[0];
-  };
-
-  const getDateKeyForDay = (day) => {
-    const dayIndex = DAYS.indexOf(day);
-    const date = new Date(selectedWeek);
-    date.setDate(date.getDate() + dayIndex);
-    return date.toISOString().split('T')[0];
-  };
-
+  const getDateKey = () => { const dayIndex = DAYS.indexOf(selectedDay); const date = new Date(selectedWeek); date.setDate(date.getDate() + dayIndex); return date.toISOString().split('T')[0]; };
+  const getDateKeyForDay = (day) => { const dayIndex = DAYS.indexOf(day); const date = new Date(selectedWeek); date.setDate(date.getDate() + dayIndex); return date.toISOString().split('T')[0]; };
   const getTodayKey = () => new Date().toISOString().split('T')[0];
   const isPastDate = (dateKey) => dateKey < getTodayKey();
   const isToday = (dateKey) => dateKey === getTodayKey();
   const isClosedDay = (dateKey) => data?.closedDays?.[dateKey] !== undefined;
   const getClosedReason = (dateKey) => data?.closedDays?.[dateKey] || '';
+  const toggleClosedDay = (dateKey, reason = 'Bank Holiday') => { if (isPastDate(dateKey)) return; const newClosedDays = { ...data.closedDays }; if (newClosedDays[dateKey]) delete newClosedDays[dateKey]; else newClosedDays[dateKey] = reason; saveData({ ...data, closedDays: newClosedDays }); };
 
-  const toggleClosedDay = (dateKey, reason = 'Bank Holiday') => {
-    if (isPastDate(dateKey)) return;
-    const newClosedDays = { ...data.closedDays };
-    if (newClosedDays[dateKey]) delete newClosedDays[dateKey];
-    else newClosedDays[dateKey] = reason;
-    saveData({ ...data, closedDays: newClosedDays });
-  };
-
-  const hasPlannedAbsence = (clinicianId, dateKey) => {
-    const absences = ensureArray(data?.plannedAbsences);
-    return absences.some(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate);
-  };
-
-  const getPlannedAbsenceReason = (clinicianId, dateKey) => {
-    const absences = ensureArray(data?.plannedAbsences);
-    const absence = absences.find(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate);
-    return absence?.reason || 'Leave';
-  };
-
-  const isAbsentOnWorkingDate = (cid, dateKey, dayName) => {
-    const rota = ensureArray(data?.weeklyRota?.[dayName]);
-    if (!rota.includes(cid)) return false;
-    return hasPlannedAbsence(cid, dateKey);
-  };
+  const hasPlannedAbsence = (clinicianId, dateKey) => ensureArray(data?.plannedAbsences).some(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate);
+  const getPlannedAbsenceReason = (clinicianId, dateKey) => { const absence = ensureArray(data?.plannedAbsences).find(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate); return absence?.reason || 'Leave'; };
+  const isAbsentOnWorkingDate = (cid, dateKey, dayName) => { const rota = ensureArray(data?.weeklyRota?.[dayName]); if (!rota.includes(cid)) return false; return hasPlannedAbsence(cid, dateKey); };
 
   const isAbsentUntilNextPresent = (cid, fromDateKey) => {
     const clinician = data?.clinicians?.find(c => c.id === cid);
     if (!clinician) return false;
     if (clinician.longTermAbsent) return true;
-    
     const workingDays = DAYS.filter(day => ensureArray(data?.weeklyRota?.[day]).includes(cid));
     if (workingDays.length === 0) return false;
-    
     const indexToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const startDate = new Date(fromDateKey + 'T12:00:00');
-    
     for (let i = 1; i <= 7; i++) {
-      const checkDate = new Date(startDate);
-      checkDate.setDate(checkDate.getDate() - i);
-      const dayIndex = checkDate.getDay();
-      const dayName = indexToDay[dayIndex];
-      const checkDateKey = checkDate.toISOString().split('T')[0];
+      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() - i);
+      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = checkDate.toISOString().split('T')[0];
       if (dayIndex === 0 || dayIndex === 6) continue;
-      if (workingDays.includes(dayName)) {
-        if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true;
-        break;
-      }
+      if (workingDays.includes(dayName)) { if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true; break; }
     }
-    
     for (let i = 0; i <= 28; i++) {
-      const checkDate = new Date(startDate);
-      checkDate.setDate(checkDate.getDate() + i);
-      const dayIndex = checkDate.getDay();
-      const dayName = indexToDay[dayIndex];
-      const checkDateKey = checkDate.toISOString().split('T')[0];
+      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() + i);
+      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = checkDate.toISOString().split('T')[0];
       if (dayIndex === 0 || dayIndex === 6) continue;
-      if (workingDays.includes(dayName)) {
-        if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true;
-        return false;
-      }
+      if (workingDays.includes(dayName)) { if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true; return false; }
     }
     return false;
   };
 
-  const getScheduledClinicians = (day) => {
-    const rota = ensureArray(data?.weeklyRota?.[day]);
-    return rota.filter(id => {
-      const clinician = data?.clinicians?.find(c => c.id === id);
-      return clinician && !clinician.longTermAbsent;
-    });
-  };
-
-  const getScheduledForDay = (day) => {
-    const dateKey = getDateKeyForDay(day);
-    const dayKey = `${dateKey}-${day}`;
-    if (data?.dailyOverrides?.[dayKey]?.scheduled) return ensureArray(data.dailyOverrides[dayKey].scheduled);
-    return getScheduledClinicians(day);
-  };
-
-  const getPresentClinicians = (day) => {
-    const dateKey = getDateKeyForDay(day);
-    const dayKey = `${dateKey}-${day}`;
-    if (data?.dailyOverrides?.[dayKey]?.present) return ensureArray(data.dailyOverrides[dayKey].present);
-    const scheduled = getScheduledForDay(day);
-    return scheduled.filter(id => {
-      const clinician = data?.clinicians?.find(c => c.id === id);
-      if (clinician?.longTermAbsent) return false;
-      if (hasPlannedAbsence(id, dateKey)) return false;
-      if (isAbsentUntilNextPresent(id, dateKey)) return false;
-      return true;
-    });
-  };
-
-  const getAbsentClinicians = (day) => {
-    const scheduled = getScheduledForDay(day);
-    const presentIds = getPresentClinicians(day);
-    return scheduled.filter(id => !presentIds.includes(id));
-  };
-
-  const getDayOffClinicians = (day) => {
-    const scheduled = getScheduledForDay(day);
-    const allClinicians = ensureArray(data?.clinicians);
-    return allClinicians.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
-  };
-
-  const getClinicianStatus = (id, day) => {
-    const presentIds = ensureArray(getPresentClinicians(day));
-    const absentIds = ensureArray(getAbsentClinicians(day));
-    if (presentIds.includes(id)) return 'present';
-    if (absentIds.includes(id)) return 'absent';
-    return 'dayoff';
-  };
+  const getScheduledClinicians = (day) => { const rota = ensureArray(data?.weeklyRota?.[day]); return rota.filter(id => { const c = data?.clinicians?.find(c => c.id === id); return c && !c.longTermAbsent; }); };
+  const getScheduledForDay = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.scheduled) return ensureArray(data.dailyOverrides[dayKey].scheduled); return getScheduledClinicians(day); };
+  const getPresentClinicians = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.present) return ensureArray(data.dailyOverrides[dayKey].present); const scheduled = getScheduledForDay(day); return scheduled.filter(id => { const c = data?.clinicians?.find(c => c.id === id); if (c?.longTermAbsent) return false; if (hasPlannedAbsence(id, dateKey)) return false; if (isAbsentUntilNextPresent(id, dateKey)) return false; return true; }); };
+  const getAbsentClinicians = (day) => { const scheduled = getScheduledForDay(day); const presentIds = getPresentClinicians(day); return scheduled.filter(id => !presentIds.includes(id)); };
+  const getDayOffClinicians = (day) => { const scheduled = getScheduledForDay(day); const allClinicians = ensureArray(data?.clinicians); return allClinicians.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id); };
+  const getClinicianStatus = (id, day) => { const p = ensureArray(getPresentClinicians(day)); const a = ensureArray(getAbsentClinicians(day)); if (p.includes(id)) return 'present'; if (a.includes(id)) return 'absent'; return 'dayoff'; };
 
   const togglePresence = (id, day) => {
-    const dateKey = getDateKeyForDay(day);
-    if (isPastDate(dateKey)) return;
-    const dayKey = `${dateKey}-${day}`;
-    const scheduled = getScheduledForDay(day);
-    const currentPresent = ensureArray(getPresentClinicians(day));
-    const isCurrentlyPresent = currentPresent.includes(id);
-    const isOnRota = scheduled.includes(id);
-    
+    const dateKey = getDateKeyForDay(day); if (isPastDate(dateKey)) return;
+    const dayKey = `${dateKey}-${day}`; const scheduled = getScheduledForDay(day); const currentPresent = ensureArray(getPresentClinicians(day));
+    const isCurrentlyPresent = currentPresent.includes(id); const isOnRota = scheduled.includes(id);
     let newPresent = isCurrentlyPresent ? currentPresent.filter(cid => cid !== id) : [...currentPresent, id];
     let newScheduled = scheduled;
     if (!isOnRota && !isCurrentlyPresent) newScheduled = [...scheduled, id];
     else if (!isOnRota && isCurrentlyPresent) newScheduled = scheduled.filter(cid => cid !== id);
-    
     const newOverrides = { ...data.dailyOverrides, [dayKey]: { present: newPresent, scheduled: newScheduled } };
     saveData({ ...data, dailyOverrides: newOverrides });
   };
@@ -304,625 +196,51 @@ function AppContent() {
   const getClinicianById = (id) => ensureArray(data?.clinicians).find(c => c.id === id);
 
   const syncTeamNet = async (silent = false) => {
-    if (!data?.teamnetUrl) {
-      if (!silent) { setSyncStatus('Set TeamNet URL in Settings first'); setTimeout(() => setSyncStatus(''), 4000); }
-      return;
-    }
+    if (!data?.teamnetUrl) { if (!silent) { setSyncStatus('Set TeamNet URL in Settings first'); setTimeout(() => setSyncStatus(''), 4000); } return; }
     if (!silent) setSyncStatus('Syncing...');
     try {
-      const res = await fetch('/api/sync-teamnet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-password': password },
-        body: JSON.stringify({ url: data.teamnetUrl, clinicians: ensureArray(data.clinicians) })
-      });
+      const res = await fetch('/api/sync-teamnet', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify({ url: data.teamnetUrl, clinicians: ensureArray(data.clinicians) }) });
       const result = await res.json();
-      if (result.error) {
-        if (!silent) setSyncStatus(`Error: ${result.error}`);
-      } else {
-        const newAbsences = result.absences || [];
-        saveData({ ...data, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }, false);
-        if (!silent) setSyncStatus(`Synced — ${newAbsences.length} absences`);
-      }
-    } catch (err) {
-      if (!silent) setSyncStatus('Sync failed');
-    }
+      if (result.error) { if (!silent) setSyncStatus(`Error: ${result.error}`); }
+      else { const newAbsences = result.absences || []; saveData({ ...data, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }, false); if (!silent) setSyncStatus(`Synced — ${newAbsences.length} absences`); }
+    } catch (err) { if (!silent) setSyncStatus('Sync failed'); }
     if (!silent) setTimeout(() => setSyncStatus(''), 4000);
   };
 
   const getWeekAbsences = () => {
     const absences = ensureArray(data?.plannedAbsences);
     const weekStart = selectedWeek.toISOString().split('T')[0];
-    const weekEndDate = new Date(selectedWeek);
-    weekEndDate.setDate(weekEndDate.getDate() + 4);
+    const weekEndDate = new Date(selectedWeek); weekEndDate.setDate(weekEndDate.getDate() + 4);
     const weekEnd = weekEndDate.toISOString().split('T')[0];
     const weekAbsences = [];
-    absences.forEach(a => {
-      DAYS.forEach(day => {
-        const dateKey = getDateKeyForDay(day);
-        if (dateKey >= a.startDate && dateKey <= a.endDate && dateKey >= weekStart && dateKey <= weekEnd) {
-          const clinician = getClinicianById(a.clinicianId);
-          if (clinician) weekAbsences.push({ day, clinician, reason: a.reason });
-        }
-      });
-    });
+    absences.forEach(a => { DAYS.forEach(day => { const dateKey = getDateKeyForDay(day); if (dateKey >= a.startDate && dateKey <= a.endDate && dateKey >= weekStart && dateKey <= weekEnd) { const clinician = getClinicianById(a.clinicianId); if (clinician) weekAbsences.push({ day, clinician, reason: a.reason }); } }); });
     return weekAbsences;
   };
 
-  const handleGenerate = () => {
-    const dateKey = getDateKey();
-    const day = selectedDay;
-    const presentIds = ensureArray(getPresentClinicians(day));
-    const absentIds = ensureArray(getAbsentClinicians(day));
-    const dayOffIds = ensureArray(getDayOffClinicians(day));
-    const cliniciansList = ensureArray(data.clinicians);
-    const { allocations, dayOffAllocations } = generateBuddyAllocations(cliniciansList, presentIds, absentIds, dayOffIds, data.settings || DEFAULT_SETTINGS);
-    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds, absentIds, dayOffIds } };
-    saveData({ ...data, allocationHistory: newHistory });
-  };
+  const toggleRotaDay = (clinicianId, day) => { const currentRota = ensureArray(data.weeklyRota[day]); const newRota = currentRota.includes(clinicianId) ? currentRota.filter(id => id !== clinicianId) : [...currentRota, clinicianId]; saveData({ ...data, weeklyRota: { ...data.weeklyRota, [day]: newRota } }); };
+  const removeClinician = (id) => { if (!confirm('Remove this clinician?')) return; const newClinicians = ensureArray(data.clinicians).filter(c => c.id !== id); const newRota = { ...data.weeklyRota }; DAYS.forEach(day => { newRota[day] = ensureArray(newRota[day]).filter(cid => cid !== id); }); saveData({ ...data, clinicians: newClinicians, weeklyRota: newRota }); };
+  const updateClinicianField = (id, field, value) => { const newClinicians = ensureArray(data.clinicians).map(c => { if (c.id !== id) return c; let pv = value; if (field === 'sessions') pv = parseInt(value) || 6; if (field === 'primaryBuddy' || field === 'secondaryBuddy') pv = value ? parseInt(value) : null; return { ...c, [field]: pv }; }); saveData({ ...data, clinicians: newClinicians }); };
 
-  const handleCopyAllocations = () => {
-    const dateKey = getDateKey();
-    const date = new Date(dateKey + 'T12:00:00');
-    const dateStr = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    const currentAlloc = getCurrentAllocations();
-    if (!currentAlloc) return;
-    const grouped = groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, currentAlloc.presentIds || []);
-    let text = `BUDDY ALLOCATION\n${dateStr}\n\n`;
-    const allPresentIds = ensureArray(currentAlloc.presentIds);
-    const allPresentRows = allPresentIds.map(id => {
-      const clinician = getClinicianById(id);
-      const tasks = grouped[id] || { absent: [], dayOff: [] };
-      const canCover = clinician?.canProvideCover !== false;
-      const hasAllocs = tasks.absent.length > 0 || tasks.dayOff.length > 0;
-      return { id, clinician, tasks, canCover, hasAllocs };
-    }).filter(row => row.clinician);
-    allPresentRows.sort((a, b) => {
-      if (a.canCover && !b.canCover) return -1;
-      if (!a.canCover && b.canCover) return 1;
-      if (a.canCover && b.canCover) {
-        if (a.hasAllocs && !b.hasAllocs) return -1;
-        if (!a.hasAllocs && b.hasAllocs) return 1;
-      }
-      return 0;
-    });
-    allPresentRows.forEach(({ clinician, tasks }) => {
-      const fileStr = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-';
-      const viewStr = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-';
-      text += `${clinician.initials}: File ${fileStr} / View ${viewStr}\n`;
-    });
-    navigator.clipboard.writeText(text.trim());
-    toast('Copied to clipboard', 'success', 2000);
-  };
-
-  const toggleRotaDay = (clinicianId, day) => {
-    const currentRota = ensureArray(data.weeklyRota[day]);
-    const newRota = currentRota.includes(clinicianId) ? currentRota.filter(id => id !== clinicianId) : [...currentRota, clinicianId];
-    saveData({ ...data, weeklyRota: { ...data.weeklyRota, [day]: newRota } });
-  };
-
-  const addClinician = () => {
-    if (!newClinician.name || !newClinician.initials) return;
-    const newId = Math.max(0, ...ensureArray(data.clinicians).map(c => c.id)) + 1;
-    const clinician = { id: newId, name: newClinician.name, initials: newClinician.initials.toUpperCase(), role: newClinician.role || 'GP', sessions: newClinician.sessions || 6, primaryBuddy: null, secondaryBuddy: null, longTermAbsent: false, canProvideCover: true };
-    saveData({ ...data, clinicians: [...ensureArray(data.clinicians), clinician] });
-    setNewClinician({ name: '', role: '', initials: '', sessions: 6 });
-    setShowAddClinician(false);
-  };
-
-  const removeClinician = (id) => {
-    if (!confirm('Remove this clinician?')) return;
-    const newClinicians = ensureArray(data.clinicians).filter(c => c.id !== id);
-    const newRota = { ...data.weeklyRota };
-    DAYS.forEach(day => { newRota[day] = ensureArray(newRota[day]).filter(cid => cid !== id); });
-    saveData({ ...data, clinicians: newClinicians, weeklyRota: newRota });
-  };
-
-  const updateClinicianField = (id, field, value) => {
-    const newClinicians = ensureArray(data.clinicians).map(c => {
-      if (c.id !== id) return c;
-      let processedValue = value;
-      if (field === 'sessions') processedValue = parseInt(value) || 6;
-      if (field === 'primaryBuddy' || field === 'secondaryBuddy') processedValue = value ? parseInt(value) : null;
-      return { ...c, [field]: processedValue };
-    });
-    saveData({ ...data, clinicians: newClinicians });
-  };
-
-  const updateSettings = (field, value) => {
-    const newSettings = { ...data.settings, [field]: parseFloat(value) || 1 };
-    saveData({ ...data, settings: newSettings });
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 2000);
-  };
-
-  // Login screen
-  if (!isAuthenticated) {
-    return <LoginScreen password={password} setPassword={setPassword} onLogin={handleLogin} loading={loading} error={passwordError} />;
-  }
-
+  if (!isAuthenticated) return <LoginScreen password={password} setPassword={setPassword} onLogin={handleLogin} loading={loading} error={passwordError} />;
   if (!data) return <div className="min-h-screen flex items-center justify-center bg-slate-100"><PageSkeleton /></div>;
 
-  const currentAlloc = getCurrentAllocations();
-  const presentIds = ensureArray(getPresentClinicians(selectedDay));
-  const absentIds = ensureArray(getAbsentClinicians(selectedDay));
-  const dayOffIds = ensureArray(getDayOffClinicians(selectedDay));
-  const cliniciansList = ensureArray(data.clinicians);
-  const presentClinicians = cliniciansList.filter(c => presentIds.includes(c.id));
-  const absentClinicians = cliniciansList.filter(c => absentIds.includes(c.id));
-  const dayOffClinicians = cliniciansList.filter(c => dayOffIds.includes(c.id));
-  const hasAllocations = currentAlloc && (Object.keys(currentAlloc.allocations || {}).length > 0 || Object.keys(currentAlloc.dayOffAllocations || {}).length > 0);
-  const groupedAllocations = currentAlloc ? groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, presentIds) : {};
-  const displayClinicians = cliniciansList;
+  // Shared helpers object passed to child components
+  const helpers = { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, syncTeamNet, toggleRotaDay, removeClinician, updateClinicianField, dataVersion, setDataVersion, setData };
 
   return (
     <div className="min-h-screen flex bg-slate-100">
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-
-      {/* Main Content */}
       <main className="flex-1 min-h-screen min-w-0">
         <div className="max-w-6xl mx-auto p-4 lg:p-6 animate-in">
-          
-          {/* BUDDY DAILY */}
-          {activeSection === 'buddy-daily' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-xl font-bold text-slate-900">Daily Allocation</h1>
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    {data.lastSyncTime ? `TeamNet synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'TeamNet not synced'}
-                    {syncStatus && <span className="ml-2 text-emerald-600">{syncStatus}</span>}
-                  </p>
-                </div>
-                {isGenerating ? (
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-3 min-w-[160px]"><div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden"><div className="h-full w-1/3 bg-gradient-to-r from-violet-500 to-purple-600 rounded-full animate-progress" /></div></div>
-                    <button onClick={() => setIsGenerating(false)} className="btn-secondary text-xs py-1 px-2">Stop</button>
-                  </div>
-                ) : (
-                  <button onClick={async () => {
-                    setIsGenerating(true);
-                    await new Promise(r => setTimeout(r, 50));
-                    const currentData = data;
-                    let generated = 0;
-                    const newHistory = { ...currentData.allocationHistory };
-                    const newOverrides = { ...currentData.dailyOverrides };
-                    const today = new Date();
-                    let stopped = false;
-                    const clins = Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {});
-                    const plannedAbs = Array.isArray(currentData.plannedAbsences) ? currentData.plannedAbsences : Object.values(currentData.plannedAbsences || {});
-                    
-                    for (let i = 0; i < 28 && !stopped; i++) {
-                      const checkDate = new Date(today);
-                      checkDate.setDate(checkDate.getDate() + i);
-                      const dayIndex = checkDate.getDay();
-                      if (dayIndex === 0 || dayIndex === 6) continue;
-                      const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
-                      const dateKey = checkDate.toISOString().split('T')[0];
-                      const dayKey = `${dateKey}-${dayName}`;
-                      if (currentData.closedDays?.[dateKey]) continue;
-                      delete newOverrides[dayKey];
-                      const rota = currentData.weeklyRota?.[dayName] || [];
-                      const scheduled = Array.isArray(rota) ? rota : Object.values(rota);
-                      const present = scheduled.filter(id => {
-                        const c = clins.find(c => c.id === id);
-                        if (c?.longTermAbsent) return false;
-                        return !plannedAbs.some(a => a.clinicianId === id && dateKey >= a.startDate && dateKey <= a.endDate);
-                      });
-                      const absentIdsGen = scheduled.filter(id => !present.includes(id));
-                      const dayOffIdsGen = clins.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
-                      
-                      // Cascade logic
-                      const cascadeAbsent = [];
-                      const idxToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                      for (const doId of dayOffIdsGen) {
-                        const c = clins.find(c => c.id === doId);
-                        if (!c) continue;
-                        if (c.longTermAbsent) { cascadeAbsent.push(doId); continue; }
-                        const wDays = DAYS.filter(d => { const r = currentData.weeklyRota?.[d] || []; return (Array.isArray(r) ? r : Object.values(r)).includes(doId); });
-                        if (wDays.length === 0) continue;
-                        const cd = new Date(dateKey + 'T12:00:00');
-                        let shouldAbs = false;
-                        for (let j = 1; j <= 14; j++) {
-                          const pd = new Date(cd); pd.setDate(pd.getDate() - j);
-                          const pdi = pd.getDay(); const pdn = idxToDay[pdi]; const pdk = pd.toISOString().split('T')[0];
-                          if (pdi === 0 || pdi === 6) continue;
-                          if (wDays.includes(pdn)) { if (plannedAbs.some(a => a.clinicianId === doId && pdk >= a.startDate && pdk <= a.endDate)) shouldAbs = true; break; }
-                        }
-                        if (!shouldAbs) {
-                          for (let j = 1; j <= 14; j++) {
-                            const fd = new Date(cd); fd.setDate(fd.getDate() + j);
-                            const fdi = fd.getDay(); const fdn = idxToDay[fdi]; const fdk = fd.toISOString().split('T')[0];
-                            if (fdi === 0 || fdi === 6) continue;
-                            if (wDays.includes(fdn)) { if (plannedAbs.some(a => a.clinicianId === doId && fdk >= a.startDate && fdk <= a.endDate)) shouldAbs = true; break; }
-                          }
-                        }
-                        if (shouldAbs) cascadeAbsent.push(doId);
-                      }
-                      const finalAbsent = [...absentIdsGen, ...cascadeAbsent];
-                      const finalDayOff = dayOffIdsGen.filter(id => !cascadeAbsent.includes(id));
-                      const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, present, finalAbsent, finalDayOff, currentData.settings || DEFAULT_SETTINGS);
-                      newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds: finalAbsent, dayOffIds: finalDayOff };
-                      generated++;
-                      await new Promise(r => setTimeout(r, 10));
-                      if (!isGenerating) stopped = true;
-                    }
-                    if (generated > 0) {
-                      const nd = { ...currentData, allocationHistory: newHistory, dailyOverrides: newOverrides };
-                      setData(nd);
-                      try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(nd) }); } catch (err) { console.error(err); }
-                      setDataVersion(v => v + 1);
-                    }
-                    setIsGenerating(false);
-                    setSyncStatus(stopped ? `Stopped — ${generated} days` : `Done — ${generated} days`);
-                    setTimeout(() => setSyncStatus(''), 4000);
-                  }} className="btn-primary">Generate Next 4 Weeks</button>
-                )}
-              </div>
-
-              {/* Week navigator */}
-              <div className="card p-4">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">◀</button>
-                    <div className="text-sm font-medium text-slate-900 min-w-[180px] text-center">{formatWeekRange(selectedWeek)}</div>
-                    <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">▶</button>
-                    <button onClick={() => { setSelectedWeek(getWeekStart(new Date())); setSelectedDay(getCurrentDay()); }} className="ml-2 px-4 py-1.5 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 shadow-md">Today</button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {DAYS.map(day => {
-                      const dk = getDateKeyForDay(day);
-                      const closed = isClosedDay(dk);
-                      const todayDate = isToday(dk);
-                      return (
-                        <button key={day} onClick={() => setSelectedDay(day)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors relative ${selectedDay === day ? 'bg-slate-900 text-white' : closed ? 'bg-slate-200 text-slate-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                          {day.slice(0, 3)}
-                          {todayDate && <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full"></span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {isClosedDay(getDateKey()) ? (
-                <div className="card p-8 text-center">
-                  <div className="text-2xl mb-2">🏠</div>
-                  <div className="text-lg font-medium text-slate-900 mb-1">Practice Closed</div>
-                  <div className="text-sm text-slate-500">{getClosedReason(getDateKey())}</div>
-                  {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-600 hover:text-purple-800">Mark as open →</button>}
-                </div>
-              ) : (
-                <>
-                  {/* Attendance */}
-                  <div className="card p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h2 className="text-base font-semibold text-slate-900">Attendance</h2>
-                        <p className="text-xs text-slate-500 mt-0.5">{formatDate(getDateKey())}{!isPastDate(getDateKey()) && ' — Click to toggle'}</p>
-                      </div>
-                      {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-400 hover:text-slate-600">Mark closed</button>}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {displayClinicians.map(c => {
-                        const status = getClinicianStatus(c.id, selectedDay);
-                        const lta = c.longTermAbsent;
-                        const hasPlanned = hasPlannedAbsence(c.id, getDateKey());
-                        const plannedReason = getPlannedAbsenceReason(c.id, getDateKey());
-                        const past = isPastDate(getDateKey());
-                        const showInfo = lta || hasPlanned;
-                        return (
-                          <div key={c.id} className={`clinician-card ${status}`}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className={`initials-badge ${status}`}>{c.initials || '??'}</div>
-                                <div>
-                                  <div className="text-sm font-medium text-slate-900">{c.name}</div>
-                                  <div className="text-xs text-slate-500">{c.role}</div>
-                                  {showInfo && <div className="text-xs mt-0.5">{hasPlanned && <span className="text-blue-600">TeamNet: {plannedReason}</span>}{hasPlanned && lta && <span className="text-slate-400"> · </span>}{lta && <span className="text-amber-600">LTA</span>}</div>}
-                                </div>
-                              </div>
-                              {past ? <span className="text-xs text-slate-400">{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span> : <button onClick={() => togglePresence(c.id, selectedDay)} className={`toggle-btn ${status === 'present' ? 'on' : status === 'dayoff' ? 'dayoff' : 'off'}`} />}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Allocations */}
-                  <div className="card p-5">
-                    <div className="flex items-center justify-between mb-5">
-                      <div>
-                        <h2 className="text-base font-semibold text-slate-900">Buddy Allocations</h2>
-                        <p className="text-sm text-slate-500 mt-0.5">Workload balanced across present clinicians</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {hasAllocations && <button onClick={handleCopyAllocations} className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 shadow-md flex items-center gap-2">📋 Copy</button>}
-                        {!isPastDate(getDateKey()) && <button onClick={handleGenerate} disabled={presentClinicians.length === 0} className="btn-primary">{hasAllocations ? 'Regenerate' : 'Generate'}</button>}
-                      </div>
-                    </div>
-                    {!hasAllocations ? (
-                      <div className="text-center py-8 text-slate-400">
-                        <div className="text-2xl mb-2">📋</div>
-                        <div className="text-sm">No allocations yet for {selectedDay}</div>
-                        {presentClinicians.length > 0 && !isPastDate(getDateKey()) && <div className="text-xs mt-1">Click Generate to create buddy assignments</div>}
-                      </div>
-                    ) : (
-                      <>
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead>
-                              <tr className="border-b border-slate-200">
-                                <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide">Covering</th>
-                                <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide"><span className="text-red-600">File & Action</span><span className="text-slate-400 font-normal ml-1">(absent)</span></th>
-                                <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide"><span className="text-amber-600">View Only</span><span className="text-slate-400 font-normal ml-1">(day off)</span></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(() => {
-                                const rows = presentIds.map(id => {
-                                  const c = getClinicianById(id);
-                                  const t = groupedAllocations[id] || { absent: [], dayOff: [] };
-                                  const can = c?.canProvideCover !== false;
-                                  const has = t.absent.length > 0 || t.dayOff.length > 0;
-                                  return { id, clinician: c, tasks: t, canCover: can, hasAllocs: has };
-                                }).filter(r => r.clinician);
-                                rows.sort((a, b) => {
-                                  if (a.canCover && !b.canCover) return -1;
-                                  if (!a.canCover && b.canCover) return 1;
-                                  if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; }
-                                  return 0;
-                                });
-                                return rows.map(({ clinician, tasks, canCover }) => (
-                                  <tr key={clinician.id} className={`border-b border-slate-50 last:border-0 ${!canCover ? 'opacity-50' : ''}`}>
-                                    <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="initials-badge present">{clinician.initials}</div><div><div className="text-sm font-medium text-slate-900">{clinician.name}</div><div className="text-xs text-slate-500">{clinician.role}</div></div></div></td>
-                                    <td className="py-3 px-4">{tasks.absent.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="status-tag absent">{x.initials}</span> : null; })}</div> : <span className="text-slate-300">—</span>}</td>
-                                    <td className="py-3 px-4">{tasks.dayOff.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="status-tag dayoff">{x.initials}</span> : null; })}</div> : <span className="text-slate-300">—</span>}</td>
-                                  </tr>
-                                ));
-                              })()}
-                            </tbody>
-                          </table>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-6 text-xs text-slate-500">
-                          <span><strong className="text-emerald-600">{presentClinicians.length}</strong> present</span>
-                          <span><strong className="text-red-600">{absentClinicians.length}</strong> absent</span>
-                          <span><strong className="text-amber-600">{dayOffClinicians.length}</strong> day off</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* BUDDY WEEK VIEW */}
-          {activeSection === 'buddy-week' && (
-            <div className="space-y-6">
-              <h1 className="text-xl font-bold text-slate-900">Week View</h1>
-              <div className="card p-5">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">◀ Prev</button>
-                    <div className="text-sm font-medium text-slate-900 min-w-[180px] text-center">{formatWeekRange(selectedWeek)}</div>
-                    <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">Next ▶</button>
-                    <button onClick={() => setSelectedWeek(getWeekStart(new Date()))} className="ml-2 px-4 py-1.5 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 shadow-md">Today</button>
-                  </div>
-                  <button onClick={() => {
-                    const missing = DAYS.filter(d => { const dk = getDateKeyForDay(d); return !isClosedDay(dk) && !data?.allocationHistory?.[dk]; });
-                    if (missing.length > 0) { alert(`Missing allocations for: ${missing.join(', ')}`); return; }
-                    let s = `BUDDY ALLOCATIONS — ${formatWeekRange(selectedWeek)}\n${'='.repeat(50)}\n\n`;
-                    DAYS.forEach(d => {
-                      const dk = getDateKeyForDay(d);
-                      const dt = new Date(dk + 'T12:00:00');
-                      const ds = dt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
-                      if (isClosedDay(dk)) { s += `${ds}\nPRACTICE CLOSED — ${getClosedReason(dk)}\n\n`; return; }
-                      const e = data?.allocationHistory?.[dk];
-                      if (!e) { s += `${ds}\nNo allocation generated\n\n`; return; }
-                      s += `${ds}\n`;
-                      const g = groupAllocationsByCovering(e.allocations || {}, e.dayOffAllocations || {}, e.presentIds || []);
-                      const rows = (e.presentIds || []).map(id => { const c = getClinicianById(id); const t = g[id] || { absent: [], dayOff: [] }; return { clinician: c, tasks: t, canCover: c?.canProvideCover !== false, hasAllocs: t.absent.length > 0 || t.dayOff.length > 0 }; }).filter(r => r.clinician);
-                      rows.sort((a, b) => { if (a.canCover && !b.canCover) return -1; if (!a.canCover && b.canCover) return 1; if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; } return 0; });
-                      if (rows.length === 0) { s += `No clinicians present\n\n`; return; }
-                      rows.forEach(({ clinician, tasks }) => { const f = tasks.absent.length > 0 ? tasks.absent.map(i => getClinicianById(i)?.initials || '??').join(', ') : '-'; const v = tasks.dayOff.length > 0 ? tasks.dayOff.map(i => getClinicianById(i)?.initials || '??').join(', ') : '-'; s += `${clinician.initials}: File ${f} / View ${v}\n`; });
-                      s += '\n';
-                    });
-                    navigator.clipboard.writeText(s.trim());
-                    toast('Copied to clipboard', 'success', 2000);
-                  }} className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 shadow-md flex items-center gap-2">📋 Copy Week</button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                {DAYS.map(d => {
-                  const dk = getDateKeyForDay(d);
-                  const dt = new Date(dk + 'T12:00:00');
-                  const closed = isClosedDay(dk);
-                  const e = data?.allocationHistory?.[dk];
-                  const has = !!e;
-                  const g = has ? groupAllocationsByCovering(e.allocations || {}, e.dayOffAllocations || {}, e.presentIds || []) : {};
-                  const hasA = has && Object.entries(g).some(([_, t]) => t.absent.length > 0 || t.dayOff.length > 0);
-                  return (
-                    <div key={d} className={`card overflow-hidden ${closed ? 'bg-slate-100' : ''}`}>
-                      <div className={`px-4 py-3 border-b ${closed ? 'bg-slate-200 border-slate-300' : 'bg-slate-50 border-slate-200'}`}>
-                        <div className="flex items-center justify-between">
-                          <div><div className="text-sm font-medium text-slate-900">{d}</div><div className="text-xs text-slate-500">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div>
-                          <button onClick={() => toggleClosedDay(dk, 'Bank Holiday')} className={`text-xs px-2 py-1 rounded transition-colors ${closed ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{closed ? 'Closed' : 'Open'}</button>
-                        </div>
-                      </div>
-                      <div className="p-4 min-h-[120px]">
-                        {closed ? <div className="text-center text-slate-500 text-sm py-4"><div className="font-medium">Practice Closed</div><div className="text-xs mt-1">{getClosedReason(dk)}</div></div>
-                        : !has ? <div className="text-center text-amber-600 text-sm py-4"><div className="font-medium">Not generated</div><div className="text-xs mt-1 text-slate-500">Go to Daily view</div></div>
-                        : !hasA ? <div className="text-center text-emerald-600 text-sm py-4"><div className="font-medium">All present</div><div className="text-xs mt-1 text-slate-500">No cover needed</div></div>
-                        : <div className="space-y-2 text-sm">{Object.entries(g).map(([bid, t]) => { if (t.absent.length === 0 && t.dayOff.length === 0) return null; const b = getClinicianById(parseInt(bid)); if (!b) return null; return (<div key={bid} className="flex items-start gap-2"><span className="font-medium text-slate-700 w-8">{b.initials}</span><div className="flex flex-wrap gap-1">{t.absent.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag absent text-xs">{x.initials}</span> : null; })}{t.dayOff.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag dayoff text-xs">{x.initials}</span> : null; })}</div></div>); })}</div>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex gap-6 text-xs text-slate-500 justify-center">
-                <span className="flex items-center gap-1.5"><span className="status-tag absent">XX</span>File & Action (absent)</span>
-                <span className="flex items-center gap-1.5"><span className="status-tag dayoff">XX</span>View Only (day off)</span>
-              </div>
-
-              <div className="card p-5">
-                <div className="mb-4">
-                  <h2 className="text-base font-semibold text-slate-900">Planned Leave This Week</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">{data.lastSyncTime ? `Last synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Not yet synced'}</p>
-                </div>
-                {getWeekAbsences().length === 0 ? <div className="text-center py-6 text-slate-400 text-sm">{data.teamnetUrl ? 'No planned leave this week' : 'Set TeamNet URL in Settings to sync leave calendar'}</div>
-                : <div className="grid grid-cols-5 gap-2">{DAYS.map(d => { const dk = getDateKeyForDay(d); const dt = new Date(dk + 'T12:00:00'); const da = getWeekAbsences().filter(a => a.day === d); return (<div key={d} className="border border-slate-200 rounded-lg overflow-hidden"><div className="bg-slate-50 px-3 py-2 border-b border-slate-200"><div className="text-xs font-medium text-slate-700">{d.slice(0, 3)}</div><div className="text-xs text-slate-400">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div><div className="p-2 min-h-[60px]">{da.length === 0 ? <div className="text-xs text-slate-300 text-center py-2">—</div> : <div className="space-y-1">{da.map((a, i) => { const cc = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? 'bg-blue-100 text-blue-700' : a.reason === 'Training' || a.reason === 'Study' ? 'bg-amber-100 text-amber-700' : a.reason === 'Sick' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'; return <div key={i} className="flex items-center gap-1.5"><span className={`text-xs font-medium px-1.5 py-0.5 rounded ${cc}`}>{a.clinician.initials}</span><span className="text-xs text-slate-400 truncate">{a.reason}</span></div>; })}</div>}</div></div>); })}</div>}
-              </div>
-            </div>
-          )}
-
-          {/* HUDDLE - TODAY */}
-          {activeSection === 'huddle-today' && (
-            <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} />
-          )}
-
-          {/* HUDDLE - FORWARD PLANNING */}
-          {activeSection === 'huddle-forward' && (
-            <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} ensureArray={ensureArray} getClinicianById={getClinicianById} />
-          )}
-
-          {/* HUDDLE - SETTINGS */}
-          {activeSection === 'huddle-settings' && (
-            <HuddleSettings data={data} saveData={saveData} setActiveSection={setActiveSection} huddleData={huddleData} />
-          )}
-
-          {/* HUDDLE - HISTORY */}
-          {activeSection === 'huddle-history' && (
-            <HuddleHistory data={data} huddleData={huddleData} setActiveSection={setActiveSection} />
-          )}
-
-          {/* TEAM MEMBERS */}
-          {activeSection === 'team-members' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between"><div><h1 className="text-xl font-bold text-slate-900">Team Members</h1><p className="text-sm text-slate-500 mt-1">Manage clinicians and buddy assignments</p></div><button onClick={() => setShowAddClinician(!showAddClinician)} className="btn-primary">Add Clinician</button></div>
-              {showAddClinician && (
-                <div className="card p-4 bg-slate-50 flex gap-3 flex-wrap items-end">
-                  <div className="flex-1 min-w-[180px]"><label className="block text-xs font-medium text-slate-600 mb-1">Name</label><input type="text" placeholder="Dr. Jane Smith" value={newClinician.name} onChange={e => setNewClinician(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" /></div>
-                  <div className="w-20"><label className="block text-xs font-medium text-slate-600 mb-1">Initials</label><input type="text" placeholder="JS" maxLength={4} value={newClinician.initials} onChange={e => setNewClinician(p => ({ ...p, initials: e.target.value.toUpperCase() }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm text-center uppercase focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" /></div>
-                  <div className="w-20"><label className="block text-xs font-medium text-slate-600 mb-1">Sessions</label><input type="number" min="1" max="10" value={newClinician.sessions} onChange={e => setNewClinician(p => ({ ...p, sessions: parseInt(e.target.value) || 6 }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm text-center focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" /></div>
-                  <div className="flex-1 min-w-[180px]"><label className="block text-xs font-medium text-slate-600 mb-1">Role</label><input type="text" placeholder="GP Partner" value={newClinician.role} onChange={e => setNewClinician(p => ({ ...p, role: e.target.value }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" /></div>
-                  <button onClick={addClinician} className="btn-primary text-sm">Add</button>
-                </div>
-              )}
-              <div className="space-y-2">
-                {ensureArray(data.clinicians).map((c, idx) => {
-                  const all = ensureArray(data.clinicians);
-                  return (
-                    <div key={c.id} className={`card p-4 transition-colors ${c.longTermAbsent ? 'border-amber-200 bg-amber-50/50' : ''}`}>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex flex-col gap-1">
-                          <button onClick={() => { if (idx === 0) return; const nc = [...all]; [nc[idx - 1], nc[idx]] = [nc[idx], nc[idx - 1]]; saveData({ ...data, clinicians: nc }); }} disabled={idx === 0} className={`w-6 h-6 flex items-center justify-center rounded text-xs ${idx === 0 ? 'text-slate-200' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}>▲</button>
-                          <button onClick={() => { if (idx === all.length - 1) return; const nc = [...all]; [nc[idx], nc[idx + 1]] = [nc[idx + 1], nc[idx]]; saveData({ ...data, clinicians: nc }); }} disabled={idx === all.length - 1} className={`w-6 h-6 flex items-center justify-center rounded text-xs ${idx === all.length - 1 ? 'text-slate-200' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}>▼</button>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start gap-2.5 mb-3">
-                            <div className={`initials-badge ${c.longTermAbsent ? 'bg-amber-100 text-amber-700' : 'neutral'}`}>{c.initials}</div>
-                            <div><div className="text-sm font-medium text-slate-900">{c.name}</div><div className="text-xs text-slate-500">{c.role}</div>{c.longTermAbsent && <div className="mt-1"><span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">Long-term absent</span></div>}</div>
-                          </div>
-                          <div className="flex gap-4 flex-wrap items-end text-sm">
-                            <div><label className="block text-xs text-slate-500 mb-1">Sessions/week</label><input type="number" min="1" max="10" value={c.sessions || 6} onChange={e => updateClinicianField(c.id, 'sessions', e.target.value)} className="w-14 px-2 py-1 rounded border border-slate-200 text-center text-sm" /></div>
-                            <div><label className="block text-xs text-slate-500 mb-1">Primary buddy</label><select value={c.primaryBuddy || ''} onChange={e => updateClinicianField(c.id, 'primaryBuddy', e.target.value)} className="px-2 py-1 rounded border border-slate-200 text-sm"><option value="">None</option>{all.filter(x => x.id !== c.id).map(x => <option key={x.id} value={x.id}>{x.initials} — {x.name}</option>)}</select></div>
-                            <div><label className="block text-xs text-slate-500 mb-1">Secondary buddy</label><select value={c.secondaryBuddy || ''} onChange={e => updateClinicianField(c.id, 'secondaryBuddy', e.target.value)} className="px-2 py-1 rounded border border-slate-200 text-sm"><option value="">None</option>{all.filter(x => x.id !== c.id && x.id !== c.primaryBuddy).map(x => <option key={x.id} value={x.id}>{x.initials} — {x.name}</option>)}</select></div>
-                            <div><label className="block text-xs text-slate-500 mb-1">Can cover others</label><button onClick={() => updateClinicianField(c.id, 'canProvideCover', c.canProvideCover === false ? true : false)} className={`px-3 py-1 rounded text-xs font-medium transition-colors ${c.canProvideCover !== false ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{c.canProvideCover !== false ? 'Yes' : 'No'}</button></div>
-                            <div><label className="block text-xs text-slate-500 mb-1">Long-term absent</label><button onClick={() => updateClinicianField(c.id, 'longTermAbsent', !c.longTermAbsent)} className={`px-3 py-1 rounded text-xs font-medium transition-colors ${c.longTermAbsent ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{c.longTermAbsent ? 'Yes' : 'No'}</button></div>
-                          </div>
-                        </div>
-                        <button onClick={() => removeClinician(c.id)} className="text-xs text-slate-400 hover:text-red-600 transition-colors">Remove</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="card p-5 bg-slate-50 border-slate-200"><h3 className="text-sm font-medium text-slate-700 mb-2">How allocation works</h3><p className="text-sm text-slate-600 leading-relaxed">Sessions are used to balance workload fairly. When someone is absent (AL/sick), their buddy will file and action their results. Day off clinicians only need their results viewed for safety. Primary/secondary buddies are preferred when available. Clinicians with "Can cover others" set to No (e.g. trainees) will still have their results covered but won't be assigned to cover anyone else. Long-term absent clinicians are automatically marked absent each day until the flag is removed.</p></div>
-            </div>
-          )}
-
-          {/* TEAM ROTA */}
-          {activeSection === 'team-rota' && (
-            <div className="space-y-6">
-              <div><h1 className="text-xl font-bold text-slate-900">Clinician Rota</h1><p className="text-sm text-slate-500 mt-1">Standard weekly working pattern — click to toggle</p></div>
-              <div className="card p-5">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead><tr className="border-b border-slate-200"><th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide">Clinician</th>{DAYS.map(d => <th key={d} className="text-center py-2.5 px-3 text-xs font-medium text-slate-500 uppercase tracking-wide w-20">{d.slice(0, 3)}</th>)}</tr></thead>
-                    <tbody>
-                      {ensureArray(data.clinicians).map(c => (
-                        <tr key={c.id} className="border-b border-slate-100 last:border-0">
-                          <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="initials-badge neutral">{c.initials}</div><div><div className="text-sm font-medium text-slate-900">{c.name}</div><div className="text-xs text-slate-500">{c.role}</div></div></div></td>
-                          {DAYS.map(d => { const w = ensureArray(data.weeklyRota[d]).includes(c.id); return <td key={d} className="text-center py-3 px-3"><button onClick={() => toggleRotaDay(c.id, d)} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors mx-auto text-sm ${w ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{w ? '✓' : '—'}</button></td>; })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="mt-4 flex gap-4 text-xs text-slate-500"><span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-100"></span>Working</span><span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-slate-100"></span>Day off</span></div>
-              </div>
-            </div>
-          )}
-
-          {/* SETTINGS */}
-          {activeSection === 'settings' && (
-            <div className="space-y-6">
-              <div><h1 className="text-xl font-bold text-slate-900">Settings</h1><p className="text-sm text-slate-500 mt-1">Configure TeamNet sync and allocation weights</p></div>
-              <div className="card p-5">
-                <h2 className="text-base font-semibold text-slate-900 mb-4">TeamNet Calendar Sync</h2>
-                <p className="text-sm text-slate-500 mb-4">Import planned absences from your TeamNet calendar. The app syncs automatically when you open it.</p>
-                <div className="space-y-4">
-                  <div><label className="block text-sm font-medium text-slate-700 mb-1">TeamNet Calendar URL</label><input type="url" value={data.teamnetUrl || ''} onChange={e => saveData({ ...data, teamnetUrl: e.target.value }, false)} onBlur={() => data.teamnetUrl && saveData(data)} placeholder="https://teamnet.clarity.co.uk/Diary/Sync/..." className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" /></div>
-                  <div className="flex items-center gap-3"><button onClick={() => syncTeamNet()} className="btn-primary">Sync Now</button>{syncStatus && <span className={`text-sm ${syncStatus.includes('Error') || syncStatus.includes('failed') ? 'text-red-600' : 'text-emerald-600'}`}>{syncStatus}</span>}{data.lastSyncTime && <span className="text-xs text-slate-400">Last: {new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}</div>
-                </div>
-                {(ensureArray(data.plannedAbsences).length > 0) && (
-                  <div className="mt-6 pt-4 border-t border-slate-200">
-                    <h3 className="text-sm font-medium text-slate-900 mb-3">Upcoming Planned Absences</h3>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {ensureArray(data.plannedAbsences).filter(a => a.endDate >= getTodayKey()).sort((a, b) => a.startDate.localeCompare(b.startDate)).slice(0, 20).map((a, i) => {
-                        const c = ensureArray(data.clinicians).find(c => c.id === a.clinicianId);
-                        if (!c) return null;
-                        const sd = new Date(a.startDate + 'T12:00:00');
-                        const ed = new Date(a.endDate + 'T12:00:00');
-                        const ds = a.startDate === a.endDate ? sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : `${sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${ed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-                        return <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded text-sm"><div><span className="font-medium">{c.initials}</span><span className="text-slate-500 ml-2">{ds}</span><span className="text-slate-400 ml-2">({a.reason})</span></div><button onClick={() => { const abs = ensureArray(data.plannedAbsences); saveData({ ...data, plannedAbsences: abs.filter((_, j) => j !== abs.indexOf(a)) }); }} className="text-xs text-red-500 hover:text-red-700">Remove</button></div>;
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="card p-5">
-                <div className="flex items-center justify-between mb-5"><h2 className="text-base font-semibold text-slate-900">Workload Weights</h2>{settingsSaved && <span className="text-xs text-emerald-600 font-medium">Saved</span>}</div>
-                <p className="text-sm text-slate-500 mb-6">Adjust how workload is calculated when balancing buddy allocations.</p>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"><div><div className="text-sm font-medium text-slate-900">Absent (File & Action)</div><div className="text-xs text-slate-500 mt-0.5">Multiplier when covering absent clinician</div></div><div className="flex items-center gap-2"><input type="number" min="0.5" max="10" step="0.5" value={data.settings?.absentWeight || 2} onChange={e => updateSettings('absentWeight', e.target.value)} className="w-20 px-3 py-2 rounded-md border border-slate-300 text-sm text-center focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" /><span className="text-sm text-slate-500">× sessions</span></div></div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"><div><div className="text-sm font-medium text-slate-900">Day Off (View Only)</div><div className="text-xs text-slate-500 mt-0.5">Multiplier when viewing day-off results</div></div><div className="flex items-center gap-2"><input type="number" min="0.5" max="10" step="0.5" value={data.settings?.dayOffWeight || 1} onChange={e => updateSettings('dayOffWeight', e.target.value)} className="w-20 px-3 py-2 rounded-md border border-slate-300 text-sm text-center focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" /><span className="text-sm text-slate-500">× sessions</span></div></div>
-                </div>
-              </div>
-              <div className="card p-4 bg-slate-50 border-slate-200"><h3 className="text-xs font-medium text-slate-700 mb-1">How the algorithm works</h3><p className="text-xs text-slate-600 leading-relaxed"><strong>Round-robin first:</strong> Everyone gets 1 allocation before anyone gets 2. Primary buddy is tried first, then secondary, then any eligible clinician.<br/><br/><strong>Weighted tiebreaking:</strong> When multiple clinicians have same count, lowest weighted load wins. Load = (absent × {data.settings?.absentWeight || 2}) + (day-off × {data.settings?.dayOffWeight || 1}).</p></div>
-
-              <div className="card p-5 border-red-200">
-                <h2 className="text-base font-semibold text-red-700 mb-4">Danger Zone</h2>
-                <p className="text-sm text-slate-500 mb-4">Reset all data to defaults. This will clear ALL clinicians, rotas, and history.</p>
-                <button onClick={async () => { if (confirm('Delete ALL DATA and reset? Cannot be undone.')) { if (confirm('FINAL WARNING: Everything will be deleted. Continue?')) { const d = getDefaultData(); setData(d); try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(d) }); alert('Reset successful. Refreshing...'); window.location.reload(); } catch (err) { alert('Reset failed: ' + err.message); } } } }} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium">Reset All Data</button>
-              </div>
-              <div className="card p-5">
-                <button onClick={() => setShowHistory(!showHistory)} className="flex items-center justify-between w-full"><h2 className="text-base font-semibold text-slate-900">Allocation History</h2><span className="text-sm text-slate-500">{showHistory ? '▼' : '▶'}</span></button>
-                {showHistory && (
-                  <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
-                    {Object.entries(data.allocationHistory || {}).sort(([a], [b]) => b.localeCompare(a)).slice(0, 30).map(([dk, e]) => {
-                      const g = groupAllocationsByCovering(e.allocations || {}, e.dayOffAllocations || {}, e.presentIds || []);
-                      const has = Object.entries(g).some(([_, t]) => t.absent.length > 0 || t.dayOff.length > 0);
-                      return <div key={dk} className="p-3 bg-slate-50 rounded-lg"><div className="text-sm font-medium text-slate-900">{formatDate(dk)}</div>{has ? <div className="mt-2 text-xs text-slate-600">{Object.entries(g).map(([bid, t]) => { if (t.absent.length === 0 && t.dayOff.length === 0) return null; const b = getClinicianById(parseInt(bid)); if (!b) return null; const as = t.absent.map(i => getClinicianById(i)?.initials || '??').join(', '); const ds = t.dayOff.map(i => getClinicianById(i)?.initials || '??').join(', '); return <div key={bid}>{b.initials} → {as}{ds ? ` (view: ${ds})` : ''}</div>; })}</div> : <div className="mt-1 text-xs text-slate-400">All present</div>}</div>;
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {activeSection === 'buddy-daily' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} />}
+          {activeSection === 'buddy-week' && <BuddyWeek data={data} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} toast={toast} helpers={helpers} />}
+          {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} />}
+          {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} ensureArray={ensureArray} getClinicianById={getClinicianById} />}
+          {activeSection === 'huddle-settings' && <HuddleSettings data={data} saveData={saveData} setActiveSection={setActiveSection} huddleData={huddleData} />}
+          {activeSection === 'huddle-history' && <HuddleHistory data={data} huddleData={huddleData} setActiveSection={setActiveSection} />}
+          {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} helpers={helpers} />}
+          {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} />}
+          {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} />}
         </div>
         <footer className="mt-8 pb-6"><div className="text-center text-xs text-slate-400">Winscombe & Banwell Family Practice</div></footer>
       </main>

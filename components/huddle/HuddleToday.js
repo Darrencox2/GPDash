@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
 import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
@@ -7,52 +7,88 @@ import SlotFilter from './SlotFilter';
 // ── Match CSV clinician name to team member initials ──────────────
 function getInitials(csvName, clinicians) {
   if (!csvName || !clinicians || clinicians.length === 0) return csvName;
+  const csvLower = csvName.toLowerCase().trim();
+  // Handle "Surname, First" format
+  const hasComma = csvLower.includes(',');
   const cleaned = csvName.replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s*/i, '').trim().toLowerCase();
-  const parts = cleaned.split(/\s+/);
-  const surname = parts[parts.length - 1] || '';
+  const parts = hasComma ? cleaned.split(',').map(s => s.trim()).reverse().join(' ').split(/\s+/) : cleaned.split(/\s+/);
 
   for (const c of clinicians) {
     const cCleaned = c.name.replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s*/i, '').trim().toLowerCase();
     const cParts = cCleaned.split(/\s+/);
     const cSurname = cParts[cParts.length - 1] || '';
-    if (surname && cSurname && surname === cSurname) return c.initials;
+    const cFirst = cParts[0] || '';
+    const csvSurname = parts[parts.length - 1] || '';
+    const csvFirst = parts[0] || '';
+
+    // Exact surname match
+    if (csvSurname.length >= 3 && cSurname && csvSurname === cSurname) return c.initials;
+    // CSV name contains team member surname (or vice versa)
+    if (cSurname.length >= 3 && csvLower.includes(cSurname)) return c.initials;
+    // First name match (for single-name CSVs like "Emma", "Katie")
+    if (parts.length === 1 && csvFirst.length >= 3 && csvFirst === cFirst) return c.initials;
+    // Partial first name match (CSV "Kate" matching "Katie" etc)
+    if (parts.length === 1 && csvFirst.length >= 3 && (cFirst.startsWith(csvFirst) || csvFirst.startsWith(cFirst))) return c.initials;
   }
-  // Fallback: first letters of first+last
+  // Fallback: build initials from CSV name
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return csvName.slice(0, 3);
+  if (parts.length === 1 && parts[0].length >= 2) return parts[0].slice(0, 2).toUpperCase();
+  return csvName.slice(0, 2).toUpperCase();
 }
 
 // ── Inline slot picker for a capacity card ────────────────────────
 function CardSlotPicker({ overrides, setOverrides, knownSlotTypes }) {
   const [show, setShow] = useState(false);
+  const btnRef = useRef(null);
+  const panelRef = useRef(null);
   const selectedCount = overrides ? Object.values(overrides).filter(Boolean).length : 0;
 
+  // Close on click outside
+  useEffect(() => {
+    if (!show) return;
+    const handler = (e) => {
+      if (btnRef.current?.contains(e.target) || panelRef.current?.contains(e.target)) return;
+      setShow(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [show]);
+
+  // Calculate position for fixed dropdown
+  const getPos = () => {
+    if (!btnRef.current) return {};
+    const r = btnRef.current.getBoundingClientRect();
+    return { top: r.bottom + 4, right: window.innerWidth - r.right };
+  };
+
   return (
-    <div className="relative">
-      <button
+    <>
+      <button ref={btnRef}
         onClick={() => { if (!show && !overrides) { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o); } setShow(!show); }}
         className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${show ? 'bg-slate-900 text-white' : 'bg-white/20 text-white/90 hover:bg-white/30'}`}
       >
         ⚙ Slots{selectedCount > 0 ? ` (${selectedCount})` : ''}
       </button>
       {show && overrides && (
-        <div className="absolute right-0 top-full mt-1 z-30 bg-white rounded-xl border border-slate-200 shadow-xl p-3 w-64 max-h-60 overflow-y-auto">
-          <div className="text-xs font-medium text-slate-700 mb-2">Include in count:</div>
-          <div className="space-y-0.5">
+        <div ref={panelRef} className="fixed z-50 bg-white rounded-xl border border-slate-200 shadow-xl w-72" style={getPos()}>
+          <div className="px-3 pt-3 pb-2 border-b border-slate-100 flex items-center justify-between">
+            <div className="text-xs font-medium text-slate-700">Include in count:</div>
+            <div className="flex gap-2">
+              <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o); }} className="text-[10px] text-blue-600 hover:underline font-medium">Select all</button>
+              <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = false; }); setOverrides(o); }} className="text-[10px] text-red-500 hover:underline font-medium">Deselect all</button>
+            </div>
+          </div>
+          <div className="overflow-y-auto p-3 space-y-0.5" style={{ maxHeight: 'min(50vh, 320px)' }}>
             {(knownSlotTypes || []).sort().map(slot => (
-              <label key={slot} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5">
-                <input type="checkbox" checked={!!overrides[slot]} onChange={e => setOverrides({ ...overrides, [slot]: e.target.checked })} className="rounded border-slate-300" />
-                <span className="truncate" title={slot}>{slot.length > 26 ? slot.slice(0, 26) + '…' : slot}</span>
+              <label key={slot} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-50 rounded px-1 py-1">
+                <input type="checkbox" checked={!!overrides[slot]} onChange={e => setOverrides({ ...overrides, [slot]: e.target.checked })} className="rounded border-slate-300 flex-shrink-0" />
+                <span className="truncate" title={slot}>{slot}</span>
               </label>
             ))}
           </div>
-          <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
-            <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o); }} className="text-[10px] text-slate-500 hover:underline">All</button>
-            <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = false; }); setOverrides(o); }} className="text-[10px] text-slate-500 hover:underline">None</button>
-          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
