@@ -24,13 +24,16 @@ export default function Home() {
   const [syncStatus, setSyncStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [expandedMenus, setExpandedMenus] = useState({ buddy: true, team: false });
+  const [expandedMenus, setExpandedMenus] = useState({ buddy: true, team: false, huddle: true });
   const hasSyncedRef = useRef(false);
   const [huddleData, setHuddleData] = useState(null); // Parsed CSV data for huddle
   const [huddleError, setHuddleError] = useState('');
   const [huddleDate, setHuddleDate] = useState(null); // Selected date in huddle view
   const [showHuddleSettings, setShowHuddleSettings] = useState(false);
+  const [huddleMessages, setHuddleMessages] = useState([]); // Key messages / noticeboard
+  const [newHuddleMessage, setNewHuddleMessage] = useState('');
   const fileInputRef = useRef(null);
+  const huddleLoadedRef = useRef(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('buddy_password');
@@ -46,6 +49,24 @@ export default function Home() {
       syncTeamNet(true);
     }
   }, [data?.teamnetUrl]);
+
+  // Load persisted huddle CSV data and messages from Redis
+  useEffect(() => {
+    if (data && !huddleLoadedRef.current) {
+      huddleLoadedRef.current = true;
+      if (data.huddleCsvData) {
+        setHuddleData(data.huddleCsvData);
+        // Set date to today if available, else first date
+        const today = new Date();
+        const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`;
+        const dates = data.huddleCsvData.dates || [];
+        setHuddleDate(dates.includes(todayStr) ? todayStr : dates[0] || null);
+      }
+      if (data.huddleMessages) {
+        setHuddleMessages(Array.isArray(data.huddleMessages) ? data.huddleMessages : Object.values(data.huddleMessages));
+      }
+    }
+  }, [data]);
 
   const loadData = async (pwd) => {
     setLoading(true);
@@ -660,9 +681,19 @@ export default function Home() {
               )}
             </div>
             {/* Huddle */}
-            <button onClick={() => setActiveSection('huddle')} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${activeSection === 'huddle' ? 'text-white bg-white/10' : 'text-purple-200 hover:text-white hover:bg-white/5'}`}>
-              <span className="text-lg">📊</span>{sidebarOpen && <span>Huddle Dashboard</span>}
-            </button>
+            <div>
+              <button onClick={() => toggleMenu('huddle')} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${expandedMenus.huddle ? 'text-white' : 'text-purple-200 hover:text-white'}`}>
+                <span className="text-lg">📊</span>
+                {sidebarOpen && <><span className="flex-1 text-left">Huddle</span><span className="text-xs">{expandedMenus.huddle ? '▼' : '▶'}</span></>}
+              </button>
+              {expandedMenus.huddle && sidebarOpen && (
+                <div className="ml-4 border-l border-white/10">
+                  <button onClick={() => setActiveSection('huddle-today')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'huddle-today' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Today</button>
+                  <button onClick={() => setActiveSection('huddle-forward')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'huddle-forward' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Forward Planning</button>
+                  <button onClick={() => setActiveSection('huddle-settings')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'huddle-settings' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Settings</button>
+                </div>
+              )}
+            </div>
             {/* Team */}
             <div>
               <button onClick={() => toggleMenu('team')} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${expandedMenus.team ? 'text-white' : 'text-purple-200 hover:text-white'}`}>
@@ -1008,14 +1039,18 @@ export default function Home() {
             </div>
           )}
 
-          {/* HUDDLE DASHBOARD */}
-          {activeSection === 'huddle' && (
+          {/* HUDDLE - TODAY */}
+          {activeSection === 'huddle-today' && (
             <div className="space-y-6">
               {/* Header with upload */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <h1 className="text-xl font-bold text-slate-900">Huddle Dashboard</h1>
-                  <p className="text-sm text-slate-500 mt-1">Urgent capacity overview</p>
+                  <h1 className="text-xl font-bold text-slate-900">Today's Huddle</h1>
+                  {data?.huddleCsvUploadedAt && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Last report uploaded: {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => {
@@ -1027,90 +1062,35 @@ export default function Home() {
                       try {
                         const parsed = parseHuddleCSV(event.target.result);
                         setHuddleData(parsed);
-                        // Set initial date to today if available, else first date
                         const today = new Date();
                         const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`;
                         setHuddleDate(parsed.dates.includes(todayStr) ? todayStr : parsed.dates[0]);
-                        // Update known clinicians and slot types
+                        // Persist CSV data + update settings
                         const hs = data.huddleSettings || {};
-                        saveData({ ...data, huddleSettings: { ...hs, knownClinicians: [...new Set([...(hs.knownClinicians||[]), ...parsed.clinicians])], knownSlotTypes: [...new Set([...(hs.knownSlotTypes||[]), ...parsed.allSlotTypes])], lastUploadDate: new Date().toISOString() } }, false);
+                        const uploadTime = new Date().toISOString();
+                        saveData({ ...data, huddleCsvData: parsed, huddleCsvUploadedAt: uploadTime, huddleSettings: { ...hs, knownClinicians: [...new Set([...(hs.knownClinicians||[]), ...parsed.clinicians])], knownSlotTypes: [...new Set([...(hs.knownSlotTypes||[]), ...parsed.allSlotTypes])], lastUploadDate: uploadTime } }, false);
                       } catch (err) { setHuddleError('Failed to parse CSV: ' + err.message); }
                     };
                     reader.readAsText(file);
                     e.target.value = '';
                   }} />
-                  <button onClick={() => setShowHuddleSettings(!showHuddleSettings)} className="px-3 py-2 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">⚙️ Settings</button>
-                  <button onClick={() => fileInputRef.current?.click()} className="btn-primary">Upload Report</button>
+                  {(() => {
+                    const isToday = (() => {
+                      if (!data?.huddleCsvUploadedAt) return false;
+                      const uploaded = new Date(data.huddleCsvUploadedAt);
+                      const now = new Date();
+                      return uploaded.toDateString() === now.toDateString();
+                    })();
+                    return (
+                      <button onClick={() => fileInputRef.current?.click()} className={`px-4 py-2 rounded-md text-sm font-medium text-white shadow-sm transition-colors ${isToday ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`}>
+                        {isToday ? '✓ Upload Report' : '⚠ Upload Report'}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
 
               {huddleError && <div className="card p-4 bg-red-50 border-red-200 text-red-700 text-sm">{huddleError}</div>}
-
-              {/* Settings Panel (collapsible) */}
-              {showHuddleSettings && (
-                <div className="card p-5 bg-slate-50 border-slate-200">
-                  <h2 className="text-base font-semibold text-slate-900 mb-4">Huddle Settings</h2>
-                  {(!data.huddleSettings?.knownClinicians?.length && !data.huddleSettings?.knownSlotTypes?.length) ? (
-                    <p className="text-sm text-slate-500">Upload a report first to configure settings.</p>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* Clinician Groups */}
-                      <div>
-                        <h3 className="text-sm font-medium text-slate-900 mb-2">Clinicians to Include</h3>
-                        <p className="text-xs text-slate-500 mb-3">Click to toggle. Drag to reorder within groups.</p>
-                        {['clinician', 'nursing', 'other'].map(group => {
-                          const groupLabels = { clinician: '👨‍⚕️ Clinician Team', nursing: '👩‍⚕️ Nursing Team', other: '📋 Other' };
-                          const groupClinicians = (data.huddleSettings?.clinicianGroups?.[group] || []);
-                          return (
-                            <div key={group} className="mb-3">
-                              <div className="text-xs font-medium text-slate-600 mb-1">{groupLabels[group]}</div>
-                              <div className="min-h-[40px] p-2 bg-white rounded border-2 border-dashed border-slate-200" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const n=e.dataTransfer.getData('clinician');if(!n)return;const hs={...data.huddleSettings},g={...hs.clinicianGroups};['clinician','nursing','other'].forEach(c=>{g[c]=(g[c]||[]).filter(x=>x!==n)});g[group]=[...(g[group]||[]),n];saveData({...data,huddleSettings:{...hs,clinicianGroups:g}})}}>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {groupClinicians.map(name => {
-                                    const isIncluded = (data.huddleSettings?.includedClinicians || []).includes(name);
-                                    return <div key={name} draggable onDragStart={e=>e.dataTransfer.setData('clinician',name)} onClick={()=>{const hs={...data.huddleSettings},inc=hs.includedClinicians||[];hs.includedClinicians=isIncluded?inc.filter(c=>c!==name):[...inc,name];saveData({...data,huddleSettings:hs})}} className={`px-2 py-1 rounded text-xs cursor-pointer transition-colors ${isIncluded?'bg-purple-100 text-purple-800 font-medium':'bg-slate-100 text-slate-500'}`}>{name}</div>;
-                                  })}
-                                  {groupClinicians.length === 0 && <span className="text-xs text-slate-400 italic">Drag here</span>}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {/* Ungrouped */}
-                        {(() => {
-                          const ungrouped = (data.huddleSettings?.knownClinicians || []).filter(c => !['clinician', 'nursing', 'other'].some(g => (data.huddleSettings?.clinicianGroups?.[g] || []).includes(c)));
-                          if (ungrouped.length === 0) return null;
-                          return <div className="mt-2"><div className="text-xs text-slate-500 mb-1">Ungrouped:</div><div className="flex flex-wrap gap-1.5">{ungrouped.map(n => <div key={n} draggable onDragStart={e=>e.dataTransfer.setData('clinician',n)} className="px-2 py-1 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move">{n}</div>)}</div></div>;
-                        })()}
-                      </div>
-                      {/* Slot Categories */}
-                      <div className="pt-4 border-t border-slate-200">
-                        <h3 className="text-sm font-medium text-slate-900 mb-2">Urgent Slot Types</h3>
-                        <p className="text-xs text-slate-500 mb-3">Only slots in "Urgent" are counted. Drag to categorise.</p>
-                        {['urgent', 'excluded'].map(cat => {
-                          const catLabels = { urgent: { icon: '🔴', label: 'Urgent (counted)' }, excluded: { icon: '⚪', label: 'Not counted' } };
-                          const catSlots = (data.huddleSettings?.slotCategories?.[cat] || []);
-                          return (
-                            <div key={cat} className="mb-2">
-                              <div className="text-xs font-medium text-slate-600 mb-1">{catLabels[cat].icon} {catLabels[cat].label}</div>
-                              <div className={`min-h-[40px] p-2 rounded border-2 border-dashed ${cat==='urgent'?'bg-red-50 border-red-200':'bg-slate-100 border-slate-200'}`} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const s=e.dataTransfer.getData('slot');if(!s)return;const hs={...data.huddleSettings},cats={...hs.slotCategories};['urgent','excluded'].forEach(c=>{cats[c]=(cats[c]||[]).filter(x=>x!==s)});cats[cat]=[...(cats[cat]||[]),s];saveData({...data,huddleSettings:{...hs,slotCategories:cats}})}}>
-                                <div className="flex flex-wrap gap-1">{catSlots.map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className={`px-2 py-0.5 rounded text-xs cursor-move truncate max-w-[180px] ${cat==='urgent'?'bg-red-100 text-red-800':'bg-white text-slate-600 border border-slate-200'}`} title={s}>{s.length>25?s.slice(0,25)+'...':s}</div>)}{catSlots.length===0 && <span className="text-xs text-slate-400 italic">Drag here</span>}</div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {/* Uncategorised */}
-                        {(() => {
-                          const categorised = ['urgent', 'excluded'].flatMap(c => data.huddleSettings?.slotCategories?.[c] || []);
-                          const uncategorised = (data.huddleSettings?.knownSlotTypes || []).filter(s => !categorised.includes(s));
-                          if (uncategorised.length === 0) return null;
-                          return <div className="mt-3"><div className="text-xs text-slate-500 mb-1">Uncategorised ({uncategorised.length}):</div><div className="max-h-32 overflow-y-auto"><div className="flex flex-wrap gap-1">{uncategorised.sort().map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className="px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move truncate max-w-[180px]" title={s}>{s.length>25?s.slice(0,25)+'...':s}</div>)}</div></div></div>;
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
 
               {!huddleData ? (
                 <div className="card p-12 text-center">
@@ -1121,34 +1101,27 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  {/* Date Navigation */}
-                  <div className="card p-4">
-                    <div className="flex items-center justify-between">
-                      <button onClick={() => { const idx = huddleData.dates.indexOf(huddleDate); if (idx > 0) setHuddleDate(huddleData.dates[idx - 1]); }} disabled={huddleData.dates.indexOf(huddleDate) === 0} className="p-2 rounded-md hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                      </button>
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => { const today = new Date(); const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`; if (huddleData.dates.includes(todayStr)) setHuddleDate(todayStr); }} className="px-4 py-2 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 shadow-md">Today</button>
-                        <select value={huddleDate || ''} onChange={e => setHuddleDate(e.target.value)} className="px-3 py-2 rounded-md border border-slate-300 text-sm font-medium">
-                          {huddleData.dates.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                      </div>
-                      <button onClick={() => { const idx = huddleData.dates.indexOf(huddleDate); if (idx < huddleData.dates.length - 1) setHuddleDate(huddleData.dates[idx + 1]); }} disabled={huddleData.dates.indexOf(huddleDate) === huddleData.dates.length - 1} className="p-2 rounded-md hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Capacity Display */}
+                  {/* Capacity Display for today */}
                   {(() => {
-                    const capacity = getHuddleCapacity(huddleData, huddleDate);
+                    const today = new Date();
+                    const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`;
+                    const displayDate = huddleData.dates.includes(todayStr) ? todayStr : huddleData.dates[0];
+                    const capacity = getHuddleCapacity(huddleData, displayDate);
                     const grandTotal = capacity.am.total + capacity.pm.total;
+                    const isActuallyToday = displayDate === todayStr;
                     return (
                       <>
+                        {!isActuallyToday && (
+                          <div className="card p-3 bg-amber-50 border-amber-200 text-amber-800 text-sm flex items-center gap-2">
+                            <span>⚠️</span>
+                            <span>Today's date not found in report. Showing data for <strong>{displayDate}</strong>.</span>
+                          </div>
+                        )}
+
                         {/* Summary Header */}
                         <div className="text-center py-4">
                           <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-500">{grandTotal}</div>
-                          <div className="text-sm text-slate-500 mt-1">urgent slots available</div>
+                          <div className="text-sm text-slate-500 mt-1">urgent slots available{isActuallyToday ? ' today' : ` (${displayDate})`}</div>
                         </div>
 
                         {/* AM / PM Cards */}
@@ -1208,6 +1181,37 @@ export default function Home() {
                           </div>
                         </div>
 
+                        {/* Slot Type Breakdown */}
+                        {capacity.bySlotType.length > 0 && (
+                          <div className="card overflow-hidden">
+                            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200">
+                              <div className="text-sm font-semibold text-slate-900">Capacity by Slot Type</div>
+                            </div>
+                            <div className="p-4">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="text-xs text-slate-500 uppercase">
+                                    <th className="text-left py-1 font-medium">Slot Type</th>
+                                    <th className="text-right py-1 font-medium w-16">AM</th>
+                                    <th className="text-right py-1 font-medium w-16">PM</th>
+                                    <th className="text-right py-1 font-medium w-16">Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {capacity.bySlotType.map((s, i) => (
+                                    <tr key={i}>
+                                      <td className="py-2 text-slate-700">{s.name}</td>
+                                      <td className="py-2 text-right text-amber-600 font-medium">{s.am || '–'}</td>
+                                      <td className="py-2 text-right text-blue-600 font-medium">{s.pm || '–'}</td>
+                                      <td className="py-2 text-right font-semibold text-slate-900">{s.total}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Warning if no urgent slots configured */}
                         {(!data.huddleSettings?.slotCategories?.urgent?.length) && (
                           <div className="card p-4 bg-amber-50 border-amber-200">
@@ -1215,7 +1219,7 @@ export default function Home() {
                               <span className="text-lg">⚠️</span>
                               <div>
                                 <div className="text-sm font-medium text-amber-800">Configure Urgent Slot Types</div>
-                                <p className="text-xs text-amber-700 mt-1">Click Settings above to define which slot types count as urgent capacity. Currently showing all Available slots.</p>
+                                <p className="text-xs text-amber-700 mt-1">Go to Huddle → Settings to define which slot types count as urgent capacity. Currently showing all Available slots.</p>
                               </div>
                             </div>
                           </div>
@@ -1223,7 +1227,222 @@ export default function Home() {
                       </>
                     );
                   })()}
+
+                  {/* Key Messages / Noticeboard */}
+                  <div className="card overflow-hidden">
+                    <div className="bg-slate-50 px-5 py-3 border-b border-slate-200">
+                      <div className="text-sm font-semibold text-slate-900">Key Messages</div>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {huddleMessages.length === 0 && (
+                        <p className="text-sm text-slate-400 text-center py-2">No messages. Add a message below.</p>
+                      )}
+                      {huddleMessages.map((msg, i) => (
+                        <div key={msg.id || i} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                          <span className="text-blue-500 mt-0.5">📌</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-800">{msg.text}</p>
+                            <p className="text-xs text-slate-400 mt-1">{msg.addedAt ? new Date(msg.addedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</p>
+                          </div>
+                          <button onClick={() => {
+                            const updated = huddleMessages.filter((_, idx) => idx !== i);
+                            setHuddleMessages(updated);
+                            saveData({ ...data, huddleMessages: updated }, false);
+                          }} className="text-xs text-slate-400 hover:text-red-500 flex-shrink-0">✕</button>
+                        </div>
+                      ))}
+                      <div className="flex gap-2 pt-1">
+                        <input type="text" value={newHuddleMessage} onChange={e => setNewHuddleMessage(e.target.value)} onKeyDown={e => {
+                          if (e.key === 'Enter' && newHuddleMessage.trim()) {
+                            const updated = [...huddleMessages, { id: Date.now(), text: newHuddleMessage.trim(), addedAt: new Date().toISOString() }];
+                            setHuddleMessages(updated);
+                            saveData({ ...data, huddleMessages: updated }, false);
+                            setNewHuddleMessage('');
+                          }
+                        }} placeholder="Add a message for the huddle..." className="flex-1 px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" />
+                        <button onClick={() => {
+                          if (!newHuddleMessage.trim()) return;
+                          const updated = [...huddleMessages, { id: Date.now(), text: newHuddleMessage.trim(), addedAt: new Date().toISOString() }];
+                          setHuddleMessages(updated);
+                          saveData({ ...data, huddleMessages: updated }, false);
+                          setNewHuddleMessage('');
+                        }} className="btn-primary text-sm">Add</button>
+                      </div>
+                    </div>
+                  </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {/* HUDDLE - FORWARD PLANNING */}
+          {activeSection === 'huddle-forward' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">Forward Planning</h1>
+                <p className="text-sm text-slate-500 mt-1">View upcoming capacity from uploaded report data</p>
+              </div>
+
+              {!huddleData ? (
+                <div className="card p-12 text-center">
+                  <div className="text-5xl mb-4">📅</div>
+                  <h2 className="text-lg font-semibold text-slate-900 mb-2">No Report Data</h2>
+                  <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload a report on the Today page first, then use this view to browse capacity across dates.</p>
+                  <button onClick={() => setActiveSection('huddle-today')} className="btn-primary">Go to Today</button>
+                </div>
+              ) : (
+                <>
+                  {/* Date Navigation */}
+                  <div className="card p-4">
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => { const idx = huddleData.dates.indexOf(huddleDate); if (idx > 0) setHuddleDate(huddleData.dates[idx - 1]); }} disabled={huddleData.dates.indexOf(huddleDate) === 0} className="p-2 rounded-md hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                      </button>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => { const today = new Date(); const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`; if (huddleData.dates.includes(todayStr)) setHuddleDate(todayStr); }} className="px-4 py-2 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 shadow-md">Today</button>
+                        <select value={huddleDate || ''} onChange={e => setHuddleDate(e.target.value)} className="px-3 py-2 rounded-md border border-slate-300 text-sm font-medium">
+                          {huddleData.dates.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                      <button onClick={() => { const idx = huddleData.dates.indexOf(huddleDate); if (idx < huddleData.dates.length - 1) setHuddleDate(huddleData.dates[idx + 1]); }} disabled={huddleData.dates.indexOf(huddleDate) === huddleData.dates.length - 1} className="p-2 rounded-md hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Capacity Display */}
+                  {(() => {
+                    const capacity = getHuddleCapacity(huddleData, huddleDate);
+                    const grandTotal = capacity.am.total + capacity.pm.total;
+                    return (
+                      <>
+                        <div className="text-center py-4">
+                          <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-500">{grandTotal}</div>
+                          <div className="text-sm text-slate-500 mt-1">urgent slots available — {huddleDate}</div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="card overflow-hidden">
+                            <div className="bg-gradient-to-r from-amber-400 to-orange-400 px-5 py-3">
+                              <div className="flex items-center justify-between text-white">
+                                <div><div className="text-lg font-bold">Morning</div><div className="text-xs opacity-90">08:00 – 13:00</div></div>
+                                <div className="text-3xl font-bold">{capacity.am.total}</div>
+                              </div>
+                            </div>
+                            <div className="p-4">
+                              {capacity.am.byClinician.length > 0 ? (
+                                <div className="space-y-2">{capacity.am.byClinician.map((c, i) => <div key={i} className="flex items-center justify-between"><span className="text-sm text-slate-700">{c.name}</span><span className="text-sm font-semibold text-amber-600">{c.available}</span></div>)}</div>
+                              ) : <div className="text-center text-slate-400 text-sm py-4">No capacity</div>}
+                            </div>
+                          </div>
+                          <div className="card overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-400 to-indigo-500 px-5 py-3">
+                              <div className="flex items-center justify-between text-white">
+                                <div><div className="text-lg font-bold">Afternoon</div><div className="text-xs opacity-90">13:00 – 18:30</div></div>
+                                <div className="text-3xl font-bold">{capacity.pm.total}</div>
+                              </div>
+                            </div>
+                            <div className="p-4">
+                              {capacity.pm.byClinician.length > 0 ? (
+                                <div className="space-y-2">{capacity.pm.byClinician.map((c, i) => <div key={i} className="flex items-center justify-between"><span className="text-sm text-slate-700">{c.name}</span><span className="text-sm font-semibold text-blue-600">{c.available}</span></div>)}</div>
+                              ) : <div className="text-center text-slate-400 text-sm py-4">No capacity</div>}
+                            </div>
+                          </div>
+                        </div>
+
+                        {capacity.bySlotType.length > 0 && (
+                          <div className="card overflow-hidden">
+                            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200">
+                              <div className="text-sm font-semibold text-slate-900">Capacity by Slot Type</div>
+                            </div>
+                            <div className="p-4">
+                              <table className="w-full text-sm">
+                                <thead><tr className="text-xs text-slate-500 uppercase"><th className="text-left py-1 font-medium">Slot Type</th><th className="text-right py-1 font-medium w-16">AM</th><th className="text-right py-1 font-medium w-16">PM</th><th className="text-right py-1 font-medium w-16">Total</th></tr></thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {capacity.bySlotType.map((s, i) => <tr key={i}><td className="py-2 text-slate-700">{s.name}</td><td className="py-2 text-right text-amber-600 font-medium">{s.am || '–'}</td><td className="py-2 text-right text-blue-600 font-medium">{s.pm || '–'}</td><td className="py-2 text-right font-semibold text-slate-900">{s.total}</td></tr>)}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* HUDDLE - SETTINGS */}
+          {activeSection === 'huddle-settings' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">Huddle Settings</h1>
+                <p className="text-sm text-slate-500 mt-1">Configure which clinicians and slot types to track</p>
+              </div>
+
+              {(!data.huddleSettings?.knownClinicians?.length && !data.huddleSettings?.knownSlotTypes?.length) ? (
+                <div className="card p-12 text-center">
+                  <div className="text-5xl mb-4">⚙️</div>
+                  <h2 className="text-lg font-semibold text-slate-900 mb-2">Upload a Report First</h2>
+                  <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload an EMIS report on the Today page. Once uploaded, clinician names and slot types will appear here for configuration.</p>
+                  <button onClick={() => setActiveSection('huddle-today')} className="btn-primary">Go to Today</button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Clinician Groups */}
+                  <div className="card p-5">
+                    <h2 className="text-base font-semibold text-slate-900 mb-2">Clinicians to Include</h2>
+                    <p className="text-xs text-slate-500 mb-3">Click to toggle inclusion. Drag to assign to groups.</p>
+                    {['clinician', 'nursing', 'other'].map(group => {
+                      const groupLabels = { clinician: '👨‍⚕️ Clinician Team', nursing: '👩‍⚕️ Nursing Team', other: '📋 Other' };
+                      const groupClinicians = (data.huddleSettings?.clinicianGroups?.[group] || []);
+                      return (
+                        <div key={group} className="mb-3">
+                          <div className="text-xs font-medium text-slate-600 mb-1">{groupLabels[group]}</div>
+                          <div className="min-h-[40px] p-2 bg-white rounded border-2 border-dashed border-slate-200" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const n=e.dataTransfer.getData('clinician');if(!n)return;const hs={...data.huddleSettings},g={...hs.clinicianGroups};['clinician','nursing','other'].forEach(c=>{g[c]=(g[c]||[]).filter(x=>x!==n)});g[group]=[...(g[group]||[]),n];saveData({...data,huddleSettings:{...hs,clinicianGroups:g}})}}>
+                            <div className="flex flex-wrap gap-1.5">
+                              {groupClinicians.map(name => {
+                                const isIncluded = (data.huddleSettings?.includedClinicians || []).includes(name);
+                                return <div key={name} draggable onDragStart={e=>e.dataTransfer.setData('clinician',name)} onClick={()=>{const hs={...data.huddleSettings},inc=hs.includedClinicians||[];hs.includedClinicians=isIncluded?inc.filter(c=>c!==name):[...inc,name];saveData({...data,huddleSettings:hs})}} className={`px-2 py-1 rounded text-xs cursor-pointer transition-colors ${isIncluded?'bg-purple-100 text-purple-800 font-medium':'bg-slate-100 text-slate-500'}`}>{name}</div>;
+                              })}
+                              {groupClinicians.length === 0 && <span className="text-xs text-slate-400 italic">Drag here</span>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(() => {
+                      const ungrouped = (data.huddleSettings?.knownClinicians || []).filter(c => !['clinician', 'nursing', 'other'].some(g => (data.huddleSettings?.clinicianGroups?.[g] || []).includes(c)));
+                      if (ungrouped.length === 0) return null;
+                      return <div className="mt-2"><div className="text-xs text-slate-500 mb-1">Ungrouped:</div><div className="flex flex-wrap gap-1.5">{ungrouped.map(n => <div key={n} draggable onDragStart={e=>e.dataTransfer.setData('clinician',n)} className="px-2 py-1 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move">{n}</div>)}</div></div>;
+                    })()}
+                  </div>
+
+                  {/* Slot Categories */}
+                  <div className="card p-5">
+                    <h2 className="text-base font-semibold text-slate-900 mb-2">Urgent Slot Types</h2>
+                    <p className="text-xs text-slate-500 mb-3">Only slots categorised as "Urgent" are counted in capacity totals. Drag to categorise.</p>
+                    {['urgent', 'excluded'].map(cat => {
+                      const catLabels = { urgent: { icon: '🔴', label: 'Urgent (counted)' }, excluded: { icon: '⚪', label: 'Not counted' } };
+                      const catSlots = (data.huddleSettings?.slotCategories?.[cat] || []);
+                      return (
+                        <div key={cat} className="mb-2">
+                          <div className="text-xs font-medium text-slate-600 mb-1">{catLabels[cat].icon} {catLabels[cat].label}</div>
+                          <div className={`min-h-[40px] p-2 rounded border-2 border-dashed ${cat==='urgent'?'bg-red-50 border-red-200':'bg-slate-100 border-slate-200'}`} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const s=e.dataTransfer.getData('slot');if(!s)return;const hs={...data.huddleSettings},cats={...hs.slotCategories};['urgent','excluded'].forEach(c=>{cats[c]=(cats[c]||[]).filter(x=>x!==s)});cats[cat]=[...(cats[cat]||[]),s];saveData({...data,huddleSettings:{...hs,slotCategories:cats}})}}>
+                            <div className="flex flex-wrap gap-1">{catSlots.map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className={`px-2 py-0.5 rounded text-xs cursor-move truncate max-w-[180px] ${cat==='urgent'?'bg-red-100 text-red-800':'bg-white text-slate-600 border border-slate-200'}`} title={s}>{s.length>25?s.slice(0,25)+'...':s}</div>)}{catSlots.length===0 && <span className="text-xs text-slate-400 italic">Drag here</span>}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(() => {
+                      const categorised = ['urgent', 'excluded'].flatMap(c => data.huddleSettings?.slotCategories?.[c] || []);
+                      const uncategorised = (data.huddleSettings?.knownSlotTypes || []).filter(s => !categorised.includes(s));
+                      if (uncategorised.length === 0) return null;
+                      return <div className="mt-3"><div className="text-xs text-slate-500 mb-1">Uncategorised ({uncategorised.length}):</div><div className="max-h-32 overflow-y-auto"><div className="flex flex-wrap gap-1">{uncategorised.sort().map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className="px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move truncate max-w-[180px]" title={s}>{s.length>25?s.slice(0,25)+'...':s}</div>)}</div></div></div>;
+                    })()}
+                  </div>
+                </div>
               )}
             </div>
           )}
