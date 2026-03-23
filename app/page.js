@@ -38,6 +38,9 @@ export default function Home() {
   const [forwardSlotOverrides, setForwardSlotOverrides] = useState(null);
   const [showForwardSlotFilter, setShowForwardSlotFilter] = useState(false);
   const [forwardViewMode, setForwardViewMode] = useState('urgent'); // 'urgent' | 'routine' | 'all'
+  const [selectedCell, setSelectedCell] = useState(null); // { dateStr, dayName, week } for popup
+  const [newFilterName, setNewFilterName] = useState('');
+  const [settingsChartFilter, setSettingsChartFilter] = useState('urgent'); // which filter to show in chart
   const fileInputRef = useRef(null);
   const huddleLoadedRef = useRef(false);
 
@@ -189,6 +192,7 @@ export default function Home() {
     // Parse all data, grouped by date
     const allSlotTypes = new Set();
     const dateData = {}; // { "24-Feb-2026": { am: { clinicianIdx: { slotType: count } }, pm: {...} } }
+    const bookedData = {}; // Same structure but for Booked slots
     const allDates = new Set();
     
     let currentDate = null;
@@ -209,15 +213,17 @@ export default function Home() {
       allDates.add(currentDate);
       allSlotTypes.add(slotType);
 
-      // Only count "Available" slots
-      if (availability !== 'Available') continue;
+      // Only count "Available" or "Booked" slots
+      const isAvailable = availability === 'Available';
+      const isBooked = availability === 'Booked';
+      if (!isAvailable && !isBooked) continue;
 
       // Determine AM or PM from time column
       const session = currentTime?.includes('Before') ? 'am' : 'pm';
 
-      // Initialize date entry if needed
-      if (!dateData[currentDate]) {
-        dateData[currentDate] = { am: {}, pm: {} };
+      const targetStore = isAvailable ? dateData : bookedData;
+      if (!targetStore[currentDate]) {
+        targetStore[currentDate] = { am: {}, pm: {} };
       }
 
       // Count per clinician (columns 5+ in new format)
@@ -225,11 +231,11 @@ export default function Home() {
         const count = parseInt(cells[j], 10) || 0;
         if (count > 0) {
           const clinicianIdx = j - 5;
-          if (!dateData[currentDate][session][clinicianIdx]) {
-            dateData[currentDate][session][clinicianIdx] = {};
+          if (!targetStore[currentDate][session][clinicianIdx]) {
+            targetStore[currentDate][session][clinicianIdx] = {};
           }
-          dateData[currentDate][session][clinicianIdx][slotType] = 
-            (dateData[currentDate][session][clinicianIdx][slotType] || 0) + count;
+          targetStore[currentDate][session][clinicianIdx][slotType] = 
+            (targetStore[currentDate][session][clinicianIdx][slotType] || 0) + count;
         }
       }
     }
@@ -249,7 +255,8 @@ export default function Home() {
       allSlotTypes: Array.from(allSlotTypes),
       reportDate,
       dates: sortedDates,
-      dateData
+      dateData,
+      bookedData
     };
   };
 
@@ -430,6 +437,81 @@ export default function Home() {
     if (pct >= 100) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
     if (pct >= 80) return 'bg-amber-100 text-amber-800 border-amber-200';
     return 'bg-red-100 text-red-800 border-red-200';
+  };
+
+  // Get total booked/available for a date using a given slot filter
+  const getDateTotals = (parsedData, dateStr, slotOverrides = null) => {
+    if (!parsedData) return { available: 0, booked: 0 };
+    const huddleSettings = data?.huddleSettings || {};
+    const urgentSlots = huddleSettings?.slotCategories?.urgent || [];
+    const includedClinicians = huddleSettings?.includedClinicians || [];
+    const hasUrgentConfig = urgentSlots.length > 0;
+    const clinicians = parsedData.clinicians;
+
+    const isSlotIncluded = (slotType) => {
+      if (slotOverrides && slotOverrides[slotType] !== undefined) return slotOverrides[slotType];
+      if (hasUrgentConfig) return urgentSlots.includes(slotType);
+      return true;
+    };
+
+    let available = 0, booked = 0;
+    ['am', 'pm'].forEach(session => {
+      // Available
+      const avail = parsedData.dateData?.[dateStr]?.[session] || {};
+      Object.entries(avail).forEach(([idx, slots]) => {
+        const cName = clinicians[parseInt(idx)];
+        if (includedClinicians.length > 0 && !includedClinicians.includes(cName)) return;
+        Object.entries(slots).forEach(([slotType, count]) => {
+          if (isSlotIncluded(slotType)) available += count;
+        });
+      });
+      // Booked
+      const book = parsedData.bookedData?.[dateStr]?.[session] || {};
+      Object.entries(book).forEach(([idx, slots]) => {
+        const cName = clinicians[parseInt(idx)];
+        if (includedClinicians.length > 0 && !includedClinicians.includes(cName)) return;
+        Object.entries(slots).forEach(([slotType, count]) => {
+          if (isSlotIncluded(slotType)) booked += count;
+        });
+      });
+    });
+    return { available, booked };
+  };
+
+  // Build slot overrides for a named filter
+  const getFilterOverrides = (filterName) => {
+    const hs = data?.huddleSettings || {};
+    const allKnown = hs?.knownSlotTypes || [];
+    const customFilters = hs?.customFilters || {};
+
+    // Built-in filters
+    if (filterName === 'urgent') {
+      const urgent = hs?.slotCategories?.urgent || [];
+      if (urgent.length === 0) return null;
+      const o = {};
+      allKnown.forEach(s => { o[s] = urgent.includes(s); });
+      return o;
+    }
+    if (filterName === 'all') {
+      const excluded = hs?.slotCategories?.excluded || [];
+      const o = {};
+      allKnown.forEach(s => { o[s] = !excluded.includes(s); });
+      return o;
+    }
+    // Custom filter
+    if (customFilters[filterName]) {
+      const slots = customFilters[filterName];
+      const o = {};
+      allKnown.forEach(s => { o[s] = slots.includes(s); });
+      return o;
+    }
+    return null;
+  };
+
+  // Get all filter names (built-in + custom)
+  const getAllFilterNames = () => {
+    const custom = Object.keys(data?.huddleSettings?.customFilters || {});
+    return ['urgent', ...custom, 'all'];
   };
 
   const getDateKey = () => {
@@ -1353,15 +1435,14 @@ export default function Home() {
             <div className="space-y-4">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h1 className="text-xl font-bold text-slate-900">Forward Planning</h1>
+                  <h1 className="text-xl font-bold text-slate-900">Urgent Capacity Planning</h1>
                   <p className="text-sm text-slate-500 mt-1">This week + next 5 weeks</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* View mode toggle */}
                   <div className="flex rounded-md border border-slate-200 overflow-hidden text-xs">
-                    <button onClick={() => setForwardViewMode('urgent')} className={`px-3 py-1.5 font-medium transition-colors ${forwardViewMode === 'urgent' ? 'bg-red-50 text-red-700 border-r border-slate-200' : 'bg-white text-slate-500 hover:bg-slate-50 border-r border-slate-200'}`}>Urgent</button>
-                    <button onClick={() => setForwardViewMode('routine')} className={`px-3 py-1.5 font-medium transition-colors ${forwardViewMode === 'routine' ? 'bg-green-50 text-green-700 border-r border-slate-200' : 'bg-white text-slate-500 hover:bg-slate-50 border-r border-slate-200'}`}>Routine</button>
-                    <button onClick={() => setForwardViewMode('all')} className={`px-3 py-1.5 font-medium transition-colors ${forwardViewMode === 'all' ? 'bg-purple-50 text-purple-700' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>All</button>
+                    {getAllFilterNames().map(f => (
+                      <button key={f} onClick={() => { setForwardViewMode(f); setForwardSlotOverrides(null); }} className={`px-3 py-1.5 font-medium transition-colors border-r border-slate-200 last:border-r-0 capitalize ${forwardViewMode === f ? (f === 'urgent' ? 'bg-red-50 text-red-700' : f === 'all' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700') : 'bg-white text-slate-500 hover:bg-slate-50'}`}>{f}</button>
+                    ))}
                   </div>
                   {renderSlotFilter(forwardSlotOverrides, setForwardSlotOverrides, showForwardSlotFilter, setShowForwardSlotFilter)}
                 </div>
@@ -1375,92 +1456,116 @@ export default function Home() {
                   <button onClick={() => setActiveSection('huddle-today')} className="btn-primary">Go to Today</button>
                 </div>
               ) : (
-                <>
-                  {/* Colour key */}
-                  {data?.huddleSettings?.expectedCapacity && Object.keys(data.huddleSettings.expectedCapacity).length > 0 && (
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500">
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-200 border border-emerald-300"></span>≥100%</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-200 border border-amber-300"></span>80–99%</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-200 border border-red-300"></span>&lt;80%</span>
-                    </div>
-                  )}
-
-                  {/* Condensed grid: Week commencing | Mon AM/PM | Tue AM/PM | ... */}
-                  <div className="card overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="text-left px-3 py-2 font-medium text-slate-600 sticky left-0 bg-slate-50 min-w-[90px]">Week</th>
-                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => (
-                              <th key={d} className="text-center px-1 py-2 font-medium text-slate-600 min-w-[52px]">{d}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {getHuddleWeeks().map((week, wi) => {
-                            const weekLabel = `${week.monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-                            const dayNames = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
-                            // Build slot overrides based on view mode
-                            const getViewOverrides = () => {
-                              if (forwardSlotOverrides) return forwardSlotOverrides; // manual filter takes priority
-                              const hs = data?.huddleSettings || {};
-                              const urgent = hs?.slotCategories?.urgent || [];
-                              const excluded = hs?.slotCategories?.excluded || [];
-                              const allKnown = hs?.knownSlotTypes || [];
-                              if (forwardViewMode === 'urgent') {
-                                // Only urgent slots
-                                if (urgent.length === 0) return null; // no config, show all
-                                const o = {};
-                                allKnown.forEach(s => { o[s] = urgent.includes(s); });
-                                return o;
-                              }
-                              if (forwardViewMode === 'routine') {
-                                // Everything that's NOT urgent and NOT excluded
-                                const o = {};
-                                allKnown.forEach(s => { o[s] = !urgent.includes(s) && !excluded.includes(s); });
-                                return o;
-                              }
-                              // 'all' - everything except excluded
-                              const o = {};
-                              allKnown.forEach(s => { o[s] = !excluded.includes(s); });
-                              return o;
-                            };
-                            const viewOverrides = getViewOverrides();
-                            return (
-                              <tr key={wi} className={`border-b border-slate-100 ${wi % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
-                                <td className="px-3 py-1 font-medium text-slate-700 sticky left-0 bg-white text-[11px] whitespace-nowrap">{weekLabel}</td>
-                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => {
-                                  const dateStr = week.dates[d];
-                                  if (!dateStr) return <td key={d} className="text-center px-1 py-1 text-slate-300">–</td>;
-                                  const cap = getHuddleCapacity(huddleData, dateStr, viewOverrides);
-                                  const amColour = getCapacityColour(cap.am.total, dayNames[d], 'am');
-                                  const pmColour = getCapacityColour(cap.pm.total, dayNames[d], 'pm');
-                                  return (
-                                    <td key={d} className="px-1 py-1">
-                                      <div className="flex flex-col items-center gap-0.5">
-                                        <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold ${amColour || 'text-slate-700'}`} title={`${d} AM: ${cap.am.total}`}>
-                                          <span className="text-[9px] font-normal text-slate-400 mr-0.5">AM</span>{cap.am.total}
+                <div className="flex gap-4">
+                  {/* Table */}
+                  <div className="flex-1 min-w-0">
+                    {data?.huddleSettings?.expectedCapacity && Object.keys(data.huddleSettings.expectedCapacity).length > 0 && (
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500 mb-2">
+                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-200 border border-emerald-300"></span>≥100%</span>
+                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-200 border border-amber-300"></span>80–99%</span>
+                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-200 border border-red-300"></span>&lt;80%</span>
+                      </div>
+                    )}
+                    <div className="card overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                              <th className="text-left px-3 py-2 font-medium text-slate-600 sticky left-0 bg-slate-50 min-w-[90px]">Week</th>
+                              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => (
+                                <th key={d} className="text-center px-1 py-2 font-medium text-slate-600 min-w-[52px]">{d}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {getHuddleWeeks().map((week, wi) => {
+                              const weekLabel = `${week.monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+                              const dayNames = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+                              const viewOverrides = forwardSlotOverrides || getFilterOverrides(forwardViewMode);
+                              return (
+                                <tr key={wi} className={`border-b border-slate-100 ${wi % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
+                                  <td className="px-3 py-1 font-medium text-slate-700 sticky left-0 bg-white text-[11px] whitespace-nowrap">{weekLabel}</td>
+                                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => {
+                                    const dateStr = week.dates[d];
+                                    if (!dateStr) return <td key={d} className="text-center px-1 py-1 text-slate-300">–</td>;
+                                    const cap = getHuddleCapacity(huddleData, dateStr, viewOverrides);
+                                    const amColour = getCapacityColour(cap.am.total, dayNames[d], 'am');
+                                    const pmColour = getCapacityColour(cap.pm.total, dayNames[d], 'pm');
+                                    const isSelected = selectedCell?.dateStr === dateStr;
+                                    return (
+                                      <td key={d} className={`px-1 py-1 cursor-pointer transition-all ${isSelected ? 'ring-2 ring-purple-500 ring-inset rounded' : 'hover:bg-purple-50'}`} onClick={() => setSelectedCell(isSelected ? null : { dateStr, dayName: d, fullDay: dayNames[d] })}>
+                                        <div className="flex flex-col items-center gap-0.5">
+                                          <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold ${amColour || 'text-slate-700'}`}>
+                                            <span className="text-[9px] font-normal text-slate-400 mr-0.5">AM</span>{cap.am.total}
+                                          </div>
+                                          <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold ${pmColour || 'text-slate-700'}`}>
+                                            <span className="text-[9px] font-normal text-slate-400 mr-0.5">PM</span>{cap.pm.total}
+                                          </div>
                                         </div>
-                                        <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold ${pmColour || 'text-slate-700'}`} title={`${d} PM: ${cap.pm.total}`}>
-                                          <span className="text-[9px] font-normal text-slate-400 mr-0.5">PM</span>{cap.pm.total}
-                                        </div>
-                                      </div>
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
+                    {getHuddleWeeks().length === 0 && (
+                      <div className="card p-8 text-center text-slate-400 text-sm mt-2">No data found for the current or upcoming weeks.</div>
+                    )}
                   </div>
 
-                  {getHuddleWeeks().length === 0 && (
-                    <div className="card p-8 text-center text-slate-400 text-sm">No data found for the current or upcoming weeks in the uploaded report.</div>
-                  )}
-                </>
+                  {/* Popup panel on right */}
+                  {selectedCell && (() => {
+                    const viewOverrides = forwardSlotOverrides || getFilterOverrides(forwardViewMode);
+                    const cap = getHuddleCapacity(huddleData, selectedCell.dateStr, viewOverrides);
+                    return (
+                      <div className="w-72 flex-shrink-0">
+                        <div className="card overflow-hidden sticky top-6">
+                          <div className="bg-gradient-to-r from-purple-500 to-indigo-500 px-4 py-3">
+                            <div className="flex items-center justify-between text-white">
+                              <div>
+                                <div className="text-sm font-bold">{selectedCell.dayName} {selectedCell.dateStr}</div>
+                                <div className="text-xs opacity-80">{cap.am.total + cap.pm.total} total slots</div>
+                              </div>
+                              <button onClick={() => setSelectedCell(null)} className="text-white/70 hover:text-white text-lg">✕</button>
+                            </div>
+                          </div>
+                          <div className="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto">
+                            {/* AM */}
+                            <div className="p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-amber-600">Morning</span>
+                                <span className="text-sm font-bold text-amber-600">{cap.am.total}</span>
+                              </div>
+                              {cap.am.byClinician.length > 0 ? cap.am.byClinician.map((c, i) => (
+                                <div key={i} className="flex items-center justify-between py-0.5">
+                                  <span className="text-xs text-slate-600 truncate mr-2">{c.name}</span>
+                                  <span className="text-xs font-semibold text-amber-600 tabular-nums">{c.available}</span>
+                                </div>
+                              )) : <div className="text-xs text-slate-400">No capacity</div>}
+                            </div>
+                            {/* PM */}
+                            <div className="p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-blue-600">Afternoon</span>
+                                <span className="text-sm font-bold text-blue-600">{cap.pm.total}</span>
+                              </div>
+                              {cap.pm.byClinician.length > 0 ? cap.pm.byClinician.map((c, i) => (
+                                <div key={i} className="flex items-center justify-between py-0.5">
+                                  <span className="text-xs text-slate-600 truncate mr-2">{c.name}</span>
+                                  <span className="text-xs font-semibold text-blue-600 tabular-nums">{c.available}</span>
+                                </div>
+                              )) : <div className="text-xs text-slate-400">No capacity</div>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
               )}
             </div>
           )}
@@ -1470,7 +1575,7 @@ export default function Home() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-xl font-bold text-slate-900">Huddle Settings</h1>
-                <p className="text-sm text-slate-500 mt-1">Configure which clinicians and slot types to track</p>
+                <p className="text-sm text-slate-500 mt-1">Configure clinicians, slot filters, and capacity targets</p>
               </div>
 
               {(!data.huddleSettings?.knownClinicians?.length && !data.huddleSettings?.knownSlotTypes?.length) ? (
@@ -1511,27 +1616,92 @@ export default function Home() {
                     })()}
                   </div>
 
-                  {/* Slot Categories */}
+                  {/* Slot Type Filters - dynamic and editable */}
                   <div className="card p-5">
-                    <h2 className="text-base font-semibold text-slate-900 mb-2">Urgent Slot Types</h2>
-                    <p className="text-xs text-slate-500 mb-3">Only slots categorised as "Urgent" are counted in capacity totals. Drag to categorise.</p>
-                    {['urgent', 'excluded'].map(cat => {
-                      const catLabels = { urgent: { icon: '🔴', label: 'Urgent (counted)' }, excluded: { icon: '⚪', label: 'Not counted' } };
-                      const catSlots = (data.huddleSettings?.slotCategories?.[cat] || []);
-                      return (
-                        <div key={cat} className="mb-2">
-                          <div className="text-xs font-medium text-slate-600 mb-1">{catLabels[cat].icon} {catLabels[cat].label}</div>
-                          <div className={`min-h-[40px] p-2 rounded border-2 border-dashed ${cat==='urgent'?'bg-red-50 border-red-200':'bg-slate-100 border-slate-200'}`} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const s=e.dataTransfer.getData('slot');if(!s)return;const hs={...data.huddleSettings},cats={...hs.slotCategories};['urgent','excluded'].forEach(c=>{cats[c]=(cats[c]||[]).filter(x=>x!==s)});cats[cat]=[...(cats[cat]||[]),s];saveData({...data,huddleSettings:{...hs,slotCategories:cats}})}}>
-                            <div className="flex flex-wrap gap-1">{catSlots.map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className={`px-2 py-0.5 rounded text-xs cursor-move truncate max-w-[180px] ${cat==='urgent'?'bg-red-100 text-red-800':'bg-white text-slate-600 border border-slate-200'}`} title={s}>{s.length>25?s.slice(0,25)+'...':s}</div>)}{catSlots.length===0 && <span className="text-xs text-slate-400 italic">Drag here</span>}</div>
+                    <h2 className="text-base font-semibold text-slate-900 mb-2">Slot Type Filters</h2>
+                    <p className="text-xs text-slate-500 mb-4">Create named filters by dragging slot types. These filters appear across the app for switching views.</p>
+
+                    {/* Built-in: Urgent */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded">🔴 Urgent</span>
+                        <span className="text-[10px] text-slate-400">Built-in</span>
+                      </div>
+                      <div className="min-h-[36px] p-2 bg-red-50/50 rounded border-2 border-dashed border-red-200" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const s=e.dataTransfer.getData('slot');if(!s)return;const hs={...data.huddleSettings},cats={...hs.slotCategories};Object.keys(cats).forEach(c=>{cats[c]=(cats[c]||[]).filter(x=>x!==s)});const cf={...hs.customFilters||{}};Object.keys(cf).forEach(f=>{cf[f]=cf[f].filter(x=>x!==s)});cats.urgent=[...(cats.urgent||[]),s];saveData({...data,huddleSettings:{...hs,slotCategories:cats,customFilters:cf}})}}>
+                        <div className="flex flex-wrap gap-1">
+                          {(data.huddleSettings?.slotCategories?.urgent || []).map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className="px-2 py-0.5 rounded text-xs cursor-move bg-red-100 text-red-800 truncate max-w-[200px]" title={s}>{s}</div>)}
+                          {(data.huddleSettings?.slotCategories?.urgent || []).length === 0 && <span className="text-xs text-slate-400 italic">Drag slot types here</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Custom filters */}
+                    {Object.entries(data.huddleSettings?.customFilters || {}).map(([filterName, slots]) => (
+                      <div key={filterName} className="mb-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">🔵 {filterName}</span>
+                          <button onClick={() => {
+                            const hs = {...data.huddleSettings};
+                            const cf = {...hs.customFilters};
+                            delete cf[filterName];
+                            hs.customFilters = cf;
+                            saveData({...data, huddleSettings: hs});
+                          }} className="text-[10px] text-red-400 hover:text-red-600">Remove</button>
+                        </div>
+                        <div className="min-h-[36px] p-2 bg-blue-50/30 rounded border-2 border-dashed border-blue-200" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const s=e.dataTransfer.getData('slot');if(!s)return;const hs={...data.huddleSettings},cats={...hs.slotCategories};Object.keys(cats).forEach(c=>{cats[c]=(cats[c]||[]).filter(x=>x!==s)});const cf={...hs.customFilters||{}};Object.keys(cf).forEach(f=>{cf[f]=cf[f].filter(x=>x!==s)});cf[filterName]=[...(cf[filterName]||[]),s];saveData({...data,huddleSettings:{...hs,slotCategories:cats,customFilters:cf}})}}>
+                          <div className="flex flex-wrap gap-1">
+                            {slots.map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className="px-2 py-0.5 rounded text-xs cursor-move bg-blue-100 text-blue-800 truncate max-w-[200px]" title={s}>{s}</div>)}
+                            {slots.length === 0 && <span className="text-xs text-slate-400 italic">Drag slot types here</span>}
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
+
+                    {/* Built-in: Excluded */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">⚪ Excluded</span>
+                        <span className="text-[10px] text-slate-400">Not counted in any view</span>
+                      </div>
+                      <div className="min-h-[36px] p-2 bg-slate-50 rounded border-2 border-dashed border-slate-200" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const s=e.dataTransfer.getData('slot');if(!s)return;const hs={...data.huddleSettings},cats={...hs.slotCategories};Object.keys(cats).forEach(c=>{cats[c]=(cats[c]||[]).filter(x=>x!==s)});const cf={...hs.customFilters||{}};Object.keys(cf).forEach(f=>{cf[f]=cf[f].filter(x=>x!==s)});cats.excluded=[...(cats.excluded||[]),s];saveData({...data,huddleSettings:{...hs,slotCategories:cats,customFilters:cf}})}}>
+                        <div className="flex flex-wrap gap-1">
+                          {(data.huddleSettings?.slotCategories?.excluded || []).map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className="px-2 py-0.5 rounded text-xs cursor-move bg-white text-slate-500 border border-slate-200 truncate max-w-[200px]" title={s}>{s}</div>)}
+                          {(data.huddleSettings?.slotCategories?.excluded || []).length === 0 && <span className="text-xs text-slate-400 italic">Drag slot types here</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Add new filter */}
+                    <div className="flex gap-2 items-center pt-2 border-t border-slate-200">
+                      <input type="text" value={newFilterName} onChange={e => setNewFilterName(e.target.value)} placeholder="New filter name..." className="flex-1 px-3 py-1.5 rounded border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500" onKeyDown={e => {
+                        if (e.key === 'Enter' && newFilterName.trim()) {
+                          const hs = {...data.huddleSettings};
+                          if (!hs.customFilters) hs.customFilters = {};
+                          hs.customFilters[newFilterName.trim()] = [];
+                          saveData({...data, huddleSettings: hs});
+                          setNewFilterName('');
+                        }
+                      }} />
+                      <button onClick={() => {
+                        if (!newFilterName.trim()) return;
+                        const hs = {...data.huddleSettings};
+                        if (!hs.customFilters) hs.customFilters = {};
+                        hs.customFilters[newFilterName.trim()] = [];
+                        saveData({...data, huddleSettings: hs});
+                        setNewFilterName('');
+                      }} className="px-3 py-1.5 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700">+ Add Filter</button>
+                    </div>
+
+                    {/* Uncategorised */}
                     {(() => {
-                      const categorised = ['urgent', 'excluded'].flatMap(c => data.huddleSettings?.slotCategories?.[c] || []);
-                      const uncategorised = (data.huddleSettings?.knownSlotTypes || []).filter(s => !categorised.includes(s));
+                      const allCategorised = [
+                        ...(data.huddleSettings?.slotCategories?.urgent || []),
+                        ...(data.huddleSettings?.slotCategories?.excluded || []),
+                        ...Object.values(data.huddleSettings?.customFilters || {}).flat()
+                      ];
+                      const uncategorised = (data.huddleSettings?.knownSlotTypes || []).filter(s => !allCategorised.includes(s));
                       if (uncategorised.length === 0) return null;
-                      return <div className="mt-3"><div className="text-xs text-slate-500 mb-1">Uncategorised ({uncategorised.length}):</div><div className="max-h-32 overflow-y-auto"><div className="flex flex-wrap gap-1">{uncategorised.sort().map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className="px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move truncate max-w-[180px]" title={s}>{s.length>25?s.slice(0,25)+'...':s}</div>)}</div></div></div>;
+                      return <div className="mt-4 pt-3 border-t border-slate-200"><div className="text-xs text-slate-500 mb-2">Uncategorised ({uncategorised.length}):</div><div className="max-h-32 overflow-y-auto"><div className="flex flex-wrap gap-1">{uncategorised.sort().map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className="px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move truncate max-w-[200px]" title={s}>{s}</div>)}</div></div></div>;
                     })()}
                   </div>
 
@@ -1573,6 +1743,79 @@ export default function Home() {
                       </table>
                     </div>
                   </div>
+
+                  {/* Capacity Chart */}
+                  {huddleData && (
+                    <div className="card overflow-hidden">
+                      <div className="px-5 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+                        <div className="flex items-center justify-between">
+                          <h2 className="text-base font-semibold text-slate-900">Capacity Overview</h2>
+                          <div className="flex rounded-md border border-slate-200 overflow-hidden text-[11px]">
+                            {getAllFilterNames().map(f => (
+                              <button key={f} onClick={() => setSettingsChartFilter(f)} className={`px-2.5 py-1 font-medium transition-colors border-r border-slate-200 last:border-r-0 capitalize ${settingsChartFilter === f ? 'bg-purple-50 text-purple-700' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>{f}</button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-5">
+                        {(() => {
+                          const chartOverrides = getFilterOverrides(settingsChartFilter);
+                          // Get all weekday dates from current week onward
+                          const now = new Date();
+                          const currentDay = now.getDay();
+                          const currentMonday = new Date(now);
+                          currentMonday.setDate(now.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+                          currentMonday.setHours(0, 0, 0, 0);
+                          const chartDates = huddleData.dates.filter(d => {
+                            const dt = parseHuddleDateStr(d);
+                            return dt >= currentMonday && dt.getDay() !== 0 && dt.getDay() !== 6;
+                          }).slice(0, 20); // max 20 days (4 weeks)
+
+                          if (chartDates.length === 0) return <div className="text-sm text-slate-400 text-center py-8">No data available for chart.</div>;
+
+                          const chartData = chartDates.map(d => {
+                            const totals = getDateTotals(huddleData, d, chartOverrides);
+                            return { date: d, ...totals };
+                          });
+                          const maxVal = Math.max(...chartData.map(d => d.available + d.booked), 1);
+
+                          return (
+                            <div>
+                              {/* Legend */}
+                              <div className="flex items-center gap-4 mb-4 text-xs text-slate-600">
+                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400"></span> Available</span>
+                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-300"></span> Booked</span>
+                              </div>
+                              {/* Stacked bar chart */}
+                              <div className="flex items-end gap-1" style={{ height: '200px' }}>
+                                {chartData.map((d, i) => {
+                                  const totalH = ((d.available + d.booked) / maxVal) * 100;
+                                  const availH = d.available + d.booked > 0 ? (d.available / (d.available + d.booked)) * 100 : 0;
+                                  const bookedH = 100 - availH;
+                                  const dt = parseHuddleDateStr(d.date);
+                                  const dayLabel = ['', 'M', 'T', 'W', 'T', 'F'][dt.getDay()];
+                                  const dateLabel = dt.getDate();
+                                  const isMonday = dt.getDay() === 1;
+                                  return (
+                                    <div key={i} className={`flex-1 flex flex-col items-center ${isMonday && i > 0 ? 'ml-1 border-l border-slate-200 pl-1' : ''}`}>
+                                      <div className="w-full relative" style={{ height: '170px' }}>
+                                        <div className="absolute bottom-0 w-full rounded-t overflow-hidden transition-all" style={{ height: `${totalH}%` }}>
+                                          <div className="w-full bg-slate-300 transition-all" style={{ height: `${bookedH}%` }}></div>
+                                          <div className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 transition-all" style={{ height: `${availH}%` }}></div>
+                                        </div>
+                                      </div>
+                                      <div className="text-[9px] text-slate-400 mt-1 font-medium">{dayLabel}</div>
+                                      <div className="text-[9px] text-slate-500">{dateLabel}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
