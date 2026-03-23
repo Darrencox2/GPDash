@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS } from '@/lib/data';
-import { ToastProvider, useToast, Button, Card, CardHeader, SectionHeading, PageSkeleton, EmptyState, Badge } from '@/components/ui';
+import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LoginScreen from '@/components/LoginScreen';
 import HuddleToday from '@/components/huddle/HuddleToday';
@@ -62,11 +62,6 @@ function AppContent() {
       huddleLoadedRef.current = true;
       if (data.huddleCsvData) {
         setHuddleData(data.huddleCsvData);
-        // Set date to today if available, else first date
-        const today = new Date();
-        const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`;
-        const dates = data.huddleCsvData.dates || [];
-        setHuddleDate(dates.includes(todayStr) ? todayStr : dates[0] || null);
       }
       if (data.huddleMessages) {
         setHuddleMessages(Array.isArray(data.huddleMessages) ? data.huddleMessages : Object.values(data.huddleMessages));
@@ -459,8 +454,6 @@ function AppContent() {
   const groupedAllocations = currentAlloc ? groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, presentIds) : {};
   const displayClinicians = cliniciansList;
 
-  const toggleMenu = (menu) => setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
-
   return (
     <div className="min-h-screen flex bg-slate-100">
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
@@ -736,8 +729,7 @@ function AppContent() {
                       s += '\n';
                     });
                     navigator.clipboard.writeText(s.trim());
-                    setCopySuccess(true);
-                    setTimeout(() => setCopySuccess(false), 2000);
+                    toast('Copied to clipboard', 'success', 2000);
                   }} className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 shadow-md flex items-center gap-2">📋 Copy Week</button>
                 </div>
               </div>
