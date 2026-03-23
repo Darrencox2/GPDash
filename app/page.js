@@ -40,7 +40,7 @@ export default function Home() {
   const [forwardViewMode, setForwardViewMode] = useState('urgent'); // 'urgent' | 'routine' | 'all'
   const [selectedCell, setSelectedCell] = useState(null); // { dateStr, dayName, week } for popup
   const [newFilterName, setNewFilterName] = useState('');
-  const [settingsChartFilter, setSettingsChartFilter] = useState('urgent'); // which filter to show in chart
+  const [chartFilters, setChartFilters] = useState(['urgent']); // multi-select filters for chart
   const fileInputRef = useRef(null);
   const huddleLoadedRef = useRef(false);
 
@@ -197,16 +197,19 @@ export default function Home() {
     
     let currentDate = null;
     let currentTime = null;
+    let currentSlotType = null;
 
     for (let i = dataStartRowIndex + 1; i < lines.length; i++) {
       const cells = parseCSVRow(lines[i]);
       if (cells.length < 5) continue;
 
-      // Column 0: Date, Column 1: Time, Column 2: Slot Type, Column 3: Availability
+      // Column 0: Date, Column 1: Time, Column 2: Slot Type, Column 3: Availability, Column 4: empty, Column 5+: clinicians
       if (cells[0] && cells[0].trim()) currentDate = cells[0].trim();
       if (cells[1] && cells[1].trim()) currentTime = cells[1].trim();
+      if (cells[2] && cells[2].trim()) currentSlotType = cells[2].trim();
       
-      const slotType = cells[2]?.trim() || '';
+      const slotType = currentSlotType || '';
+      // Availability is column 3
       const availability = cells[3]?.trim() || '';
       
       if (!currentDate || !slotType) continue;
@@ -512,6 +515,22 @@ export default function Home() {
   const getAllFilterNames = () => {
     const custom = Object.keys(data?.huddleSettings?.customFilters || {});
     return ['urgent', ...custom, 'all'];
+  };
+
+  // Merge multiple filter overrides (union of included slots)
+  const getMergedFilterOverrides = (filterNames) => {
+    if (!filterNames || filterNames.length === 0) return null;
+    if (filterNames.includes('all')) return getFilterOverrides('all');
+    const allKnown = data?.huddleSettings?.knownSlotTypes || [];
+    const merged = {};
+    allKnown.forEach(s => { merged[s] = false; });
+    filterNames.forEach(f => {
+      const o = getFilterOverrides(f);
+      if (o) {
+        allKnown.forEach(s => { if (o[s]) merged[s] = true; });
+      }
+    });
+    return merged;
   };
 
   const getDateKey = () => {
@@ -1456,6 +1475,7 @@ export default function Home() {
                   <button onClick={() => setActiveSection('huddle-today')} className="btn-primary">Go to Today</button>
                 </div>
               ) : (
+                <>
                 <div className="flex gap-4">
                   {/* Table */}
                   <div className="flex-1 min-w-0">
@@ -1566,6 +1586,91 @@ export default function Home() {
                     );
                   })()}
                 </div>
+
+                {/* Capacity Overview Chart */}
+                <div className="card overflow-hidden">
+                  <div className="px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <h2 className="text-sm font-semibold text-slate-900">Capacity Overview — Available vs Booked</h2>
+                      <div className="flex flex-wrap gap-1">
+                        {getAllFilterNames().map(f => {
+                          const isActive = chartFilters.includes(f);
+                          return (
+                            <button key={f} onClick={() => {
+                              if (f === 'all') { setChartFilters(['all']); return; }
+                              let next = chartFilters.filter(x => x !== 'all');
+                              if (isActive) { next = next.filter(x => x !== f); } else { next = [...next, f]; }
+                              if (next.length === 0) next = ['urgent'];
+                              setChartFilters(next);
+                            }} className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${isActive ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                              {f === 'urgent' ? '🔴' : f === 'all' ? '🟣' : '🔵'} {f}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    {(() => {
+                      const mergedOverrides = getMergedFilterOverrides(chartFilters);
+                      const now = new Date();
+                      const currentDay = now.getDay();
+                      const currentMonday = new Date(now);
+                      currentMonday.setDate(now.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+                      currentMonday.setHours(0, 0, 0, 0);
+                      const endDate = new Date(currentMonday);
+                      endDate.setDate(endDate.getDate() + 4 * 7); // 4 weeks
+                      const chartDates = huddleData.dates.filter(d => {
+                        const dt = parseHuddleDateStr(d);
+                        return dt >= currentMonday && dt < endDate && dt.getDay() !== 0 && dt.getDay() !== 6;
+                      });
+
+                      if (chartDates.length === 0) return <div className="text-sm text-slate-400 text-center py-8">No data available for chart.</div>;
+
+                      const chartData = chartDates.map(d => {
+                        const totals = getDateTotals(huddleData, d, mergedOverrides);
+                        return { date: d, ...totals };
+                      });
+                      const maxVal = Math.max(...chartData.map(d => d.available + d.booked), 1);
+
+                      return (
+                        <div>
+                          <div className="flex items-center gap-5 mb-4 text-xs text-slate-600">
+                            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gradient-to-t from-emerald-500 to-emerald-400"></span> Available</span>
+                            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gradient-to-t from-slate-400 to-slate-300"></span> Booked</span>
+                            <span className="text-[10px] text-slate-400 ml-auto">{chartFilters.join(' + ')}</span>
+                          </div>
+                          <div className="flex items-end gap-[3px]" style={{ height: '220px' }}>
+                            {chartData.map((d, i) => {
+                              const total = d.available + d.booked;
+                              const totalH = (total / maxVal) * 100;
+                              const bookedH = total > 0 ? (d.booked / total) * 100 : 0;
+                              const availH = 100 - bookedH;
+                              const dt = parseHuddleDateStr(d.date);
+                              const dayLabel = ['', 'M', 'T', 'W', 'T', 'F'][dt.getDay()];
+                              const dateLabel = dt.getDate();
+                              const isMonday = dt.getDay() === 1;
+                              return (
+                                <div key={i} className={`flex-1 flex flex-col items-center ${isMonday && i > 0 ? 'ml-1.5 border-l border-slate-200 pl-1.5' : ''}`}>
+                                  <div className="text-[9px] text-slate-500 mb-1 font-semibold tabular-nums">{total > 0 ? total : ''}</div>
+                                  <div className="w-full relative flex-1" style={{ minHeight: 0 }}>
+                                    <div className="absolute bottom-0 w-full rounded-t-sm overflow-hidden" style={{ height: `${totalH}%` }}>
+                                      <div className="w-full bg-gradient-to-t from-slate-400 to-slate-300" style={{ height: `${bookedH}%` }}></div>
+                                      <div className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400" style={{ height: `${availH}%` }}></div>
+                                    </div>
+                                  </div>
+                                  <div className="text-[9px] text-slate-400 mt-1.5 font-semibold">{dayLabel}</div>
+                                  <div className="text-[9px] text-slate-500 leading-none">{dateLabel}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+                </>
               )}
             </div>
           )}
@@ -1744,78 +1849,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Capacity Chart */}
-                  {huddleData && (
-                    <div className="card overflow-hidden">
-                      <div className="px-5 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-                        <div className="flex items-center justify-between">
-                          <h2 className="text-base font-semibold text-slate-900">Capacity Overview</h2>
-                          <div className="flex rounded-md border border-slate-200 overflow-hidden text-[11px]">
-                            {getAllFilterNames().map(f => (
-                              <button key={f} onClick={() => setSettingsChartFilter(f)} className={`px-2.5 py-1 font-medium transition-colors border-r border-slate-200 last:border-r-0 capitalize ${settingsChartFilter === f ? 'bg-purple-50 text-purple-700' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>{f}</button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-5">
-                        {(() => {
-                          const chartOverrides = getFilterOverrides(settingsChartFilter);
-                          // Get all weekday dates from current week onward
-                          const now = new Date();
-                          const currentDay = now.getDay();
-                          const currentMonday = new Date(now);
-                          currentMonday.setDate(now.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
-                          currentMonday.setHours(0, 0, 0, 0);
-                          const chartDates = huddleData.dates.filter(d => {
-                            const dt = parseHuddleDateStr(d);
-                            return dt >= currentMonday && dt.getDay() !== 0 && dt.getDay() !== 6;
-                          }).slice(0, 20); // max 20 days (4 weeks)
-
-                          if (chartDates.length === 0) return <div className="text-sm text-slate-400 text-center py-8">No data available for chart.</div>;
-
-                          const chartData = chartDates.map(d => {
-                            const totals = getDateTotals(huddleData, d, chartOverrides);
-                            return { date: d, ...totals };
-                          });
-                          const maxVal = Math.max(...chartData.map(d => d.available + d.booked), 1);
-
-                          return (
-                            <div>
-                              {/* Legend */}
-                              <div className="flex items-center gap-4 mb-4 text-xs text-slate-600">
-                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400"></span> Available</span>
-                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-300"></span> Booked</span>
-                              </div>
-                              {/* Stacked bar chart */}
-                              <div className="flex items-end gap-1" style={{ height: '200px' }}>
-                                {chartData.map((d, i) => {
-                                  const totalH = ((d.available + d.booked) / maxVal) * 100;
-                                  const availH = d.available + d.booked > 0 ? (d.available / (d.available + d.booked)) * 100 : 0;
-                                  const bookedH = 100 - availH;
-                                  const dt = parseHuddleDateStr(d.date);
-                                  const dayLabel = ['', 'M', 'T', 'W', 'T', 'F'][dt.getDay()];
-                                  const dateLabel = dt.getDate();
-                                  const isMonday = dt.getDay() === 1;
-                                  return (
-                                    <div key={i} className={`flex-1 flex flex-col items-center ${isMonday && i > 0 ? 'ml-1 border-l border-slate-200 pl-1' : ''}`}>
-                                      <div className="w-full relative" style={{ height: '170px' }}>
-                                        <div className="absolute bottom-0 w-full rounded-t overflow-hidden transition-all" style={{ height: `${totalH}%` }}>
-                                          <div className="w-full bg-slate-300 transition-all" style={{ height: `${bookedH}%` }}></div>
-                                          <div className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 transition-all" style={{ height: `${availH}%` }}></div>
-                                        </div>
-                                      </div>
-                                      <div className="text-[9px] text-slate-400 mt-1 font-medium">{dayLabel}</div>
-                                      <div className="text-[9px] text-slate-500">{dateLabel}</div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
