@@ -235,7 +235,7 @@ function AppContent() {
           {activeSection === 'buddy-daily' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} />}
           {activeSection === 'buddy-week' && <BuddyWeek data={data} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} toast={toast} helpers={helpers} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} />}
-          {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} ensureArray={ensureArray} getClinicianById={getClinicianById} />}
+          {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-settings' && <HuddleSettings data={data} saveData={saveData} setActiveSection={setActiveSection} huddleData={huddleData} />}
           {activeSection === 'huddle-history' && <HuddleHistory data={data} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} helpers={helpers} />}

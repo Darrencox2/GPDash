@@ -7,7 +7,7 @@ import SlotFilter from './SlotFilter';
 const DAY_NAMES = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-export default function HuddleForward({ data, saveData, huddleData, setActiveSection, ensureArray, getClinicianById }) {
+export default function HuddleForward({ data, saveData, huddleData, setActiveSection }) {
   const [viewMode, setViewMode] = useState('urgent');
   const [slotOverrides, setSlotOverrides] = useState(null);
   const [showFilter, setShowFilter] = useState(false);
@@ -64,10 +64,6 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
     });
   });
   const avgPerDay = dayCount > 0 ? Math.round(totalSlots / dayCount) : 0;
-  const absences = ensureArray(data?.plannedAbsences);
-  const now = new Date().toISOString().split('T')[0];
-  const sixWeeks = new Date(); sixWeeks.setDate(sixWeeks.getDate() + 42);
-  const upcoming = absences.filter(a => a.endDate >= now && a.startDate <= sixWeeks.toISOString().split('T')[0]).sort((a, b) => a.startDate.localeCompare(b.startDate));
 
   return (
     <div className="space-y-4 animate-in">
@@ -82,11 +78,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       </SectionHeading>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="card p-3 text-center"><div className="text-2xl font-bold text-slate-900">{totalSlots}</div><div className="text-[11px] text-slate-500">Total slots ({weeks.length}wk)</div></div>
         <div className="card p-3 text-center"><div className="text-2xl font-bold text-slate-900">{avgPerDay}</div><div className="text-[11px] text-slate-500">Avg per day</div></div>
         <div className="card p-3 text-center"><div className={`text-2xl font-bold ${lowDays > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{lowDays}</div><div className="text-[11px] text-slate-500">{viewMode === 'urgent' ? 'Days below target' : 'Low capacity days'}</div></div>
-        <div className="card p-3 text-center"><div className={`text-2xl font-bold ${upcoming.length > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{upcoming.length}</div><div className="text-[11px] text-slate-500">Planned absences</div></div>
       </div>
 
       {/* Colour key */}
@@ -124,8 +119,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         <td key={d} className={`px-1 py-1 cursor-pointer transition-all ${isSel ? 'ring-2 ring-slate-900 ring-inset rounded' : 'hover:bg-slate-100'}`}
                           onClick={() => setSelectedCell(isSel ? null : { dateStr, dayName: d })}>
                           <div className="flex flex-col items-center gap-0.5">
-                            <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold border ${amC || 'text-slate-700 border-transparent'}`}><span className="text-[9px] font-normal text-slate-400 mr-0.5">AM</span>{cap.am.total}</div>
-                            <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold border ${pmC || 'text-slate-700 border-transparent'}`}><span className="text-[9px] font-normal text-slate-400 mr-0.5">PM</span>{cap.pm.total}</div>
+                            <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold border ${amC || 'text-slate-700 border-transparent'}`}><span className="text-[9px] font-normal text-slate-400 mr-0.5">AM</span>{cap.am.total}{cap.am.embargoed > 0 && <span className="text-[9px] font-normal text-amber-500">+{cap.am.embargoed}</span>}</div>
+                            <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold border ${pmC || 'text-slate-700 border-transparent'}`}><span className="text-[9px] font-normal text-slate-400 mr-0.5">PM</span>{cap.pm.total}{cap.pm.embargoed > 0 && <span className="text-[9px] font-normal text-amber-500">+{cap.pm.embargoed}</span>}</div>
                           </div>
                         </td>
                       );
@@ -146,16 +141,16 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <div className="card overflow-hidden border-slate-300">
               <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-3">
                 <div className="flex items-center justify-between text-white">
-                  <div><div className="text-sm font-bold">{selectedCell.dayName} {selectedCell.dateStr}</div><div className="text-xs opacity-80">{cap.am.total + cap.pm.total} total slots</div></div>
+                  <div><div className="text-sm font-bold">{selectedCell.dayName} {selectedCell.dateStr}</div><div className="text-xs opacity-80">{cap.am.total + cap.pm.total} available{(cap.am.embargoed||0) + (cap.pm.embargoed||0) > 0 ? `, ${(cap.am.embargoed||0) + (cap.pm.embargoed||0)} embargoed` : ''}</div></div>
                   <button onClick={() => setSelectedCell(null)} className="text-white/70 hover:text-white text-lg leading-none">✕</button>
                 </div>
               </div>
               <div className="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto">
                 {[{ label: 'Morning', data: cap.am, colour: 'text-amber-600' }, { label: 'Afternoon', data: cap.pm, colour: 'text-blue-600' }].map(s => (
                   <div key={s.label} className="p-3">
-                    <div className="flex items-center justify-between mb-2"><span className={`text-xs font-semibold ${s.colour}`}>{s.label}</span><span className={`text-sm font-bold ${s.colour}`}>{s.data.total}</span></div>
+                    <div className="flex items-center justify-between mb-2"><span className={`text-xs font-semibold ${s.colour}`}>{s.label}</span><div className="flex items-center gap-2"><span className={`text-sm font-bold ${s.colour}`}>{s.data.total}</span>{(s.data.embargoed||0) > 0 && <span className="text-xs text-amber-500">+{s.data.embargoed}</span>}</div></div>
                     {s.data.byClinician.length > 0 ? s.data.byClinician.map((c, i) => (
-                      <div key={i} className="flex items-center justify-between py-0.5"><span className="text-xs text-slate-600 truncate mr-2">{c.name}</span><span className={`text-xs font-semibold ${s.colour} tabular-nums`}>{c.available}</span></div>
+                      <div key={i} className="flex items-center justify-between py-0.5"><span className="text-xs text-slate-600 truncate mr-2">{c.name}</span><div className="flex items-center gap-1"><span className={`text-xs font-semibold ${s.colour} tabular-nums`}>{c.available}</span>{c.embargoed > 0 && <span className="text-[10px] text-amber-500">+{c.embargoed}</span>}</div></div>
                     )) : <div className="text-xs text-slate-400">No capacity</div>}
                   </div>
                 ))}
@@ -164,28 +159,6 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           </div>
         );
       })()}
-
-      {/* Upcoming absences */}
-      {upcoming.length > 0 && (
-        <div className="card overflow-hidden">
-          <div className="bg-amber-50 px-5 py-2.5 border-b border-amber-100"><div className="text-sm font-semibold text-amber-800">Upcoming Absences ({upcoming.length})</div></div>
-          <div className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {upcoming.slice(0, 12).map((a, i) => {
-                const c = getClinicianById(a.clinicianId); if (!c) return null;
-                const s = new Date(a.startDate + 'T12:00:00'), e = new Date(a.endDate + 'T12:00:00');
-                const days = Math.round((e - s) / 86400000) + 1;
-                return (
-                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 text-xs">
-                    <div className="initials-badge absent text-[10px] w-7 h-7">{c.initials}</div>
-                    <div className="min-w-0 flex-1"><div className="font-medium text-slate-800 truncate">{c.name}</div><div className="text-slate-500">{s.toLocaleDateString('en-GB',{day:'numeric',month:'short'})} – {e.toLocaleDateString('en-GB',{day:'numeric',month:'short'})} ({days}d) · {a.reason||'Leave'}</div></div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Chart */}
       <div className="card overflow-hidden">
@@ -219,20 +192,23 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             const chartDates = huddleData.dates.filter(d => { const dt = parseHuddleDateStr(d); return dt >= cMon && dt < endD && dt.getDay() !== 0 && dt.getDay() !== 6; });
             if (chartDates.length === 0) return <div className="text-sm text-slate-400 text-center py-8">No data available.</div>;
             const chartData = chartDates.map(d => ({ date: d, ...getDateTotals(huddleData, d, hs, merged) }));
-            const maxVal = Math.max(...chartData.map(d => d.available + d.booked), 1);
+            const maxVal = Math.max(...chartData.map(d => d.available + (d.embargoed || 0) + d.booked), 1);
             return (
               <div>
                 <div className="flex items-center gap-5 mb-4 text-xs text-slate-600">
                   <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gradient-to-t from-emerald-500 to-emerald-400" /> Available</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gradient-to-t from-amber-400 to-amber-300" /> Embargoed</span>
                   <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gradient-to-t from-slate-400 to-slate-300" /> Booked</span>
                   <span className="text-[10px] text-slate-400 ml-auto">{chartFilters.join(' + ')}</span>
                 </div>
                 <div className="flex items-end gap-[3px]" style={{ height: '220px' }}>
                   {chartData.map((d, i) => {
-                    const total = d.available + d.booked;
+                    const emb = d.embargoed || 0;
+                    const total = d.available + emb + d.booked;
                     const barH = Math.round((total / maxVal) * 180);
                     const bookedH = total > 0 ? Math.round((d.booked / total) * barH) : 0;
-                    const availH = barH - bookedH;
+                    const embH = total > 0 ? Math.round((emb / total) * barH) : 0;
+                    const availH = barH - bookedH - embH;
                     const dt = parseHuddleDateStr(d.date);
                     const dayL = ['','M','T','W','T','F'][dt.getDay()], dateL = dt.getDate(), isMon = dt.getDay() === 1;
                     return (
@@ -240,7 +216,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         <div className="text-[9px] text-slate-500 mb-1 font-semibold tabular-nums">{total > 0 ? total : ''}</div>
                         <div className="w-full flex flex-col justify-end">
                           {availH > 0 && <div className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-sm" style={{ height: `${availH}px` }} />}
-                          {bookedH > 0 && <div className={`w-full bg-gradient-to-t from-slate-400 to-slate-300 ${availH === 0 ? 'rounded-t-sm' : ''}`} style={{ height: `${bookedH}px` }} />}
+                          {embH > 0 && <div className={`w-full bg-gradient-to-t from-amber-400 to-amber-300 ${availH === 0 ? 'rounded-t-sm' : ''}`} style={{ height: `${embH}px` }} />}
+                          {bookedH > 0 && <div className={`w-full bg-gradient-to-t from-slate-400 to-slate-300 ${availH === 0 && embH === 0 ? 'rounded-t-sm' : ''}`} style={{ height: `${bookedH}px` }} />}
                         </div>
                         <div className="text-[9px] text-slate-400 mt-1.5 font-semibold">{dayL}</div>
                         <div className="text-[9px] text-slate-500 leading-none">{dateL}</div>
