@@ -1,9 +1,177 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
-import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, get7DayAvailability } from '@/lib/huddle';
+import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 
+// ── Match CSV clinician name to team member initials ──────────────
+function getInitials(csvName, clinicians) {
+  if (!csvName || !clinicians || clinicians.length === 0) return csvName;
+  const cleaned = csvName.replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s*/i, '').trim().toLowerCase();
+  const parts = cleaned.split(/\s+/);
+  const surname = parts[parts.length - 1] || '';
+
+  for (const c of clinicians) {
+    const cCleaned = c.name.replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s*/i, '').trim().toLowerCase();
+    const cParts = cCleaned.split(/\s+/);
+    const cSurname = cParts[cParts.length - 1] || '';
+    if (surname && cSurname && surname === cSurname) return c.initials;
+  }
+  // Fallback: first letters of first+last
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return csvName.slice(0, 3);
+}
+
+// ── Inline slot picker for a capacity card ────────────────────────
+function CardSlotPicker({ overrides, setOverrides, knownSlotTypes }) {
+  const [show, setShow] = useState(false);
+  const selectedCount = overrides ? Object.values(overrides).filter(Boolean).length : 0;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => { if (!show && !overrides) { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o); } setShow(!show); }}
+        className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${show ? 'bg-slate-900 text-white' : 'bg-white/20 text-white/90 hover:bg-white/30'}`}
+      >
+        ⚙ Slots{selectedCount > 0 ? ` (${selectedCount})` : ''}
+      </button>
+      {show && overrides && (
+        <div className="absolute right-0 top-full mt-1 z-30 bg-white rounded-xl border border-slate-200 shadow-xl p-3 w-64 max-h-60 overflow-y-auto">
+          <div className="text-xs font-medium text-slate-700 mb-2">Include in count:</div>
+          <div className="space-y-0.5">
+            {(knownSlotTypes || []).sort().map(slot => (
+              <label key={slot} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5">
+                <input type="checkbox" checked={!!overrides[slot]} onChange={e => setOverrides({ ...overrides, [slot]: e.target.checked })} className="rounded border-slate-300" />
+                <span className="truncate" title={slot}>{slot.length > 26 ? slot.slice(0, 26) + '…' : slot}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+            <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o); }} className="text-[10px] text-slate-500 hover:underline">All</button>
+            <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = false; }); setOverrides(o); }} className="text-[10px] text-slate-500 hover:underline">None</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 7-day compact bar chart strip ─────────────────────────────────
+function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal' }) {
+  const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 7, overrides), [huddleData, huddleSettings, overrides]);
+  const maxVal = Math.max(...days.map(d => d.available || 0), 1);
+  const accentColours = {
+    teal: { bar: 'bg-teal-400', text: 'text-teal-600' },
+    violet: { bar: 'bg-violet-400', text: 'text-violet-600' },
+    sky: { bar: 'bg-sky-400', text: 'text-sky-600' },
+  };
+  const ac = accentColours[accent] || accentColours.teal;
+
+  return (
+    <div className="p-4">
+      <div className="flex items-end gap-1.5" style={{ height: 80 }}>
+        {days.map((d, i) => {
+          const isToday = i === 0;
+          const hasData = d.available !== null;
+          const pct = hasData && d.available > 0 ? Math.max(12, (d.available / maxVal) * 100) : 0;
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5">
+              {hasData && d.available > 0 && (
+                <div className={`text-[10px] font-bold ${isToday ? 'text-slate-800' : ac.text}`}>{d.available}</div>
+              )}
+              <div
+                className={`w-full rounded-t-md transition-all ${isToday ? 'bg-slate-800' : hasData ? ac.bar + ' opacity-70' : 'bg-slate-200'}`}
+                style={{ height: hasData ? `${pct}%` : '8%', minHeight: 3 }}
+              />
+              <div className={`text-[9px] font-medium mt-0.5 ${isToday ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>{d.dayName}</div>
+            </div>
+          );
+        })}
+      </div>
+      {days.some(d => d.booked !== null && d.booked > 0) && (
+        <div className="flex gap-1.5 mt-1 pt-1 border-t border-slate-100">
+          {days.map((d, i) => (
+            <div key={i} className="flex-1 text-center text-[9px] text-slate-400">
+              {d.booked !== null && d.booked > 0 ? `${d.booked}b` : ''}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 28-day graphical routine capacity ─────────────────────────────
+function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
+  const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 28, overrides), [huddleData, huddleSettings, overrides]);
+  const maxVal = Math.max(...days.map(d => d.available || 0), 1);
+  const totalAvail = days.reduce((sum, d) => sum + (d.available || 0), 0);
+
+  // Group by week for labels
+  const weeks = [];
+  for (let i = 0; i < days.length; i += 5) {
+    weeks.push(days.slice(i, i + 5));
+  }
+
+  return (
+    <div className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs text-slate-500">Next 28 weekdays</div>
+        <div className="text-sm font-semibold text-slate-700">{totalAvail} total slots</div>
+      </div>
+      <div className="flex items-end gap-px" style={{ height: 110 }}>
+        {days.map((d, i) => {
+          const isToday = i === 0;
+          const hasData = d.available !== null;
+          const pct = hasData && d.available > 0 ? Math.max(6, (d.available / maxVal) * 100) : 0;
+          const isMonday = d.dayName === 'Mon';
+          return (
+            <div key={i} className={`flex-1 flex flex-col items-center justify-end h-full ${isMonday && i > 0 ? 'ml-1' : ''}`}>
+              <div
+                className={`w-full rounded-t transition-all cursor-default ${
+                  isToday ? 'bg-slate-800' :
+                  !hasData ? 'bg-slate-100' :
+                  d.available === 0 ? 'bg-red-200' :
+                  d.available <= (maxVal * 0.3) ? 'bg-red-400' :
+                  d.available <= (maxVal * 0.6) ? 'bg-amber-400' :
+                  'bg-emerald-400'
+                }`}
+                style={{ height: hasData ? `${pct}%` : '4%', minHeight: 2 }}
+                title={`${d.dayName} ${d.dayNum} ${d.monthShort}: ${hasData ? d.available + ' available' : 'No data'}${d.booked ? ', ' + d.booked + ' booked' : ''}`}
+              />
+            </div>
+          );
+        })}
+      </div>
+      {/* Week labels */}
+      <div className="flex gap-px mt-1">
+        {weeks.map((week, wi) => (
+          <div key={wi} className={`flex gap-px ${wi > 0 ? 'ml-1' : ''}`} style={{ flex: week.length }}>
+            {week.map((d, di) => (
+              <div key={di} className="flex-1 text-center">
+                <div className={`text-[8px] ${di === 0 ? 'text-slate-500 font-medium' : 'text-slate-300'}`}>
+                  {di === 0 ? `${d.dayNum}` : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      {/* Legend */}
+      <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
+        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-emerald-400" /><span className="text-[10px] text-slate-500">High</span></div>
+        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-amber-400" /><span className="text-[10px] text-slate-500">Medium</span></div>
+        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-red-400" /><span className="text-[10px] text-slate-500">Low</span></div>
+        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-slate-100" /><span className="text-[10px] text-slate-500">No data</span></div>
+      </div>
+    </div>
+  );
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+//  MAIN COMPONENT
+// ══════════════════════════════════════════════════════════════════
 export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages }) {
   const [newMsg, setNewMsg] = useState('');
   const [newAuthor, setNewAuthor] = useState('');
@@ -13,6 +181,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const [error, setError] = useState('');
   const fileRef = useRef(null);
   const hs = data?.huddleSettings || {};
+  const knownSlotTypes = hs?.knownSlotTypes || [];
+
+  // Per-card slot overrides
+  const [routineOverrides, setRoutineOverrides] = useState(null);
+  const [minorIllnessOverrides, setMinorIllnessOverrides] = useState(null);
+  const [physioOverrides, setPhysioOverrides] = useState(null);
+
+  // Team members for initials matching
+  const teamClinicians = useMemo(() => {
+    if (!data?.clinicians) return [];
+    return Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
+  }, [data?.clinicians]);
 
   const processCSV = (csvText) => {
     try {
@@ -91,7 +271,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       </div>
 
-      {/* URGENT ON THE DAY */}
+      {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (
         <div className="card p-12 text-center">
           <div className="text-5xl mb-4">📊</div>
@@ -101,6 +281,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       ) : capacity && (
         <>
+          {/* ─── URGENT ON THE DAY ─── */}
           <div className="flex items-start justify-between gap-4">
             <div><h2 className="text-lg font-semibold text-slate-900">Urgent on the Day</h2><p className="text-xs text-slate-500 mt-0.5">Available urgent capacity{displayDate !== todayStr ? ` (${displayDate})` : ''}</p></div>
             <SlotFilter overrides={slotOverrides} setOverrides={setSlotOverrides} show={showFilter} setShow={setShowFilter} huddleSettings={hs} />
@@ -127,7 +308,17 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 </div>
                 <div className="p-4">
                   {s.data.byClinician.length > 0 ? (
-                    <div className="space-y-2">{s.data.byClinician.map((c, i) => <div key={i} className="flex items-center justify-between"><span className="text-sm text-slate-700">{c.name}</span><span className={`text-sm font-semibold ${s.colour}`}>{c.available}</span></div>)}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {s.data.byClinician.map((c, i) => {
+                        const initials = getInitials(c.name, teamClinicians);
+                        return (
+                          <div key={i} className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100" title={c.name}>
+                            <span className="text-xs font-bold text-slate-700">{initials}</span>
+                            <span className={`text-sm font-semibold ${s.colour}`}>{c.available}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : <div className="text-center text-slate-400 text-sm py-4">No capacity</div>}
                 </div>
               </div>
@@ -148,64 +339,50 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             </div>
           )}
 
-          {/* 7-Day Availability Cards for custom filters */}
-          {(() => {
-            const customFilters = Object.keys(hs.customFilters || {});
-            if (customFilters.length === 0) return null;
-            return (
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900 mb-3">7-Day Availability</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {customFilters.map(filterName => {
-                    const days = get7DayAvailability(huddleData, hs, filterName);
-                    const totalAvail = days.reduce((sum, d) => sum + (d.available || 0), 0);
-                    const filterSlots = hs.customFilters[filterName] || [];
-                    const hasSlots = filterSlots.length > 0;
-                    return (
-                      <div key={filterName} className="card overflow-hidden">
-                        <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-4 py-2.5">
-                          <div className="flex items-center justify-between text-white">
-                            <div className="text-sm font-semibold">{filterName}</div>
-                            <div className="text-lg font-bold">{totalAvail}</div>
-                          </div>
-                          <div className="text-[10px] text-white/60">next 7 days</div>
-                        </div>
-                        {!hasSlots ? (
-                          <div className="p-3 text-xs text-slate-400 text-center">No slot types assigned. Go to Settings to configure.</div>
-                        ) : (
-                          <div className="p-3">
-                            <div className="flex gap-1">
-                              {days.map((d, i) => {
-                                const isToday = i === 0;
-                                const hasData = d.available !== null;
-                                return (
-                                  <div key={i} className={`flex-1 text-center rounded-md py-1.5 ${isToday ? 'bg-slate-900 text-white' : hasData ? 'bg-slate-50' : 'bg-slate-50 opacity-50'}`}>
-                                    <div className="text-[10px] font-medium opacity-60">{d.dayName}</div>
-                                    <div className={`text-sm font-bold ${isToday ? '' : hasData ? (d.available > 0 ? 'text-emerald-600' : 'text-slate-400') : 'text-slate-300'}`}>
-                                      {hasData ? d.available : '–'}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            {days.some(d => d.booked !== null && d.booked > 0) && (
-                              <div className="mt-2 pt-2 border-t border-slate-100 flex gap-1">
-                                {days.map((d, i) => (
-                                  <div key={i} className="flex-1 text-center">
-                                    <div className="text-[9px] text-slate-400">{d.booked !== null ? `${d.booked} booked` : ''}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+          {/* ─── ROUTINE CAPACITY (28 days) ─── */}
+          <div className="card overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-base font-semibold text-white">Routine Capacity</div>
+                  <div className="text-[11px] text-white/70">28-day availability overview</div>
+                </div>
+                <CardSlotPicker overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} />
+              </div>
+            </div>
+            <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={routineOverrides} />
+          </div>
+
+          {/* ─── MINOR ILLNESS + PHYSIOTHERAPY (7 days each) ─── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Minor Illness */}
+            <div className="card overflow-hidden">
+              <div className="bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-white">Minor Illness</div>
+                    <div className="text-[10px] text-white/70">Next 7 days</div>
+                  </div>
+                  <CardSlotPicker overrides={minorIllnessOverrides} setOverrides={setMinorIllnessOverrides} knownSlotTypes={knownSlotTypes} />
                 </div>
               </div>
-            );
-          })()}
+              <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={minorIllnessOverrides} accent="violet" />
+            </div>
+
+            {/* Physiotherapy */}
+            <div className="card overflow-hidden">
+              <div className="bg-gradient-to-r from-sky-500 to-cyan-600 px-4 py-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-white">Physiotherapy</div>
+                    <div className="text-[10px] text-white/70">Next 7 days</div>
+                  </div>
+                  <CardSlotPicker overrides={physioOverrides} setOverrides={setPhysioOverrides} knownSlotTypes={knownSlotTypes} />
+                </div>
+              </div>
+              <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={physioOverrides} accent="sky" />
+            </div>
+          </div>
 
           {!hs?.slotCategories?.urgent?.length && (
             <Card className="p-4 bg-amber-50 border-amber-200">
