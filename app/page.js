@@ -37,6 +37,7 @@ export default function Home() {
   const [showSlotFilter, setShowSlotFilter] = useState(false);
   const [forwardSlotOverrides, setForwardSlotOverrides] = useState(null);
   const [showForwardSlotFilter, setShowForwardSlotFilter] = useState(false);
+  const [forwardViewMode, setForwardViewMode] = useState('urgent'); // 'urgent' | 'routine' | 'all'
   const fileInputRef = useRef(null);
   const huddleLoadedRef = useRef(false);
 
@@ -390,14 +391,26 @@ export default function Home() {
   };
 
   // Group huddle dates by week (Mon-Fri) for the forward planning grid
+  // Only returns current week + next 5 weeks (6 total)
   const getHuddleWeeks = () => {
     if (!huddleData) return [];
     const weeks = {};
+    // Find current Monday
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentMonday = new Date(now);
+    currentMonday.setDate(now.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+    currentMonday.setHours(0, 0, 0, 0);
+    // End = 6 weeks from current Monday (current + 5 more)
+    const endDate = new Date(currentMonday);
+    endDate.setDate(endDate.getDate() + 6 * 7);
+
     huddleData.dates.forEach(dateStr => {
       const d = parseHuddleDateStr(dateStr);
-      const dayOfWeek = d.getDay(); // 0=Sun
-      if (dayOfWeek === 0 || dayOfWeek === 6) return; // skip weekends
-      // Find Monday of this week
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) return;
+      // Skip if before current Monday or after 6 weeks
+      if (d < currentMonday || d >= endDate) return;
       const monday = new Date(d);
       monday.setDate(monday.getDate() - (dayOfWeek - 1));
       const weekKey = monday.toISOString().split('T')[0];
@@ -1337,101 +1350,115 @@ export default function Home() {
 
           {/* HUDDLE - FORWARD PLANNING */}
           {activeSection === 'huddle-forward' && (
-            <div className="space-y-6">
-              <div className="flex items-start justify-between gap-4">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <h1 className="text-xl font-bold text-slate-900">Forward Planning</h1>
-                  <p className="text-sm text-slate-500 mt-1">Weekly urgent capacity overview</p>
+                  <p className="text-sm text-slate-500 mt-1">This week + next 5 weeks</p>
                 </div>
-                {renderSlotFilter(forwardSlotOverrides, setForwardSlotOverrides, showForwardSlotFilter, setShowForwardSlotFilter)}
+                <div className="flex items-center gap-2">
+                  {/* View mode toggle */}
+                  <div className="flex rounded-md border border-slate-200 overflow-hidden text-xs">
+                    <button onClick={() => setForwardViewMode('urgent')} className={`px-3 py-1.5 font-medium transition-colors ${forwardViewMode === 'urgent' ? 'bg-red-50 text-red-700 border-r border-slate-200' : 'bg-white text-slate-500 hover:bg-slate-50 border-r border-slate-200'}`}>Urgent</button>
+                    <button onClick={() => setForwardViewMode('routine')} className={`px-3 py-1.5 font-medium transition-colors ${forwardViewMode === 'routine' ? 'bg-green-50 text-green-700 border-r border-slate-200' : 'bg-white text-slate-500 hover:bg-slate-50 border-r border-slate-200'}`}>Routine</button>
+                    <button onClick={() => setForwardViewMode('all')} className={`px-3 py-1.5 font-medium transition-colors ${forwardViewMode === 'all' ? 'bg-purple-50 text-purple-700' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>All</button>
+                  </div>
+                  {renderSlotFilter(forwardSlotOverrides, setForwardSlotOverrides, showForwardSlotFilter, setShowForwardSlotFilter)}
+                </div>
               </div>
 
               {!huddleData ? (
                 <div className="card p-12 text-center">
                   <div className="text-5xl mb-4">📅</div>
                   <h2 className="text-lg font-semibold text-slate-900 mb-2">No Report Data</h2>
-                  <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload a report on the Today page first, then use this view to browse capacity across weeks.</p>
+                  <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload a report on the Today page first.</p>
                   <button onClick={() => setActiveSection('huddle-today')} className="btn-primary">Go to Today</button>
                 </div>
               ) : (
                 <>
                   {/* Colour key */}
                   {data?.huddleSettings?.expectedCapacity && Object.keys(data.huddleSettings.expectedCapacity).length > 0 && (
-                    <div className="flex items-center gap-4 text-xs text-slate-600">
-                      <span className="font-medium">Key:</span>
-                      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-200 border border-emerald-300"></span> ≥100% of target</span>
-                      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-200 border border-amber-300"></span> 80–99%</span>
-                      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-300"></span> &lt;80%</span>
-                      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-white border border-slate-200"></span> No target set</span>
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-200 border border-emerald-300"></span>≥100%</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-200 border border-amber-300"></span>80–99%</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-200 border border-red-300"></span>&lt;80%</span>
                     </div>
                   )}
 
-                  {/* Weekly grid */}
-                  {getHuddleWeeks().map((week, wi) => {
-                    const weekLabel = `${week.monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(week.monday.getTime() + 4*86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
-                    return (
-                      <div key={wi} className="card overflow-hidden">
-                        <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200">
-                          <div className="text-sm font-semibold text-slate-800">{weekLabel}</div>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="bg-slate-50/50">
-                                <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 w-16"></th>
-                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => (
-                                  <th key={d} className="text-center px-2 py-2 text-xs font-medium text-slate-500" colSpan={2}>
-                                    {d}
-                                    {week.dates[d] && <div className="text-[10px] font-normal text-slate-400">{week.dates[d]}</div>}
-                                  </th>
-                                ))}
-                              </tr>
-                              <tr className="border-b border-slate-200">
-                                <th className="px-4 py-1"></th>
-                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => (
-                                  <>{/* Fragment key workaround */}
-                                    <th key={d+'am'} className="text-center px-1 py-1 text-[10px] font-medium text-amber-600 w-16">AM</th>
-                                    <th key={d+'pm'} className="text-center px-1 py-1 text-[10px] font-medium text-blue-600 w-16">PM</th>
-                                  </>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr>
-                                <td className="px-4 py-3 text-xs font-medium text-slate-600">Slots</td>
+                  {/* Condensed grid: Week commencing | Mon AM/PM | Tue AM/PM | ... */}
+                  <div className="card overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200">
+                            <th className="text-left px-3 py-2 font-medium text-slate-600 sticky left-0 bg-slate-50 min-w-[90px]">Week</th>
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => (
+                              <th key={d} className="text-center px-1 py-2 font-medium text-slate-600 min-w-[52px]">{d}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {getHuddleWeeks().map((week, wi) => {
+                            const weekLabel = `${week.monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+                            const dayNames = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+                            // Build slot overrides based on view mode
+                            const getViewOverrides = () => {
+                              if (forwardSlotOverrides) return forwardSlotOverrides; // manual filter takes priority
+                              const hs = data?.huddleSettings || {};
+                              const urgent = hs?.slotCategories?.urgent || [];
+                              const excluded = hs?.slotCategories?.excluded || [];
+                              const allKnown = hs?.knownSlotTypes || [];
+                              if (forwardViewMode === 'urgent') {
+                                // Only urgent slots
+                                if (urgent.length === 0) return null; // no config, show all
+                                const o = {};
+                                allKnown.forEach(s => { o[s] = urgent.includes(s); });
+                                return o;
+                              }
+                              if (forwardViewMode === 'routine') {
+                                // Everything that's NOT urgent and NOT excluded
+                                const o = {};
+                                allKnown.forEach(s => { o[s] = !urgent.includes(s) && !excluded.includes(s); });
+                                return o;
+                              }
+                              // 'all' - everything except excluded
+                              const o = {};
+                              allKnown.forEach(s => { o[s] = !excluded.includes(s); });
+                              return o;
+                            };
+                            const viewOverrides = getViewOverrides();
+                            return (
+                              <tr key={wi} className={`border-b border-slate-100 ${wi % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
+                                <td className="px-3 py-1 font-medium text-slate-700 sticky left-0 bg-white text-[11px] whitespace-nowrap">{weekLabel}</td>
                                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => {
                                   const dateStr = week.dates[d];
-                                  if (!dateStr) return <><td key={d+'am'} className="text-center px-1 py-3 text-slate-300 text-xs">–</td><td key={d+'pm'} className="text-center px-1 py-3 text-slate-300 text-xs">–</td></>;
-                                  const cap = getHuddleCapacity(huddleData, dateStr, forwardSlotOverrides);
-                                  const dayNames = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+                                  if (!dateStr) return <td key={d} className="text-center px-1 py-1 text-slate-300">–</td>;
+                                  const cap = getHuddleCapacity(huddleData, dateStr, viewOverrides);
                                   const amColour = getCapacityColour(cap.am.total, dayNames[d], 'am');
                                   const pmColour = getCapacityColour(cap.pm.total, dayNames[d], 'pm');
                                   return (
-                                    <>
-                                      <td key={d+'am'} className={`text-center px-1 py-3 font-semibold text-sm rounded-sm border ${amColour || 'border-transparent'}`}>{cap.am.total}</td>
-                                      <td key={d+'pm'} className={`text-center px-1 py-3 font-semibold text-sm rounded-sm border ${pmColour || 'border-transparent'}`}>{cap.pm.total}</td>
-                                    </>
+                                    <td key={d} className="px-1 py-1">
+                                      <div className="flex flex-col items-center gap-0.5">
+                                        <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold ${amColour || 'text-slate-700'}`} title={`${d} AM: ${cap.am.total}`}>
+                                          <span className="text-[9px] font-normal text-slate-400 mr-0.5">AM</span>{cap.am.total}
+                                        </div>
+                                        <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold ${pmColour || 'text-slate-700'}`} title={`${d} PM: ${cap.pm.total}`}>
+                                          <span className="text-[9px] font-normal text-slate-400 mr-0.5">PM</span>{cap.pm.total}
+                                        </div>
+                                      </div>
+                                    </td>
                                   );
                                 })}
                               </tr>
-                              <tr className="border-t border-slate-100">
-                                <td className="px-4 py-2 text-xs font-medium text-slate-600">Total</td>
-                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => {
-                                  const dateStr = week.dates[d];
-                                  if (!dateStr) return <td key={d+'t'} colSpan={2} className="text-center px-1 py-2 text-slate-300 text-xs">–</td>;
-                                  const cap = getHuddleCapacity(huddleData, dateStr, forwardSlotOverrides);
-                                  return <td key={d+'t'} colSpan={2} className="text-center px-1 py-2 font-bold text-slate-900">{cap.am.total + cap.pm.total}</td>;
-                                })}
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    );
-                  })}
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
                   {getHuddleWeeks().length === 0 && (
-                    <div className="card p-8 text-center text-slate-400 text-sm">No weekday data found in the uploaded report.</div>
+                    <div className="card p-8 text-center text-slate-400 text-sm">No data found for the current or upcoming weeks in the uploaded report.</div>
                   )}
                 </>
               )}
