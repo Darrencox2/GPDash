@@ -51,6 +51,8 @@
   .animate-in { animation: fade-in 0.2s ease-out; }
   @keyframes progress-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
   .animate-progress { animation: progress-slide 1.2s ease-in-out infinite; }
+  @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  .animate-slide-in-right { animation: slide-in-right 0.2s ease-out; }
   .drop-zone { @apply border-2 border-dashed border-slate-300 rounded-xl transition-all duration-200; }
   .drop-zone.active { @apply border-teal-400 bg-teal-50/50; }
 }

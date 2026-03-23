@@ -2,6 +2,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
 import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
+import SlotFilter from './SlotFilter';
 
 // ── Match CSV clinician name to team member initials ──────────────
 function getInitials(csvName, clinicians) {
@@ -19,48 +20,15 @@ function getInitials(csvName, clinicians) {
   return csvName.slice(0, 3);
 }
 
-// ── Inline slot picker for a capacity card ────────────────────────
-function CardSlotPicker({ overrides, setOverrides, knownSlotTypes, variant = 'dark' }) {
-  const [show, setShow] = useState(false);
-  const selectedCount = overrides ? Object.values(overrides).filter(Boolean).length : 0;
-  const btnClass = variant === 'light'
-    ? `px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${show ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`
-    : `px-2 py-1 rounded text-[11px] font-medium transition-colors ${show ? 'bg-slate-900 text-white' : 'bg-white/20 text-white/90 hover:bg-white/30'}`;
-  return (
-    <div className="relative">
-      <button onClick={() => { if (!show && !overrides) { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o); } setShow(!show); }}
-        className={btnClass}>
-        ⚙ Slots{selectedCount > 0 ? ` (${selectedCount})` : ''}
-      </button>
-      {show && overrides && (
-        <div className="absolute right-0 top-full mt-1 z-30 bg-white rounded-xl border border-slate-200 shadow-xl p-3 w-64 max-h-60 overflow-y-auto">
-          <div className="text-xs font-medium text-slate-700 mb-2">Include in count:</div>
-          <div className="space-y-0.5">
-            {(knownSlotTypes || []).sort().map(slot => (
-              <label key={slot} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5">
-                <input type="checkbox" checked={!!overrides[slot]} onChange={e => setOverrides({ ...overrides, [slot]: e.target.checked })} className="rounded border-slate-300" />
-                <span className="truncate" title={slot}>{slot.length > 26 ? slot.slice(0, 26) + '…' : slot}</span>
-              </label>
-            ))}
-          </div>
-          <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
-            <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o); }} className="text-[10px] text-slate-500 hover:underline">All</button>
-            <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = false; }); setOverrides(o); }} className="text-[10px] text-slate-500 hover:underline">None</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-// ── 7-day compact bar chart strip with available/embargoed ────────
+// ── 7-day compact bar chart strip with available/embargoed/booked ──
 function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal' }) {
   const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 7, overrides), [huddleData, huddleSettings, overrides]);
-  const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0)), 1);
+  const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
   const accentColours = {
-    teal: { bar: 'bg-teal-400', emb: 'bg-teal-200', text: 'text-teal-600' },
-    violet: { bar: 'bg-violet-400', emb: 'bg-violet-200', text: 'text-violet-600' },
-    sky: { bar: 'bg-sky-400', emb: 'bg-sky-200', text: 'text-sky-600' },
+    teal: { bar: 'bg-teal-400', emb: 'bg-teal-200', book: 'bg-slate-300', text: 'text-teal-600' },
+    violet: { bar: 'bg-violet-400', emb: 'bg-violet-200', book: 'bg-slate-300', text: 'text-violet-600' },
+    sky: { bar: 'bg-sky-400', emb: 'bg-sky-200', book: 'bg-slate-300', text: 'text-sky-600' },
   };
   const ac = accentColours[accent] || accentColours.teal;
 
@@ -72,14 +40,14 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal' 
           const hasData = d.available !== null;
           const avail = d.available || 0;
           const emb = d.embargoed || 0;
-          const total = avail + emb;
+          const book = d.booked || 0;
+          const total = avail + emb + book;
           const totalPct = hasData && total > 0 ? Math.max(12, (total / maxVal) * 100) : 0;
-          const availPct = total > 0 ? (avail / total) * 100 : 0;
           return (
-            <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5" title={hasData ? `${d.dayName}: ${avail} available, ${emb} embargoed` : d.dayName}>
+            <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5" title={hasData ? `${d.dayName}: ${avail} available, ${emb} embargoed, ${book} booked` : d.dayName}>
               {hasData && total > 0 && (
                 <div className={`text-[10px] font-bold ${isToday ? 'text-slate-800' : ac.text}`}>
-                  {avail}{emb > 0 && <span className="text-slate-400">+{emb}</span>}
+                  {avail}{emb > 0 && <span className="text-slate-400">+{emb}</span>}{book > 0 && <span className="text-slate-300 ml-0.5">({book})</span>}
                 </div>
               )}
               <div className="w-full rounded-t-md overflow-hidden" style={{ height: hasData ? `${totalPct}%` : '8%', minHeight: 3 }}>
@@ -87,8 +55,9 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal' 
                   <div className="w-full h-full bg-slate-800" />
                 ) : hasData ? (
                   <div className="w-full h-full flex flex-col justify-end">
-                    <div className={`${ac.emb}`} style={{ height: total > 0 ? `${((emb / total) * 100)}%` : '0%' }} />
-                    <div className={`${ac.bar} opacity-80`} style={{ height: `${availPct}%` }} />
+                    {avail > 0 && <div className={`${ac.bar} opacity-80`} style={{ height: `${(avail / total) * 100}%` }} />}
+                    {emb > 0 && <div className={ac.emb} style={{ height: `${(emb / total) * 100}%` }} />}
+                    {book > 0 && <div className={ac.book} style={{ height: `${(book / total) * 100}%` }} />}
                   </div>
                 ) : (
                   <div className="w-full h-full bg-slate-200" />
@@ -103,16 +72,16 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal' 
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
         <div className="flex items-center gap-1"><div className={`w-2 h-2 rounded-sm ${ac.bar}`} /><span className="text-[10px] text-slate-500">Available</span></div>
         <div className="flex items-center gap-1"><div className={`w-2 h-2 rounded-sm ${ac.emb}`} /><span className="text-[10px] text-slate-500">Embargoed</span></div>
-        {days.some(d => d.booked > 0) && <div className="flex items-center gap-1 ml-auto"><span className="text-[10px] text-slate-400">{days.reduce((s,d)=>s+(d.booked||0),0)} booked</span></div>}
+        <div className="flex items-center gap-1"><div className={`w-2 h-2 rounded-sm ${ac.book}`} /><span className="text-[10px] text-slate-500">Booked</span></div>
       </div>
     </div>
   );
 }
 
-// ── 28-day graphical routine capacity with stacked available/embargoed ──
+// ── 28-day graphical routine capacity with stacked available/embargoed/booked ──
 function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
   const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 28, overrides), [huddleData, huddleSettings, overrides]);
-  const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0)), 1);
+  const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
   const totalAvail = days.reduce((sum, d) => sum + (d.available || 0), 0);
   const totalEmb = days.reduce((sum, d) => sum + (d.embargoed || 0), 0);
   const totalBooked = days.reduce((sum, d) => sum + (d.booked || 0), 0);
@@ -127,7 +96,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
         <div className="flex items-center gap-3 text-sm">
           <span className="font-semibold text-emerald-700">{totalAvail} avail</span>
           {totalEmb > 0 && <span className="font-semibold text-amber-600">{totalEmb} emb</span>}
-          {totalBooked > 0 && <span className="text-slate-400">{totalBooked} booked</span>}
+          {totalBooked > 0 && <span className="font-semibold text-slate-500">{totalBooked} booked</span>}
         </div>
       </div>
       <div className="flex items-end gap-px" style={{ height: 110 }}>
@@ -136,13 +105,13 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
           const hasData = d.available !== null;
           const avail = d.available || 0;
           const emb = d.embargoed || 0;
-          const total = avail + emb;
+          const book = d.booked || 0;
+          const total = avail + emb + book;
           const pct = hasData && total > 0 ? Math.max(6, (total / maxVal) * 100) : 0;
-          const availPct = total > 0 ? (avail / total) * 100 : 0;
           const isMonday = d.dayName === 'Mon';
           return (
             <div key={i} className={`flex-1 flex flex-col items-center justify-end h-full ${isMonday && i > 0 ? 'ml-1' : ''}`}
-              title={`${d.dayName} ${d.dayNum} ${d.monthShort}: ${hasData ? avail + ' available' + (emb > 0 ? ', ' + emb + ' embargoed' : '') : 'No data'}${d.booked ? ', ' + d.booked + ' booked' : ''}`}>
+              title={`${d.dayName} ${d.dayNum} ${d.monthShort}: ${hasData ? avail + ' available' + (emb > 0 ? ', ' + emb + ' embargoed' : '') + (book > 0 ? ', ' + book + ' booked' : '') : 'No data'}`}>
               <div className="w-full rounded-t overflow-hidden cursor-default" style={{ height: hasData ? `${pct}%` : '4%', minHeight: 2 }}>
                 {isToday ? (
                   <div className="w-full h-full bg-slate-800" />
@@ -152,8 +121,9 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
                   <div className="w-full h-full bg-red-200" />
                 ) : (
                   <div className="w-full h-full flex flex-col justify-end">
-                    {emb > 0 && <div className="bg-amber-300" style={{ height: `${((emb / total) * 100)}%` }} />}
-                    <div className={`${avail <= (maxVal * 0.3) ? 'bg-red-400' : avail <= (maxVal * 0.6) ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ height: `${availPct}%` }} />
+                    {avail > 0 && <div className={`${avail <= (maxVal * 0.3) ? 'bg-red-400' : avail <= (maxVal * 0.6) ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ height: `${(avail / total) * 100}%` }} />}
+                    {emb > 0 && <div className="bg-amber-300" style={{ height: `${(emb / total) * 100}%` }} />}
+                    {book > 0 && <div className="bg-slate-300" style={{ height: `${(book / total) * 100}%` }} />}
                   </div>
                 )}
               </div>
@@ -179,7 +149,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-emerald-400" /><span className="text-[10px] text-slate-500">Available</span></div>
         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-amber-300" /><span className="text-[10px] text-slate-500">Embargoed</span></div>
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-red-400" /><span className="text-[10px] text-slate-500">Low</span></div>
+        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-slate-300" /><span className="text-[10px] text-slate-500">Booked</span></div>
         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-slate-100" /><span className="text-[10px] text-slate-500">No data</span></div>
       </div>
     </div>
@@ -309,61 +279,72 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       ) : capacity && (
         <>
           {/* ─── URGENT ON THE DAY ─── */}
-          <div className="flex items-start justify-between gap-4">
-            <div><h2 className="text-lg font-semibold text-slate-900">Urgent on the Day</h2><p className="text-xs text-slate-500 mt-0.5">Available urgent capacity{displayDate !== todayStr ? ` (${displayDate})` : ''}</p></div>
-            <CardSlotPicker overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} variant="light" />
-          </div>
-
-          {displayDate !== todayStr && (
-            <Card className="p-3 bg-amber-50 border-amber-200 text-amber-800 text-sm flex items-center gap-2">⚠️ Today not found in report. Showing {displayDate}.</Card>
-          )}
-
-          {/* Hero numbers */}
-          <div className="text-center py-4">
-            <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-500">
-              {capacity.am.total + capacity.pm.total}
-            </div>
-            <div className="text-sm text-slate-500 mt-1">available slots</div>
-            {((capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)) > 0 && (
-              <div className="mt-1 flex items-center justify-center gap-2">
-                <span className="text-lg font-bold text-amber-600">{(capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)}</span>
-                <span className="text-sm text-amber-600">embargoed</span>
+          <div className="card overflow-hidden">
+            <div className="bg-gradient-to-r from-red-600 to-rose-600 px-5 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-base font-semibold text-white">Urgent on the Day</div>
+                  <div className="text-[11px] text-white/70">Available urgent capacity{displayDate !== todayStr ? ` (${displayDate})` : ''}</div>
+                </div>
+                <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" />
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* AM / PM cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[{ label: 'Morning', sub: '08:00 – 13:00', data: capacity.am, accent: 'from-amber-400 to-orange-400', colour: 'text-amber-600', embColour: 'text-amber-500' },
-              { label: 'Afternoon', sub: '13:00 – 18:30', data: capacity.pm, accent: 'from-blue-400 to-indigo-500', colour: 'text-blue-600', embColour: 'text-blue-400' }].map(s => (
-              <div key={s.label} className="card overflow-hidden">
-                <div className={`bg-gradient-to-r ${s.accent} px-5 py-3`}>
-                  <div className="flex items-center justify-between text-white">
-                    <div><div className="text-lg font-bold">{s.label}</div><div className="text-xs opacity-90">{s.sub}</div></div>
+            {displayDate !== todayStr && (
+              <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">⚠️ Today not found in report. Showing {displayDate}.</div>
+            )}
+
+            {/* Hero numbers */}
+            <div className="text-center py-6 border-b border-slate-100">
+              <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-500">
+                {capacity.am.total + capacity.pm.total}
+              </div>
+              <div className="text-sm text-slate-500 mt-1">available slots</div>
+              <div className="mt-2 flex items-center justify-center gap-4">
+                {((capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)) > 0 && (
+                  <span className="flex items-center gap-1.5"><span className="text-lg font-bold text-amber-600">{(capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)}</span><span className="text-sm text-amber-600">embargoed</span></span>
+                )}
+                {((capacity.am.booked || 0) + (capacity.pm.booked || 0)) > 0 && (
+                  <span className="flex items-center gap-1.5"><span className="text-lg font-bold text-slate-500">{(capacity.am.booked || 0) + (capacity.pm.booked || 0)}</span><span className="text-sm text-slate-500">booked</span></span>
+                )}
+              </div>
+            </div>
+
+            {/* AM / PM cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+              {[{ label: 'Morning', sub: '08:00 – 13:00', data: capacity.am, accent: 'from-amber-400 to-orange-400', colour: 'text-amber-600' },
+                { label: 'Afternoon', sub: '13:00 – 18:30', data: capacity.pm, accent: 'from-blue-400 to-indigo-500', colour: 'text-blue-600' }].map(s => (
+                <div key={s.label} className="p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div><div className="text-sm font-bold text-slate-900">{s.label}</div><div className="text-[11px] text-slate-400">{s.sub}</div></div>
                     <div className="text-right">
-                      <div className="text-3xl font-bold">{s.data.total}</div>
-                      {(s.data.embargoed || 0) > 0 && <div className="text-xs opacity-80">+{s.data.embargoed} emb</div>}
+                      <div className={`text-2xl font-bold ${s.colour}`}>{s.data.total}</div>
+                      <div className="flex items-center gap-2 justify-end">
+                        {(s.data.embargoed || 0) > 0 && <span className="text-[11px] text-amber-500">+{s.data.embargoed} emb</span>}
+                        {(s.data.booked || 0) > 0 && <span className="text-[11px] text-slate-400">{s.data.booked} bkd</span>}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="p-4">
                   {s.data.byClinician.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-1">
                       {s.data.byClinician.map((c, i) => {
                         const initials = getInitials(c.name, teamClinicians);
                         return (
-                          <div key={i} className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100" title={`${c.name}: ${c.available} available${c.embargoed > 0 ? ', ' + c.embargoed + ' embargoed' : ''}`}>
-                            <span className="text-xs font-bold text-slate-700">{initials}</span>
-                            <span className={`text-sm font-semibold ${s.colour}`}>{c.available}</span>
-                            {c.embargoed > 0 && <span className={`text-xs ${s.embColour} opacity-70`}>+{c.embargoed}</span>}
+                          <div key={i} className="flex items-center justify-between py-1.5 px-3 bg-slate-50 rounded-lg border border-slate-100" title={c.name}>
+                            <span className="text-xs font-bold text-slate-700 whitespace-nowrap min-w-[28px]">{initials}</span>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-sm font-semibold ${s.colour}`}>{c.available} <span className="text-[10px] font-normal text-slate-400">avail</span></span>
+                              {(c.embargoed || 0) > 0 && <span className="text-xs text-amber-500">{c.embargoed} <span className="text-[10px]">emb</span></span>}
+                              {(c.booked || 0) > 0 && <span className="text-xs text-slate-400">{c.booked} <span className="text-[10px]">bkd</span></span>}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
                   ) : <div className="text-center text-slate-400 text-sm py-4">No capacity</div>}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
           {/* Slot type breakdown */}
@@ -385,14 +366,17 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         <td className="py-2 text-right">
                           <span className="text-amber-600 font-medium">{s.am || '–'}</span>
                           {s.amEmb > 0 && <span className="text-amber-400 text-xs ml-1">+{s.amEmb}</span>}
+                          {(s.amBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.amBook})</span>}
                         </td>
                         <td className="py-2 text-right">
                           <span className="text-blue-600 font-medium">{s.pm || '–'}</span>
                           {s.pmEmb > 0 && <span className="text-blue-400 text-xs ml-1">+{s.pmEmb}</span>}
+                          {(s.pmBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.pmBook})</span>}
                         </td>
                         <td className="py-2 text-right">
                           <span className="font-semibold text-slate-900">{s.total}</span>
                           {s.totalEmb > 0 && <span className="text-amber-500 text-xs ml-1">+{s.totalEmb}</span>}
+                          {(s.totalBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.totalBook})</span>}
                         </td>
                       </tr>
                     ))}
@@ -401,6 +385,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <div className="mt-3 pt-3 border-t border-slate-100 flex gap-4 text-[11px] text-slate-400">
                   <span>Numbers = available</span>
                   <span className="text-amber-500">+n = embargoed</span>
+                  <span className="text-slate-400">(n) = booked</span>
                 </div>
               </div>
             </div>
@@ -414,7 +399,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="text-base font-semibold text-white">Routine Capacity</div>
                   <div className="text-[11px] text-white/70">28-day availability overview</div>
                 </div>
-                <CardSlotPicker overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} />
+                <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" />
               </div>
             </div>
             <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={routineOverrides} />
@@ -429,7 +414,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="text-sm font-semibold text-white">Minor Illness</div>
                     <div className="text-[10px] text-white/70">Next 7 days</div>
                   </div>
-                  <CardSlotPicker overrides={minorIllnessOverrides} setOverrides={setMinorIllnessOverrides} knownSlotTypes={knownSlotTypes} />
+                  <SlotFilter overrides={minorIllnessOverrides} setOverrides={setMinorIllnessOverrides} knownSlotTypes={knownSlotTypes} title="Minor Illness Slots" />
                 </div>
               </div>
               <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={minorIllnessOverrides} accent="violet" />
@@ -441,7 +426,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="text-sm font-semibold text-white">Physiotherapy</div>
                     <div className="text-[10px] text-white/70">Next 7 days</div>
                   </div>
-                  <CardSlotPicker overrides={physioOverrides} setOverrides={setPhysioOverrides} knownSlotTypes={knownSlotTypes} />
+                  <SlotFilter overrides={physioOverrides} setOverrides={setPhysioOverrides} knownSlotTypes={knownSlotTypes} title="Physiotherapy Slots" />
                 </div>
               </div>
               <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={physioOverrides} accent="sky" />
