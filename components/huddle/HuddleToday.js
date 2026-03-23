@@ -6,17 +6,49 @@ import SlotFilter from './SlotFilter';
 
 // ── Match CSV clinician name to team member initials ──────────────
 function getInitials(csvName, clinicians) {
-  if (!csvName || !clinicians || clinicians.length === 0) return csvName;
-  const cleaned = csvName.replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s*/i, '').trim().toLowerCase();
-  const parts = cleaned.split(/\s+/);
-  const surname = parts[parts.length - 1] || '';
+  if (!csvName || !clinicians || clinicians.length === 0) return csvName?.slice(0, 3) || '??';
+  const csvLower = csvName.toLowerCase().trim();
+  const csvCleaned = csvLower.replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim();
+  const csvParts = csvCleaned.split(/\s+/).filter(Boolean);
+
+  for (const c of clinicians) {
+    const cLower = c.name.toLowerCase().trim();
+    const cCleaned = cLower.replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim();
+    // Exact match on cleaned name
+    if (csvCleaned === cCleaned) return c.initials;
+    // CSV contains team member name or vice versa
+    if (csvCleaned.includes(cCleaned) || cCleaned.includes(csvCleaned)) return c.initials;
+  }
+
+  // Try surname match (last word)
+  const csvSurname = csvParts[csvParts.length - 1] || '';
   for (const c of clinicians) {
     const cCleaned = c.name.replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s*/i, '').trim().toLowerCase();
-    const cParts = cCleaned.split(/\s+/);
+    const cParts = cCleaned.split(/\s+/).filter(Boolean);
     const cSurname = cParts[cParts.length - 1] || '';
-    if (surname && cSurname && surname === cSurname) return c.initials;
+    if (csvSurname && cSurname && csvSurname === cSurname) return c.initials;
   }
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+
+  // Try first name match
+  const csvFirst = csvParts[0] || '';
+  for (const c of clinicians) {
+    const cCleaned = c.name.replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s*/i, '').trim().toLowerCase();
+    const cFirst = cCleaned.split(/\s+/)[0] || '';
+    if (csvFirst && cFirst && csvFirst === cFirst) return c.initials;
+  }
+
+  // Try matching initials from the team against the CSV name
+  for (const c of clinicians) {
+    if (c.initials && c.initials.length >= 2) {
+      const ini = c.initials.toLowerCase();
+      // Check if CSV name starts with the letters of the initials
+      if (csvParts.length >= 2 && csvParts[0][0] === ini[0] && csvParts[csvParts.length - 1][0] === ini[ini.length - 1]) return c.initials;
+    }
+  }
+
+  // Fallback: build initials from the CSV name parts
+  if (csvParts.length >= 2) return (csvParts[0][0] + csvParts[csvParts.length - 1][0]).toUpperCase();
+  if (csvParts.length === 1 && csvParts[0].length >= 2) return csvParts[0].slice(0, 2).toUpperCase();
   return csvName.slice(0, 3);
 }
 
@@ -295,27 +327,29 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             )}
 
             {/* Hero numbers */}
-            <div className="text-center py-6 border-b border-slate-100">
-              <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-500">
+            <div className="text-center py-4 border-b border-slate-100">
+              <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-500">
                 {capacity.am.total + capacity.pm.total}
               </div>
-              <div className="text-sm text-slate-500 mt-1">available slots</div>
-              <div className="mt-2 flex items-center justify-center gap-4">
-                {((capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)) > 0 && (
-                  <span className="flex items-center gap-1.5"><span className="text-lg font-bold text-amber-600">{(capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)}</span><span className="text-sm text-amber-600">embargoed</span></span>
-                )}
-                {((capacity.am.booked || 0) + (capacity.pm.booked || 0)) > 0 && (
-                  <span className="flex items-center gap-1.5"><span className="text-lg font-bold text-slate-500">{(capacity.am.booked || 0) + (capacity.pm.booked || 0)}</span><span className="text-sm text-slate-500">booked</span></span>
-                )}
-              </div>
+              <div className="text-sm text-slate-500 mt-0.5">available slots</div>
+              {(((capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)) > 0 || ((capacity.am.booked || 0) + (capacity.pm.booked || 0)) > 0) && (
+                <div className="mt-1.5 flex items-center justify-center gap-4">
+                  {((capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)) > 0 && (
+                    <span className="flex items-center gap-1"><span className="text-base font-bold text-amber-600">{(capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)}</span><span className="text-xs text-amber-600">embargoed</span></span>
+                  )}
+                  {((capacity.am.booked || 0) + (capacity.pm.booked || 0)) > 0 && (
+                    <span className="flex items-center gap-1"><span className="text-base font-bold text-slate-500">{(capacity.am.booked || 0) + (capacity.pm.booked || 0)}</span><span className="text-xs text-slate-500">booked</span></span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* AM / PM cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-              {[{ label: 'Morning', sub: '08:00 – 13:00', data: capacity.am, accent: 'from-amber-400 to-orange-400', colour: 'text-amber-600' },
-                { label: 'Afternoon', sub: '13:00 – 18:30', data: capacity.pm, accent: 'from-blue-400 to-indigo-500', colour: 'text-blue-600' }].map(s => (
-                <div key={s.label} className="p-5">
-                  <div className="flex items-center justify-between mb-3">
+              {[{ label: 'Morning', sub: '08:00 – 13:00', data: capacity.am, colour: 'text-amber-600' },
+                { label: 'Afternoon', sub: '13:00 – 18:30', data: capacity.pm, colour: 'text-blue-600' }].map(s => (
+                <div key={s.label} className="p-4">
+                  <div className="flex items-center justify-between mb-2">
                     <div><div className="text-sm font-bold text-slate-900">{s.label}</div><div className="text-[11px] text-slate-400">{s.sub}</div></div>
                     <div className="text-right">
                       <div className={`text-2xl font-bold ${s.colour}`}>{s.data.total}</div>
@@ -326,22 +360,20 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                   </div>
                   {s.data.byClinician.length > 0 ? (
-                    <div className="space-y-1">
+                    <div className="grid grid-cols-2 gap-1">
                       {s.data.byClinician.map((c, i) => {
                         const initials = getInitials(c.name, teamClinicians);
                         return (
-                          <div key={i} className="flex items-center justify-between py-1.5 px-3 bg-slate-50 rounded-lg border border-slate-100" title={c.name}>
-                            <span className="text-xs font-bold text-slate-700 whitespace-nowrap min-w-[28px]">{initials}</span>
-                            <div className="flex items-center gap-3">
-                              <span className={`text-sm font-semibold ${s.colour}`}>{c.available} <span className="text-[10px] font-normal text-slate-400">avail</span></span>
-                              {(c.embargoed || 0) > 0 && <span className="text-xs text-amber-500">{c.embargoed} <span className="text-[10px]">emb</span></span>}
-                              {(c.booked || 0) > 0 && <span className="text-xs text-slate-400">{c.booked} <span className="text-[10px]">bkd</span></span>}
-                            </div>
+                          <div key={i} className="flex items-center gap-1.5 py-1 px-2 bg-slate-50 rounded border border-slate-100" title={c.name}>
+                            <span className="text-xs font-bold text-slate-700 min-w-[22px]">{initials}</span>
+                            <span className={`text-xs font-semibold ${s.colour}`}>{c.available}</span>
+                            {(c.embargoed || 0) > 0 && <span className="text-[10px] text-amber-500">+{c.embargoed}</span>}
+                            {(c.booked || 0) > 0 && <span className="text-[10px] text-slate-400">({c.booked})</span>}
                           </div>
                         );
                       })}
                     </div>
-                  ) : <div className="text-center text-slate-400 text-sm py-4">No capacity</div>}
+                  ) : <div className="text-center text-slate-400 text-sm py-3">No capacity</div>}
                 </div>
               ))}
             </div>
