@@ -82,23 +82,15 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
           {/* Logo */}
           <div className="p-4 pb-3">
             <div className="flex items-center gap-3">
-              <div className="bg-white rounded-xl p-1.5 shadow-lg flex-shrink-0">
-                <img src={LOGO_URL} alt="Practice" className="h-9 w-9 object-contain" />
+              <div className="bg-white rounded-xl p-2 shadow-lg flex-shrink-0">
+                <img src={LOGO_URL} alt="Practice" className="h-10 w-10 object-contain" />
               </div>
-              {(sidebarOpen || true) && (
-                <div className="min-w-0 lg:hidden" style={{ display: sidebarOpen ? 'block' : 'none' }}>
+              {sidebarOpen && (
+                <div className="min-w-0">
                   <h1 className="text-sm font-bold text-white leading-tight">Winscombe & Banwell</h1>
                   <p className="text-[11px] text-slate-400 leading-tight">Family Practice</p>
                 </div>
               )}
-              <div className="min-w-0 hidden lg:block">
-                {sidebarOpen ? (
-                  <>
-                    <h1 className="text-sm font-bold text-white leading-tight">Winscombe & Banwell</h1>
-                    <p className="text-[11px] text-slate-400 leading-tight">Family Practice</p>
-                  </>
-                ) : null}
-              </div>
             </div>
           </div>
 

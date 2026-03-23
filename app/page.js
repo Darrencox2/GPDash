@@ -476,14 +476,35 @@ function AppContent() {
     return Object.values(weeks).sort((a, b) => a.monday - b.monday);
   };
 
-  // Get capacity colour based on expected targets
-  const getCapacityColour = (actual, dayName, session) => {
-    const targets = data?.huddleSettings?.expectedCapacity || {};
-    const expected = targets[dayName]?.[session];
-    if (!expected || expected <= 0) return ''; // no target set
-    const pct = (actual / expected) * 100;
-    if (pct >= 100) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-    if (pct >= 80) return 'bg-amber-100 text-amber-800 border-amber-200';
+  // Get capacity colour based on expected targets or dynamic gradient
+  const getCapacityColour = (actual, dayName, session, viewMode = 'urgent') => {
+    if (actual === 0) return 'bg-slate-100 text-slate-400 border-slate-200'; // closed/no data
+    // If urgent view and targets are set, use target-based colouring
+    if (viewMode === 'urgent') {
+      const targets = data?.huddleSettings?.expectedCapacity || {};
+      const expected = targets[dayName]?.[session];
+      if (expected && expected > 0) {
+        const pct = (actual / expected) * 100;
+        if (pct >= 100) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        if (pct >= 80) return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-red-100 text-red-800 border-red-200';
+      }
+    }
+    return '';
+  };
+
+  // Dynamic gradient colouring for non-urgent views based on relative values
+  const getGradientColour = (value, allValues) => {
+    if (value === 0) return 'bg-slate-100 text-slate-400 border-slate-200'; // closed/no data = grey
+    if (!allValues || allValues.length === 0) return '';
+    const nonZero = allValues.filter(v => v > 0);
+    if (nonZero.length < 2) return 'bg-amber-50 text-amber-800 border-amber-200';
+    const min = Math.min(...nonZero);
+    const max = Math.max(...nonZero);
+    if (min === max) return 'bg-amber-50 text-amber-800 border-amber-200';
+    const pct = (value - min) / (max - min);
+    if (pct >= 0.66) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+    if (pct >= 0.33) return 'bg-amber-100 text-amber-800 border-amber-200';
     return 'bg-red-100 text-red-800 border-red-200';
   };
 
@@ -1261,10 +1282,10 @@ function AppContent() {
 
               {huddleError && <Card className="p-4 bg-red-50 border-red-200 text-red-700 text-sm">{huddleError}</Card>}
 
-              {/* KEY MESSAGES - at the top */}
-              <div className="card overflow-hidden">
-                <div className="bg-blue-50 px-5 py-3 border-b border-blue-100">
-                  <div className="text-sm font-semibold text-blue-900">📌 Key Messages</div>
+              {/* NOTICEBOARD - at the top */}
+              <div className="card overflow-hidden border-red-200">
+                <div className="bg-red-50 px-5 py-3 border-b border-red-200">
+                  <div className="text-sm font-semibold text-red-800">📌 Noticeboard</div>
                 </div>
                 <div className="p-4 space-y-3">
                   {huddleMessages.length === 0 && (
@@ -1439,16 +1460,69 @@ function AppContent() {
                 </div>
               ) : (
                 <>
-                <div className="flex gap-4">
-                  {/* Table */}
-                  <div className="flex-1 min-w-0">
-                    {data?.huddleSettings?.expectedCapacity && Object.keys(data.huddleSettings.expectedCapacity).length > 0 && (
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500 mb-2">
-                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-200 border border-emerald-300"></span>≥100%</span>
-                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-200 border border-amber-300"></span>80–99%</span>
-                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-200 border border-red-300"></span>&lt;80%</span>
+                <div>
+                  {/* Summary stats */}
+                  {(() => {
+                    const weeks = getHuddleWeeks();
+                    const viewOverrides = forwardSlotOverrides || getFilterOverrides(forwardViewMode);
+                    let totalSlots = 0, dayCount = 0, lowDays = 0;
+                    const dayNames = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+                    weeks.forEach(week => {
+                      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].forEach(d => {
+                        const dateStr = week.dates[d];
+                        if (!dateStr) return;
+                        const cap = getHuddleCapacity(huddleData, dateStr, viewOverrides);
+                        const dayTotal = cap.am.total + cap.pm.total;
+                        if (dayTotal === 0) return; // skip closed days
+                        totalSlots += dayTotal;
+                        dayCount++;
+                        // Flag low days for urgent mode
+                        if (forwardViewMode === 'urgent') {
+                          const amTarget = data?.huddleSettings?.expectedCapacity?.[dayNames[d]]?.am || 0;
+                          const pmTarget = data?.huddleSettings?.expectedCapacity?.[dayNames[d]]?.pm || 0;
+                          const expectedTotal = amTarget + pmTarget;
+                          if (expectedTotal > 0 && dayTotal < expectedTotal * 0.8) lowDays++;
+                        }
+                      });
+                    });
+                    const avgPerDay = dayCount > 0 ? Math.round(totalSlots / dayCount) : 0;
+                    // Get upcoming absences from buddy system
+                    const upcomingAbsences = ensureArray(data?.plannedAbsences).filter(a => {
+                      const now = new Date().toISOString().split('T')[0];
+                      return a.endDate >= now;
+                    });
+
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div className="card p-3 text-center">
+                          <div className="text-2xl font-bold text-slate-900">{totalSlots}</div>
+                          <div className="text-[11px] text-slate-500">Total slots ({weeks.length}wk)</div>
+                        </div>
+                        <div className="card p-3 text-center">
+                          <div className="text-2xl font-bold text-slate-900">{avgPerDay}</div>
+                          <div className="text-[11px] text-slate-500">Avg per day</div>
+                        </div>
+                        <div className="card p-3 text-center">
+                          <div className={`text-2xl font-bold ${lowDays > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{lowDays}</div>
+                          <div className="text-[11px] text-slate-500">{forwardViewMode === 'urgent' ? 'Days below target' : 'Low capacity days'}</div>
+                        </div>
+                        <div className="card p-3 text-center">
+                          <div className={`text-2xl font-bold ${upcomingAbsences.length > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{upcomingAbsences.length}</div>
+                          <div className="text-[11px] text-slate-500">Planned absences</div>
+                        </div>
                       </div>
-                    )}
+                    );
+                  })()}
+
+                  {/* Table - full width */}
+                  <div>
+                    {/* Colour key */}
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500 mb-2">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-200 border border-emerald-300"></span>{forwardViewMode === 'urgent' ? '≥100% target' : 'High'}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-200 border border-amber-300"></span>{forwardViewMode === 'urgent' ? '80–99%' : 'Medium'}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-200 border border-red-300"></span>{forwardViewMode === 'urgent' ? '<80%' : 'Low'}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-slate-100 border border-slate-200"></span>Closed</span>
+                    </div>
                     <div className="card overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
@@ -1461,36 +1535,59 @@ function AppContent() {
                             </tr>
                           </thead>
                           <tbody>
-                            {getHuddleWeeks().map((week, wi) => {
-                              const weekLabel = `${week.monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+                            {(() => {
+                              const weeks = getHuddleWeeks();
                               const dayNames = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
                               const viewOverrides = forwardSlotOverrides || getFilterOverrides(forwardViewMode);
-                              return (
-                                <tr key={wi} className={`border-b border-slate-100 ${wi % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
-                                  <td className="px-3 py-1 font-medium text-slate-700 sticky left-0 bg-white text-[11px] whitespace-nowrap">{weekLabel}</td>
-                                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => {
-                                    const dateStr = week.dates[d];
-                                    if (!dateStr) return <td key={d} className="text-center px-1 py-1 text-slate-300">–</td>;
-                                    const cap = getHuddleCapacity(huddleData, dateStr, viewOverrides);
-                                    const amColour = getCapacityColour(cap.am.total, dayNames[d], 'am');
-                                    const pmColour = getCapacityColour(cap.pm.total, dayNames[d], 'pm');
-                                    const isSelected = selectedCell?.dateStr === dateStr;
-                                    return (
-                                      <td key={d} className={`px-1 py-1 cursor-pointer transition-all ${isSelected ? 'ring-2 ring-purple-500 ring-inset rounded' : 'hover:bg-purple-50'}`} onClick={() => setSelectedCell(isSelected ? null : { dateStr, dayName: d, fullDay: dayNames[d] })}>
-                                        <div className="flex flex-col items-center gap-0.5">
-                                          <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold ${amColour || 'text-slate-700'}`}>
-                                            <span className="text-[9px] font-normal text-slate-400 mr-0.5">AM</span>{cap.am.total}
+                              // Pre-compute all values for gradient colouring
+                              const allAmVals = [], allPmVals = [];
+                              const weekData = weeks.map(week => {
+                                const days = {};
+                                ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].forEach(d => {
+                                  const dateStr = week.dates[d];
+                                  if (!dateStr) { days[d] = null; return; }
+                                  const cap = getHuddleCapacity(huddleData, dateStr, viewOverrides);
+                                  days[d] = cap;
+                                  if (cap.am.total > 0) allAmVals.push(cap.am.total);
+                                  if (cap.pm.total > 0) allPmVals.push(cap.pm.total);
+                                });
+                                return { week, days };
+                              });
+                              const allVals = [...allAmVals, ...allPmVals];
+
+                              return weekData.map(({ week, days }, wi) => {
+                                const weekLabel = `${week.monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+                                return (
+                                  <tr key={wi} className={`border-b border-slate-100 ${wi % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
+                                    <td className="px-3 py-1 font-medium text-slate-700 sticky left-0 bg-white text-[11px] whitespace-nowrap">{weekLabel}</td>
+                                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => {
+                                      const cap = days[d];
+                                      if (!cap) return <td key={d} className="text-center px-1 py-1 text-slate-300">–</td>;
+                                      const dateStr = week.dates[d];
+                                      const amColour = forwardViewMode === 'urgent'
+                                        ? getCapacityColour(cap.am.total, dayNames[d], 'am', 'urgent')
+                                        : getGradientColour(cap.am.total, allVals);
+                                      const pmColour = forwardViewMode === 'urgent'
+                                        ? getCapacityColour(cap.pm.total, dayNames[d], 'pm', 'urgent')
+                                        : getGradientColour(cap.pm.total, allVals);
+                                      const isSelected = selectedCell?.dateStr === dateStr;
+                                      return (
+                                        <td key={d} className={`px-1 py-1 cursor-pointer transition-all ${isSelected ? 'ring-2 ring-slate-900 ring-inset rounded' : 'hover:bg-slate-100'}`} onClick={() => setSelectedCell(isSelected ? null : { dateStr, dayName: d, fullDay: dayNames[d] })}>
+                                          <div className="flex flex-col items-center gap-0.5">
+                                            <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold border ${amColour || 'text-slate-700 border-transparent'}`}>
+                                              <span className="text-[9px] font-normal text-slate-400 mr-0.5">AM</span>{cap.am.total}
+                                            </div>
+                                            <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold border ${pmColour || 'text-slate-700 border-transparent'}`}>
+                                              <span className="text-[9px] font-normal text-slate-400 mr-0.5">PM</span>{cap.pm.total}
+                                            </div>
                                           </div>
-                                          <div className={`w-full text-center rounded-sm px-1 py-0.5 font-semibold ${pmColour || 'text-slate-700'}`}>
-                                            <span className="text-[9px] font-normal text-slate-400 mr-0.5">PM</span>{cap.pm.total}
-                                          </div>
-                                        </div>
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              );
-                            })}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                );
+                              });
+                            })()}
                           </tbody>
                         </table>
                       </div>
@@ -1500,24 +1597,23 @@ function AppContent() {
                     )}
                   </div>
 
-                  {/* Popup panel on right */}
+                  {/* Fixed popup panel - doesn't shift content */}
                   {selectedCell && (() => {
                     const viewOverrides = forwardSlotOverrides || getFilterOverrides(forwardViewMode);
                     const cap = getHuddleCapacity(huddleData, selectedCell.dateStr, viewOverrides);
                     return (
-                      <div className="w-72 flex-shrink-0">
-                        <div className="card overflow-hidden sticky top-6">
-                          <div className="bg-gradient-to-r from-purple-500 to-indigo-500 px-4 py-3">
+                      <div className="fixed right-4 top-20 z-30 w-72 shadow-xl">
+                        <div className="card overflow-hidden border-slate-300">
+                          <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-3">
                             <div className="flex items-center justify-between text-white">
                               <div>
                                 <div className="text-sm font-bold">{selectedCell.dayName} {selectedCell.dateStr}</div>
                                 <div className="text-xs opacity-80">{cap.am.total + cap.pm.total} total slots</div>
                               </div>
-                              <button onClick={() => setSelectedCell(null)} className="text-white/70 hover:text-white text-lg">✕</button>
+                              <button onClick={() => setSelectedCell(null)} className="text-white/70 hover:text-white text-lg leading-none">✕</button>
                             </div>
                           </div>
                           <div className="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto">
-                            {/* AM */}
                             <div className="p-3">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-semibold text-amber-600">Morning</span>
@@ -1530,7 +1626,6 @@ function AppContent() {
                                 </div>
                               )) : <div className="text-xs text-slate-400">No capacity</div>}
                             </div>
-                            {/* PM */}
                             <div className="p-3">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-semibold text-blue-600">Afternoon</span>
@@ -1549,6 +1644,47 @@ function AppContent() {
                     );
                   })()}
                 </div>
+
+                {/* Upcoming Absences */}
+                {(() => {
+                  const absences = ensureArray(data?.plannedAbsences);
+                  const now = new Date().toISOString().split('T')[0];
+                  const sixWeeksOut = new Date();
+                  sixWeeksOut.setDate(sixWeeksOut.getDate() + 42);
+                  const cutoff = sixWeeksOut.toISOString().split('T')[0];
+                  const upcoming = absences.filter(a => a.endDate >= now && a.startDate <= cutoff).sort((a, b) => a.startDate.localeCompare(b.startDate));
+                  if (upcoming.length === 0) return null;
+                  return (
+                    <div className="card overflow-hidden mt-4">
+                      <div className="bg-amber-50 px-5 py-2.5 border-b border-amber-100">
+                        <div className="text-sm font-semibold text-amber-800">Upcoming Absences ({upcoming.length})</div>
+                      </div>
+                      <div className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {upcoming.slice(0, 12).map((a, i) => {
+                            const c = getClinicianById(a.clinicianId);
+                            if (!c) return null;
+                            const start = new Date(a.startDate + 'T12:00:00');
+                            const end = new Date(a.endDate + 'T12:00:00');
+                            const startStr = start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                            const endStr = end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                            const days = Math.round((end - start) / 86400000) + 1;
+                            return (
+                              <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 text-xs">
+                                <div className="initials-badge absent text-[10px] w-7 h-7">{c.initials}</div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-medium text-slate-800 truncate">{c.name}</div>
+                                  <div className="text-slate-500">{startStr} – {endStr} ({days}d) · {a.reason || 'Leave'}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {upcoming.length > 12 && <div className="text-xs text-slate-400 mt-2 text-center">+ {upcoming.length - 12} more</div>}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Capacity Overview Chart */}
                 <div className="card overflow-hidden">
@@ -1606,21 +1742,19 @@ function AppContent() {
                           <div className="flex items-end gap-[3px]" style={{ height: '220px' }}>
                             {chartData.map((d, i) => {
                               const total = d.available + d.booked;
-                              const totalH = (total / maxVal) * 100;
-                              const bookedH = total > 0 ? (d.booked / total) * 100 : 0;
-                              const availH = 100 - bookedH;
+                              const barH = Math.round((total / maxVal) * 180);
+                              const bookedH = total > 0 ? Math.round((d.booked / total) * barH) : 0;
+                              const availH = barH - bookedH;
                               const dt = parseHuddleDateStr(d.date);
                               const dayLabel = ['', 'M', 'T', 'W', 'T', 'F'][dt.getDay()];
                               const dateLabel = dt.getDate();
                               const isMonday = dt.getDay() === 1;
                               return (
-                                <div key={i} className={`flex-1 flex flex-col items-center ${isMonday && i > 0 ? 'ml-1.5 border-l border-slate-200 pl-1.5' : ''}`}>
+                                <div key={i} className={`flex-1 flex flex-col items-center justify-end ${isMonday && i > 0 ? 'ml-1.5 border-l border-slate-200 pl-1.5' : ''}`}>
                                   <div className="text-[9px] text-slate-500 mb-1 font-semibold tabular-nums">{total > 0 ? total : ''}</div>
-                                  <div className="w-full relative flex-1" style={{ minHeight: 0 }}>
-                                    <div className="absolute bottom-0 w-full rounded-t-sm overflow-hidden" style={{ height: `${totalH}%` }}>
-                                      <div className="w-full bg-gradient-to-t from-slate-400 to-slate-300" style={{ height: `${bookedH}%` }}></div>
-                                      <div className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400" style={{ height: `${availH}%` }}></div>
-                                    </div>
+                                  <div className="w-full flex flex-col justify-end">
+                                    {availH > 0 && <div className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-sm" style={{ height: `${availH}px` }} />}
+                                    {bookedH > 0 && <div className={`w-full bg-gradient-to-t from-slate-400 to-slate-300 ${availH === 0 ? 'rounded-t-sm' : ''}`} style={{ height: `${bookedH}px` }} />}
                                   </div>
                                   <div className="text-[9px] text-slate-400 mt-1.5 font-semibold">{dayLabel}</div>
                                   <div className="text-[9px] text-slate-500 leading-none">{dateLabel}</div>
