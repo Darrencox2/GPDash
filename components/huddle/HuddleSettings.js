@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { SectionHeading } from '@/components/ui';
+import { SectionHeading, Button } from '@/components/ui';
+import { calculateHistoricalTargets } from '@/lib/huddle';
 
-export default function HuddleSettings({ data, saveData, setActiveSection }) {
+export default function HuddleSettings({ data, saveData, setActiveSection, huddleData }) {
   const [newFilterName, setNewFilterName] = useState('');
   const hs = data?.huddleSettings || {};
 
@@ -119,8 +120,19 @@ export default function HuddleSettings({ data, saveData, setActiveSection }) {
 
       {/* Expected Capacity Targets */}
       <div className="card p-5">
-        <h2 className="text-base font-semibold text-slate-900 mb-2">Expected Capacity Targets</h2>
-        <p className="text-xs text-slate-500 mb-3">Set expected urgent slots per session. Capacity Planning colour-codes: green (≥100%), amber (80–99%), red (&lt;80%).</p>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-base font-semibold text-slate-900">Expected Capacity Targets</h2>
+          {huddleData && (
+            <Button size="sm" variant="secondary" onClick={() => {
+              const calculated = calculateHistoricalTargets(huddleData, hs);
+              if (Object.keys(calculated).length === 0) return;
+              updateHs({ ...hs, expectedCapacity: { ...hs.expectedCapacity, ...calculated } });
+            }}>
+              📊 Auto-fill from history
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mb-3">Set expected urgent slots per session. Auto-fill calculates averages from your uploaded data. You can override any value. Capacity Planning colour-codes: green (≥100%), amber (80–99%), red (&lt;80%).</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-xs text-slate-500 uppercase"><th className="text-left py-2 font-medium w-24"></th>{['Monday','Tuesday','Wednesday','Thursday','Friday'].map(d => <th key={d} className="text-center py-2 font-medium px-2">{d.slice(0,3)}</th>)}</tr></thead>

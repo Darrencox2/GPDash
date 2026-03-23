@@ -790,7 +790,7 @@ function AppContent() {
 
           {/* HUDDLE - SETTINGS */}
           {activeSection === 'huddle-settings' && (
-            <HuddleSettings data={data} saveData={saveData} setActiveSection={setActiveSection} />
+            <HuddleSettings data={data} saveData={saveData} setActiveSection={setActiveSection} huddleData={huddleData} />
           )}
 
           {/* HUDDLE - HISTORY */}

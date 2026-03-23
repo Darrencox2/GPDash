@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
-import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV } from '@/lib/huddle';
+import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, get7DayAvailability } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 
 export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages }) {
@@ -147,6 +147,65 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               </div>
             </div>
           )}
+
+          {/* 7-Day Availability Cards for custom filters */}
+          {(() => {
+            const customFilters = Object.keys(hs.customFilters || {});
+            if (customFilters.length === 0) return null;
+            return (
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 mb-3">7-Day Availability</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {customFilters.map(filterName => {
+                    const days = get7DayAvailability(huddleData, hs, filterName);
+                    const totalAvail = days.reduce((sum, d) => sum + (d.available || 0), 0);
+                    const filterSlots = hs.customFilters[filterName] || [];
+                    const hasSlots = filterSlots.length > 0;
+                    return (
+                      <div key={filterName} className="card overflow-hidden">
+                        <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-4 py-2.5">
+                          <div className="flex items-center justify-between text-white">
+                            <div className="text-sm font-semibold">{filterName}</div>
+                            <div className="text-lg font-bold">{totalAvail}</div>
+                          </div>
+                          <div className="text-[10px] text-white/60">next 7 days</div>
+                        </div>
+                        {!hasSlots ? (
+                          <div className="p-3 text-xs text-slate-400 text-center">No slot types assigned. Go to Settings to configure.</div>
+                        ) : (
+                          <div className="p-3">
+                            <div className="flex gap-1">
+                              {days.map((d, i) => {
+                                const isToday = i === 0;
+                                const hasData = d.available !== null;
+                                return (
+                                  <div key={i} className={`flex-1 text-center rounded-md py-1.5 ${isToday ? 'bg-slate-900 text-white' : hasData ? 'bg-slate-50' : 'bg-slate-50 opacity-50'}`}>
+                                    <div className="text-[10px] font-medium opacity-60">{d.dayName}</div>
+                                    <div className={`text-sm font-bold ${isToday ? '' : hasData ? (d.available > 0 ? 'text-emerald-600' : 'text-slate-400') : 'text-slate-300'}`}>
+                                      {hasData ? d.available : '–'}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {days.some(d => d.booked !== null && d.booked > 0) && (
+                              <div className="mt-2 pt-2 border-t border-slate-100 flex gap-1">
+                                {days.map((d, i) => (
+                                  <div key={i} className="flex-1 text-center">
+                                    <div className="text-[9px] text-slate-400">{d.booked !== null ? `${d.booked} booked` : ''}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {!hs?.slotCategories?.urgent?.length && (
             <Card className="p-4 bg-amber-50 border-amber-200">
