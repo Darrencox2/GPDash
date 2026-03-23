@@ -28,6 +28,8 @@ export default function Home() {
   const hasSyncedRef = useRef(false);
   const [huddleData, setHuddleData] = useState(null); // Parsed CSV data for huddle
   const [huddleError, setHuddleError] = useState('');
+  const [huddleDate, setHuddleDate] = useState(null); // Selected date in huddle view
+  const [showHuddleSettings, setShowHuddleSettings] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -127,11 +129,11 @@ export default function Home() {
     return Object.values(val);
   };
 
-  // Parse EMIS huddle CSV
+  // Parse EMIS huddle CSV - returns all dates' data
   const parseHuddleCSV = (csvText) => {
     const lines = csvText.split('\n').map(line => line.replace(/\r/g, ''));
     
-    // Find the header row with clinician names (row with "Full Name of the Session Holder")
+    // Find the header row with clinician names
     let headerRowIndex = -1;
     let dataStartRowIndex = -1;
     for (let i = 0; i < Math.min(10, lines.length); i++) {
@@ -143,9 +145,9 @@ export default function Home() {
     }
     if (headerRowIndex === -1) throw new Error('Could not find clinician header row');
 
-    // Parse clinician names from header
+    // Parse clinician names from header (column 5+ in new format)
     const headerCells = parseCSVRow(lines[headerRowIndex]);
-    const clinicians = headerCells.slice(4).filter(c => c && c.trim()); // Names start from column 4
+    const clinicians = headerCells.slice(5).filter(c => c && c.trim());
 
     // Get report date from metadata
     let reportDate = null;
@@ -157,119 +159,130 @@ export default function Home() {
       }
     }
 
-    // Parse data rows
+    // Parse all data, grouped by date
     const allSlotTypes = new Set();
-    const todayData = { am: {}, pm: {} }; // { clinicianIndex: { slotType: count } }
-    const slotTypeTotals = {}; // { slotType: { am: count, pm: count } }
-    
-    // Get today's date for filtering
-    const today = new Date();
-    const todayStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+    const dateData = {}; // { "24-Feb-2026": { am: { clinicianIdx: { slotType: count } }, pm: {...} } }
+    const allDates = new Set();
     
     let currentDate = null;
-    const huddleSettings = data?.huddleSettings || {};
-    const urgentSlots = huddleSettings?.slotCategories?.urgent || [];
-    const includedClinicians = huddleSettings?.includedClinicians || [];
-    const hasUrgentConfig = urgentSlots.length > 0;
+    let currentTime = null;
 
     for (let i = dataStartRowIndex + 1; i < lines.length; i++) {
       const cells = parseCSVRow(lines[i]);
       if (cells.length < 5) continue;
 
-      // Update current date if present
-      if (cells[0] && cells[0].trim()) {
-        currentDate = cells[0].trim();
-      }
-
-      const slotType = cells[1]?.trim() || '';
-      const availability = cells[2]?.trim() || '';
+      // Column 0: Date, Column 1: Time, Column 2: Slot Type, Column 3: Availability
+      if (cells[0] && cells[0].trim()) currentDate = cells[0].trim();
+      if (cells[1] && cells[1].trim()) currentTime = cells[1].trim();
       
-      if (!slotType) continue;
+      const slotType = cells[2]?.trim() || '';
+      const availability = cells[3]?.trim() || '';
+      
+      if (!currentDate || !slotType) continue;
+      allDates.add(currentDate);
       allSlotTypes.add(slotType);
 
       // Only count "Available" slots
       if (availability !== 'Available') continue;
 
-      // Check if this is an urgent slot (if configured)
-      if (hasUrgentConfig && !urgentSlots.includes(slotType)) continue;
+      // Determine AM or PM from time column
+      const session = currentTime?.includes('Before') ? 'am' : 'pm';
 
-      // Determine AM or PM based on slot type time prefix
-      const timeMatch = slotType.match(/^(\d{2})(\d{2})\s/);
-      let session = 'am'; // Default to AM if no time
-      if (timeMatch) {
-        const hour = parseInt(timeMatch[1], 10);
-        session = hour >= 13 ? 'pm' : 'am';
-      } else {
-        // Try to infer from slot name
-        if (slotType.toLowerCase().includes('afternoon') || slotType.toLowerCase().includes('pm')) {
-          session = 'pm';
-        }
+      // Initialize date entry if needed
+      if (!dateData[currentDate]) {
+        dateData[currentDate] = { am: {}, pm: {} };
       }
 
-      // Count per clinician
-      for (let j = 4; j < cells.length && (j - 4) < clinicians.length; j++) {
+      // Count per clinician (columns 5+ in new format)
+      for (let j = 5; j < cells.length && (j - 5) < clinicians.length; j++) {
         const count = parseInt(cells[j], 10) || 0;
         if (count > 0) {
-          const clinicianName = clinicians[j - 4];
-          // Filter by included clinicians if configured
-          if (includedClinicians.length > 0 && !includedClinicians.includes(clinicianName)) continue;
-          
-          if (!todayData[session][j - 4]) todayData[session][j - 4] = {};
-          todayData[session][j - 4][slotType] = (todayData[session][j - 4][slotType] || 0) + count;
-          
-          if (!slotTypeTotals[slotType]) slotTypeTotals[slotType] = { am: 0, pm: 0 };
-          slotTypeTotals[slotType][session] += count;
+          const clinicianIdx = j - 5;
+          if (!dateData[currentDate][session][clinicianIdx]) {
+            dateData[currentDate][session][clinicianIdx] = {};
+          }
+          dateData[currentDate][session][clinicianIdx][slotType] = 
+            (dateData[currentDate][session][clinicianIdx][slotType] || 0) + count;
         }
       }
     }
 
-    // Calculate capacity summaries
+    // Sort dates chronologically
+    const sortedDates = Array.from(allDates).sort((a, b) => {
+      const parseDate = (d) => {
+        const [day, mon, year] = d.split('-');
+        const months = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+        return new Date(parseInt(year), months[mon], parseInt(day));
+      };
+      return parseDate(a) - parseDate(b);
+    });
+
+    return {
+      clinicians,
+      allSlotTypes: Array.from(allSlotTypes),
+      reportDate,
+      dates: sortedDates,
+      dateData
+    };
+  };
+
+  // Get capacity for a specific date from parsed huddle data
+  const getHuddleCapacity = (parsedData, dateStr) => {
+    if (!parsedData || !parsedData.dateData[dateStr]) {
+      return { am: { total: 0, byClinician: [] }, pm: { total: 0, byClinician: [] }, bySlotType: [] };
+    }
+
+    const huddleSettings = data?.huddleSettings || {};
+    const urgentSlots = huddleSettings?.slotCategories?.urgent || [];
+    const includedClinicians = huddleSettings?.includedClinicians || [];
+    const hasUrgentConfig = urgentSlots.length > 0;
+    const dayData = parsedData.dateData[dateStr];
+    const clinicians = parsedData.clinicians;
+
     const amByClinician = [];
     const pmByClinician = [];
     let amTotal = 0;
     let pmTotal = 0;
+    const slotTypeTotals = {};
 
-    Object.entries(todayData.am).forEach(([idx, slots]) => {
-      const total = Object.values(slots).reduce((a, b) => a + b, 0);
-      if (total > 0) {
-        amByClinician.push({ name: clinicians[parseInt(idx)], available: total });
-        amTotal += total;
-      }
-    });
+    ['am', 'pm'].forEach(session => {
+      Object.entries(dayData[session] || {}).forEach(([idx, slots]) => {
+        const clinicianName = clinicians[parseInt(idx)];
+        // Filter by included clinicians if configured
+        if (includedClinicians.length > 0 && !includedClinicians.includes(clinicianName)) return;
 
-    Object.entries(todayData.pm).forEach(([idx, slots]) => {
-      const total = Object.values(slots).reduce((a, b) => a + b, 0);
-      if (total > 0) {
-        pmByClinician.push({ name: clinicians[parseInt(idx)], available: total });
-        pmTotal += total;
-      }
+        let clinicianTotal = 0;
+        Object.entries(slots).forEach(([slotType, count]) => {
+          // Filter by urgent slots if configured
+          if (hasUrgentConfig && !urgentSlots.includes(slotType)) return;
+          clinicianTotal += count;
+          if (!slotTypeTotals[slotType]) slotTypeTotals[slotType] = { am: 0, pm: 0 };
+          slotTypeTotals[slotType][session] += count;
+        });
+
+        if (clinicianTotal > 0) {
+          const entry = { name: clinicianName, available: clinicianTotal };
+          if (session === 'am') {
+            amByClinician.push(entry);
+            amTotal += clinicianTotal;
+          } else {
+            pmByClinician.push(entry);
+            pmTotal += clinicianTotal;
+          }
+        }
+      });
     });
 
     // Sort by availability descending
     amByClinician.sort((a, b) => b.available - a.available);
     pmByClinician.sort((a, b) => b.available - a.available);
 
-    // Slot type summary
     const bySlotType = Object.entries(slotTypeTotals)
-      .map(([name, counts]) => ({
-        name,
-        am: counts.am,
-        pm: counts.pm,
-        total: counts.am + counts.pm
-      }))
+      .map(([name, counts]) => ({ name, am: counts.am, pm: counts.pm, total: counts.am + counts.pm }))
       .filter(s => s.total > 0)
       .sort((a, b) => b.total - a.total);
 
-    return {
-      clinicians,
-      allSlotTypes: Array.from(allSlotTypes),
-      reportDate,
-      capacity: {
-        am: { total: amTotal, byClinician: amByClinician },
-        pm: { total: pmTotal, byClinician: pmByClinician },
-        bySlotType
-      }
-    };
+    return { am: { total: amTotal, byClinician: amByClinician }, pm: { total: pmTotal, byClinician: pmByClinician }, bySlotType };
   };
 
   // Helper to parse CSV row (handles quoted fields)
@@ -998,161 +1011,218 @@ export default function Home() {
           {/* HUDDLE DASHBOARD */}
           {activeSection === 'huddle' && (
             <div className="space-y-6">
+              {/* Header with upload */}
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-xl font-bold text-slate-900">Huddle Dashboard</h1>
-                  <p className="text-sm text-slate-500 mt-1">Today's urgent capacity overview</p>
+                  <p className="text-sm text-slate-500 mt-1">Urgent capacity overview</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".csv"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setHuddleError('');
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        try {
-                          const text = event.target.result;
-                          const parsed = parseHuddleCSV(text);
-                          setHuddleData(parsed);
-                          // Update known clinicians and slot types in settings
-                          const hs = data.huddleSettings || {};
-                          const newKnownClinicians = [...new Set([...(hs.knownClinicians || []), ...parsed.clinicians])];
-                          const newKnownSlots = [...new Set([...(hs.knownSlotTypes || []), ...parsed.allSlotTypes])];
-                          saveData({ ...data, huddleSettings: { ...hs, knownClinicians: newKnownClinicians, knownSlotTypes: newKnownSlots, lastUploadDate: new Date().toISOString() } }, false);
-                        } catch (err) {
-                          setHuddleError('Failed to parse CSV: ' + err.message);
-                        }
-                      };
-                      reader.readAsText(file);
-                      e.target.value = '';
-                    }}
-                  />
-                  <button onClick={() => fileInputRef.current?.click()} className="btn-primary">
-                    Upload Report
-                  </button>
+                <div className="flex items-center gap-2">
+                  <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setHuddleError('');
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      try {
+                        const parsed = parseHuddleCSV(event.target.result);
+                        setHuddleData(parsed);
+                        // Set initial date to today if available, else first date
+                        const today = new Date();
+                        const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`;
+                        setHuddleDate(parsed.dates.includes(todayStr) ? todayStr : parsed.dates[0]);
+                        // Update known clinicians and slot types
+                        const hs = data.huddleSettings || {};
+                        saveData({ ...data, huddleSettings: { ...hs, knownClinicians: [...new Set([...(hs.knownClinicians||[]), ...parsed.clinicians])], knownSlotTypes: [...new Set([...(hs.knownSlotTypes||[]), ...parsed.allSlotTypes])], lastUploadDate: new Date().toISOString() } }, false);
+                      } catch (err) { setHuddleError('Failed to parse CSV: ' + err.message); }
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                  }} />
+                  <button onClick={() => setShowHuddleSettings(!showHuddleSettings)} className="px-3 py-2 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">⚙️ Settings</button>
+                  <button onClick={() => fileInputRef.current?.click()} className="btn-primary">Upload Report</button>
                 </div>
               </div>
 
-              {huddleError && (
-                <div className="card p-4 bg-red-50 border-red-200 text-red-700 text-sm">{huddleError}</div>
+              {huddleError && <div className="card p-4 bg-red-50 border-red-200 text-red-700 text-sm">{huddleError}</div>}
+
+              {/* Settings Panel (collapsible) */}
+              {showHuddleSettings && (
+                <div className="card p-5 bg-slate-50 border-slate-200">
+                  <h2 className="text-base font-semibold text-slate-900 mb-4">Huddle Settings</h2>
+                  {(!data.huddleSettings?.knownClinicians?.length && !data.huddleSettings?.knownSlotTypes?.length) ? (
+                    <p className="text-sm text-slate-500">Upload a report first to configure settings.</p>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Clinician Groups */}
+                      <div>
+                        <h3 className="text-sm font-medium text-slate-900 mb-2">Clinicians to Include</h3>
+                        <p className="text-xs text-slate-500 mb-3">Click to toggle. Drag to reorder within groups.</p>
+                        {['clinician', 'nursing', 'other'].map(group => {
+                          const groupLabels = { clinician: '👨‍⚕️ Clinician Team', nursing: '👩‍⚕️ Nursing Team', other: '📋 Other' };
+                          const groupClinicians = (data.huddleSettings?.clinicianGroups?.[group] || []);
+                          return (
+                            <div key={group} className="mb-3">
+                              <div className="text-xs font-medium text-slate-600 mb-1">{groupLabels[group]}</div>
+                              <div className="min-h-[40px] p-2 bg-white rounded border-2 border-dashed border-slate-200" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const n=e.dataTransfer.getData('clinician');if(!n)return;const hs={...data.huddleSettings},g={...hs.clinicianGroups};['clinician','nursing','other'].forEach(c=>{g[c]=(g[c]||[]).filter(x=>x!==n)});g[group]=[...(g[group]||[]),n];saveData({...data,huddleSettings:{...hs,clinicianGroups:g}})}}>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {groupClinicians.map(name => {
+                                    const isIncluded = (data.huddleSettings?.includedClinicians || []).includes(name);
+                                    return <div key={name} draggable onDragStart={e=>e.dataTransfer.setData('clinician',name)} onClick={()=>{const hs={...data.huddleSettings},inc=hs.includedClinicians||[];hs.includedClinicians=isIncluded?inc.filter(c=>c!==name):[...inc,name];saveData({...data,huddleSettings:hs})}} className={`px-2 py-1 rounded text-xs cursor-pointer transition-colors ${isIncluded?'bg-purple-100 text-purple-800 font-medium':'bg-slate-100 text-slate-500'}`}>{name}</div>;
+                                  })}
+                                  {groupClinicians.length === 0 && <span className="text-xs text-slate-400 italic">Drag here</span>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {/* Ungrouped */}
+                        {(() => {
+                          const ungrouped = (data.huddleSettings?.knownClinicians || []).filter(c => !['clinician', 'nursing', 'other'].some(g => (data.huddleSettings?.clinicianGroups?.[g] || []).includes(c)));
+                          if (ungrouped.length === 0) return null;
+                          return <div className="mt-2"><div className="text-xs text-slate-500 mb-1">Ungrouped:</div><div className="flex flex-wrap gap-1.5">{ungrouped.map(n => <div key={n} draggable onDragStart={e=>e.dataTransfer.setData('clinician',n)} className="px-2 py-1 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move">{n}</div>)}</div></div>;
+                        })()}
+                      </div>
+                      {/* Slot Categories */}
+                      <div className="pt-4 border-t border-slate-200">
+                        <h3 className="text-sm font-medium text-slate-900 mb-2">Urgent Slot Types</h3>
+                        <p className="text-xs text-slate-500 mb-3">Only slots in "Urgent" are counted. Drag to categorise.</p>
+                        {['urgent', 'excluded'].map(cat => {
+                          const catLabels = { urgent: { icon: '🔴', label: 'Urgent (counted)' }, excluded: { icon: '⚪', label: 'Not counted' } };
+                          const catSlots = (data.huddleSettings?.slotCategories?.[cat] || []);
+                          return (
+                            <div key={cat} className="mb-2">
+                              <div className="text-xs font-medium text-slate-600 mb-1">{catLabels[cat].icon} {catLabels[cat].label}</div>
+                              <div className={`min-h-[40px] p-2 rounded border-2 border-dashed ${cat==='urgent'?'bg-red-50 border-red-200':'bg-slate-100 border-slate-200'}`} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const s=e.dataTransfer.getData('slot');if(!s)return;const hs={...data.huddleSettings},cats={...hs.slotCategories};['urgent','excluded'].forEach(c=>{cats[c]=(cats[c]||[]).filter(x=>x!==s)});cats[cat]=[...(cats[cat]||[]),s];saveData({...data,huddleSettings:{...hs,slotCategories:cats}})}}>
+                                <div className="flex flex-wrap gap-1">{catSlots.map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className={`px-2 py-0.5 rounded text-xs cursor-move truncate max-w-[180px] ${cat==='urgent'?'bg-red-100 text-red-800':'bg-white text-slate-600 border border-slate-200'}`} title={s}>{s.length>25?s.slice(0,25)+'...':s}</div>)}{catSlots.length===0 && <span className="text-xs text-slate-400 italic">Drag here</span>}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {/* Uncategorised */}
+                        {(() => {
+                          const categorised = ['urgent', 'excluded'].flatMap(c => data.huddleSettings?.slotCategories?.[c] || []);
+                          const uncategorised = (data.huddleSettings?.knownSlotTypes || []).filter(s => !categorised.includes(s));
+                          if (uncategorised.length === 0) return null;
+                          return <div className="mt-3"><div className="text-xs text-slate-500 mb-1">Uncategorised ({uncategorised.length}):</div><div className="max-h-32 overflow-y-auto"><div className="flex flex-wrap gap-1">{uncategorised.sort().map(s => <div key={s} draggable onDragStart={e=>e.dataTransfer.setData('slot',s)} className="px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move truncate max-w-[180px]" title={s}>{s.length>25?s.slice(0,25)+'...':s}</div>)}</div></div></div>;
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
 
               {!huddleData ? (
                 <div className="card p-12 text-center">
-                  <div className="text-4xl mb-4">📊</div>
+                  <div className="text-5xl mb-4">📊</div>
                   <h2 className="text-lg font-semibold text-slate-900 mb-2">Upload Appointment Report</h2>
-                  <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">
-                    Upload your EMIS appointment huddle dashboard CSV to see today's urgent capacity.
-                  </p>
-                  <button onClick={() => fileInputRef.current?.click()} className="btn-primary">
-                    Select CSV File
-                  </button>
+                  <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload your EMIS appointment huddle dashboard CSV to see urgent capacity.</p>
+                  <button onClick={() => fileInputRef.current?.click()} className="btn-primary">Select CSV File</button>
                 </div>
               ) : (
                 <>
-                  {/* Capacity Overview */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* AM Session */}
-                    <div className="card p-5">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h2 className="text-base font-semibold text-slate-900">AM Session</h2>
-                          <p className="text-xs text-slate-500">08:00 – 13:00</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-emerald-600">{huddleData.capacity.am.total}</div>
-                          <div className="text-xs text-slate-500">urgent slots</div>
-                        </div>
+                  {/* Date Navigation */}
+                  <div className="card p-4">
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => { const idx = huddleData.dates.indexOf(huddleDate); if (idx > 0) setHuddleDate(huddleData.dates[idx - 1]); }} disabled={huddleData.dates.indexOf(huddleDate) === 0} className="p-2 rounded-md hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                      </button>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => { const today = new Date(); const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`; if (huddleData.dates.includes(todayStr)) setHuddleDate(todayStr); }} className="px-4 py-2 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 shadow-md">Today</button>
+                        <select value={huddleDate || ''} onChange={e => setHuddleDate(e.target.value)} className="px-3 py-2 rounded-md border border-slate-300 text-sm font-medium">
+                          {huddleData.dates.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
                       </div>
-                      {huddleData.capacity.am.byClinician.length > 0 ? (
-                        <div className="space-y-2">
-                          {huddleData.capacity.am.byClinician.map((c, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm">
-                              <span className="text-slate-700 truncate">{c.name.split(',')[0]}</span>
-                              <span className="font-medium text-emerald-600 ml-2">{c.available}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-sm text-slate-400 text-center py-4">No urgent capacity</div>
-                      )}
-                    </div>
-
-                    {/* PM Session */}
-                    <div className="card p-5">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h2 className="text-base font-semibold text-slate-900">PM Session</h2>
-                          <p className="text-xs text-slate-500">13:00 – 18:30</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-blue-600">{huddleData.capacity.pm.total}</div>
-                          <div className="text-xs text-slate-500">urgent slots</div>
-                        </div>
-                      </div>
-                      {huddleData.capacity.pm.byClinician.length > 0 ? (
-                        <div className="space-y-2">
-                          {huddleData.capacity.pm.byClinician.map((c, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm">
-                              <span className="text-slate-700 truncate">{c.name.split(',')[0]}</span>
-                              <span className="font-medium text-blue-600 ml-2">{c.available}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-sm text-slate-400 text-center py-4">No urgent capacity</div>
-                      )}
+                      <button onClick={() => { const idx = huddleData.dates.indexOf(huddleDate); if (idx < huddleData.dates.length - 1) setHuddleDate(huddleData.dates[idx + 1]); }} disabled={huddleData.dates.indexOf(huddleDate) === huddleData.dates.length - 1} className="p-2 rounded-md hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      </button>
                     </div>
                   </div>
 
-                  {/* By Slot Type */}
-                  <div className="card p-5">
-                    <h2 className="text-base font-semibold text-slate-900 mb-4">Urgent Capacity by Slot Type</h2>
-                    {huddleData.capacity.bySlotType.length > 0 ? (
-                      <div className="space-y-3">
-                        {huddleData.capacity.bySlotType.map((slot, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-slate-900 truncate">{slot.name}</div>
-                              <div className="text-xs text-slate-500">
-                                AM: {slot.am} · PM: {slot.pm}
+                  {/* Capacity Display */}
+                  {(() => {
+                    const capacity = getHuddleCapacity(huddleData, huddleDate);
+                    const grandTotal = capacity.am.total + capacity.pm.total;
+                    return (
+                      <>
+                        {/* Summary Header */}
+                        <div className="text-center py-4">
+                          <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-500">{grandTotal}</div>
+                          <div className="text-sm text-slate-500 mt-1">urgent slots available</div>
+                        </div>
+
+                        {/* AM / PM Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* AM */}
+                          <div className="card overflow-hidden">
+                            <div className="bg-gradient-to-r from-amber-400 to-orange-400 px-5 py-3">
+                              <div className="flex items-center justify-between text-white">
+                                <div>
+                                  <div className="text-lg font-bold">Morning</div>
+                                  <div className="text-xs opacity-90">08:00 – 13:00</div>
+                                </div>
+                                <div className="text-3xl font-bold">{capacity.am.total}</div>
                               </div>
                             </div>
-                            <div className="text-lg font-bold text-slate-900 ml-4">{slot.total}</div>
+                            <div className="p-4">
+                              {capacity.am.byClinician.length > 0 ? (
+                                <div className="space-y-2">
+                                  {capacity.am.byClinician.map((c, i) => (
+                                    <div key={i} className="flex items-center justify-between">
+                                      <span className="text-sm text-slate-700">{c.name}</span>
+                                      <span className="text-sm font-semibold text-amber-600">{c.available}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-center text-slate-400 text-sm py-4">No capacity</div>
+                              )}
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-slate-400 text-center py-4">No urgent slots available</div>
-                    )}
-                  </div>
 
-                  {/* Data info */}
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Report date: {huddleData.reportDate || 'Unknown'}</span>
-                    <span>{huddleData.clinicians.length} clinicians · {huddleData.allSlotTypes.length} slot types</span>
-                  </div>
-
-                  {/* Config notice */}
-                  {(!data.huddleSettings?.slotCategories?.urgent?.length) && (
-                    <div className="card p-4 bg-amber-50 border-amber-200">
-                      <div className="flex items-start gap-3">
-                        <span className="text-amber-500 text-lg">⚠️</span>
-                        <div>
-                          <div className="text-sm font-medium text-amber-800">Configure Slot Categories</div>
-                          <p className="text-xs text-amber-700 mt-1">
-                            Go to Settings → Huddle Settings to define which slot types should be counted as "urgent" capacity.
-                            Currently showing all Available slots.
-                          </p>
+                          {/* PM */}
+                          <div className="card overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-400 to-indigo-500 px-5 py-3">
+                              <div className="flex items-center justify-between text-white">
+                                <div>
+                                  <div className="text-lg font-bold">Afternoon</div>
+                                  <div className="text-xs opacity-90">13:00 – 18:30</div>
+                                </div>
+                                <div className="text-3xl font-bold">{capacity.pm.total}</div>
+                              </div>
+                            </div>
+                            <div className="p-4">
+                              {capacity.pm.byClinician.length > 0 ? (
+                                <div className="space-y-2">
+                                  {capacity.pm.byClinician.map((c, i) => (
+                                    <div key={i} className="flex items-center justify-between">
+                                      <span className="text-sm text-slate-700">{c.name}</span>
+                                      <span className="text-sm font-semibold text-blue-600">{c.available}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-center text-slate-400 text-sm py-4">No capacity</div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
+
+                        {/* Warning if no urgent slots configured */}
+                        {(!data.huddleSettings?.slotCategories?.urgent?.length) && (
+                          <div className="card p-4 bg-amber-50 border-amber-200">
+                            <div className="flex items-start gap-3">
+                              <span className="text-lg">⚠️</span>
+                              <div>
+                                <div className="text-sm font-medium text-amber-800">Configure Urgent Slot Types</div>
+                                <p className="text-xs text-amber-700 mt-1">Click Settings above to define which slot types count as urgent capacity. Currently showing all Available slots.</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </div>
@@ -1263,211 +1333,6 @@ export default function Home() {
                 </div>
               </div>
               <div className="card p-4 bg-slate-50 border-slate-200"><h3 className="text-xs font-medium text-slate-700 mb-1">How the algorithm works</h3><p className="text-xs text-slate-600 leading-relaxed"><strong>Round-robin first:</strong> Everyone gets 1 allocation before anyone gets 2. Primary buddy is tried first, then secondary, then any eligible clinician.<br/><br/><strong>Weighted tiebreaking:</strong> When multiple clinicians have same count, lowest weighted load wins. Load = (absent × {data.settings?.absentWeight || 2}) + (day-off × {data.settings?.dayOffWeight || 1}).</p></div>
-              
-              {/* HUDDLE SETTINGS */}
-              <div className="card p-5">
-                <h2 className="text-base font-semibold text-slate-900 mb-2">Huddle Dashboard Settings</h2>
-                <p className="text-sm text-slate-500 mb-5">Configure which clinicians and slot types appear in the huddle dashboard.</p>
-                
-                {(!data.huddleSettings?.knownClinicians?.length && !data.huddleSettings?.knownSlotTypes?.length) ? (
-                  <div className="p-6 bg-slate-50 rounded-lg text-center">
-                    <div className="text-2xl mb-2">📊</div>
-                    <p className="text-sm text-slate-600">Upload an appointment report in the Huddle Dashboard first to configure settings.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Clinician Selection */}
-                    <div>
-                      <h3 className="text-sm font-medium text-slate-900 mb-3">Clinicians to Include</h3>
-                      <p className="text-xs text-slate-500 mb-3">Select clinicians to show in the capacity dashboard. Drag to reorder within groups.</p>
-                      
-                      {/* Staff Groups */}
-                      {['clinician', 'nursing', 'other'].map(group => {
-                        const groupLabels = { clinician: '👨‍⚕️ Clinician Team', nursing: '👩‍⚕️ Nursing Team', other: '📋 Other' };
-                        const groupClinicians = (data.huddleSettings?.clinicianGroups?.[group] || []);
-                        const ungrouped = (data.huddleSettings?.knownClinicians || []).filter(c => 
-                          !['clinician', 'nursing', 'other'].some(g => (data.huddleSettings?.clinicianGroups?.[g] || []).includes(c))
-                        );
-                        
-                        return (
-                          <div key={group} className="mb-4">
-                            <div className="text-xs font-medium text-slate-700 mb-2">{groupLabels[group]}</div>
-                            <div 
-                              className="min-h-[60px] p-2 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200"
-                              onDragOver={(e) => e.preventDefault()}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                const clinicianName = e.dataTransfer.getData('clinician');
-                                if (!clinicianName) return;
-                                const hs = { ...data.huddleSettings };
-                                const groups = { ...hs.clinicianGroups };
-                                // Remove from all groups
-                                ['clinician', 'nursing', 'other'].forEach(g => {
-                                  groups[g] = (groups[g] || []).filter(c => c !== clinicianName);
-                                });
-                                // Add to this group
-                                groups[group] = [...(groups[group] || []), clinicianName];
-                                saveData({ ...data, huddleSettings: { ...hs, clinicianGroups: groups } });
-                              }}
-                            >
-                              <div className="flex flex-wrap gap-2">
-                                {groupClinicians.map(name => {
-                                  const isIncluded = (data.huddleSettings?.includedClinicians || []).includes(name);
-                                  const shortName = name.split(',')[0];
-                                  return (
-                                    <div
-                                      key={name}
-                                      draggable
-                                      onDragStart={(e) => e.dataTransfer.setData('clinician', name)}
-                                      className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-move transition-colors ${
-                                        isIncluded ? 'bg-purple-100 text-purple-800' : 'bg-white text-slate-600 border border-slate-200'
-                                      }`}
-                                      onClick={() => {
-                                        const hs = { ...data.huddleSettings };
-                                        const inc = hs.includedClinicians || [];
-                                        hs.includedClinicians = isIncluded ? inc.filter(c => c !== name) : [...inc, name];
-                                        saveData({ ...data, huddleSettings: hs });
-                                      }}
-                                    >
-                                      <span className={`w-3 h-3 rounded border flex items-center justify-center ${isIncluded ? 'bg-purple-600 border-purple-600 text-white' : 'border-slate-300'}`}>
-                                        {isIncluded && '✓'}
-                                      </span>
-                                      {shortName}
-                                    </div>
-                                  );
-                                })}
-                                {groupClinicians.length === 0 && (
-                                  <span className="text-xs text-slate-400 italic py-1">Drag clinicians here</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      
-                      {/* Ungrouped clinicians */}
-                      {(() => {
-                        const ungrouped = (data.huddleSettings?.knownClinicians || []).filter(c => 
-                          !['clinician', 'nursing', 'other'].some(g => (data.huddleSettings?.clinicianGroups?.[g] || []).includes(c))
-                        );
-                        if (ungrouped.length === 0) return null;
-                        return (
-                          <div className="mb-4">
-                            <div className="text-xs font-medium text-slate-500 mb-2">Ungrouped (drag to a group above)</div>
-                            <div className="flex flex-wrap gap-2">
-                              {ungrouped.map(name => {
-                                const shortName = name.split(',')[0];
-                                return (
-                                  <div
-                                    key={name}
-                                    draggable
-                                    onDragStart={(e) => e.dataTransfer.setData('clinician', name)}
-                                    className="px-2 py-1 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move"
-                                  >
-                                    {shortName}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                    
-                    {/* Slot Type Categories */}
-                    <div className="pt-4 border-t border-slate-200">
-                      <h3 className="text-sm font-medium text-slate-900 mb-3">Slot Type Categories</h3>
-                      <p className="text-xs text-slate-500 mb-3">Drag slot types to categorise them. Only "Urgent" slots are counted in the capacity dashboard.</p>
-                      
-                      {['urgent', 'routine', 'admin', 'excluded'].map(cat => {
-                        const catLabels = { 
-                          urgent: { icon: '🔴', label: 'Urgent (same-day)', desc: 'Counted in capacity' },
-                          routine: { icon: '🟢', label: 'Routine', desc: 'Not counted' },
-                          admin: { icon: '🟡', label: 'Admin/Non-clinical', desc: 'Not counted' },
-                          excluded: { icon: '⚪', label: 'Excluded', desc: 'Hidden from view' }
-                        };
-                        const catSlots = (data.huddleSettings?.slotCategories?.[cat] || []);
-                        
-                        return (
-                          <div key={cat} className="mb-3">
-                            <div className="flex items-center gap-2 text-xs font-medium text-slate-700 mb-2">
-                              <span>{catLabels[cat].icon}</span>
-                              <span>{catLabels[cat].label}</span>
-                              <span className="text-slate-400 font-normal">— {catLabels[cat].desc}</span>
-                            </div>
-                            <div 
-                              className={`min-h-[50px] p-2 rounded-lg border-2 border-dashed ${
-                                cat === 'urgent' ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'
-                              }`}
-                              onDragOver={(e) => e.preventDefault()}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                const slotName = e.dataTransfer.getData('slot');
-                                if (!slotName) return;
-                                const hs = { ...data.huddleSettings };
-                                const cats = { ...hs.slotCategories };
-                                // Remove from all categories
-                                ['urgent', 'routine', 'admin', 'excluded'].forEach(c => {
-                                  cats[c] = (cats[c] || []).filter(s => s !== slotName);
-                                });
-                                // Add to this category
-                                cats[cat] = [...(cats[cat] || []), slotName];
-                                saveData({ ...data, huddleSettings: { ...hs, slotCategories: cats } });
-                              }}
-                            >
-                              <div className="flex flex-wrap gap-1.5">
-                                {catSlots.map(slot => (
-                                  <div
-                                    key={slot}
-                                    draggable
-                                    onDragStart={(e) => e.dataTransfer.setData('slot', slot)}
-                                    className={`px-2 py-1 rounded text-xs cursor-move truncate max-w-[200px] ${
-                                      cat === 'urgent' ? 'bg-red-100 text-red-800' : 'bg-white text-slate-600 border border-slate-200'
-                                    }`}
-                                    title={slot}
-                                  >
-                                    {slot.length > 30 ? slot.slice(0, 30) + '...' : slot}
-                                  </div>
-                                ))}
-                                {catSlots.length === 0 && (
-                                  <span className="text-xs text-slate-400 italic py-1">Drag slot types here</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      
-                      {/* Uncategorised slots */}
-                      {(() => {
-                        const categorised = ['urgent', 'routine', 'admin', 'excluded'].flatMap(c => data.huddleSettings?.slotCategories?.[c] || []);
-                        const uncategorised = (data.huddleSettings?.knownSlotTypes || []).filter(s => !categorised.includes(s));
-                        if (uncategorised.length === 0) return null;
-                        return (
-                          <div className="mt-4 pt-4 border-t border-slate-200">
-                            <div className="text-xs font-medium text-slate-500 mb-2">Uncategorised ({uncategorised.length})</div>
-                            <div className="max-h-48 overflow-y-auto">
-                              <div className="flex flex-wrap gap-1.5">
-                                {uncategorised.sort().map(slot => (
-                                  <div
-                                    key={slot}
-                                    draggable
-                                    onDragStart={(e) => e.dataTransfer.setData('slot', slot)}
-                                    className="px-2 py-1 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move truncate max-w-[200px]"
-                                    title={slot}
-                                  >
-                                    {slot.length > 30 ? slot.slice(0, 30) + '...' : slot}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                )}
-              </div>
 
               <div className="card p-5 border-red-200">
                 <h2 className="text-base font-semibold text-red-700 mb-4">Danger Zone</h2>
