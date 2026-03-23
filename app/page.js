@@ -1,11 +1,22 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS } from '@/lib/data';
+import { ToastProvider, useToast, Button, Card, CardHeader, SectionHeading, PageSkeleton, EmptyState, Badge } from '@/components/ui';
+import Sidebar from '@/components/Sidebar';
 
 const LOGO_URL = "/logo.png";
 
 export default function Home() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  );
+}
+
+function AppContent() {
+  const toast = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -14,7 +25,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(() => getWeekStart(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => getCurrentDay());
-  const [activeSection, setActiveSection] = useState('buddy-daily');
+  const [activeSection, setActiveSection] = useState('huddle-today');
   const [copySuccess, setCopySuccess] = useState(false);
   const [showAddClinician, setShowAddClinician] = useState(false);
   const [newClinician, setNewClinician] = useState({ name: '', role: '', initials: '', sessions: 6 });
@@ -26,21 +37,22 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedMenus, setExpandedMenus] = useState({ buddy: true, team: false, huddle: true });
   const hasSyncedRef = useRef(false);
-  const [huddleData, setHuddleData] = useState(null); // Parsed CSV data for huddle
+  const [huddleData, setHuddleData] = useState(null);
   const [huddleError, setHuddleError] = useState('');
-  const [huddleDate, setHuddleDate] = useState(null); // Selected date in huddle view
+  const [huddleDate, setHuddleDate] = useState(null);
   const [showHuddleSettings, setShowHuddleSettings] = useState(false);
-  const [huddleMessages, setHuddleMessages] = useState([]); // Key messages / noticeboard
+  const [huddleMessages, setHuddleMessages] = useState([]);
   const [newHuddleMessage, setNewHuddleMessage] = useState('');
   const [newHuddleAuthor, setNewHuddleAuthor] = useState('');
-  const [huddleSlotOverrides, setHuddleSlotOverrides] = useState(null); // null = use settings defaults
+  const [huddleSlotOverrides, setHuddleSlotOverrides] = useState(null);
   const [showSlotFilter, setShowSlotFilter] = useState(false);
   const [forwardSlotOverrides, setForwardSlotOverrides] = useState(null);
   const [showForwardSlotFilter, setShowForwardSlotFilter] = useState(false);
-  const [forwardViewMode, setForwardViewMode] = useState('urgent'); // 'urgent' | 'routine' | 'all'
-  const [selectedCell, setSelectedCell] = useState(null); // { dateStr, dayName, week } for popup
+  const [forwardViewMode, setForwardViewMode] = useState('urgent');
+  const [selectedCell, setSelectedCell] = useState(null);
   const [newFilterName, setNewFilterName] = useState('');
-  const [chartFilters, setChartFilters] = useState(['urgent']); // multi-select filters for chart
+  const [chartFilters, setChartFilters] = useState(['urgent']);
+  const [isDraggingCSV, setIsDraggingCSV] = useState(false);
   const fileInputRef = useRef(null);
   const huddleLoadedRef = useRef(false);
 
@@ -139,12 +151,10 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json', 'x-password': password },
         body: JSON.stringify(newData)
       });
-      if (showIndicator) {
-        setDataSaved(true);
-        setTimeout(() => setDataSaved(false), 1500);
-      }
+      if (showIndicator) toast('Saved', 'success', 1500);
     } catch (err) {
       console.error('Save failed:', err);
+      toast('Save failed', 'error');
     }
   };
 
@@ -348,6 +358,41 @@ export default function Home() {
     }
     result.push(current.trim());
     return result;
+  };
+
+  // Reusable CSV processing - used by both file input and drag-and-drop
+  const processCSVText = (csvText) => {
+    try {
+      const parsed = parseHuddleCSV(csvText);
+      setHuddleData(parsed);
+      const today = new Date();
+      const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`;
+      setHuddleDate(parsed.dates.includes(todayStr) ? todayStr : parsed.dates[0]);
+      const hs = data.huddleSettings || {};
+      const uploadTime = new Date().toISOString();
+      saveData({ ...data, huddleCsvData: parsed, huddleCsvUploadedAt: uploadTime, huddleSettings: { ...hs, knownClinicians: [...new Set([...(hs.knownClinicians||[]), ...parsed.clinicians])], knownSlotTypes: [...new Set([...(hs.knownSlotTypes||[]), ...parsed.allSlotTypes])], lastUploadDate: uploadTime } }, false);
+      toast('Report uploaded successfully', 'success');
+      setHuddleError('');
+    } catch (err) {
+      setHuddleError('Failed to parse CSV: ' + err.message);
+      toast('Failed to parse CSV', 'error');
+    }
+  };
+
+  // Drag and drop handlers for CSV
+  const handleDragOver = (e) => { e.preventDefault(); setIsDraggingCSV(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); setIsDraggingCSV(false); };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDraggingCSV(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.name.endsWith('.csv')) {
+      toast('Please drop a CSV file', 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => processCSVText(event.target.result);
+    reader.readAsText(file);
   };
 
   // Get effective slot list for a given overrides state
@@ -775,8 +820,7 @@ export default function Home() {
       text += `${clinician.initials}: File ${fileStr} / View ${viewStr}\n`;
     });
     navigator.clipboard.writeText(text.trim());
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2000);
+    toast('Copied to clipboard', 'success', 2000);
   };
 
   const toggleRotaDay = (clinicianId, day) => {
@@ -823,25 +867,25 @@ export default function Home() {
   // Login screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="card p-8 w-full max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <Card className="p-8 w-full max-w-md">
           <div className="text-center mb-8">
-            <img src={LOGO_URL} alt="Practice Logo" className="h-16 mx-auto mb-6" />
-            <h1 className="text-xl font-bold text-slate-900">Buddy System</h1>
-            <p className="text-slate-500 text-sm mt-1">Clinical cover allocation</p>
+            <img src={LOGO_URL} alt="Practice Logo" className="h-16 mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Winscombe & Banwell</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Family Practice</p>
           </div>
           <form onSubmit={handleLogin}>
             <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent mb-4 text-sm" placeholder="Enter practice password" autoFocus />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent mb-4 text-sm" placeholder="Enter practice password" autoFocus />
             {passwordError && <p className="text-red-600 text-sm mb-4">{passwordError}</p>}
-            <button type="submit" className="btn-primary w-full" disabled={loading}>{loading ? 'Checking...' : 'Sign in'}</button>
+            <Button variant="primary" className="w-full" disabled={loading} onClick={handleLogin}>{loading ? 'Checking...' : 'Sign in'}</Button>
           </form>
-        </div>
+        </Card>
       </div>
     );
   }
 
-  if (!data) return <div className="min-h-screen flex items-center justify-center"><div className="text-white/80">Loading...</div></div>;
+  if (!data) return <div className="min-h-screen flex items-center justify-center bg-slate-100"><PageSkeleton /></div>;
 
   const currentAlloc = getCurrentAllocations();
   const presentIds = ensureArray(getPresentClinicians(selectedDay));
@@ -858,76 +902,12 @@ export default function Home() {
   const toggleMenu = (menu) => setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
 
   return (
-    <div className="min-h-screen flex">
-      {copySuccess && <div className="fixed bottom-4 right-4 bg-white text-slate-900 px-3 py-2 rounded-md text-sm font-medium shadow-lg z-50">Copied to clipboard</div>}
-      {dataSaved && <div className="fixed bottom-4 right-4 bg-emerald-500 text-white px-3 py-2 rounded-md text-sm font-medium shadow-lg z-50">Saved</div>}
-
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-gradient-to-b from-indigo-950 via-purple-900 to-violet-900 flex-shrink-0 transition-all duration-200`}>
-        <div className="sticky top-0 h-screen flex flex-col">
-          <div className="p-4 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="bg-white rounded-lg p-2 shadow-lg flex-shrink-0">
-                <img src={LOGO_URL} alt="Practice" className="h-10" />
-              </div>
-              {sidebarOpen && <div className="min-w-0"><h1 className="text-base font-bold text-white truncate">W&B Family</h1><p className="text-xs text-purple-200 truncate">Practice</p></div>}
-            </div>
-          </div>
-          <nav className="flex-1 overflow-y-auto py-4">
-            {/* Buddy System */}
-            <div>
-              <button onClick={() => toggleMenu('buddy')} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${expandedMenus.buddy ? 'text-white' : 'text-purple-200 hover:text-white'}`}>
-                <span className="text-lg">📋</span>
-                {sidebarOpen && <><span className="flex-1 text-left">Buddy System</span><span className="text-xs">{expandedMenus.buddy ? '▼' : '▶'}</span></>}
-              </button>
-              {expandedMenus.buddy && sidebarOpen && (
-                <div className="ml-4 border-l border-white/10">
-                  <button onClick={() => setActiveSection('buddy-daily')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'buddy-daily' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Daily</button>
-                  <button onClick={() => setActiveSection('buddy-week')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'buddy-week' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Week View</button>
-                </div>
-              )}
-            </div>
-            {/* Huddle */}
-            <div>
-              <button onClick={() => toggleMenu('huddle')} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${expandedMenus.huddle ? 'text-white' : 'text-purple-200 hover:text-white'}`}>
-                <span className="text-lg">📊</span>
-                {sidebarOpen && <><span className="flex-1 text-left">Huddle</span><span className="text-xs">{expandedMenus.huddle ? '▼' : '▶'}</span></>}
-              </button>
-              {expandedMenus.huddle && sidebarOpen && (
-                <div className="ml-4 border-l border-white/10">
-                  <button onClick={() => setActiveSection('huddle-today')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'huddle-today' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Today</button>
-                  <button onClick={() => setActiveSection('huddle-forward')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'huddle-forward' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Forward Planning</button>
-                  <button onClick={() => setActiveSection('huddle-settings')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'huddle-settings' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Settings</button>
-                </div>
-              )}
-            </div>
-            {/* Team */}
-            <div>
-              <button onClick={() => toggleMenu('team')} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${expandedMenus.team ? 'text-white' : 'text-purple-200 hover:text-white'}`}>
-                <span className="text-lg">👥</span>
-                {sidebarOpen && <><span className="flex-1 text-left">Team</span><span className="text-xs">{expandedMenus.team ? '▼' : '▶'}</span></>}
-              </button>
-              {expandedMenus.team && sidebarOpen && (
-                <div className="ml-4 border-l border-white/10">
-                  <button onClick={() => setActiveSection('team-members')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'team-members' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Members</button>
-                  <button onClick={() => setActiveSection('team-rota')} className={`w-full flex items-center gap-2 pl-6 pr-4 py-2 text-sm transition-colors ${activeSection === 'team-rota' ? 'text-white bg-white/10' : 'text-purple-300 hover:text-white hover:bg-white/5'}`}>Clinician Rota</button>
-                </div>
-              )}
-            </div>
-            {/* Settings */}
-            <button onClick={() => setActiveSection('settings')} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${activeSection === 'settings' ? 'text-white bg-white/10' : 'text-purple-200 hover:text-white hover:bg-white/5'}`}>
-              <span className="text-lg">⚙️</span>{sidebarOpen && <span>Settings</span>}
-            </button>
-          </nav>
-          <div className="p-3 border-t border-white/10">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-full flex items-center justify-center gap-2 py-2 text-purple-200 hover:text-white text-sm">{sidebarOpen ? '◀ Collapse' : '▶'}</button>
-          </div>
-        </div>
-      </aside>
+    <div className="min-h-screen flex bg-slate-100">
+      <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main Content */}
-      <main className="flex-1 min-h-screen bg-slate-100">
-        <div className="max-w-6xl mx-auto p-6">
+      <main className="flex-1 min-h-screen min-w-0">
+        <div className="max-w-6xl mx-auto p-4 lg:p-6 animate-in">
           
           {/* BUDDY DAILY */}
           {activeSection === 'buddy-daily' && (
@@ -1248,55 +1228,38 @@ export default function Home() {
 
           {/* HUDDLE - TODAY */}
           {activeSection === 'huddle-today' && (
-            <div className="space-y-6">
-              {/* Header with upload */}
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
-                  <h1 className="text-xl font-bold text-slate-900">Today's Huddle</h1>
-                  {data?.huddleCsvUploadedAt && (
-                    <p className="text-xs text-slate-500 mt-1">
-                      Last report uploaded: {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  )}
+            <div className="space-y-6" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+              {/* Drag overlay */}
+              {isDraggingCSV && (
+                <div className="fixed inset-0 z-40 bg-teal-500/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8 text-center border-2 border-dashed border-teal-400">
+                    <div className="text-4xl mb-2">📊</div>
+                    <div className="text-lg font-semibold text-slate-900">Drop CSV here</div>
+                    <div className="text-sm text-slate-500">Release to upload appointment report</div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setHuddleError('');
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      try {
-                        const parsed = parseHuddleCSV(event.target.result);
-                        setHuddleData(parsed);
-                        const today = new Date();
-                        const todayStr = `${String(today.getDate()).padStart(2,'0')}-${today.toLocaleString('en-GB',{month:'short'})}-${today.getFullYear()}`;
-                        setHuddleDate(parsed.dates.includes(todayStr) ? todayStr : parsed.dates[0]);
-                        const hs = data.huddleSettings || {};
-                        const uploadTime = new Date().toISOString();
-                        saveData({ ...data, huddleCsvData: parsed, huddleCsvUploadedAt: uploadTime, huddleSettings: { ...hs, knownClinicians: [...new Set([...(hs.knownClinicians||[]), ...parsed.clinicians])], knownSlotTypes: [...new Set([...(hs.knownSlotTypes||[]), ...parsed.allSlotTypes])], lastUploadDate: uploadTime } }, false);
-                      } catch (err) { setHuddleError('Failed to parse CSV: ' + err.message); }
-                    };
-                    reader.readAsText(file);
-                    e.target.value = '';
-                  }} />
-                  {(() => {
-                    const isToday = (() => {
-                      if (!data?.huddleCsvUploadedAt) return false;
-                      const uploaded = new Date(data.huddleCsvUploadedAt);
-                      const now = new Date();
-                      return uploaded.toDateString() === now.toDateString();
-                    })();
-                    return (
-                      <button onClick={() => fileInputRef.current?.click()} className={`px-4 py-2 rounded-md text-sm font-medium text-white shadow-sm transition-colors ${isToday ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`}>
-                        {isToday ? '✓ Upload Report' : '⚠ Upload Report'}
-                      </button>
-                    );
-                  })()}
-                </div>
-              </div>
+              )}
 
-              {huddleError && <div className="card p-4 bg-red-50 border-red-200 text-red-700 text-sm">{huddleError}</div>}
+              {/* Header with upload */}
+              <SectionHeading title="Today's Huddle" subtitle={data?.huddleCsvUploadedAt ? `Last report: ${new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'No report uploaded'}>
+                <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (event) => processCSVText(event.target.result);
+                  reader.readAsText(file);
+                  e.target.value = '';
+                }} />
+                {(() => {
+                  const isUploadedToday = (() => {
+                    if (!data?.huddleCsvUploadedAt) return false;
+                    return new Date(data.huddleCsvUploadedAt).toDateString() === new Date().toDateString();
+                  })();
+                  return <Button variant={isUploadedToday ? 'upload_fresh' : 'upload_stale'} onClick={() => fileInputRef.current?.click()}>{isUploadedToday ? '✓ Upload Report' : '⚠ Upload Report'}</Button>;
+                })()}
+              </SectionHeading>
+
+              {huddleError && <Card className="p-4 bg-red-50 border-red-200 text-red-700 text-sm">{huddleError}</Card>}
 
               {/* KEY MESSAGES - at the top */}
               <div className="card overflow-hidden">
@@ -1850,6 +1813,127 @@ export default function Home() {
                   </div>
 
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* HUDDLE - HISTORY */}
+          {activeSection === 'huddle-history' && (
+            <div className="space-y-6 animate-in">
+              <SectionHeading title="Capacity History" subtitle="Trends across recent weeks" />
+
+              {!huddleData ? (
+                <EmptyState icon="📈" title="No Data Yet" description="Upload a report on the Today page to start tracking capacity over time." action="Go to Today" onAction={() => setActiveSection('huddle-today')} />
+              ) : (
+                <>
+                  {/* Weekly averages summary */}
+                  {(() => {
+                    const weeks = getHuddleWeeks();
+                    if (weeks.length === 0) return <Card className="p-8 text-center text-slate-400 text-sm">No weekly data available.</Card>;
+                    const dayNames = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+                    
+                    return (
+                      <Card padding={false} className="overflow-hidden">
+                        <CardHeader accent="slate">
+                          <div className="text-sm font-semibold text-slate-900">Weekly Urgent Capacity Totals</div>
+                        </CardHeader>
+                        <div className="p-4 overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="text-xs text-slate-500">
+                                <th className="text-left py-2 font-medium">Week Commencing</th>
+                                <th className="text-right py-2 font-medium">AM Total</th>
+                                <th className="text-right py-2 font-medium">PM Total</th>
+                                <th className="text-right py-2 font-medium">Combined</th>
+                                <th className="text-right py-2 font-medium">Daily Avg</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {weeks.map((week, wi) => {
+                                let weekAm = 0, weekPm = 0, dayCount = 0;
+                                ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].forEach(d => {
+                                  const dateStr = week.dates[d];
+                                  if (!dateStr) return;
+                                  const cap = getHuddleCapacity(huddleData, dateStr);
+                                  weekAm += cap.am.total;
+                                  weekPm += cap.pm.total;
+                                  dayCount++;
+                                });
+                                const total = weekAm + weekPm;
+                                const avg = dayCount > 0 ? Math.round(total / dayCount) : 0;
+                                const weekLabel = week.monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                                return (
+                                  <tr key={wi}>
+                                    <td className="py-2 font-medium text-slate-700">{weekLabel}</td>
+                                    <td className="py-2 text-right text-amber-600 font-medium">{weekAm}</td>
+                                    <td className="py-2 text-right text-blue-600 font-medium">{weekPm}</td>
+                                    <td className="py-2 text-right font-bold text-slate-900">{total}</td>
+                                    <td className="py-2 text-right text-slate-500">{avg}/day</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </Card>
+                    );
+                  })()}
+
+                  {/* Day-of-week pattern */}
+                  <Card padding={false} className="overflow-hidden">
+                    <CardHeader accent="slate">
+                      <div className="text-sm font-semibold text-slate-900">Average by Day of Week</div>
+                    </CardHeader>
+                    <div className="p-4">
+                      {(() => {
+                        const weeks = getHuddleWeeks();
+                        const dayNames = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+                        const dayTotals = {};
+                        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].forEach(d => { dayTotals[d] = { am: 0, pm: 0, count: 0 }; });
+                        weeks.forEach(week => {
+                          ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].forEach(d => {
+                            const dateStr = week.dates[d];
+                            if (!dateStr) return;
+                            const cap = getHuddleCapacity(huddleData, dateStr);
+                            dayTotals[d].am += cap.am.total;
+                            dayTotals[d].pm += cap.pm.total;
+                            dayTotals[d].count++;
+                          });
+                        });
+                        const maxAvg = Math.max(...Object.values(dayTotals).map(d => d.count > 0 ? (d.am + d.pm) / d.count : 0), 1);
+                        return (
+                          <div className="flex items-end gap-3" style={{ height: '140px' }}>
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => {
+                              const t = dayTotals[d];
+                              const avg = t.count > 0 ? (t.am + t.pm) / t.count : 0;
+                              const amAvg = t.count > 0 ? t.am / t.count : 0;
+                              const pmAvg = t.count > 0 ? t.pm / t.count : 0;
+                              const pct = (avg / maxAvg) * 100;
+                              const amPct = avg > 0 ? (amAvg / avg) * 100 : 0;
+                              return (
+                                <div key={d} className="flex-1 flex flex-col items-center">
+                                  <div className="text-xs font-semibold text-slate-700 mb-1">{Math.round(avg)}</div>
+                                  <div className="w-full relative" style={{ height: '100px' }}>
+                                    <div className="absolute bottom-0 w-full rounded-t-md overflow-hidden" style={{ height: `${pct}%` }}>
+                                      <div className="w-full bg-gradient-to-t from-blue-400 to-blue-300" style={{ height: `${100 - amPct}%` }} />
+                                      <div className="w-full bg-gradient-to-t from-amber-400 to-amber-300" style={{ height: `${amPct}%` }} />
+                                    </div>
+                                  </div>
+                                  <div className="text-xs font-medium text-slate-500 mt-2">{d}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-300" /> AM avg</span>
+                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-300" /> PM avg</span>
+                        <span className="ml-auto">Across {getHuddleWeeks().length} week{getHuddleWeeks().length !== 1 ? 's' : ''} of data</span>
+                      </div>
+                    </div>
+                  </Card>
+                </>
               )}
             </div>
           )}
