@@ -167,6 +167,15 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs) : null;
   const urgentAm = capacity?.am?.total||0, urgentPm = capacity?.pm?.total||0, urgentTotal = urgentAm+urgentPm;
   const bookedAm = capacity?.am?.booked||0, bookedPm = capacity?.pm?.booked||0;
+  const mergedClinicians = useMemo(() => {
+    if (!capacity) return [];
+    const m = {};
+    [...(capacity.am?.byClinician || []), ...(capacity.pm?.byClinician || [])].forEach(c => {
+      if (!m[c.name]) m[c.name] = { name: c.name, available: 0, embargoed: 0, booked: 0 };
+      m[c.name].available += c.available || 0; m[c.name].embargoed += c.embargoed || 0; m[c.name].booked += c.booked || 0;
+    });
+    return Object.values(m).sort((a, b) => (b.available + b.embargoed) - (a.available + a.embargoed));
+  }, [capacity]);
   const todayDayName = dayName;
   const expectedAm = hs.expectedCapacity?.[todayDayName]?.am || 0;
   const expectedPm = hs.expectedCapacity?.[todayDayName]?.pm || 0;
