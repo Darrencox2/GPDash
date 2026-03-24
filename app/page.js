@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole } from '@/lib/data';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName } from '@/lib/data';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LoginScreen from '@/components/LoginScreen';
@@ -94,6 +94,7 @@ function AppContent() {
     if (d.clinicians && Array.isArray(d.clinicians)) {
       d.clinicians = d.clinicians.map(c => ({
         ...c,
+        name: titleCaseName(c.name) || c.name,
         group: c.group || guessGroupFromRole(c.role),
         status: c.longTermAbsent ? 'longTermAbsent' : (c.status || 'active'),
         longTermAbsent: c.status === 'longTermAbsent' || c.longTermAbsent || false,

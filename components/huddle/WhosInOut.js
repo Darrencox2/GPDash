@@ -57,6 +57,7 @@ function DropZone({ onDrop, children, isEmpty }) {
 
 export default function WhosInOut({ data, saveData, huddleData, onNavigate }) {
   const [showSettings, setShowSettings] = useState(false);
+  const [showAbsent, setShowAbsent] = useState(false);
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
 
@@ -266,27 +267,52 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate }) {
           </div>
         </div>
 
-        {/* LEAVE / ABSENT + DAY OFF — 2 columns below */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* LEAVE / ABSENT + DAY OFF — collapsible */}
+        {(categories.leaveAbsent.length > 0 || categories.dayOff.length > 0) && (
           <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <div className="w-2 h-2 rounded-full bg-red-400" />
-              <span className="text-xs font-semibold text-slate-700">Leave / Absent ({categories.leaveAbsent.length})</span>
-            </div>
-            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'absent')} isEmpty={categories.leaveAbsent.length === 0}>
-              {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
-            </DropZone>
+            <button onClick={() => setShowAbsent(!showAbsent)}
+              className="flex items-center gap-2 w-full text-left py-1.5 group">
+              <span className={`text-[10px] text-slate-400 transition-transform ${showAbsent ? 'rotate-90' : ''}`}>▶</span>
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                {categories.leaveAbsent.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                    {categories.leaveAbsent.length} absent
+                  </span>
+                )}
+                {categories.dayOff.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                    {categories.dayOff.length} day off
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">{showAbsent ? 'hide' : 'show'}</span>
+            </button>
+            {showAbsent && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-red-400" />
+                    <span className="text-xs font-semibold text-slate-700">Leave / Absent ({categories.leaveAbsent.length})</span>
+                  </div>
+                  <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'absent')} isEmpty={categories.leaveAbsent.length === 0}>
+                    {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
+                  </DropZone>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-slate-300" />
+                    <span className="text-xs font-semibold text-slate-700">Day Off ({categories.dayOff.length})</span>
+                  </div>
+                  <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'dayoff')} isEmpty={categories.dayOff.length === 0}>
+                    {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
+                  </DropZone>
+                </div>
+              </div>
+            )}
           </div>
-          <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <div className="w-2 h-2 rounded-full bg-slate-300" />
-              <span className="text-xs font-semibold text-slate-700">Day Off ({categories.dayOff.length})</span>
-            </div>
-            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'dayoff')} isEmpty={categories.dayOff.length === 0}>
-              {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
-            </DropZone>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Right-side settings panel */}
