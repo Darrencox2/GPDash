@@ -23,6 +23,7 @@ const GRADIENT_MAP = Object.fromEntries(CARD_COLOURS.map(c => [c.key, c.gradient
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200',
+  'Associate Partner': 'bg-blue-50 border-blue-200',
   'Salaried GP': 'bg-indigo-50 border-indigo-200',
   'Locum': 'bg-purple-50 border-purple-200',
   'ANP': 'bg-emerald-50 border-emerald-200',
@@ -489,7 +490,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
 // ══════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════
-export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages }) {
+export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages, setActiveSection }) {
   const [newMsg, setNewMsg] = useState('');
   const [newAuthor, setNewAuthor] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -708,7 +709,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       </div>
 
       {/* WHO'S IN / OUT */}
-      <WhosInOut data={data} saveData={saveData} huddleData={huddleData} />
+      <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} />
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (

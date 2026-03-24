@@ -1,9 +1,11 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { DAYS, STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
+import { getTodayDateStr, getCliniciansForDate } from '@/lib/huddle';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
+  'Associate Partner': 'bg-blue-50 border-blue-200 text-blue-800',
   'Salaried GP': 'bg-indigo-50 border-indigo-200 text-indigo-800',
   'Locum': 'bg-purple-50 border-purple-200 text-purple-800',
   'ANP': 'bg-emerald-50 border-emerald-200 text-emerald-800',
@@ -53,7 +55,7 @@ function DropZone({ onDrop, children, isEmpty }) {
   );
 }
 
-export default function WhosInOut({ data, saveData, huddleData }) {
+export default function WhosInOut({ data, saveData, huddleData, onNavigate }) {
   const [showSettings, setShowSettings] = useState(false);
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
@@ -68,18 +70,30 @@ export default function WhosInOut({ data, saveData, huddleData }) {
 
   // Only show people who are visible, not left, not administrative
   const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');
+  const unconfirmedCount = allClinicians.filter(c => !c.confirmed).length;
 
   // ── Data sources ──────────────────────────────────────────────────
 
-  // 1. CSV: who has slots today?
+  // 1. CSV: who has slots TODAY specifically (not all dates in the file)
+  const todayDateStr = getTodayDateStr();
+  const todayCsvClinicians = useMemo(() => {
+    if (!huddleData) return [];
+    // Find which date string in the CSV matches today
+    const displayDate = huddleData.dates?.includes(todayDateStr) ? todayDateStr : null;
+    if (!displayDate) return [];
+    return getCliniciansForDate(huddleData, displayDate);
+  }, [huddleData, todayDateStr]);
+
   const csvPresentIds = useMemo(() => {
-    if (!huddleData?.clinicians) return new Set();
+    if (todayCsvClinicians.length === 0) return new Set();
     const matched = new Set();
     allClinicians.forEach(c => {
-      if (huddleData.clinicians.some(csvName => matchesStaffMember(csvName, c))) matched.add(c.id);
+      if (todayCsvClinicians.some(csvName => matchesStaffMember(csvName, c))) matched.add(c.id);
     });
     return matched;
-  }, [allClinicians, huddleData?.clinicians]);
+  }, [allClinicians, todayCsvClinicians]);
+
+  const hasCSV = todayCsvClinicians.length > 0;
 
   // 2. Planned absences: who is on leave today?
   const absenceMap = useMemo(() => {
@@ -96,30 +110,27 @@ export default function WhosInOut({ data, saveData, huddleData }) {
   const manualOverride = data.dailyOverrides?.[dayKey];
   const manualPresent = manualOverride?.present ? new Set(ensureArray(manualOverride.present)) : null;
 
-  // ── Categorise (mutually exclusive) ───────────────────────────────
-  // Priority: 1) LTA → absent, 2) Manual override, 3) Planned absence → absent, 4) CSV presence → in practice, 5) Rota (if no CSV) → in practice, 6) Day off
-
-  const hasCSV = huddleData?.clinicians?.length > 0;
+  // 4. Rota (fallback when no CSV)
   const rotaScheduled = ensureArray(data.weeklyRota?.[dayName]);
 
+  // ── Categorise (mutually exclusive with early returns) ────────────
   const categories = useMemo(() => {
     const inPractice = [];
     const leaveAbsent = [];
     const dayOff = [];
 
     visibleStaff.forEach(person => {
-      // LTA always goes to absent
+      // 1. LTA → always absent
       if (person.longTermAbsent || person.status === 'longTermAbsent') {
         leaveAbsent.push({ person, reason: 'Long-term absent' });
         return;
       }
 
-      // If there's a manual override and this person was explicitly marked absent
-      // (they're in the scheduled list but NOT in the present list)
+      // 2. Manual drag override today
       if (manualPresent !== null) {
         const isManualScheduled = ensureArray(manualOverride?.scheduled || []).includes(person.id);
         if (isManualScheduled && !manualPresent.has(person.id)) {
-          leaveAbsent.push({ person, reason: absenceMap[person.id] || 'Absent (manual)' });
+          leaveAbsent.push({ person, reason: absenceMap[person.id] || 'Absent' });
           return;
         }
         if (manualPresent.has(person.id)) {
@@ -128,25 +139,25 @@ export default function WhosInOut({ data, saveData, huddleData }) {
         }
       }
 
-      // Planned absence (TeamNet / manual absences)
+      // 3. Planned absence (TeamNet / manual)
       if (absenceMap[person.id]) {
         leaveAbsent.push({ person, reason: absenceMap[person.id] });
         return;
       }
 
-      // CSV says they're working today
+      // 4. CSV says they have slots TODAY
       if (hasCSV && csvPresentIds.has(person.id)) {
         inPractice.push({ person });
         return;
       }
 
-      // No CSV uploaded: fall back to rota for buddy cover people
+      // 5. No CSV: fall back to rota for buddy cover people
       if (!hasCSV && person.buddyCover && rotaScheduled.includes(person.id)) {
         inPractice.push({ person });
         return;
       }
 
-      // Everyone else is day off
+      // 6. Everyone else → day off
       dayOff.push({ person });
     });
 
@@ -168,8 +179,6 @@ export default function WhosInOut({ data, saveData, huddleData }) {
     try {
       const { id } = JSON.parse(personJson);
       if (typeof id !== 'number') return;
-
-      // Build override: track who's present and who's scheduled
       const currentScheduled = manualOverride?.scheduled
         ? [...ensureArray(manualOverride.scheduled)]
         : [...rotaScheduled];
@@ -185,7 +194,6 @@ export default function WhosInOut({ data, saveData, huddleData }) {
         newPresent = currentPresent.filter(cid => cid !== id);
         newScheduled = currentScheduled.includes(id) ? currentScheduled : [...currentScheduled, id];
       } else {
-        // Day off: remove from both
         newPresent = currentPresent.filter(cid => cid !== id);
         newScheduled = currentScheduled.filter(cid => cid !== id);
       }
@@ -211,7 +219,7 @@ export default function WhosInOut({ data, saveData, huddleData }) {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold text-white">Who's In Today</div>
-            <div className="text-[10px] text-white/60">{hasCSV ? 'Based on uploaded report' : 'Based on rota'} · Drag to move</div>
+            <div className="text-[10px] text-white/60">{hasCSV ? 'Based on today\'s report' : 'Based on rota'} · Drag to move</div>
           </div>
           <button onClick={() => setShowSettings(true)}
             className="px-2.5 py-1 rounded text-[11px] font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">⚙ Settings</button>
@@ -219,6 +227,17 @@ export default function WhosInOut({ data, saveData, huddleData }) {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Unconfirmed staff banner */}
+        {unconfirmedCount > 0 && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+            <span className="text-xs text-amber-800">{unconfirmedCount} unconfirmed staff member{unconfirmedCount > 1 ? 's' : ''} from CSV</span>
+            {onNavigate && (
+              <button onClick={() => onNavigate('team-members')} className="ml-auto text-xs font-medium text-amber-700 hover:text-amber-900 underline">Review in Staff Register</button>
+            )}
+          </div>
+        )}
+
         {/* IN PRACTICE — 3 columns by staff group */}
         <div>
           <div className="flex items-center gap-1.5 mb-2">
