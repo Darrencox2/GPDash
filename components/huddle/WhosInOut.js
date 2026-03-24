@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { DAYS, STAFF_GROUPS } from '@/lib/data';
+import { DAYS, STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -108,22 +108,10 @@ export default function WhosInOut({ data, saveData, huddleData }) {
   // People who are in the CSV today (source of truth for non-rota staff)
   const csvPresentIds = useMemo(() => {
     if (!huddleData?.clinicians) return new Set();
-    const csvNames = new Set(huddleData.clinicians.map(n => n.replace(/\(.*?\)/g, '').trim().toLowerCase()));
     const matched = new Set();
     allClinicians.forEach(c => {
-      const cLower = c.name.toLowerCase().replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim();
-      const nameMatch = csvNames.has(cLower) || (c.aliases || []).some(a => csvNames.has(a.toLowerCase().replace(/\(.*?\)/g, '').trim()));
-      // Also try surname match
-      if (!nameMatch) {
-        const surname = cLower.split(/\s+/).pop();
-        if (surname && surname.length >= 3) {
-          for (const cn of csvNames) {
-            if (cn.split(/\s+/).pop() === surname) { matched.add(c.id); break; }
-          }
-        }
-      } else {
-        matched.add(c.id);
-      }
+      const isInCsv = huddleData.clinicians.some(csvName => matchesStaffMember(csvName, c));
+      if (isInCsv) matched.add(c.id);
     });
     return matched;
   }, [allClinicians, huddleData?.clinicians]);

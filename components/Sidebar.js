@@ -75,8 +75,11 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
           {/* Logo */}
           <div className="px-3 pt-4 pb-3">
             {sidebarOpen ? (
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center gap-3">
                 <GPDashLogo size="sidebar" className="w-full max-w-[200px]" />
+                <div className="w-full bg-white/5 rounded-xl p-2 flex items-center justify-center">
+                  <img src="/logo.png" alt="Practice" className="h-10 w-auto object-contain opacity-80" />
+                </div>
               </div>
             ) : (
               <div className="flex justify-center">

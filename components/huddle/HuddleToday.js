@@ -4,7 +4,7 @@ import { Button, Card, SectionHeading } from '@/components/ui';
 import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
-import { guessGroupFromRole } from '@/lib/data';
+import { guessGroupFromRole, normalizeName, matchesStaffMember } from '@/lib/data';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -145,14 +145,7 @@ function CapacityDayPanel({ dateStr, huddleData, huddleSettings, overrides, team
               </div>
               <div className="px-5 py-3 space-y-1.5">
                 {s.data.byClinician.length > 0 ? s.data.byClinician.map((c, i) => {
-                  const matched = (teamClinicians || []).find(tc => {
-                    const csvClean = cleanName(c.name);
-                    const tcClean = cleanName(tc.name);
-                    if (csvClean === tcClean || csvClean.includes(tcClean) || tcClean.includes(csvClean)) return true;
-                    const csvWords = csvClean.split(/\s+/).filter(w => w.length > 1);
-                    const tcWords = tcClean.split(/\s+/).filter(w => w.length > 1);
-                    return csvWords.some(w => w === (tcWords[tcWords.length-1]||''));
-                  });
+                  const matched = (teamClinicians || []).find(tc => matchesStaffMember(c.name, tc));
                   const displayName = matched?.name || c.name;
                   const role = matched?.role || '';
                   return (
@@ -579,20 +572,21 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       let updatedClinicians = [...teamClinicians];
       let newCount = 0;
       (parsed.clinicians || []).forEach(csvName => {
-        const cleanedCsv = csvName.replace(/\(.*?\)/g, '').replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim().toLowerCase();
-        const matched = updatedClinicians.some(c => {
-          const cleanedReg = c.name.replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim().toLowerCase();
-          if (cleanedReg === cleanedCsv) return true;
-          const regSurname = cleanedReg.split(/\s+/).pop();
-          const csvSurname = cleanedCsv.split(/\s+/).pop();
-          if (regSurname && csvSurname && regSurname === csvSurname && regSurname.length >= 3) return true;
-          // Check aliases
-          return (c.aliases || []).some(a => a.toLowerCase().replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim() === cleanedCsv);
-        });
+        const matched = updatedClinicians.some(c => matchesStaffMember(csvName, c));
         if (!matched) {
           const roleMatch = csvName.match(/\(([^)]+)\)/);
           const role = roleMatch ? roleMatch[1] : 'Staff';
-          const name = csvName.replace(/\(.*?\)/g, '').trim();
+          const rawName = csvName.replace(/\(.*?\)/g, '').trim();
+          // Flip "SURNAME, First" to "First Surname"
+          let name = rawName;
+          if (rawName.includes(',')) {
+            const parts = rawName.split(',').map(s => s.trim());
+            if (parts.length === 2 && parts[0].length > 0 && parts[1].length > 0) {
+              name = parts[1] + ' ' + parts[0];
+            }
+          }
+          // Title-case
+          name = name.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(And|Of|The|In)\b/g, w => w.toLowerCase());
           // Skip generic/empty names
           if (name.length < 3 || name.toLowerCase().includes('generic') || name.toLowerCase().includes('session holder')) return;
           const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
@@ -810,15 +804,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         {s.data.byClinician.length > 0 ? (
                           <div className="grid grid-cols-2 gap-1.5">
                             {s.data.byClinician.map((c, i) => {
-                              const matched = teamClinicians.find(tc => {
-                                const csvClean = cleanName(c.name);
-                                const tcClean = cleanName(tc.name);
-                                if (csvClean === tcClean || csvClean.includes(tcClean) || tcClean.includes(csvClean)) return true;
-                                const csvWords = csvClean.split(/\s+/).filter(w => w.length > 1);
-                                const tcWords = tcClean.split(/\s+/).filter(w => w.length > 1);
-                                const tcSurname = tcWords[tcWords.length - 1] || '';
-                                return csvWords.some(w => w === tcSurname);
-                              });
+                              const matched = teamClinicians.find(tc => matchesStaffMember(c.name, tc));
                               const displayName = matched?.name || c.name;
                               const role = matched?.role || '';
                               const roleColour = ROLE_COLOURS[role] || 'bg-slate-50 border-slate-200';
