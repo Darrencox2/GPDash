@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
-
-const LOGO_URL = '/logo.png';
+import GPDashLogo from './GPDashLogo';
 
 const NAV_SECTIONS = [
   {
@@ -19,7 +18,7 @@ const NAV_SECTIONS = [
   {
     id: 'buddy',
     icon: '🤝',
-    label: 'Buddy System',
+    label: 'Buddy Cover',
     colour: 'purple',
     items: [
       { id: 'buddy-daily', label: 'Daily' },
@@ -27,21 +26,15 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    id: 'team',
-    icon: '👥',
-    label: 'Team',
-    colour: 'blue',
-    items: [
-      { id: 'team-members', label: 'Members' },
-      { id: 'team-rota', label: 'Clinician Rota' },
-    ],
-  },
-  {
     id: 'settings',
     icon: '⚙️',
     label: 'Settings',
     colour: 'slate',
-    items: [],
+    items: [
+      { id: 'settings', label: 'General' },
+      { id: 'team-members', label: 'Team Members' },
+      { id: 'team-rota', label: 'Rota' },
+    ],
   },
 ];
 
@@ -53,7 +46,7 @@ const ACCENT_COLOURS = {
 };
 
 export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen }) {
-  const [expandedMenus, setExpandedMenus] = useState({ huddle: true, buddy: false, team: false });
+  const [expandedMenus, setExpandedMenus] = useState({ huddle: true, buddy: false, settings: false });
 
   const toggleMenu = (menu) => setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
 
@@ -80,18 +73,16 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
       `}>
         <div className="h-full flex flex-col w-60 lg:w-auto">
           {/* Logo */}
-          <div className="p-4 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="bg-white rounded-xl p-2 shadow-lg flex-shrink-0">
-                <img src={LOGO_URL} alt="Practice" className="h-10 w-10 object-contain" />
+          <div className="px-3 pt-4 pb-3">
+            {sidebarOpen ? (
+              <div className="flex justify-center">
+                <GPDashLogo size="sidebar" className="w-full max-w-[200px]" />
               </div>
-              {sidebarOpen && (
-                <div className="min-w-0">
-                  <h1 className="text-sm font-bold text-white leading-tight">Winscombe & Banwell</h1>
-                  <p className="text-[11px] text-slate-400 leading-tight">Family Practice</p>
-                </div>
-              )}
-            </div>
+            ) : (
+              <div className="flex justify-center">
+                <GPDashLogo size="sidebar-collapsed" className="w-10 h-10" />
+              </div>
+            )}
           </div>
 
           {/* Navigation */}

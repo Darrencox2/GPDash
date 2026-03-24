@@ -2,7 +2,7 @@
 import { useState } from 'react';
 
 // ── Slot Filter Button ──────────────────────────────────────────
-export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show, setShow, variant = 'dark' }) {
+export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show, setShow, variant = 'dark', initialOverrides }) {
   const selectedCount = overrides ? Object.values(overrides).filter(Boolean).length : 0;
   const btnClass = variant === 'light'
     ? `px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${show ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`
@@ -10,7 +10,12 @@ export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show
   return (
     <button onClick={() => {
       if (!show && !overrides) {
-        const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o);
+        // Use provided initialOverrides, or fall back to all-true
+        if (initialOverrides) {
+          setOverrides(initialOverrides);
+        } else {
+          const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o);
+        }
       }
       setShow(!show);
     }} className={btnClass}>
@@ -64,11 +69,11 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
 }
 
 // ── Combined component (convenience) ─────────────────────────────
-export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, title, variant = 'dark' }) {
+export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, title, variant = 'dark', initialOverrides }) {
   const [show, setShow] = useState(false);
   return (
     <>
-      <SlotFilterButton overrides={overrides} setOverrides={setOverrides} knownSlotTypes={knownSlotTypes} show={show} setShow={setShow} variant={variant} />
+      <SlotFilterButton overrides={overrides} setOverrides={setOverrides} knownSlotTypes={knownSlotTypes} show={show} setShow={setShow} variant={variant} initialOverrides={initialOverrides} />
       <SlotFilterPanel overrides={overrides} setOverrides={setOverrides} knownSlotTypes={knownSlotTypes} show={show} setShow={setShow} title={title} />
     </>
   );

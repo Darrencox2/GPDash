@@ -1,14 +1,13 @@
 'use client';
 import { Button, Card } from '@/components/ui';
+import GPDashLogo from '@/components/GPDashLogo';
 
 export default function LoginScreen({ password, setPassword, onLogin, loading, error }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100">
       <Card className="p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <img src="/logo.png" alt="Practice Logo" className="h-16 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Winscombe & Banwell</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Family Practice</p>
+        <div className="flex justify-center mb-8">
+          <GPDashLogo size="full" className="w-full max-w-[320px]" />
         </div>
         <form onSubmit={onLogin}>
           <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>

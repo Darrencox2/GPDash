@@ -1,8 +1,8 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Buddy System - Winscombe & Banwell Family Practice',
-  description: 'Clinical cover allocation & huddle dashboard',
+  title: 'GPDash — Practice Dashboard',
+  description: 'GP practice dashboard — huddle capacity, buddy cover & team management',
 }
 
 export const viewport = {

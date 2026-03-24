@@ -1,8 +1,10 @@
 'use client';
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
 import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
+import WhosInOut from './WhosInOut';
+import { GPDashLogoLight } from '@/components/GPDashLogo';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -18,6 +20,18 @@ const CARD_COLOURS = [
   { key: 'teal', label: 'Teal', gradient: 'from-teal-500 to-emerald-600' },
 ];
 const GRADIENT_MAP = Object.fromEntries(CARD_COLOURS.map(c => [c.key, c.gradient]));
+
+const ROLE_COLOURS = {
+  'GP Partner': 'bg-blue-50 border-blue-200',
+  'Salaried GP': 'bg-indigo-50 border-indigo-200',
+  'Locum': 'bg-purple-50 border-purple-200',
+  'ANP': 'bg-emerald-50 border-emerald-200',
+  'Paramedic Practitioner': 'bg-amber-50 border-amber-200',
+  'GP Registrar': 'bg-rose-50 border-rose-200',
+  'Pharmacist': 'bg-cyan-50 border-cyan-200',
+  'Practice Nurse': 'bg-teal-50 border-teal-200',
+  'HCA': 'bg-lime-50 border-lime-200',
+};
 const DEFAULT_CAPACITY_CARDS = [
   { id: 'minorIllness', title: 'Minor Illness', colour: 'violet' },
   { id: 'physio', title: 'Physiotherapy', colour: 'sky' },
@@ -60,147 +74,87 @@ function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981',
   );
 }
 
-// ── AI Huddle Summary ─────────────────────────────────────────────
-function AISummary({ huddleData, capacity, huddleSettings, huddleMessages, routineDays, password }) {
-  const [summary, setSummary] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
 
-  const generateSummary = useCallback(async () => {
-    if (!capacity) return;
-    setLoading(true);
-    setSummary('');
-
-    try {
-      const hs = huddleSettings || {};
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const todayDayName = dayNames[new Date().getDay()];
-      const todayStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
-      // Urgent capacity
-      const urgentAm = capacity.am.total + (capacity.am.embargoed || 0);
-      const urgentPm = capacity.pm.total + (capacity.pm.embargoed || 0);
-      const urgentTotal = urgentAm + urgentPm;
-      const bookedTotal = (capacity.am.booked || 0) + (capacity.pm.booked || 0);
-      const expectedAm = hs.expectedCapacity?.[todayDayName]?.am || 0;
-      const expectedPm = hs.expectedCapacity?.[todayDayName]?.pm || 0;
-      const expectedTotal = expectedAm + expectedPm;
-
-      // Clinician breakdown
-      const clinicianSummary = [...capacity.am.byClinician, ...capacity.pm.byClinician]
-        .reduce((acc, c) => {
-          if (!acc[c.name]) acc[c.name] = { avail: 0, emb: 0, booked: 0 };
-          acc[c.name].avail += c.available + (c.embargoed || 0);
-          acc[c.name].booked += c.booked || 0;
-          return acc;
-        }, {});
-
-      // Routine capacity (weekly ranges)
-      const rDays = routineDays || [];
-      const ranges = [
-        { label: '0-7 days', start: 0, end: 7 },
-        { label: '8-14 days', start: 7, end: 14 },
-        { label: '15-21 days', start: 14, end: 21 },
-        { label: '22-28 days', start: 21, end: 28 },
-      ].map(({ label, start, end }) => {
-        const slice = rDays.slice(start, end).filter(d => d.available !== null);
-        const avail = slice.reduce((s, d) => s + (d.available || 0) + (d.embargoed || 0), 0);
-        const booked = slice.reduce((s, d) => s + (d.booked || 0), 0);
-        const total = avail + booked;
-        return `${label}: ${total > 0 ? Math.round((avail / total) * 100) : 0}% available (${avail} avail, ${booked} booked)`;
-      });
-
-      // Noticeboard
-      const notices = (huddleMessages || []).map(m => `${m.author ? m.author + ': ' : ''}${m.text}`).slice(0, 5);
-
-      const prompt = `You are a helpful clinical operations assistant at a UK GP practice. Generate a concise morning huddle briefing (3-5 short bullet points, no headers) based on today's data.
-
-Date: ${todayStr}
-
-URGENT ON-THE-DAY CAPACITY:
-- Total available: ${urgentTotal} slots (AM: ${urgentAm}, PM: ${urgentPm})
-- Booked: ${bookedTotal}
-${expectedTotal > 0 ? `- Target: ${expectedTotal} (AM: ${expectedAm}, PM: ${expectedPm}) — currently at ${Math.round((urgentTotal / expectedTotal) * 100)}%` : '- No target set'}
-
-Clinician breakdown:
-${Object.entries(clinicianSummary).map(([name, d]) => `  ${name}: ${d.avail} available, ${d.booked} booked`).join('\n')}
-
-ROUTINE CAPACITY (next 28 days):
-${ranges.join('\n')}
-
-${notices.length > 0 ? `NOTICEBOARD MESSAGES:\n${notices.join('\n')}` : 'No noticeboard messages.'}
-
-Keep it practical and actionable. Highlight any concerns (low capacity, uneven distribution, pressure points). Use plain language suitable for a clinical team. No markdown formatting — just plain text bullet points starting with •`;
-
-      const response = await fetch('/api/ai-summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-password': password },
-        body: JSON.stringify({ prompt }),
-      });
-
-      const result = await response.json();
-      if (result.error) {
-        setSummary(`Unable to generate: ${result.error}`);
-      } else {
-        setSummary(result.summary || 'No summary returned.');
-      }
-    } catch (err) {
-      console.error('AI Summary error:', err);
-      setSummary('Unable to generate summary — please try again.');
-    }
-    setLoading(false);
-  }, [capacity, huddleSettings, huddleMessages, routineDays, password]);
-
-  if (!capacity) return null;
+// ── Capacity Day Detail Panel (right slide-out) ──────────────────
+function CapacityDayPanel({ dateStr, huddleData, huddleSettings, overrides, teamClinicians, onClose }) {
+  if (!dateStr || !huddleData) return null;
+  const cap = getHuddleCapacity(huddleData, dateStr, huddleSettings, overrides);
 
   return (
-    <div className="card overflow-hidden border-indigo-200">
-      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-base">✨</span>
-            <div>
-              <div className="text-sm font-semibold text-white">AI Huddle Summary</div>
-              <div className="text-[10px] text-white/70">Generated briefing from today's data</div>
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="flex-1 bg-black/20" onClick={onClose} />
+      <div className="w-96 bg-white shadow-2xl border-l border-slate-200 flex flex-col h-full animate-slide-in-right">
+        <div className="px-5 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between flex-shrink-0">
+          <div>
+            <div className="text-sm font-bold text-white">{dateStr}</div>
+            <div className="text-[10px] text-white/70">
+              {cap.am.total + cap.pm.total + (cap.am.embargoed||0) + (cap.pm.embargoed||0)} available · {(cap.am.booked||0) + (cap.pm.booked||0)} booked
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {summary && (
-              <button onClick={() => setCollapsed(!collapsed)}
-                className="px-2 py-1 rounded text-[11px] font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors">
-                {collapsed ? 'Show' : 'Hide'}
-              </button>
-            )}
-            <button onClick={generateSummary} disabled={loading}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${loading ? 'bg-white/20 text-white/60 cursor-wait' : 'bg-white/20 text-white hover:bg-white/30'}`}>
-              {loading ? (
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Generating...
-                </span>
-              ) : summary ? '↻ Refresh' : 'Generate'}
-            </button>
-          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">✕</button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {[{ label: 'Morning', sub: '08:00 – 13:00', data: cap.am, colour: 'text-amber-600', accent: 'bg-amber-50' },
+            { label: 'Afternoon', sub: '13:00 – 18:30', data: cap.pm, colour: 'text-blue-600', accent: 'bg-blue-50' }].map(s => (
+            <div key={s.label} className="border-b border-slate-100">
+              <div className={`px-5 py-2.5 ${s.accent} flex items-center justify-between`}>
+                <div>
+                  <div className={`text-sm font-bold ${s.colour}`}>{s.label}</div>
+                  <div className="text-[10px] text-slate-400">{s.sub}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-lg font-bold ${s.colour}`}>{s.data.total + (s.data.embargoed||0)}</span>
+                  {(s.data.booked||0) > 0 && <span className="text-xs text-slate-400">({s.data.booked} bkd)</span>}
+                </div>
+              </div>
+              <div className="px-5 py-3 space-y-1.5">
+                {s.data.byClinician.length > 0 ? s.data.byClinician.map((c, i) => {
+                  const matched = (teamClinicians || []).find(tc => {
+                    const csvClean = cleanName(c.name);
+                    const tcClean = cleanName(tc.name);
+                    if (csvClean === tcClean || csvClean.includes(tcClean) || tcClean.includes(csvClean)) return true;
+                    const csvWords = csvClean.split(/\s+/).filter(w => w.length > 1);
+                    const tcWords = tcClean.split(/\s+/).filter(w => w.length > 1);
+                    return csvWords.some(w => w === (tcWords[tcWords.length-1]||''));
+                  });
+                  const displayName = matched?.name || c.name;
+                  const role = matched?.role || '';
+                  return (
+                    <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50 border border-slate-100">
+                      <div className="min-w-0 mr-2">
+                        <div className="text-xs font-semibold text-slate-800 truncate">{displayName}</div>
+                        {role && <div className="text-[10px] text-slate-500">{role}</div>}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 tabular-nums">
+                        <span className={`text-sm font-bold ${s.colour}`}>{c.available}</span>
+                        {(c.embargoed||0) > 0 && <span className="text-xs text-amber-500">+{c.embargoed}</span>}
+                        {(c.booked||0) > 0 && <span className="text-xs text-slate-400">({c.booked})</span>}
+                      </div>
+                    </div>
+                  );
+                }) : <div className="text-center text-slate-400 text-xs py-3">No clinicians</div>}
+              </div>
+            </div>
+          ))}
+          {/* Slot type breakdown */}
+          {cap.bySlotType.length > 0 && (
+            <div className="px-5 py-3">
+              <div className="text-xs font-semibold text-slate-500 uppercase mb-2">By Slot Type</div>
+              <div className="space-y-1">
+                {cap.bySlotType.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between py-1 text-xs">
+                    <span className="text-slate-600 truncate mr-2">{s.name}</span>
+                    <div className="flex items-center gap-2 tabular-nums flex-shrink-0">
+                      <span className="text-emerald-600 font-medium">{s.total + (s.totalEmb||0)}</span>
+                      {(s.totalBook||0) > 0 && <span className="text-slate-400">({s.totalBook})</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      {!collapsed && (
-        <div className="p-5">
-          {!summary && !loading && (
-            <div className="text-center py-4">
-              <p className="text-sm text-slate-500">Click Generate to create an AI briefing from today's capacity data, clinician availability, and noticeboard messages.</p>
-            </div>
-          )}
-          {loading && !summary && (
-            <div className="flex items-center gap-3 py-4 justify-center">
-              <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-              <span className="text-sm text-slate-500">Analysing today's data...</span>
-            </div>
-          )}
-          {summary && (
-            <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{summary}</div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -291,9 +245,10 @@ function getInitials(csvName, clinicians) {
 
 
 // ── 7-day compact bar chart strip with available/embargoed/booked ──
-function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal' }) {
+function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal', teamClinicians }) {
   const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 7, overrides), [huddleData, huddleSettings, overrides]);
   const [hoveredIdx, setHoveredIdx] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null);
   const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
   const accentColours = {
     teal: { bar: 'bg-teal-400', emb: 'bg-teal-200', book: 'bg-slate-300', text: 'text-teal-600', glow: 'ring-teal-400/50 shadow-teal-400/20' },
@@ -324,7 +279,8 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal' 
           return (
             <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5 relative"
               onMouseEnter={() => setHoveredIdx(i)}
-              onMouseLeave={() => setHoveredIdx(null)}>
+              onMouseLeave={() => setHoveredIdx(null)}
+              onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {hasData && total > 0 && (
                 <div className={`text-[10px] font-bold transition-all duration-150 ${isToday ? 'text-slate-800' : isHovered ? ac.text + ' scale-110' : ac.text}`}>
                   {avail}{emb > 0 && <span className="text-slate-400">+{emb}</span>}
@@ -365,14 +321,16 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal' 
         <div className="flex items-center gap-1"><div className={`w-2 h-2 rounded-sm ${ac.emb}`} /><span className="text-[10px] text-slate-500">Embargoed</span></div>
         <div className="flex items-center gap-1"><div className={`w-2 h-2 rounded-sm ${ac.book}`} /><span className="text-[10px] text-slate-500">Booked</span></div>
       </div>
+      {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
     </div>
   );
 }
 
 // ── 28-day graphical routine capacity with hover glow + tooltip ──
-function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
+function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinicians }) {
   const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 28, overrides), [huddleData, huddleSettings, overrides]);
   const [hoveredIdx, setHoveredIdx] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null);
   const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
   const totalAvail = days.reduce((sum, d) => sum + (d.available || 0), 0);
   const totalEmb = days.reduce((sum, d) => sum + (d.embargoed || 0), 0);
@@ -404,9 +362,10 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
           const isHovered = hoveredIdx === i;
           return (
             <div key={i}
-              className={`flex-1 flex flex-col items-center justify-end h-full relative ${isMonday && i > 0 ? 'ml-1' : ''}`}
+              className={`flex-1 flex flex-col items-center justify-end h-full relative ${isMonday && i > 0 ? 'ml-1.5 pl-1.5 border-l border-slate-200' : ''}`}
               onMouseEnter={() => setHoveredIdx(i)}
-              onMouseLeave={() => setHoveredIdx(null)}>
+              onMouseLeave={() => setHoveredIdx(null)}
+              onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {/* Number above bar */}
               {hasData && total > 0 && (
                 <div className={`text-[10px] font-bold transition-all duration-150 ${isToday ? 'text-slate-800' : isHovered ? 'text-emerald-700' : 'text-slate-400'}`}>
@@ -464,7 +423,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
       {/* Week labels */}
       <div className="flex gap-px mt-1">
         {weeks.map((week, wi) => (
-          <div key={wi} className={`flex gap-px ${wi > 0 ? 'ml-1' : ''}`} style={{ flex: week.length }}>
+          <div key={wi} className={`flex gap-px ${wi > 0 ? 'ml-1.5 pl-1.5 border-l border-slate-200' : ''}`} style={{ flex: week.length }}>
             {week.map((d, di) => (
               <div key={di} className="flex-1 text-center">
                 <div className={`text-[8px] ${di === 0 ? 'text-slate-500 font-medium' : 'text-slate-300'}`}>
@@ -475,6 +434,16 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
           </div>
         ))}
       </div>
+      {/* Week range labels */}
+      <div className="flex gap-px mt-0.5">
+        {weeks.map((week, wi) => (
+          <div key={wi} className={`text-center ${wi > 0 ? 'ml-1.5 pl-1.5' : ''}`} style={{ flex: week.length }}>
+            <div className="text-[9px] text-slate-400 font-medium">
+              {wi === 0 ? '0–7 days' : wi === 1 ? '8–14 days' : wi === 2 ? '15–21 days' : wi === 3 ? '22–28 days' : ''}
+            </div>
+          </div>
+        ))}
+      </div>
       {/* Legend */}
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-emerald-400" /><span className="text-[10px] text-slate-500">Available</span></div>
@@ -482,6 +451,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-slate-300" /><span className="text-[10px] text-slate-500">Booked</span></div>
         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-slate-100" /><span className="text-[10px] text-slate-500">No data</span></div>
       </div>
+      {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
     </div>
   );
 }
@@ -490,7 +460,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
 // ══════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════
-export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages, password }) {
+export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages }) {
   const [newMsg, setNewMsg] = useState('');
   const [newAuthor, setNewAuthor] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -590,7 +560,17 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const todayStr = getTodayDateStr();
   const displayDate = huddleData?.dates?.includes(todayStr) ? todayStr : huddleData?.dates?.[0];
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs, urgentOverrides) : null;
-  const routineDays = useMemo(() => huddleData ? getNDayAvailability(huddleData, hs, 28, effectiveRoutineOverrides) : [], [huddleData, hs, effectiveRoutineOverrides]);
+
+  // Build initial overrides for urgent filter from the urgent slot categories
+  const urgentInitialOverrides = useMemo(() => {
+    const urgentSlots = hs?.slotCategories?.urgent || [];
+    if (urgentSlots.length === 0) return null; // no urgent config, fall back to all-true default
+    const o = {};
+    (knownSlotTypes || []).forEach(s => { o[s] = urgentSlots.includes(s); });
+    // Also include any live slot types
+    if (huddleData?.allSlotTypes) huddleData.allSlotTypes.forEach(s => { if (o[s] === undefined) o[s] = urgentSlots.includes(s); });
+    return o;
+  }, [hs?.slotCategories?.urgent, knownSlotTypes, huddleData?.allSlotTypes]);
 
   return (
     <div className="space-y-6 animate-in" onDragOver={e => { e.preventDefault(); setIsDragging(true); }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={onDrop}>
@@ -603,14 +583,36 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       )}
 
-      <SectionHeading title="Today's Huddle" subtitle={data?.huddleCsvUploadedAt ? `Last report: ${new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'No report uploaded'}>
-        <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
-        <Button variant={isUploadedToday ? 'upload_fresh' : 'upload_stale'} onClick={() => fileRef.current?.click()}>
-          {isUploadedToday ? '✓ Upload Report' : '⚠ Upload Report'}
-        </Button>
-      </SectionHeading>
+      {/* Branded header */}
+      <div className="card overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 py-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <GPDashLogoLight size="compact" className="h-14" />
+              <div className="flex items-center gap-3 mt-2 ml-1">
+                <span className="text-sm text-slate-300">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                {data?.huddleCsvUploadedAt && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-slate-500" />
+                    <span className="text-xs text-slate-400">Report: {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div>
+              <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
+              <Button variant={isUploadedToday ? 'upload_fresh' : 'upload_stale'} onClick={() => fileRef.current?.click()}>
+                {isUploadedToday ? '✓ Upload Report' : '⚠ Upload Report'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {error && <Card className="p-4 bg-red-50 border-red-200 text-red-700 text-sm">{error}</Card>}
+
+      {/* WHO'S IN / OUT */}
+      <WhosInOut data={data} saveData={saveData} />
 
       {/* NOTICEBOARD */}
       <div className="card overflow-hidden border-red-200">
@@ -639,11 +641,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           </div>
         </div>
       </div>
-
-      {/* AI SUMMARY */}
-      {huddleData && capacity && (
-        <AISummary huddleData={huddleData} capacity={capacity} huddleSettings={hs} huddleMessages={huddleMessages} routineDays={routineDays} password={password} />
-      )}
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (
@@ -689,7 +686,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <div className="text-base font-semibold text-white">Urgent on the Day</div>
                       <div className="text-[11px] text-white/70">Available urgent capacity{displayDate !== todayStr ? ` (${displayDate})` : ''}</div>
                     </div>
-                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" />
+                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" initialOverrides={urgentInitialOverrides} />
                   </div>
                 </div>
 
@@ -739,13 +736,29 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         {s.data.byClinician.length > 0 ? (
                           <div className="grid grid-cols-2 gap-1.5">
                             {s.data.byClinician.map((c, i) => {
-                              const initials = getInitials(c.name, teamClinicians);
+                              const matched = teamClinicians.find(tc => {
+                                const csvClean = cleanName(c.name);
+                                const tcClean = cleanName(tc.name);
+                                if (csvClean === tcClean || csvClean.includes(tcClean) || tcClean.includes(csvClean)) return true;
+                                const csvWords = csvClean.split(/\s+/).filter(w => w.length > 1);
+                                const tcWords = tcClean.split(/\s+/).filter(w => w.length > 1);
+                                const tcSurname = tcWords[tcWords.length - 1] || '';
+                                return csvWords.some(w => w === tcSurname);
+                              });
+                              const displayName = matched?.name || c.name;
+                              const role = matched?.role || '';
+                              const roleColour = ROLE_COLOURS[role] || 'bg-slate-50 border-slate-200';
                               const clinicianTotal = c.available + (c.embargoed || 0);
                               return (
-                                <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 bg-slate-50 rounded-lg border border-slate-100" title={c.name}>
-                                  <span className="text-sm font-bold text-slate-700 bg-slate-200 rounded px-1.5 py-0.5 min-w-[30px] text-center">{initials}</span>
-                                  <span className={`text-sm font-semibold tabular-nums ${s.colour}`}>{clinicianTotal}</span>
-                                  {(c.booked || 0) > 0 && <span className="text-xs text-slate-400 tabular-nums">({c.booked})</span>}
+                                <div key={i} className={`flex items-center justify-between py-2 px-3 rounded-lg border ${roleColour}`} title={c.name}>
+                                  <div className="min-w-0 mr-2">
+                                    <div className="text-xs font-semibold text-slate-800 truncate">{displayName}</div>
+                                    {role && <div className="text-[10px] text-slate-500 truncate">{role}</div>}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <span className={`text-sm font-bold tabular-nums ${s.colour}`}>{clinicianTotal}</span>
+                                    {(c.booked || 0) > 0 && <span className="text-[10px] text-slate-400 tabular-nums">({c.booked})</span>}
+                                  </div>
                                 </div>
                               );
                             })}
@@ -836,7 +849,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   ))}
                 </div>
 
-                <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={effectiveRoutineOverrides} />
+                <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={effectiveRoutineOverrides} teamClinicians={teamClinicians} />
               </div>
             );
           })()}
@@ -862,7 +875,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       </div>
                     </div>
                   </div>
-                  <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={effective} accent={card.colour} />
+                  <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={effective} accent={card.colour} teamClinicians={teamClinicians} />
                 </div>
               );
             })}
