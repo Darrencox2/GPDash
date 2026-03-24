@@ -11,7 +11,9 @@ const ROLE_COLOURS = {
   'GP Registrar': 'bg-rose-50 border-rose-200 text-rose-800',
   'Pharmacist': 'bg-cyan-50 border-cyan-200 text-cyan-800',
   'Practice Nurse': 'bg-teal-50 border-teal-200 text-teal-800',
+  'Nurse Associate': 'bg-teal-50 border-teal-200 text-teal-800',
   'HCA': 'bg-lime-50 border-lime-200 text-lime-800',
+  'Medical Student': 'bg-rose-50 border-rose-200 text-rose-800',
 };
 
 function PersonCard({ person, status, reason, onDragStart, onHide }) {
@@ -64,28 +66,12 @@ export default function WhosInOut({ data, saveData, huddleData }) {
 
   if (!DAYS.includes(dayName) || allClinicians.length === 0) return null;
 
-  // Only show: showWhosIn=true, not left, not administrative
+  // Only show people who are visible, not left, not administrative
   const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');
 
-  // Rota: scheduled IDs for today (buddy cover people)
-  const scheduled = data.dailyOverrides?.[dayKey]?.scheduled
-    ? ensureArray(data.dailyOverrides[dayKey].scheduled)
-    : ensureArray(data.weeklyRota?.[dayName]);
+  // ── Data sources ──────────────────────────────────────────────────
 
-  // Present IDs from overrides or computed from rota + absences
-  const presentIds = useMemo(() => {
-    if (data.dailyOverrides?.[dayKey]?.present) return ensureArray(data.dailyOverrides[dayKey].present);
-    const absences = ensureArray(data.plannedAbsences);
-    return scheduled.filter(id => {
-      const c = allClinicians.find(c => c.id === id);
-      if (!c || c.longTermAbsent) return false;
-      return !absences.some(a => a.clinicianId === id && dateKey >= a.startDate && dateKey <= a.endDate);
-    });
-  }, [data.dailyOverrides, data.plannedAbsences, scheduled, allClinicians, dayKey, dateKey]);
-
-  const absentIds = scheduled.filter(id => !presentIds.includes(id));
-
-  // CSV presence: who appears in today's uploaded report
+  // 1. CSV: who has slots today?
   const csvPresentIds = useMemo(() => {
     if (!huddleData?.clinicians) return new Set();
     const matched = new Set();
@@ -95,40 +81,84 @@ export default function WhosInOut({ data, saveData, huddleData }) {
     return matched;
   }, [allClinicians, huddleData?.clinicians]);
 
-  // Categorise
-  const inPractice = visibleStaff.filter(c => {
-    if (c.longTermAbsent) return false;
-    if (scheduled.includes(c.id)) return presentIds.includes(c.id);
-    if (csvPresentIds.has(c.id)) return true;
-    return false;
-  });
+  // 2. Planned absences: who is on leave today?
+  const absenceMap = useMemo(() => {
+    const map = {};
+    ensureArray(data.plannedAbsences).forEach(a => {
+      if (dateKey >= a.startDate && dateKey <= a.endDate) {
+        map[a.clinicianId] = a.reason || 'Leave';
+      }
+    });
+    return map;
+  }, [data.plannedAbsences, dateKey]);
 
-  const leaveAbsent = visibleStaff.filter(c => {
-    if (c.longTermAbsent) return true;
-    return absentIds.includes(c.id);
-  });
+  // 3. Manual overrides from drag-drop (only if user has dragged today)
+  const manualOverride = data.dailyOverrides?.[dayKey];
+  const manualPresent = manualOverride?.present ? new Set(ensureArray(manualOverride.present)) : null;
 
-  const dayOff = visibleStaff.filter(c => {
-    if (c.longTermAbsent) return false;
-    // On the rota but not today? Day off.
-    if (c.buddyCover && !scheduled.includes(c.id) && !absentIds.includes(c.id)) return true;
-    // Not on rota and not in CSV? Day off (if they have buddyCover or are known staff)
-    if (!c.buddyCover && !csvPresentIds.has(c.id) && !scheduled.includes(c.id)) return true;
-    return false;
-  });
+  // ── Categorise (mutually exclusive) ───────────────────────────────
+  // Priority: 1) LTA → absent, 2) Manual override, 3) Planned absence → absent, 4) CSV presence → in practice, 5) Rota (if no CSV) → in practice, 6) Day off
+
+  const hasCSV = huddleData?.clinicians?.length > 0;
+  const rotaScheduled = ensureArray(data.weeklyRota?.[dayName]);
+
+  const categories = useMemo(() => {
+    const inPractice = [];
+    const leaveAbsent = [];
+    const dayOff = [];
+
+    visibleStaff.forEach(person => {
+      // LTA always goes to absent
+      if (person.longTermAbsent || person.status === 'longTermAbsent') {
+        leaveAbsent.push({ person, reason: 'Long-term absent' });
+        return;
+      }
+
+      // If there's a manual override and this person was explicitly marked absent
+      // (they're in the scheduled list but NOT in the present list)
+      if (manualPresent !== null) {
+        const isManualScheduled = ensureArray(manualOverride?.scheduled || []).includes(person.id);
+        if (isManualScheduled && !manualPresent.has(person.id)) {
+          leaveAbsent.push({ person, reason: absenceMap[person.id] || 'Absent (manual)' });
+          return;
+        }
+        if (manualPresent.has(person.id)) {
+          inPractice.push({ person });
+          return;
+        }
+      }
+
+      // Planned absence (TeamNet / manual absences)
+      if (absenceMap[person.id]) {
+        leaveAbsent.push({ person, reason: absenceMap[person.id] });
+        return;
+      }
+
+      // CSV says they're working today
+      if (hasCSV && csvPresentIds.has(person.id)) {
+        inPractice.push({ person });
+        return;
+      }
+
+      // No CSV uploaded: fall back to rota for buddy cover people
+      if (!hasCSV && person.buddyCover && rotaScheduled.includes(person.id)) {
+        inPractice.push({ person });
+        return;
+      }
+
+      // Everyone else is day off
+      dayOff.push({ person });
+    });
+
+    return { inPractice, leaveAbsent, dayOff };
+  }, [visibleStaff, csvPresentIds, absenceMap, manualPresent, manualOverride, hasCSV, rotaScheduled]);
 
   // Group in-practice by staff group
-  const gpTeam = inPractice.filter(c => c.group === 'gp');
-  const nursingTeam = inPractice.filter(c => c.group === 'nursing');
-  const othersTeam = inPractice.filter(c => c.group !== 'gp' && c.group !== 'nursing');
+  const gpTeam = categories.inPractice.filter(e => e.person.group === 'gp');
+  const nursingTeam = categories.inPractice.filter(e => e.person.group === 'nursing');
+  const othersTeam = categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing');
 
-  const getAbsenceReason = (person) => {
-    if (person.longTermAbsent) return 'LTA';
-    const absences = ensureArray(data.plannedAbsences);
-    const absence = absences.find(a => a.clinicianId === person.id && dateKey >= a.startDate && dateKey <= a.endDate);
-    return absence?.reason || 'Absent';
-  };
-
+  // ── Drag handlers ─────────────────────────────────────────────────
   const handleDragStart = (e, person) => {
     e.dataTransfer.setData('whosInPerson', JSON.stringify({ id: person.id }));
     e.dataTransfer.effectAllowed = 'move';
@@ -138,8 +168,15 @@ export default function WhosInOut({ data, saveData, huddleData }) {
     try {
       const { id } = JSON.parse(personJson);
       if (typeof id !== 'number') return;
-      const currentPresent = [...presentIds];
-      const currentScheduled = [...scheduled];
+
+      // Build override: track who's present and who's scheduled
+      const currentScheduled = manualOverride?.scheduled
+        ? [...ensureArray(manualOverride.scheduled)]
+        : [...rotaScheduled];
+      const currentPresent = manualPresent
+        ? [...manualPresent]
+        : categories.inPractice.filter(e => typeof e.person.id === 'number').map(e => e.person.id);
+
       let newPresent, newScheduled;
       if (targetColumn === 'present') {
         newPresent = currentPresent.includes(id) ? currentPresent : [...currentPresent, id];
@@ -148,6 +185,7 @@ export default function WhosInOut({ data, saveData, huddleData }) {
         newPresent = currentPresent.filter(cid => cid !== id);
         newScheduled = currentScheduled.includes(id) ? currentScheduled : [...currentScheduled, id];
       } else {
+        // Day off: remove from both
         newPresent = currentPresent.filter(cid => cid !== id);
         newScheduled = currentScheduled.filter(cid => cid !== id);
       }
@@ -173,7 +211,7 @@ export default function WhosInOut({ data, saveData, huddleData }) {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold text-white">Who's In Today</div>
-            <div className="text-[10px] text-white/60">Drag to move between columns</div>
+            <div className="text-[10px] text-white/60">{hasCSV ? 'Based on uploaded report' : 'Based on rota'} · Drag to move</div>
           </div>
           <button onClick={() => setShowSettings(true)}
             className="px-2.5 py-1 rounded text-[11px] font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">⚙ Settings</button>
@@ -185,25 +223,25 @@ export default function WhosInOut({ data, saveData, huddleData }) {
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-xs font-semibold text-slate-700">In Practice ({inPractice.length})</span>
+            <span className="text-xs font-semibold text-slate-700">In Practice ({categories.inPractice.length})</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Clinicians ({gpTeam.length})</div>
               <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={gpTeam.length === 0}>
-                {gpTeam.map(p => <PersonCard key={p.id} person={p} status="present" onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+                {gpTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
               </DropZone>
             </div>
             <div>
               <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Nursing ({nursingTeam.length})</div>
               <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={nursingTeam.length === 0}>
-                {nursingTeam.map(p => <PersonCard key={p.id} person={p} status="present" onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+                {nursingTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
               </DropZone>
             </div>
             <div>
               <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Others ({othersTeam.length})</div>
               <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={othersTeam.length === 0}>
-                {othersTeam.map(p => <PersonCard key={p.id} person={p} status="present" onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+                {othersTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
               </DropZone>
             </div>
           </div>
@@ -214,19 +252,19 @@ export default function WhosInOut({ data, saveData, huddleData }) {
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <div className="w-2 h-2 rounded-full bg-red-400" />
-              <span className="text-xs font-semibold text-slate-700">Leave / Absent ({leaveAbsent.length})</span>
+              <span className="text-xs font-semibold text-slate-700">Leave / Absent ({categories.leaveAbsent.length})</span>
             </div>
-            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'absent')} isEmpty={leaveAbsent.length === 0}>
-              {leaveAbsent.map(p => <PersonCard key={p.id} person={p} status="absent" reason={getAbsenceReason(p)} onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'absent')} isEmpty={categories.leaveAbsent.length === 0}>
+              {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
             </DropZone>
           </div>
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <div className="w-2 h-2 rounded-full bg-slate-300" />
-              <span className="text-xs font-semibold text-slate-700">Day Off ({dayOff.length})</span>
+              <span className="text-xs font-semibold text-slate-700">Day Off ({categories.dayOff.length})</span>
             </div>
-            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'dayoff')} isEmpty={dayOff.length === 0}>
-              {dayOff.map(p => <PersonCard key={p.id} person={p} status="dayoff" onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'dayoff')} isEmpty={categories.dayOff.length === 0}>
+              {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
             </DropZone>
           </div>
         </div>

@@ -77,8 +77,8 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
             {sidebarOpen ? (
               <div className="flex flex-col items-center gap-3">
                 <GPDashLogo size="sidebar" className="w-full max-w-[200px]" />
-                <div className="w-full bg-white/5 rounded-xl p-2 flex items-center justify-center">
-                  <img src="/logo.png" alt="Practice" className="h-10 w-auto object-contain opacity-80" />
+                <div className="w-full bg-white rounded-2xl p-2.5 flex items-center justify-center">
+                  <img src="/logo.png" alt="Practice" className="h-12 w-auto object-contain" />
                 </div>
               </div>
             ) : (

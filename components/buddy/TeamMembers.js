@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { STAFF_GROUPS, guessGroupFromRole } from '@/lib/data';
 
-const ROLE_OPTIONS = ['GP Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'ANP', 'Paramedic Practitioner', 'Pharmacist', 'Physiotherapist', 'Practice Nurse', 'HCA', 'Admin'];
+const ROLE_OPTIONS = ['GP Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'ANP', 'Paramedic Practitioner', 'Pharmacist', 'Physiotherapist', 'Practice Nurse', 'Nurse Associate', 'HCA', 'Medical Student', 'Admin'];
 const GROUP_OPTIONS = Object.entries(STAFF_GROUPS).map(([k, v]) => ({ value: k, label: v.label }));
 
 export default function TeamMembers({ data, saveData, toast }) {

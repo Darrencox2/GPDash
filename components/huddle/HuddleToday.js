@@ -585,8 +585,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               name = parts[1] + ' ' + parts[0];
             }
           }
-          // Title-case
-          name = name.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(And|Of|The|In)\b/g, w => w.toLowerCase());
+          // Title-case: lowercase first, then capitalise first letter of each word
+          name = name.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
           // Skip generic/empty names
           if (name.length < 3 || name.toLowerCase().includes('generic') || name.toLowerCase().includes('session holder')) return;
           const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
