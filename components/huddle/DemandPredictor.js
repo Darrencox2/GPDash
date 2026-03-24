@@ -321,21 +321,6 @@ export default function DemandPredictor({ viewingDate }) {
               {' '}a typical {dayLabel} in {monthLabel}
             </div>
           )}
-          {/* Comparisons */}
-          <div className="mt-2.5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-slate-500">vs average</span>
-              <span className={`text-[11px] font-bold ${vsAvgPct >= 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                {vsAvgPct >= 0 ? '+' : ''}{vsAvgPct}%
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-slate-500">vs typical {dayLabel}</span>
-              <span className={`text-[11px] font-bold ${vsTypicalPct >= 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                {vsTypicalPct >= 0 ? '+' : ''}{vsTypicalPct}%
-              </span>
-            </div>
-          </div>
           {/* Range bar */}
           <div className="flex items-center gap-2 mt-3 p-2 bg-slate-800 rounded-lg">
             <div className="text-center">
