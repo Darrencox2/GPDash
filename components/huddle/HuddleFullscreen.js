@@ -1,37 +1,16 @@
 'use client';
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
 import { getHuddleCapacity, getTodayDateStr, getCliniciansForDate, getNDayAvailability } from '@/lib/huddle';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS, DOW_NAMES } from '@/lib/demandPredictor';
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const ROLE_COLOURS = {
-  'GP Partner': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
-  'Associate Partner': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
-  'Salaried GP': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
-  'Locum': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
-  'GP Registrar': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
-  'Medical Student': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
-  'ANP': { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' },
-  'Paramedic Practitioner': { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' },
-  'Pharmacist': { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' },
-  'Physiotherapist': { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' },
-  'Practice Nurse': { bg: '#ecfdf5', init: '#d1fae5', text: '#047857' },
-  'Nurse Associate': { bg: '#ecfdf5', init: '#d1fae5', text: '#047857' },
-  'HCA': { bg: '#ecfdf5', init: '#d1fae5', text: '#047857' },
-};
-const GROUP_COLOURS = {
-  gp: { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8', dot: '#3b82f6' },
-  nursing: { bg: '#ecfdf5', init: '#d1fae5', text: '#047857', dot: '#10b981' },
-  allied: { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9', dot: '#8b5cf6' },
-  admin: { bg: '#f8fafc', init: '#f1f5f9', text: '#64748b', dot: '#94a3b8' },
-};
 const DEMAND_COLOURS = {
-  low: { bg: '#d1fae5', text: '#065f46', colour: '#10b981', label: 'Low demand' },
-  normal: { bg: '#dbeafe', text: '#1e40af', colour: '#3b82f6', label: 'Normal' },
-  high: { bg: '#fef3c7', text: '#92400e', colour: '#f59e0b', label: 'High demand' },
-  'very-high': { bg: '#fee2e2', text: '#991b1b', colour: '#ef4444', label: 'Very high' },
-  closed: { bg: '#f1f5f9', text: '#64748b', colour: '#94a3b8', label: 'Closed' },
+  low: { bg: '#10b98122', text: '#34d399', label: 'LOW DEMAND' },
+  normal: { bg: '#3b82f622', text: '#60a5fa', label: 'NORMAL' },
+  high: { bg: '#f59e0b22', text: '#fbbf24', label: 'HIGH DEMAND' },
+  'very-high': { bg: '#ef444422', text: '#f87171', label: 'VERY HIGH' },
+  closed: { bg: '#64748b22', text: '#94a3b8', label: 'CLOSED' },
 };
 const MSG_COLOURS = [
   { bg: '#fef3c7', text: '#92400e' },
@@ -41,12 +20,73 @@ const MSG_COLOURS = [
   { bg: '#ede9fe', text: '#5b21b6' },
 ];
 
+// ── Isolated clock component (prevents parent re-render) ────────
+const LiveClock = memo(function LiveClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+  return <div className="text-3xl font-light text-slate-300 tabular-nums">{time.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>;
+});
+
+// ── Noticeboard ticker (isolated) ───────────────────────────────
+const NoticeTicker = memo(function NoticeTicker({ messages }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (messages.length <= 1) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % messages.length), 60000);
+    return () => clearInterval(t);
+  }, [messages.length]);
+  if (messages.length === 0) return null;
+  return (
+    <div className="flex items-center gap-3 px-5 flex-shrink-0 overflow-hidden" style={{ height: 38, background: 'linear-gradient(135deg, #1e293b, #334155)' }}>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">Notice</span>
+      </div>
+      <div className="flex-1 overflow-hidden" style={{ height: 38 }}>
+        <div className="flex flex-col transition-transform duration-700" style={{ transform: `translateY(-${idx * 38}px)` }}>
+          {messages.map((m, i) => {
+            const mc = MSG_COLOURS[i % MSG_COLOURS.length];
+            return (
+              <div key={i} className="flex items-center gap-2 flex-shrink-0 text-sm" style={{ height: 38 }}>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: mc.bg, color: mc.text }}>{m.author} {m.time}</span>
+                <span className="text-slate-200 truncate">{m.text}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ── Gauge SVG (memoised) ────────────────────────────────────────
+const GaugeSVG = memo(function GaugeSVG({ pct, colour, label, delay }) {
+  const size = 110, r = 42, sw = 8, cx = size/2, cy = size/2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (circ * pct / 100);
+  return (
+    <div className="text-center fs-fadein" style={{ animationDelay: `${0.3 + delay * 0.15}s` }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="fs-gauge-glow">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth={sw} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth={sw} strokeLinecap="round"
+          strokeDasharray={circ} strokeDashoffset={circ}
+          transform={`rotate(-90 ${cx} ${cy})`}
+          className="fs-gauge-sweep" style={{ '--target': offset, animationDelay: `${0.5 + delay * 0.2}s` }} />
+        <text x={cx} y={cy - 2} textAnchor="middle" fill={colour} style={{ fontSize: '24px', fontWeight: 800 }}>{pct}%</text>
+        <text x={cx} y={cy + 14} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '11px' }}>avail</text>
+      </svg>
+      <div className="text-xs text-slate-500 mt-1">{label}</div>
+    </div>
+  );
+});
+
+// ── Main component ──────────────────────────────────────────────
 export default function HuddleFullscreen({ data, huddleData, onExit }) {
   const containerRef = useRef(null);
-  const [clock, setClock] = useState(new Date());
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
   const [weather, setWeather] = useState(null);
   const [demandData, setDemandData] = useState(null);
-  const [tickerIdx, setTickerIdx] = useState(0);
 
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
@@ -55,17 +95,7 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
   const dateKey = today.toISOString().split('T')[0];
   const todayDateStr = getTodayDateStr();
   const hs = data?.huddleSettings || {};
-
-  // Clock
-  useEffect(() => { const t = setInterval(() => setClock(new Date()), 1000); return () => clearInterval(t); }, []);
-
-  // Ticker
   const messages = ensureArray(data?.huddleMessages || []);
-  useEffect(() => {
-    if (messages.length <= 1) return;
-    const t = setInterval(() => setTickerIdx(i => (i + 1) % messages.length), 60000);
-    return () => clearInterval(t);
-  }, [messages.length]);
 
   // Fullscreen API
   useEffect(() => {
@@ -82,7 +112,7 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
     };
   }, [onExit]);
 
-  // Demand + weather
+  // Demand + weather (runs once)
   useEffect(() => {
     async function load() {
       const w = await getWeatherForecast(16);
@@ -90,26 +120,29 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
       const todayDk = today.toISOString().split('T')[0];
       const todayW = w?.[todayDk] || null;
       const todayPred = predictDemand(today, todayW);
-
       const chartDays = [];
-      // Past 5 working days
       const past = [];
-      for (let i = 1; i <= 20 && past.length < 5; i++) {
+      for (let i = 1; i <= 20 && past.length < 7; i++) {
         const d = new Date(today); d.setDate(d.getDate() - i);
         if (d.getDay() > 0 && d.getDay() < 6) {
           const dk = d.toISOString().split('T')[0];
-          past.unshift({ ...predictDemand(d, w?.[dk] || null), dayName: ['S','M','T','W','T','F','S'][d.getDay()], isPast: true, isToday: false });
+          const pred = predictDemand(d, w?.[dk] || null);
+          past.unshift({ ...pred, date: d, dk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: true, isToday: false, isBH: pred.isBankHoliday, isWE: false });
+        } else if (d.getDay() === 0 || d.getDay() === 6) {
+          past.unshift({ predicted: null, date: d, dk: d.toISOString().split('T')[0], dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: true, isToday: false, isBH: false, isWE: true, confidence: { low: null, high: null } });
         }
       }
       chartDays.push(...past);
-      chartDays.push({ ...todayPred, dayName: 'Today', isPast: false, isToday: true, weather: todayW });
-      // Future 5 working days
-      for (let i = 1, c = 0; i <= 20 && c < 5; i++) {
+      chartDays.push({ ...todayPred, date: today, dk: todayDk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()], dayNum: today.getDate(), isPast: false, isToday: true, isBH: false, isWE: false, weather: todayW });
+      for (let i = 1, added = 0; i <= 20 && added < 7; i++) {
         const d = new Date(today); d.setDate(d.getDate() + i);
         if (d.getDay() > 0 && d.getDay() < 6) {
           const dk = d.toISOString().split('T')[0];
-          chartDays.push({ ...predictDemand(d, w?.[dk] || null), dayName: ['S','M','T','W','T','F','S'][d.getDay()], isPast: false, isToday: false });
-          c++;
+          const pred = predictDemand(d, w?.[dk] || null);
+          chartDays.push({ ...pred, date: d, dk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: false, isToday: false, isBH: pred.isBankHoliday, isWE: false });
+          added++;
+        } else {
+          chartDays.push({ predicted: null, date: d, dk: d.toISOString().split('T')[0], dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: false, isToday: false, isBH: false, isWE: true, confidence: { low: null, high: null } });
         }
       }
       setDemandData({ today: { ...todayPred, weather: todayW }, chartDays });
@@ -117,23 +150,93 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
     load();
   }, [today]);
 
-  // Who's in
+  // Chart.js render (runs once when demandData arrives)
+  useEffect(() => {
+    if (!demandData || !chartRef.current) return;
+    const loadChart = async () => {
+      if (!window.Chart) {
+        await new Promise(r => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js'; s.onload = r; document.head.appendChild(s); });
+      }
+      if (chartInstance.current) chartInstance.current.destroy();
+      const days = demandData.chartDays;
+      const todayIdx = days.findIndex(d => d.isToday);
+      const isClosed = days.map(d => d.isWE || d.isBH);
+      const labels = days.map(d => d.isBH ? 'BH' : d.isWE ? d.dayName : `${d.dayName} ${d.dayNum}`);
+      const values = days.map(d => isClosed[days.indexOf(d)] ? null : d.predicted);
+      const lows = days.map(d => isClosed[days.indexOf(d)] ? null : d.confidence?.low);
+      const highs = days.map(d => isClosed[days.indexOf(d)] ? null : d.confidence?.high);
+      const isBH = days.map(d => d.isBH);
+
+      const shadePlugin = {
+        id: 'shade',
+        beforeDraw(chart) {
+          const ctx = chart.ctx, xs = chart.scales.x, ys = chart.scales.y;
+          const bw = (xs.getPixelForValue(1) - xs.getPixelForValue(0)) * 0.5;
+          ctx.save();
+          for (let i = 0; i < isClosed.length; i++) {
+            if (isClosed[i]) {
+              const x = xs.getPixelForValue(i);
+              ctx.fillStyle = isBH[i] ? '#1c1917' : '#1e293b';
+              ctx.fillRect(x - bw, ys.top, bw * 2, ys.bottom - ys.top);
+              if (isBH[i]) { ctx.fillStyle = '#f59e0b33'; ctx.fillRect(x - bw, ys.top, bw * 2, 3); }
+            }
+          }
+          ctx.restore();
+        }
+      };
+      const todayPlugin = {
+        id: 'todayLine',
+        afterDraw(chart) {
+          const ctx = chart.ctx, x = chart.scales.x.getPixelForValue(todayIdx), y = chart.scales.y;
+          ctx.save(); ctx.beginPath(); ctx.setLineDash([3,3]); ctx.strokeStyle = '#f59e0b44'; ctx.lineWidth = 1;
+          ctx.moveTo(x, y.top); ctx.lineTo(x, y.bottom); ctx.stroke(); ctx.restore();
+        }
+      };
+
+      chartInstance.current = new window.Chart(chartRef.current, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { data: highs, fill: '+1', backgroundColor: 'rgba(56,189,248,0.07)', borderWidth: 0, pointRadius: 0, tension: 0.3, spanGaps: true },
+            { data: lows, fill: false, borderWidth: 0, pointRadius: 0, tension: 0.3, spanGaps: true },
+            {
+              data: values, borderWidth: 2.5, tension: 0.3, spanGaps: false, borderColor: '#38bdf8',
+              pointRadius: (ctx) => { if (values[ctx.dataIndex] === null) return 0; return ctx.dataIndex === todayIdx ? 8 : 2.5; },
+              pointBackgroundColor: (ctx) => ctx.dataIndex === todayIdx ? '#f59e0b' : ctx.dataIndex < todayIdx ? '#94a3b8' : '#38bdf8',
+              pointBorderColor: (ctx) => ctx.dataIndex === todayIdx ? '#fbbf24' : 'transparent',
+              pointBorderWidth: (ctx) => ctx.dataIndex === todayIdx ? 4 : 0,
+              segment: {
+                borderColor: (ctx) => ctx.p0DataIndex < todayIdx ? '#94a3b8' : '#38bdf8',
+                borderDash: (ctx) => ctx.p0DataIndex >= todayIdx ? [5,4] : undefined,
+              },
+            },
+          ],
+        },
+        plugins: [shadePlugin, todayPlugin],
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: { duration: 1200 },
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: {
+            x: { ticks: { font: { size: 9 }, color: (ctx) => { if (isBH[ctx.index]) return '#f59e0b88'; if (isClosed[ctx.index]) return '#334155'; if (ctx.index === todayIdx) return '#f59e0b'; return '#64748b'; }, maxRotation: 0 }, grid: { display: false } },
+            y: { position: 'right', min: 40, max: 220, ticks: { font: { size: 9 }, color: '#475569', stepSize: 40 }, grid: { color: '#1e293b', lineWidth: 0.5 }, border: { display: false } },
+          },
+        },
+      });
+    };
+    loadChart();
+    return () => { if (chartInstance.current) chartInstance.current.destroy(); };
+  }, [demandData]);
+
+  // ── Who's in ──────────────────────────────────────────────────
   const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');
   const todayCsvClinicians = useMemo(() => {
     if (!huddleData?.dates?.includes(todayDateStr)) return [];
     return getCliniciansForDate(huddleData, todayDateStr);
   }, [huddleData, todayDateStr]);
-  const csvPresentIds = useMemo(() => {
-    const s = new Set();
-    allClinicians.forEach(c => { if (todayCsvClinicians.some(n => matchesStaffMember(n, c))) s.add(c.id); });
-    return s;
-  }, [allClinicians, todayCsvClinicians]);
+  const csvPresentIds = useMemo(() => { const s = new Set(); allClinicians.forEach(c => { if (todayCsvClinicians.some(n => matchesStaffMember(n, c))) s.add(c.id); }); return s; }, [allClinicians, todayCsvClinicians]);
   const hasCSV = todayCsvClinicians.length > 0;
-  const absenceMap = useMemo(() => {
-    const m = {};
-    ensureArray(data.plannedAbsences).forEach(a => { if (dateKey >= a.startDate && dateKey <= a.endDate) m[a.clinicianId] = a.reason || 'Leave'; });
-    return m;
-  }, [data.plannedAbsences, dateKey]);
+  const absenceMap = useMemo(() => { const m = {}; ensureArray(data.plannedAbsences).forEach(a => { if (dateKey >= a.startDate && dateKey <= a.endDate) m[a.clinicianId] = a.reason || 'Leave'; }); return m; }, [data.plannedAbsences, dateKey]);
   const categories = useMemo(() => {
     const inP = [], leave = [], off = [];
     visibleStaff.forEach(p => {
@@ -149,7 +252,7 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
   const nursingTeam = categories.inPractice.filter(e => e.person.group === 'nursing');
   const othersTeam = categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing');
 
-  // Capacity
+  // ── Capacity ──────────────────────────────────────────────────
   const displayDate = huddleData?.dates?.includes(todayDateStr) ? todayDateStr : null;
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs) : null;
   const mergedClinicians = useMemo(() => {
@@ -157,118 +260,80 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
     const m = {};
     [...(capacity.am?.byClinician || []), ...(capacity.pm?.byClinician || [])].forEach(c => {
       if (!m[c.name]) m[c.name] = { name: c.name, available: 0, embargoed: 0, booked: 0 };
-      m[c.name].available += c.available || 0;
-      m[c.name].embargoed += c.embargoed || 0;
-      m[c.name].booked += c.booked || 0;
+      m[c.name].available += c.available || 0; m[c.name].embargoed += c.embargoed || 0; m[c.name].booked += c.booked || 0;
     });
     return Object.values(m).sort((a, b) => (b.available + b.embargoed) - (a.available + a.embargoed));
   }, [capacity]);
-  const urgentAm = capacity?.am?.total || 0;
-  const urgentPm = capacity?.pm?.total || 0;
-  const urgentTotal = urgentAm + urgentPm;
+  const urgentAm = capacity?.am?.total || 0, urgentPm = capacity?.pm?.total || 0, urgentTotal = urgentAm + urgentPm;
 
-  // Routine gauges
+  // ── Routine gauges ────────────────────────────────────────────
   const routineGauges = useMemo(() => {
-    if (!huddleData) return [{ pct: 0 }, { pct: 0 }, { pct: 0 }, { pct: 0 }];
-    const allOverrides = {};
-    (hs?.knownSlotTypes || []).forEach(s => { allOverrides[s] = true; });
-    if (huddleData?.allSlotTypes) huddleData.allSlotTypes.forEach(s => { allOverrides[s] = true; });
-    const days = getNDayAvailability(huddleData, hs, 30, allOverrides);
-    return [
-      { label: '0-7 days', start: 0, end: 7 },
-      { label: '8-14 days', start: 7, end: 14 },
-      { label: '15-21 days', start: 14, end: 21 },
-      { label: '22-28 days', start: 21, end: 28 },
-    ].map(({ label, start, end }) => {
+    if (!huddleData) return [{ pct: 0, colour: '#94a3b8' }, { pct: 0, colour: '#94a3b8' }, { pct: 0, colour: '#94a3b8' }, { pct: 0, colour: '#94a3b8' }];
+    const ao = {}; (hs?.knownSlotTypes || []).forEach(s => { ao[s] = true; }); if (huddleData?.allSlotTypes) huddleData.allSlotTypes.forEach(s => { ao[s] = true; });
+    const days = getNDayAvailability(huddleData, hs, 30, ao);
+    return [{ label: '0-7 days', start: 0, end: 7 }, { label: '8-14 days', start: 7, end: 14 }, { label: '15-21 days', start: 14, end: 21 }, { label: '22-28 days', start: 21, end: 28 }].map(({ label, start, end }) => {
       const slice = days.slice(start, end).filter(d => d.available !== null && !d.isWeekend);
       const avail = slice.reduce((s, d) => s + (d.available || 0) + (d.embargoed || 0), 0);
       const booked = slice.reduce((s, d) => s + (d.booked || 0), 0);
-      const total = avail + booked;
-      const pct = total > 0 ? Math.round((avail / total) * 100) : 0;
-      const colour = pct > 50 ? '#10b981' : pct >= 20 ? '#f59e0b' : '#ef4444';
-      return { label, pct, colour };
+      const total = avail + booked; const pct = total > 0 ? Math.round((avail / total) * 100) : 0;
+      return { label, pct, colour: pct > 50 ? '#10b981' : pct >= 20 ? '#f59e0b' : '#ef4444' };
     });
   }, [huddleData, hs]);
 
-  // Demand
+  // ── Demand derived ────────────────────────────────────────────
   const t = demandData?.today;
   const dc = t ? (DEMAND_COLOURS[t.demandLevel] || DEMAND_COLOURS.normal) : DEMAND_COLOURS.normal;
   const dowIdx = today.getDay() > 0 && today.getDay() < 6 ? (today.getDay() + 6) % 7 : 0;
   const monthIdx = today.getMonth();
   const typicalDayMonth = dowIdx < 5 ? Math.round(BASELINE + DOW_EFFECTS[dowIdx] + MONTH_EFFECTS[monthIdx]) : 0;
   const vsPct = t && typicalDayMonth > 0 ? Math.round(((t.predicted - typicalDayMonth) / typicalDayMonth) * 100) : 0;
-  const chartMax = demandData ? Math.max(...demandData.chartDays.filter(d => !d.isWeekend && !d.isBankHoliday).map(d => d.predicted || 0), 1) : 1;
+  const rangePct = t ? (t.confidence.high > t.confidence.low ? ((t.predicted - t.confidence.low) / (t.confidence.high - t.confidence.low)) * 100 : 50) : 50;
   const tw = demandData?.today?.weather;
-
-  // Top factors
   const topFactors = useMemo(() => {
     if (!t?.factors) return [];
-    const f = t.factors;
-    const list = [];
-    if (f.dayOfWeek) list.push({ l: f.dayOfWeek.day?.slice(0,3), v: f.dayOfWeek.effect });
-    if (f.month) list.push({ l: MONTH_SHORT[f.month.month-1], v: f.month.effect });
-    if (f.trend) list.push({ l: 'Trend', v: f.trend.effect });
-    if (f.weather) list.push({ l: `${Math.round(f.weather.actualTemp)}°`, v: f.weather.tempEffect });
-    if (f.endOfMonth) list.push({ l: `${today.getDate()}th`, v: f.endOfMonth });
-    if (f.firstDayBack) list.push({ l: '1st back', v: f.firstDayBack });
-    if (f.schoolHoliday) list.push({ l: 'Sch hol', v: f.schoolHoliday });
-    if (f.firstWeekBack) list.push({ l: 'Term', v: f.firstWeekBack });
-    if (f.shortWeek) list.push({ l: `${f.shortWeek.workingDays}d wk`, v: f.shortWeek.effect });
-    list.sort((a,b) => Math.abs(b.v) - Math.abs(a.v));
-    return list.slice(0, 3);
+    const f = t.factors, list = [];
+    if (f.dayOfWeek) list.push({ label: f.dayOfWeek.day, effect: f.dayOfWeek.effect, desc: 'day of week' });
+    if (f.month) list.push({ label: MONTH_SHORT[f.month.month-1], effect: f.month.effect, desc: 'seasonal' });
+    if (f.trend) list.push({ label: 'Trend', effect: f.trend.effect, desc: 'growth' });
+    if (f.weather) list.push({ label: `${Math.round(f.weather.actualTemp)}°C`, effect: f.weather.tempEffect, desc: 'temperature' });
+    if (f.endOfMonth) list.push({ label: `${today.getDate()}th`, effect: f.endOfMonth, desc: 'end of month' });
+    if (f.firstDayBack) list.push({ label: '1st back', effect: f.firstDayBack, desc: 'after bank hol' });
+    if (f.schoolHoliday) list.push({ label: 'School hol', effect: f.schoolHoliday, desc: 'holidays' });
+    if (f.firstWeekBack) list.push({ label: 'Term starts', effect: f.firstWeekBack, desc: 'first week back' });
+    if (f.shortWeek) list.push({ label: `${f.shortWeek.workingDays}d week`, effect: f.shortWeek.effect, desc: 'short week' });
+    list.sort((a,b) => Math.abs(b.effect) - Math.abs(a.effect));
+    return list.slice(0, 5);
   }, [t, today]);
 
   const PersonCard = ({ person, delay, reason }) => {
-    const gc = GROUP_COLOURS[person.group] || GROUP_COLOURS.admin;
-    const rc = ROLE_COLOURS[person.role] || { bg: gc.bg, init: gc.init, text: gc.text };
+    const groupColours = { gp: { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' }, nursing: { bg: '#ecfdf5', init: '#d1fae5', text: '#047857' }, allied: { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' }, admin: { bg: '#f8fafc', init: '#f1f5f9', text: '#64748b' } };
+    const gc = groupColours[person.group] || groupColours.admin;
     return (
-      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 mb-1 opacity-0"
-        style={{ background: rc.bg, animation: `slideIn 0.4s ease ${delay}s forwards` }}>
-        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
-          style={{ background: rc.init, color: rc.text }}>{person.initials}</div>
+      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 mb-1 fs-slidein" style={{ background: gc.bg, animationDelay: `${delay}s` }}>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: gc.init, color: gc.text }}>{person.initials}</div>
         <span className="text-xs text-slate-900 truncate flex-1">{person.name}</span>
         {reason && <span className="text-[10px] text-red-500 flex-shrink-0">{reason}</span>}
       </div>
     );
   };
 
-  const GaugeSVG = ({ pct, colour, label, delay }) => {
-    const size = 110, r = 42, sw = 8, cx = size/2, cy = size/2;
-    const circ = 2 * Math.PI * r;
-    const offset = circ - (circ * pct / 100);
-    const glowDur = `${6 + delay * 2}s`;
-    return (
-      <div className="text-center opacity-0" style={{ animation: `fadeScale 0.6s ease ${0.3 + delay * 0.15}s forwards` }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
-          style={{ filter: 'drop-shadow(0 0 2px rgba(16,185,129,0.2))', animation: `gaugeGlow ${glowDur} ease-in-out infinite` }}>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth={sw} />
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth={sw} strokeLinecap="round"
-            strokeDasharray={circ} strokeDashoffset={circ}
-            transform={`rotate(-90 ${cx} ${cy})`}
-            style={{ animation: `gaugeSweep 1.2s ease ${0.5 + delay * 0.2}s forwards`, '--target-offset': offset }} />
-          <text x={cx} y={cy - 2} textAnchor="middle" fill={colour} style={{ fontSize: '24px', fontWeight: 800 }}>{pct}%</text>
-          <text x={cx} y={cy + 14} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '11px' }}>avail</text>
-        </svg>
-        <div className="text-xs text-slate-500 mt-1">{label}</div>
-      </div>
-    );
-  };
-
   return (
-    <div ref={containerRef} className="fixed inset-0 z-[9999] flex flex-col overflow-hidden"
-      style={{ background: '#f8fafc', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-
+    <div ref={containerRef} className="fixed inset-0 z-[9999] flex flex-col overflow-hidden" style={{ background: '#f8fafc', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <style>{`
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes fadeScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        @keyframes popIn { from { opacity: 0; transform: scale(0.5) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        @keyframes badgePop { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
-        @keyframes growBar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-        @keyframes liveDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.82; } }
-        @keyframes gaugeGlow { 0%, 100% { filter: drop-shadow(0 0 2px rgba(16,185,129,0.15)); } 50% { filter: drop-shadow(0 0 8px rgba(16,185,129,0.4)); } }
-        @keyframes gaugeSweep { to { stroke-dashoffset: var(--target-offset); } }
-        @keyframes barBreath { 0%, 100% { opacity: 1; } 50% { opacity: 0.88; } }
+        .fs-slidein { opacity: 0; animation: fsSlidein 0.4s ease forwards; }
+        .fs-fadein { opacity: 0; animation: fsFadein 0.5s ease forwards; }
+        .fs-popin { opacity: 0; animation: fsPopin 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        .fs-gauge-glow { animation: fsGaugeGlow 6s ease-in-out 2s infinite; }
+        .fs-gauge-sweep { animation: fsGaugeSweep 1.2s ease forwards; }
+        .fs-breathe { animation: fsBreathe 4s ease-in-out 2s infinite; }
+        .fs-live-dot { animation: fsLiveDot 2s ease infinite; }
+        @keyframes fsSlidein { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes fsFadein { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+        @keyframes fsPopin { from { opacity:0; transform:scale(0.5) translateY(10px); } to { opacity:1; transform:scale(1) translateY(0); } }
+        @keyframes fsGaugeGlow { 0%,100% { filter: drop-shadow(0 0 2px rgba(16,185,129,0.15)); } 50% { filter: drop-shadow(0 0 8px rgba(16,185,129,0.4)); } }
+        @keyframes fsGaugeSweep { to { stroke-dashoffset: var(--target); } }
+        @keyframes fsBreathe { 0%,100% { opacity:1; } 50% { opacity:0.82; } }
+        @keyframes fsLiveDot { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
       `}</style>
 
       {/* Header */}
@@ -278,90 +343,66 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
             <div className="text-xl font-extrabold text-white leading-none">{today.getDate()}</div>
             <div className="text-[8px] text-white/80 uppercase">{MONTH_SHORT[today.getMonth()]}</div>
           </div>
-          <div>
-            <div className="text-lg font-bold text-slate-900">{dayName}</div>
-            <div className="text-xs text-slate-400">{today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-          </div>
+          <div><div className="text-lg font-bold text-slate-900">{dayName}</div><div className="text-xs text-slate-400">{today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div></div>
         </div>
         <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" style={{ animation: 'liveDot 2s ease infinite' }} />
-            <span className="text-xs text-slate-400">Live</span>
-          </div>
+          <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 fs-live-dot" /><span className="text-xs text-slate-400">Live</span></div>
           {tw && <span className="text-xs text-slate-500">{Math.round(tw.temp)}°C · Feels {Math.round(tw.feelsLike)}°C{tw.precipMm > 0 ? ` · ${Math.round(tw.precipMm)}mm` : ''}</span>}
-          <div className="text-3xl font-light text-slate-300 tabular-nums">{clock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
-          <button onClick={onExit} className="px-3 py-1 rounded-lg border border-slate-200 text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">Exit fullscreen</button>
+          <LiveClock />
+          <button onClick={onExit} className="px-3 py-1 rounded-lg border border-slate-200 text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-50">Exit fullscreen</button>
         </div>
       </div>
 
-      {/* Noticeboard ticker */}
-      {messages.length > 0 && (
-        <div className="flex items-center gap-3 px-5 bg-gradient-to-r from-slate-800 to-slate-700 flex-shrink-0 overflow-hidden" style={{ height: 38 }}>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">Notice</span>
-          </div>
-          <div className="flex-1 overflow-hidden" style={{ height: 38 }}>
-            <div className="flex flex-col transition-transform duration-700" style={{ transform: `translateY(-${tickerIdx * 38}px)` }}>
-              {messages.map((m, i) => {
-                const mc = MSG_COLOURS[i % MSG_COLOURS.length];
-                return (
-                  <div key={i} className="flex items-center gap-2 flex-shrink-0 text-sm" style={{ height: 38 }}>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: mc.bg, color: mc.text }}>{m.author} {m.time}</span>
-                    <span className="text-slate-200 truncate">{m.text}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      <NoticeTicker messages={messages} />
 
       {/* 4-quadrant grid */}
       <div className="grid grid-cols-2 flex-1 gap-2 p-2 min-h-0">
 
-        {/* TL: Demand predictor */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-3.5 py-2 flex items-center justify-between flex-shrink-0">
+        {/* TL: Demand — dark card matching today page */}
+        <div className="rounded-xl bg-slate-900 overflow-hidden flex flex-col border border-slate-800">
+          <div className="px-3.5 py-2 flex items-center justify-between border-b border-slate-800 flex-shrink-0">
             <div className="flex items-center gap-1.5">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              <span className="text-xs font-semibold text-white">Predicted demand</span>
+              <span className="text-xs font-semibold text-slate-200">Predicted demand</span>
             </div>
-            <span className="text-[10px] text-slate-500">Model v2.0</span>
+            <span className="text-[10px] text-slate-600">Model v2.0</span>
           </div>
-          <div className="flex gap-3 p-3 flex-1">
-            <div className="min-w-[130px] flex flex-col">
-              <div className="text-[52px] font-extrabold leading-none opacity-0" style={{ color: dc.colour, animation: 'popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards' }}>{t?.predicted || '—'}</div>
+          <div className="flex items-stretch flex-1">
+            {/* Left: hero + range */}
+            <div className="px-5 py-4 flex flex-col justify-center border-r border-slate-800" style={{ minWidth: 155 }}>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Today's forecast</div>
+              <div className="text-[48px] font-extrabold leading-none mt-1 fs-popin" style={{ color: dc.text }}>{t?.predicted || '—'}</div>
               <div className="text-xs text-slate-400 mt-1">patient requests</div>
-              {t && <div className="mt-1.5 opacity-0" style={{ animation: 'badgePop 0.6s ease 0.3s forwards' }}><span className="text-[11px] font-semibold px-2 py-0.5 rounded" style={{ background: dc.bg, color: dc.text }}>{dc.label}</span></div>}
-              {t && vsPct !== 0 && <div className="text-[10px] text-slate-400 mt-1.5" style={{ animation: 'breathe 4s ease-in-out 2s infinite' }}><span style={{ color: dc.colour }}>{Math.abs(vsPct)}% {vsPct >= 0 ? 'above' : 'below'}</span> typical {DOW_NAMES[dowIdx]} in {MONTH_SHORT[monthIdx]}</div>}
-              <div className="flex gap-1 mt-auto pt-2">
+              {t && <div className="mt-1.5"><span className="text-[10px] font-semibold px-2 py-0.5 rounded" style={{ background: dc.bg, color: dc.text }}>{dc.label}</span></div>}
+              {t && vsPct !== 0 && <div className="mt-1.5 text-[10px] text-slate-500 fs-breathe"><span style={{ color: vsPct >= 0 ? '#fbbf24' : '#34d399' }}>{Math.abs(vsPct)}% {vsPct >= 0 ? 'above' : 'below'}</span> typical {DOW_NAMES[dowIdx]} in {MONTH_SHORT[monthIdx]}</div>}
+              {/* Range bar */}
+              {t && (
+                <div className="flex items-center gap-2 mt-3 p-2 bg-slate-800 rounded-lg">
+                  <div className="text-center"><div className="text-base font-bold text-slate-400">{t.confidence.low}</div><div className="text-[7px] text-slate-600 uppercase">Low</div></div>
+                  <div className="flex-1 h-1 rounded-full bg-slate-700 relative">
+                    <div className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${rangePct}%`, background: 'linear-gradient(90deg, #10b981, #f59e0b)' }} />
+                    <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-slate-900" style={{ left: `${rangePct}%`, marginLeft: '-5px' }} />
+                  </div>
+                  <div className="text-center"><div className="text-base font-bold text-slate-400">{t.confidence.high}</div><div className="text-[7px] text-slate-600 uppercase">High</div></div>
+                </div>
+              )}
+            </div>
+            {/* Right: Chart.js + factors */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1 px-3 pt-3 relative" style={{ minHeight: 120 }}>
+                <canvas ref={chartRef} />
+              </div>
+              {/* Factors strip */}
+              <div className="grid grid-cols-5 divide-x divide-slate-800 border-t border-slate-800">
                 {topFactors.map((f, i) => (
-                  <div key={i} className="flex-1 text-center p-1 bg-slate-50 rounded border border-slate-200 opacity-0" style={{ animation: `fadeScale 0.4s ease ${0.5 + i * 0.1}s forwards` }}>
-                    <div className="text-[8px] text-slate-400">{f.l}</div>
-                    <div className={`text-sm font-bold ${f.v >= 0 ? 'text-blue-500' : 'text-emerald-500'}`}>{f.v > 0 ? '+' : ''}{Math.round(f.v)}</div>
+                  <div key={i} className="py-1.5 px-2 text-center fs-fadein" style={{ animationDelay: `${0.5 + i * 0.1}s` }}>
+                    <div className="text-[8px] text-slate-500 uppercase truncate">{f.label}</div>
+                    <div className={`text-base font-bold ${f.effect >= 0 ? 'text-blue-400' : 'text-emerald-400'}`}>{f.effect > 0 ? '+' : ''}{Math.round(f.effect)}</div>
+                    <div className="text-[8px] text-slate-600 truncate">{f.desc}</div>
                   </div>
                 ))}
+                {topFactors.length < 5 && Array.from({ length: 5 - topFactors.length }).map((_, i) => <div key={`e${i}`} className="py-1.5 px-2" />)}
               </div>
-            </div>
-            <div className="flex-1 flex items-end gap-0.5">
-              {demandData?.chartDays.map((d, i) => {
-                const pct = Math.max(8, (d.predicted / chartMax) * 100);
-                const delay = 0.1 + i * 0.05;
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5">
-                    {d.isToday && <div className="text-[9px] font-bold opacity-0" style={{ color: '#f59e0b', animation: `fadeScale 0.4s ease 1s forwards` }}>{d.predicted}</div>}
-                    <div className="w-full rounded-sm" style={{
-                      height: `${pct}%`, transformOrigin: 'bottom',
-                      background: d.isToday ? '#f59e0b' : d.isPast ? '#cbd5e1' : '#bfdbfe',
-                      border: !d.isToday && !d.isPast ? '1px dashed #93c5fd' : 'none',
-                      animation: `growBar 0.8s ease ${delay}s forwards${d.isToday ? ', barBreath 5s ease 3s infinite' : ''}`,
-                      transform: 'scaleY(0)',
-                    }} />
-                    <span className={`text-[8px] ${d.isToday ? 'text-amber-500 font-semibold' : 'text-slate-400'}`}>{d.dayName}</span>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>
@@ -374,20 +415,18 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
           </div>
           <div className="p-3 flex-1 flex flex-col">
             <div className="flex items-center justify-center gap-6 mb-3">
-              <div className="text-center"><div className="text-4xl font-extrabold text-amber-500 leading-none opacity-0" style={{ animation: 'popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.1s forwards' }}>{urgentAm}</div><div className="text-xs text-slate-400 mt-1">Morning</div></div>
+              <div className="text-center"><div className="text-4xl font-extrabold text-amber-500 leading-none fs-popin" style={{ animationDelay: '0.1s' }}>{urgentAm}</div><div className="text-xs text-slate-400 mt-1">Morning</div></div>
               <div className="w-px h-9 bg-slate-200" />
-              <div className="text-center"><div className="text-[56px] font-extrabold text-emerald-500 leading-none opacity-0" style={{ animation: 'popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.2s forwards' }}>{urgentTotal}</div><div className="text-xs text-slate-400 mt-1">Total</div></div>
+              <div className="text-center"><div className="text-[56px] font-extrabold text-emerald-500 leading-none fs-popin" style={{ animationDelay: '0.2s' }}>{urgentTotal}</div><div className="text-xs text-slate-400 mt-1">Total</div></div>
               <div className="w-px h-9 bg-slate-200" />
-              <div className="text-center"><div className="text-4xl font-extrabold text-blue-500 leading-none opacity-0" style={{ animation: 'popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards' }}>{urgentPm}</div><div className="text-xs text-slate-400 mt-1">Afternoon</div></div>
+              <div className="text-center"><div className="text-4xl font-extrabold text-blue-500 leading-none fs-popin" style={{ animationDelay: '0.3s' }}>{urgentPm}</div><div className="text-xs text-slate-400 mt-1">Afternoon</div></div>
             </div>
             <div className="grid grid-cols-2 gap-1 flex-1 content-start">
               {mergedClinicians.slice(0, 6).map((c, i) => {
                 const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
-                const name = matched?.name || c.name;
                 return (
-                  <div key={i} className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50 rounded-lg border border-slate-200 opacity-0"
-                    style={{ animation: `slideIn 0.4s ease ${0.3 + i * 0.1}s forwards` }}>
-                    <span className="text-xs text-slate-600 truncate mr-2">{name}</span>
+                  <div key={i} className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50 rounded-lg border border-slate-200 fs-slidein" style={{ animationDelay: `${0.3 + i * 0.08}s` }}>
+                    <span className="text-xs text-slate-600 truncate mr-2">{matched?.name || c.name}</span>
                     <div className="flex gap-1 flex-shrink-0">
                       <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-xs font-semibold">{c.available}</span>
                       <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-xs font-semibold">{c.embargoed}</span>
@@ -415,12 +454,10 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
               <div className="overflow-hidden">
                 <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Nursing <span className="text-slate-300">{nursingTeam.length}</span></div>
                 {nursingTeam.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.15 + i * 0.05} />)}
-                {othersTeam.length > 0 && (
-                  <>
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-2 mb-1.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Others <span className="text-slate-300">{othersTeam.length}</span></div>
-                    {othersTeam.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.3 + i * 0.05} />)}
-                  </>
-                )}
+                {othersTeam.length > 0 && <>
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-2 mb-1.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Others <span className="text-slate-300">{othersTeam.length}</span></div>
+                  {othersTeam.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.3 + i * 0.05} />)}
+                </>}
               </div>
               <div className="overflow-hidden">
                 <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Absent <span className="text-slate-300">{categories.leaveAbsent.length}</span></div>
@@ -432,7 +469,7 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
           </div>
         </div>
 
-        {/* BR: Routine capacity gauges */}
+        {/* BR: Routine gauges */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
           <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-3.5 py-2 flex items-center justify-between flex-shrink-0">
             <span className="text-xs font-semibold text-white">Routine capacity</span>
