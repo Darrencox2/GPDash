@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS } from '@/lib/data';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole } from '@/lib/data';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LoginScreen from '@/components/LoginScreen';
@@ -90,6 +90,20 @@ function AppContent() {
   const normalizeData = (d) => {
     if (!d) return d;
     if (d.clinicians && !Array.isArray(d.clinicians)) d.clinicians = Object.values(d.clinicians);
+    // Backfill new staff register fields on existing clinicians
+    if (d.clinicians && Array.isArray(d.clinicians)) {
+      d.clinicians = d.clinicians.map(c => ({
+        ...c,
+        group: c.group || guessGroupFromRole(c.role),
+        status: c.longTermAbsent ? 'longTermAbsent' : (c.status || 'active'),
+        longTermAbsent: c.status === 'longTermAbsent' || c.longTermAbsent || false,
+        buddyCover: c.buddyCover !== undefined ? c.buddyCover : true,
+        showWhosIn: c.showWhosIn !== undefined ? c.showWhosIn : true,
+        source: c.source || 'manual',
+        confirmed: c.confirmed !== undefined ? c.confirmed : true,
+        aliases: c.aliases || [],
+      }));
+    }
     if (d.plannedAbsences && !Array.isArray(d.plannedAbsences)) d.plannedAbsences = Object.values(d.plannedAbsences);
     if (d.weeklyRota) {
       for (const day of Object.keys(d.weeklyRota)) {
@@ -238,7 +252,7 @@ function AppContent() {
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-settings' && <HuddleSettings data={data} saveData={saveData} setActiveSection={setActiveSection} huddleData={huddleData} />}
           {activeSection === 'huddle-history' && <HuddleHistory data={data} huddleData={huddleData} setActiveSection={setActiveSection} />}
-          {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} helpers={helpers} />}
+          {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} />}
           {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} />}
           {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} />}
         </div>

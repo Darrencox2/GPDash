@@ -4,6 +4,7 @@ import { Button, Card, SectionHeading } from '@/components/ui';
 import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
+import { guessGroupFromRole } from '@/lib/data';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -573,8 +574,42 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       setHuddleData(parsed);
       const uploadTime = new Date().toISOString();
       const newHs = { ...hs, knownClinicians: [...new Set([...(hs.knownClinicians||[]), ...parsed.clinicians])], knownSlotTypes: [...new Set([...(hs.knownSlotTypes||[]), ...parsed.allSlotTypes])], lastUploadDate: uploadTime };
-      saveData({ ...data, huddleCsvData: parsed, huddleCsvUploadedAt: uploadTime, huddleSettings: newHs }, false);
-      toast('Report uploaded successfully', 'success');
+
+      // Auto-discover unmatched CSV clinicians
+      let updatedClinicians = [...teamClinicians];
+      let newCount = 0;
+      (parsed.clinicians || []).forEach(csvName => {
+        const cleanedCsv = csvName.replace(/\(.*?\)/g, '').replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim().toLowerCase();
+        const matched = updatedClinicians.some(c => {
+          const cleanedReg = c.name.replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim().toLowerCase();
+          if (cleanedReg === cleanedCsv) return true;
+          const regSurname = cleanedReg.split(/\s+/).pop();
+          const csvSurname = cleanedCsv.split(/\s+/).pop();
+          if (regSurname && csvSurname && regSurname === csvSurname && regSurname.length >= 3) return true;
+          // Check aliases
+          return (c.aliases || []).some(a => a.toLowerCase().replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim() === cleanedCsv);
+        });
+        if (!matched) {
+          const roleMatch = csvName.match(/\(([^)]+)\)/);
+          const role = roleMatch ? roleMatch[1] : 'Staff';
+          const name = csvName.replace(/\(.*?\)/g, '').trim();
+          // Skip generic/empty names
+          if (name.length < 3 || name.toLowerCase().includes('generic') || name.toLowerCase().includes('session holder')) return;
+          const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
+          const newId = Math.max(0, ...updatedClinicians.map(c => c.id)) + 1;
+          updatedClinicians.push({
+            id: newId, name, initials, role, group: guessGroupFromRole(role),
+            sessions: 0, primaryBuddy: null, secondaryBuddy: null,
+            status: 'active', longTermAbsent: false, canProvideCover: false,
+            buddyCover: false, showWhosIn: true, source: 'csv', confirmed: false, aliases: [csvName],
+          });
+          newCount++;
+        }
+      });
+
+      saveData({ ...data, clinicians: updatedClinicians, huddleCsvData: parsed, huddleCsvUploadedAt: uploadTime, huddleSettings: newHs }, false);
+      const msg = newCount > 0 ? `Report uploaded — ${newCount} new staff discovered` : 'Report uploaded successfully';
+      toast(msg, newCount > 0 ? 'warning' : 'success');
       setError('');
     } catch (err) { setError('Failed to parse CSV: ' + err.message); toast('Failed to parse CSV', 'error'); }
   };

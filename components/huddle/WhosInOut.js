@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { DAYS } from '@/lib/data';
+import { DAYS, STAFF_GROUPS } from '@/lib/data';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -14,19 +14,15 @@ const ROLE_COLOURS = {
   'HCA': 'bg-lime-50 border-lime-200 text-lime-800',
 };
 
-function PersonCard({ name, role, status, reason, onDragStart, isDragTarget, onDrop, onHide }) {
-  const [dragOver, setDragOver] = useState(false);
-  const colourClass = ROLE_COLOURS[role] || 'bg-slate-50 border-slate-200 text-slate-700';
+function PersonCard({ person, status, reason, onDragStart, onHide }) {
+  const colourClass = ROLE_COLOURS[person.role] || 'bg-slate-50 border-slate-200 text-slate-700';
   const statusDot = status === 'present' ? 'bg-emerald-400' : status === 'absent' ? 'bg-red-400' : 'bg-slate-300';
 
   return (
     <div
       draggable
       onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
-      onDragOver={isDragTarget ? (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); } : undefined}
-      onDragLeave={isDragTarget ? (e) => { e.stopPropagation(); setDragOver(false); } : undefined}
-      onDrop={isDragTarget ? (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); onDrop?.(e); } : undefined}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all cursor-grab active:cursor-grabbing group ${colourClass} ${dragOver ? 'ring-2 ring-indigo-400 scale-105' : ''}`}
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all cursor-grab active:cursor-grabbing group ${colourClass}`}
     >
       <div className="relative flex-shrink-0">
         <svg className="w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
@@ -35,8 +31,8 @@ function PersonCard({ name, role, status, reason, onDragStart, isDragTarget, onD
         <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${statusDot}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold truncate">{name}</div>
-        <div className="text-[10px] opacity-60 truncate">{role || 'Staff'}{reason ? ` — ${reason}` : ''}</div>
+        <div className="text-xs font-semibold truncate">{person.name}</div>
+        <div className="text-[10px] opacity-60 truncate">{person.role || 'Staff'}{reason ? ` — ${reason}` : ''}</div>
       </div>
       {onHide && (
         <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
@@ -46,7 +42,7 @@ function PersonCard({ name, role, status, reason, onDragStart, isDragTarget, onD
   );
 }
 
-function DropColumn({ onDrop, children, label, dotColour, count, isEmpty }) {
+function DropColumn({ onDrop, children, label, dotColour, count }) {
   const [dragOver, setDragOver] = useState(false);
   return (
     <div>
@@ -60,7 +56,7 @@ function DropColumn({ onDrop, children, label, dotColour, count, isEmpty }) {
         onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); onDrop?.(e); }}
         className={`min-h-[80px] rounded-xl border-2 border-dashed p-2 transition-all ${dragOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-slate-200'}`}
       >
-        {isEmpty && !dragOver && (
+        {count === 0 && !dragOver && (
           <div className="flex items-center justify-center h-full py-4 text-xs text-slate-400">None</div>
         )}
         <div className="grid grid-cols-2 gap-1.5">
@@ -74,63 +70,34 @@ function DropColumn({ onDrop, children, label, dotColour, count, isEmpty }) {
 export default function WhosInOut({ data, saveData, huddleData }) {
   const [showSettings, setShowSettings] = useState(false);
 
-  if (!data?.clinicians) return null;
-
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
+  const allClinicians = ensureArray(data?.clinicians);
+
   const today = new Date();
   const dayIndex = today.getDay();
   const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
   const dateKey = today.toISOString().split('T')[0];
   const dayKey = `${dateKey}-${dayName}`;
-  const hs = data.huddleSettings || {};
-  const hiddenPeople = hs.hiddenFromWhosIn || [];
 
-  if (!DAYS.includes(dayName)) return null;
+  if (!DAYS.includes(dayName) || allClinicians.length === 0) return null;
 
-  // Build merged list: rota clinicians + CSV clinicians
-  const rotaClinicians = ensureArray(data.clinicians).filter(c => !c.longTermAbsent);
-  const allPeople = useMemo(() => {
-    const people = new Map();
-    // Add rota clinicians first
-    rotaClinicians.forEach(c => {
-      people.set(c.name.toLowerCase(), { id: c.id, name: c.name, role: c.role, source: 'rota' });
-    });
-    // Merge CSV clinicians (may add new people)
-    if (huddleData?.clinicians) {
-      huddleData.clinicians.forEach(csvName => {
-        const key = csvName.toLowerCase().replace(/\(.*?\)/g, '').trim();
-        const cleanedName = csvName.replace(/\(.*?\)/g, '').trim();
-        // Check if already matched
-        const existing = Array.from(people.values()).find(p => {
-          const pClean = p.name.toLowerCase().replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim();
-          const cClean = key.replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim();
-          if (pClean === cClean) return true;
-          const pSurname = pClean.split(/\s+/).pop();
-          const cSurname = cClean.split(/\s+/).pop();
-          return pSurname && cSurname && pSurname === cSurname && pSurname.length >= 3;
-        });
-        if (!existing) {
-          // Extract role from parenthetical if present
-          const roleMatch = csvName.match(/\(([^)]+)\)/);
-          const role = roleMatch ? roleMatch[1] : 'Staff';
-          people.set(key, { id: 'csv_' + key, name: cleanedName, role, source: 'csv' });
-        }
-      });
-    }
-    return Array.from(people.values()).filter(p => !hiddenPeople.includes(p.name));
-  }, [rotaClinicians, huddleData?.clinicians, hiddenPeople]);
+  // Staff who should appear: showWhosIn + active (not left)
+  const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left');
+  // Staff with buddy cover (for rota-based scheduling)
+  const buddyStaff = allClinicians.filter(c => c.buddyCover);
 
-  // Determine who's scheduled, present, absent, day off
+  // Get scheduled IDs from rota (buddy cover people only)
   const scheduled = data.dailyOverrides?.[dayKey]?.scheduled
     ? ensureArray(data.dailyOverrides[dayKey].scheduled)
     : ensureArray(data.weeklyRota?.[dayName]);
 
+  // Get present IDs
   const getPresent = () => {
     if (data.dailyOverrides?.[dayKey]?.present) return ensureArray(data.dailyOverrides[dayKey].present);
     const absences = ensureArray(data.plannedAbsences);
     return scheduled.filter(id => {
-      const c = rotaClinicians.find(c => c.id === id);
-      if (!c) return false;
+      const c = allClinicians.find(c => c.id === id);
+      if (!c || c.longTermAbsent) return false;
       return !absences.some(a => a.clinicianId === id && dateKey >= a.startDate && dateKey <= a.endDate);
     });
   };
@@ -138,39 +105,68 @@ export default function WhosInOut({ data, saveData, huddleData }) {
   const presentIds = getPresent();
   const absentIds = scheduled.filter(id => !presentIds.includes(id));
 
-  // Categorise all people
-  const presentPeople = allPeople.filter(p => {
-    if (typeof p.id === 'number') return presentIds.includes(p.id);
-    // CSV-only people: they're in the CSV so they're present
-    return p.source === 'csv';
+  // People who are in the CSV today (source of truth for non-rota staff)
+  const csvPresentIds = useMemo(() => {
+    if (!huddleData?.clinicians) return new Set();
+    const csvNames = new Set(huddleData.clinicians.map(n => n.replace(/\(.*?\)/g, '').trim().toLowerCase()));
+    const matched = new Set();
+    allClinicians.forEach(c => {
+      const cLower = c.name.toLowerCase().replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|miss)\s*/i, '').trim();
+      const nameMatch = csvNames.has(cLower) || (c.aliases || []).some(a => csvNames.has(a.toLowerCase().replace(/\(.*?\)/g, '').trim()));
+      // Also try surname match
+      if (!nameMatch) {
+        const surname = cLower.split(/\s+/).pop();
+        if (surname && surname.length >= 3) {
+          for (const cn of csvNames) {
+            if (cn.split(/\s+/).pop() === surname) { matched.add(c.id); break; }
+          }
+        }
+      } else {
+        matched.add(c.id);
+      }
+    });
+    return matched;
+  }, [allClinicians, huddleData?.clinicians]);
+
+  // Categorise visible staff
+  const presentPeople = visibleStaff.filter(c => {
+    if (c.longTermAbsent) return false;
+    // Rota-based people: check rota
+    if (scheduled.includes(c.id)) return presentIds.includes(c.id);
+    // Non-rota people: check if in CSV
+    if (csvPresentIds.has(c.id)) return true;
+    return false;
   });
-  const absentPeople = allPeople.filter(p => typeof p.id === 'number' && absentIds.includes(p.id));
-  const dayOffPeople = allPeople.filter(p => {
-    if (typeof p.id !== 'number') return false;
-    return !scheduled.includes(p.id) && !absentIds.includes(p.id);
-  }).filter(p => {
-    // Respect day-off visibility settings
-    const showDayOff = hs.showDayOffClinicians || {};
-    return showDayOff[p.id] !== false;
+
+  const absentPeople = visibleStaff.filter(c => {
+    if (c.longTermAbsent) return true;
+    return absentIds.includes(c.id);
+  });
+
+  const dayOffPeople = visibleStaff.filter(c => {
+    if (c.longTermAbsent) return false;
+    if (scheduled.includes(c.id)) return false;
+    if (absentIds.includes(c.id)) return false;
+    if (csvPresentIds.has(c.id)) return false;
+    return true;
   });
 
   const getAbsenceReason = (person) => {
-    if (typeof person.id !== 'number') return 'Absent';
+    if (person.longTermAbsent) return 'Long-term absent';
     const absences = ensureArray(data.plannedAbsences);
     const absence = absences.find(a => a.clinicianId === person.id && dateKey >= a.startDate && dateKey <= a.endDate);
     return absence?.reason || 'Absent';
   };
 
   const handleDragStart = (e, person) => {
-    e.dataTransfer.setData('whosInPerson', JSON.stringify(person));
+    e.dataTransfer.setData('whosInPerson', JSON.stringify({ id: person.id }));
     e.dataTransfer.effectAllowed = 'move';
   };
 
   const moveToColumn = (personJson, targetColumn) => {
     try {
-      const person = JSON.parse(personJson);
-      if (typeof person.id !== 'number') return; // can't move CSV-only people via rota
-      const id = person.id;
+      const { id } = JSON.parse(personJson);
+      if (typeof id !== 'number') return;
       const currentPresent = [...presentIds];
       const currentScheduled = [...scheduled];
 
@@ -189,19 +185,17 @@ export default function WhosInOut({ data, saveData, huddleData }) {
     } catch (e) { console.error(e); }
   };
 
-  const hidePerson = (name) => {
-    const newHidden = [...hiddenPeople, name];
-    saveData({ ...data, huddleSettings: { ...hs, hiddenFromWhosIn: newHidden } });
+  const hidePerson = (id) => {
+    const updated = allClinicians.map(c => c.id === id ? { ...c, showWhosIn: false } : c);
+    saveData({ ...data, clinicians: updated }, false);
   };
 
-  const unhidePerson = (name) => {
-    saveData({ ...data, huddleSettings: { ...hs, hiddenFromWhosIn: hiddenPeople.filter(n => n !== name) } });
+  const showPerson = (id) => {
+    const updated = allClinicians.map(c => c.id === id ? { ...c, showWhosIn: true } : c);
+    saveData({ ...data, clinicians: updated }, false);
   };
 
-  const toggleDayOffVisibility = (id) => {
-    const showDayOff = hs.showDayOffClinicians || {};
-    saveData({ ...data, huddleSettings: { ...hs, showDayOffClinicians: { ...showDayOff, [id]: showDayOff[id] === false ? true : false } } });
-  };
+  const hiddenPeople = allClinicians.filter(c => c.showWhosIn === false && c.status !== 'left');
 
   return (
     <div className="card overflow-hidden" onDragOver={(e) => e.stopPropagation()} onDrop={(e) => e.stopPropagation()}>
@@ -221,29 +215,26 @@ export default function WhosInOut({ data, saveData, huddleData }) {
       <div className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <DropColumn label="In Practice" dotColour="bg-emerald-400" count={presentPeople.length}
-            isEmpty={presentPeople.length === 0}
             onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')}>
             {presentPeople.map(p => (
-              <PersonCard key={p.id} name={p.name} role={p.role} status="present"
-                onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.name)} />
+              <PersonCard key={p.id} person={p} status="present"
+                onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />
             ))}
           </DropColumn>
 
           <DropColumn label="Leave / Absent" dotColour="bg-red-400" count={absentPeople.length}
-            isEmpty={absentPeople.length === 0}
             onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'absent')}>
             {absentPeople.map(p => (
-              <PersonCard key={p.id} name={p.name} role={p.role} status="absent" reason={getAbsenceReason(p)}
-                onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.name)} />
+              <PersonCard key={p.id} person={p} status="absent" reason={getAbsenceReason(p)}
+                onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />
             ))}
           </DropColumn>
 
           <DropColumn label="Day Off" dotColour="bg-slate-300" count={dayOffPeople.length}
-            isEmpty={dayOffPeople.length === 0}
             onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'dayoff')}>
             {dayOffPeople.map(p => (
-              <PersonCard key={p.id} name={p.name} role={p.role} status="dayoff"
-                onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.name)} />
+              <PersonCard key={p.id} person={p} status="dayoff"
+                onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />
             ))}
           </DropColumn>
         </div>
@@ -263,15 +254,15 @@ export default function WhosInOut({ data, saveData, huddleData }) {
               {/* Hidden people */}
               <div className="px-4 py-3 border-b border-slate-100">
                 <div className="text-xs font-semibold text-slate-600 mb-2">Hidden People</div>
-                <p className="text-[11px] text-slate-400 mb-2">These won't appear in Who's In. Click to restore.</p>
+                <p className="text-[11px] text-slate-400 mb-2">These won't appear on Who's In. Click to restore.</p>
                 {hiddenPeople.length === 0 ? (
                   <div className="text-xs text-slate-400 italic">None hidden</div>
                 ) : (
                   <div className="space-y-1">
-                    {hiddenPeople.map(name => (
-                      <button key={name} onClick={() => unhidePerson(name)}
+                    {hiddenPeople.map(c => (
+                      <button key={c.id} onClick={() => showPerson(c.id)}
                         className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-colors flex items-center justify-between">
-                        <span>{name}</span>
+                        <span>{c.name}</span>
                         <span className="text-[10px] text-slate-400">restore</span>
                       </button>
                     ))}
@@ -279,23 +270,25 @@ export default function WhosInOut({ data, saveData, huddleData }) {
                 )}
               </div>
 
-              {/* Day off visibility */}
-              <div className="px-4 py-3">
-                <div className="text-xs font-semibold text-slate-600 mb-2">Show in Day Off Column</div>
-                <p className="text-[11px] text-slate-400 mb-2">Toggle which team members appear when they're not scheduled.</p>
-                <div className="space-y-1">
-                  {ensureArray(data.clinicians).filter(c => !c.longTermAbsent).map(c => {
-                    const visible = (hs.showDayOffClinicians || {})[c.id] !== false;
-                    return (
-                      <button key={c.id} onClick={() => toggleDayOffVisibility(c.id)}
-                        className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between ${visible ? 'bg-slate-900 text-white' : 'bg-slate-50 border border-slate-200 text-slate-500'}`}>
-                        <span>{c.name}</span>
-                        <span className="text-[10px] opacity-60">{c.role}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* All staff visibility by group */}
+              {Object.entries(STAFF_GROUPS).map(([groupKey, groupInfo]) => {
+                const groupPeople = allClinicians.filter(c => c.group === groupKey && c.status !== 'left');
+                if (groupPeople.length === 0) return null;
+                return (
+                  <div key={groupKey} className="px-4 py-3 border-b border-slate-100">
+                    <div className="text-xs font-semibold text-slate-600 mb-2">{groupInfo.label}</div>
+                    <div className="space-y-1">
+                      {groupPeople.map(c => (
+                        <button key={c.id} onClick={() => c.showWhosIn !== false ? hidePerson(c.id) : showPerson(c.id)}
+                          className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between ${c.showWhosIn !== false ? 'bg-slate-900 text-white' : 'bg-slate-50 border border-slate-200 text-slate-500'}`}>
+                          <span>{c.name}</span>
+                          <span className="text-[10px] opacity-60">{c.role}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
