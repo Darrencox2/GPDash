@@ -84,7 +84,6 @@ function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981',
             strokeDashoffset={inView ? dashOffset : circumference}
             transform={`rotate(-90 ${cx} ${cy})`}
             style={{
-              filter: `drop-shadow(0 0 ${overTarget ? '6' : '3'}px ${colour}${overTarget ? '80' : '40'})`,
               transition: `stroke-dashoffset ${overTarget ? '1.2s' : '0.8s'} cubic-bezier(0.4, 0, 0.2, 1)`,
             }} />
         )}
@@ -728,7 +727,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               <button onClick={() => navigateDay(-1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
-              <div>
+              <div style={{ minWidth: '180px' }}>
                 <h1 className="text-2xl font-extrabold text-white tracking-tight">
                   {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'long' })}
                 </h1>
