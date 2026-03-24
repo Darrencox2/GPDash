@@ -472,73 +472,130 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       ) : capacity && (
         <>
           {/* ─── URGENT ON THE DAY ─── */}
-          <div className="card overflow-hidden">
-            <div className="bg-gradient-to-r from-red-600 to-rose-600 px-5 py-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-base font-semibold text-white">Urgent on the Day</div>
-                  <div className="text-[11px] text-white/70">Available urgent capacity{displayDate !== todayStr ? ` (${displayDate})` : ''}</div>
+          {(() => {
+            // For urgent on-the-day, embargoed slots release during the day so count as available
+            const urgentAm = capacity.am.total + (capacity.am.embargoed || 0);
+            const urgentPm = capacity.pm.total + (capacity.pm.embargoed || 0);
+            const urgentTotal = urgentAm + urgentPm;
+            const bookedTotal = (capacity.am.booked || 0) + (capacity.pm.booked || 0);
+            const grandTotal = urgentTotal + bookedTotal;
+
+            // Get expected target for today from settings
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const todayDayName = dayNames[new Date().getDay()];
+            const expectedAm = hs.expectedCapacity?.[todayDayName]?.am || 0;
+            const expectedPm = hs.expectedCapacity?.[todayDayName]?.pm || 0;
+            const expectedTotal = expectedAm + expectedPm;
+            const hasTarget = expectedTotal > 0;
+            const pct = hasTarget ? Math.min((urgentTotal / expectedTotal) * 100, 100) : (grandTotal > 0 ? (urgentTotal / grandTotal) * 100 : 0);
+            const gaugeColour = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
+            const gaugeTrack = '#e2e8f0';
+
+            // SVG arc calculation (270° sweep)
+            const radius = 70;
+            const strokeWidth = 12;
+            const cx = 90, cy = 90;
+            const startAngle = 135; // degrees from top
+            const sweepAngle = 270;
+            const endAngle = startAngle + sweepAngle;
+            const filledAngle = startAngle + (sweepAngle * (pct / 100));
+            const toRad = (deg) => (deg - 90) * Math.PI / 180;
+            const arcPoint = (angle) => ({ x: cx + radius * Math.cos(toRad(angle)), y: cy + radius * Math.sin(toRad(angle)) });
+            const arcPath = (start, end) => {
+              const s = arcPoint(start), e = arcPoint(end);
+              const large = (end - start) > 180 ? 1 : 0;
+              return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${large} 1 ${e.x} ${e.y}`;
+            };
+
+            return (
+              <div className="card overflow-hidden">
+                <div className="bg-gradient-to-r from-red-600 to-rose-600 px-5 py-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-base font-semibold text-white">Urgent on the Day</div>
+                      <div className="text-[11px] text-white/70">Available urgent capacity{displayDate !== todayStr ? ` (${displayDate})` : ''}</div>
+                    </div>
+                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" />
+                  </div>
                 </div>
-                <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" />
-              </div>
-            </div>
 
-            {displayDate !== todayStr && (
-              <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">⚠️ Today not found in report. Showing {displayDate}.</div>
-            )}
+                {displayDate !== todayStr && (
+                  <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">⚠️ Today not found in report. Showing {displayDate}.</div>
+                )}
 
-            {/* Hero numbers */}
-            <div className="text-center py-4 border-b border-slate-100">
-              <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-500">
-                {capacity.am.total + capacity.pm.total}
-              </div>
-              <div className="text-sm text-slate-500 mt-0.5">available slots</div>
-              {(((capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)) > 0 || ((capacity.am.booked || 0) + (capacity.pm.booked || 0)) > 0) && (
-                <div className="mt-1.5 flex items-center justify-center gap-4">
-                  {((capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)) > 0 && (
-                    <span className="flex items-center gap-1"><span className="text-base font-bold text-amber-600">{(capacity.am.embargoed || 0) + (capacity.pm.embargoed || 0)}</span><span className="text-xs text-amber-600">embargoed</span></span>
-                  )}
-                  {((capacity.am.booked || 0) + (capacity.pm.booked || 0)) > 0 && (
-                    <span className="flex items-center gap-1"><span className="text-base font-bold text-slate-500">{(capacity.am.booked || 0) + (capacity.pm.booked || 0)}</span><span className="text-xs text-slate-500">booked</span></span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* AM / PM cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-              {[{ label: 'Morning', sub: '08:00 – 13:00', data: capacity.am, colour: 'text-amber-600' },
-                { label: 'Afternoon', sub: '13:00 – 18:30', data: capacity.pm, colour: 'text-blue-600' }].map(s => (
-                <div key={s.label} className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div><div className="text-sm font-bold text-slate-900">{s.label}</div><div className="text-[11px] text-slate-400">{s.sub}</div></div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${s.colour}`}>{s.data.total}</div>
-                      <div className="flex items-center gap-2 justify-end">
-                        {(s.data.embargoed || 0) > 0 && <span className="text-[11px] text-amber-500">+{s.data.embargoed} emb</span>}
-                        {(s.data.booked || 0) > 0 && <span className="text-[11px] text-slate-400">{s.data.booked} bkd</span>}
+                {/* Gauge + AM/PM */}
+                <div className="flex flex-col md:flex-row items-center">
+                  {/* Radial gauge */}
+                  <div className="flex-shrink-0 py-5 px-6 flex flex-col items-center">
+                    <svg width="180" height="160" viewBox="0 0 180 160">
+                      {/* Track */}
+                      <path d={arcPath(startAngle, endAngle)} fill="none" stroke={gaugeTrack} strokeWidth={strokeWidth} strokeLinecap="round" />
+                      {/* Fill */}
+                      {pct > 0 && (
+                        <path d={arcPath(startAngle, filledAngle)} fill="none" stroke={gaugeColour} strokeWidth={strokeWidth} strokeLinecap="round"
+                          style={{ filter: `drop-shadow(0 0 6px ${gaugeColour}40)` }} />
+                      )}
+                      {/* Centre number */}
+                      <text x={cx} y={cy - 6} textAnchor="middle" className="text-4xl font-bold" fill="#1e293b" style={{ fontSize: '40px', fontWeight: 700 }}>{urgentTotal}</text>
+                      <text x={cx} y={cy + 14} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '11px' }}>available</text>
+                      {hasTarget && (
+                        <text x={cx} y={cy + 28} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>of {expectedTotal} target</text>
+                      )}
+                      {bookedTotal > 0 && (
+                        <text x={cx} y={hasTarget ? cy + 42 : cy + 28} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>{bookedTotal} booked</text>
+                      )}
+                    </svg>
+                    {/* AM / PM mini stats below gauge */}
+                    <div className="flex items-center gap-6 -mt-2">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-amber-600">{urgentAm}</div>
+                        <div className="text-[10px] text-slate-400">AM</div>
+                      </div>
+                      <div className="w-px h-6 bg-slate-200" />
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-blue-600">{urgentPm}</div>
+                        <div className="text-[10px] text-slate-400">PM</div>
                       </div>
                     </div>
                   </div>
-                  {s.data.byClinician.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-1">
-                      {s.data.byClinician.map((c, i) => {
-                        const initials = getInitials(c.name, teamClinicians);
-                        return (
-                          <div key={i} className="flex items-center gap-2 py-1 px-2 bg-slate-50 rounded border border-slate-100" title={c.name}>
-                            <span className="text-xs font-bold text-slate-700 bg-slate-200 rounded px-1 py-0.5 min-w-[26px] text-center">{initials}</span>
-                            <span className={`text-xs font-semibold tabular-nums ${s.colour}`}>{c.available}</span>
-                            {(c.embargoed || 0) > 0 && <span className="text-[10px] text-amber-500 tabular-nums">+{c.embargoed}</span>}
-                            {(c.booked || 0) > 0 && <span className="text-[10px] text-slate-400 tabular-nums">({c.booked})</span>}
+
+                  {/* AM / PM clinician breakdown */}
+                  <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100 border-t md:border-t-0 md:border-l border-slate-100">
+                    {[{ label: 'Morning', data: capacity.am, colour: 'text-amber-600' },
+                      { label: 'Afternoon', data: capacity.pm, colour: 'text-blue-600' }].map(s => {
+                      const sessionTotal = s.data.total + (s.data.embargoed || 0);
+                      return (
+                        <div key={s.label} className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-xs font-bold text-slate-900">{s.label}</div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-bold ${s.colour}`}>{sessionTotal}</span>
+                              {(s.data.booked || 0) > 0 && <span className="text-[10px] text-slate-400">({s.data.booked} bkd)</span>}
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : <div className="text-center text-slate-400 text-sm py-3">No capacity</div>}
+                          {s.data.byClinician.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-1">
+                              {s.data.byClinician.map((c, i) => {
+                                const initials = getInitials(c.name, teamClinicians);
+                                const clinicianTotal = c.available + (c.embargoed || 0);
+                                return (
+                                  <div key={i} className="flex items-center gap-2 py-1 px-2 bg-slate-50 rounded border border-slate-100" title={c.name}>
+                                    <span className="text-xs font-bold text-slate-700 bg-slate-200 rounded px-1 py-0.5 min-w-[26px] text-center">{initials}</span>
+                                    <span className={`text-xs font-semibold tabular-nums ${s.colour}`}>{clinicianTotal}</span>
+                                    {(c.booked || 0) > 0 && <span className="text-[10px] text-slate-400 tabular-nums">({c.booked})</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : <div className="text-center text-slate-400 text-xs py-2">No capacity</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            );
+          })()}
 
           {/* Slot type breakdown */}
           {capacity.bySlotType.length > 0 && (
@@ -548,37 +605,38 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <table className="w-full text-sm">
                   <thead><tr className="text-xs text-slate-500 uppercase">
                     <th className="text-left py-1 font-medium">Slot Type</th>
-                    <th className="text-right py-1 font-medium w-20">AM</th>
-                    <th className="text-right py-1 font-medium w-20">PM</th>
-                    <th className="text-right py-1 font-medium w-20">Total</th>
+                    <th className="text-right py-1 font-medium w-24">AM</th>
+                    <th className="text-right py-1 font-medium w-24">PM</th>
+                    <th className="text-right py-1 font-medium w-24">Total</th>
                   </tr></thead>
                   <tbody className="divide-y divide-slate-100">
-                    {capacity.bySlotType.map((s, i) => (
-                      <tr key={i}>
-                        <td className="py-2 text-slate-700">{s.name}</td>
-                        <td className="py-2 text-right">
-                          <span className="text-amber-600 font-medium">{s.am || '–'}</span>
-                          {s.amEmb > 0 && <span className="text-amber-400 text-xs ml-1">+{s.amEmb}</span>}
-                          {(s.amBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.amBook})</span>}
-                        </td>
-                        <td className="py-2 text-right">
-                          <span className="text-blue-600 font-medium">{s.pm || '–'}</span>
-                          {s.pmEmb > 0 && <span className="text-blue-400 text-xs ml-1">+{s.pmEmb}</span>}
-                          {(s.pmBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.pmBook})</span>}
-                        </td>
-                        <td className="py-2 text-right">
-                          <span className="font-semibold text-slate-900">{s.total}</span>
-                          {s.totalEmb > 0 && <span className="text-amber-500 text-xs ml-1">+{s.totalEmb}</span>}
-                          {(s.totalBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.totalBook})</span>}
-                        </td>
-                      </tr>
-                    ))}
+                    {capacity.bySlotType.map((s, i) => {
+                      const amAvail = (s.am || 0) + (s.amEmb || 0);
+                      const pmAvail = (s.pm || 0) + (s.pmEmb || 0);
+                      const totalAvail = amAvail + pmAvail;
+                      return (
+                        <tr key={i}>
+                          <td className="py-2 text-slate-700">{s.name}</td>
+                          <td className="py-2 text-right">
+                            <span className="text-amber-600 font-medium">{amAvail || '–'}</span>
+                            {(s.amBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.amBook})</span>}
+                          </td>
+                          <td className="py-2 text-right">
+                            <span className="text-blue-600 font-medium">{pmAvail || '–'}</span>
+                            {(s.pmBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.pmBook})</span>}
+                          </td>
+                          <td className="py-2 text-right">
+                            <span className="font-semibold text-slate-900">{totalAvail}</span>
+                            {((s.totalBook || 0)) > 0 && <span className="text-slate-400 text-xs ml-1">({s.totalBook})</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
                 <div className="mt-3 pt-3 border-t border-slate-100 flex gap-4 text-[11px] text-slate-400">
-                  <span>Numbers = available</span>
-                  <span className="text-amber-500">+n = embargoed</span>
-                  <span className="text-slate-400">(n) = booked</span>
+                  <span>Numbers = available (incl. embargoed)</span>
+                  <span>(n) = booked</span>
                 </div>
               </div>
             </div>
