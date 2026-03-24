@@ -27,6 +27,7 @@ export default function TeamMembers({ data, saveData, toast }) {
       if (groupFilter === 'unconfirmed' && c.confirmed) return false;
       if (statusFilter === 'active' && c.status !== 'active') return false;
       if (statusFilter === 'lta' && c.status !== 'longTermAbsent') return false;
+      if (statusFilter === 'administrative' && c.status !== 'administrative') return false;
       if (statusFilter === 'left' && c.status !== 'left') return false;
       return true;
     });
@@ -85,6 +86,13 @@ export default function TeamMembers({ data, saveData, toast }) {
 
   const buddyCoverPeople = clinicians.filter(c => c.buddyCover);
 
+  const removeAllUnconfirmed = () => {
+    const count = clinicians.filter(c => !c.confirmed).length;
+    if (!confirm(`Remove all ${count} unconfirmed staff?`)) return;
+    saveData({ ...data, clinicians: clinicians.filter(c => c.confirmed) });
+    toast?.(`${count} unconfirmed staff removed`, 'success', 1500);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -100,7 +108,10 @@ export default function TeamMembers({ data, saveData, toast }) {
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
             <span className="text-sm font-medium text-amber-800">{unconfirmedCount} new staff discovered from CSV — review and confirm</span>
-            <button onClick={() => setGroupFilter('unconfirmed')} className="ml-auto text-xs font-medium text-amber-700 hover:text-amber-900 underline">Show</button>
+            <div className="ml-auto flex gap-2">
+              <button onClick={() => setGroupFilter('unconfirmed')} className="text-xs font-medium text-amber-700 hover:text-amber-900 underline">Show</button>
+              <button onClick={removeAllUnconfirmed} className="text-xs font-medium text-red-600 hover:text-red-800 underline">Remove all</button>
+            </div>
           </div>
         </div>
       )}
@@ -130,6 +141,7 @@ export default function TeamMembers({ data, saveData, toast }) {
           <option value="all">All statuses</option>
           <option value="active">Active</option>
           <option value="lta">Long-term absent</option>
+          <option value="administrative">Administrative</option>
           <option value="left">Left practice</option>
         </select>
       </div>
@@ -141,15 +153,19 @@ export default function TeamMembers({ data, saveData, toast }) {
           const isExpanded = expandedId === c.id;
           const groupLabel = STAFF_GROUPS[c.group]?.label || c.group;
           return (
-            <div key={c.id} className={`card transition-colors ${!c.confirmed ? 'border-amber-300 bg-amber-50/30' : c.status === 'longTermAbsent' ? 'border-amber-200 bg-amber-50/50' : c.status === 'left' ? 'opacity-50' : ''}`}>
-              <div className="p-4 flex items-center gap-3 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : c.id)}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${!c.confirmed ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`}>{c.initials || '?'}</div>
-                <div className="flex-1 min-w-0">
+            <div key={c.id} className={`card transition-colors ${!c.confirmed ? 'border-amber-300 bg-amber-50/30' : c.status === 'longTermAbsent' ? 'border-amber-200 bg-amber-50/50' : c.status === 'left' || c.status === 'administrative' ? 'opacity-50' : ''}`}>
+              <div className="p-4 flex items-center gap-3">
+                <button onClick={(e) => { e.stopPropagation(); removePerson(c.id); }} className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0" title="Remove">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 cursor-pointer ${!c.confirmed ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`} onClick={() => setExpandedId(isExpanded ? null : c.id)}>{c.initials || '?'}</div>
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : c.id)}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-slate-900">{c.name}</span>
                     {!c.confirmed && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">Unconfirmed</span>}
                     {c.status === 'longTermAbsent' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">LTA</span>}
                     {c.status === 'left' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">Left</span>}
+                    {c.status === 'administrative' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">Admin</span>}
                   </div>
                   <div className="text-xs text-slate-500">{c.role} · {groupLabel}</div>
                 </div>
@@ -173,7 +189,7 @@ export default function TeamMembers({ data, saveData, toast }) {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div><label className="block text-xs text-slate-500 mb-1">Role</label><select value={c.role || ''} onChange={e => updateField(c.id, 'role', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
                     <div><label className="block text-xs text-slate-500 mb-1">Group</label><select value={c.group || 'gp'} onChange={e => updateField(c.id, 'group', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{GROUP_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select></div>
-                    <div><label className="block text-xs text-slate-500 mb-1">Status</label><select value={c.status || 'active'} onChange={e => updateField(c.id, 'status', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="active">Active</option><option value="longTermAbsent">Long-term absent</option><option value="left">Left practice</option></select></div>
+                    <div><label className="block text-xs text-slate-500 mb-1">Status</label><select value={c.status || 'active'} onChange={e => updateField(c.id, 'status', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="active">Active</option><option value="longTermAbsent">Long-term absent</option><option value="administrative">Administrative</option><option value="left">Left practice</option></select></div>
                     <div><label className="block text-xs text-slate-500 mb-1">Sessions/week</label><input type="number" min="0" max="10" value={c.sessions || 0} onChange={e => updateField(c.id, 'sessions', parseInt(e.target.value) || 0)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center" /></div>
                   </div>
 

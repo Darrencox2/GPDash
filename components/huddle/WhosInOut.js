@@ -17,13 +17,9 @@ const ROLE_COLOURS = {
 function PersonCard({ person, status, reason, onDragStart, onHide }) {
   const colourClass = ROLE_COLOURS[person.role] || 'bg-slate-50 border-slate-200 text-slate-700';
   const statusDot = status === 'present' ? 'bg-emerald-400' : status === 'absent' ? 'bg-red-400' : 'bg-slate-300';
-
   return (
-    <div
-      draggable
-      onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all cursor-grab active:cursor-grabbing group ${colourClass}`}
-    >
+    <div draggable onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all cursor-grab active:cursor-grabbing group ${colourClass}`}>
       <div className="relative flex-shrink-0">
         <svg className="w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
@@ -36,40 +32,27 @@ function PersonCard({ person, status, reason, onDragStart, onHide }) {
       </div>
       {onHide && (
         <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
-          className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 hover:text-red-500 transition-opacity flex-shrink-0" title="Hide from this view">✕</button>
+          className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 hover:text-red-500 transition-opacity flex-shrink-0" title="Hide">✕</button>
       )}
     </div>
   );
 }
 
-function DropColumn({ onDrop, children, label, dotColour, count }) {
+function DropZone({ onDrop, children, isEmpty }) {
   const [dragOver, setDragOver] = useState(false);
   return (
-    <div>
-      <div className="flex items-center gap-1.5 mb-2">
-        <div className={`w-2 h-2 rounded-full ${dotColour}`} />
-        <span className="text-xs font-semibold text-slate-700">{label} ({count})</span>
-      </div>
-      <div
-        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
-        onDragLeave={(e) => { e.stopPropagation(); setDragOver(false); }}
-        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); onDrop?.(e); }}
-        className={`min-h-[80px] rounded-xl border-2 border-dashed p-2 transition-all ${dragOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-slate-200'}`}
-      >
-        {count === 0 && !dragOver && (
-          <div className="flex items-center justify-center h-full py-4 text-xs text-slate-400">None</div>
-        )}
-        <div className="grid grid-cols-2 gap-1.5">
-          {children}
-        </div>
-      </div>
+    <div onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+      onDragLeave={(e) => { e.stopPropagation(); setDragOver(false); }}
+      onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); onDrop?.(e); }}
+      className={`min-h-[40px] rounded-xl border-2 border-dashed p-1.5 transition-all ${dragOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-slate-200'}`}>
+      {isEmpty && !dragOver && <div className="flex items-center justify-center py-2 text-xs text-slate-400">None</div>}
+      <div className="grid grid-cols-2 gap-1.5">{children}</div>
     </div>
   );
 }
 
 export default function WhosInOut({ data, saveData, huddleData }) {
   const [showSettings, setShowSettings] = useState(false);
-
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
 
@@ -81,18 +64,16 @@ export default function WhosInOut({ data, saveData, huddleData }) {
 
   if (!DAYS.includes(dayName) || allClinicians.length === 0) return null;
 
-  // Staff who should appear: showWhosIn + active (not left)
-  const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left');
-  // Staff with buddy cover (for rota-based scheduling)
-  const buddyStaff = allClinicians.filter(c => c.buddyCover);
+  // Only show: showWhosIn=true, not left, not administrative
+  const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');
 
-  // Get scheduled IDs from rota (buddy cover people only)
+  // Rota: scheduled IDs for today (buddy cover people)
   const scheduled = data.dailyOverrides?.[dayKey]?.scheduled
     ? ensureArray(data.dailyOverrides[dayKey].scheduled)
     : ensureArray(data.weeklyRota?.[dayName]);
 
-  // Get present IDs
-  const getPresent = () => {
+  // Present IDs from overrides or computed from rota + absences
+  const presentIds = useMemo(() => {
     if (data.dailyOverrides?.[dayKey]?.present) return ensureArray(data.dailyOverrides[dayKey].present);
     const absences = ensureArray(data.plannedAbsences);
     return scheduled.filter(id => {
@@ -100,47 +81,49 @@ export default function WhosInOut({ data, saveData, huddleData }) {
       if (!c || c.longTermAbsent) return false;
       return !absences.some(a => a.clinicianId === id && dateKey >= a.startDate && dateKey <= a.endDate);
     });
-  };
+  }, [data.dailyOverrides, data.plannedAbsences, scheduled, allClinicians, dayKey, dateKey]);
 
-  const presentIds = getPresent();
   const absentIds = scheduled.filter(id => !presentIds.includes(id));
 
-  // People who are in the CSV today (source of truth for non-rota staff)
+  // CSV presence: who appears in today's uploaded report
   const csvPresentIds = useMemo(() => {
     if (!huddleData?.clinicians) return new Set();
     const matched = new Set();
     allClinicians.forEach(c => {
-      const isInCsv = huddleData.clinicians.some(csvName => matchesStaffMember(csvName, c));
-      if (isInCsv) matched.add(c.id);
+      if (huddleData.clinicians.some(csvName => matchesStaffMember(csvName, c))) matched.add(c.id);
     });
     return matched;
   }, [allClinicians, huddleData?.clinicians]);
 
-  // Categorise visible staff
-  const presentPeople = visibleStaff.filter(c => {
+  // Categorise
+  const inPractice = visibleStaff.filter(c => {
     if (c.longTermAbsent) return false;
-    // Rota-based people: check rota
     if (scheduled.includes(c.id)) return presentIds.includes(c.id);
-    // Non-rota people: check if in CSV
     if (csvPresentIds.has(c.id)) return true;
     return false;
   });
 
-  const absentPeople = visibleStaff.filter(c => {
+  const leaveAbsent = visibleStaff.filter(c => {
     if (c.longTermAbsent) return true;
     return absentIds.includes(c.id);
   });
 
-  const dayOffPeople = visibleStaff.filter(c => {
+  const dayOff = visibleStaff.filter(c => {
     if (c.longTermAbsent) return false;
-    if (scheduled.includes(c.id)) return false;
-    if (absentIds.includes(c.id)) return false;
-    if (csvPresentIds.has(c.id)) return false;
-    return true;
+    // On the rota but not today? Day off.
+    if (c.buddyCover && !scheduled.includes(c.id) && !absentIds.includes(c.id)) return true;
+    // Not on rota and not in CSV? Day off (if they have buddyCover or are known staff)
+    if (!c.buddyCover && !csvPresentIds.has(c.id) && !scheduled.includes(c.id)) return true;
+    return false;
   });
 
+  // Group in-practice by staff group
+  const gpTeam = inPractice.filter(c => c.group === 'gp');
+  const nursingTeam = inPractice.filter(c => c.group === 'nursing');
+  const othersTeam = inPractice.filter(c => c.group !== 'gp' && c.group !== 'nursing');
+
   const getAbsenceReason = (person) => {
-    if (person.longTermAbsent) return 'Long-term absent';
+    if (person.longTermAbsent) return 'LTA';
     const absences = ensureArray(data.plannedAbsences);
     const absence = absences.find(a => a.clinicianId === person.id && dateKey >= a.startDate && dateKey <= a.endDate);
     return absence?.reason || 'Absent';
@@ -157,7 +140,6 @@ export default function WhosInOut({ data, saveData, huddleData }) {
       if (typeof id !== 'number') return;
       const currentPresent = [...presentIds];
       const currentScheduled = [...scheduled];
-
       let newPresent, newScheduled;
       if (targetColumn === 'present') {
         newPresent = currentPresent.includes(id) ? currentPresent : [...currentPresent, id];
@@ -183,7 +165,7 @@ export default function WhosInOut({ data, saveData, huddleData }) {
     saveData({ ...data, clinicians: updated }, false);
   };
 
-  const hiddenPeople = allClinicians.filter(c => c.showWhosIn === false && c.status !== 'left');
+  const hiddenPeople = allClinicians.filter(c => c.showWhosIn === false && c.status !== 'left' && c.status !== 'administrative');
 
   return (
     <div className="card overflow-hidden" onDragOver={(e) => e.stopPropagation()} onDrop={(e) => e.stopPropagation()}>
@@ -194,37 +176,59 @@ export default function WhosInOut({ data, saveData, huddleData }) {
             <div className="text-[10px] text-white/60">Drag to move between columns</div>
           </div>
           <button onClick={() => setShowSettings(true)}
-            className="px-2.5 py-1 rounded text-[11px] font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">
-            ⚙ Settings
-          </button>
+            className="px-2.5 py-1 rounded text-[11px] font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">⚙ Settings</button>
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <DropColumn label="In Practice" dotColour="bg-emerald-400" count={presentPeople.length}
-            onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')}>
-            {presentPeople.map(p => (
-              <PersonCard key={p.id} person={p} status="present"
-                onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />
-            ))}
-          </DropColumn>
+      <div className="p-4 space-y-4">
+        {/* IN PRACTICE — 3 columns by staff group */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-xs font-semibold text-slate-700">In Practice ({inPractice.length})</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Clinicians ({gpTeam.length})</div>
+              <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={gpTeam.length === 0}>
+                {gpTeam.map(p => <PersonCard key={p.id} person={p} status="present" onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+              </DropZone>
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Nursing ({nursingTeam.length})</div>
+              <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={nursingTeam.length === 0}>
+                {nursingTeam.map(p => <PersonCard key={p.id} person={p} status="present" onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+              </DropZone>
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Others ({othersTeam.length})</div>
+              <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={othersTeam.length === 0}>
+                {othersTeam.map(p => <PersonCard key={p.id} person={p} status="present" onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+              </DropZone>
+            </div>
+          </div>
+        </div>
 
-          <DropColumn label="Leave / Absent" dotColour="bg-red-400" count={absentPeople.length}
-            onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'absent')}>
-            {absentPeople.map(p => (
-              <PersonCard key={p.id} person={p} status="absent" reason={getAbsenceReason(p)}
-                onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />
-            ))}
-          </DropColumn>
-
-          <DropColumn label="Day Off" dotColour="bg-slate-300" count={dayOffPeople.length}
-            onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'dayoff')}>
-            {dayOffPeople.map(p => (
-              <PersonCard key={p.id} person={p} status="dayoff"
-                onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />
-            ))}
-          </DropColumn>
+        {/* LEAVE / ABSENT + DAY OFF — 2 columns below */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="w-2 h-2 rounded-full bg-red-400" />
+              <span className="text-xs font-semibold text-slate-700">Leave / Absent ({leaveAbsent.length})</span>
+            </div>
+            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'absent')} isEmpty={leaveAbsent.length === 0}>
+              {leaveAbsent.map(p => <PersonCard key={p.id} person={p} status="absent" reason={getAbsenceReason(p)} onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+            </DropZone>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="w-2 h-2 rounded-full bg-slate-300" />
+              <span className="text-xs font-semibold text-slate-700">Day Off ({dayOff.length})</span>
+            </div>
+            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'dayoff')} isEmpty={dayOff.length === 0}>
+              {dayOff.map(p => <PersonCard key={p.id} person={p} status="dayoff" onDragStart={(e) => handleDragStart(e, p)} onHide={() => hidePerson(p.id)} />)}
+            </DropZone>
+          </div>
         </div>
       </div>
 
@@ -237,30 +241,23 @@ export default function WhosInOut({ data, saveData, huddleData }) {
               <div className="text-sm font-semibold text-slate-900">Who's In Settings</div>
               <button onClick={() => setShowSettings(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100">✕</button>
             </div>
-
             <div className="flex-1 overflow-y-auto">
-              {/* Hidden people */}
-              <div className="px-4 py-3 border-b border-slate-100">
-                <div className="text-xs font-semibold text-slate-600 mb-2">Hidden People</div>
-                <p className="text-[11px] text-slate-400 mb-2">These won't appear on Who's In. Click to restore.</p>
-                {hiddenPeople.length === 0 ? (
-                  <div className="text-xs text-slate-400 italic">None hidden</div>
-                ) : (
+              {hiddenPeople.length > 0 && (
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <div className="text-xs font-semibold text-slate-600 mb-2">Hidden People</div>
+                  <p className="text-[11px] text-slate-400 mb-2">Click to restore.</p>
                   <div className="space-y-1">
                     {hiddenPeople.map(c => (
                       <button key={c.id} onClick={() => showPerson(c.id)}
                         className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-colors flex items-center justify-between">
-                        <span>{c.name}</span>
-                        <span className="text-[10px] text-slate-400">restore</span>
+                        <span>{c.name}</span><span className="text-[10px] text-slate-400">restore</span>
                       </button>
                     ))}
                   </div>
-                )}
-              </div>
-
-              {/* All staff visibility by group */}
+                </div>
+              )}
               {Object.entries(STAFF_GROUPS).map(([groupKey, groupInfo]) => {
-                const groupPeople = allClinicians.filter(c => c.group === groupKey && c.status !== 'left');
+                const groupPeople = allClinicians.filter(c => c.group === groupKey && c.status !== 'left' && c.status !== 'administrative');
                 if (groupPeople.length === 0) return null;
                 return (
                   <div key={groupKey} className="px-4 py-3 border-b border-slate-100">
@@ -269,8 +266,7 @@ export default function WhosInOut({ data, saveData, huddleData }) {
                       {groupPeople.map(c => (
                         <button key={c.id} onClick={() => c.showWhosIn !== false ? hidePerson(c.id) : showPerson(c.id)}
                           className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between ${c.showWhosIn !== false ? 'bg-slate-900 text-white' : 'bg-slate-50 border border-slate-200 text-slate-500'}`}>
-                          <span>{c.name}</span>
-                          <span className="text-[10px] opacity-60">{c.role}</span>
+                          <span>{c.name}</span><span className="text-[10px] opacity-60">{c.role}</span>
                         </button>
                       ))}
                     </div>
