@@ -1,10 +1,9 @@
 'use client';
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
 import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
-import { GPDashLogoLight } from '@/components/GPDashLogo';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -37,34 +36,70 @@ const DEFAULT_CAPACITY_CARDS = [
   { id: 'physio', title: 'Physiotherapy', colour: 'sky' },
 ];
 
-// ── Reusable radial gauge (SVG) ───────────────────────────────────
+// ── Reusable radial gauge (SVG) with scroll-triggered animation ──
 function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981', trackColour = '#e2e8f0', label, sublabel, children }) {
   const rawPct = max > 0 ? (value / max) * 100 : 0;
-  const fillPct = Math.min(rawPct, 100);
   const overTarget = rawPct > 100;
   const r = (size - strokeWidth) / 2;
   const cx = size / 2, cy = size / 2;
   const circumference = 2 * Math.PI * r;
-  const dashOffset = circumference - (circumference * fillPct / 100);
+
+  // For over-target: animate to full circle then keep going a bit (up to 1.2x)
+  const displayPct = overTarget ? 100 : Math.min(rawPct, 100);
+  const dashOffset = circumference - (circumference * displayPct / 100);
+
+  // Intersection Observer for scroll-triggered animation
+  const gaugeRef = useRef(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = gaugeRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setInView(true); observer.disconnect(); } },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Over-target: a second ring animates past 360° with a pulsing glow
+  const overExtra = overTarget ? Math.min(rawPct - 100, 30) : 0;
+  const overDashOffset = circumference - (circumference * (overExtra / 100));
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center" ref={gaugeRef}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {/* Track circle */}
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={trackColour} strokeWidth={strokeWidth} />
-        {/* Filled arc */}
-        {fillPct > 0 && (
+        {/* Filled arc — animates on scroll */}
+        {displayPct > 0 && (
           <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
+            strokeDashoffset={inView ? dashOffset : circumference}
             transform={`rotate(-90 ${cx} ${cy})`}
-            style={{ filter: `drop-shadow(0 0 ${overTarget ? '6' : '3'}px ${colour}${overTarget ? '80' : '40'})`, transition: 'stroke-dashoffset 0.5s ease' }} />
+            style={{
+              filter: `drop-shadow(0 0 ${overTarget ? '6' : '3'}px ${colour}${overTarget ? '80' : '40'})`,
+              transition: `stroke-dashoffset ${overTarget ? '1.2s' : '0.8s'} cubic-bezier(0.4, 0, 0.2, 1)`,
+            }} />
         )}
-        {/* Over-target: second subtle outer glow ring */}
+        {/* Over-target: second glow ring that goes past full */}
         {overTarget && (
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth={2} opacity={0.3}
-            transform={`rotate(-90 ${cx} ${cy})`} />
+          <circle cx={cx} cy={cy} r={r + 2} fill="none" stroke={colour} strokeWidth={2}
+            strokeLinecap="round"
+            strokeDasharray={2 * Math.PI * (r + 2)}
+            strokeDashoffset={inView ? (2 * Math.PI * (r + 2)) - (2 * Math.PI * (r + 2) * overExtra / 100) : 2 * Math.PI * (r + 2)}
+            transform={`rotate(-90 ${cx} ${cy})`}
+            opacity={0.35}
+            style={{ transition: 'stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.4s' }} />
+        )}
+        {/* Over-target pulsing glow dot at the leading edge */}
+        {overTarget && inView && (
+          <circle cx={cx} cy={cy - r} r={3} fill={colour} opacity={0.6}
+            transform={`rotate(${(displayPct / 100) * 360 - 90 + (overExtra / 100) * 360} ${cx} ${cy})`}>
+            <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+          </circle>
         )}
         {children}
       </svg>
@@ -573,7 +608,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   }, [hs?.slotCategories?.urgent, knownSlotTypes, huddleData?.allSlotTypes]);
 
   return (
-    <div className="space-y-6 animate-in" onDragOver={e => { e.preventDefault(); setIsDragging(true); }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={onDrop}>
+    <div className="space-y-6 animate-in" onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
       {isDragging && (
         <div className="fixed inset-0 z-40 bg-teal-500/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-center border-2 border-dashed border-teal-400">
@@ -583,18 +618,22 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       )}
 
-      {/* Branded header */}
+      {/* Today header — Style C */}
       <div className="card overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 py-5">
-          <div className="flex items-center justify-between">
+        <div className="flex">
+          <div className="bg-emerald-500 px-5 py-4 flex flex-col items-center justify-center min-w-[90px]">
+            <div className="text-3xl font-extrabold text-white leading-none">{new Date().getDate()}</div>
+            <div className="text-xs font-semibold text-white/80 uppercase mt-0.5">{new Date().toLocaleDateString('en-GB', { month: 'short' })}</div>
+          </div>
+          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 flex-1 px-5 py-4 flex items-center justify-between">
             <div>
-              <GPDashLogoLight size="compact" className="h-14" />
-              <div className="flex items-center gap-3 mt-2 ml-1">
-                <span className="text-sm text-slate-300">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              <h1 className="text-2xl font-extrabold text-white tracking-tight">Today</h1>
+              <div className="flex items-center gap-3 mt-0.5">
+                <span className="text-sm text-slate-300">{new Date().toLocaleDateString('en-GB', { weekday: 'long' })}</span>
                 {data?.huddleCsvUploadedAt && (
                   <>
                     <span className="w-1 h-1 rounded-full bg-slate-500" />
-                    <span className="text-xs text-slate-400">Report: {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-xs text-slate-400">Report uploaded {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
                   </>
                 )}
               </div>
@@ -610,9 +649,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       </div>
 
       {error && <Card className="p-4 bg-red-50 border-red-200 text-red-700 text-sm">{error}</Card>}
-
-      {/* WHO'S IN / OUT */}
-      <WhosInOut data={data} saveData={saveData} />
 
       {/* NOTICEBOARD */}
       <div className="card overflow-hidden border-red-200">
@@ -641,6 +677,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           </div>
         </div>
       </div>
+
+      {/* WHO'S IN / OUT */}
+      <WhosInOut data={data} saveData={saveData} huddleData={huddleData} />
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (
