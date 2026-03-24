@@ -61,7 +61,7 @@ function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981',
 }
 
 // ── AI Huddle Summary ─────────────────────────────────────────────
-function AISummary({ huddleData, capacity, huddleSettings, huddleMessages, routineDays }) {
+function AISummary({ huddleData, capacity, huddleSettings, huddleMessages, routineDays, password }) {
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -132,25 +132,24 @@ ${notices.length > 0 ? `NOTICEBOARD MESSAGES:\n${notices.join('\n')}` : 'No noti
 
 Keep it practical and actionable. Highlight any concerns (low capacity, uneven distribution, pressure points). Use plain language suitable for a clinical team. No markdown formatting — just plain text bullet points starting with •`;
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/ai-summary', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }],
-        }),
+        headers: { 'Content-Type': 'application/json', 'x-password': password },
+        body: JSON.stringify({ prompt }),
       });
 
-      const data = await response.json();
-      const text = data.content?.map(c => c.text || '').join('') || 'Unable to generate summary.';
-      setSummary(text);
+      const result = await response.json();
+      if (result.error) {
+        setSummary(`Unable to generate: ${result.error}`);
+      } else {
+        setSummary(result.summary || 'No summary returned.');
+      }
     } catch (err) {
       console.error('AI Summary error:', err);
       setSummary('Unable to generate summary — please try again.');
     }
     setLoading(false);
-  }, [capacity, huddleSettings, huddleMessages, routineDays]);
+  }, [capacity, huddleSettings, huddleMessages, routineDays, password]);
 
   if (!capacity) return null;
 
@@ -491,7 +490,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
 // ══════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════
-export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages }) {
+export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages, password }) {
   const [newMsg, setNewMsg] = useState('');
   const [newAuthor, setNewAuthor] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -643,7 +642,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
       {/* AI SUMMARY */}
       {huddleData && capacity && (
-        <AISummary huddleData={huddleData} capacity={capacity} huddleSettings={hs} huddleMessages={huddleMessages} routineDays={routineDays} />
+        <AISummary huddleData={huddleData} capacity={capacity} huddleSettings={hs} huddleMessages={huddleMessages} routineDays={routineDays} password={password} />
       )}
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
