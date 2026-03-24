@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { DAYS, STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
-import { getTodayDateStr, getCliniciansForDate } from '@/lib/huddle';
+import { getCliniciansForDate } from '@/lib/huddle';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -55,17 +55,18 @@ function DropZone({ onDrop, children, isEmpty }) {
   );
 }
 
-export default function WhosInOut({ data, saveData, huddleData, onNavigate }) {
+export default function WhosInOut({ data, saveData, huddleData, onNavigate, viewingDate: viewingDateProp }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showAbsent, setShowAbsent] = useState(false);
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
 
-  const today = new Date();
-  const dayIndex = today.getDay();
+  const vd = viewingDateProp || new Date();
+  const dayIndex = vd.getDay();
   const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
-  const dateKey = today.toISOString().split('T')[0];
+  const dateKey = vd.toISOString().split('T')[0];
   const dayKey = `${dateKey}-${dayName}`;
+  const isViewingToday = useMemo(() => { const n = new Date(); n.setHours(0,0,0,0); const v = new Date(vd); v.setHours(0,0,0,0); return v.getTime() === n.getTime(); }, [vd]);
 
   if (!DAYS.includes(dayName) || allClinicians.length === 0) return null;
 
@@ -75,15 +76,14 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate }) {
 
   // ── Data sources ──────────────────────────────────────────────────
 
-  // 1. CSV: who has slots TODAY specifically (not all dates in the file)
-  const todayDateStr = getTodayDateStr();
+  // 1. CSV: who has slots on viewed date specifically
+  const viewingDateStr = `${String(vd.getDate()).padStart(2,'0')}-${vd.toLocaleString('en-GB',{month:'short'})}-${vd.getFullYear()}`;
   const todayCsvClinicians = useMemo(() => {
     if (!huddleData) return [];
-    // Find which date string in the CSV matches today
-    const displayDate = huddleData.dates?.includes(todayDateStr) ? todayDateStr : null;
+    const displayDate = huddleData.dates?.includes(viewingDateStr) ? viewingDateStr : null;
     if (!displayDate) return [];
     return getCliniciansForDate(huddleData, displayDate);
-  }, [huddleData, todayDateStr]);
+  }, [huddleData, viewingDateStr]);
 
   const csvPresentIds = useMemo(() => {
     if (todayCsvClinicians.length === 0) return new Set();
@@ -219,8 +219,8 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate }) {
       <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-semibold text-white">Who's In Today</div>
-            <div className="text-[10px] text-white/60">{hasCSV ? 'Based on today\'s report' : 'Based on rota'} · Drag to move</div>
+            <div className="text-sm font-semibold text-white">{isViewingToday ? "Who's In Today" : `Who's In — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</div>
+            <div className="text-[10px] text-white/60">{hasCSV ? 'Based on report data' : 'Based on rota'} · Drag to move</div>
           </div>
           <button onClick={() => setShowSettings(true)}
             className="px-2.5 py-1 rounded text-[11px] font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">⚙ Settings</button>

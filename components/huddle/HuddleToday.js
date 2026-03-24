@@ -5,6 +5,7 @@ import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import DemandPredictor from './DemandPredictor';
+import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, normalizeName, matchesStaffMember } from '@/lib/data';
 
 // ── Colour palette for capacity cards ─────────────────────────────
@@ -539,6 +540,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const [newAuthor, setNewAuthor] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
+  const [viewingDate, setViewingDate] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d; });
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const fileRef = useRef(null);
   const hs = data?.huddleSettings || {};
   const knownSlotTypes = hs?.knownSlotTypes || [];
@@ -557,6 +561,23 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const [showAddCard, setShowAddCard] = useState(false);
   const [newCardTitle, setNewCardTitle] = useState('');
   const [newCardColour, setNewCardColour] = useState('rose');
+
+  // Date navigation helpers
+  const realToday = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const isViewingToday = viewingDate.getTime() === realToday.getTime();
+  const maxDate = useMemo(() => { const d = new Date(realToday); d.setDate(d.getDate() + 30); return d; }, [realToday]);
+  const minDate = useMemo(() => { const d = new Date(realToday); d.setDate(d.getDate() - 30); return d; }, [realToday]);
+
+  const navigateDay = (direction) => {
+    const d = new Date(viewingDate);
+    do { d.setDate(d.getDate() + direction); } while (d.getDay() === 0 || d.getDay() === 6);
+    if (d >= minDate && d <= maxDate) setViewingDate(new Date(d));
+  };
+  const goToToday = () => setViewingDate(new Date(realToday));
+  const goToDate = (dateStr) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    if (d >= minDate && d <= maxDate) { setViewingDate(d); setShowCalendar(false); }
+  };
 
   // For non-urgent cards, null overrides should mean ALL slots, not fall through to urgent filter
   const allSlotsOverrides = useMemo(() => {
@@ -665,10 +686,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   };
   const removeMessage = (i) => { const updated = huddleMessages.filter((_, idx) => idx !== i); setHuddleMessages(updated); saveData({ ...data, huddleMessages: updated }, false); };
 
-  const isUploadedToday = data?.huddleCsvUploadedAt ? new Date(data.huddleCsvUploadedAt).toDateString() === new Date().toDateString() : false;
-  const todayStr = getTodayDateStr();
-  const displayDate = huddleData?.dates?.includes(todayStr) ? todayStr : huddleData?.dates?.[0];
+  const isUploadedToday = data?.huddleCsvUploadedAt ? new Date(data.huddleCsvUploadedAt).toDateString() === realToday.toDateString() : false;
+  const viewingDateStr = `${String(viewingDate.getDate()).padStart(2,'0')}-${viewingDate.toLocaleString('en-GB',{month:'short'})}-${viewingDate.getFullYear()}`;
+  const displayDate = huddleData?.dates?.includes(viewingDateStr) ? viewingDateStr : null;
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs, urgentOverrides) : null;
+  const hasDataForDate = !!displayDate;
 
   // Build initial overrides for urgent filter from the urgent slot categories
   const urgentInitialOverrides = useMemo(() => {
@@ -683,6 +705,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
   return (
     <div className="space-y-6 animate-in" onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
+      {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} onExit={() => setIsFullscreen(false)} />}
       {isDragging && (
         <div className="fixed inset-0 z-40 bg-teal-500/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-center border-2 border-dashed border-teal-400">
@@ -692,27 +715,67 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       )}
 
-      {/* Today header — Style C */}
+      {/* Date header with navigation */}
       <div className="card overflow-hidden">
         <div className="flex">
-          <div className="bg-emerald-500 px-5 py-4 flex flex-col items-center justify-center min-w-[90px]">
-            <div className="text-3xl font-extrabold text-white leading-none">{new Date().getDate()}</div>
-            <div className="text-xs font-semibold text-white/80 uppercase mt-0.5">{new Date().toLocaleDateString('en-GB', { month: 'short' })}</div>
+          <div className={`${isViewingToday ? 'bg-emerald-500' : 'bg-slate-600'} px-5 py-4 flex flex-col items-center justify-center min-w-[90px] transition-colors`}>
+            <div className="text-3xl font-extrabold text-white leading-none">{viewingDate.getDate()}</div>
+            <div className="text-xs font-semibold text-white/80 uppercase mt-0.5">{viewingDate.toLocaleDateString('en-GB', { month: 'short' })}</div>
           </div>
           <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 flex-1 px-5 py-4 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-extrabold text-white tracking-tight">Today</h1>
-              <div className="flex items-center gap-3 mt-0.5">
-                <span className="text-sm text-slate-300">{new Date().toLocaleDateString('en-GB', { weekday: 'long' })}</span>
-                {data?.huddleCsvUploadedAt && (
-                  <>
-                    <span className="w-1 h-1 rounded-full bg-slate-500" />
-                    <span className="text-xs text-slate-400">Report uploaded {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
-                  </>
+            <div className="flex items-center gap-3">
+              {/* Nav arrows */}
+              <button onClick={() => navigateDay(-1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+              <div>
+                <h1 className="text-2xl font-extrabold text-white tracking-tight">
+                  {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'long' })}
+                </h1>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <span className="text-sm text-slate-300">
+                    {isViewingToday
+                      ? viewingDate.toLocaleDateString('en-GB', { weekday: 'long' })
+                      : viewingDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                  {isViewingToday && data?.huddleCsvUploadedAt && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-slate-500" />
+                      <span className="text-xs text-slate-400">Report uploaded {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <button onClick={() => navigateDay(1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+              {/* Calendar button */}
+              <div className="relative">
+                <button onClick={() => setShowCalendar(!showCalendar)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </button>
+                {showCalendar && (
+                  <div className="absolute top-full left-0 mt-2 z-30 bg-white rounded-xl shadow-2xl border border-slate-200 p-3">
+                    <input type="date"
+                      value={viewingDate.toISOString().split('T')[0]}
+                      min={minDate.toISOString().split('T')[0]}
+                      max={maxDate.toISOString().split('T')[0]}
+                      onChange={(e) => goToDate(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+                  </div>
                 )}
               </div>
+              {/* Today button */}
+              {!isViewingToday && (
+                <button onClick={goToToday} className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/30 transition-colors">
+                  Today
+                </button>
+              )}
             </div>
-            <div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setIsFullscreen(true)} className="w-9 h-9 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors" title="Fullscreen huddle board">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+              </button>
               <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
               <Button variant={isUploadedToday ? 'upload_fresh' : 'upload_stale'} onClick={() => fileRef.current?.click()}>
                 {isUploadedToday ? '✓ Upload Report' : '⚠ Upload Report'}
@@ -721,6 +784,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           </div>
         </div>
       </div>
+
+      {/* Not-today banner */}
+      {!isViewingToday && (
+        <div className="card p-3 bg-slate-50 border-slate-200 flex items-center gap-2">
+          <svg className="w-4 h-4 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span className="text-xs text-slate-500">
+            Viewing {viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {!hasDataForDate && huddleData && ' — no CSV data available for this date'}
+          </span>
+          <button onClick={goToToday} className="ml-auto text-xs font-medium text-emerald-600 hover:text-emerald-800 underline">Back to today</button>
+        </div>
+      )}
 
       {error && <Card className="p-4 bg-red-50 border-red-200 text-red-700 text-sm">{error}</Card>}
 
@@ -753,10 +828,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       </div>
 
       {/* DEMAND PREDICTOR */}
-      <DemandPredictor />
+      <DemandPredictor viewingDate={viewingDate} />
 
       {/* WHO'S IN / OUT */}
-      <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} />
+      <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (
@@ -800,14 +875,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-base font-semibold text-white">Urgent on the Day</div>
-                      <div className="text-[11px] text-white/70">Available urgent capacity{displayDate !== todayStr ? ` (${displayDate})` : ''}</div>
+                      <div className="text-[11px] text-white/70">Available urgent capacity{displayDate && displayDate !== viewingDateStr ? ` (${displayDate})` : ''}</div>
                     </div>
                     <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" initialOverrides={urgentInitialOverrides} />
                   </div>
                 </div>
 
-                {displayDate !== todayStr && (
-                  <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">⚠️ Today not found in report. Showing {displayDate}.</div>
+                {displayDate && displayDate !== viewingDateStr && (
+                  <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">⚠️ Date not found in report. Showing {displayDate}.</div>
                 )}
 
                 {/* Main gauge row: AM + Total + PM */}

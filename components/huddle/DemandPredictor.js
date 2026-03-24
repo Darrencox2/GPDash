@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { getForecast, predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { getForecast, predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS, DOW_NAMES } from '@/lib/demandPredictor';
 
 const DEMAND_COLOURS = {
   low: { bg: '#10b98122', text: '#34d399', label: 'LOW DEMAND' },
@@ -10,79 +10,68 @@ const DEMAND_COLOURS = {
   closed: { bg: '#64748b22', text: '#94a3b8', label: 'CLOSED' },
 };
 
-export default function DemandPredictor() {
+export default function DemandPredictor({ viewingDate }) {
   const [forecast, setForecast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
 
+  const targetDate = useMemo(() => {
+    if (!viewingDate) return new Date();
+    const d = new Date(viewingDate);
+    d.setHours(0,0,0,0);
+    return d;
+  }, [viewingDate]);
+
+  const isViewingToday = useMemo(() => {
+    const now = new Date(); now.setHours(0,0,0,0);
+    return targetDate.getTime() === now.getTime();
+  }, [targetDate]);
+
   useEffect(() => {
     async function loadForecast() {
       try {
         setLoading(true);
-        // Get weather for the full range
         const weather = await getWeatherForecast(16);
-
-        // Build 7 past weekdays + today + 6 future weekdays
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
         const days = [];
 
-        // Past 14 calendar days to get ~7 working days
         for (let i = 14; i >= 1; i--) {
-          const d = new Date(today);
+          const d = new Date(targetDate);
           d.setDate(d.getDate() - i);
           const dk = d.toISOString().split('T')[0];
           const dayWeather = weather?.[dk] || null;
           const pred = predictDemand(d, dayWeather);
           days.push({
-            date: d,
-            dateKey: dk,
-            dayOfWeek: d.getDay(),
+            date: d, dateKey: dk, dayOfWeek: d.getDay(),
             dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],
-            dayNum: d.getDate(),
-            isPast: true,
-            isToday: false,
-            isWeekend: d.getDay() === 0 || d.getDay() === 6,
-            ...pred,
+            dayNum: d.getDate(), isPast: true, isToday: false,
+            isWeekend: d.getDay() === 0 || d.getDay() === 6, ...pred,
           });
         }
 
-        // Today
-        const todayDk = today.toISOString().split('T')[0];
+        const todayDk = targetDate.toISOString().split('T')[0];
         const todayWeather = weather?.[todayDk] || null;
-        const todayPred = predictDemand(today, todayWeather);
+        const todayPred = predictDemand(targetDate, todayWeather);
         days.push({
-          date: today,
-          dateKey: todayDk,
-          dayOfWeek: today.getDay(),
-          dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()],
-          dayNum: today.getDate(),
-          isPast: false,
-          isToday: true,
-          isWeekend: today.getDay() === 0 || today.getDay() === 6,
-          weather: todayWeather,
-          ...todayPred,
+          date: targetDate, dateKey: todayDk, dayOfWeek: targetDate.getDay(),
+          dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][targetDate.getDay()],
+          dayNum: targetDate.getDate(), isPast: false, isToday: true,
+          isWeekend: targetDate.getDay() === 0 || targetDate.getDay() === 6,
+          weather: todayWeather, ...todayPred,
         });
 
-        // Future 14 calendar days to get ~7 working days
         for (let i = 1; i <= 14; i++) {
-          const d = new Date(today);
+          const d = new Date(targetDate);
           d.setDate(d.getDate() + i);
           const dk = d.toISOString().split('T')[0];
           const dayWeather = weather?.[dk] || null;
           const pred = predictDemand(d, dayWeather);
           days.push({
-            date: d,
-            dateKey: dk,
-            dayOfWeek: d.getDay(),
+            date: d, dateKey: dk, dayOfWeek: d.getDay(),
             dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],
-            dayNum: d.getDate(),
-            isPast: false,
-            isToday: false,
-            isWeekend: d.getDay() === 0 || d.getDay() === 6,
-            ...pred,
+            dayNum: d.getDate(), isPast: false, isToday: false,
+            isWeekend: d.getDay() === 0 || d.getDay() === 6, ...pred,
           });
         }
 
@@ -94,7 +83,7 @@ export default function DemandPredictor() {
       setLoading(false);
     }
     loadForecast();
-  }, []);
+  }, [targetDate]);
 
   // Render chart
   useEffect(() => {
@@ -114,24 +103,36 @@ export default function DemandPredictor() {
 
       const days = forecast.days;
       const todayIdx = days.findIndex(d => d.isToday);
-      const labels = days.map(d => d.isWeekend ? d.dayName : `${d.dayName} ${d.dayNum}`);
-      const values = days.map(d => d.isWeekend ? null : d.predicted);
-      const lows = days.map(d => d.isWeekend ? null : d.confidence.low);
-      const highs = days.map(d => d.isWeekend ? null : d.confidence.high);
-      const isWknd = days.map(d => d.isWeekend);
+      const isClosed = days.map(d => d.isWeekend || d.isBankHoliday);
+      const isBH = days.map(d => d.isBankHoliday);
+      const isFirstBack = days.map(d => d.factors?.firstDayBack !== undefined);
+      const labels = days.map(d => {
+        if (d.isBankHoliday) return 'BH';
+        if (d.isWeekend) return d.dayName;
+        return `${d.dayName} ${d.dayNum}`;
+      });
+      const values = days.map(d => isClosed[days.indexOf(d)] ? null : d.predicted);
+      const lows = days.map(d => isClosed[days.indexOf(d)] ? null : d.confidence.low);
+      const highs = days.map(d => isClosed[days.indexOf(d)] ? null : d.confidence.high);
 
-      const weekendPlugin = {
-        id: 'weekendShade',
+      const shadePlugin = {
+        id: 'closedShade',
         beforeDraw(chart) {
           const ctx = chart.ctx;
           const xScale = chart.scales.x;
           const yScale = chart.scales.y;
           const barW = (xScale.getPixelForValue(1) - xScale.getPixelForValue(0)) * 0.5;
           ctx.save();
-          ctx.fillStyle = '#1e293b';
-          for (let i = 0; i < isWknd.length; i++) {
-            if (isWknd[i]) {
-              ctx.fillRect(xScale.getPixelForValue(i) - barW, yScale.top, barW * 2, yScale.bottom - yScale.top);
+          for (let i = 0; i < isClosed.length; i++) {
+            if (isClosed[i]) {
+              const x = xScale.getPixelForValue(i);
+              ctx.fillStyle = isBH[i] ? '#1c1917' : '#1e293b';
+              ctx.fillRect(x - barW, yScale.top, barW * 2, yScale.bottom - yScale.top);
+              // Draw a subtle colored top border for bank holidays
+              if (isBH[i]) {
+                ctx.fillStyle = '#f59e0b33';
+                ctx.fillRect(x - barW, yScale.top, barW * 2, 3);
+              }
             }
           }
           ctx.restore();
@@ -142,16 +143,33 @@ export default function DemandPredictor() {
         id: 'todayLine',
         afterDraw(chart) {
           const ctx = chart.ctx;
-          const x = chart.scales.x.getPixelForValue(todayIdx);
-          const y = chart.scales.y;
+          const xScale = chart.scales.x;
+          const yScale = chart.scales.y;
+          // Today vertical line
+          const x = xScale.getPixelForValue(todayIdx);
           ctx.save();
           ctx.beginPath();
           ctx.setLineDash([3, 3]);
           ctx.strokeStyle = '#f59e0b44';
           ctx.lineWidth = 1;
-          ctx.moveTo(x, y.top);
-          ctx.lineTo(x, y.bottom);
+          ctx.moveTo(x, yScale.top);
+          ctx.lineTo(x, yScale.bottom);
           ctx.stroke();
+          // First-day-back surge markers (small upward triangle)
+          ctx.setLineDash([]);
+          for (let i = 0; i < isFirstBack.length; i++) {
+            if (isFirstBack[i] && values[i] !== null) {
+              const px = xScale.getPixelForValue(i);
+              const py = yScale.getPixelForValue(values[i]);
+              ctx.fillStyle = '#f87171';
+              ctx.beginPath();
+              ctx.moveTo(px - 4, py - 12);
+              ctx.lineTo(px + 4, py - 12);
+              ctx.lineTo(px, py - 18);
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
           ctx.restore();
         }
       };
@@ -183,7 +201,7 @@ export default function DemandPredictor() {
             },
           ],
         },
-        plugins: [weekendPlugin, todayLinePlugin],
+        plugins: [shadePlugin, todayLinePlugin],
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false }, tooltip: { enabled: false } },
@@ -192,7 +210,8 @@ export default function DemandPredictor() {
               ticks: {
                 font: { size: 9 },
                 color: (ctx) => {
-                  if (isWknd[ctx.index]) return '#334155';
+                  if (isBH[ctx.index]) return '#f59e0b88';
+                  if (isClosed[ctx.index]) return '#334155';
                   if (ctx.index === todayIdx) return '#f59e0b';
                   return '#64748b';
                 },
@@ -231,6 +250,17 @@ export default function DemandPredictor() {
   const rangePct = t.confidence.high > t.confidence.low
     ? ((t.predicted - t.confidence.low) / (t.confidence.high - t.confidence.low)) * 100
     : 50;
+
+  // Comparisons
+  // "vs typical Monday in March" comparison
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dowIdx = t.date instanceof Date ? (t.date.getDay() + 6) % 7 : 0;
+  const monthIdx = t.date instanceof Date ? t.date.getMonth() : 0;
+  const typicalDayMonth = dowIdx < 5 ? Math.round(BASELINE + DOW_EFFECTS[dowIdx] + MONTH_EFFECTS[monthIdx]) : 0;
+  const dayLabel = DOW_NAMES[dowIdx < 5 ? dowIdx : 0];
+  const monthLabel = MONTH_NAMES[monthIdx];
+  const vsPct = typicalDayMonth > 0 ? Math.round(((t.predicted - typicalDayMonth) / typicalDayMonth) * 100) : 0;
+  const vsAbove = vsPct >= 0;
 
   // Get top 5 factors by absolute effect
   const topFactors = [];
@@ -279,11 +309,32 @@ export default function DemandPredictor() {
       <div className="flex items-stretch">
         {/* Left: Hero number + range */}
         <div className="px-6 py-5 flex flex-col justify-center border-r border-slate-800 min-w-[155px]">
-          <div className="text-[10px] text-slate-500 uppercase tracking-wider">Today's forecast</div>
+          <div className="text-[10px] text-slate-500 uppercase tracking-wider">{isViewingToday ? "Today's forecast" : dayLabel + "'s forecast"}</div>
           <div className="text-[52px] font-extrabold leading-none mt-1" style={{ color: dc.text }}>{t.predicted}</div>
           <div className="text-xs text-slate-400 mt-1">patient requests</div>
-          <div className="mt-1.5">
+          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded" style={{ background: dc.bg, color: dc.text }}>{dc.label}</span>
+          </div>
+          {typicalDayMonth > 0 && vsPct !== 0 && (
+            <div className="mt-1.5 text-[10px] text-slate-500">
+              <span className={vsAbove ? 'text-amber-400' : 'text-emerald-400'}>{Math.abs(vsPct)}% {vsAbove ? 'above' : 'below'}</span>
+              {' '}a typical {dayLabel} in {monthLabel}
+            </div>
+          )}
+          {/* Comparisons */}
+          <div className="mt-2.5 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-slate-500">vs average</span>
+              <span className={`text-[11px] font-bold ${vsAvgPct >= 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                {vsAvgPct >= 0 ? '+' : ''}{vsAvgPct}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-slate-500">vs typical {dayLabel}</span>
+              <span className={`text-[11px] font-bold ${vsTypicalPct >= 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                {vsTypicalPct >= 0 ? '+' : ''}{vsTypicalPct}%
+              </span>
+            </div>
           </div>
           {/* Range bar */}
           <div className="flex items-center gap-2 mt-3 p-2 bg-slate-800 rounded-lg">
@@ -307,11 +358,13 @@ export default function DemandPredictor() {
           <div className="flex-1 relative" style={{ minHeight: '165px' }}>
             <canvas ref={chartRef} />
           </div>
-          <div className="flex justify-center gap-4 mt-1 text-[9px] text-slate-600">
+          <div className="flex justify-center gap-4 mt-1 text-[9px] text-slate-600 flex-wrap">
             <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-slate-400" />Past</span>
             <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-sky-400 border-t border-dashed border-sky-400" />Forecast</span>
             <span className="flex items-center gap-1"><span className="inline-block w-3 h-1.5 rounded-sm" style={{ background: 'rgba(56,189,248,0.12)' }} />Range</span>
             <span className="flex items-center gap-1"><span className="inline-block w-3 h-1.5 rounded-sm bg-slate-800" />Weekend</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-3 h-1.5 rounded-sm" style={{ background: '#1c1917', borderTop: '2px solid #f59e0b55' }} />Bank hol</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-0 h-0" style={{ borderLeft: '3px solid transparent', borderRight: '3px solid transparent', borderBottom: '5px solid #f87171' }} />Surge</span>
           </div>
         </div>
       </div>

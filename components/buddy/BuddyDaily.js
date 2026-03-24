@@ -9,7 +9,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const presentIds = ensureArray(getPresentClinicians(selectedDay));
   const absentIds = ensureArray(getAbsentClinicians(selectedDay));
   const dayOffIds = ensureArray(getDayOffClinicians(selectedDay));
-  const cliniciansList = ensureArray(data.clinicians);
+  const cliniciansList = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
   const presentClinicians = cliniciansList.filter(c => presentIds.includes(c.id));
   const absentClinicians = cliniciansList.filter(c => absentIds.includes(c.id));
   const dayOffClinicians = cliniciansList.filter(c => dayOffIds.includes(c.id));
@@ -22,7 +22,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const pIds = ensureArray(getPresentClinicians(day));
     const aIds = ensureArray(getAbsentClinicians(day));
     const doIds = ensureArray(getDayOffClinicians(day));
-    const cls = ensureArray(data.clinicians);
+    const cls = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
     const { allocations, dayOffAllocations } = generateBuddyAllocations(cls, pIds, aIds, doIds, data.settings || DEFAULT_SETTINGS);
     const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: pIds, absentIds: aIds, dayOffIds: doIds } };
     saveData({ ...data, allocationHistory: newHistory });
@@ -83,7 +83,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             const newOverrides = { ...currentData.dailyOverrides };
             const today = new Date();
             let stopped = false;
-            const clins = Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {});
+            const clins = (Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {})).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
             const plannedAbs = Array.isArray(currentData.plannedAbsences) ? currentData.plannedAbsences : Object.values(currentData.plannedAbsences || {});
             
             for (let i = 0; i < 28 && !stopped; i++) {
