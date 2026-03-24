@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
 import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
@@ -56,6 +56,152 @@ function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981',
       </svg>
       {label && <div className="text-[10px] text-slate-500 font-medium mt-0.5">{label}</div>}
       {sublabel && <div className="text-[9px] text-slate-400">{sublabel}</div>}
+    </div>
+  );
+}
+
+// ── AI Huddle Summary ─────────────────────────────────────────────
+function AISummary({ huddleData, capacity, huddleSettings, huddleMessages, routineDays }) {
+  const [summary, setSummary] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  const generateSummary = useCallback(async () => {
+    if (!capacity) return;
+    setLoading(true);
+    setSummary('');
+
+    try {
+      const hs = huddleSettings || {};
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const todayDayName = dayNames[new Date().getDay()];
+      const todayStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+      // Urgent capacity
+      const urgentAm = capacity.am.total + (capacity.am.embargoed || 0);
+      const urgentPm = capacity.pm.total + (capacity.pm.embargoed || 0);
+      const urgentTotal = urgentAm + urgentPm;
+      const bookedTotal = (capacity.am.booked || 0) + (capacity.pm.booked || 0);
+      const expectedAm = hs.expectedCapacity?.[todayDayName]?.am || 0;
+      const expectedPm = hs.expectedCapacity?.[todayDayName]?.pm || 0;
+      const expectedTotal = expectedAm + expectedPm;
+
+      // Clinician breakdown
+      const clinicianSummary = [...capacity.am.byClinician, ...capacity.pm.byClinician]
+        .reduce((acc, c) => {
+          if (!acc[c.name]) acc[c.name] = { avail: 0, emb: 0, booked: 0 };
+          acc[c.name].avail += c.available + (c.embargoed || 0);
+          acc[c.name].booked += c.booked || 0;
+          return acc;
+        }, {});
+
+      // Routine capacity (weekly ranges)
+      const rDays = routineDays || [];
+      const ranges = [
+        { label: '0-7 days', start: 0, end: 7 },
+        { label: '8-14 days', start: 7, end: 14 },
+        { label: '15-21 days', start: 14, end: 21 },
+        { label: '22-28 days', start: 21, end: 28 },
+      ].map(({ label, start, end }) => {
+        const slice = rDays.slice(start, end).filter(d => d.available !== null);
+        const avail = slice.reduce((s, d) => s + (d.available || 0) + (d.embargoed || 0), 0);
+        const booked = slice.reduce((s, d) => s + (d.booked || 0), 0);
+        const total = avail + booked;
+        return `${label}: ${total > 0 ? Math.round((avail / total) * 100) : 0}% available (${avail} avail, ${booked} booked)`;
+      });
+
+      // Noticeboard
+      const notices = (huddleMessages || []).map(m => `${m.author ? m.author + ': ' : ''}${m.text}`).slice(0, 5);
+
+      const prompt = `You are a helpful clinical operations assistant at a UK GP practice. Generate a concise morning huddle briefing (3-5 short bullet points, no headers) based on today's data.
+
+Date: ${todayStr}
+
+URGENT ON-THE-DAY CAPACITY:
+- Total available: ${urgentTotal} slots (AM: ${urgentAm}, PM: ${urgentPm})
+- Booked: ${bookedTotal}
+${expectedTotal > 0 ? `- Target: ${expectedTotal} (AM: ${expectedAm}, PM: ${expectedPm}) — currently at ${Math.round((urgentTotal / expectedTotal) * 100)}%` : '- No target set'}
+
+Clinician breakdown:
+${Object.entries(clinicianSummary).map(([name, d]) => `  ${name}: ${d.avail} available, ${d.booked} booked`).join('\n')}
+
+ROUTINE CAPACITY (next 28 days):
+${ranges.join('\n')}
+
+${notices.length > 0 ? `NOTICEBOARD MESSAGES:\n${notices.join('\n')}` : 'No noticeboard messages.'}
+
+Keep it practical and actionable. Highlight any concerns (low capacity, uneven distribution, pressure points). Use plain language suitable for a clinical team. No markdown formatting — just plain text bullet points starting with •`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      const data = await response.json();
+      const text = data.content?.map(c => c.text || '').join('') || 'Unable to generate summary.';
+      setSummary(text);
+    } catch (err) {
+      console.error('AI Summary error:', err);
+      setSummary('Unable to generate summary — please try again.');
+    }
+    setLoading(false);
+  }, [capacity, huddleSettings, huddleMessages, routineDays]);
+
+  if (!capacity) return null;
+
+  return (
+    <div className="card overflow-hidden border-indigo-200">
+      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-base">✨</span>
+            <div>
+              <div className="text-sm font-semibold text-white">AI Huddle Summary</div>
+              <div className="text-[10px] text-white/70">Generated briefing from today's data</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {summary && (
+              <button onClick={() => setCollapsed(!collapsed)}
+                className="px-2 py-1 rounded text-[11px] font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+                {collapsed ? 'Show' : 'Hide'}
+              </button>
+            )}
+            <button onClick={generateSummary} disabled={loading}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${loading ? 'bg-white/20 text-white/60 cursor-wait' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+              {loading ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Generating...
+                </span>
+              ) : summary ? '↻ Refresh' : 'Generate'}
+            </button>
+          </div>
+        </div>
+      </div>
+      {!collapsed && (
+        <div className="p-5">
+          {!summary && !loading && (
+            <div className="text-center py-4">
+              <p className="text-sm text-slate-500">Click Generate to create an AI briefing from today's capacity data, clinician availability, and noticeboard messages.</p>
+            </div>
+          )}
+          {loading && !summary && (
+            <div className="flex items-center gap-3 py-4 justify-center">
+              <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+              <span className="text-sm text-slate-500">Analysing today's data...</span>
+            </div>
+          )}
+          {summary && (
+            <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{summary}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -445,6 +591,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const todayStr = getTodayDateStr();
   const displayDate = huddleData?.dates?.includes(todayStr) ? todayStr : huddleData?.dates?.[0];
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs, urgentOverrides) : null;
+  const routineDays = useMemo(() => huddleData ? getNDayAvailability(huddleData, hs, 28, effectiveRoutineOverrides) : [], [huddleData, hs, effectiveRoutineOverrides]);
 
   return (
     <div className="space-y-6 animate-in" onDragOver={e => { e.preventDefault(); setIsDragging(true); }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={onDrop}>
@@ -493,6 +640,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           </div>
         </div>
       </div>
+
+      {/* AI SUMMARY */}
+      {huddleData && capacity && (
+        <AISummary huddleData={huddleData} capacity={capacity} huddleSettings={hs} huddleMessages={huddleMessages} routineDays={routineDays} />
+      )}
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (
