@@ -23,6 +23,35 @@ const DEFAULT_CAPACITY_CARDS = [
   { id: 'physio', title: 'Physiotherapy', colour: 'sky' },
 ];
 
+// ── Reusable radial gauge (SVG) ───────────────────────────────────
+function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981', trackColour = '#e2e8f0', label, sublabel, children }) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  const r = (size - strokeWidth) / 2;
+  const cx = size / 2, cy = size / 2;
+  const startAngle = 135, sweepAngle = 270;
+  const endAngle = startAngle + sweepAngle;
+  const filledAngle = startAngle + (sweepAngle * (pct / 100));
+  const toRad = (deg) => (deg - 90) * Math.PI / 180;
+  const arcPoint = (angle) => ({ x: cx + r * Math.cos(toRad(angle)), y: cy + r * Math.sin(toRad(angle)) });
+  const arcPath = (start, end) => {
+    if (end - start < 0.1) return '';
+    const s = arcPoint(start), e = arcPoint(end);
+    const large = (end - start) > 180 ? 1 : 0;
+    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
+  };
+  return (
+    <div className="flex flex-col items-center">
+      <svg width={size} height={size * 0.88} viewBox={`0 0 ${size} ${size * 0.88}`}>
+        <path d={arcPath(startAngle, endAngle)} fill="none" stroke={trackColour} strokeWidth={strokeWidth} strokeLinecap="round" />
+        {pct > 0 && <path d={arcPath(startAngle, filledAngle)} fill="none" stroke={colour} strokeWidth={strokeWidth} strokeLinecap="round" style={{ filter: `drop-shadow(0 0 4px ${colour}40)` }} />}
+        {children}
+      </svg>
+      {label && <div className="text-[10px] text-slate-500 font-medium -mt-1">{label}</div>}
+      {sublabel && <div className="text-[9px] text-slate-400">{sublabel}</div>}
+    </div>
+  );
+}
+
 // ── Match CSV clinician name to team member initials ──────────────
 function cleanName(name) {
   if (!name) return '';
@@ -148,11 +177,9 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal' 
                   {avail}{emb > 0 && <span className="text-slate-400">+{emb}</span>}
                 </div>
               )}
-              <div className={`w-full rounded-t-md overflow-hidden cursor-pointer transition-all duration-200 ${isHovered ? `ring-2 ${ac.glow} shadow-lg scale-x-110 z-10` : ''}`}
+              <div className={`w-full rounded-t-md overflow-hidden cursor-pointer transition-all duration-200 ${isToday ? 'ring-2 ring-slate-900 z-10' : ''} ${isHovered ? `ring-2 ${ac.glow} shadow-lg scale-x-110 z-10` : ''}`}
                 style={{ height: hasData ? `${totalPct}%` : '8%', minHeight: 3 }}>
-                {isToday ? (
-                  <div className={`w-full h-full bg-slate-800 ${isHovered ? 'brightness-110' : ''}`} />
-                ) : hasData ? (
+                {hasData && total > 0 ? (
                   <div className={`w-full h-full flex flex-col justify-end transition-all duration-200 ${isHovered ? 'brightness-110' : ''}`}>
                     {avail > 0 && <div className={`${ac.bar} opacity-80`} style={{ height: `${(avail / total) * 100}%` }} />}
                     {emb > 0 && <div className={ac.emb} style={{ height: `${(emb / total) * 100}%` }} />}
@@ -234,11 +261,9 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides }) {
                 </div>
               )}
               {/* Bar */}
-              <div className={`w-full rounded-t overflow-hidden cursor-pointer transition-all duration-200 ${isHovered ? 'ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-400/20 scale-x-110 z-10' : ''}`}
+              <div className={`w-full rounded-t overflow-hidden cursor-pointer transition-all duration-200 ${isToday ? 'ring-2 ring-slate-900 z-10' : ''} ${isHovered ? 'ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-400/20 scale-x-110 z-10' : ''}`}
                 style={{ height: hasData ? `${pct}%` : '4%', minHeight: 2 }}>
-                {isToday ? (
-                  <div className={`w-full h-full bg-slate-800 ${isHovered ? 'brightness-110' : ''}`} />
-                ) : !hasData ? (
+                {!hasData ? (
                   <div className="w-full h-full bg-slate-100" />
                 ) : total === 0 ? (
                   <div className="w-full h-full bg-red-200" />
@@ -476,8 +501,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             // For urgent on-the-day, embargoed slots release during the day so count as available
             const urgentAm = capacity.am.total + (capacity.am.embargoed || 0);
             const urgentPm = capacity.pm.total + (capacity.pm.embargoed || 0);
+            const bookedAm = capacity.am.booked || 0;
+            const bookedPm = capacity.pm.booked || 0;
             const urgentTotal = urgentAm + urgentPm;
-            const bookedTotal = (capacity.am.booked || 0) + (capacity.pm.booked || 0);
+            const bookedTotal = bookedAm + bookedPm;
             const grandTotal = urgentTotal + bookedTotal;
 
             // Get expected target for today from settings
@@ -489,23 +516,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             const hasTarget = expectedTotal > 0;
             const pct = hasTarget ? Math.min((urgentTotal / expectedTotal) * 100, 100) : (grandTotal > 0 ? (urgentTotal / grandTotal) * 100 : 0);
             const gaugeColour = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
-            const gaugeTrack = '#e2e8f0';
-
-            // SVG arc calculation (270° sweep)
-            const radius = 70;
-            const strokeWidth = 12;
-            const cx = 90, cy = 90;
-            const startAngle = 135; // degrees from top
-            const sweepAngle = 270;
-            const endAngle = startAngle + sweepAngle;
-            const filledAngle = startAngle + (sweepAngle * (pct / 100));
-            const toRad = (deg) => (deg - 90) * Math.PI / 180;
-            const arcPoint = (angle) => ({ x: cx + radius * Math.cos(toRad(angle)), y: cy + radius * Math.sin(toRad(angle)) });
-            const arcPath = (start, end) => {
-              const s = arcPoint(start), e = arcPoint(end);
-              const large = (end - start) > 180 ? 1 : 0;
-              return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${large} 1 ${e.x} ${e.y}`;
-            };
+            const amPct = (expectedAm > 0) ? Math.min((urgentAm / expectedAm) * 100, 100) : (urgentAm + bookedAm > 0 ? (urgentAm / (urgentAm + bookedAm)) * 100 : 0);
+            const pmPct = (expectedPm > 0) ? Math.min((urgentPm / expectedPm) * 100, 100) : (urgentPm + bookedPm > 0 ? (urgentPm / (urgentPm + bookedPm)) * 100 : 0);
+            const amGaugeColour = amPct >= 80 ? '#f59e0b' : amPct >= 50 ? '#f59e0b' : '#ef4444';
+            const pmGaugeColour = pmPct >= 80 ? '#3b82f6' : pmPct >= 50 ? '#3b82f6' : '#ef4444';
 
             return (
               <div className="card overflow-hidden">
@@ -523,138 +537,141 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">⚠️ Today not found in report. Showing {displayDate}.</div>
                 )}
 
-                {/* Gauge + AM/PM */}
-                <div className="flex flex-col md:flex-row items-center">
-                  {/* Radial gauge */}
-                  <div className="flex-shrink-0 py-5 px-6 flex flex-col items-center">
-                    <svg width="180" height="160" viewBox="0 0 180 160">
-                      {/* Track */}
-                      <path d={arcPath(startAngle, endAngle)} fill="none" stroke={gaugeTrack} strokeWidth={strokeWidth} strokeLinecap="round" />
-                      {/* Fill */}
-                      {pct > 0 && (
-                        <path d={arcPath(startAngle, filledAngle)} fill="none" stroke={gaugeColour} strokeWidth={strokeWidth} strokeLinecap="round"
-                          style={{ filter: `drop-shadow(0 0 6px ${gaugeColour}40)` }} />
-                      )}
-                      {/* Centre number */}
-                      <text x={cx} y={cy - 6} textAnchor="middle" className="text-4xl font-bold" fill="#1e293b" style={{ fontSize: '40px', fontWeight: 700 }}>{urgentTotal}</text>
-                      <text x={cx} y={cy + 14} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '11px' }}>available</text>
-                      {hasTarget && (
-                        <text x={cx} y={cy + 28} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>of {expectedTotal} target</text>
-                      )}
-                      {bookedTotal > 0 && (
-                        <text x={cx} y={hasTarget ? cy + 42 : cy + 28} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>{bookedTotal} booked</text>
-                      )}
-                    </svg>
-                    {/* AM / PM mini stats below gauge */}
-                    <div className="flex items-center gap-6 -mt-2">
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-amber-600">{urgentAm}</div>
-                        <div className="text-[10px] text-slate-400">AM</div>
+                {/* Main gauge row: Total + AM + PM gauges */}
+                <div className="flex items-center justify-center gap-6 md:gap-10 py-6 px-4 border-b border-slate-100">
+                  {/* AM gauge */}
+                  <MiniGauge value={urgentAm} max={expectedAm || (urgentAm + bookedAm)} size={90} strokeWidth={8} colour={amGaugeColour}>
+                    <text x="45" y="36" textAnchor="middle" fill="#1e293b" style={{ fontSize: '22px', fontWeight: 700 }}>{urgentAm}</text>
+                    <text x="45" y="50" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '9px' }}>Morning</text>
+                    {bookedAm > 0 && <text x="45" y="61" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '8px' }}>{bookedAm} bkd</text>}
+                  </MiniGauge>
+
+                  {/* Total gauge (larger) */}
+                  <MiniGauge value={urgentTotal} max={expectedTotal || grandTotal} size={160} strokeWidth={12} colour={gaugeColour}>
+                    <text x="80" y="60" textAnchor="middle" fill="#1e293b" style={{ fontSize: '44px', fontWeight: 700 }}>{urgentTotal}</text>
+                    <text x="80" y="80" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '11px' }}>available</text>
+                    {hasTarget && <text x="80" y="94" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>of {expectedTotal} target</text>}
+                    {bookedTotal > 0 && <text x="80" y={hasTarget ? 108 : 94} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>{bookedTotal} booked</text>}
+                  </MiniGauge>
+
+                  {/* PM gauge */}
+                  <MiniGauge value={urgentPm} max={expectedPm || (urgentPm + bookedPm)} size={90} strokeWidth={8} colour={pmGaugeColour}>
+                    <text x="45" y="36" textAnchor="middle" fill="#1e293b" style={{ fontSize: '22px', fontWeight: 700 }}>{urgentPm}</text>
+                    <text x="45" y="50" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '9px' }}>Afternoon</text>
+                    {bookedPm > 0 && <text x="45" y="61" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '8px' }}>{bookedPm} bkd</text>}
+                  </MiniGauge>
+                </div>
+
+                {/* AM / PM clinician breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                  {[{ label: 'Morning', data: capacity.am, colour: 'text-amber-600' },
+                    { label: 'Afternoon', data: capacity.pm, colour: 'text-blue-600' }].map(s => {
+                    const sessionTotal = s.data.total + (s.data.embargoed || 0);
+                    return (
+                      <div key={s.label} className="p-5">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="text-sm font-bold text-slate-900">{s.label}</div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-lg font-bold ${s.colour}`}>{sessionTotal}</span>
+                            {(s.data.booked || 0) > 0 && <span className="text-xs text-slate-400">({s.data.booked} bkd)</span>}
+                          </div>
+                        </div>
+                        {s.data.byClinician.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {s.data.byClinician.map((c, i) => {
+                              const initials = getInitials(c.name, teamClinicians);
+                              const clinicianTotal = c.available + (c.embargoed || 0);
+                              return (
+                                <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 bg-slate-50 rounded-lg border border-slate-100" title={c.name}>
+                                  <span className="text-sm font-bold text-slate-700 bg-slate-200 rounded px-1.5 py-0.5 min-w-[30px] text-center">{initials}</span>
+                                  <span className={`text-sm font-semibold tabular-nums ${s.colour}`}>{clinicianTotal}</span>
+                                  {(c.booked || 0) > 0 && <span className="text-xs text-slate-400 tabular-nums">({c.booked})</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : <div className="text-center text-slate-400 text-sm py-3">No capacity</div>}
                       </div>
-                      <div className="w-px h-6 bg-slate-200" />
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">{urgentPm}</div>
-                        <div className="text-[10px] text-slate-400">PM</div>
-                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Slot type breakdown (integrated) */}
+                {capacity.bySlotType.length > 0 && (
+                  <div className="border-t border-slate-200">
+                    <div className="bg-slate-50 px-5 py-2.5 border-b border-slate-100"><div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">By Slot Type</div></div>
+                    <div className="px-5 py-3">
+                      <table className="w-full text-sm">
+                        <thead><tr className="text-xs text-slate-400 uppercase">
+                          <th className="text-left py-1 font-medium">Slot Type</th>
+                          <th className="text-right py-1 font-medium w-20">AM</th>
+                          <th className="text-right py-1 font-medium w-20">PM</th>
+                          <th className="text-right py-1 font-medium w-20">Total</th>
+                        </tr></thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {capacity.bySlotType.map((s, i) => {
+                            const amAvail = (s.am || 0) + (s.amEmb || 0);
+                            const pmAvail = (s.pm || 0) + (s.pmEmb || 0);
+                            const totalAvail = amAvail + pmAvail;
+                            return (
+                              <tr key={i}>
+                                <td className="py-1.5 text-slate-600 text-xs">{s.name}</td>
+                                <td className="py-1.5 text-right"><span className="text-amber-600 font-medium text-xs">{amAvail || '–'}</span>{(s.amBook || 0) > 0 && <span className="text-slate-400 text-[10px] ml-1">({s.amBook})</span>}</td>
+                                <td className="py-1.5 text-right"><span className="text-blue-600 font-medium text-xs">{pmAvail || '–'}</span>{(s.pmBook || 0) > 0 && <span className="text-slate-400 text-[10px] ml-1">({s.pmBook})</span>}</td>
+                                <td className="py-1.5 text-right"><span className="font-semibold text-slate-800 text-xs">{totalAvail}</span>{((s.totalBook || 0)) > 0 && <span className="text-slate-400 text-[10px] ml-1">({s.totalBook})</span>}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-
-                  {/* AM / PM clinician breakdown */}
-                  <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100 border-t md:border-t-0 md:border-l border-slate-100">
-                    {[{ label: 'Morning', data: capacity.am, colour: 'text-amber-600' },
-                      { label: 'Afternoon', data: capacity.pm, colour: 'text-blue-600' }].map(s => {
-                      const sessionTotal = s.data.total + (s.data.embargoed || 0);
-                      return (
-                        <div key={s.label} className="p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="text-xs font-bold text-slate-900">{s.label}</div>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm font-bold ${s.colour}`}>{sessionTotal}</span>
-                              {(s.data.booked || 0) > 0 && <span className="text-[10px] text-slate-400">({s.data.booked} bkd)</span>}
-                            </div>
-                          </div>
-                          {s.data.byClinician.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-1">
-                              {s.data.byClinician.map((c, i) => {
-                                const initials = getInitials(c.name, teamClinicians);
-                                const clinicianTotal = c.available + (c.embargoed || 0);
-                                return (
-                                  <div key={i} className="flex items-center gap-2 py-1 px-2 bg-slate-50 rounded border border-slate-100" title={c.name}>
-                                    <span className="text-xs font-bold text-slate-700 bg-slate-200 rounded px-1 py-0.5 min-w-[26px] text-center">{initials}</span>
-                                    <span className={`text-xs font-semibold tabular-nums ${s.colour}`}>{clinicianTotal}</span>
-                                    {(c.booked || 0) > 0 && <span className="text-[10px] text-slate-400 tabular-nums">({c.booked})</span>}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : <div className="text-center text-slate-400 text-xs py-2">No capacity</div>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                )}
               </div>
             );
           })()}
 
-          {/* Slot type breakdown */}
-          {capacity.bySlotType.length > 0 && (
-            <div className="card overflow-hidden">
-              <div className="bg-slate-50 px-5 py-3 border-b border-slate-200"><div className="text-sm font-semibold text-slate-900">Capacity by Slot Type</div></div>
-              <div className="p-4">
-                <table className="w-full text-sm">
-                  <thead><tr className="text-xs text-slate-500 uppercase">
-                    <th className="text-left py-1 font-medium">Slot Type</th>
-                    <th className="text-right py-1 font-medium w-24">AM</th>
-                    <th className="text-right py-1 font-medium w-24">PM</th>
-                    <th className="text-right py-1 font-medium w-24">Total</th>
-                  </tr></thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {capacity.bySlotType.map((s, i) => {
-                      const amAvail = (s.am || 0) + (s.amEmb || 0);
-                      const pmAvail = (s.pm || 0) + (s.pmEmb || 0);
-                      const totalAvail = amAvail + pmAvail;
-                      return (
-                        <tr key={i}>
-                          <td className="py-2 text-slate-700">{s.name}</td>
-                          <td className="py-2 text-right">
-                            <span className="text-amber-600 font-medium">{amAvail || '–'}</span>
-                            {(s.amBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.amBook})</span>}
-                          </td>
-                          <td className="py-2 text-right">
-                            <span className="text-blue-600 font-medium">{pmAvail || '–'}</span>
-                            {(s.pmBook || 0) > 0 && <span className="text-slate-400 text-xs ml-1">({s.pmBook})</span>}
-                          </td>
-                          <td className="py-2 text-right">
-                            <span className="font-semibold text-slate-900">{totalAvail}</span>
-                            {((s.totalBook || 0)) > 0 && <span className="text-slate-400 text-xs ml-1">({s.totalBook})</span>}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <div className="mt-3 pt-3 border-t border-slate-100 flex gap-4 text-[11px] text-slate-400">
-                  <span>Numbers = available (incl. embargoed)</span>
-                  <span>(n) = booked</span>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* ─── ROUTINE CAPACITY (28 days) ─── */}
-          <div className="card overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-base font-semibold text-white">Routine Capacity</div>
-                  <div className="text-[11px] text-white/70">28-day availability overview</div>
+          {(() => {
+            const routineDays = getNDayAvailability(huddleData, hs, 28, effectiveRoutineOverrides);
+            const periodGauges = [7, 14, 21, 28].map(n => {
+              const slice = routineDays.slice(0, n).filter(d => d.available !== null);
+              const avail = slice.reduce((s, d) => s + (d.available || 0) + (d.embargoed || 0), 0);
+              const booked = slice.reduce((s, d) => s + (d.booked || 0), 0);
+              const total = avail + booked;
+              return { days: n, avail, booked, total, pct: total > 0 ? (avail / total) * 100 : 0 };
+            });
+
+            return (
+              <div className="card overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-base font-semibold text-white">Routine Capacity</div>
+                      <div className="text-[11px] text-white/70">28-day availability overview</div>
+                    </div>
+                    <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" />
+                  </div>
                 </div>
-                <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" />
+
+                {/* Booking gauges — 7/14/21/28 day */}
+                <div className="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
+                  {periodGauges.map(g => (
+                    <div key={g.days} className="flex flex-col items-center py-4 px-2">
+                      <MiniGauge value={g.avail} max={g.total} size={72} strokeWidth={7} colour="#10b981" trackColour="#e2e8f0">
+                        <text x="36" y="28" textAnchor="middle" fill="#1e293b" style={{ fontSize: '16px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
+                        <text x="36" y="40" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '8px' }}>free</text>
+                      </MiniGauge>
+                      <div className="text-[11px] font-semibold text-slate-700 mt-1">{g.days} days</div>
+                      <div className="text-[9px] text-slate-400">{g.avail} avail · {g.booked} bkd</div>
+                    </div>
+                  ))}
+                </div>
+
+                <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={effectiveRoutineOverrides} />
               </div>
-            </div>
-            <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={effectiveRoutineOverrides} />
-          </div>
+            );
+          })()}
 
           {/* ─── CUSTOM CAPACITY CARDS (7 days each) ─── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
