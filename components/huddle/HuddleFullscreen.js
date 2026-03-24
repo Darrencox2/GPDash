@@ -1,332 +1,450 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
-import { getHuddleCapacity, getTodayDateStr, getCliniciansForDate } from '@/lib/huddle';
+import { getHuddleCapacity, getTodayDateStr, getCliniciansForDate, getNDayAvailability } from '@/lib/huddle';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS, DOW_NAMES } from '@/lib/demandPredictor';
 
-const MONTH_NAMES_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DEMAND_COLOURS = {
-  low: { bg: '#10b98122', text: '#34d399', label: 'LOW' },
-  normal: { bg: '#3b82f622', text: '#60a5fa', label: 'NORMAL' },
-  high: { bg: '#f59e0b22', text: '#fbbf24', label: 'HIGH' },
-  'very-high': { bg: '#ef444422', text: '#f87171', label: 'VERY HIGH' },
-  closed: { bg: '#64748b22', text: '#94a3b8', label: 'CLOSED' },
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ROLE_COLOURS = {
+  'GP Partner': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
+  'Associate Partner': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
+  'Salaried GP': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
+  'Locum': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
+  'GP Registrar': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
+  'Medical Student': { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' },
+  'ANP': { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' },
+  'Paramedic Practitioner': { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' },
+  'Pharmacist': { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' },
+  'Physiotherapist': { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' },
+  'Practice Nurse': { bg: '#ecfdf5', init: '#d1fae5', text: '#047857' },
+  'Nurse Associate': { bg: '#ecfdf5', init: '#d1fae5', text: '#047857' },
+  'HCA': { bg: '#ecfdf5', init: '#d1fae5', text: '#047857' },
 };
+const GROUP_COLOURS = {
+  gp: { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8', dot: '#3b82f6' },
+  nursing: { bg: '#ecfdf5', init: '#d1fae5', text: '#047857', dot: '#10b981' },
+  allied: { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9', dot: '#8b5cf6' },
+  admin: { bg: '#f8fafc', init: '#f1f5f9', text: '#64748b', dot: '#94a3b8' },
+};
+const DEMAND_COLOURS = {
+  low: { bg: '#d1fae5', text: '#065f46', colour: '#10b981', label: 'Low demand' },
+  normal: { bg: '#dbeafe', text: '#1e40af', colour: '#3b82f6', label: 'Normal' },
+  high: { bg: '#fef3c7', text: '#92400e', colour: '#f59e0b', label: 'High demand' },
+  'very-high': { bg: '#fee2e2', text: '#991b1b', colour: '#ef4444', label: 'Very high' },
+  closed: { bg: '#f1f5f9', text: '#64748b', colour: '#94a3b8', label: 'Closed' },
+};
+const MSG_COLOURS = [
+  { bg: '#fef3c7', text: '#92400e' },
+  { bg: '#dbeafe', text: '#1e40af' },
+  { bg: '#fce7f3', text: '#9d174d' },
+  { bg: '#d1fae5', text: '#065f46' },
+  { bg: '#ede9fe', text: '#5b21b6' },
+];
 
 export default function HuddleFullscreen({ data, huddleData, onExit }) {
   const containerRef = useRef(null);
   const [clock, setClock] = useState(new Date());
   const [weather, setWeather] = useState(null);
   const [demandData, setDemandData] = useState(null);
+  const [tickerIdx, setTickerIdx] = useState(0);
 
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
+  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
+  const dateKey = today.toISOString().split('T')[0];
+  const todayDateStr = getTodayDateStr();
+  const hs = data?.huddleSettings || {};
 
-  // Live clock
+  // Clock
+  useEffect(() => { const t = setInterval(() => setClock(new Date()), 1000); return () => clearInterval(t); }, []);
+
+  // Ticker
+  const messages = ensureArray(data?.huddleMessages || []);
   useEffect(() => {
-    const t = setInterval(() => setClock(new Date()), 1000);
+    if (messages.length <= 1) return;
+    const t = setInterval(() => setTickerIdx(i => (i + 1) % messages.length), 60000);
     return () => clearInterval(t);
-  }, []);
+  }, [messages.length]);
 
-  // Enter browser fullscreen
+  // Fullscreen API
   useEffect(() => {
     const el = containerRef.current;
     if (el?.requestFullscreen) el.requestFullscreen().catch(() => {});
-    const onFsChange = () => { if (!document.fullscreenElement) onExit(); };
-    document.addEventListener('fullscreenchange', onFsChange);
+    const onFs = () => { if (!document.fullscreenElement) onExit(); };
+    document.addEventListener('fullscreenchange', onFs);
+    const onKey = (e) => { if (e.key === 'Escape') onExit(); };
+    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('fullscreenchange', onFs);
+      document.removeEventListener('keydown', onKey);
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     };
   }, [onExit]);
 
-  // ESC key
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onExit(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onExit]);
-
-  // Load demand + weather
+  // Demand + weather
   useEffect(() => {
     async function load() {
       const w = await getWeatherForecast(16);
       setWeather(w);
-      const today = new Date(); today.setHours(0,0,0,0);
       const todayDk = today.toISOString().split('T')[0];
       const todayW = w?.[todayDk] || null;
       const todayPred = predictDemand(today, todayW);
 
-      // Build chart data: 5 past working days + today + 5 future working days
       const chartDays = [];
-      let d = new Date(today);
-      const pastDays = [];
-      for (let i = 0; i < 20 && pastDays.length < 5; i++) {
-        d = new Date(today); d.setDate(d.getDate() - (i + 1));
-        if (d.getDay() !== 0 && d.getDay() !== 6) {
+      // Past 5 working days
+      const past = [];
+      for (let i = 1; i <= 20 && past.length < 5; i++) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        if (d.getDay() > 0 && d.getDay() < 6) {
           const dk = d.toISOString().split('T')[0];
-          const pred = predictDemand(d, w?.[dk] || null);
-          pastDays.unshift({ ...pred, date: d, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], isPast: true, isToday: false });
+          past.unshift({ ...predictDemand(d, w?.[dk] || null), dayName: ['S','M','T','W','T','F','S'][d.getDay()], isPast: true, isToday: false });
         }
       }
-      chartDays.push(...pastDays);
-      chartDays.push({ ...todayPred, date: today, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()], isPast: false, isToday: true, weather: todayW });
-      for (let i = 0, count = 0; i < 20 && count < 5; i++) {
-        d = new Date(today); d.setDate(d.getDate() + (i + 1));
-        if (d.getDay() !== 0 && d.getDay() !== 6) {
+      chartDays.push(...past);
+      chartDays.push({ ...todayPred, dayName: 'Today', isPast: false, isToday: true, weather: todayW });
+      // Future 5 working days
+      for (let i = 1, c = 0; i <= 20 && c < 5; i++) {
+        const d = new Date(today); d.setDate(d.getDate() + i);
+        if (d.getDay() > 0 && d.getDay() < 6) {
           const dk = d.toISOString().split('T')[0];
-          const pred = predictDemand(d, w?.[dk] || null);
-          chartDays.push({ ...pred, date: d, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], isPast: false, isToday: false });
-          count++;
+          chartDays.push({ ...predictDemand(d, w?.[dk] || null), dayName: ['S','M','T','W','T','F','S'][d.getDay()], isPast: false, isToday: false });
+          c++;
         }
       }
       setDemandData({ today: { ...todayPred, weather: todayW }, chartDays });
     }
     load();
-  }, []);
-
-  // Today's data
-  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
-  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
-  const dateKey = today.toISOString().split('T')[0];
+  }, [today]);
 
   // Who's in
   const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');
-
-  const todayDateStr = getTodayDateStr();
   const todayCsvClinicians = useMemo(() => {
-    if (!huddleData) return [];
-    const dd = huddleData.dates?.includes(todayDateStr) ? todayDateStr : null;
-    if (!dd) return [];
-    return getCliniciansForDate(huddleData, dd);
+    if (!huddleData?.dates?.includes(todayDateStr)) return [];
+    return getCliniciansForDate(huddleData, todayDateStr);
   }, [huddleData, todayDateStr]);
-
   const csvPresentIds = useMemo(() => {
-    const matched = new Set();
-    allClinicians.forEach(c => {
-      if (todayCsvClinicians.some(csvName => matchesStaffMember(csvName, c))) matched.add(c.id);
-    });
-    return matched;
+    const s = new Set();
+    allClinicians.forEach(c => { if (todayCsvClinicians.some(n => matchesStaffMember(n, c))) s.add(c.id); });
+    return s;
   }, [allClinicians, todayCsvClinicians]);
-
   const hasCSV = todayCsvClinicians.length > 0;
   const absenceMap = useMemo(() => {
-    const map = {};
-    ensureArray(data.plannedAbsences).forEach(a => {
-      if (dateKey >= a.startDate && dateKey <= a.endDate) map[a.clinicianId] = a.reason || 'Leave';
-    });
-    return map;
+    const m = {};
+    ensureArray(data.plannedAbsences).forEach(a => { if (dateKey >= a.startDate && dateKey <= a.endDate) m[a.clinicianId] = a.reason || 'Leave'; });
+    return m;
   }, [data.plannedAbsences, dateKey]);
-
   const categories = useMemo(() => {
-    const inPractice = [], leaveAbsent = [], dayOff = [];
-    visibleStaff.forEach(person => {
-      if (person.longTermAbsent || person.status === 'longTermAbsent') { leaveAbsent.push({ person, reason: 'LTA' }); return; }
-      if (absenceMap[person.id]) { leaveAbsent.push({ person, reason: absenceMap[person.id] }); return; }
-      if (hasCSV && csvPresentIds.has(person.id)) { inPractice.push({ person }); return; }
-      if (!hasCSV && person.buddyCover && ensureArray(data.weeklyRota?.[dayName])?.includes(person.id)) { inPractice.push({ person }); return; }
-      dayOff.push({ person });
+    const inP = [], leave = [], off = [];
+    visibleStaff.forEach(p => {
+      if (p.longTermAbsent || p.status === 'longTermAbsent') { leave.push({ person: p, reason: 'LTA' }); return; }
+      if (absenceMap[p.id]) { leave.push({ person: p, reason: absenceMap[p.id] }); return; }
+      if (hasCSV && csvPresentIds.has(p.id)) { inP.push({ person: p }); return; }
+      if (!hasCSV && p.buddyCover && ensureArray(data.weeklyRota?.[dayName])?.includes(p.id)) { inP.push({ person: p }); return; }
+      off.push({ person: p });
     });
-    return { inPractice, leaveAbsent, dayOff };
+    return { inPractice: inP, leaveAbsent: leave, dayOff: off };
   }, [visibleStaff, csvPresentIds, absenceMap, hasCSV, data.weeklyRota, dayName]);
-
   const gpTeam = categories.inPractice.filter(e => e.person.group === 'gp');
   const nursingTeam = categories.inPractice.filter(e => e.person.group === 'nursing');
   const othersTeam = categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing');
 
   // Capacity
-  const hs = data?.huddleSettings || {};
   const displayDate = huddleData?.dates?.includes(todayDateStr) ? todayDateStr : null;
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs) : null;
+  const mergedClinicians = useMemo(() => {
+    if (!capacity) return [];
+    const m = {};
+    [...(capacity.am?.byClinician || []), ...(capacity.pm?.byClinician || [])].forEach(c => {
+      if (!m[c.name]) m[c.name] = { name: c.name, available: 0, embargoed: 0, booked: 0 };
+      m[c.name].available += c.available || 0;
+      m[c.name].embargoed += c.embargoed || 0;
+      m[c.name].booked += c.booked || 0;
+    });
+    return Object.values(m).sort((a, b) => (b.available + b.embargoed) - (a.available + a.embargoed));
+  }, [capacity]);
   const urgentAm = capacity?.am?.total || 0;
   const urgentPm = capacity?.pm?.total || 0;
   const urgentTotal = urgentAm + urgentPm;
-  const embAm = capacity?.am?.embargoed || 0;
-  const embPm = capacity?.pm?.embargoed || 0;
 
-  // Demand comparison
+  // Routine gauges
+  const routineGauges = useMemo(() => {
+    if (!huddleData) return [{ pct: 0 }, { pct: 0 }, { pct: 0 }, { pct: 0 }];
+    const allOverrides = {};
+    (hs?.knownSlotTypes || []).forEach(s => { allOverrides[s] = true; });
+    if (huddleData?.allSlotTypes) huddleData.allSlotTypes.forEach(s => { allOverrides[s] = true; });
+    const days = getNDayAvailability(huddleData, hs, 30, allOverrides);
+    return [
+      { label: '0-7 days', start: 0, end: 7 },
+      { label: '8-14 days', start: 7, end: 14 },
+      { label: '15-21 days', start: 14, end: 21 },
+      { label: '22-28 days', start: 21, end: 28 },
+    ].map(({ label, start, end }) => {
+      const slice = days.slice(start, end).filter(d => d.available !== null && !d.isWeekend);
+      const avail = slice.reduce((s, d) => s + (d.available || 0) + (d.embargoed || 0), 0);
+      const booked = slice.reduce((s, d) => s + (d.booked || 0), 0);
+      const total = avail + booked;
+      const pct = total > 0 ? Math.round((avail / total) * 100) : 0;
+      const colour = pct > 50 ? '#10b981' : pct >= 20 ? '#f59e0b' : '#ef4444';
+      return { label, pct, colour };
+    });
+  }, [huddleData, hs]);
+
+  // Demand
   const t = demandData?.today;
   const dc = t ? (DEMAND_COLOURS[t.demandLevel] || DEMAND_COLOURS.normal) : DEMAND_COLOURS.normal;
   const dowIdx = today.getDay() > 0 && today.getDay() < 6 ? (today.getDay() + 6) % 7 : 0;
   const monthIdx = today.getMonth();
   const typicalDayMonth = dowIdx < 5 ? Math.round(BASELINE + DOW_EFFECTS[dowIdx] + MONTH_EFFECTS[monthIdx]) : 0;
   const vsPct = t && typicalDayMonth > 0 ? Math.round(((t.predicted - typicalDayMonth) / typicalDayMonth) * 100) : 0;
-
-  // Chart max
   const chartMax = demandData ? Math.max(...demandData.chartDays.filter(d => !d.isWeekend && !d.isBankHoliday).map(d => d.predicted || 0), 1) : 1;
-
-  // Noticeboard messages
-  const messages = ensureArray(data?.huddleMessages || []).slice(-3);
-
-  // Weather
   const tw = demandData?.today?.weather;
 
-  const PersonPill = ({ person, colour, bgColour }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 8px', borderRadius: '6px', background: bgColour, marginBottom: '2px', fontSize: '11px' }}>
-      <span style={{ color: colour, fontWeight: 600, minWidth: '18px' }}>{person.initials}</span>
-      <span style={{ color: '#94a3b8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{person.name}</span>
-    </div>
-  );
+  // Top factors
+  const topFactors = useMemo(() => {
+    if (!t?.factors) return [];
+    const f = t.factors;
+    const list = [];
+    if (f.dayOfWeek) list.push({ l: f.dayOfWeek.day?.slice(0,3), v: f.dayOfWeek.effect });
+    if (f.month) list.push({ l: MONTH_SHORT[f.month.month-1], v: f.month.effect });
+    if (f.trend) list.push({ l: 'Trend', v: f.trend.effect });
+    if (f.weather) list.push({ l: `${Math.round(f.weather.actualTemp)}°`, v: f.weather.tempEffect });
+    if (f.endOfMonth) list.push({ l: `${today.getDate()}th`, v: f.endOfMonth });
+    if (f.firstDayBack) list.push({ l: '1st back', v: f.firstDayBack });
+    if (f.schoolHoliday) list.push({ l: 'Sch hol', v: f.schoolHoliday });
+    if (f.firstWeekBack) list.push({ l: 'Term', v: f.firstWeekBack });
+    if (f.shortWeek) list.push({ l: `${f.shortWeek.workingDays}d wk`, v: f.shortWeek.effect });
+    list.sort((a,b) => Math.abs(b.v) - Math.abs(a.v));
+    return list.slice(0, 3);
+  }, [t, today]);
+
+  const PersonCard = ({ person, delay, reason }) => {
+    const gc = GROUP_COLOURS[person.group] || GROUP_COLOURS.admin;
+    const rc = ROLE_COLOURS[person.role] || { bg: gc.bg, init: gc.init, text: gc.text };
+    return (
+      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 mb-1 opacity-0"
+        style={{ background: rc.bg, animation: `slideIn 0.4s ease ${delay}s forwards` }}>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+          style={{ background: rc.init, color: rc.text }}>{person.initials}</div>
+        <span className="text-xs text-slate-900 truncate flex-1">{person.name}</span>
+        {reason && <span className="text-[10px] text-red-500 flex-shrink-0">{reason}</span>}
+      </div>
+    );
+  };
+
+  const GaugeSVG = ({ pct, colour, label, delay }) => {
+    const size = 110, r = 42, sw = 8, cx = size/2, cy = size/2;
+    const circ = 2 * Math.PI * r;
+    const offset = circ - (circ * pct / 100);
+    const glowDur = `${6 + delay * 2}s`;
+    return (
+      <div className="text-center opacity-0" style={{ animation: `fadeScale 0.6s ease ${0.3 + delay * 0.15}s forwards` }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+          style={{ filter: 'drop-shadow(0 0 2px rgba(16,185,129,0.2))', animation: `gaugeGlow ${glowDur} ease-in-out infinite` }}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth={sw} />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth={sw} strokeLinecap="round"
+            strokeDasharray={circ} strokeDashoffset={circ}
+            transform={`rotate(-90 ${cx} ${cy})`}
+            style={{ animation: `gaugeSweep 1.2s ease ${0.5 + delay * 0.2}s forwards`, '--target-offset': offset }} />
+          <text x={cx} y={cy - 2} textAnchor="middle" fill={colour} style={{ fontSize: '24px', fontWeight: 800 }}>{pct}%</text>
+          <text x={cx} y={cy + 14} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '11px' }}>avail</text>
+        </svg>
+        <div className="text-xs text-slate-500 mt-1">{label}</div>
+      </div>
+    );
+  };
 
   return (
-    <div ref={containerRef} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0f172a', color: '#e2e8f0', fontFamily: "'DM Sans', system-ui, sans-serif", display: 'flex', flexDirection: 'column', padding: '12px 16px', overflow: 'hidden' }}>
+    <div ref={containerRef} className="fixed inset-0 z-[9999] flex flex-col overflow-hidden"
+      style={{ background: '#f8fafc', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+
+      <style>{`
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.5) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes badgePop { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        @keyframes growBar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+        @keyframes liveDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.82; } }
+        @keyframes gaugeGlow { 0%, 100% { filter: drop-shadow(0 0 2px rgba(16,185,129,0.15)); } 50% { filter: drop-shadow(0 0 8px rgba(16,185,129,0.4)); } }
+        @keyframes gaugeSweep { to { stroke-dashoffset: var(--target-offset); } }
+        @keyframes barBreath { 0%, 100% { opacity: 1; } 50% { opacity: 0.88; } }
+      `}</style>
+
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ background: '#10b981', borderRadius: '8px', padding: '4px 14px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: 'white', lineHeight: 1 }}>{today.getDate()}</div>
-            <div style={{ fontSize: '9px', color: 'white', opacity: 0.8, textTransform: 'uppercase' }}>{MONTH_NAMES_SHORT[today.getMonth()]}</div>
+      <div className="flex items-center px-5 py-2.5 bg-white border-b border-slate-200 flex-shrink-0">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="bg-emerald-500 rounded-lg px-3.5 py-1 text-center">
+            <div className="text-xl font-extrabold text-white leading-none">{today.getDate()}</div>
+            <div className="text-[8px] text-white/80 uppercase">{MONTH_SHORT[today.getMonth()]}</div>
           </div>
           <div>
-            <div style={{ fontSize: '18px', fontWeight: 700 }}>{dayName}</div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>{today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+            <div className="text-lg font-bold text-slate-900">{dayName}</div>
+            <div className="text-xs text-slate-400">{today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          {tw && <span style={{ fontSize: '12px', color: '#64748b' }}>{Math.round(tw.temp)}°C · Feels {Math.round(tw.feelsLike)}°C{tw.precipMm > 0 ? ` · ${Math.round(tw.precipMm)}mm` : ''}</span>}
-          <div style={{ fontSize: '32px', fontWeight: 300, color: '#475569', fontVariantNumeric: 'tabular-nums' }}>{clock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
-          <button onClick={onExit} style={{ padding: '4px 12px', borderRadius: '6px', border: '1px solid #334155', color: '#94a3b8', fontSize: '11px', background: 'none', cursor: 'pointer' }}>ESC to exit</button>
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" style={{ animation: 'liveDot 2s ease infinite' }} />
+            <span className="text-xs text-slate-400">Live</span>
+          </div>
+          {tw && <span className="text-xs text-slate-500">{Math.round(tw.temp)}°C · Feels {Math.round(tw.feelsLike)}°C{tw.precipMm > 0 ? ` · ${Math.round(tw.precipMm)}mm` : ''}</span>}
+          <div className="text-3xl font-light text-slate-300 tabular-nums">{clock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+          <button onClick={onExit} className="px-3 py-1 rounded-lg border border-slate-200 text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">Exit fullscreen</button>
         </div>
       </div>
 
-      {/* Row 1: Demand band */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexShrink: 0 }}>
-        {/* Demand hero */}
-        <div style={{ flex: '0 0 200px', background: '#1e293b', borderRadius: '10px', padding: '14px' }}>
-          <div style={{ fontSize: '9px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>Demand</div>
-          <div style={{ fontSize: '48px', fontWeight: 800, color: dc.text, lineHeight: 1, margin: '4px 0' }}>{t?.predicted || '—'}</div>
-          <div style={{ fontSize: '10px', color: '#94a3b8' }}>patient requests</div>
-          {t && <span style={{ display: 'inline-block', marginTop: '4px', padding: '2px 6px', borderRadius: '4px', background: dc.bg, color: dc.text, fontSize: '9px', fontWeight: 600 }}>{dc.label}</span>}
-          {t && vsPct !== 0 && (
-            <div style={{ fontSize: '9px', color: '#64748b', marginTop: '4px' }}>
-              <span style={{ color: vsPct >= 0 ? '#fbbf24' : '#34d399' }}>{Math.abs(vsPct)}% {vsPct >= 0 ? 'above' : 'below'}</span>
-              {' '}typical {DOW_NAMES[dowIdx]} in {MONTH_NAMES_SHORT[monthIdx]}
-            </div>
-          )}
-          {/* Compact factors */}
-          {t && (
-            <div style={{ display: 'flex', gap: '2px', marginTop: '8px' }}>
-              {(() => {
-                const f = t.factors || {};
-                const factors = [];
-                if (f.dayOfWeek) factors.push({ l: f.dayOfWeek.day?.slice(0,3), v: f.dayOfWeek.effect });
-                if (f.month) factors.push({ l: MONTH_NAMES_SHORT[f.month.month-1], v: f.month.effect });
-                if (f.trend) factors.push({ l: 'Trend', v: f.trend.effect });
-                if (f.weather) factors.push({ l: `${Math.round(f.weather.actualTemp)}°`, v: f.weather.tempEffect });
-                if (f.endOfMonth) factors.push({ l: `${today.getDate()}th`, v: f.endOfMonth });
-                if (f.firstDayBack) factors.push({ l: '1st back', v: f.firstDayBack });
-                if (f.schoolHoliday) factors.push({ l: 'Sch hol', v: f.schoolHoliday });
-                factors.sort((a,b) => Math.abs(b.v) - Math.abs(a.v));
-                return factors.slice(0,5).map((fac,i) => (
-                  <div key={i} style={{ flex: 1, textAlign: 'center', padding: '3px 2px', background: '#0f172a', borderRadius: '4px' }}>
-                    <div style={{ fontSize: '8px', color: '#64748b' }}>{fac.l}</div>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: fac.v >= 0 ? '#60a5fa' : '#34d399' }}>{fac.v > 0 ? '+' : ''}{Math.round(fac.v)}</div>
+      {/* Noticeboard ticker */}
+      {messages.length > 0 && (
+        <div className="flex items-center gap-3 px-5 bg-gradient-to-r from-slate-800 to-slate-700 flex-shrink-0 overflow-hidden" style={{ height: 38 }}>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">Notice</span>
+          </div>
+          <div className="flex-1 overflow-hidden" style={{ height: 38 }}>
+            <div className="flex flex-col transition-transform duration-700" style={{ transform: `translateY(-${tickerIdx * 38}px)` }}>
+              {messages.map((m, i) => {
+                const mc = MSG_COLOURS[i % MSG_COLOURS.length];
+                return (
+                  <div key={i} className="flex items-center gap-2 flex-shrink-0 text-sm" style={{ height: 38 }}>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: mc.bg, color: mc.text }}>{m.author} {m.time}</span>
+                    <span className="text-slate-200 truncate">{m.text}</span>
                   </div>
-                ));
-              })()}
+                );
+              })}
             </div>
-          )}
-        </div>
-
-        {/* Bar chart */}
-        <div style={{ flex: 1, background: '#1e293b', borderRadius: '10px', padding: '12px 16px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '3px' }}>
-            {demandData?.chartDays.map((d, i) => {
-              const pct = Math.max(8, (d.predicted / chartMax) * 100);
-              const isToday = d.isToday;
-              const isPast = d.isPast;
-              return (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: '3px' }}>
-                  {isToday && <div style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b' }}>{d.predicted}</div>}
-                  <div style={{
-                    width: '100%', borderRadius: '3px', height: `${pct}%`,
-                    background: isToday ? '#f59e0b' : isPast ? '#334155' : '#1e3a5f',
-                    border: !isToday && !isPast ? '1px dashed #38bdf855' : 'none',
-                    boxShadow: isToday ? '0 0 10px #f59e0b44' : 'none',
-                  }} />
-                  <span style={{ fontSize: '9px', color: isToday ? '#f59e0b' : '#475569', fontWeight: isToday ? 600 : 400 }}>{d.dayName}</span>
-                </div>
-              );
-            })}
           </div>
         </div>
+      )}
 
-        {/* Urgent capacity */}
-        <div style={{ flex: '0 0 180px', background: '#1e293b', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
-          <div style={{ fontSize: '9px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Urgent slots</div>
-          {capacity ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                <div><div style={{ fontSize: '24px', fontWeight: 800, color: '#fbbf24' }}>{urgentAm}</div><div style={{ fontSize: '8px', color: '#64748b' }}>AM</div></div>
-                <div style={{ width: '1px', height: '24px', background: '#334155' }} />
-                <div><div style={{ fontSize: '36px', fontWeight: 800, color: '#10b981' }}>{urgentTotal}</div><div style={{ fontSize: '8px', color: '#64748b' }}>Total</div></div>
-                <div style={{ width: '1px', height: '24px', background: '#334155' }} />
-                <div><div style={{ fontSize: '24px', fontWeight: 800, color: '#60a5fa' }}>{urgentPm}</div><div style={{ fontSize: '8px', color: '#64748b' }}>PM</div></div>
+      {/* 4-quadrant grid */}
+      <div className="grid grid-cols-2 flex-1 gap-2 p-2 min-h-0">
+
+        {/* TL: Demand predictor */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-3.5 py-2 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <span className="text-xs font-semibold text-white">Predicted demand</span>
+            </div>
+            <span className="text-[10px] text-slate-500">Model v2.0</span>
+          </div>
+          <div className="flex gap-3 p-3 flex-1">
+            <div className="min-w-[130px] flex flex-col">
+              <div className="text-[52px] font-extrabold leading-none opacity-0" style={{ color: dc.colour, animation: 'popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards' }}>{t?.predicted || '—'}</div>
+              <div className="text-xs text-slate-400 mt-1">patient requests</div>
+              {t && <div className="mt-1.5 opacity-0" style={{ animation: 'badgePop 0.6s ease 0.3s forwards' }}><span className="text-[11px] font-semibold px-2 py-0.5 rounded" style={{ background: dc.bg, color: dc.text }}>{dc.label}</span></div>}
+              {t && vsPct !== 0 && <div className="text-[10px] text-slate-400 mt-1.5" style={{ animation: 'breathe 4s ease-in-out 2s infinite' }}><span style={{ color: dc.colour }}>{Math.abs(vsPct)}% {vsPct >= 0 ? 'above' : 'below'}</span> typical {DOW_NAMES[dowIdx]} in {MONTH_SHORT[monthIdx]}</div>}
+              <div className="flex gap-1 mt-auto pt-2">
+                {topFactors.map((f, i) => (
+                  <div key={i} className="flex-1 text-center p-1 bg-slate-50 rounded border border-slate-200 opacity-0" style={{ animation: `fadeScale 0.4s ease ${0.5 + i * 0.1}s forwards` }}>
+                    <div className="text-[8px] text-slate-400">{f.l}</div>
+                    <div className={`text-sm font-bold ${f.v >= 0 ? 'text-blue-500' : 'text-emerald-500'}`}>{f.v > 0 ? '+' : ''}{Math.round(f.v)}</div>
+                  </div>
+                ))}
               </div>
-              {(embAm + embPm) > 0 && <div style={{ fontSize: '10px', color: '#f59e0b', marginTop: '4px' }}>+{embAm + embPm} embargoed</div>}
-            </>
-          ) : (
-            <div style={{ fontSize: '12px', color: '#475569', padding: '16px 0' }}>No CSV data</div>
-          )}
+            </div>
+            <div className="flex-1 flex items-end gap-0.5">
+              {demandData?.chartDays.map((d, i) => {
+                const pct = Math.max(8, (d.predicted / chartMax) * 100);
+                const delay = 0.1 + i * 0.05;
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5">
+                    {d.isToday && <div className="text-[9px] font-bold opacity-0" style={{ color: '#f59e0b', animation: `fadeScale 0.4s ease 1s forwards` }}>{d.predicted}</div>}
+                    <div className="w-full rounded-sm" style={{
+                      height: `${pct}%`, transformOrigin: 'bottom',
+                      background: d.isToday ? '#f59e0b' : d.isPast ? '#cbd5e1' : '#bfdbfe',
+                      border: !d.isToday && !d.isPast ? '1px dashed #93c5fd' : 'none',
+                      animation: `growBar 0.8s ease ${delay}s forwards${d.isToday ? ', barBreath 5s ease 3s infinite' : ''}`,
+                      transform: 'scaleY(0)',
+                    }} />
+                    <span className={`text-[8px] ${d.isToday ? 'text-amber-500 font-semibold' : 'text-slate-400'}`}>{d.dayName}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Row 2: Who's in */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px', flex: 1, minHeight: 0 }}>
-        <div style={{ background: '#1e293b', borderRadius: '10px', padding: '10px 12px', overflow: 'hidden' }}>
-          <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#3b82f6' }} /> Clinicians <span style={{ color: '#475569', fontWeight: 400 }}>{gpTeam.length}</span>
+        {/* TR: Urgent on the day */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
+          <div className="bg-gradient-to-r from-red-600 to-red-500 px-3.5 py-2 flex items-center justify-between flex-shrink-0">
+            <span className="text-xs font-semibold text-white">Urgent on the day</span>
+            <span className="text-[10px] text-white/70">Available slots</span>
           </div>
-          <div style={{ overflow: 'auto', maxHeight: 'calc(100% - 24px)' }}>
-            {gpTeam.map(e => <PersonPill key={e.person.id} person={e.person} colour="#60a5fa" bgColour="#172554" />)}
+          <div className="p-3 flex-1 flex flex-col">
+            <div className="flex items-center justify-center gap-6 mb-3">
+              <div className="text-center"><div className="text-4xl font-extrabold text-amber-500 leading-none opacity-0" style={{ animation: 'popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.1s forwards' }}>{urgentAm}</div><div className="text-xs text-slate-400 mt-1">Morning</div></div>
+              <div className="w-px h-9 bg-slate-200" />
+              <div className="text-center"><div className="text-[56px] font-extrabold text-emerald-500 leading-none opacity-0" style={{ animation: 'popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.2s forwards' }}>{urgentTotal}</div><div className="text-xs text-slate-400 mt-1">Total</div></div>
+              <div className="w-px h-9 bg-slate-200" />
+              <div className="text-center"><div className="text-4xl font-extrabold text-blue-500 leading-none opacity-0" style={{ animation: 'popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards' }}>{urgentPm}</div><div className="text-xs text-slate-400 mt-1">Afternoon</div></div>
+            </div>
+            <div className="grid grid-cols-2 gap-1 flex-1 content-start">
+              {mergedClinicians.slice(0, 6).map((c, i) => {
+                const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
+                const name = matched?.name || c.name;
+                return (
+                  <div key={i} className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50 rounded-lg border border-slate-200 opacity-0"
+                    style={{ animation: `slideIn 0.4s ease ${0.3 + i * 0.1}s forwards` }}>
+                    <span className="text-xs text-slate-600 truncate mr-2">{name}</span>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-xs font-semibold">{c.available}</span>
+                      <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-xs font-semibold">{c.embargoed}</span>
+                      <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-xs font-semibold">{c.booked}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-        <div style={{ background: '#1e293b', borderRadius: '10px', padding: '10px 12px', overflow: 'hidden' }}>
-          <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} /> Nursing <span style={{ color: '#475569', fontWeight: 400 }}>{nursingTeam.length}</span>
+
+        {/* BL: Who's in */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
+          <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-3.5 py-2 flex items-center justify-between flex-shrink-0">
+            <span className="text-xs font-semibold text-white">Who's in today</span>
+            <span className="text-[10px] text-white/60">{categories.inPractice.length} in · {categories.leaveAbsent.length} absent</span>
           </div>
-          {nursingTeam.map(e => <PersonPill key={e.person.id} person={e.person} colour="#34d399" bgColour="#042f2e" />)}
-          {othersTeam.length > 0 && (
-            <>
-              <div style={{ borderTop: '1px solid #0f172a', margin: '6px 0', paddingTop: '6px', fontSize: '10px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8b5cf6' }} /> Others <span style={{ color: '#475569', fontWeight: 400 }}>{othersTeam.length}</span>
+          <div className="p-3 flex-1 overflow-hidden">
+            <div className="grid grid-cols-3 gap-2 h-full">
+              <div className="overflow-hidden">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Clinicians <span className="text-slate-300">{gpTeam.length}</span></div>
+                {gpTeam.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.1 + i * 0.05} />)}
               </div>
-              {othersTeam.map(e => <PersonPill key={e.person.id} person={e.person} colour="#a78bfa" bgColour="#1e1b4b" />)}
-            </>
-          )}
-        </div>
-        <div style={{ background: '#1e293b', borderRadius: '10px', padding: '10px 12px', overflow: 'hidden' }}>
-          <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }} /> Leave / absent <span style={{ color: '#475569', fontWeight: 400 }}>{categories.leaveAbsent.length}</span>
-          </div>
-          {categories.leaveAbsent.map(e => (
-            <div key={e.person.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 8px', borderRadius: '6px', background: '#450a0a', marginBottom: '2px', fontSize: '11px' }}>
-              <span style={{ color: '#f87171', fontWeight: 600, minWidth: '18px' }}>{e.person.initials}</span>
-              <span style={{ color: '#94a3b8', flex: 1 }}>{e.person.name}</span>
-              <span style={{ fontSize: '9px', color: '#ef4444' }}>{e.reason}</span>
+              <div className="overflow-hidden">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Nursing <span className="text-slate-300">{nursingTeam.length}</span></div>
+                {nursingTeam.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.15 + i * 0.05} />)}
+                {othersTeam.length > 0 && (
+                  <>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-2 mb-1.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Others <span className="text-slate-300">{othersTeam.length}</span></div>
+                    {othersTeam.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.3 + i * 0.05} />)}
+                  </>
+                )}
+              </div>
+              <div className="overflow-hidden">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Absent <span className="text-slate-300">{categories.leaveAbsent.length}</span></div>
+                {categories.leaveAbsent.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.2 + i * 0.05} reason={e.reason} />)}
+                {categories.leaveAbsent.length === 0 && <div className="text-xs text-slate-300 px-2">None</div>}
+                {categories.dayOff.length > 0 && <div className="text-[10px] text-slate-300 mt-3">+ {categories.dayOff.length} day off</div>}
+              </div>
             </div>
-          ))}
-          {categories.leaveAbsent.length === 0 && <div style={{ fontSize: '11px', color: '#475569', padding: '4px 8px' }}>None</div>}
-          <div style={{ borderTop: '1px solid #0f172a', margin: '6px 0', paddingTop: '6px', fontSize: '10px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#475569' }} /> Day off <span style={{ color: '#475569', fontWeight: 400 }}>{categories.dayOff.length}</span>
           </div>
-          {categories.dayOff.map(e => <PersonPill key={e.person.id} person={e.person} colour="#475569" bgColour="#0f172a" />)}
-          {categories.dayOff.length === 0 && <div style={{ fontSize: '11px', color: '#475569', padding: '4px 8px' }}>None</div>}
         </div>
-      </div>
 
-      {/* Row 3: Noticeboard */}
-      <div style={{ background: '#1e293b', borderRadius: '10px', padding: '8px 14px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', flexShrink: 0 }}>Noticeboard</span>
-          {messages.length > 0 ? messages.map((m, i) => (
-            <div key={i} style={{ fontSize: '11px', color: '#94a3b8', padding: '2px 10px', background: '#0f172a', borderRadius: '6px' }}>
-              <span style={{ color: '#475569', fontSize: '9px' }}>{m.author} {m.time}</span> — {m.text}
+        {/* BR: Routine capacity gauges */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
+          <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-3.5 py-2 flex items-center justify-between flex-shrink-0">
+            <span className="text-xs font-semibold text-white">Routine capacity</span>
+            <span className="text-[10px] text-white/70">30-day booking gauges</span>
+          </div>
+          <div className="p-3 flex-1 flex items-center justify-center">
+            <div className="flex gap-5 justify-center items-center">
+              {routineGauges.map((g, i) => <GaugeSVG key={i} pct={g.pct} colour={g.colour} label={g.label} delay={i} />)}
             </div>
-          )) : (
-            <div style={{ fontSize: '11px', color: '#475569' }}>No messages</div>
-          )}
+          </div>
         </div>
+
       </div>
     </div>
   );
