@@ -4,6 +4,7 @@ import { Button, Card, SectionHeading } from '@/components/ui';
 import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
+import DemandPredictor from './DemandPredictor';
 import { guessGroupFromRole, normalizeName, matchesStaffMember } from '@/lib/data';
 
 // ── Colour palette for capacity cards ─────────────────────────────
@@ -117,7 +118,7 @@ function CapacityDayPanel({ dateStr, huddleData, huddleSettings, overrides, team
   if (!dateStr || !huddleData) return null;
   const cap = getHuddleCapacity(huddleData, dateStr, huddleSettings, overrides);
 
-  // Merge AM+PM clinician data into unified lists
+  // Merge AM+PM clinician data into unified list
   const mergedClinicians = {};
   [...cap.am.byClinician, ...cap.pm.byClinician].forEach(c => {
     if (!mergedClinicians[c.name]) mergedClinicians[c.name] = { name: c.name, available: 0, embargoed: 0, booked: 0 };
@@ -125,40 +126,11 @@ function CapacityDayPanel({ dateStr, huddleData, huddleSettings, overrides, team
     mergedClinicians[c.name].embargoed += c.embargoed || 0;
     mergedClinicians[c.name].booked += c.booked || 0;
   });
-  const allClinicians = Object.values(mergedClinicians);
+  const allClinicians = Object.values(mergedClinicians).sort((a, b) => (b.available + b.embargoed + b.booked) - (a.available + a.embargoed + a.booked));
 
   const totalAvail = allClinicians.reduce((s, c) => s + c.available, 0);
   const totalEmb = allClinicians.reduce((s, c) => s + c.embargoed, 0);
   const totalBooked = allClinicians.reduce((s, c) => s + c.booked, 0);
-
-  const renderClinicianList = (clinicians, valueKey, colour) => {
-    const filtered = clinicians.filter(c => c[valueKey] > 0).sort((a, b) => b[valueKey] - a[valueKey]);
-    if (filtered.length === 0) return <div className="text-center text-slate-400 text-xs py-3">None</div>;
-    return filtered.map((c, i) => {
-      const matched = (teamClinicians || []).find(tc => matchesStaffMember(c.name, tc));
-      const displayName = matched?.name || c.name;
-      const role = matched?.role || '';
-      const roleColour = ROLE_COLOURS[role] || 'bg-slate-50 border-slate-200';
-      return (
-        <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${roleColour}`}>
-          <svg className="w-5 h-5 opacity-50 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-          </svg>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold truncate">{displayName}</div>
-            <div className="text-[10px] opacity-60 truncate">{role || 'Staff'}</div>
-          </div>
-          <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${colour}`}>{c[valueKey]}</span>
-        </div>
-      );
-    });
-  };
-
-  const sections = [
-    { label: 'Available', count: totalAvail, colour: 'text-emerald-600', accent: 'bg-emerald-50', dot: 'bg-emerald-400', key: 'available' },
-    { label: 'Embargoed', count: totalEmb, colour: 'text-amber-600', accent: 'bg-amber-50', dot: 'bg-amber-400', key: 'embargoed' },
-    { label: 'Booked', count: totalBooked, colour: 'text-slate-600', accent: 'bg-slate-50', dot: 'bg-slate-400', key: 'booked' },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -168,7 +140,7 @@ function CapacityDayPanel({ dateStr, huddleData, huddleSettings, overrides, team
           <div>
             <div className="text-sm font-bold text-white">{dateStr}</div>
             <div className="text-[10px] text-white/70">
-              {totalAvail} available · {totalEmb} embargoed · {totalBooked} booked
+              {totalAvail + totalEmb} available · {totalBooked} booked
             </div>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">✕</button>
@@ -176,36 +148,60 @@ function CapacityDayPanel({ dateStr, huddleData, huddleSettings, overrides, team
 
         {/* Summary pills */}
         <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100">
-          {sections.map(s => (
-            <div key={s.label} className="flex flex-col items-center py-3">
-              <div className="flex items-center gap-1 mb-0.5">
-                <div className={`w-2 h-2 rounded-full ${s.dot}`} />
-                <span className="text-[10px] text-slate-500">{s.label}</span>
-              </div>
-              <span className={`text-xl font-bold ${s.colour}`}>{s.count}</span>
-            </div>
-          ))}
+          <div className="flex flex-col items-center py-3">
+            <div className="flex items-center gap-1 mb-0.5"><div className="w-2 h-2 rounded-full bg-emerald-400" /><span className="text-[10px] text-slate-500">Available</span></div>
+            <span className="text-xl font-bold text-emerald-600">{totalAvail}</span>
+          </div>
+          <div className="flex flex-col items-center py-3">
+            <div className="flex items-center gap-1 mb-0.5"><div className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-[10px] text-slate-500">Embargoed</span></div>
+            <span className="text-xl font-bold text-amber-600">{totalEmb}</span>
+          </div>
+          <div className="flex flex-col items-center py-3">
+            <div className="flex items-center gap-1 mb-0.5"><div className="w-2 h-2 rounded-full bg-slate-400" /><span className="text-[10px] text-slate-500">Booked</span></div>
+            <span className="text-xl font-bold text-slate-600">{totalBooked}</span>
+          </div>
         </div>
 
+        {/* Column headers */}
+        <div className="px-5 py-2 border-b border-slate-100 flex items-center">
+          <div className="flex-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Clinician</div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className="w-10 text-center text-[9px] font-semibold text-emerald-600 uppercase">Avail</span>
+            <span className="w-10 text-center text-[9px] font-semibold text-amber-600 uppercase">Emb</span>
+            <span className="w-10 text-center text-[9px] font-semibold text-slate-500 uppercase">Bkd</span>
+          </div>
+        </div>
+
+        {/* Clinician list */}
         <div className="flex-1 overflow-y-auto">
-          {sections.filter(s => s.count > 0).map(s => (
-            <div key={s.label} className="border-b border-slate-100">
-              <div className={`px-5 py-2.5 ${s.accent} flex items-center justify-between`}>
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-2 h-2 rounded-full ${s.dot}`} />
-                  <span className={`text-sm font-bold ${s.colour}`}>{s.label}</span>
+          <div className="px-4 py-3 space-y-1.5">
+            {allClinicians.length > 0 ? allClinicians.map((c, i) => {
+              const matched = (teamClinicians || []).find(tc => matchesStaffMember(c.name, tc));
+              const displayName = matched?.name || c.name;
+              const role = matched?.role || '';
+              const roleColour = ROLE_COLOURS[role] || 'bg-slate-50 border-slate-200';
+              return (
+                <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${roleColour}`}>
+                  <svg className="w-5 h-5 opacity-50 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold truncate">{displayName}</div>
+                    <div className="text-[10px] opacity-60 truncate">{role || 'Staff'}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="w-10 text-center text-sm font-bold tabular-nums text-emerald-600 bg-emerald-50 rounded py-0.5">{c.available}</span>
+                    <span className="w-10 text-center text-sm font-bold tabular-nums text-amber-600 bg-amber-50 rounded py-0.5">{c.embargoed}</span>
+                    <span className="w-10 text-center text-sm font-bold tabular-nums text-slate-600 bg-slate-100 rounded py-0.5">{c.booked}</span>
+                  </div>
                 </div>
-                <span className={`text-lg font-bold ${s.colour}`}>{s.count}</span>
-              </div>
-              <div className="px-5 py-3 space-y-1.5">
-                {renderClinicianList(allClinicians, s.key, s.colour)}
-              </div>
-            </div>
-          ))}
+              );
+            }) : <div className="text-center text-slate-400 text-xs py-3">No clinicians</div>}
+          </div>
 
           {/* Slot type breakdown */}
           {cap.bySlotType.length > 0 && (
-            <div className="px-5 py-3">
+            <div className="px-5 py-3 border-t border-slate-100">
               <div className="text-xs font-semibold text-slate-500 uppercase mb-2">By Slot Type</div>
               <div className="space-y-1">
                 {cap.bySlotType.map((s, i) => (
@@ -756,6 +752,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       </div>
 
+      {/* DEMAND PREDICTOR */}
+      <DemandPredictor />
+
       {/* WHO'S IN / OUT */}
       <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} />
 
@@ -859,7 +858,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                               const roleColour = ROLE_COLOURS[role] || 'bg-slate-50 border-slate-200';
                               const clinicianTotal = c.available + (c.embargoed || 0);
                               return (
-                                <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${roleColour}`} title={c.name}>
+                                <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${roleColour}`}>
                                   <svg className="w-5 h-5 opacity-50 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
                                   </svg>
