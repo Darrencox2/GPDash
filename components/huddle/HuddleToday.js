@@ -25,28 +25,36 @@ const DEFAULT_CAPACITY_CARDS = [
 
 // ── Reusable radial gauge (SVG) ───────────────────────────────────
 function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981', trackColour = '#e2e8f0', label, sublabel, children }) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  const rawPct = max > 0 ? (value / max) * 100 : 0;
+  const fillPct = Math.min(rawPct, 100);
+  const overTarget = rawPct > 100;
   const r = (size - strokeWidth) / 2;
   const cx = size / 2, cy = size / 2;
-  const startAngle = 135, sweepAngle = 270;
-  const endAngle = startAngle + sweepAngle;
-  const filledAngle = startAngle + (sweepAngle * (pct / 100));
-  const toRad = (deg) => (deg - 90) * Math.PI / 180;
-  const arcPoint = (angle) => ({ x: cx + r * Math.cos(toRad(angle)), y: cy + r * Math.sin(toRad(angle)) });
-  const arcPath = (start, end) => {
-    if (end - start < 0.1) return '';
-    const s = arcPoint(start), e = arcPoint(end);
-    const large = (end - start) > 180 ? 1 : 0;
-    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
-  };
+  const circumference = 2 * Math.PI * r;
+  const dashOffset = circumference - (circumference * fillPct / 100);
+
   return (
     <div className="flex flex-col items-center">
-      <svg width={size} height={size * 0.88} viewBox={`0 0 ${size} ${size * 0.88}`}>
-        <path d={arcPath(startAngle, endAngle)} fill="none" stroke={trackColour} strokeWidth={strokeWidth} strokeLinecap="round" />
-        {pct > 0 && <path d={arcPath(startAngle, filledAngle)} fill="none" stroke={colour} strokeWidth={strokeWidth} strokeLinecap="round" style={{ filter: `drop-shadow(0 0 4px ${colour}40)` }} />}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {/* Track circle */}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={trackColour} strokeWidth={strokeWidth} />
+        {/* Filled arc */}
+        {fillPct > 0 && (
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+            transform={`rotate(-90 ${cx} ${cy})`}
+            style={{ filter: `drop-shadow(0 0 ${overTarget ? '6' : '3'}px ${colour}${overTarget ? '80' : '40'})`, transition: 'stroke-dashoffset 0.5s ease' }} />
+        )}
+        {/* Over-target: second subtle outer glow ring */}
+        {overTarget && (
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth={2} opacity={0.3}
+            transform={`rotate(-90 ${cx} ${cy})`} />
+        )}
         {children}
       </svg>
-      {label && <div className="text-[10px] text-slate-500 font-medium -mt-1">{label}</div>}
+      {label && <div className="text-[10px] text-slate-500 font-medium mt-0.5">{label}</div>}
       {sublabel && <div className="text-[9px] text-slate-400">{sublabel}</div>}
     </div>
   );
@@ -514,12 +522,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             const expectedPm = hs.expectedCapacity?.[todayDayName]?.pm || 0;
             const expectedTotal = expectedAm + expectedPm;
             const hasTarget = expectedTotal > 0;
-            const pct = hasTarget ? Math.min((urgentTotal / expectedTotal) * 100, 100) : (grandTotal > 0 ? (urgentTotal / grandTotal) * 100 : 0);
-            const gaugeColour = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
-            const amPct = (expectedAm > 0) ? Math.min((urgentAm / expectedAm) * 100, 100) : (urgentAm + bookedAm > 0 ? (urgentAm / (urgentAm + bookedAm)) * 100 : 0);
-            const pmPct = (expectedPm > 0) ? Math.min((urgentPm / expectedPm) * 100, 100) : (urgentPm + bookedPm > 0 ? (urgentPm / (urgentPm + bookedPm)) * 100 : 0);
-            const amGaugeColour = amPct >= 80 ? '#f59e0b' : amPct >= 50 ? '#f59e0b' : '#ef4444';
-            const pmGaugeColour = pmPct >= 80 ? '#3b82f6' : pmPct >= 50 ? '#3b82f6' : '#ef4444';
+
+            // Raw percentages (can exceed 100)
+            const rawPctTotal = hasTarget ? (urgentTotal / expectedTotal) * 100 : (grandTotal > 0 ? (urgentTotal / grandTotal) * 100 : 0);
+            const rawPctAm = expectedAm > 0 ? (urgentAm / expectedAm) * 100 : (urgentAm + bookedAm > 0 ? (urgentAm / (urgentAm + bookedAm)) * 100 : 0);
+            const rawPctPm = expectedPm > 0 ? (urgentPm / expectedPm) * 100 : (urgentPm + bookedPm > 0 ? (urgentPm / (urgentPm + bookedPm)) * 100 : 0);
+
+            const pctColour = (p) => p >= 80 ? '#10b981' : p >= 50 ? '#f59e0b' : '#ef4444';
 
             return (
               <div className="card overflow-hidden">
@@ -537,28 +546,28 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">⚠️ Today not found in report. Showing {displayDate}.</div>
                 )}
 
-                {/* Main gauge row: Total + AM + PM gauges */}
+                {/* Main gauge row: AM + Total + PM */}
                 <div className="flex items-center justify-center gap-6 md:gap-10 py-6 px-4 border-b border-slate-100">
                   {/* AM gauge */}
-                  <MiniGauge value={urgentAm} max={expectedAm || (urgentAm + bookedAm)} size={90} strokeWidth={8} colour={amGaugeColour}>
-                    <text x="45" y="36" textAnchor="middle" fill="#1e293b" style={{ fontSize: '22px', fontWeight: 700 }}>{urgentAm}</text>
-                    <text x="45" y="50" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '9px' }}>Morning</text>
-                    {bookedAm > 0 && <text x="45" y="61" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '8px' }}>{bookedAm} bkd</text>}
+                  <MiniGauge value={urgentAm} max={expectedAm || (urgentAm + bookedAm)} size={100} strokeWidth={8} colour={pctColour(rawPctAm)}>
+                    <text x="50" y="44" textAnchor="middle" fill="#1e293b" style={{ fontSize: '24px', fontWeight: 700 }}>{urgentAm}</text>
+                    <text x="50" y="58" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>Morning</text>
+                    {hasTarget && expectedAm > 0 && <text x="50" y="70" textAnchor="middle" fill={pctColour(rawPctAm)} style={{ fontSize: '9px', fontWeight: 600 }}>{Math.round(rawPctAm)}%</text>}
                   </MiniGauge>
 
                   {/* Total gauge (larger) */}
-                  <MiniGauge value={urgentTotal} max={expectedTotal || grandTotal} size={160} strokeWidth={12} colour={gaugeColour}>
-                    <text x="80" y="60" textAnchor="middle" fill="#1e293b" style={{ fontSize: '44px', fontWeight: 700 }}>{urgentTotal}</text>
-                    <text x="80" y="80" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '11px' }}>available</text>
-                    {hasTarget && <text x="80" y="94" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>of {expectedTotal} target</text>}
-                    {bookedTotal > 0 && <text x="80" y={hasTarget ? 108 : 94} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>{bookedTotal} booked</text>}
+                  <MiniGauge value={urgentTotal} max={expectedTotal || grandTotal} size={170} strokeWidth={14} colour={pctColour(rawPctTotal)}>
+                    <text x="85" y="72" textAnchor="middle" fill="#1e293b" style={{ fontSize: '46px', fontWeight: 700 }}>{urgentTotal}</text>
+                    <text x="85" y="92" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '12px' }}>available</text>
+                    {hasTarget && <text x="85" y="106" textAnchor="middle" fill={pctColour(rawPctTotal)} style={{ fontSize: '11px', fontWeight: 600 }}>{Math.round(rawPctTotal)}% of {expectedTotal}</text>}
+                    {bookedTotal > 0 && <text x="85" y={hasTarget ? 120 : 106} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>{bookedTotal} booked</text>}
                   </MiniGauge>
 
                   {/* PM gauge */}
-                  <MiniGauge value={urgentPm} max={expectedPm || (urgentPm + bookedPm)} size={90} strokeWidth={8} colour={pmGaugeColour}>
-                    <text x="45" y="36" textAnchor="middle" fill="#1e293b" style={{ fontSize: '22px', fontWeight: 700 }}>{urgentPm}</text>
-                    <text x="45" y="50" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '9px' }}>Afternoon</text>
-                    {bookedPm > 0 && <text x="45" y="61" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '8px' }}>{bookedPm} bkd</text>}
+                  <MiniGauge value={urgentPm} max={expectedPm || (urgentPm + bookedPm)} size={100} strokeWidth={8} colour={pctColour(rawPctPm)}>
+                    <text x="50" y="44" textAnchor="middle" fill="#1e293b" style={{ fontSize: '24px', fontWeight: 700 }}>{urgentPm}</text>
+                    <text x="50" y="58" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>Afternoon</text>
+                    {hasTarget && expectedPm > 0 && <text x="50" y="70" textAnchor="middle" fill={pctColour(rawPctPm)} style={{ fontSize: '9px', fontWeight: 600 }}>{Math.round(rawPctPm)}%</text>}
                   </MiniGauge>
                 </div>
 
@@ -634,12 +643,20 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           {/* ─── ROUTINE CAPACITY (28 days) ─── */}
           {(() => {
             const routineDays = getNDayAvailability(huddleData, hs, 28, effectiveRoutineOverrides);
-            const periodGauges = [7, 14, 21, 28].map(n => {
-              const slice = routineDays.slice(0, n).filter(d => d.available !== null);
+            const ranges = [
+              { label: '0–7 days', start: 0, end: 7 },
+              { label: '8–14 days', start: 7, end: 14 },
+              { label: '15–21 days', start: 14, end: 21 },
+              { label: '22–28 days', start: 21, end: 28 },
+            ];
+            const periodGauges = ranges.map(({ label, start, end }) => {
+              const slice = routineDays.slice(start, end).filter(d => d.available !== null);
               const avail = slice.reduce((s, d) => s + (d.available || 0) + (d.embargoed || 0), 0);
               const booked = slice.reduce((s, d) => s + (d.booked || 0), 0);
               const total = avail + booked;
-              return { days: n, avail, booked, total, pct: total > 0 ? (avail / total) * 100 : 0 };
+              const pct = total > 0 ? (avail / total) * 100 : 0;
+              const colour = pct > 50 ? '#10b981' : pct >= 20 ? '#f59e0b' : '#ef4444';
+              return { label, avail, booked, total, pct, colour };
             });
 
             return (
@@ -654,15 +671,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 </div>
 
-                {/* Booking gauges — 7/14/21/28 day */}
+                {/* Booking gauges — non-overlapping weekly ranges */}
                 <div className="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
                   {periodGauges.map(g => (
-                    <div key={g.days} className="flex flex-col items-center py-4 px-2">
-                      <MiniGauge value={g.avail} max={g.total} size={72} strokeWidth={7} colour="#10b981" trackColour="#e2e8f0">
-                        <text x="36" y="28" textAnchor="middle" fill="#1e293b" style={{ fontSize: '16px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
-                        <text x="36" y="40" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '8px' }}>free</text>
+                    <div key={g.label} className="flex flex-col items-center py-4 px-2">
+                      <MiniGauge value={g.avail} max={g.total} size={80} strokeWidth={7} colour={g.colour}>
+                        <text x="40" y="35" textAnchor="middle" fill="#1e293b" style={{ fontSize: '18px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
+                        <text x="40" y="48" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '9px' }}>available</text>
                       </MiniGauge>
-                      <div className="text-[11px] font-semibold text-slate-700 mt-1">{g.days} days</div>
+                      <div className="text-[11px] font-semibold text-slate-700 mt-1">{g.label}</div>
                       <div className="text-[9px] text-slate-400">{g.avail} avail · {g.booked} bkd</div>
                     </div>
                   ))}
