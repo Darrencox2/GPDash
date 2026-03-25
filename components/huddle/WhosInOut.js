@@ -19,25 +19,26 @@ const ROLE_COLOURS = {
 };
 
 function PersonCard({ person, status, reason, onDragStart, onHide }) {
+  const gc = {gp:{init:'#dbeafe',text:'#1d4ed8'},nursing:{init:'#d1fae5',text:'#047857'},allied:{init:'#ede9fe',text:'#6d28d9'},admin:{init:'#f1f5f9',text:'#64748b'}}[person.group]||{init:'#f1f5f9',text:'#64748b'};
   const colourClass = ROLE_COLOURS[person.role] || 'bg-slate-50 border-slate-200 text-slate-700';
-  const statusDot = status === 'present' ? 'bg-emerald-400' : status === 'absent' ? 'bg-red-400' : 'bg-slate-300';
+  const isAbsent = status === 'absent';
+  const displayName = person.title ? `${person.title} ${person.name}` : person.name;
   return (
     <div draggable onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all cursor-grab active:cursor-grabbing group ${colourClass}`}>
-      <div className="relative flex-shrink-0">
-        <svg className="w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-        </svg>
-        <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${statusDot}`} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold truncate">{person.name}</div>
-        <div className="text-[10px] opacity-60 truncate">{person.role || 'Staff'}{reason ? ` — ${reason}` : ''}</div>
-      </div>
+      className={`relative text-center rounded-lg border transition-all cursor-grab active:cursor-grabbing group ${colourClass} ${isAbsent ? 'opacity-60' : ''}`}
+      style={{ padding: '8px 6px' }}>
       {onHide && (
         <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
-          className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 hover:text-red-500 transition-opacity flex-shrink-0" title="Hide">✕</button>
+          className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 hover:text-red-500 transition-opacity absolute top-1 right-1" title="Hide">✕</button>
       )}
+      <div className="flex items-center justify-center mb-1">
+        <div className="rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+          style={{ width: 28, height: 28, background: isAbsent ? '#fee2e2' : gc.init, color: isAbsent ? '#991b1b' : gc.text }}>
+          {person.initials || '?'}
+        </div>
+      </div>
+      <div className={`text-xs font-semibold leading-tight ${isAbsent ? 'line-through text-slate-400' : 'text-slate-900'}`}>{displayName}</div>
+      <div className="text-[10px] text-slate-400 leading-tight mt-0.5">{person.role || 'Staff'}{reason ? ` · ${reason}` : ''}</div>
     </div>
   );
 }

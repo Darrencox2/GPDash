@@ -278,12 +278,12 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const PersonCard = ({ person, delay, reason }) => {
     const gc = {gp:{init:'#dbeafe',text:'#1d4ed8'},nursing:{init:'#d1fae5',text:'#047857'},allied:{init:'#ede9fe',text:'#6d28d9'},admin:{init:'#f1f5f9',text:'#64748b'}}[person.group]||{init:'#f1f5f9',text:'#64748b'};
     const roleBg = ROLE_BG[person.role] || 'bg-slate-50 border-slate-200';
-    return (<div className={`flex items-center gap-2 rounded-lg border fs-slidein ${roleBg}`} style={{animationDelay:`${delay}s`, padding: 'clamp(3px, 0.5vh, 8px) clamp(6px, 1vh, 12px)' }}>
-      <div className="rounded-full flex items-center justify-center font-bold flex-shrink-0" style={{width:'clamp(22px, 3vh, 32px)',height:'clamp(22px, 3vh, 32px)',fontSize:'clamp(9px, 1.1vh, 12px)',background:gc.init,color:gc.text}}>{person.initials}</div>
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-slate-900 truncate" style={{fontSize:'clamp(10px, 1.3vh, 14px)'}}>{person.name}</div>
-        <div className="text-slate-500 truncate" style={{fontSize:'clamp(8px, 1vh, 12px)'}}>{person.role || 'Staff'}{reason ? ` — ${reason}` : ''}</div>
-      </div>
+    const isAbsent = !!reason;
+    const displayName = person.title ? `${person.title} ${person.name}` : person.name;
+    return (<div className={`text-center rounded-lg border fs-slidein ${roleBg} ${isAbsent ? 'opacity-60' : ''}`} style={{animationDelay:`${delay}s`, padding: 'clamp(4px, 0.6vh, 10px) clamp(3px, 0.5vw, 8px)' }}>
+      <div className="rounded-full flex items-center justify-center font-bold mx-auto flex-shrink-0" style={{width:'clamp(22px, 3vh, 32px)',height:'clamp(22px, 3vh, 32px)',fontSize:'clamp(9px, 1.1vh, 12px)',background:isAbsent?'#fee2e2':gc.init,color:isAbsent?'#991b1b':gc.text,marginBottom:'clamp(2px,0.3vh,4px)'}}>{person.initials}</div>
+      <div className={`font-semibold leading-tight ${isAbsent ? 'line-through text-slate-400' : 'text-slate-900'}`} style={{fontSize:'clamp(9px, 1.1vh, 13px)'}}>{displayName}</div>
+      <div className="text-slate-400 leading-tight" style={{fontSize:'clamp(7px, 0.9vh, 11px)',marginTop:'1px'}}>{person.role || 'Staff'}{reason ? ` · ${reason}` : ''}</div>
     </div>);
   };
 
@@ -387,8 +387,8 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                     <div className="flex-1">
                       <div className="rounded-md relative" style={{height:'clamp(10px,1.5vh,18px)',background:s.band.border,marginRight:4}}>
                         <div className="absolute left-0 top-0 bottom-0 rounded-md" style={{width:`${Math.min(fillPct,100)}%`,background:s.band.colour,borderRadius:fillPct>=100?'6px':'6px 0 0 6px'}}/>
-                        {s.target>0 && <div className="absolute bg-slate-900" style={{left:`${Math.min(markerPct,100)}%`,top:-3,bottom:-3,width:2,zIndex:1}}/>}
-                        {s.target>0 && <div className="absolute whitespace-nowrap text-slate-500" style={{fontSize:'clamp(7px,0.9vh,9px)',bottom:'-13px',[markerPct>80?'right':'left']:markerPct>80?0:`${markerPct}%`,transform:markerPct>80?'none':'translateX(-50%)'}}>target {s.target}</div>}
+                        {s.target>0 && <div className="absolute" style={{left:`${Math.min(markerPct,100)}%`,top:-4,bottom:-4,width:3,background:s.band.textCol,borderRadius:2,marginLeft:'-1.5px',zIndex:1}}/>}
+                        {s.target>0 && <div className="absolute whitespace-nowrap z-[2]" style={{top:'-16px',...(markerPct>75?{right:`${Math.max(100-markerPct,0)}%`,transform:'translateX(50%)'}:{left:`${markerPct}%`,transform:'translateX(-50%)'})}}><span className="font-semibold px-1.5 py-0.5 rounded" style={{fontSize:'clamp(7px,0.9vh,9px)',background:s.band.colour,color:'white'}}>target {s.target}</span></div>}
                       </div>
                       <div className="flex justify-between" style={{marginTop:'clamp(10px,1.5vh,16px)'}}>
                         <span className="font-semibold" style={{color:s.band.colour,fontSize:'clamp(8px,1vh,10px)'}}>{s.avail} avail{s.emb>0?` · ${s.emb} emb`:''}</span>
@@ -418,9 +418,9 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           </div>
           <div className="flex-1 overflow-auto" style={{padding:'clamp(4px,0.7vh,16px)'}}>
             <div className="grid grid-cols-3 h-full" style={{gap:'clamp(4px,0.6vw,12px)'}}>
-              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-blue-500"/> Clinicians <span className="text-slate-300">{gpTeam.length}</span></div>{gpTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.1+i*0.05}/>)}</div>
-              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-emerald-500"/> Nursing <span className="text-slate-300">{nursingTeam.length}</span></div>{nursingTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.15+i*0.05}/>)}{othersTeam.length>0 && <><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginTop:'clamp(4px,0.6vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-purple-500"/> Others <span className="text-slate-300">{othersTeam.length}</span></div>{othersTeam.map((e,i)=><PersonCard key={e.person.id} person={e.person} delay={0.3+i*0.05}/>)}</>}</div>
-              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-red-500"/> Absent <span className="text-slate-300">{categories.leaveAbsent.length}</span></div>{categories.leaveAbsent.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.2+i*0.05} reason={e.reason}/>)}{categories.leaveAbsent.length===0 && <div className="text-slate-300" style={{fontSize:'clamp(10px,1.2vh,14px)',padding:'0 8px'}}>None</div>}{categories.dayOff.length>0 && <div className="text-slate-300" style={{fontSize:'clamp(8px,1vh,12px)',marginTop:'clamp(4px,0.8vh,16px)'}}>+ {categories.dayOff.length} day off</div>}</div>
+              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-blue-500"/> Clinicians <span className="text-slate-300">{gpTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{gpTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.1+i*0.05}/>)}</div></div>
+              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-emerald-500"/> Nursing <span className="text-slate-300">{nursingTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{nursingTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.15+i*0.05}/>)}</div>{othersTeam.length>0 && <><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginTop:'clamp(4px,0.6vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-purple-500"/> Others <span className="text-slate-300">{othersTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{othersTeam.map((e,i)=><PersonCard key={e.person.id} person={e.person} delay={0.3+i*0.05}/>)}</div></>}</div>
+              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-red-500"/> Absent <span className="text-slate-300">{categories.leaveAbsent.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{categories.leaveAbsent.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.2+i*0.05} reason={e.reason}/>)}</div>{categories.leaveAbsent.length===0 && <div className="text-slate-300" style={{fontSize:'clamp(10px,1.2vh,14px)',padding:'0 8px'}}>None</div>}{categories.dayOff.length>0 && <div className="text-slate-300" style={{fontSize:'clamp(8px,1vh,12px)',marginTop:'clamp(4px,0.8vh,16px)'}}>+ {categories.dayOff.length} day off</div>}</div>
             </div>
           </div>
         </div>
@@ -455,7 +455,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                   return thresholds.map(t => {
                     const idx = calDays.findIndex(cd => cd >= t);
                     if (idx < 0) return null;
-                    const pctPos = (idx / routineDays.length) * 100;
+                    const pctPos = ((idx + 1) / routineDays.length) * 100;
                     return <div key={`t${t}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{left:`${pctPos}%`}}>
                       <div className="absolute top-0 bottom-0 w-px" style={{background:'#94a3b8',opacity:0.4}}/>
                       <div className="absolute left-1/2 -translate-x-1/2 px-1 rounded bg-white border border-slate-200 text-slate-400 font-semibold whitespace-nowrap" style={{top:'-2px',fontSize:'clamp(6px,0.8vh,9px)'}}>{t}d</div>

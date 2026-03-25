@@ -412,7 +412,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
     });
   }, [days]);
 
-  // Threshold positions (calendar days) for dividers
+  // Threshold positions (calendar days) for dividers — placed AFTER the threshold day
   const THRESHOLDS = [3, 7, 14, 21];
   const thresholdIndices = THRESHOLDS.map(t => {
     const idx = dayIndicesWithCalendarDay.findIndex(cd => cd >= t);
@@ -436,9 +436,8 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
         {/* Threshold divider lines */}
         {thresholdIndices.map((tidx, ti) => {
           if (tidx < 0) return null;
-          // Calculate the approximate percentage position
           const totalBars = days.length;
-          const pct = (tidx / totalBars) * 100;
+          const pct = ((tidx + 1) / totalBars) * 100;
           return (
             <div key={`t${ti}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{ left: `${pct}%` }}>
               <div className="absolute top-0 bottom-0 w-px" style={{ background: '#94a3b8', opacity: 0.4 }} />
@@ -902,9 +901,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="flex-1">
                       <div className="h-5 rounded-lg relative" style={{ background: band.border }}>
                         <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${Math.min(bar.fillPct, 100)}%`, background: band.colour, borderRadius: bar.fillPct >= 100 ? '8px' : '8px 0 0 8px' }} />
-                        {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-8px', bottom: '-8px', width: '3px', background: '#0f172a', borderRadius: '2px', marginLeft: '-1.5px' }} />}
-                        {target > 0 && <div className="absolute z-[3] whitespace-nowrap" style={{ [bar.markerPct > 75 ? 'right' : 'left']: bar.markerPct > 75 ? `${100 - bar.markerPct}%` : `${bar.markerPct}%`, top: '-22px', transform: bar.markerPct > 75 ? 'translateX(50%)' : 'translateX(-50%)' }}>
-                          <span className="bg-slate-800 text-white text-[10px] font-semibold px-2 py-0.5 rounded">target {target}</span>
+                        {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-8px', bottom: '-8px', width: '3px', background: band.textCol, borderRadius: '2px', marginLeft: '-1.5px' }} />}
+                        {target > 0 && <div className="absolute z-[3] whitespace-nowrap" style={{ top: '-22px', ...(bar.markerPct > 75 ? { right: `${Math.max(100 - bar.markerPct, 0)}%`, transform: 'translateX(50%)' } : { left: `${bar.markerPct}%`, transform: 'translateX(-50%)' }) }}>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded" style={{ background: band.colour, color: 'white' }}>target {target}</span>
                         </div>}
                       </div>
                       <div className="flex justify-between mt-2">
