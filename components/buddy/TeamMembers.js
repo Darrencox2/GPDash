@@ -62,6 +62,12 @@ export default function TeamMembers({ data, saveData, toast }) {
       if (field === 'status') u.longTermAbsent = value === 'longTermAbsent';
       if (field === 'longTermAbsent') u.status = value ? 'longTermAbsent' : 'active';
       if (field === 'role') u.group = guessGroupFromRole(value);
+      // When name changes, auto-add old name as alias so CSV matching keeps working
+      if (field === 'name' && c.name && value !== c.name) {
+        const aliases = [...(c.aliases || [])];
+        if (!aliases.includes(c.name)) aliases.push(c.name);
+        u.aliases = aliases;
+      }
       return u;
     });
     saveData({ ...data, clinicians: updated }, false);
@@ -175,10 +181,15 @@ export default function TeamMembers({ data, saveData, toast }) {
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="md:col-span-2"><label className="block text-xs text-slate-500 mb-1">Name</label><input type="text" value={c.name || ''} onChange={e => { updateField(c.id, 'name', e.target.value); }} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm" /></div>
+              <div><label className="block text-xs text-slate-500 mb-1">Initials</label><input type="text" maxLength={4} value={c.initials || ''} onChange={e => updateField(c.id, 'initials', e.target.value.toUpperCase())} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center uppercase" /></div>
+              <div><label className="block text-xs text-slate-500 mb-1">Sessions/week</label><input type="number" min="0" max="10" value={c.sessions || 0} onChange={e => updateField(c.id, 'sessions', parseInt(e.target.value) || 0)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center" /></div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div><label className="block text-xs text-slate-500 mb-1">Role</label><select value={c.role || ''} onChange={e => updateField(c.id, 'role', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
               <div><label className="block text-xs text-slate-500 mb-1">Group</label><select value={c.group || 'gp'} onChange={e => updateField(c.id, 'group', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{GROUP_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select></div>
               <div><label className="block text-xs text-slate-500 mb-1">Status</label><select value={c.status || 'active'} onChange={e => updateField(c.id, 'status', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="active">Active</option><option value="longTermAbsent">Long-term absent</option><option value="administrative">Administrative</option><option value="left">Left practice</option></select></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Sessions/week</label><input type="number" min="0" max="10" value={c.sessions || 0} onChange={e => updateField(c.id, 'sessions', parseInt(e.target.value) || 0)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center" /></div>
             </div>
 
             <div>
@@ -277,6 +288,48 @@ export default function TeamMembers({ data, saveData, toast }) {
         if (!members || members.length === 0) return null;
         const gc = GROUP_COLOURS[groupKey];
         const groupLabel = STAFF_GROUPS[groupKey]?.label || groupKey;
+
+        // GP team gets subcategories
+        if (groupKey === 'gp') {
+          const GP_SUBS = [
+            { label: 'Partners', roles: ['GP Partner', 'Associate Partner'] },
+            { label: 'Salaried GPs', roles: ['Salaried GP'] },
+            { label: 'Registrars', roles: ['GP Registrar'] },
+            { label: 'Locums', roles: ['Locum'] },
+            { label: 'Medical Students', roles: ['Medical Student'] },
+          ];
+          return (
+            <div key={groupKey}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${gc.dot}`} />
+                <span className="text-sm font-semibold text-slate-700">{groupLabel}</span>
+                <span className="text-xs text-slate-400">{members.length}</span>
+              </div>
+              {GP_SUBS.map(sub => {
+                const subMembers = members.filter(c => sub.roles.includes(c.role));
+                if (subMembers.length === 0) return null;
+                return (
+                  <div key={sub.label} className="mb-3">
+                    <div className="text-xs text-slate-400 font-medium ml-5 mb-1">{sub.label}</div>
+                    <div className="space-y-1.5">
+                      {subMembers.map(c => <PersonRow key={c.id} c={c} />)}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Any GP team members with unrecognised roles */}
+              {members.filter(c => !['GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'Medical Student'].includes(c.role)).length > 0 && (
+                <div className="mb-3">
+                  <div className="text-xs text-slate-400 font-medium ml-5 mb-1">Other</div>
+                  <div className="space-y-1.5">
+                    {members.filter(c => !['GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'Medical Student'].includes(c.role)).map(c => <PersonRow key={c.id} c={c} />)}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
         return (
           <div key={groupKey}>
             <div className="flex items-center gap-2 mb-2">

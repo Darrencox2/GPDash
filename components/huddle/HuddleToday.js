@@ -715,7 +715,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       )}
 
       {/* Date header with navigation */}
-      <div className="card overflow-hidden">
+      <div className="card overflow-visible relative z-10">
         <div className="flex">
           <div className={`${isViewingToday ? 'bg-emerald-500' : 'bg-slate-600'} px-5 py-4 flex flex-col items-center justify-center min-w-[90px] transition-colors`}>
             <div className="text-3xl font-extrabold text-white leading-none">{viewingDate.getDate()}</div>
@@ -754,7 +754,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </button>
                 {showCalendar && (
-                  <div className="absolute top-full left-0 mt-2 z-30 bg-white rounded-xl shadow-2xl border border-slate-200 p-3">
+                  <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-xl shadow-2xl border border-slate-200 p-3">
                     <input type="date"
                       value={viewingDate.toISOString().split('T')[0]}
                       min={minDate.toISOString().split('T')[0]}
@@ -799,26 +799,42 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       {error && <Card className="p-4 bg-red-50 border-red-200 text-red-700 text-sm">{error}</Card>}
 
       {/* NOTICEBOARD */}
-      <div className="card overflow-hidden border-red-200">
-        <div className="bg-red-50 px-5 py-3 border-b border-red-200">
-          <div className="text-sm font-semibold text-red-800">📌 Noticeboard</div>
+      <div className="card overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span className="text-sm font-semibold text-amber-400">Noticeboard</span>
+          {huddleMessages.length > 0 && <span className="text-xs text-white/40 ml-auto">{huddleMessages.length} message{huddleMessages.length !== 1 ? 's' : ''}</span>}
         </div>
-        <div className="p-4 space-y-3">
-          {huddleMessages.length === 0 && <p className="text-sm text-slate-400 text-center py-2">No messages yet.</p>}
-          {huddleMessages.map((msg, i) => (
-            <div key={msg.id || i} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-200">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-800">{msg.text}</p>
-                <p className="text-xs text-slate-400 mt-1">
-                  {msg.author && <span className="font-medium text-slate-500">{msg.author}</span>}
-                  {msg.author && msg.addedAt && ' · '}
-                  {msg.addedAt && new Date(msg.addedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                </p>
+        <div className="p-3 space-y-1">
+          {huddleMessages.length === 0 && <p className="text-sm text-slate-400 text-center py-3">No messages yet.</p>}
+          {huddleMessages.map((msg, i) => {
+            const colours = [
+              { border: '#f59e0b', bg: 'rgba(245,158,11,0.06)', badge: '#fef3c7', badgeText: '#92400e', init: '#fde68a' },
+              { border: '#3b82f6', bg: 'rgba(59,130,246,0.06)', badge: '#dbeafe', badgeText: '#1e40af', init: '#bfdbfe' },
+              { border: '#ec4899', bg: 'rgba(236,72,153,0.06)', badge: '#fce7f3', badgeText: '#9d174d', init: '#fbcfe8' },
+              { border: '#10b981', bg: 'rgba(16,185,129,0.06)', badge: '#d1fae5', badgeText: '#065f46', init: '#a7f3d0' },
+              { border: '#8b5cf6', bg: 'rgba(139,92,246,0.06)', badge: '#ede9fe', badgeText: '#5b21b6', init: '#ddd6fe' },
+            ];
+            const c = colours[i % colours.length];
+            const initials = msg.author ? msg.author.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
+            const time = msg.addedAt ? new Date(msg.addedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+            return (
+              <div key={msg.id || i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg group" style={{ borderLeft: `3px solid ${c.border}`, background: c.bg }}>
+                <div className="relative flex-shrink-0">
+                  <div className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 cursor-default" style={{ background: c.badge }}>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: c.init, color: c.badgeText }}>{initials}</div>
+                  </div>
+                  {msg.author && (
+                    <div className="hidden group-hover:block absolute left-0 top-full mt-1 z-20 bg-slate-800 text-white text-xs px-2.5 py-1 rounded-lg whitespace-nowrap shadow-lg">{msg.author}</div>
+                  )}
+                </div>
+                <span className="text-sm text-slate-800 flex-1">{msg.text}</span>
+                {time && <span className="text-xs text-slate-400 flex-shrink-0">{time}</span>}
+                <button onClick={() => removeMessage(i)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs">✕</button>
               </div>
-              <button onClick={() => removeMessage(i)} className="text-xs text-slate-400 hover:text-red-500 p-1">✕</button>
-            </div>
-          ))}
-          <div className="flex gap-2 pt-1">
+            );
+          })}
+          <div className="flex gap-2 pt-2">
             <input type="text" value={newAuthor} onChange={e => setNewAuthor(e.target.value)} placeholder="Your name" className="w-32 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
             <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMessage(); }} placeholder="Add a message..." className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
             <Button onClick={addMessage} size="sm">Add</Button>

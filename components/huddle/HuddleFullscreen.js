@@ -321,7 +321,7 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
       <NoticeTicker messages={messages} />
 
       {/* 4-quadrant grid — fills remaining viewport */}
-      <div className="grid grid-cols-2 flex-1 min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)', padding: 'clamp(4px, 0.5vh, 10px)' }}>
+      <div className="grid grid-cols-2 flex-1 min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)', padding: 'clamp(4px, 0.5vh, 10px)', gridTemplateRows: '1fr 1fr' }}>
 
         {/* TL: Demand — dark card */}
         <div className="rounded-xl bg-slate-900 overflow-hidden flex flex-col border border-slate-800">
