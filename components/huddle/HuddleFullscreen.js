@@ -213,8 +213,10 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
   // ── Capacity ──────────────────────────────────────────────────
   const displayDate = huddleData?.dates?.includes(todayDateStr) ? todayDateStr : null;
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs) : null;
-  const urgentAm = capacity?.am?.total||0, urgentPm = capacity?.pm?.total||0, urgentTotal = urgentAm+urgentPm;
-  const bookedAm = capacity?.am?.booked||0, bookedPm = capacity?.pm?.booked||0;
+  const urgentAm = (capacity?.am?.total||0) + (capacity?.am?.embargoed||0);
+  const availAm = capacity?.am?.total||0, embAm = capacity?.am?.embargoed||0;
+  const urgentPm = (capacity?.pm?.total||0) + (capacity?.pm?.embargoed||0);
+  const availPm = capacity?.pm?.total||0, embPm = capacity?.pm?.embargoed||0;
   const mergedClinicians = useMemo(() => {
     if (!capacity) return [];
     const m = {};
@@ -227,12 +229,16 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
   const todayDayName = dayName;
   const expectedAm = hs.expectedCapacity?.[todayDayName]?.am || 0;
   const expectedPm = hs.expectedCapacity?.[todayDayName]?.pm || 0;
-  const expectedTotal = expectedAm + expectedPm;
-  const hasTarget = expectedTotal > 0;
-  const pctColour = (p) => p >= 60 ? '#10b981' : p >= 30 ? '#f59e0b' : '#ef4444';
-  const rawPctAm = expectedAm > 0 ? (urgentAm / expectedAm) * 100 : (urgentAm + bookedAm > 0 ? (urgentAm / (urgentAm + bookedAm)) * 100 : 0);
-  const rawPctPm = expectedPm > 0 ? (urgentPm / expectedPm) * 100 : (urgentPm + bookedPm > 0 ? (urgentPm / (urgentPm + bookedPm)) * 100 : 0);
-  const rawPctTotal = expectedTotal > 0 ? (urgentTotal / expectedTotal) * 100 : (urgentTotal + bookedAm + bookedPm > 0 ? (urgentTotal / (urgentTotal + bookedAm + bookedPm)) * 100 : 0);
+  const getBand = (slots, target) => {
+    if (!target || target === 0) return { colour: '#64748b', bg: '#f8fafc', border: '#e2e8f0', label: '', textCol: '#64748b', tint: '', pct: 0 };
+    const pct = (slots / target) * 100;
+    if (pct >= 120) return { colour: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', label: `+${slots-target} above`, textCol: '#1d4ed8', tint: '#eff6ff', pct };
+    if (pct >= 90)  return { colour: '#10b981', bg: '#f0fdf4', border: '#a7f3d0', label: pct>=100?`+${slots-target} above`:`${target-slots} below`, textCol: '#065f46', tint: '#f0fdf4', pct };
+    if (pct >= 80)  return { colour: '#f59e0b', bg: '#fffbeb', border: '#fde68a', label: `${target-slots} below`, textCol: '#92400e', tint: '#fffbeb', pct };
+    return { colour: '#ef4444', bg: '#fef2f2', border: '#fecaca', label: `${target-slots} below`, textCol: '#991b1b', tint: '#fef2f2', pct };
+  };
+  const amBand = getBand(urgentAm, expectedAm);
+  const pmBand = getBand(urgentPm, expectedPm);
 
   // ── Routine ───────────────────────────────────────────────────
   const knownSlotTypes = hs?.knownSlotTypes || [];
@@ -352,53 +358,51 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
           </div>
         </div>
 
-        {/* TR: Urgent — gauges + clinicians */}
+        {/* TR: Urgent — AM/PM side by side with proportional bars */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
           <div className="bg-gradient-to-r from-red-600 to-red-500 flex items-center justify-between flex-shrink-0" style={{padding:'clamp(4px,0.7vh,10px) clamp(8px,1vw,16px)'}}>
             <span className="font-semibold text-white" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>Urgent on the day</span>
-            <span className="text-white/70" style={{fontSize:'clamp(8px,1vh,12px)'}}>Available slots</span>
           </div>
-          <div className="flex-1 flex flex-col overflow-auto" style={{padding:'clamp(4px,0.7vh,12px)'}}>
-            <div className="flex items-center justify-center flex-shrink-0" style={{gap:'clamp(8px,2vw,24px)',marginBottom:'clamp(4px,0.8vh,12px)'}}>
-              {[{val:urgentAm,pct:rawPctAm,label:'Morning',colour:pctColour(rawPctAm)},
-                {val:urgentTotal,pct:rawPctTotal,label:'Total',colour:pctColour(rawPctTotal),big:true},
-                {val:urgentPm,pct:rawPctPm,label:'Afternoon',colour:pctColour(rawPctPm)}
-              ].map((g,gi) => {
-                const sz = 130, r2 = (sz-10)/2, cx2 = sz/2, cy2 = sz/2, circ2 = 2*Math.PI*r2;
-                const displayPct = Math.min(g.pct, 100);
-                const off2 = circ2 - (circ2 * displayPct / 100);
-                const svgSize = g.big ? 'clamp(60px, 10vh, 100px)' : 'clamp(50px, 8vh, 80px)';
-                return (
-                  <div key={gi} className="text-center fs-fadein" style={{animationDelay:`${0.1+gi*0.15}s`}}>
-                    <svg viewBox={`0 0 ${sz} ${sz}`} style={{width:svgSize,height:svgSize}}>
-                      <circle cx={cx2} cy={cy2} r={r2} fill="none" stroke="#f1f5f9" strokeWidth={10}/>
-                      <circle cx={cx2} cy={cy2} r={r2} fill="none" stroke={g.colour} strokeWidth={10} strokeLinecap="round"
-                        strokeDasharray={circ2} strokeDashoffset={circ2}
-                        transform={`rotate(-90 ${cx2} ${cy2})`}
-                        className="fs-gauge-sweep" style={{'--target':off2,animationDelay:`${0.3+gi*0.2}s`}}/>
-                      <text x={cx2} y={cy2-2} textAnchor="middle" fill="#0f172a" style={{fontSize:g.big?'28px':'22px',fontWeight:800}}>{g.val}</text>
-                      <text x={cx2} y={cy2+14} textAnchor="middle" fill="#94a3b8" style={{fontSize:'11px'}}>{g.label}</text>
-                      {hasTarget && <text x={cx2} y={cy2+26} textAnchor="middle" fill={g.colour} style={{fontSize:'10px',fontWeight:600}}>{Math.round(g.pct)}%</text>}
-                    </svg>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="grid grid-cols-2 flex-1 content-start" style={{gap:'clamp(2px,0.4vh,6px)'}}>
-              {mergedClinicians.slice(0,8).map((c,i) => {
-                const matched = allClinicians.find(tc => matchesStaffMember(c.name,tc));
-                return (
-                  <div key={i} className="flex items-center justify-between bg-slate-50 rounded-lg border border-slate-200 fs-slidein" style={{animationDelay:`${0.5+i*0.06}s`,padding:'clamp(3px,0.5vh,8px) clamp(6px,0.8vw,12px)'}}>
-                    <span className="text-slate-600 truncate mr-2" style={{fontSize:'clamp(10px,1.2vh,14px)'}}>{matched?.name||c.name}</span>
-                    <div className="flex gap-1 flex-shrink-0">
-                      <span className="bg-emerald-100 text-emerald-800 rounded font-semibold" style={{padding:'1px clamp(3px,0.5vw,8px)',fontSize:'clamp(10px,1.2vh,14px)'}}>{c.available}</span>
-                      <span className="bg-amber-100 text-amber-800 rounded font-semibold" style={{padding:'1px clamp(3px,0.5vw,8px)',fontSize:'clamp(10px,1.2vh,14px)'}}>{c.embargoed}</span>
-                      <span className="bg-slate-100 text-slate-600 rounded font-semibold" style={{padding:'1px clamp(3px,0.5vw,8px)',fontSize:'clamp(10px,1.2vh,14px)'}}>{c.booked}</span>
+          <div className="flex flex-1 min-h-0 overflow-hidden">
+            {[{label:'Morning',slots:urgentAm,avail:availAm,emb:embAm,target:expectedAm,band:amBand,data:capacity?.am},
+              {label:'Afternoon',slots:urgentPm,avail:availPm,emb:embPm,target:expectedPm,band:pmBand,data:capacity?.pm}
+            ].map((s,si) => {
+              const isShort = s.band.colour === '#ef4444' || s.band.colour === '#f59e0b';
+              const scale = Math.max(s.slots, s.target, 1);
+              const fillPct = (s.slots / scale) * 100;
+              const markerPct = (s.target / scale) * 100;
+              const clinicians = (s.data?.byClinician || []).map(c => {
+                const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
+                return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', total: c.available + (c.embargoed || 0) };
+              }).filter(c => c.total > 0).sort((a,b) => b.total - a.total);
+              return (
+                <div key={si} className="flex-1 flex flex-col overflow-auto" style={{padding:'clamp(6px,1vh,14px)',background:s.band.tint||'transparent',borderLeft:si===1&&isShort?`3px solid ${s.band.colour}`:si===1?'0.5px solid #e2e8f0':undefined}}>
+                  <div className="uppercase tracking-wider font-semibold flex-shrink-0" style={{color:s.band.colour,fontSize:'clamp(9px,1.1vh,12px)',marginBottom:'clamp(2px,0.5vh,6px)'}}>{s.label}</div>
+                  <div className="flex items-center flex-shrink-0" style={{gap:'clamp(4px,0.8vw,10px)',marginBottom:'clamp(4px,0.8vh,12px)'}}>
+                    <span className="font-extrabold leading-none" style={{color:s.band.colour,fontSize:'clamp(24px,4vh,42px)'}}>{s.slots}</span>
+                    <div className="flex-1">
+                      <div className="rounded-md relative" style={{height:'clamp(10px,1.5vh,18px)',background:s.band.border,marginRight:4}}>
+                        <div className="absolute left-0 top-0 bottom-0 rounded-md" style={{width:`${Math.min(fillPct,100)}%`,background:s.band.colour,borderRadius:fillPct>=100?'6px':'6px 0 0 6px'}}/>
+                        {s.target>0 && <div className="absolute bg-slate-900" style={{left:`${Math.min(markerPct,100)}%`,top:-3,bottom:-3,width:2,zIndex:1}}/>}
+                        {s.target>0 && <div className="absolute whitespace-nowrap text-slate-500" style={{fontSize:'clamp(7px,0.9vh,9px)',bottom:'-13px',[markerPct>80?'right':'left']:markerPct>80?0:`${markerPct}%`,transform:markerPct>80?'none':'translateX(-50%)'}}>target {s.target}</div>}
+                      </div>
+                      <div className="flex justify-between" style={{marginTop:'clamp(10px,1.5vh,16px)'}}>
+                        <span className="font-semibold" style={{color:s.band.colour,fontSize:'clamp(8px,1vh,10px)'}}>{s.avail} avail{s.emb>0?` · ${s.emb} emb`:''}</span>
+                        {s.target>0 && <span className="font-semibold" style={{color:s.band.textCol,fontSize:'clamp(8px,1vh,10px)'}}>{s.band.label} · {Math.round(s.band.pct)}%</span>}
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex flex-col flex-1 overflow-auto" style={{gap:'clamp(1px,0.3vh,4px)'}}>
+                    {clinicians.map((c,i) => (
+                      <div key={i} className="flex items-center rounded-md fs-slidein" style={{animationDelay:`${0.3+i*0.06}s`,padding:'clamp(2px,0.4vh,6px) clamp(4px,0.6vw,8px)',background:si===0?'white':'rgba(255,255,255,0.6)',border:`1px solid ${s.band.border}`}}>
+                        <span className="truncate flex-1" style={{fontSize:'clamp(9px,1.1vh,12px)',color:'#475569'}}>{c.displayName}</span>
+                        <span className="font-extrabold" style={{color:s.band.colour,fontSize:'clamp(11px,1.4vh,15px)',minWidth:18,textAlign:'right'}}>{c.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -22,6 +22,9 @@ export default function TeamMembers({ data, saveData, toast }) {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showLeft, setShowLeft] = useState(false);
   const [newPerson, setNewPerson] = useState({ name: '', role: 'Salaried GP', initials: '', group: 'gp', sessions: 6 });
+  const [mergeId, setMergeId] = useState(null); // unconfirmed person being merged
+  const [mergeTarget, setMergeTarget] = useState(''); // existing person id to merge into
+  const [mergeNameChoice, setMergeNameChoice] = useState('existing'); // which name to display
 
   const unconfirmedCount = clinicians.filter(c => !c.confirmed).length;
   const activeStaff = clinicians.filter(c => c.status === 'active' || c.status === 'longTermAbsent');
@@ -126,6 +129,34 @@ export default function TeamMembers({ data, saveData, toast }) {
     updateField(id, 'aliases', (c.aliases || []).filter((_, i) => i !== aliasIdx));
   };
 
+  const mergePerson = (unconfirmedId, targetId, nameChoice) => {
+    const unconfirmed = clinicians.find(c => c.id === unconfirmedId);
+    const target = clinicians.find(c => c.id === targetId);
+    if (!unconfirmed || !target) return;
+
+    const keepName = nameChoice === 'new' ? unconfirmed.name : target.name;
+    const aliasName = nameChoice === 'new' ? target.name : unconfirmed.name;
+    const keepInitials = nameChoice === 'new'
+      ? (unconfirmed.initials || unconfirmed.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3))
+      : target.initials;
+
+    // Build merged aliases: combine both, add the aliasName, deduplicate
+    const allAliases = [...new Set([...(target.aliases || []), ...(unconfirmed.aliases || []), aliasName].filter(a => a && a !== keepName))];
+
+    const updated = clinicians
+      .filter(c => c.id !== unconfirmedId) // remove the unconfirmed duplicate
+      .map(c => {
+        if (c.id !== targetId) return c;
+        return { ...c, name: keepName, initials: keepInitials, aliases: allAliases };
+      });
+
+    saveData({ ...data, clinicians: updated });
+    setMergeId(null);
+    setMergeTarget('');
+    setMergeNameChoice('existing');
+    toast?.(`Merged "${unconfirmed.name}" into "${target.name}"`, 'success', 2000);
+  };
+
   const buddyCoverPeople = clinicians.filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
 
   const removeAllUnconfirmed = () => {
@@ -174,9 +205,58 @@ export default function TeamMembers({ data, saveData, toast }) {
         {isExpanded && (
           <div className="px-4 pb-4 border-t border-slate-100 pt-3 space-y-4">
             {!c.confirmed && (
-              <div className="flex gap-2">
-                <button onClick={() => confirmPerson(c.id)} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600">Confirm person</button>
-                <button onClick={() => removePerson(c.id)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100">Remove</button>
+              <div className="space-y-3">
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={() => confirmPerson(c.id)} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600">Confirm as new person</button>
+                  <button onClick={() => { setMergeId(mergeId === c.id ? null : c.id); setMergeTarget(''); setMergeNameChoice('existing'); }} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${mergeId === c.id ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>Merge with existing</button>
+                  <button onClick={() => removePerson(c.id)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100">Remove</button>
+                </div>
+                {mergeId === c.id && (
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
+                    <div className="text-xs font-semibold text-blue-800">Merge &quot;{c.name}&quot; with an existing staff member</div>
+                    <div>
+                      <label className="block text-xs text-blue-700 mb-1">Select existing person</label>
+                      <select value={mergeTarget} onChange={e => setMergeTarget(e.target.value)} className="w-full px-2 py-1.5 rounded border border-blue-200 text-sm bg-white">
+                        <option value="">Choose person...</option>
+                        {clinicians.filter(x => x.confirmed && x.id !== c.id && x.status !== 'left').map(x => (
+                          <option key={x.id} value={x.id}>{x.name} — {x.role}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {mergeTarget && (() => {
+                      const target = clinicians.find(x => x.id === parseInt(mergeTarget));
+                      if (!target) return null;
+                      return (
+                        <>
+                          <div>
+                            <label className="block text-xs text-blue-700 mb-1.5">Which name should be displayed?</label>
+                            <div className="flex flex-col gap-1.5">
+                              <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${mergeNameChoice === 'existing' ? 'bg-white border-blue-400 shadow-sm' : 'border-blue-100 hover:bg-white/50'}`}>
+                                <input type="radio" name={`merge-name-${c.id}`} checked={mergeNameChoice === 'existing'} onChange={() => setMergeNameChoice('existing')} className="accent-blue-500" />
+                                <span className="text-sm font-medium text-slate-800">{target.name}</span>
+                                <span className="text-xs text-slate-400">(current)</span>
+                              </label>
+                              <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${mergeNameChoice === 'new' ? 'bg-white border-blue-400 shadow-sm' : 'border-blue-100 hover:bg-white/50'}`}>
+                                <input type="radio" name={`merge-name-${c.id}`} checked={mergeNameChoice === 'new'} onChange={() => setMergeNameChoice('new')} className="accent-blue-500" />
+                                <span className="text-sm font-medium text-slate-800">{c.name}</span>
+                                <span className="text-xs text-slate-400">(from CSV)</span>
+                              </label>
+                            </div>
+                          </div>
+                          <div className="text-xs text-blue-600">
+                            The other name will be saved as an alias for future CSV matching.
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => mergePerson(c.id, parseInt(mergeTarget), mergeNameChoice)} className="px-3 py-1.5 rounded-lg bg-blue-500 text-white text-xs font-medium hover:bg-blue-600">
+                              Merge into {target.name.split(' ')[0]}
+                            </button>
+                            <button onClick={() => { setMergeId(null); setMergeTarget(''); }} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Cancel</button>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             )}
 

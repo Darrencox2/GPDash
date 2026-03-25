@@ -737,12 +737,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       ? viewingDate.toLocaleDateString('en-GB', { weekday: 'long' })
                       : viewingDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
-                  {isViewingToday && data?.huddleCsvUploadedAt && (
-                    <>
-                      <span className="w-1 h-1 rounded-full bg-slate-500" />
-                      <span className="text-xs text-slate-400">Report uploaded {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
-                    </>
-                  )}
                 </div>
               </div>
               <button onClick={() => navigateDay(1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
@@ -779,6 +773,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               <Button variant={isUploadedToday ? 'upload_fresh' : 'upload_stale'} onClick={() => fileRef.current?.click()}>
                 {isUploadedToday ? '✓ Upload Report' : '⚠ Upload Report'}
               </Button>
+              {data?.huddleCsvUploadedAt && (
+                <span className="text-[10px] text-slate-400">Uploaded {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
+              )}
             </div>
           </div>
         </div>
@@ -860,29 +857,92 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         <>
           {/* ─── URGENT ON THE DAY ─── */}
           {(() => {
-            // For urgent on-the-day, embargoed slots release during the day so count as available
             const urgentAm = capacity.am.total + (capacity.am.embargoed || 0);
+            const availAm = capacity.am.total || 0;
+            const embAm = capacity.am.embargoed || 0;
             const urgentPm = capacity.pm.total + (capacity.pm.embargoed || 0);
-            const bookedAm = capacity.am.booked || 0;
-            const bookedPm = capacity.pm.booked || 0;
-            const urgentTotal = urgentAm + urgentPm;
-            const bookedTotal = bookedAm + bookedPm;
-            const grandTotal = urgentTotal + bookedTotal;
+            const availPm = capacity.pm.total || 0;
+            const embPm = capacity.pm.embargoed || 0;
 
-            // Get expected target for today from settings
             const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            const todayDayName = dayNames[new Date().getDay()];
+            const todayDayName = dayNames[viewingDate.getDay()];
             const expectedAm = hs.expectedCapacity?.[todayDayName]?.am || 0;
             const expectedPm = hs.expectedCapacity?.[todayDayName]?.pm || 0;
-            const expectedTotal = expectedAm + expectedPm;
-            const hasTarget = expectedTotal > 0;
+            const hasTarget = (expectedAm + expectedPm) > 0;
 
-            // Raw percentages (can exceed 100)
-            const rawPctTotal = hasTarget ? (urgentTotal / expectedTotal) * 100 : (grandTotal > 0 ? (urgentTotal / grandTotal) * 100 : 0);
-            const rawPctAm = expectedAm > 0 ? (urgentAm / expectedAm) * 100 : (urgentAm + bookedAm > 0 ? (urgentAm / (urgentAm + bookedAm)) * 100 : 0);
-            const rawPctPm = expectedPm > 0 ? (urgentPm / expectedPm) * 100 : (urgentPm + bookedPm > 0 ? (urgentPm / (urgentPm + bookedPm)) * 100 : 0);
+            // Colour band: <80% red, 80-90% amber, 90-120% green, >120% blue
+            const getBand = (slots, target) => {
+              if (!target || target === 0) return { colour: '#64748b', bg: '#f8fafc', border: '#e2e8f0', label: 'No target', textCol: '#64748b', tint: '' };
+              const pct = (slots / target) * 100;
+              if (pct >= 120) return { colour: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', label: `+${slots - target} above`, textCol: '#1d4ed8', tint: '#eff6ff', pct };
+              if (pct >= 90)  return { colour: '#10b981', bg: '#f0fdf4', border: '#a7f3d0', label: pct >= 100 ? `+${slots - target} above` : `${target - slots} below`, textCol: '#065f46', tint: '#f0fdf4', pct };
+              if (pct >= 80)  return { colour: '#f59e0b', bg: '#fffbeb', border: '#fde68a', label: `${target - slots} below`, textCol: '#92400e', tint: '#fffbeb', pct };
+              return { colour: '#ef4444', bg: '#fef2f2', border: '#fecaca', label: `${target - slots} below`, textCol: '#991b1b', tint: '#fef2f2', pct };
+            };
+            const amBand = getBand(urgentAm, expectedAm);
+            const pmBand = getBand(urgentPm, expectedPm);
 
-            const pctColour = (p) => p >= 80 ? '#10b981' : p >= 50 ? '#f59e0b' : '#ef4444';
+            // Bar scale = max(actual, target)
+            const barPct = (slots, target) => {
+              const scale = Math.max(slots, target, 1);
+              return { fillPct: (slots / scale) * 100, markerPct: (target / scale) * 100 };
+            };
+
+            // Session panel renderer
+            const SessionPanel = ({ label, slots, avail, emb, target, band, isShort, sessionData }) => {
+              const bar = barPct(slots, target);
+              const clinicians = (sessionData?.byClinician || [])
+                .map(c => {
+                  const matched = teamClinicians.find(tc => matchesStaffMember(c.name, tc));
+                  return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', total: c.available + (c.embargoed || 0) };
+                })
+                .filter(c => c.total > 0)
+                .sort((a, b) => b.total - a.total);
+              const maxClinSlots = Math.max(...clinicians.map(c => c.total), 1);
+
+              return (
+                <div className="flex-1 p-4" style={{ background: band.tint || 'transparent', borderLeft: isShort ? `3px solid ${band.colour}` : undefined }}>
+                  <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: band.colour }}>{label}</div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-4xl font-extrabold leading-none" style={{ color: band.colour }}>{slots}</span>
+                    <div className="flex-1">
+                      <div className="h-4 rounded-md relative" style={{ background: band.border, marginRight: 4 }}>
+                        <div className="absolute left-0 top-0 bottom-0 rounded-md" style={{ width: `${Math.min(bar.fillPct, 100)}%`, background: band.colour, borderRadius: bar.fillPct >= 100 ? '6px' : '6px 0 0 6px' }} />
+                        {target > 0 && <div className="absolute top-[-4px] bottom-[-4px] w-0.5 bg-slate-900 z-[1]" style={{ left: `${Math.min(bar.markerPct, 100)}%` }} />}
+                        {target > 0 && <div className="absolute text-[9px] text-slate-500 whitespace-nowrap" style={{ bottom: '-14px', left: `${Math.min(bar.markerPct, 100)}%`, transform: bar.markerPct > 80 ? 'translateX(-100%)' : 'translateX(-50%)' }}>target {target}</div>}
+                      </div>
+                      <div className="flex justify-between mt-4">
+                        <span className="text-[10px] font-semibold" style={{ color: band.colour }}>{avail} available{emb > 0 ? ` · ${emb} embargoed` : ''}</span>
+                        {target > 0 && <span className="text-[10px] font-semibold" style={{ color: band.textCol }}>{band.label} · {Math.round(band.pct)}%</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {clinicians.map((c, i) => {
+                      const roleColour = ROLE_COLOURS[c.role] || 'bg-slate-50 border-slate-200';
+                      const barW = (c.total / maxClinSlots) * 100;
+                      const slotCol = c.total >= 5 ? band.colour : c.total >= 2 ? '#f59e0b' : '#ef4444';
+                      return (
+                        <div key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded-md border ${roleColour}`}>
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0" style={{ background: c.role?.includes('Nurse') || c.role === 'HCA' ? '#d1fae5' : c.role === 'ANP' || c.role?.includes('Paramedic') || c.role?.includes('Pharma') || c.role?.includes('Physio') ? '#ede9fe' : '#dbeafe', color: c.role?.includes('Nurse') || c.role === 'HCA' ? '#047857' : c.role === 'ANP' || c.role?.includes('Paramedic') || c.role?.includes('Pharma') || c.role?.includes('Physio') ? '#6d28d9' : '#1d4ed8' }}>
+                            {(c.displayName || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold text-slate-900 truncate">{c.displayName}</div>
+                            <div className="text-[10px] text-slate-400 truncate">{c.role || 'Staff'}</div>
+                          </div>
+                          <div className="w-12 h-2 rounded-full overflow-hidden flex-shrink-0" style={{ background: band.border }}>
+                            <div className="h-full rounded-full" style={{ width: `${barW}%`, background: slotCol }} />
+                          </div>
+                          <span className="text-sm font-extrabold min-w-[20px] text-right" style={{ color: slotCol }}>{c.total}</span>
+                        </div>
+                      );
+                    })}
+                    {clinicians.length === 0 && <div className="text-center text-slate-400 text-xs py-2">No capacity</div>}
+                  </div>
+                </div>
+              );
+            };
 
             return (
               <div className="card overflow-hidden">
@@ -895,82 +955,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" initialOverrides={urgentInitialOverrides} />
                   </div>
                 </div>
-
                 {displayDate && displayDate !== viewingDateStr && (
-                  <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">⚠️ Date not found in report. Showing {displayDate}.</div>
+                  <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">Date not found in report. Showing {displayDate}.</div>
                 )}
-
-                {/* Main gauge row: AM + Total + PM */}
-                <div className="flex items-center justify-center gap-6 md:gap-10 py-6 px-4 border-b border-slate-100">
-                  {/* AM gauge */}
-                  <MiniGauge value={urgentAm} max={expectedAm || (urgentAm + bookedAm)} size={100} strokeWidth={8} colour={pctColour(rawPctAm)}>
-                    <text x="50" y="44" textAnchor="middle" fill="#1e293b" style={{ fontSize: '24px', fontWeight: 700 }}>{urgentAm}</text>
-                    <text x="50" y="58" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>Morning</text>
-                    {hasTarget && expectedAm > 0 && <text x="50" y="70" textAnchor="middle" fill={pctColour(rawPctAm)} style={{ fontSize: '9px', fontWeight: 600 }}>{Math.round(rawPctAm)}%</text>}
-                  </MiniGauge>
-
-                  {/* Total gauge (larger) */}
-                  <MiniGauge value={urgentTotal} max={expectedTotal || grandTotal} size={170} strokeWidth={14} colour={pctColour(rawPctTotal)}>
-                    <text x="85" y="72" textAnchor="middle" fill="#1e293b" style={{ fontSize: '46px', fontWeight: 700 }}>{urgentTotal}</text>
-                    <text x="85" y="92" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '12px' }}>available</text>
-                    {hasTarget && <text x="85" y="106" textAnchor="middle" fill={pctColour(rawPctTotal)} style={{ fontSize: '11px', fontWeight: 600 }}>{Math.round(rawPctTotal)}% of {expectedTotal}</text>}
-                    {bookedTotal > 0 && <text x="85" y={hasTarget ? 120 : 106} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>{bookedTotal} booked</text>}
-                  </MiniGauge>
-
-                  {/* PM gauge */}
-                  <MiniGauge value={urgentPm} max={expectedPm || (urgentPm + bookedPm)} size={100} strokeWidth={8} colour={pctColour(rawPctPm)}>
-                    <text x="50" y="44" textAnchor="middle" fill="#1e293b" style={{ fontSize: '24px', fontWeight: 700 }}>{urgentPm}</text>
-                    <text x="50" y="58" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '10px' }}>Afternoon</text>
-                    {hasTarget && expectedPm > 0 && <text x="50" y="70" textAnchor="middle" fill={pctColour(rawPctPm)} style={{ fontSize: '9px', fontWeight: 600 }}>{Math.round(rawPctPm)}%</text>}
-                  </MiniGauge>
+                <div className="flex flex-col md:flex-row md:divide-x divide-slate-200">
+                  <SessionPanel label="Morning" slots={urgentAm} avail={availAm} emb={embAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} />
+                  <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} emb={embPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} />
                 </div>
 
-                {/* AM / PM clinician breakdown */}
-                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                  {[{ label: 'Morning', data: capacity.am, colour: 'text-amber-600' },
-                    { label: 'Afternoon', data: capacity.pm, colour: 'text-blue-600' }].map(s => {
-                    const sessionTotal = s.data.total + (s.data.embargoed || 0);
-                    return (
-                      <div key={s.label} className="p-5">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="text-sm font-bold text-slate-900">{s.label}</div>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-lg font-bold ${s.colour}`}>{sessionTotal}</span>
-                            {(s.data.booked || 0) > 0 && <span className="text-xs text-slate-400">({s.data.booked} bkd)</span>}
-                          </div>
-                        </div>
-                        {s.data.byClinician.length > 0 ? (
-                          <div className="grid grid-cols-2 gap-1.5">
-                            {s.data.byClinician.map((c, i) => {
-                              const matched = teamClinicians.find(tc => matchesStaffMember(c.name, tc));
-                              const displayName = matched?.name || c.name;
-                              const role = matched?.role || '';
-                              const roleColour = ROLE_COLOURS[role] || 'bg-slate-50 border-slate-200';
-                              const clinicianTotal = c.available + (c.embargoed || 0);
-                              return (
-                                <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${roleColour}`}>
-                                  <svg className="w-5 h-5 opacity-50 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                                  </svg>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-xs font-semibold truncate">{displayName}</div>
-                                    <div className="text-[10px] opacity-60 truncate">{role || 'Staff'}</div>
-                                  </div>
-                                  <div className="flex items-center gap-1 flex-shrink-0">
-                                    <span className={`text-sm font-bold tabular-nums ${s.colour}`}>{clinicianTotal}</span>
-                                    {(c.booked || 0) > 0 && <span className="text-[10px] text-slate-400 tabular-nums">({c.booked})</span>}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : <div className="text-center text-slate-400 text-sm py-3">No capacity</div>}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Slot type breakdown (integrated) */}
+                {/* Slot type breakdown */}
                 {capacity.bySlotType.length > 0 && (
                   <div className="border-t border-slate-200">
                     <div className="bg-slate-50 px-5 py-2.5 border-b border-slate-100"><div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">By Slot Type</div></div>
@@ -990,9 +983,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                             return (
                               <tr key={i}>
                                 <td className="py-1.5 text-slate-600 text-xs">{s.name}</td>
-                                <td className="py-1.5 text-right"><span className="text-amber-600 font-medium text-xs">{amAvail || '–'}</span>{(s.amBook || 0) > 0 && <span className="text-slate-400 text-[10px] ml-1">({s.amBook})</span>}</td>
-                                <td className="py-1.5 text-right"><span className="text-blue-600 font-medium text-xs">{pmAvail || '–'}</span>{(s.pmBook || 0) > 0 && <span className="text-slate-400 text-[10px] ml-1">({s.pmBook})</span>}</td>
-                                <td className="py-1.5 text-right"><span className="font-semibold text-slate-800 text-xs">{totalAvail}</span>{((s.totalBook || 0)) > 0 && <span className="text-slate-400 text-[10px] ml-1">({s.totalBook})</span>}</td>
+                                <td className="py-1.5 text-right"><span className="text-amber-600 font-medium text-xs">{amAvail || '–'}</span></td>
+                                <td className="py-1.5 text-right"><span className="text-blue-600 font-medium text-xs">{pmAvail || '–'}</span></td>
+                                <td className="py-1.5 text-right"><span className="font-semibold text-slate-800 text-xs">{totalAvail}</span></td>
                               </tr>
                             );
                           })}
