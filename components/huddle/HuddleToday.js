@@ -361,12 +361,15 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
                   <div className="w-full h-full bg-slate-200" />
                 )}
               </div>
-              <div className={`text-[9px] font-medium mt-0.5 ${isToday ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>{d.dayName}</div>
+              <div className={`mt-0.5 text-center ${isToday ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
+                <div className="text-[9px] leading-tight">{d.dayName?.charAt(0)}</div>
+                <div className="text-[8px] leading-tight" style={{ color: isToday ? '#475569' : '#cbd5e1' }}>{d.dayNum}</div>
+              </div>
               {/* Hover tooltip */}
               {isHovered && hasData && total > 0 && (
                 <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 bg-slate-900 text-white rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap pointer-events-none animate-fade-in" style={{ minWidth: '100px' }}>
-                  <div className="text-[11px] font-bold mb-0.5">{d.dayName}</div>
-                  <div className="space-y-0.5 text-[10px]">
+                  <div className="text-xs font-bold mb-0.5">{d.dayName} {d.dayNum}</div>
+                  <div className="space-y-0.5 text-[11px]">
                     <div className="flex justify-between gap-3"><span>Available</span><span className="font-semibold">{avail}</span></div>
                     {emb > 0 && <div className="flex justify-between gap-3"><span>Embargoed</span><span className="font-semibold">{emb}</span></div>}
                     {book > 0 && <div className="flex justify-between gap-3"><span>Booked</span><span className="font-semibold">{book}</span></div>}
@@ -380,9 +383,9 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
       </div>
       {/* Legend */}
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
-        <div className="flex items-center gap-1"><div className={`w-2 h-2 rounded-sm ${ac.bar}`} /><span className="text-[10px] text-slate-500">Available</span></div>
-        <div className="flex items-center gap-1"><div className={`w-2 h-2 rounded-sm ${ac.emb}`} /><span className="text-[10px] text-slate-500">Embargoed</span></div>
-        <div className="flex items-center gap-1"><div className={`w-2 h-2 rounded-sm ${ac.book}`} /><span className="text-[10px] text-slate-500">Booked</span></div>
+        <div className="flex items-center gap-1"><div className={`w-2.5 h-2.5 rounded-sm ${ac.bar}`} /><span className="text-xs text-slate-500">Available</span></div>
+        <div className="flex items-center gap-1"><div className={`w-2.5 h-2.5 rounded-sm ${ac.emb}`} /><span className="text-xs text-slate-500">Embargoed</span></div>
+        <div className="flex items-center gap-1"><div className={`w-2.5 h-2.5 rounded-sm ${ac.book}`} /><span className="text-xs text-slate-500">Booked</span></div>
       </div>
       {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
     </div>
@@ -399,29 +402,50 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
   const totalEmb = days.reduce((sum, d) => sum + (d.embargoed || 0), 0);
   const totalBooked = days.reduce((sum, d) => sum + (d.booked || 0), 0);
 
-  // Split into calendar weeks (Mon-Sun boundaries)
-  const weeks = [];
-  let currentWeek = [];
-  days.forEach((d, i) => {
-    if (d.isMonday && currentWeek.length > 0) {
-      weeks.push(currentWeek);
-      currentWeek = [];
-    }
-    currentWeek.push(d);
+  // Calculate calendar-day index for each entry (counting from 0 = today)
+  const dayIndicesWithCalendarDay = useMemo(() => {
+    let calDay = 0;
+    return days.map((d, i) => {
+      const cd = calDay;
+      calDay++;
+      return cd;
+    });
+  }, [days]);
+
+  // Threshold positions (calendar days) for dividers
+  const THRESHOLDS = [3, 7, 14, 21];
+  const thresholdIndices = THRESHOLDS.map(t => {
+    const idx = dayIndicesWithCalendarDay.findIndex(cd => cd >= t);
+    return idx >= 0 ? idx : -1;
   });
-  if (currentWeek.length > 0) weeks.push(currentWeek);
+
+  // Background zone colours (alternating subtle tints)
+  const ZONE_COLOURS = ['rgba(16,185,129,0.04)', 'rgba(59,130,246,0.04)', 'rgba(16,185,129,0.04)', 'rgba(59,130,246,0.04)', 'rgba(16,185,129,0.04)'];
 
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-xs text-slate-500">Next 30 days</div>
+        <div className="text-sm text-slate-500">Next 30 days</div>
         <div className="flex items-center gap-3 text-sm">
           <span className="font-semibold text-emerald-700">{totalAvail} avail</span>
           {totalEmb > 0 && <span className="font-semibold text-amber-600">{totalEmb} emb</span>}
           {totalBooked > 0 && <span className="font-semibold text-slate-500">{totalBooked} booked</span>}
         </div>
       </div>
-      <div className="flex items-end gap-px relative" style={{ height: 130 }}>
+      <div className="flex items-end gap-px relative" style={{ height: 140 }}>
+        {/* Threshold divider lines */}
+        {thresholdIndices.map((tidx, ti) => {
+          if (tidx < 0) return null;
+          // Calculate the approximate percentage position
+          const totalBars = days.length;
+          const pct = (tidx / totalBars) * 100;
+          return (
+            <div key={`t${ti}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{ left: `${pct}%` }}>
+              <div className="absolute top-0 bottom-0 w-px" style={{ background: '#94a3b8', opacity: 0.4 }} />
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-400 bg-white border border-slate-200 whitespace-nowrap">{THRESHOLDS[ti]}d</div>
+            </div>
+          );
+        })}
         {days.map((d, i) => {
           const isToday = i === 0;
           const hasData = d.available !== null && !d.isWeekend;
@@ -432,10 +456,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
           const pct = hasData && total > 0 ? Math.max(6, (total / maxVal) * 100) : 0;
           const isHovered = hoveredIdx === i;
 
-          // Weekend: render thin grey spacer
-          if (d.isWeekend) {
-            return <div key={i} className="flex-[0.3] h-full" />;
-          }
+          if (d.isWeekend) return <div key={i} className="flex-[0.3] h-full" />;
 
           return (
             <div key={i}
@@ -443,13 +464,11 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
               onMouseEnter={() => setHoveredIdx(i)}
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
-              {/* Number above bar */}
               {hasData && total > 0 && (
                 <div className={`text-[10px] font-bold transition-all duration-150 ${isToday ? 'text-slate-800' : isHovered ? 'text-emerald-700' : 'text-slate-400'}`}>
                   {avail}{emb > 0 && <span className="text-amber-500">+{emb}</span>}
                 </div>
               )}
-              {/* Bar */}
               <div className={`w-full rounded-t overflow-hidden cursor-pointer transition-all duration-200 ${isToday ? 'ring-2 ring-slate-900 z-10' : ''} ${isHovered ? 'ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-400/20 scale-x-110 z-10' : ''}`}
                 style={{ height: hasData ? `${pct}%` : '4%', minHeight: 2 }}>
                 {!hasData ? (
@@ -464,31 +483,14 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
                   </div>
                 )}
               </div>
-              {/* Hover tooltip */}
               {isHovered && hasData && (
                 <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 bg-slate-900 text-white rounded-lg px-3 py-2 shadow-xl whitespace-nowrap pointer-events-none animate-fade-in" style={{ minWidth: '120px' }}>
-                  <div className="text-[11px] font-bold mb-1">{d.dayName} {d.dayNum} {d.monthShort}</div>
+                  <div className="text-xs font-bold mb-1">{d.dayName} {d.dayNum} {d.monthShort}</div>
                   <div className="space-y-0.5">
-                    <div className="flex items-center justify-between gap-3 text-[10px]">
-                      <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />Available</span>
-                      <span className="font-semibold">{avail}</span>
-                    </div>
-                    {emb > 0 && (
-                      <div className="flex items-center justify-between gap-3 text-[10px]">
-                        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-300" />Embargoed</span>
-                        <span className="font-semibold">{emb}</span>
-                      </div>
-                    )}
-                    {book > 0 && (
-                      <div className="flex items-center justify-between gap-3 text-[10px]">
-                        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" />Booked</span>
-                        <span className="font-semibold">{book}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between gap-3 text-[10px] pt-0.5 border-t border-white/20">
-                      <span>Total</span>
-                      <span className="font-bold">{total}</span>
-                    </div>
+                    <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />Available</span><span className="font-semibold">{avail}</span></div>
+                    {emb > 0 && <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-300" />Embargoed</span><span className="font-semibold">{emb}</span></div>}
+                    {book > 0 && <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" />Booked</span><span className="font-semibold">{book}</span></div>}
+                    <div className="flex items-center justify-between gap-3 text-[11px] pt-0.5 border-t border-white/20"><span>Total</span><span className="font-bold">{total}</span></div>
                   </div>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900" />
                 </div>
@@ -497,33 +499,24 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
           );
         })}
       </div>
-      {/* Day labels */}
-      <div className="flex gap-px mt-1">
+      {/* Day + date labels */}
+      <div className="flex gap-px mt-1.5">
         {days.map((d, i) => {
           if (d.isWeekend) return <div key={i} className="flex-[0.3]" />;
+          const isToday = i === 0;
           return (
             <div key={i} className={`flex-1 text-center ${d.isMonday && i > 0 ? 'ml-1 pl-1' : ''}`}>
-              <div className={`text-[8px] ${d.isMonday ? 'text-slate-500 font-medium' : 'text-slate-300'}`}>
-                {d.isMonday ? d.dayNum : ''}
-              </div>
+              <div className={`text-[9px] leading-tight ${isToday ? 'text-slate-800 font-bold' : 'text-slate-400'}`}>{d.dayName?.charAt(0)}</div>
+              <div className={`text-[8px] leading-tight ${isToday ? 'text-slate-600 font-semibold' : 'text-slate-300'}`}>{d.dayNum}</div>
             </div>
           );
         })}
       </div>
-      {/* Calendar range labels: 0-7, 8-14, 15-21, 22-28 calendar days */}
-      <div className="flex mt-0.5">
-        {[{ label: '0–7 days', end: 7 }, { label: '8–14 days', end: 14 }, { label: '15–21 days', end: 21 }, { label: '22–28 days', end: 28 }].map((range, ri) => (
-          <div key={ri} className={`flex-1 text-center ${ri > 0 ? 'border-l border-slate-100' : ''}`}>
-            <div className="text-[9px] text-slate-400 font-medium">{range.label}</div>
-          </div>
-        ))}
-      </div>
       {/* Legend */}
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-emerald-400" /><span className="text-[10px] text-slate-500">Available</span></div>
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-amber-300" /><span className="text-[10px] text-slate-500">Embargoed</span></div>
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-slate-300" /><span className="text-[10px] text-slate-500">Booked</span></div>
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-slate-100" /><span className="text-[10px] text-slate-500">No data</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-400" /><span className="text-xs text-slate-500">Available</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-amber-300" /><span className="text-xs text-slate-500">Embargoed</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-slate-300" /><span className="text-xs text-slate-500">Booked</span></div>
       </div>
       {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
     </div>
@@ -704,7 +697,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
   return (
     <div className="space-y-6 animate-in" onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
-      {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} onExit={() => setIsFullscreen(false)} />}
+      {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} viewingDate={viewingDate} onExit={() => setIsFullscreen(false)} />}
       {isDragging && (
         <div className="fixed inset-0 z-40 bg-teal-500/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-center border-2 border-dashed border-teal-400">
@@ -770,12 +763,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
               </button>
               <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
-              <Button variant={isUploadedToday ? 'upload_fresh' : 'upload_stale'} onClick={() => fileRef.current?.click()}>
-                {isUploadedToday ? '✓ Upload Report' : '⚠ Upload Report'}
-              </Button>
-              {data?.huddleCsvUploadedAt && (
-                <span className="text-[10px] text-slate-400">Uploaded {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
-              )}
+              <div className="flex flex-col items-end">
+                <Button variant={isUploadedToday ? 'upload_fresh' : 'upload_stale'} onClick={() => fileRef.current?.click()}>
+                  {isUploadedToday ? '✓ Upload Report' : '⚠ Upload Report'}
+                </Button>
+                {data?.huddleCsvUploadedAt && (
+                  <span className="text-[10px] text-slate-400 mt-1">Uploaded {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -894,51 +889,46 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               const clinicians = (sessionData?.byClinician || [])
                 .map(c => {
                   const matched = teamClinicians.find(tc => matchesStaffMember(c.name, tc));
-                  return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', total: c.available + (c.embargoed || 0) };
+                  return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', initials: matched?.initials || (c.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2), total: c.available + (c.embargoed || 0) };
                 })
                 .filter(c => c.total > 0)
                 .sort((a, b) => b.total - a.total);
-              const maxClinSlots = Math.max(...clinicians.map(c => c.total), 1);
 
               return (
-                <div className="flex-1 p-4" style={{ background: band.tint || 'transparent', borderLeft: isShort ? `3px solid ${band.colour}` : undefined }}>
-                  <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: band.colour }}>{label}</div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-4xl font-extrabold leading-none" style={{ color: band.colour }}>{slots}</span>
+                <div className="flex-1 p-5" style={{ background: band.tint || 'transparent', borderLeft: isShort ? `3px solid ${band.colour}` : undefined }}>
+                  <div className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: band.colour }}>{label}</div>
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-5xl font-extrabold leading-none" style={{ color: band.colour }}>{slots}</span>
                     <div className="flex-1">
-                      <div className="h-4 rounded-md relative" style={{ background: band.border, marginRight: 4 }}>
-                        <div className="absolute left-0 top-0 bottom-0 rounded-md" style={{ width: `${Math.min(bar.fillPct, 100)}%`, background: band.colour, borderRadius: bar.fillPct >= 100 ? '6px' : '6px 0 0 6px' }} />
-                        {target > 0 && <div className="absolute top-[-4px] bottom-[-4px] w-0.5 bg-slate-900 z-[1]" style={{ left: `${Math.min(bar.markerPct, 100)}%` }} />}
-                        {target > 0 && <div className="absolute text-[9px] text-slate-500 whitespace-nowrap" style={{ bottom: '-14px', left: `${Math.min(bar.markerPct, 100)}%`, transform: bar.markerPct > 80 ? 'translateX(-100%)' : 'translateX(-50%)' }}>target {target}</div>}
+                      <div className="h-5 rounded-lg relative" style={{ background: band.border }}>
+                        <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${Math.min(bar.fillPct, 100)}%`, background: band.colour, borderRadius: bar.fillPct >= 100 ? '8px' : '8px 0 0 8px' }} />
+                        {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-8px', bottom: '-8px', width: '3px', background: '#0f172a', borderRadius: '2px', marginLeft: '-1.5px' }} />}
+                        {target > 0 && <div className="absolute z-[3] whitespace-nowrap" style={{ [bar.markerPct > 75 ? 'right' : 'left']: bar.markerPct > 75 ? `${100 - bar.markerPct}%` : `${bar.markerPct}%`, top: '-22px', transform: bar.markerPct > 75 ? 'translateX(50%)' : 'translateX(-50%)' }}>
+                          <span className="bg-slate-800 text-white text-[10px] font-semibold px-2 py-0.5 rounded">target {target}</span>
+                        </div>}
                       </div>
-                      <div className="flex justify-between mt-4">
-                        <span className="text-[10px] font-semibold" style={{ color: band.colour }}>{avail} available{emb > 0 ? ` · ${emb} embargoed` : ''}</span>
-                        {target > 0 && <span className="text-[10px] font-semibold" style={{ color: band.textCol }}>{band.label} · {Math.round(band.pct)}%</span>}
+                      <div className="flex justify-between mt-2">
+                        <span className="text-xs font-semibold" style={{ color: band.colour }}>{avail} available{emb > 0 ? ` · ${emb} embargoed` : ''}</span>
+                        {target > 0 && <span className="text-xs font-semibold" style={{ color: band.textCol }}>{band.label} · {Math.round(band.pct)}%</span>}
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1.5">
                     {clinicians.map((c, i) => {
                       const roleColour = ROLE_COLOURS[c.role] || 'bg-slate-50 border-slate-200';
-                      const barW = (c.total / maxClinSlots) * 100;
-                      const slotCol = c.total >= 5 ? band.colour : c.total >= 2 ? '#f59e0b' : '#ef4444';
+                      const gc = c.role?.includes('Nurse') || c.role === 'HCA' || c.role === 'Nurse Associate' ? { bg: '#d1fae5', text: '#047857' } : c.role === 'ANP' || c.role?.includes('Paramedic') || c.role?.includes('Pharma') || c.role?.includes('Physio') ? { bg: '#ede9fe', text: '#6d28d9' } : { bg: '#dbeafe', text: '#1d4ed8' };
                       return (
-                        <div key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded-md border ${roleColour}`}>
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0" style={{ background: c.role?.includes('Nurse') || c.role === 'HCA' ? '#d1fae5' : c.role === 'ANP' || c.role?.includes('Paramedic') || c.role?.includes('Pharma') || c.role?.includes('Physio') ? '#ede9fe' : '#dbeafe', color: c.role?.includes('Nurse') || c.role === 'HCA' ? '#047857' : c.role === 'ANP' || c.role?.includes('Paramedic') || c.role?.includes('Pharma') || c.role?.includes('Physio') ? '#6d28d9' : '#1d4ed8' }}>
-                            {(c.displayName || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
-                          </div>
+                        <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${roleColour}`}>
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: gc.bg, color: gc.text }}>{c.initials}</div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-slate-900 truncate">{c.displayName}</div>
-                            <div className="text-[10px] text-slate-400 truncate">{c.role || 'Staff'}</div>
+                            <div className="text-sm font-semibold text-slate-900 truncate">{c.displayName}</div>
+                            <div className="text-xs text-slate-400 truncate">{c.role || 'Staff'}</div>
                           </div>
-                          <div className="w-12 h-2 rounded-full overflow-hidden flex-shrink-0" style={{ background: band.border }}>
-                            <div className="h-full rounded-full" style={{ width: `${barW}%`, background: slotCol }} />
-                          </div>
-                          <span className="text-sm font-extrabold min-w-[20px] text-right" style={{ color: slotCol }}>{c.total}</span>
+                          <span className="text-lg font-extrabold min-w-[24px] text-right" style={{ color: band.colour }}>{c.total}</span>
                         </div>
                       );
                     })}
-                    {clinicians.length === 0 && <div className="text-center text-slate-400 text-xs py-2">No capacity</div>}
+                    {clinicians.length === 0 && <div className="text-center text-slate-400 text-sm py-3">No capacity</div>}
                   </div>
                 </div>
               );

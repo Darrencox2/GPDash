@@ -84,7 +84,7 @@ const GaugeSVG = memo(function GaugeSVG({ pct, colour, label, delay }) {
 });
 
 // ── Main component ──────────────────────────────────────────────
-export default function HuddleFullscreen({ data, huddleData, onExit }) {
+export default function HuddleFullscreen({ data, huddleData, viewingDate: viewingDateProp, onExit }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
@@ -92,10 +92,14 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
 
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
-  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const realToday = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const today = useMemo(() => { if (viewingDateProp) { const d = new Date(viewingDateProp); d.setHours(0,0,0,0); return d; } return realToday; }, [viewingDateProp, realToday]);
   const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
   const dateKey = today.toISOString().split('T')[0];
-  const todayDateStr = getTodayDateStr();
+  const todayDateStr = useMemo(() => {
+    const d = today;
+    return `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`;
+  }, [today]);
   const hs = data?.huddleSettings || {};
   const messages = ensureArray(data?.huddleMessages || []);
 
@@ -442,7 +446,22 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
             ))}</div>}
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex justify-between" style={{marginBottom:'clamp(1px,0.3vh,4px)'}}><span className="text-slate-400" style={{fontSize:'clamp(8px,0.9vh,10px)'}}>All routine · 30 days</span><div className="flex text-slate-400" style={{gap:'clamp(3px,0.5vw,8px)',fontSize:'clamp(7px,0.9vh,10px)'}}><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-400"/>Avail</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-amber-300"/>Emb</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-slate-300"/>Bkd</span></div></div>
-              <div className="flex-1 flex items-end gap-px">
+              <div className="flex-1 flex items-end gap-px relative">
+                {/* 3/7/14/21 day dividers */}
+                {(() => {
+                  const thresholds = [3,7,14,21];
+                  let calDay = 0;
+                  const calDays = routineDays.map(() => calDay++);
+                  return thresholds.map(t => {
+                    const idx = calDays.findIndex(cd => cd >= t);
+                    if (idx < 0) return null;
+                    const pctPos = (idx / routineDays.length) * 100;
+                    return <div key={`t${t}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{left:`${pctPos}%`}}>
+                      <div className="absolute top-0 bottom-0 w-px" style={{background:'#94a3b8',opacity:0.4}}/>
+                      <div className="absolute left-1/2 -translate-x-1/2 px-1 rounded bg-white border border-slate-200 text-slate-400 font-semibold whitespace-nowrap" style={{top:'-2px',fontSize:'clamp(6px,0.8vh,9px)'}}>{t}d</div>
+                    </div>;
+                  });
+                })()}
                 {routineDays.map((d,i) => {
                   if (d.isWeekend) return <div key={i} style={{flex:'0.3'}}/>;
                   const avail=d.available||0,emb=d.embargoed||0,bkd=d.booked||0,total=avail+emb+bkd;
@@ -460,7 +479,16 @@ export default function HuddleFullscreen({ data, huddleData, onExit }) {
                   );
                 })}
               </div>
-              <div className="flex justify-between text-slate-400" style={{marginTop:'clamp(1px,0.3vh,4px)',fontSize:'clamp(7px,0.9vh,10px)'}}><span>0–7d</span><span>8–14d</span><span>15–21d</span><span>22–28d</span></div>
+              {/* Day + date labels */}
+              <div className="flex gap-px" style={{marginTop:'clamp(1px,0.2vh,3px)'}}>
+                {routineDays.map((d,i) => {
+                  if (d.isWeekend) return <div key={i} style={{flex:'0.3'}}/>;
+                  return <div key={i} style={{flex:1,textAlign:'center'}} className={d.isMonday&&i>0?'ml-0.5 pl-0.5':''}>
+                    <div style={{fontSize:'clamp(6px,0.8vh,9px)',color:i===0?'#1e293b':'#94a3b8',fontWeight:i===0?700:400,lineHeight:1.2}}>{d.dayName?.charAt(0)}</div>
+                    <div style={{fontSize:'clamp(5px,0.7vh,8px)',color:i===0?'#475569':'#cbd5e1',fontWeight:i===0?600:400,lineHeight:1.2}}>{d.dayNum}</div>
+                  </div>;
+                })}
+              </div>
             </div>
           </div>
         </div>

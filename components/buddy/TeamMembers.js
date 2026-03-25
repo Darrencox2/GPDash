@@ -1,7 +1,8 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { STAFF_GROUPS, guessGroupFromRole } from '@/lib/data';
 
+const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof'];
 const ROLE_OPTIONS = ['GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'ANP', 'Paramedic Practitioner', 'Pharmacist', 'Physiotherapist', 'Practice Nurse', 'Nurse Associate', 'HCA', 'Medical Student', 'Admin'];
 const GROUP_OPTIONS = Object.entries(STAFF_GROUPS).map(([k, v]) => ({ value: k, label: v.label }));
 const GROUP_ORDER = ['gp', 'nursing', 'allied', 'admin'];
@@ -11,6 +12,23 @@ const GROUP_COLOURS = {
   allied: { bg: 'bg-purple-50', border: 'border-purple-200', badge: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
   admin: { bg: 'bg-slate-50', border: 'border-slate-200', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
 };
+
+// Debounced text input — saves on blur or after 500ms pause
+function DebouncedInput({ value, onChange, ...props }) {
+  const [local, setLocal] = useState(value);
+  const timerRef = useRef(null);
+  useEffect(() => { setLocal(value); }, [value]);
+  const flush = useCallback((v) => { if (timerRef.current) clearTimeout(timerRef.current); timerRef.current = null; if (v !== value) onChange(v); }, [value, onChange]);
+  const handleChange = (e) => {
+    const v = props.uppercase ? e.target.value.toUpperCase() : e.target.value;
+    setLocal(v);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => flush(v), 500);
+  };
+  const handleBlur = () => flush(local);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  return <input {...props} value={local} onChange={handleChange} onBlur={handleBlur} />;
+}
 
 export default function TeamMembers({ data, saveData, toast }) {
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
@@ -183,7 +201,7 @@ export default function TeamMembers({ data, saveData, toast }) {
           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 cursor-pointer ${!c.confirmed ? 'bg-amber-100 text-amber-700' : gc.badge}`} onClick={() => setExpandedId(isExpanded ? null : c.id)}>{c.initials || '?'}</div>
           <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : c.id)}>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-slate-900">{c.name}</span>
+              <span className="text-sm font-semibold text-slate-900">{c.title ? `${c.title} ` : ''}{c.name}</span>
               {!c.confirmed && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">Unconfirmed</span>}
               {c.status === 'longTermAbsent' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">LTA</span>}
             </div>
@@ -260,9 +278,10 @@ export default function TeamMembers({ data, saveData, toast }) {
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="md:col-span-2"><label className="block text-xs text-slate-500 mb-1">Name</label><input type="text" value={c.name || ''} onChange={e => { updateField(c.id, 'name', e.target.value); }} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm" /></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Initials</label><input type="text" maxLength={4} value={c.initials || ''} onChange={e => updateField(c.id, 'initials', e.target.value.toUpperCase())} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center uppercase" /></div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div><label className="block text-xs text-slate-500 mb-1">Title</label><select value={c.title || ''} onChange={e => updateField(c.id, 'title', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{TITLE_OPTIONS.map(t => <option key={t} value={t}>{t || '—'}</option>)}</select></div>
+              <div className="md:col-span-2"><label className="block text-xs text-slate-500 mb-1">Name</label><DebouncedInput type="text" value={c.name || ''} onChange={v => updateField(c.id, 'name', v)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm" /></div>
+              <div><label className="block text-xs text-slate-500 mb-1">Initials</label><DebouncedInput type="text" maxLength={4} value={c.initials || ''} onChange={v => updateField(c.id, 'initials', v)} uppercase className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center uppercase" /></div>
               <div><label className="block text-xs text-slate-500 mb-1">Sessions/week</label><input type="number" min="0" max="10" value={c.sessions || 0} onChange={e => updateField(c.id, 'sessions', parseInt(e.target.value) || 0)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center" /></div>
             </div>
 
