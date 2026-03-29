@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
-import { getHuddleCapacity, getTodayDateStr, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, LOCATION_COLOURS } from '@/lib/huddle';
+import { getHuddleCapacity, getTodayDateStr, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor } from '@/lib/huddle';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS, DOW_NAMES } from '@/lib/demandPredictor';
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];

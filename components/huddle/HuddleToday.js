@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
-import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability, LOCATION_COLOURS } from '@/lib/huddle';
+import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import DemandPredictor from './DemandPredictor';
@@ -587,6 +587,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   };
   const setUrgentOverrides = (v) => { setUrgentOverridesLocal(v); persistFilter('urgent', v); };
   const setRoutineOverrides = (v) => { setRoutineOverridesLocal(v); persistFilter('routine', v); };
+  const dutyDoctorSlot = hs?.dutyDoctorSlot || null;
+  const hasDutySlot = dutyDoctorSlot && (!Array.isArray(dutyDoctorSlot) || dutyDoctorSlot.length > 0);
+  const setDutyDoctorSlot = (v) => { saveData({ ...data, huddleSettings: { ...hs, dutyDoctorSlot: v && v.length > 0 ? v : null } }, false); };
   const setCardOverride = (cardId, v) => {
     setCardOverrides(prev => ({ ...prev, [cardId]: v }));
     persistFilter(cardId, v);
@@ -883,7 +886,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             };
 
             // Session panel renderer
-            const SessionPanel = ({ label, slots, avail, emb, target, band, isShort, sessionData }) => {
+            const SessionPanel = ({ label, slots, avail, emb, target, band, isShort, sessionData, dutyDoc }) => {
               const bar = barPct(slots, target);
               const LOCATION_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
               const clinicians = (sessionData?.byClinician || [])
@@ -894,10 +897,16 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 .filter(c => c.total > 0)
                 .sort((a, b) => (LOCATION_SORT[a.location] ?? 9) - (LOCATION_SORT[b.location] ?? 9) || b.total - a.total);
 
+              // Resolve duty doctor display name
+              const dutyDocDisplay = dutyDoc ? (() => {
+                const matched = teamClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
+                return { name: matched?.name || dutyDoc.name, initials: matched?.initials || (dutyDoc.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2), title: matched?.title, location: dutyDoc.location };
+              })() : null;
+
               return (
                 <div className="flex-1 p-5" style={{ background: band.tint || 'transparent', borderLeft: isShort ? `3px solid ${band.colour}` : undefined }}>
                   <div className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: band.colour }}>{label}</div>
-                  <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center gap-4 mb-3">
                     <span className="text-5xl font-extrabold leading-none" style={{ color: band.colour }}>{slots}</span>
                     <div className="flex-1">
                       <div className="h-5 rounded-lg relative" style={{ background: band.border }}>
@@ -913,6 +922,16 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       </div>
                     </div>
                   </div>
+                  {dutyDocDisplay && (
+                    <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                      <span className="text-xs font-semibold text-amber-800">Duty: {dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</span>
+                      {dutyDocDisplay.location && (() => {
+                        const lc = LOCATION_COLOURS[dutyDocDisplay.location];
+                        return lc ? <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold" style={{ background: lc.bg, color: lc.text }}>{dutyDocDisplay.location}</span> : null;
+                      })()}
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1.5">
                     {clinicians.map((c, i) => {
                       const roleColour = ROLE_COLOURS[c.role] || 'bg-slate-50 border-slate-200';
@@ -946,15 +965,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <div className="text-base font-semibold text-white">Urgent on the Day</div>
                       <div className="text-[11px] text-white/70">Available urgent capacity{displayDate && displayDate !== viewingDateStr ? ` (${displayDate})` : ''}</div>
                     </div>
-                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" initialOverrides={urgentInitialOverrides} />
+                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" initialOverrides={urgentInitialOverrides} dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} />
                   </div>
                 </div>
                 {displayDate && displayDate !== viewingDateStr && (
                   <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">Date not found in report. Showing {displayDate}.</div>
                 )}
                 <div className="flex flex-col md:flex-row md:divide-x divide-slate-200">
-                  <SessionPanel label="Morning" slots={urgentAm} avail={availAm} emb={embAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} />
-                  <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} emb={embPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} />
+                  <SessionPanel label="Morning" slots={urgentAm} avail={availAm} emb={embAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
+                  <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} emb={embPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
                 </div>
 
                 {/* Slot type breakdown */}
