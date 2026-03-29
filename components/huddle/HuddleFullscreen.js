@@ -212,9 +212,11 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
     });
     return { inPractice: inP, leaveAbsent: leave, dayOff: off };
   }, [visibleStaff, csvPresentIds, absenceMap, hasCSV, data.weeklyRota, dayName]);
-  const gpTeam = categories.inPractice.filter(e => e.person.group === 'gp');
-  const nursingTeam = categories.inPractice.filter(e => e.person.group === 'nursing');
-  const othersTeam = categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing');
+  const FS_LOC_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
+  const fsSortByLoc = (arr) => arr.sort((a, b) => (FS_LOC_SORT[personLocationMap[a.person.id]] ?? 9) - (FS_LOC_SORT[personLocationMap[b.person.id]] ?? 9));
+  const gpTeam = fsSortByLoc(categories.inPractice.filter(e => e.person.group === 'gp'));
+  const nursingTeam = fsSortByLoc(categories.inPractice.filter(e => e.person.group === 'nursing'));
+  const othersTeam = fsSortByLoc(categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing'));
 
   // ── Capacity ──────────────────────────────────────────────────
   const displayDate = huddleData?.dates?.includes(todayDateStr) ? todayDateStr : null;
@@ -382,7 +384,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
               const clinicians = (s.data?.byClinician || []).map(c => {
                 const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
                 return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', total: c.available + (c.embargoed || 0) };
-              }).filter(c => c.total > 0).sort((a,b) => b.total - a.total);
+              }).filter(c => c.total > 0).sort((a,b) => ({'Winscombe':0,'Banwell':1,'Locking':2}[a.location]??9) - ({'Winscombe':0,'Banwell':1,'Locking':2}[b.location]??9) || b.total - a.total);
               return (
                 <div key={si} className="flex-1 flex flex-col overflow-auto" style={{padding:'clamp(6px,1vh,14px)',background:s.band.tint||'transparent',borderLeft:si===1&&isShort?`3px solid ${s.band.colour}`:si===1?'0.5px solid #e2e8f0':undefined}}>
                   <div className="uppercase tracking-wider font-semibold flex-shrink-0" style={{color:s.band.colour,fontSize:'clamp(9px,1.1vh,12px)',marginBottom:'clamp(2px,0.5vh,6px)'}}>{s.label}</div>

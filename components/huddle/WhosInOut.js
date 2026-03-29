@@ -166,9 +166,15 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   }, [visibleStaff, csvPresentIds, absenceMap, manualPresent, manualOverride, hasCSV, rotaScheduled]);
 
   // Group in-practice by staff group
-  const gpTeam = categories.inPractice.filter(e => e.person.group === 'gp');
-  const nursingTeam = categories.inPractice.filter(e => e.person.group === 'nursing');
-  const othersTeam = categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing');
+  const LOCATION_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
+  const sortByLocation = (arr) => arr.sort((a, b) => {
+    const la = LOCATION_SORT[personLocationMap[a.person.id]] ?? 9;
+    const lb = LOCATION_SORT[personLocationMap[b.person.id]] ?? 9;
+    return la - lb;
+  });
+  const gpTeam = sortByLocation(categories.inPractice.filter(e => e.person.group === 'gp'));
+  const nursingTeam = sortByLocation(categories.inPractice.filter(e => e.person.group === 'nursing'));
+  const othersTeam = sortByLocation(categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing'));
 
   // Map person IDs to their CSV location
   const personLocationMap = useMemo(() => {

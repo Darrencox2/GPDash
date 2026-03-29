@@ -885,13 +885,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             // Session panel renderer
             const SessionPanel = ({ label, slots, avail, emb, target, band, isShort, sessionData }) => {
               const bar = barPct(slots, target);
+              const LOCATION_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
               const clinicians = (sessionData?.byClinician || [])
                 .map(c => {
                   const matched = teamClinicians.find(tc => matchesStaffMember(c.name, tc));
                   return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', initials: matched?.initials || (c.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2), total: c.available + (c.embargoed || 0) };
                 })
                 .filter(c => c.total > 0)
-                .sort((a, b) => b.total - a.total);
+                .sort((a, b) => (LOCATION_SORT[a.location] ?? 9) - (LOCATION_SORT[b.location] ?? 9) || b.total - a.total);
 
               return (
                 <div className="flex-1 p-5" style={{ background: band.tint || 'transparent', borderLeft: isShort ? `3px solid ${band.colour}` : undefined }}>
