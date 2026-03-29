@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import GPDashLogo from './GPDashLogo';
+import { APP_VERSION } from '@/lib/version';
 
 const NAV_SECTIONS = [
   {
@@ -139,6 +140,9 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               );
             })}
           </nav>
+
+          {/* Version */}
+          {sidebarOpen && <div className="px-4 py-1 text-center text-[10px] text-slate-600">{APP_VERSION}</div>}
 
           {/* Collapse toggle */}
           <div className="p-3 border-t border-white/5">

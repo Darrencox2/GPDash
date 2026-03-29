@@ -362,27 +362,30 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           <div style={{padding:'clamp(10px,1.5vh,20px) clamp(12px,1.5vw,24px)'}}>
             <div className="text-slate-500 uppercase tracking-wider" style={{fontSize:'clamp(8px, 1.1vh, 14px)',letterSpacing:'1px',marginBottom:'clamp(6px,0.8vh,10px)'}}>Today&apos;s summary</div>
             <div className="flex items-center" style={{gap:'clamp(12px,1.5vw,24px)'}}>
-              <svg viewBox="0 0 90 56" style={{width:'clamp(60px,10vw,130px)',height:'clamp(38px,6vh,80px)',flexShrink:0}}>
-                <path d="M 8 52 A 38 38 0 0 1 82 52" fill="none" stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
-                <path d="M 8 52 A 38 38 0 0 1 82 52" fill="none" stroke={arcColour} strokeWidth="7" strokeLinecap="round" strokeDasharray={`${arcPct * 116} 116`}/>
-                <text x="45" y="46" textAnchor="middle" fill={verdictText} style={{fontSize:'clamp(16px,2vh,22px)',fontWeight:800}}>{coverage}%</text>
+              <svg viewBox="0 0 100 62" style={{width:'clamp(70px,10vw,140px)',height:'clamp(44px,6.5vh,88px)',flexShrink:0}}>
+                <path d="M 10 56 A 40 40 0 0 1 90 56" fill="none" stroke="#1e293b" strokeWidth="8" strokeLinecap="round"/>
+                <path d="M 10 56 A 40 40 0 0 1 90 56" fill="none" stroke={arcColour} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${arcPct * 126} 126`}/>
+                <text x="50" y="50" textAnchor="middle" fill={verdictText} style={{fontSize:20,fontWeight:800}}>{coverage}%</text>
               </svg>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <svg style={{width:'clamp(12px,1.5vh,16px)',height:'clamp(12px,1.5vh,16px)',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke={verdictText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={coverage>=greenPct?'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z':coverage>=amberPct?'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}/></svg>
+                  <svg style={{width:'clamp(14px,1.8vh,20px)',height:'clamp(14px,1.8vh,20px)',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke={verdictText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={coverage>=greenPct?'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z':coverage>=amberPct?'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}/></svg>
                   <span className="font-extrabold" style={{fontSize:'clamp(18px, 3.5vh, 44px)',color:verdictText}}>{verdict}</span>
                 </div>
-                <div className="text-slate-400" style={{fontSize:'clamp(9px, 1.3vh, 16px)'}}>{shortfall > 0 ? `${shortfall} slots short` : `${urgentTotal - needed} above need`}</div>
+                <div className="text-slate-400" style={{fontSize:'clamp(9px, 1.3vh, 16px)',marginTop:'clamp(2px,0.3vh,4px)'}}>{shortfall > 0 ? `${shortfall} slots short` : `${urgentTotal - needed} above need`}</div>
               </div>
-              <div className="flex items-center" style={{gap:'clamp(8px, 1.2vw, 24px)',flexShrink:0}}>
-                <div className="text-center"><div className="text-slate-500" style={{fontSize:'clamp(7px, 1vh, 13px)'}}>Prediction</div><div className="font-extrabold" style={{color:dc.text,fontSize:'clamp(16px, 3.2vh, 40px)'}}>{predicted}</div></div>
-                <div className="flex items-center" style={{gap:'clamp(4px,0.5vw,8px)'}}>
-                  <div><span className="font-extrabold" style={{color:'#a78bfa',fontSize:'clamp(14px, 2.5vh, 32px)'}}>{needed}</span><span style={{fontSize:'clamp(8px, 1.1vh, 14px)',color:'#64748b'}}> need</span></div>
-                  <div style={{width:'clamp(30px,4vw,50px)',height:'clamp(6px,0.8vh,10px)',display:'flex',gap:1,borderRadius:3,overflow:'hidden'}}>
-                    <div style={{flex:Math.max(urgentTotal,1),background:'#34d399'}}/>
-                    {shortfall>0&&<div style={{flex:shortfall,background:arcColour}}/>}
-                  </div>
-                  <div><span className="font-extrabold" style={{color:'#34d399',fontSize:'clamp(14px, 2.5vh, 32px)'}}>{urgentTotal}</span><span style={{fontSize:'clamp(8px, 1.1vh, 14px)',color:'#64748b'}}> have</span></div>
+              <div className="flex" style={{gap:'clamp(6px,0.8vw,12px)',flexShrink:0}}>
+                <div className="rounded-lg text-center" style={{background:'#1e293b',padding:'clamp(4px,0.6vh,10px) clamp(8px,1vw,16px)'}}>
+                  <div className="text-slate-500" style={{fontSize:'clamp(7px, 1vh, 13px)'}}>Prediction</div>
+                  <div className="font-extrabold" style={{color:dc.text,fontSize:'clamp(16px, 2.8vh, 36px)'}}>{predicted}</div>
+                </div>
+                <div className="rounded-lg text-center" style={{background:'#1e293b',padding:'clamp(4px,0.6vh,10px) clamp(8px,1vw,16px)'}}>
+                  <div className="text-slate-500" style={{fontSize:'clamp(7px, 1vh, 13px)'}}>Need</div>
+                  <div className="font-extrabold" style={{color:'#a78bfa',fontSize:'clamp(16px, 2.8vh, 36px)'}}>{needed}</div>
+                </div>
+                <div className="rounded-lg text-center" style={{background:'#1e293b',padding:'clamp(4px,0.6vh,10px) clamp(8px,1vw,16px)'}}>
+                  <div className="text-slate-500" style={{fontSize:'clamp(7px, 1vh, 13px)'}}>Have</div>
+                  <div className="font-extrabold" style={{color:'#34d399',fontSize:'clamp(16px, 2.8vh, 36px)'}}>{urgentTotal}</div>
                 </div>
               </div>
             </div>
@@ -524,7 +527,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 </div>
               </div>
             ))}</div>}
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col" style={{minHeight:'clamp(80px,12vh,200px)'}}>
               <div className="flex justify-between" style={{marginBottom:'clamp(1px,0.3vh,4px)'}}><span className="text-slate-400" style={{fontSize:'clamp(8px, 1.1vh, 14px)'}}>All routine · 30 days</span><div className="flex text-slate-400" style={{gap:'clamp(3px,0.5vw,8px)',fontSize:'clamp(7px, 1vh, 14px)'}}><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-400"/>Avail</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-amber-300"/>Emb</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-slate-300"/>Bkd</span></div></div>
               <div className="flex-1 flex items-end gap-px relative">
                 {(() => { const thresholds=[3,7,14,21]; let calDay=0; const calDays=routineDays.map(()=>calDay++); return thresholds.map(t => { const idx=calDays.findIndex(cd=>cd>=t); if(idx<0) return null; const pctPos=((idx+1)/routineDays.length)*100; return <div key={`t${t}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{left:`${pctPos}%`}}><div className="absolute top-0 bottom-0 w-px" style={{background:'#94a3b8',opacity:0.4}}/><div className="absolute left-1/2 -translate-x-1/2 px-1 rounded bg-white border border-slate-200 text-slate-400 font-semibold whitespace-nowrap" style={{top:'-2px',fontSize:'clamp(7px, 0.9vh, 13px)'}}>{t}d</div></div>; }); })()}
