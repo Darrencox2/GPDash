@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
-import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor } from '@/lib/huddle';
+import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor, getBand } from '@/lib/huddle';
 import { matchesStaffMember } from '@/lib/data';
 
 const DEMAND_COLOURS = {
@@ -28,15 +28,6 @@ const FACTOR_TIPS = {
   mediaScare: () => 'Media health scare — temporary spike',
 };
 const DEFAULTS = { conversionRate: 0.25, greenPct: 100, amberPct: 80 };
-
-function getBand(slots, target) {
-  if (target <= 0) return null;
-  const pct = (slots / target) * 100;
-  if (pct >= 120) return { colour: '#3b82f6' };
-  if (pct >= 90) return { colour: '#10b981' };
-  if (pct >= 80) return { colour: '#f59e0b' };
-  return { colour: '#ef4444' };
-}
 
 export default function DemandCapacityConnector({ viewingDate, huddleData, capacity, hs, data, saveData, urgentOverrides }) {
   const [showSettings, setShowSettings] = useState(false);
@@ -167,8 +158,8 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const todayDayName = dayNames[targetDate.getDay()];
   const amTarget = hs?.expectedCapacity?.[todayDayName]?.am || 0;
   const pmTarget = hs?.expectedCapacity?.[todayDayName]?.pm || 0;
-  const amDutyCol = amTarget > 0 ? (getBand(amSlots, amTarget)?.colour || '#fbbf24') : '#fbbf24';
-  const pmDutyCol = pmTarget > 0 ? (getBand(pmSlots, pmTarget)?.colour || '#34d399') : '#34d399';
+  const amDutyCol = amTarget > 0 ? getBand(amSlots, amTarget).colour : '#fbbf24';
+  const pmDutyCol = pmTarget > 0 ? getBand(pmSlots, pmTarget).colour : '#34d399';
 
   return (
     <div className="rounded-xl overflow-hidden transition-opacity duration-300" style={{ background:'#0f172a', opacity: loading ? 0.7 : 1 }}>

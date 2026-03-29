@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
-import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor } from '@/lib/huddle';
+import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import DemandCapacityConnector from './DemandCapacityConnector';
@@ -302,7 +302,7 @@ function getInitials(csvName, clinicians) {
   if (csvWords.length === 1) return csvWords[0].slice(0, 2).toUpperCase();
   // Last resort — first 2 alpha chars from raw name
   const alpha = csvName.replace(/[^a-zA-Z]/g, '');
-  console.log('[Buddy] No initials match for CSV name:', JSON.stringify(csvName), '→ cleaned:', JSON.stringify(csvClean), '→ words:', csvWords, '| Team:', clinicians.map(c => c.name + '=' + c.initials));
+
   return alpha.length >= 2 ? alpha.slice(0, 2).toUpperCase() : '??';
 }
 
@@ -883,15 +883,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             const expectedPm = hs.expectedCapacity?.[todayDayName]?.pm || 0;
             const hasTarget = (expectedAm + expectedPm) > 0;
 
-            // Colour band: <80% red, 80-90% amber, 90-120% green, >120% blue
-            const getBand = (slots, target) => {
-              if (!target || target === 0) return { colour: '#64748b', bg: '#f8fafc', border: '#e2e8f0', label: 'No target', textCol: '#64748b', tint: '' };
-              const pct = (slots / target) * 100;
-              if (pct >= 120) return { colour: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', label: `+${slots - target} above`, textCol: '#1d4ed8', tint: '#eff6ff', pct };
-              if (pct >= 90)  return { colour: '#10b981', bg: '#f0fdf4', border: '#a7f3d0', label: pct >= 100 ? `+${slots - target} above` : `${target - slots} below`, textCol: '#065f46', tint: '#f0fdf4', pct };
-              if (pct >= 80)  return { colour: '#f59e0b', bg: '#fffbeb', border: '#fde68a', label: `${target - slots} below`, textCol: '#92400e', tint: '#fffbeb', pct };
-              return { colour: '#ef4444', bg: '#fef2f2', border: '#fecaca', label: `${target - slots} below`, textCol: '#991b1b', tint: '#fef2f2', pct };
-            };
             const amBand = getBand(urgentAm, expectedAm);
             const pmBand = getBand(urgentPm, expectedPm);
 
