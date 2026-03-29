@@ -202,17 +202,25 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const csvLocationMap = useMemo(() => { if (!huddleData?.dates?.includes(todayDateStr)) return {}; return getClinicianLocationsForDate(huddleData, todayDateStr); }, [huddleData, todayDateStr]);
   const personLocationMap = useMemo(() => { const map = {}; allClinicians.forEach(p => { Object.entries(csvLocationMap).forEach(([csvName, loc]) => { if (matchesStaffMember(csvName, p)) map[p.id] = loc; }); }); return map; }, [allClinicians, csvLocationMap]);
   const absenceMap = useMemo(() => { const m = {}; ensureArray(data.plannedAbsences).forEach(a => { if (dateKey >= a.startDate && dateKey <= a.endDate) m[a.clinicianId] = a.reason || 'Leave'; }); return m; }, [data.plannedAbsences, dateKey]);
+  const dayKey = `${dateKey}-${dayName}`;
+  const manualOverride = data.dailyOverrides?.[dayKey];
+  const manualPresent = manualOverride?.present ? new Set(ensureArray(manualOverride.present)) : null;
   const categories = useMemo(() => {
     const inP = [], leave = [], off = [];
     visibleStaff.forEach(p => {
       if (p.longTermAbsent || p.status === 'longTermAbsent') { leave.push({ person: p, reason: 'LTA' }); return; }
+      if (manualPresent !== null) {
+        const isManualScheduled = ensureArray(manualOverride?.scheduled || []).includes(p.id);
+        if (isManualScheduled && !manualPresent.has(p.id)) { leave.push({ person: p, reason: absenceMap[p.id] || 'Absent' }); return; }
+        if (manualPresent.has(p.id)) { inP.push({ person: p }); return; }
+      }
       if (absenceMap[p.id]) { leave.push({ person: p, reason: absenceMap[p.id] }); return; }
       if (hasCSV && csvPresentIds.has(p.id)) { inP.push({ person: p }); return; }
       if (!hasCSV && p.buddyCover && ensureArray(data.weeklyRota?.[dayName])?.includes(p.id)) { inP.push({ person: p }); return; }
       off.push({ person: p });
     });
     return { inPractice: inP, leaveAbsent: leave, dayOff: off };
-  }, [visibleStaff, csvPresentIds, absenceMap, hasCSV, data.weeklyRota, dayName]);
+  }, [visibleStaff, csvPresentIds, absenceMap, manualPresent, manualOverride, hasCSV, data.weeklyRota, dayName]);
   const FS_LOC_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
   const fsSortByLoc = (arr) => arr.sort((a, b) => (FS_LOC_SORT[personLocationMap[a.person.id]] ?? 9) - (FS_LOC_SORT[personLocationMap[b.person.id]] ?? 9));
   const gpTeam = fsSortByLoc(categories.inPractice.filter(e => e.person.group === 'gp'));

@@ -27,7 +27,7 @@ export default function Home() {
 function AppContent() {
   const toast = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [rotaOnly, setRotaOnly] = useState(false);
+  const [rotaOnly, setRotaOnly] = useState(() => typeof window !== 'undefined' && window.location.hash.startsWith('#rota-'));
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [data, setData] = useState(null);
@@ -35,7 +35,7 @@ function AppContent() {
   const [loading, setLoading] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(() => getWeekStart(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => getCurrentDay());
-  const [activeSection, setActiveSection] = useState('huddle-today');
+  const [activeSection, setActiveSection] = useState(() => typeof window !== 'undefined' && window.location.hash.startsWith('#rota-') ? 'huddle-rota' : 'huddle-today');
   const [syncStatus, setSyncStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -46,15 +46,11 @@ function AppContent() {
 
   // Hash routing for direct rota links (e.g. gpdash.net#rota-TM)
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.startsWith('#rota-')) {
-      setActiveSection('huddle-rota');
-      setRotaOnly(true);
-      // Fetch read-only data without password
-      fetch('/api/data?rota=1').then(r => r.json()).then(d => {
-        if (d.clinicians) { setData(normalizeData(d)); setIsAuthenticated(true); }
-      }).catch(() => {});
-    }
+    if (!rotaOnly) return;
+    // Fetch read-only data without password
+    fetch('/api/data?rota=1').then(r => r.json()).then(d => {
+      if (d.clinicians) { setData(normalizeData(d)); setIsAuthenticated(true); }
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -251,8 +247,8 @@ function AppContent() {
   const removeClinician = (id) => { if (!confirm('Remove this clinician?')) return; const newClinicians = ensureArray(data.clinicians).filter(c => c.id !== id); const newRota = { ...data.weeklyRota }; DAYS.forEach(day => { newRota[day] = ensureArray(newRota[day]).filter(cid => cid !== id); }); saveData({ ...data, clinicians: newClinicians, weeklyRota: newRota }); };
   const updateClinicianField = (id, field, value) => { const newClinicians = ensureArray(data.clinicians).map(c => { if (c.id !== id) return c; let pv = value; if (field === 'sessions') pv = parseInt(value) || 6; if (field === 'primaryBuddy' || field === 'secondaryBuddy') pv = value ? parseInt(value) : null; return { ...c, [field]: pv }; }); saveData({ ...data, clinicians: newClinicians }); };
 
-  if (!isAuthenticated) return <LoginScreen password={password} setPassword={setPassword} onLogin={handleLogin} loading={loading} error={passwordError} />;
-  if (!data) return <div className="min-h-screen flex items-center justify-center bg-slate-100"><PageSkeleton /></div>;
+  if (!isAuthenticated && !rotaOnly) return <LoginScreen password={password} setPassword={setPassword} onLogin={handleLogin} loading={loading} error={passwordError} />;
+  if (!data) return <div className="min-h-screen flex items-center justify-center" style={{ background: rotaOnly ? 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)' : '#f1f5f9' }}><PageSkeleton /></div>;
 
   // Standalone rota view — no sidebar, read-only
   if (rotaOnly) return (
