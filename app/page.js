@@ -27,6 +27,7 @@ export default function Home() {
 function AppContent() {
   const toast = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [rotaOnly, setRotaOnly] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [data, setData] = useState(null);
@@ -43,10 +44,17 @@ function AppContent() {
   const [huddleMessages, setHuddleMessages] = useState([]);
   const huddleLoadedRef = useRef(false);
 
-  // Hash routing for direct links (e.g. gpdash.net#rota-TM)
+  // Hash routing for direct rota links (e.g. gpdash.net#rota-TM)
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash.startsWith('#rota-')) setActiveSection('huddle-rota');
+    if (hash.startsWith('#rota-')) {
+      setActiveSection('huddle-rota');
+      setRotaOnly(true);
+      // Fetch read-only data without password
+      fetch('/api/data?rota=1').then(r => r.json()).then(d => {
+        if (d.clinicians) { setData(normalizeData(d)); setIsAuthenticated(true); }
+      }).catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -245,6 +253,15 @@ function AppContent() {
 
   if (!isAuthenticated) return <LoginScreen password={password} setPassword={setPassword} onLogin={handleLogin} loading={loading} error={passwordError} />;
   if (!data) return <div className="min-h-screen flex items-center justify-center bg-slate-100"><PageSkeleton /></div>;
+
+  // Standalone rota view — no sidebar, read-only
+  if (rotaOnly) return (
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)' }}>
+      <div className="max-w-2xl mx-auto py-6 px-4">
+        <MyRota data={data} huddleData={huddleData} standalone />
+      </div>
+    </div>
+  );
 
   // Shared helpers object passed to child components
   const helpers = { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, syncTeamNet, toggleRotaDay, removeClinician, updateClinicianField, dataVersion, setDataVersion, setData };

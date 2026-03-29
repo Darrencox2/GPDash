@@ -12,7 +12,33 @@ function getRedis() {
 }
 
 export async function GET(request) {
-  // Check password
+  const { searchParams } = new URL(request.url);
+  const isRotaOnly = searchParams.get('rota') === '1';
+
+  // Read-only rota access — no password needed, returns filtered data
+  if (isRotaOnly) {
+    try {
+      const redis = getRedis();
+      let data = await redis.get(DATA_KEY);
+      if (!data) data = getDefaultData();
+      // Return only what My Rota needs
+      return NextResponse.json({
+        clinicians: data.clinicians,
+        plannedAbsences: data.plannedAbsences || [],
+        allocationHistory: data.allocationHistory || {},
+        weeklyRota: data.weeklyRota || {},
+        huddleSettings: { dutyDoctorSlot: data.huddleSettings?.dutyDoctorSlot },
+        settings: data.settings,
+        dailyOverrides: data.dailyOverrides || {},
+        _readOnly: true,
+      });
+    } catch (error) {
+      const d = getDefaultData();
+      return NextResponse.json({ clinicians: d.clinicians, _readOnly: true });
+    }
+  }
+
+  // Full access — requires password
   const password = request.headers.get('x-password');
   if (password !== process.env.APP_PASSWORD) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

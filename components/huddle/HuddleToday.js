@@ -830,11 +830,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       </div>
 
-      {/* DEMAND vs CAPACITY CONNECTOR */}
-      <DemandCapacityConnector viewingDate={viewingDate} huddleData={huddleData} capacity={capacity} hs={hs} data={data} saveData={saveData} urgentOverrides={urgentOverrides} />
+      {/* DEMAND vs CAPACITY CONNECTOR — only when we have data for this date */}
+      {capacity && <DemandCapacityConnector viewingDate={viewingDate} huddleData={huddleData} capacity={capacity} hs={hs} data={data} saveData={saveData} urgentOverrides={urgentOverrides} />}
 
-      {/* WHO'S IN / OUT */}
-      <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />
+      {/* WHO'S IN / OUT — only when we have data for this date */}
+      {capacity && <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />}
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (

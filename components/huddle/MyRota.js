@@ -3,13 +3,10 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { getHuddleCapacity, getDutyDoctor, LOCATION_COLOURS } from '@/lib/huddle';
 import { matchesStaffMember, DAYS, getWeekStart } from '@/lib/data';
 
-const ROLE_COLOURS = {
-  gp: { bg: '#dbeafe', text: '#1d4ed8', ring: '#bfdbfe' },
-  nursing: { bg: '#d1fae5', text: '#047857', ring: '#a7f3d0' },
-  allied: { bg: '#ede9fe', text: '#6d28d9', ring: '#ddd6fe' },
-};
+const ROLE_BG = { gp: 'rgba(99,102,241,0.15)', nursing: 'rgba(16,185,129,0.15)', allied: 'rgba(168,85,247,0.15)' };
+const ROLE_TX = { gp: '#a5b4fc', nursing: '#6ee7b7', allied: '#c4b5fd' };
 
-export default function MyRota({ data, huddleData, setActiveSection }) {
+export default function MyRota({ data, huddleData, standalone, setActiveSection }) {
   const clinicians = useMemo(() => {
     if (!data?.clinicians) return [];
     const list = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
@@ -19,70 +16,58 @@ export default function MyRota({ data, huddleData, setActiveSection }) {
   const [selectedId, setSelectedId] = useState(null);
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [search, setSearch] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-  const searchRef = useRef(null);
+  const [showDrop, setShowDrop] = useState(false);
+  const ref = useRef(null);
 
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.startsWith('#rota-')) {
-      const initials = hash.slice(6).toUpperCase();
-      const match = clinicians.find(c => c.initials === initials);
-      if (match) setSelectedId(match.id);
+      const init = hash.slice(6).toUpperCase();
+      const m = clinicians.find(c => c.initials === init);
+      if (m) setSelectedId(m.id);
     }
   }, [clinicians]);
 
-  useEffect(() => {
-    if (!selectedId && clinicians.length > 0) setSelectedId(clinicians[0].id);
-  }, [clinicians, selectedId]);
+  useEffect(() => { if (!selectedId && clinicians.length > 0) setSelectedId(clinicians[0].id); }, [clinicians, selectedId]);
+  useEffect(() => { const h = e => { if (ref.current && !ref.current.contains(e.target)) setShowDrop(false); }; document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h); }, []);
 
-  useEffect(() => {
-    const handler = (e) => { if (searchRef.current && !searchRef.current.contains(e.target)) setShowDropdown(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const selectClinician = (c) => {
-    setSelectedId(c.id);
-    setSearch('');
-    setShowDropdown(false);
-    window.location.hash = `rota-${c.initials}`;
-  };
-
+  const select = c => { setSelectedId(c.id); setSearch(''); setShowDrop(false); window.location.hash = `rota-${c.initials}`; };
   const selected = clinicians.find(c => c.id === selectedId);
   const hs = data?.huddleSettings || {};
   const dutySlots = hs?.dutyDoctorSlot;
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
-  const rc = selected ? (ROLE_COLOURS[selected.group] || ROLE_COLOURS.allied) : ROLE_COLOURS.allied;
-
-  const navigateWeek = (dir) => { const d = new Date(weekStart); d.setDate(d.getDate() + dir * 7); setWeekStart(d); };
-  const goThisWeek = () => setWeekStart(getWeekStart(new Date()));
+  const rc = selected ? { bg: ROLE_BG[selected.group] || ROLE_BG.allied, tx: ROLE_TX[selected.group] || ROLE_TX.allied } : { bg: ROLE_BG.allied, tx: ROLE_TX.allied };
+  const navigateWeek = d => { const dt = new Date(weekStart); dt.setDate(dt.getDate() + d * 7); setWeekStart(dt); };
+  const isThisWeek = weekStart.getTime() === getWeekStart(new Date()).getTime();
+  const todayIso = new Date().toISOString().split('T')[0];
 
   const weekDays = useMemo(() => {
     const days = [];
-    for (let i = 0; i < 5; i++) {
-      const d = new Date(weekStart); d.setDate(d.getDate() + i);
-      const dateStr = `${String(d.getDate()).padStart(2, '0')}-${d.toLocaleString('en-GB', { month: 'short' })}-${d.getFullYear()}`;
-      days.push({ date: d, dateStr, isoKey: d.toISOString().split('T')[0], dayName: DAYS[i], dayShort: DAYS[i].slice(0, 3), dayNum: d.getDate(), monthStr: d.toLocaleString('en-GB', { month: 'short' }) });
-    }
+    for (let i = 0; i < 5; i++) { const d = new Date(weekStart); d.setDate(d.getDate() + i); days.push({ date: d, dateStr: `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`, isoKey: d.toISOString().split('T')[0], dayName: DAYS[i], dayShort: DAYS[i].slice(0,3), dayNum: d.getDate(), monthStr: d.toLocaleString('en-GB',{month:'short'}) }); }
     return days;
   }, [weekStart]);
+
+  // Planned absences for selected clinician
+  const absences = useMemo(() => {
+    if (!selected || !data?.plannedAbsences) return {};
+    const abs = {};
+    (Array.isArray(data.plannedAbsences) ? data.plannedAbsences : []).forEach(a => {
+      if (a.clinicianId === selected.id) { weekDays.forEach(d => { if (d.isoKey >= a.startDate && d.isoKey <= a.endDate) abs[d.isoKey] = a.reason || 'Leave'; }); }
+    });
+    return abs;
+  }, [selected, data?.plannedAbsences, weekDays]);
 
   const weekData = useMemo(() => {
     if (!selected || !huddleData) return weekDays.map(() => null);
     return weekDays.map(day => {
       if (!huddleData.dates?.includes(day.dateStr)) return null;
       const cap = getHuddleCapacity(huddleData, day.dateStr, hs);
-      const findMe = (sess) => (sess?.byClinician || []).find(c => matchesStaffMember(c.name, selected));
-      const am = findMe(cap.am), pm = findMe(cap.pm);
+      const find = sess => (sess?.byClinician || []).find(c => matchesStaffMember(c.name, selected));
+      const am = find(cap.am), pm = find(cap.pm);
       const amIn = am && (am.available + (am.embargoed || 0)) > 0;
       const pmIn = pm && (pm.available + (pm.embargoed || 0)) > 0;
       let amDuty = false, pmDuty = false;
-      if (hasDuty) {
-        const ad = getDutyDoctor(huddleData, day.dateStr, 'am', dutySlots);
-        const pd = getDutyDoctor(huddleData, day.dateStr, 'pm', dutySlots);
-        if (ad && matchesStaffMember(ad.name, selected)) amDuty = true;
-        if (pd && matchesStaffMember(pd.name, selected)) pmDuty = true;
-      }
+      if (hasDuty) { const ad = getDutyDoctor(huddleData, day.dateStr, 'am', dutySlots); const pd = getDutyDoctor(huddleData, day.dateStr, 'pm', dutySlots); if (ad && matchesStaffMember(ad.name, selected)) amDuty = true; if (pd && matchesStaffMember(pd.name, selected)) pmDuty = true; }
       return { amIn, pmIn, amLoc: am?.location, pmLoc: pm?.location, amDuty, pmDuty };
     });
   }, [selected, huddleData, weekDays, hs, dutySlots, hasDuty]);
@@ -90,203 +75,170 @@ export default function MyRota({ data, huddleData, setActiveSection }) {
   const buddyCover = useMemo(() => {
     if (!selected || !data?.allocationHistory) return weekDays.map(() => []);
     return weekDays.map(day => {
-      const alloc = data.allocationHistory[day.isoKey];
-      if (!alloc) return [];
+      const alloc = data.allocationHistory[day.isoKey]; if (!alloc) return [];
       const covers = [];
-      Object.entries(alloc.allocations || {}).forEach(([absentId, buddyId]) => {
-        if (parseInt(buddyId) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(absentId)); if (c) covers.push({ ...c, reason: 'Leave' }); }
-      });
-      Object.entries(alloc.dayOffAllocations || {}).forEach(([dayOffId, buddyId]) => {
-        if (parseInt(buddyId) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(dayOffId)); if (c) covers.push({ ...c, reason: 'Day off' }); }
-      });
+      Object.entries(alloc.allocations || {}).forEach(([aid, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(aid)); if (c) covers.push({ ...c, reason: 'Leave' }); } });
+      Object.entries(alloc.dayOffAllocations || {}).forEach(([did, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(did)); if (c) covers.push({ ...c, reason: 'Day off' }); } });
       return covers;
     });
   }, [selected, data?.allocationHistory, weekDays, clinicians]);
 
   const weekLabel = `${weekDays[0].dayNum} ${weekDays[0].monthStr} – ${weekDays[4].dayNum} ${weekDays[4].monthStr} ${weekDays[4].date.getFullYear()}`;
   const directLink = selected ? `gpdash.net#rota-${selected.initials}` : '';
-  const thisWeekStart = getWeekStart(new Date());
-  const isThisWeek = weekStart.getTime() === thisWeekStart.getTime();
-  const todayIso = new Date().toISOString().split('T')[0];
-  const filtered = search ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.initials.toLowerCase().includes(search.toLowerCase()) || (c.role || '').toLowerCase().includes(search.toLowerCase())) : clinicians;
+  const filtered = search ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.initials.toLowerCase().includes(search.toLowerCase())) : clinicians;
 
-  const SessionCell = ({ isIn, location, isDuty, mobile }) => {
-    if (!isIn) return <div className="rounded-lg flex items-center justify-center bg-slate-50" style={{ minHeight: mobile ? 36 : 48 }}><span className="text-xs text-slate-300">—</span></div>;
-    const lc = location ? LOCATION_COLOURS[location] : null;
+  const Cell = ({ isIn, loc, duty, mobile }) => {
+    if (!isIn) return <div style={{ background: '#1e293b', borderRadius: 8, minHeight: mobile ? 40 : 54, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 12, color: '#334155' }}>—</span></div>;
+    const lc = loc ? LOCATION_COLOURS[loc] : null;
+    const bg = lc?.bg || '#475569';
     return (
-      <div className="rounded-lg overflow-hidden border border-slate-200 flex flex-col" style={{ minHeight: mobile ? 36 : 48 }}>
-        <div className="flex-1 flex items-center gap-1 px-2">
-          {isDuty && <><svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[11px] font-semibold text-amber-700">Duty</span></>}
-        </div>
-        {lc && <div style={{ height: mobile ? 14 : 16, background: lc.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: mobile ? 8 : 9, fontWeight: 600, color: lc.text }}>{location}</div>}
+      <div style={{ background: bg, borderRadius: 8, minHeight: mobile ? 40 : 54, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 8px' }}>
+        {duty && <svg width={mobile ? 12 : 14} height={mobile ? 12 : 14} viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
+        <span style={{ fontSize: mobile ? 12 : 13, fontWeight: 500, color: 'white' }}>{loc || 'In'}</span>
       </div>
     );
   };
 
-  return (
-    <div className="space-y-4 max-w-3xl mx-auto">
-      {/* Page header */}
-      <div className="card overflow-visible">
-        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-3 flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          <span className="text-sm font-semibold text-white">My Rota</span>
+  const inner = (
+    <>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        {selected && <div style={{ width: 48, height: 48, borderRadius: '50%', background: rc.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 500, color: rc.tx, border: `2px solid ${rc.tx}30`, flexShrink: 0 }}>{selected.initials}</div>}
+        <div style={{ flex: 1, minWidth: 120 }}>
+          <div style={{ fontSize: 16, fontWeight: 500, color: '#f1f5f9' }}>{selected?.name || 'Select clinician'}</div>
+          <div style={{ fontSize: 13, color: '#64748b' }}>{selected?.role}{selected?.sessions ? ` · ${selected.sessions} sessions` : ''}</div>
         </div>
-        <div className="p-4">
-          {/* Search bar */}
-          <div className="relative mb-4" ref={searchRef}>
-            <div className="flex items-center gap-3 border border-slate-200 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all bg-white">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              <input type="text" value={search} onChange={e => { setSearch(e.target.value); setShowDropdown(true); }}
-                onFocus={() => setShowDropdown(true)} placeholder="Search by name, initials, or role..."
-                className="flex-1 text-sm text-slate-900 placeholder-slate-400 outline-none bg-transparent" />
-              {selected && !search && (
-                <div className="flex items-center gap-2 px-2 py-1 rounded-md" style={{ background: rc.bg }}>
-                  <span className="text-xs font-semibold" style={{ color: rc.text }}>{selected.initials}</span>
-                  <span className="text-xs" style={{ color: rc.text }}>{selected.name}</span>
-                </div>
-              )}
-            </div>
-            {showDropdown && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-64 overflow-auto">
-                {filtered.length === 0 && <div className="px-4 py-3 text-sm text-slate-400">No matches</div>}
-                {filtered.map(c => {
-                  const crc = ROLE_COLOURS[c.group] || ROLE_COLOURS.allied;
-                  return (
-                    <button key={c.id} onClick={() => selectClinician(c)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left transition-colors ${c.id === selectedId ? 'bg-indigo-50' : ''}`}>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0" style={{ background: crc.bg, color: crc.text }}>{c.initials}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-slate-900 truncate">{c.name}</div>
-                        <div className="text-xs text-slate-500">{c.role}</div>
-                      </div>
-                      {c.id === selectedId && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+        <div style={{ position: 'relative' }} ref={ref}>
+          <div onClick={() => setShowDrop(!showDrop)} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #334155', borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>Change</span>
           </div>
-
-          {/* Selected clinician + week nav */}
-          {selected && (
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0" style={{ background: rc.bg, color: rc.text, border: `2px solid ${rc.ring}` }}>{selected.initials}</div>
-              <div className="flex-1 min-w-[120px]">
-                <div className="text-base font-semibold text-slate-900">{selected.name}</div>
-                <div className="text-xs text-slate-500">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions` : ''}</div>
+          {showDrop && (
+            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, width: 280, background: '#1e293b', border: '1px solid #334155', borderRadius: 12, zIndex: 50, maxHeight: 260, overflow: 'auto' }}>
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid #334155' }}>
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." autoFocus style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: '#e2e8f0', outline: 'none' }} />
               </div>
-              <div className="flex items-center gap-1.5">
-                <button onClick={() => navigateWeek(-1)} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors flex-shrink-0">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+              {filtered.map(c => (
+                <button key={c.id} onClick={() => select(c)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: c.id === selectedId ? '#334155' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  <span style={{ width: 24, height: 24, borderRadius: '50%', background: ROLE_BG[c.group] || ROLE_BG.allied, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 600, color: ROLE_TX[c.group] || ROLE_TX.allied, flexShrink: 0 }}>{c.initials}</span>
+                  <span style={{ fontSize: 13, color: '#e2e8f0', flex: 1 }}>{c.name}</span>
+                  <span style={{ fontSize: 11, color: '#475569' }}>{c.role}</span>
                 </button>
-                <div className="text-center" style={{ width: 150 }}>
-                  <div className="text-sm font-medium text-slate-800">{weekLabel}</div>
-                  {!isThisWeek && <button onClick={goThisWeek} className="text-[10px] text-indigo-500 hover:text-indigo-700 font-medium">This week</button>}
-                </div>
-                <button onClick={() => navigateWeek(1)} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors flex-shrink-0">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
-                </button>
-              </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Direct link */}
-      {selected && (
-        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-50 border border-indigo-100">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-          <span className="text-xs text-indigo-600 flex-1 font-medium">{directLink}</span>
-          <button onClick={() => navigator.clipboard?.writeText(directLink)} className="text-xs px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-medium transition-colors">Copy link</button>
+      {/* Week nav */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+        <button onClick={() => navigateWeek(-1)} style={{ padding: '4px 10px', fontSize: 14, background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', cursor: 'pointer' }}>‹</button>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{weekLabel}</span>
+          {!isThisWeek && <button onClick={() => setWeekStart(getWeekStart(new Date()))} style={{ display: 'block', margin: '2px auto 0', fontSize: 10, color: '#818cf8', background: 'none', border: 'none', cursor: 'pointer' }}>This week</button>}
         </div>
-      )}
+        <button onClick={() => navigateWeek(1)} style={{ padding: '4px 10px', fontSize: 14, background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', cursor: 'pointer' }}>›</button>
+      </div>
 
-      {/* Desktop week grid */}
-      {selected && (
-        <div className="card overflow-hidden hidden sm:block">
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-2.5 flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            <span className="text-sm font-semibold text-white">Week view</span>
-          </div>
-          <div className="border-b border-slate-200 grid grid-cols-[80px_1fr_1fr] bg-slate-50">
-            <div className="p-2.5" />
-            <div className="p-2.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">AM</div>
-            <div className="p-2.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">PM</div>
+      {/* Key */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+        {Object.entries(LOCATION_COLOURS).map(([name, lc]) => <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 5 }}><div style={{ width: 12, height: 12, borderRadius: 3, background: lc.bg }} /><span style={{ fontSize: 11, color: '#64748b' }}>{name}</span></div>)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span style={{ fontSize: 11, color: '#64748b' }}>Duty doctor</span></div>
+      </div>
+
+      {/* Desktop grid */}
+      <div className="hidden sm:block">
+        <div style={{ border: '1px solid #334155', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '76px 1fr 1fr', background: '#1e293b', borderBottom: '1px solid #334155' }}>
+            <div style={{ padding: '8px 12px' }} />
+            <div style={{ padding: 8, textAlign: 'center', fontSize: 11, fontWeight: 500, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>AM</div>
+            <div style={{ padding: 8, textAlign: 'center', fontSize: 11, fontWeight: 500, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>PM</div>
           </div>
           {weekDays.map((day, di) => {
-            const wd = weekData[di]; const covers = buddyCover[di];
-            const isOff = wd && !wd.amIn && !wd.pmIn; const noData = !wd;
+            const wd = weekData[di], covers = buddyCover[di];
+            const absence = absences[day.isoKey];
+            const isOff = (wd && !wd.amIn && !wd.pmIn) || (!wd && absence);
+            const noData = !wd && !absence;
             const isToday = day.isoKey === todayIso;
             return (
-              <div key={di} className={di < 4 ? 'border-b border-slate-100' : ''} style={{ background: (isOff || noData) ? '#fafafa' : 'white' }}>
-                <div className="grid grid-cols-[80px_1fr_1fr]">
-                  <div className="px-3 py-3 border-r border-slate-100 flex flex-col justify-center" style={{ borderLeft: isToday ? '3px solid #10b981' : '3px solid transparent' }}>
-                    <div className={`text-sm font-semibold ${(isOff||noData) ? 'text-slate-300' : 'text-slate-800'}`}>{day.dayShort}</div>
-                    <div className="text-[11px] text-slate-400">{day.dayNum} {day.monthStr}</div>
+              <div key={di} style={{ borderBottom: di < 4 ? '1px solid #334155' : 'none', background: '#0f172a' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '76px 1fr 1fr' }}>
+                  <div style={{ padding: '8px 10px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderLeft: isToday ? '3px solid #10b981' : '3px solid transparent' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: (isOff || noData) ? '#334155' : '#e2e8f0' }}>{day.dayShort}</div>
+                    <div style={{ fontSize: 11, color: '#475569' }}>{day.dayNum} {day.monthStr}</div>
                   </div>
                   {(isOff || noData) ? (
-                    <div className="col-span-2 flex items-center justify-center py-5">
-                      <span className="text-sm text-slate-300">{noData ? 'No CSV data' : 'Not in'}</span>
+                    <div style={{ gridColumn: '2 / 4', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 13, color: '#475569' }}>{absence || (noData ? 'No data' : 'Not in')}</span>
+                      {absence && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' }}>TeamNet</span>}
                     </div>
-                  ) : (
-                    <><div className="p-2"><SessionCell isIn={wd?.amIn} location={wd?.amLoc} isDuty={wd?.amDuty} /></div>
-                    <div className="p-2"><SessionCell isIn={wd?.pmIn} location={wd?.pmLoc} isDuty={wd?.pmDuty} /></div></>
-                  )}
+                  ) : (<>
+                    <div style={{ padding: 4 }}><Cell isIn={wd?.amIn} loc={wd?.amLoc} duty={wd?.amDuty} /></div>
+                    <div style={{ padding: 4 }}><Cell isIn={wd?.pmIn} loc={wd?.pmLoc} duty={wd?.pmDuty} /></div>
+                  </>)}
                 </div>
                 {covers.length > 0 && (
-                  <div className="flex items-center gap-2 px-3 pb-2.5" style={{ marginLeft: 80 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
-                    {covers.map((c, i) => {
-                      const crc = ROLE_COLOURS[c.group] || ROLE_COLOURS.allied;
-                      return (
-                        <span key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-50 border border-slate-100">
-                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0" style={{ background: crc.bg, color: crc.text }}>{c.initials}</span>
-                          <span className="text-xs text-slate-700">{c.name}</span>
-                          <span className="text-[10px] text-slate-400">· {c.reason}</span>
-                        </span>
-                      );
-                    })}
+                  <div style={{ padding: '2px 10px 8px', marginLeft: 76, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>Covering:</span>
+                    {covers.map((c, i) => <div key={i} style={{ width: 22, height: 22, borderRadius: '50%', background: '#1e293b', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 600, color: c.reason === 'Leave' ? '#f87171' : '#60a5fa', cursor: 'default' }} title={`${c.name} — ${c.reason}`}>{c.initials}</div>)}
                   </div>
                 )}
               </div>
             );
           })}
         </div>
-      )}
+      </div>
 
       {/* Mobile stacked cards */}
+      <div className="sm:hidden" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {weekDays.map((day, di) => {
+          const wd = weekData[di], covers = buddyCover[di];
+          const absence = absences[day.isoKey];
+          const isOff = (wd && !wd.amIn && !wd.pmIn) || (!wd && absence);
+          const noData = !wd && !absence;
+          const isToday = day.isoKey === todayIso;
+          if (isOff || noData) return <div key={di} style={{ background: '#1e293b', borderRadius: 10, padding: '12px 16px', textAlign: 'center', border: '1px solid #334155' }}><span style={{ fontSize: 13, color: '#475569' }}>{day.dayName} {day.dayNum} {day.monthStr} · {absence || (noData ? 'No data' : 'Not in')}</span>{absence && <span style={{ fontSize: 10, marginLeft: 6, padding: '2px 6px', borderRadius: 4, background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}>TeamNet</span>}</div>;
+          return (
+            <div key={di} style={{ background: '#0f172a', borderRadius: 10, overflow: 'hidden', border: isToday ? '2px solid #10b981' : '1px solid #334155' }}>
+              <div style={{ padding: '8px 12px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{day.dayName} {day.dayNum} {day.monthStr}</span>
+                {isToday && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'rgba(16,185,129,0.15)', color: '#34d399', fontWeight: 500 }}>Today</span>}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: 6 }}>
+                <div><div style={{ textAlign: 'center', fontSize: 10, color: '#475569', marginBottom: 3 }}>AM</div><Cell isIn={wd?.amIn} loc={wd?.amLoc} duty={wd?.amDuty} mobile /></div>
+                <div><div style={{ textAlign: 'center', fontSize: 10, color: '#475569', marginBottom: 3 }}>PM</div><Cell isIn={wd?.pmIn} loc={wd?.pmLoc} duty={wd?.pmDuty} mobile /></div>
+              </div>
+              {covers.length > 0 && (
+                <div style={{ padding: '2px 10px 8px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>Covering:</span>
+                  {covers.map((c, i) => <div key={i} style={{ width: 20, height: 20, borderRadius: '50%', background: '#1e293b', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 600, color: c.reason === 'Leave' ? '#f87171' : '#60a5fa' }} title={`${c.name} — ${c.reason}`}>{c.initials}</div>)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Direct link */}
       {selected && (
-        <div className="sm:hidden space-y-2">
-          {weekDays.map((day, di) => {
-            const wd = weekData[di]; const covers = buddyCover[di];
-            const isOff = wd && !wd.amIn && !wd.pmIn; const noData = !wd;
-            const isToday = day.isoKey === todayIso;
-            if (isOff || noData) return (
-              <div key={di} className="card" style={{ background: '#fafafa' }}>
-                <div className="px-4 py-3 text-center"><span className="text-sm text-slate-300">{day.dayName} {day.dayNum} {day.monthStr} · {noData ? 'No data' : 'Not in'}</span></div>
-              </div>
-            );
-            return (
-              <div key={di} className="card overflow-hidden" style={{ border: isToday ? '2px solid #10b981' : undefined }}>
-                <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-800">{day.dayName} {day.dayNum} {day.monthStr}</span>
-                  {isToday && <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Today</span>}
-                </div>
-                <div className="grid grid-cols-2 gap-2 p-3">
-                  <div><div className="text-center text-[10px] text-slate-400 font-medium mb-1">AM</div><SessionCell isIn={wd?.amIn} location={wd?.amLoc} isDuty={wd?.amDuty} mobile /></div>
-                  <div><div className="text-center text-[10px] text-slate-400 font-medium mb-1">PM</div><SessionCell isIn={wd?.pmIn} location={wd?.pmLoc} isDuty={wd?.pmDuty} mobile /></div>
-                </div>
-                {covers.length > 0 && (
-                  <div className="flex items-center gap-1.5 flex-wrap px-3 pb-2.5">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
-                    {covers.map((c, i) => <span key={i} className="text-xs text-slate-600"><span className="font-medium">{c.name}</span> <span className="text-slate-400">· {c.reason}</span></span>)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, padding: '8px 12px', borderRadius: 8, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          <span style={{ fontSize: 12, color: '#a5b4fc', flex: 1 }}>{directLink}</span>
+          <button onClick={() => navigator.clipboard?.writeText(directLink)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)', cursor: 'pointer' }}>Copy</button>
         </div>
       )}
+    </>
+  );
+
+  // Standalone mode: dark bg already provided by parent
+  if (standalone) return <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>{inner}</div>;
+
+  // Embedded mode: wrap in dark gradient card
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div style={{ borderRadius: 16, padding: '1.5rem', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+        {inner}
+      </div>
     </div>
   );
 }
