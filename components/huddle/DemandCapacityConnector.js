@@ -81,93 +81,92 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const coverage = needed > 0 ? Math.round((urgentTotal / needed) * 100) : 100;
 
   // Verdict
-  let verdict, verdictColour, verdictBg, verdictBorder, verdictIcon;
+  let verdict;
   if (coverage >= greenPct) {
-    verdict = 'Comfortable'; verdictColour = '#065f46'; verdictBg = '#f0fdf4'; verdictBorder = '#10b981';
-    verdictIcon = <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />;
+    verdict = 'Comfortable';
   } else if (coverage >= amberPct) {
-    verdict = 'Tight day'; verdictColour = '#92400e'; verdictBg = '#fffbeb'; verdictBorder = '#f59e0b';
-    verdictIcon = <><path d="M12 9v4M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></>;
+    verdict = 'Tight day';
   } else {
-    verdict = 'Stretched'; verdictColour = '#991b1b'; verdictBg = '#fef2f2'; verdictBorder = '#ef4444';
-    verdictIcon = <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
+    verdict = 'Stretched';
   }
 
   const demandDelta = typicalDemand ? predicted - typicalDemand : null;
   const capDelta = typicalCapacity !== null ? urgentTotal - typicalCapacity : null;
   const shortfall = needed > urgentTotal ? needed - urgentTotal : 0;
 
+  // Verdict colours for dark card
+  let verdictText, arcColour;
+  if (coverage >= greenPct) {
+    verdictText = '#34d399'; arcColour = '#10b981';
+  } else if (coverage >= amberPct) {
+    verdictText = '#fbbf24'; arcColour = '#f59e0b';
+  } else {
+    verdictText = '#f87171'; arcColour = '#ef4444';
+  }
+  const arcPct = Math.min(coverage, 120) / 120;
+  const dayLabel = ['Mon','Tue','Wed','Thu','Fri'][((targetDate.getDay() + 6) % 7)] || 'day';
+
   return (
-    <div className="card overflow-hidden">
-      {/* Verdict banner */}
-      <div className="flex items-center gap-3 px-5 py-4" style={{ background: verdictBg, borderBottom: `3px solid ${verdictBorder}` }}>
-        <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${verdictBorder}20` }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={verdictBorder} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{verdictIcon}</svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-lg font-bold" style={{ color: verdictColour }}>{verdict}</div>
-          <div className="text-sm" style={{ color: verdictColour, opacity: 0.8 }}>
-            {shortfall > 0 ? `${shortfall} urgent slots short of estimated need` : `${urgentTotal - needed} slots above estimated need`}
+    <div className="rounded-xl overflow-hidden" style={{ background: '#0f172a' }}>
+      <div style={{ padding: '20px 24px' }}>
+        {/* Header: verdict + gauge */}
+        <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+          <div>
+            <div className="font-extrabold" style={{ fontSize: 24, color: verdictText }}>{verdict}</div>
+            <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>
+              {shortfall > 0 ? `${shortfall} urgent slots short of estimated need` : `${urgentTotal - needed} slots above estimated need`}
+            </div>
+          </div>
+          <div className="flex-shrink-0 text-center">
+            <svg viewBox="0 0 80 50" width="80" height="50">
+              <path d="M 6 45 A 34 34 0 0 1 74 45" fill="none" stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
+              <path d="M 6 45 A 34 34 0 0 1 74 45" fill="none" stroke={arcColour} strokeWidth="7" strokeLinecap="round"
+                strokeDasharray={`${arcPct * 107} 107`}/>
+              <text x="40" y="40" textAnchor="middle" fill={verdictText} style={{ fontSize: 16, fontWeight: 800 }}>{coverage}%</text>
+            </svg>
           </div>
         </div>
-        <div className="text-right flex-shrink-0">
-          <div className="text-3xl font-extrabold" style={{ color: verdictBorder }}>{coverage}%</div>
-          <div className="text-xs" style={{ color: verdictColour }}>coverage</div>
-        </div>
-      </div>
 
-      {/* Three metrics row */}
-      <div className="flex divide-x divide-slate-100 border-b border-slate-100">
-        <div className="flex-1 px-5 py-3">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Demand</div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-extrabold text-sky-500">{predicted}</span>
-            <span className="text-xs text-slate-400">requests</span>
+        {/* Three metric cards */}
+        <div className="flex gap-2">
+          <div className="flex-1 rounded-lg" style={{ background: '#1e293b', padding: '10px 14px' }}>
+            <div className="flex items-baseline justify-between">
+              <span style={{ fontSize: 11, color: '#64748b' }}>Demand</span>
+              {demandDelta !== null && <span style={{ fontSize: 11, fontWeight: 600, color: demandDelta > 0 ? '#fb7185' : '#34d399' }}>{demandDelta > 0 ? '+' : ''}{demandDelta}</span>}
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 2 }}>{predicted}</div>
+            <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>requests predicted</div>
+          </div>
+          <div className="flex-1 rounded-lg" style={{ background: '#1e293b', padding: '10px 14px' }}>
+            <div className="flex items-baseline justify-between">
+              <span style={{ fontSize: 11, color: '#64748b' }}>Est. needed</span>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#a78bfa', marginTop: 2 }}>{needed}</div>
+            <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{predicted} × {convRate} appts</div>
+          </div>
+          <div className="flex-1 rounded-lg" style={{ background: '#1e293b', padding: '10px 14px' }}>
+            <div className="flex items-baseline justify-between">
+              <span style={{ fontSize: 11, color: '#64748b' }}>Capacity</span>
+              {capDelta !== null && <span style={{ fontSize: 11, fontWeight: 600, color: capDelta >= 0 ? '#34d399' : '#fb7185' }}>{capDelta > 0 ? '+' : ''}{capDelta}</span>}
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#34d399', marginTop: 2 }}>{urgentTotal}</div>
+            <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{amSlots} AM · {pmSlots} PM</div>
           </div>
         </div>
-        <div className="flex-1 px-5 py-3">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Capacity</div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-extrabold text-emerald-500">{urgentTotal}</span>
-            <span className="text-xs text-slate-400">slots</span>
-          </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">{amSlots} AM · {pmSlots} PM</div>
-        </div>
-        <div className="flex-1 px-5 py-3">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Est. needed</div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-extrabold text-violet-500">{needed}</span>
-            <span className="text-xs text-slate-400">appts</span>
-          </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">{predicted} × {convRate}</div>
-        </div>
-      </div>
 
-      {/* vs Typical + settings row */}
-      <div className="px-5 py-3 flex items-center gap-3 flex-wrap">
-        <span className="text-[11px] text-slate-400">vs typical {['Mon','Tue','Wed','Thu','Fri'][((targetDate.getDay() + 6) % 7)] || 'day'}:</span>
-        {demandDelta !== null && (
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${demandDelta > 0 ? 'text-red-600 bg-red-50' : demandDelta < 0 ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 bg-slate-50'}`}>
-            demand {demandDelta > 0 ? '+' : ''}{demandDelta}
-          </span>
-        )}
-        {capDelta !== null && (
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${capDelta >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}`}>
-            capacity {capDelta > 0 ? '+' : ''}{capDelta}
-          </span>
-        )}
-        {typicalCapacity === null && <span className="text-[11px] text-slate-300 italic">capacity history needs more data</span>}
-        <span className="flex-1" />
-        <button onClick={() => setShowSettings(!showSettings)}
-          className="text-[11px] text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06c.5.5 1.21.71 1.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
-          Settings
-        </button>
+        {/* Settings link */}
+        <div className="flex justify-end" style={{ marginTop: 10 }}>
+          <button onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-1 transition-colors" style={{ fontSize: 11, color: '#475569' }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06c.5.5 1.21.71 1.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            Settings
+          </button>
+        </div>
       </div>
 
       {/* Collapsible settings */}
       {showSettings && (
-        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50 space-y-4">
+        <div className="px-5 py-4 border-t border-slate-200 bg-slate-50 space-y-4">
           <div>
             <label className="text-xs font-semibold text-slate-600 block mb-1.5">Conversion rate (requests → appointments)</label>
             <div className="flex items-center gap-3">
@@ -176,7 +175,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
                 className="flex-1" />
               <span className="text-sm font-bold text-slate-700 bg-white px-3 py-1 rounded border border-slate-200 min-w-[52px] text-center">{convRate.toFixed(2)}</span>
             </div>
-            <div className="text-[10px] text-slate-400 mt-1">1 request = {convRate.toFixed(2)} appointments → {predicted} requests × {convRate.toFixed(2)} = {needed} appointments</div>
+            <div className="text-[10px] text-slate-400 mt-1">1 request = {convRate.toFixed(2)} appointments → {predicted} × {convRate.toFixed(2)} = {needed} est. appointments</div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
