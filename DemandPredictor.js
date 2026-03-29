@@ -1,160 +1,293 @@
 'use client';
 import { useState } from 'react';
-import GPDashLogo from './GPDashLogo';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS } from '@/lib/data';
 
-const NAV_SECTIONS = [
-  {
-    id: 'huddle',
-    iconPath: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
-    label: 'Dashboard',
-    colour: 'teal',
-    items: [
-      { id: 'huddle-today', label: 'Today' },
-      { id: 'huddle-forward', label: 'Capacity Planning' },
-      { id: 'huddle-history', label: 'History' },
-      { id: 'huddle-settings', label: 'Settings' },
-    ],
-  },
-  {
-    id: 'buddy',
-    iconPath: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
-    label: 'Buddy Cover',
-    colour: 'purple',
-    items: [
-      { id: 'buddy-daily', label: 'Daily' },
-      { id: 'buddy-week', label: 'Week View' },
-    ],
-  },
-  {
-    id: 'settings',
-    iconPath: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
-    label: 'Settings',
-    colour: 'slate',
-    items: [
-      { id: 'settings', label: 'General' },
-      { id: 'team-members', label: 'Team Members' },
-      { id: 'team-rota', label: 'Rota' },
-    ],
-  },
-];
+export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers }) {
+  const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
 
-const ACCENT_COLOURS = {
-  teal: { active: 'bg-teal-500/20 text-teal-200', hover: 'hover:bg-teal-500/10', dot: 'bg-teal-400' },
-  purple: { active: 'bg-purple-500/20 text-purple-200', hover: 'hover:bg-purple-500/10', dot: 'bg-purple-400' },
-  blue: { active: 'bg-blue-500/20 text-blue-200', hover: 'hover:bg-blue-500/10', dot: 'bg-blue-400' },
-  slate: { active: 'bg-white/10 text-white', hover: 'hover:bg-white/5', dot: 'bg-slate-400' },
-};
+  const currentAlloc = getCurrentAllocations();
+  const presentIds = ensureArray(getPresentClinicians(selectedDay));
+  const absentIds = ensureArray(getAbsentClinicians(selectedDay));
+  const dayOffIds = ensureArray(getDayOffClinicians(selectedDay));
+  const cliniciansList = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
+  const presentClinicians = cliniciansList.filter(c => presentIds.includes(c.id));
+  const absentClinicians = cliniciansList.filter(c => absentIds.includes(c.id));
+  const dayOffClinicians = cliniciansList.filter(c => dayOffIds.includes(c.id));
+  const hasAllocations = currentAlloc && (Object.keys(currentAlloc.allocations || {}).length > 0 || Object.keys(currentAlloc.dayOffAllocations || {}).length > 0);
+  const groupedAllocations = currentAlloc ? groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, presentIds) : {};
 
-export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen }) {
-  const [expandedMenus, setExpandedMenus] = useState({ huddle: true, buddy: false, settings: false });
+  const handleGenerate = () => {
+    const dateKey = getDateKey();
+    const day = selectedDay;
+    const pIds = ensureArray(getPresentClinicians(day));
+    const aIds = ensureArray(getAbsentClinicians(day));
+    const doIds = ensureArray(getDayOffClinicians(day));
+    const cls = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
+    const { allocations, dayOffAllocations } = generateBuddyAllocations(cls, pIds, aIds, doIds, data.settings || DEFAULT_SETTINGS);
+    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: pIds, absentIds: aIds, dayOffIds: doIds } };
+    saveData({ ...data, allocationHistory: newHistory });
+  };
 
-  const toggleMenu = (menu) => setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
-
-  const isSectionActive = (sectionId) => {
-    const section = NAV_SECTIONS.find(s => s.id === sectionId);
-    if (!section) return false;
-    if (section.items.length === 0) return activeSection === sectionId;
-    return section.items.some(item => item.id === activeSection);
+  const handleCopyAllocations = () => {
+    const dateKey = getDateKey();
+    const date = new Date(dateKey + 'T12:00:00');
+    const dateStr = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (!currentAlloc) return;
+    const grouped = groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, currentAlloc.presentIds || []);
+    let text = `BUDDY ALLOCATION\n${dateStr}\n\n`;
+    const allPresentIds = ensureArray(currentAlloc.presentIds);
+    const allPresentRows = allPresentIds.map(id => {
+      const clinician = getClinicianById(id);
+      const tasks = grouped[id] || { absent: [], dayOff: [] };
+      const canCover = clinician?.canProvideCover !== false;
+      const hasAllocs = tasks.absent.length > 0 || tasks.dayOff.length > 0;
+      return { id, clinician, tasks, canCover, hasAllocs };
+    }).filter(row => row.clinician);
+    allPresentRows.sort((a, b) => {
+      if (a.canCover && !b.canCover) return -1;
+      if (!a.canCover && b.canCover) return 1;
+      if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; }
+      return 0;
+    });
+    allPresentRows.forEach(({ clinician, tasks }) => {
+      const fileStr = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-';
+      const viewStr = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-';
+      text += `${clinician.initials}: File ${fileStr} / View ${viewStr}\n`;
+    });
+    navigator.clipboard.writeText(text.trim());
+    toast('Copied to clipboard', 'success', 2000);
   };
 
   return (
-    <>
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      <aside className={`
-        fixed lg:sticky top-0 left-0 h-screen z-40 lg:z-auto
-        ${sidebarOpen ? 'w-60' : 'w-0 lg:w-16'} 
-        bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800
-        flex-shrink-0 transition-all duration-200 overflow-hidden
-        border-r border-white/5
-      `}>
-        <div className="h-full flex flex-col w-60 lg:w-auto">
-          {/* Logo */}
-          <div className="px-3 pt-4 pb-3">
-            {sidebarOpen ? (
-              <div className="flex flex-col items-center gap-1.5">
-                <GPDashLogo size="sidebar" className="w-full max-w-[200px]" />
-                <div className="w-full bg-white rounded-2xl p-2.5 flex items-center justify-center">
-                  <img src="/logo.png" alt="Practice" className="h-12 w-auto object-contain" />
-                </div>
-              </div>
-            ) : (
-              <div className="flex justify-center">
-                <GPDashLogo size="sidebar-collapsed" className="w-10 h-10" />
-              </div>
-            )}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Daily Allocation</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {data.lastSyncTime ? `TeamNet synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'TeamNet not synced'}
+            {syncStatus && <span className="ml-2 text-emerald-600">{syncStatus}</span>}
+          </p>
+        </div>
+        {isGenerating ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-[160px]"><div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden"><div className="h-full w-1/3 bg-gradient-to-r from-violet-500 to-purple-600 rounded-full animate-progress" /></div></div>
+            <button onClick={() => setIsGenerating(false)} className="btn-secondary text-xs py-1 px-2">Stop</button>
           </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
-            {NAV_SECTIONS.map(section => {
-              const accent = ACCENT_COLOURS[section.colour];
-              const isActive = isSectionActive(section.id);
-
-              if (section.items.length === 0) {
-                return (
-                  <button key={section.id} onClick={() => setActiveSection(section.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive ? accent.active : `text-slate-400 ${accent.hover}`
-                    }`}>
-                    <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d={section.iconPath}/></svg>
-                    {sidebarOpen && <span>{section.label}</span>}
-                  </button>
-                );
+        ) : (
+          <button onClick={async () => {
+            setIsGenerating(true);
+            await new Promise(r => setTimeout(r, 50));
+            const currentData = data;
+            let generated = 0;
+            const newHistory = { ...currentData.allocationHistory };
+            const newOverrides = { ...currentData.dailyOverrides };
+            const today = new Date();
+            let stopped = false;
+            const clins = (Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {})).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
+            const plannedAbs = Array.isArray(currentData.plannedAbsences) ? currentData.plannedAbsences : Object.values(currentData.plannedAbsences || {});
+            
+            for (let i = 0; i < 28 && !stopped; i++) {
+              const checkDate = new Date(today);
+              checkDate.setDate(checkDate.getDate() + i);
+              const dayIndex = checkDate.getDay();
+              if (dayIndex === 0 || dayIndex === 6) continue;
+              const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
+              const dateKey = checkDate.toISOString().split('T')[0];
+              const dayKey = `${dateKey}-${dayName}`;
+              if (currentData.closedDays?.[dateKey]) continue;
+              delete newOverrides[dayKey];
+              const rota = currentData.weeklyRota?.[dayName] || [];
+              const scheduled = Array.isArray(rota) ? rota : Object.values(rota);
+              const present = scheduled.filter(id => {
+                const c = clins.find(c => c.id === id);
+                if (c?.longTermAbsent) return false;
+                return !plannedAbs.some(a => a.clinicianId === id && dateKey >= a.startDate && dateKey <= a.endDate);
+              });
+              const absentIdsGen = scheduled.filter(id => !present.includes(id));
+              const dayOffIdsGen = clins.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
+              
+              const cascadeAbsent = [];
+              const idxToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+              for (const doId of dayOffIdsGen) {
+                const c = clins.find(c => c.id === doId);
+                if (!c) continue;
+                if (c.longTermAbsent) { cascadeAbsent.push(doId); continue; }
+                const wDays = DAYS.filter(d => { const r = currentData.weeklyRota?.[d] || []; return (Array.isArray(r) ? r : Object.values(r)).includes(doId); });
+                if (wDays.length === 0) continue;
+                const cd = new Date(dateKey + 'T12:00:00');
+                let shouldAbs = false;
+                for (let j = 1; j <= 14; j++) {
+                  const pd = new Date(cd); pd.setDate(pd.getDate() - j);
+                  const pdi = pd.getDay(); const pdn = idxToDay[pdi]; const pdk = pd.toISOString().split('T')[0];
+                  if (pdi === 0 || pdi === 6) continue;
+                  if (wDays.includes(pdn)) { if (plannedAbs.some(a => a.clinicianId === doId && pdk >= a.startDate && pdk <= a.endDate)) shouldAbs = true; break; }
+                }
+                if (!shouldAbs) {
+                  for (let j = 1; j <= 14; j++) {
+                    const fd = new Date(cd); fd.setDate(fd.getDate() + j);
+                    const fdi = fd.getDay(); const fdn = idxToDay[fdi]; const fdk = fd.toISOString().split('T')[0];
+                    if (fdi === 0 || fdi === 6) continue;
+                    if (wDays.includes(fdn)) { if (plannedAbs.some(a => a.clinicianId === doId && fdk >= a.startDate && fdk <= a.endDate)) shouldAbs = true; break; }
+                  }
+                }
+                if (shouldAbs) cascadeAbsent.push(doId);
               }
+              const finalAbsent = [...absentIdsGen, ...cascadeAbsent];
+              const finalDayOff = dayOffIdsGen.filter(id => !cascadeAbsent.includes(id));
+              const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, present, finalAbsent, finalDayOff, currentData.settings || DEFAULT_SETTINGS);
+              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds: finalAbsent, dayOffIds: finalDayOff };
+              generated++;
+              await new Promise(r => setTimeout(r, 10));
+              if (!isGenerating) stopped = true;
+            }
+            if (generated > 0) {
+              const nd = { ...currentData, allocationHistory: newHistory, dailyOverrides: newOverrides };
+              setData(nd);
+              try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(nd) }); } catch (err) { console.error(err); }
+              setDataVersion(v => v + 1);
+            }
+            setIsGenerating(false);
+            setSyncStatus(stopped ? `Stopped — ${generated} days` : `Done — ${generated} days`);
+            setTimeout(() => setSyncStatus(''), 4000);
+          }} className="btn-primary">Generate Next 4 Weeks</button>
+        )}
+      </div>
 
+      {/* Week navigator */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">◀</button>
+            <div className="text-sm font-medium text-slate-900 min-w-[180px] text-center">{formatWeekRange(selectedWeek)}</div>
+            <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">▶</button>
+            <button onClick={() => { setSelectedWeek(getWeekStart(new Date())); setSelectedDay(getCurrentDay()); }} className="ml-2 px-4 py-1.5 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 shadow-md">Today</button>
+          </div>
+          <div className="flex items-center gap-2">
+            {DAYS.map(day => {
+              const dk = getDateKeyForDay(day);
+              const closed = isClosedDay(dk);
+              const todayDate = isToday(dk);
               return (
-                <div key={section.id}>
-                  <button onClick={() => toggleMenu(section.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive ? 'text-white' : `text-slate-400 ${accent.hover}`
-                    }`}>
-                    <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d={section.iconPath}/></svg>
-                    {sidebarOpen && (
-                      <>
-                        <span className="flex-1 text-left">{section.label}</span>
-                        <span className="text-[10px] text-slate-500">{expandedMenus[section.id] ? '▾' : '›'}</span>
-                      </>
-                    )}
-                  </button>
-                  {expandedMenus[section.id] && sidebarOpen && (
-                    <div className="ml-5 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
-                      {section.items.map(item => (
-                        <button key={item.id} onClick={() => setActiveSection(item.id)}
-                          className={`w-full text-left px-3 py-1.5 rounded-md text-[13px] transition-colors ${
-                            activeSection === item.id
-                              ? `${accent.active} font-medium`
-                              : `text-slate-500 hover:text-slate-300 ${accent.hover}`
-                          }`}>
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <button key={day} onClick={() => setSelectedDay(day)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors relative ${selectedDay === day ? 'bg-slate-900 text-white' : closed ? 'bg-slate-200 text-slate-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  {day.slice(0, 3)}
+                  {todayDate && <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full"></span>}
+                </button>
               );
             })}
-          </nav>
-
-          {/* Collapse toggle */}
-          <div className="p-3 border-t border-white/5">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/5 text-xs transition-colors">
-              {sidebarOpen ? '◂ Collapse' : '▸'}
-            </button>
           </div>
         </div>
-      </aside>
+      </div>
 
-      {/* Mobile toggle */}
-      <button onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-3 left-3 z-50 lg:hidden bg-slate-900 text-white p-2 rounded-lg shadow-lg"
-        style={{ display: sidebarOpen ? 'none' : 'flex' }}>
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-      </button>
-    </>
+      {isClosedDay(getDateKey()) ? (
+        <div className="card p-8 text-center">
+          <div className="text-2xl mb-2">🏠</div>
+          <div className="text-lg font-medium text-slate-900 mb-1">Practice Closed</div>
+          <div className="text-sm text-slate-500">{getClosedReason(getDateKey())}</div>
+          {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-600 hover:text-purple-800">Mark as open →</button>}
+        </div>
+      ) : (
+        <>
+          {/* Attendance */}
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Attendance</h2>
+                <p className="text-xs text-slate-500 mt-0.5">{formatDate(getDateKey())}{!isPastDate(getDateKey()) && ' — Click to toggle'}</p>
+              </div>
+              {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-400 hover:text-slate-600">Mark closed</button>}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {cliniciansList.map(c => {
+                const status = getClinicianStatus(c.id, selectedDay);
+                const lta = c.longTermAbsent;
+                const hasPlanned = hasPlannedAbsence(c.id, getDateKey());
+                const plannedReason = getPlannedAbsenceReason(c.id, getDateKey());
+                const past = isPastDate(getDateKey());
+                const showInfo = lta || hasPlanned;
+                return (
+                  <div key={c.id} className={`clinician-card ${status}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`initials-badge ${status}`}>{c.initials || '??'}</div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">{c.name}</div>
+                          <div className="text-xs text-slate-500">{c.role}</div>
+                          {showInfo && <div className="text-xs mt-0.5">{hasPlanned && <span className="text-blue-600">TeamNet: {plannedReason}</span>}{hasPlanned && lta && <span className="text-slate-400"> · </span>}{lta && <span className="text-amber-600">LTA</span>}</div>}
+                        </div>
+                      </div>
+                      {past ? <span className="text-xs text-slate-400">{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span> : <button onClick={() => togglePresence(c.id, selectedDay)} className={`toggle-btn ${status === 'present' ? 'on' : status === 'dayoff' ? 'dayoff' : 'off'}`} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Allocations */}
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Buddy Allocations</h2>
+                <p className="text-sm text-slate-500 mt-0.5">Workload balanced across present clinicians</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {hasAllocations && <button onClick={handleCopyAllocations} className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 shadow-md flex items-center gap-2">📋 Copy</button>}
+                {!isPastDate(getDateKey()) && <button onClick={handleGenerate} disabled={presentClinicians.length === 0} className="btn-primary">{hasAllocations ? 'Regenerate' : 'Generate'}</button>}
+              </div>
+            </div>
+            {!hasAllocations ? (
+              <div className="text-center py-8 text-slate-400">
+                <div className="text-2xl mb-2">📋</div>
+                <div className="text-sm">No allocations yet for {selectedDay}</div>
+                {presentClinicians.length > 0 && !isPastDate(getDateKey()) && <div className="text-xs mt-1">Click Generate to create buddy assignments</div>}
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide">Covering</th>
+                        <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide"><span className="text-red-600">File & Action</span><span className="text-slate-400 font-normal ml-1">(absent)</span></th>
+                        <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide"><span className="text-amber-600">View Only</span><span className="text-slate-400 font-normal ml-1">(day off)</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const rows = presentIds.map(id => {
+                          const c = getClinicianById(id);
+                          const t = groupedAllocations[id] || { absent: [], dayOff: [] };
+                          const can = c?.canProvideCover !== false;
+                          const has = t.absent.length > 0 || t.dayOff.length > 0;
+                          return { id, clinician: c, tasks: t, canCover: can, hasAllocs: has };
+                        }).filter(r => r.clinician);
+                        rows.sort((a, b) => {
+                          if (a.canCover && !b.canCover) return -1;
+                          if (!a.canCover && b.canCover) return 1;
+                          if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; }
+                          return 0;
+                        });
+                        return rows.map(({ clinician, tasks, canCover }) => (
+                          <tr key={clinician.id} className={`border-b border-slate-50 last:border-0 ${!canCover ? 'opacity-50' : ''}`}>
+                            <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="initials-badge present">{clinician.initials}</div><div><div className="text-sm font-medium text-slate-900">{clinician.name}</div><div className="text-xs text-slate-500">{clinician.role}</div></div></div></td>
+                            <td className="py-3 px-4">{tasks.absent.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="status-tag absent">{x.initials}</span> : null; })}</div> : <span className="text-slate-300">—</span>}</td>
+                            <td className="py-3 px-4">{tasks.dayOff.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="status-tag dayoff">{x.initials}</span> : null; })}</div> : <span className="text-slate-300">—</span>}</td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-100 flex gap-6 text-xs text-slate-500">
+                  <span><strong className="text-emerald-600">{presentClinicians.length}</strong> present</span>
+                  <span><strong className="text-red-600">{absentClinicians.length}</strong> absent</span>
+                  <span><strong className="text-amber-600">{dayOffClinicians.length}</strong> day off</span>
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

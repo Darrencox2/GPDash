@@ -1,510 +1,264 @@
 'use client';
-import { useState, useEffect, useRef, useMemo, memo } from 'react';
-import { STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
-import { getHuddleCapacity, getTodayDateStr, getCliniciansForDate, getNDayAvailability } from '@/lib/huddle';
-import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS, DOW_NAMES } from '@/lib/demandPredictor';
 
-const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DEFAULT_CAPACITY_CARDS = [
-  { id: 'minorIllness', title: 'Minor Illness', colour: 'violet' },
-  { id: 'physio', title: 'Physiotherapy', colour: 'sky' },
-];
-const DEMAND_COLOURS = {
-  low: { bg: '#10b98122', text: '#34d399', label: 'LOW DEMAND' },
-  normal: { bg: '#3b82f622', text: '#60a5fa', label: 'NORMAL' },
-  high: { bg: '#f59e0b22', text: '#fbbf24', label: 'HIGH DEMAND' },
-  'very-high': { bg: '#ef444422', text: '#f87171', label: 'VERY HIGH' },
-  closed: { bg: '#64748b22', text: '#94a3b8', label: 'CLOSED' },
-};
-const MSG_COLOURS = [
-  { bg: '#fef3c7', text: '#92400e' }, { bg: '#dbeafe', text: '#1e40af' },
-  { bg: '#fce7f3', text: '#9d174d' }, { bg: '#d1fae5', text: '#065f46' },
-  { bg: '#ede9fe', text: '#5b21b6' },
-];
+import { useState, useEffect, useRef } from 'react';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName } from '@/lib/data';
+import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
+import Sidebar from '@/components/Sidebar';
+import LoginScreen from '@/components/LoginScreen';
+import BuddyDaily from '@/components/buddy/BuddyDaily';
+import BuddyWeek from '@/components/buddy/BuddyWeek';
+import TeamMembers from '@/components/buddy/TeamMembers';
+import TeamRota from '@/components/buddy/TeamRota';
+import BuddySettings from '@/components/buddy/BuddySettings';
+import HuddleToday from '@/components/huddle/HuddleToday';
+import HuddleForward from '@/components/huddle/HuddleForward';
+import HuddleSettings from '@/components/huddle/HuddleSettings';
+import HuddleHistory from '@/components/huddle/HuddleHistory';
 
-const LiveClock = memo(function LiveClock() {
-  const [time, setTime] = useState(new Date());
-  useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
-  return <div className="text-4xl font-light text-slate-300 tabular-nums">{time.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>;
-});
-
-const NoticeTicker = memo(function NoticeTicker({ messages }) {
-  const [idx, setIdx] = useState(0);
-  useEffect(() => { if (messages.length <= 1) return; const t = setInterval(() => setIdx(i => (i + 1) % messages.length), 60000); return () => clearInterval(t); }, [messages.length]);
-  if (messages.length === 0) return null;
-  const H = 52;
+export default function Home() {
   return (
-    <div className="flex items-center gap-4 px-6 flex-shrink-0 overflow-hidden" style={{ height: H, background: 'linear-gradient(135deg, #1e293b, #334155)' }}>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        <span className="text-sm font-semibold text-amber-400 uppercase tracking-wider">Noticeboard</span>
-      </div>
-      <div className="flex-1 overflow-hidden" style={{ height: H }}>
-        <div className="flex flex-col transition-transform duration-700" style={{ transform: `translateY(-${idx * H}px)` }}>
-          {messages.map((m, i) => {
-            const mc = MSG_COLOURS[i % MSG_COLOURS.length];
-            return <div key={i} className="flex items-center gap-3 flex-shrink-0" style={{ height: H }}><span className="px-3 py-1 rounded-full text-sm font-semibold" style={{ background: mc.bg, color: mc.text }}>{m.author} {m.time}</span><span className="text-base text-slate-200 truncate">{m.text}</span></div>;
-          })}
-        </div>
-      </div>
-    </div>
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
-});
+}
 
-const GaugeSVG = memo(function GaugeSVG({ pct, colour, label, delay }) {
-  const size = 130, r = 50, sw = 10, cx = size/2, cy = size/2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (circ * Math.min(pct, 100) / 100);
-  return (
-    <div className="text-center fs-fadein" style={{ animationDelay: `${0.3 + delay * 0.15}s` }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="fs-gauge-glow">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth={sw} />
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth={sw} strokeLinecap="round"
-          strokeDasharray={circ} strokeDashoffset={circ}
-          transform={`rotate(-90 ${cx} ${cy})`}
-          className="fs-gauge-sweep" style={{ '--target': offset, animationDelay: `${0.5 + delay * 0.2}s` }} />
-        <text x={cx} y={cy - 2} textAnchor="middle" fill={colour} style={{ fontSize: '28px', fontWeight: 800 }}>{Math.round(pct)}%</text>
-        <text x={cx} y={cy + 16} textAnchor="middle" fill="#94a3b8" style={{ fontSize: '12px' }}>avail</text>
-      </svg>
-      <div className="text-sm text-slate-500 mt-1">{label}</div>
-    </div>
-  );
-});
+function AppContent() {
+  const toast = useToast();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [data, setData] = useState(null);
+  const [dataVersion, setDataVersion] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState(() => getWeekStart(new Date()));
+  const [selectedDay, setSelectedDay] = useState(() => getCurrentDay());
+  const [activeSection, setActiveSection] = useState('huddle-today');
+  const [syncStatus, setSyncStatus] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const hasSyncedRef = useRef(false);
+  const [huddleData, setHuddleData] = useState(null);
+  const [huddleMessages, setHuddleMessages] = useState([]);
+  const huddleLoadedRef = useRef(false);
 
-export default function HuddleFullscreen({ data, huddleData, onExit }) {
-  const containerRef = useRef(null);
-  const chartRef = useRef(null);
-  const chartInstance = useRef(null);
-  const [demandData, setDemandData] = useState(null);
-
-  const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
-  const allClinicians = ensureArray(data?.clinicians);
-  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
-  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
-  const dateKey = today.toISOString().split('T')[0];
-  const todayDateStr = getTodayDateStr();
-  const hs = data?.huddleSettings || {};
-  const messages = ensureArray(data?.huddleMessages || []);
-  const knownSlotTypes = hs?.knownSlotTypes || [];
-
-  // Fullscreen
   useEffect(() => {
-    const el = containerRef.current;
-    if (el?.requestFullscreen) el.requestFullscreen().catch(() => {});
-    const onFs = () => { if (!document.fullscreenElement) onExit(); };
-    document.addEventListener('fullscreenchange', onFs);
-    const onKey = (e) => { if (e.key === 'Escape') onExit(); };
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('fullscreenchange', onFs); document.removeEventListener('keydown', onKey); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
-  }, [onExit]);
-
-  // Demand + weather
-  useEffect(() => {
-    async function load() {
-      const w = await getWeatherForecast(16);
-      const todayDk = today.toISOString().split('T')[0];
-      const todayW = w?.[todayDk] || null;
-      const todayPred = predictDemand(today, todayW);
-      const chartDays = [];
-      for (let i = 14; i >= 1; i--) {
-        const d = new Date(today); d.setDate(d.getDate() - i);
-        const isWE = d.getDay() === 0 || d.getDay() === 6;
-        const dk = d.toISOString().split('T')[0];
-        const pred = isWE ? null : predictDemand(d, w?.[dk] || null);
-        chartDays.push({ predicted: pred?.predicted || null, date: d, dk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: true, isToday: false, isBH: pred?.isBankHoliday || false, isWE, confidence: pred?.confidence || { low: null, high: null } });
-      }
-      chartDays.push({ ...todayPred, date: today, dk: todayDk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()], dayNum: today.getDate(), isPast: false, isToday: true, isBH: false, isWE: false, weather: todayW });
-      for (let i = 1; i <= 14; i++) {
-        const d = new Date(today); d.setDate(d.getDate() + i);
-        const isWE = d.getDay() === 0 || d.getDay() === 6;
-        const dk = d.toISOString().split('T')[0];
-        const pred = isWE ? null : predictDemand(d, w?.[dk] || null);
-        chartDays.push({ predicted: pred?.predicted || null, date: d, dk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: false, isToday: false, isBH: pred?.isBankHoliday || false, isWE, confidence: pred?.confidence || { low: null, high: null } });
-      }
-      setDemandData({ today: { ...todayPred, weather: todayW }, chartDays });
+    const stored = sessionStorage.getItem('buddy_password');
+    if (stored) {
+      setPassword(stored);
+      loadData(stored);
     }
-    load();
-  }, [today]);
+  }, []);
 
-  // Chart.js
   useEffect(() => {
-    if (!demandData || !chartRef.current) return;
-    const loadChart = async () => {
-      if (!window.Chart) await new Promise(r => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js'; s.onload = r; document.head.appendChild(s); });
-      if (chartInstance.current) chartInstance.current.destroy();
-      const days = demandData.chartDays;
-      const todayIdx = days.findIndex(d => d.isToday);
-      const isClosed = days.map(d => d.isWE || d.isBH);
-      const isBH = days.map(d => d.isBH);
-      const labels = days.map(d => d.isBH ? 'BH' : d.isWE ? d.dayName : `${d.dayName} ${d.dayNum}`);
-      const values = days.map((d, i) => isClosed[i] ? null : d.predicted);
-      const lows = days.map((d, i) => isClosed[i] ? null : d.confidence?.low);
-      const highs = days.map((d, i) => isClosed[i] ? null : d.confidence?.high);
-      chartInstance.current = new window.Chart(chartRef.current, {
-        type: 'line',
-        data: { labels, datasets: [
-          { data: highs, fill: '+1', backgroundColor: 'rgba(56,189,248,0.07)', borderWidth: 0, pointRadius: 0, tension: 0.3, spanGaps: true },
-          { data: lows, fill: false, borderWidth: 0, pointRadius: 0, tension: 0.3, spanGaps: true },
-          { data: values, borderWidth: 2.5, tension: 0.3, spanGaps: false, borderColor: '#38bdf8',
-            pointRadius: (ctx) => values[ctx.dataIndex] === null ? 0 : ctx.dataIndex === todayIdx ? 8 : 2.5,
-            pointBackgroundColor: (ctx) => ctx.dataIndex === todayIdx ? '#f59e0b' : ctx.dataIndex < todayIdx ? '#94a3b8' : '#38bdf8',
-            pointBorderColor: (ctx) => ctx.dataIndex === todayIdx ? '#fbbf24' : 'transparent',
-            pointBorderWidth: (ctx) => ctx.dataIndex === todayIdx ? 4 : 0,
-            segment: { borderColor: (ctx) => ctx.p0DataIndex < todayIdx ? '#94a3b8' : '#38bdf8', borderDash: (ctx) => ctx.p0DataIndex >= todayIdx ? [5,4] : undefined },
-          },
-        ]},
-        plugins: [{
-          id: 'shade', beforeDraw(chart) {
-            const ctx = chart.ctx, xs = chart.scales.x, ys = chart.scales.y, bw = (xs.getPixelForValue(1) - xs.getPixelForValue(0)) * 0.5;
-            ctx.save(); for (let i = 0; i < isClosed.length; i++) { if (isClosed[i]) { const x = xs.getPixelForValue(i); ctx.fillStyle = isBH[i] ? '#1c1917' : '#1e293b'; ctx.fillRect(x-bw, ys.top, bw*2, ys.bottom-ys.top); if (isBH[i]) { ctx.fillStyle = '#f59e0b33'; ctx.fillRect(x-bw, ys.top, bw*2, 3); } } } ctx.restore();
-          }
-        }, {
-          id: 'todayLine', afterDraw(chart) {
-            const ctx = chart.ctx, x = chart.scales.x.getPixelForValue(todayIdx), y = chart.scales.y;
-            ctx.save(); ctx.beginPath(); ctx.setLineDash([3,3]); ctx.strokeStyle = '#f59e0b44'; ctx.lineWidth = 1; ctx.moveTo(x, y.top); ctx.lineTo(x, y.bottom); ctx.stroke(); ctx.restore();
-          }
-        }],
-        options: { responsive: true, maintainAspectRatio: false, animation: { duration: 1200 },
-          plugins: { legend: { display: false }, tooltip: { enabled: false } },
-          scales: {
-            x: { ticks: { font: { size: 10 }, color: (ctx) => { if (isBH[ctx.index]) return '#f59e0b88'; if (isClosed[ctx.index]) return '#334155'; if (ctx.index === todayIdx) return '#f59e0b'; return '#64748b'; }, maxRotation: 0 }, grid: { display: false } },
-            y: { position: 'right', min: 40, max: 220, ticks: { font: { size: 10 }, color: '#475569', stepSize: 40 }, grid: { color: '#1e293b', lineWidth: 0.5 }, border: { display: false } },
-          },
-        },
-      });
-    };
-    loadChart();
-    return () => { if (chartInstance.current) chartInstance.current.destroy(); };
-  }, [demandData]);
+    if (data && data.teamnetUrl && !hasSyncedRef.current) {
+      hasSyncedRef.current = true;
+      syncTeamNet(true);
+    }
+  }, [data?.teamnetUrl]);
 
-  // ── Who's in ──────────────────────────────────────────────────
-  const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');
-  const todayCsvClinicians = useMemo(() => { if (!huddleData?.dates?.includes(todayDateStr)) return []; return getCliniciansForDate(huddleData, todayDateStr); }, [huddleData, todayDateStr]);
-  const csvPresentIds = useMemo(() => { const s = new Set(); allClinicians.forEach(c => { if (todayCsvClinicians.some(n => matchesStaffMember(n, c))) s.add(c.id); }); return s; }, [allClinicians, todayCsvClinicians]);
-  const hasCSV = todayCsvClinicians.length > 0;
-  const absenceMap = useMemo(() => { const m = {}; ensureArray(data.plannedAbsences).forEach(a => { if (dateKey >= a.startDate && dateKey <= a.endDate) m[a.clinicianId] = a.reason || 'Leave'; }); return m; }, [data.plannedAbsences, dateKey]);
-  const categories = useMemo(() => {
-    const inP = [], leave = [], off = [];
-    visibleStaff.forEach(p => {
-      if (p.longTermAbsent || p.status === 'longTermAbsent') { leave.push({ person: p, reason: 'LTA' }); return; }
-      if (absenceMap[p.id]) { leave.push({ person: p, reason: absenceMap[p.id] }); return; }
-      if (hasCSV && csvPresentIds.has(p.id)) { inP.push({ person: p }); return; }
-      if (!hasCSV && p.buddyCover && ensureArray(data.weeklyRota?.[dayName])?.includes(p.id)) { inP.push({ person: p }); return; }
-      off.push({ person: p });
-    });
-    return { inPractice: inP, leaveAbsent: leave, dayOff: off };
-  }, [visibleStaff, csvPresentIds, absenceMap, hasCSV, data.weeklyRota, dayName]);
-  const gpTeam = categories.inPractice.filter(e => e.person.group === 'gp');
-  const nursingTeam = categories.inPractice.filter(e => e.person.group === 'nursing');
-  const othersTeam = categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing');
+  useEffect(() => {
+    if (data && !huddleLoadedRef.current) {
+      huddleLoadedRef.current = true;
+      if (data.huddleCsvData) setHuddleData(data.huddleCsvData);
+      if (data.huddleMessages) setHuddleMessages(Array.isArray(data.huddleMessages) ? data.huddleMessages : Object.values(data.huddleMessages));
+    }
+  }, [data]);
 
-  // ── Capacity ──────────────────────────────────────────────────
-  const displayDate = huddleData?.dates?.includes(todayDateStr) ? todayDateStr : null;
-  const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs) : null;
-  const urgentAm = capacity?.am?.total || 0, urgentPm = capacity?.pm?.total || 0, urgentTotal = urgentAm + urgentPm;
-
-  // Per-clinician AM/PM split
-  const amClinicians = useMemo(() => {
-    if (!capacity?.am?.byClinician) return [];
-    return capacity.am.byClinician.map(c => {
-      const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
-      return { name: matched?.name || c.name, role: matched?.role || '', available: c.available, embargoed: c.embargoed || 0, booked: c.booked || 0 };
-    }).sort((a, b) => (b.available + b.embargoed) - (a.available + a.embargoed));
-  }, [capacity, allClinicians]);
-  const pmClinicians = useMemo(() => {
-    if (!capacity?.pm?.byClinician) return [];
-    return capacity.pm.byClinician.map(c => {
-      const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
-      return { name: matched?.name || c.name, role: matched?.role || '', available: c.available, embargoed: c.embargoed || 0, booked: c.booked || 0 };
-    }).sort((a, b) => (b.available + b.embargoed) - (a.available + a.embargoed));
-  }, [capacity, allClinicians]);
-
-  // ── Routine — use SAME overrides as today page ────────────────
-  const allSlotsOverrides = useMemo(() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); if (huddleData?.allSlotTypes) huddleData.allSlotTypes.forEach(s => { o[s] = true; }); return o; }, [knownSlotTypes, huddleData]);
-  const savedRoutineOverrides = hs?.savedSlotFilters?.routine || null;
-  const effectiveRoutineOverrides = savedRoutineOverrides || allSlotsOverrides;
-
-  const routineDays = useMemo(() => huddleData ? getNDayAvailability(huddleData, hs, 30, effectiveRoutineOverrides) : [], [huddleData, hs, effectiveRoutineOverrides]);
-  const routineGauges = useMemo(() => {
-    return [{ label: '0–7 days', start: 0, end: 7 }, { label: '8–14 days', start: 7, end: 14 }, { label: '15–21 days', start: 14, end: 21 }, { label: '22–28 days', start: 21, end: 28 }].map(({ label, start, end }) => {
-      const slice = routineDays.slice(start, end).filter(d => d.available !== null && !d.isWeekend);
-      const avail = slice.reduce((s, d) => s + (d.available || 0) + (d.embargoed || 0), 0);
-      const booked = slice.reduce((s, d) => s + (d.booked || 0), 0);
-      const total = avail + booked;
-      const pct = total > 0 ? (avail / total) * 100 : 0;
-      const colour = pct > 50 ? '#10b981' : pct >= 20 ? '#f59e0b' : '#ef4444';
-      return { label, pct, colour };
-    });
-  }, [routineDays]);
-
-  // Capacity cards (7-day)
-  const capacityCards = hs?.capacityCards || DEFAULT_CAPACITY_CARDS;
-  const cardData = useMemo(() => {
-    if (!huddleData) return [];
-    return capacityCards.map(card => {
-      const saved = hs?.savedSlotFilters || {};
-      const overrides = saved[card.id] || allSlotsOverrides;
-      const days = getNDayAvailability(huddleData, hs, 7, overrides);
-      const working = days.filter(d => d.available !== null && !d.isWeekend);
-      return { ...card, avail: working.reduce((s, d) => s + (d.available || 0), 0), emb: working.reduce((s, d) => s + (d.embargoed || 0), 0), booked: working.reduce((s, d) => s + (d.booked || 0), 0) };
-    });
-  }, [huddleData, hs, capacityCards, allSlotsOverrides]);
-
-  const routineBarMax = useMemo(() => {
-    if (!routineDays.length) return 1;
-    return Math.max(...routineDays.filter(d => d.available !== null && !d.isWeekend).map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
-  }, [routineDays]);
-
-  // ── Demand derived ────────────────────────────────────────────
-  const t = demandData?.today;
-  const dc = t ? (DEMAND_COLOURS[t.demandLevel] || DEMAND_COLOURS.normal) : DEMAND_COLOURS.normal;
-  const dowIdx = today.getDay() > 0 && today.getDay() < 6 ? (today.getDay() + 6) % 7 : 0;
-  const monthIdx = today.getMonth();
-  const typicalDayMonth = dowIdx < 5 ? Math.round(BASELINE + DOW_EFFECTS[dowIdx] + MONTH_EFFECTS[monthIdx]) : 0;
-  const vsPct = t && typicalDayMonth > 0 ? Math.round(((t.predicted - typicalDayMonth) / typicalDayMonth) * 100) : 0;
-  const rangePct = t ? (t.confidence.high > t.confidence.low ? ((t.predicted - t.confidence.low) / (t.confidence.high - t.confidence.low)) * 100 : 50) : 50;
-  const tw = demandData?.today?.weather;
-  const topFactors = useMemo(() => {
-    if (!t?.factors) return [];
-    const f = t.factors, list = [];
-    if (f.dayOfWeek) list.push({ label: f.dayOfWeek.day, effect: f.dayOfWeek.effect, desc: 'day of week' });
-    if (f.month) list.push({ label: MONTH_SHORT[f.month.month-1], effect: f.month.effect, desc: 'seasonal' });
-    if (f.trend) list.push({ label: 'Trend', effect: f.trend.effect, desc: 'growth' });
-    if (f.weather) list.push({ label: `${Math.round(f.weather.actualTemp)}°C`, effect: f.weather.tempEffect, desc: 'temperature' });
-    if (f.endOfMonth) list.push({ label: `${today.getDate()}th`, effect: f.endOfMonth, desc: 'end of month' });
-    if (f.firstDayBack) list.push({ label: '1st back', effect: f.firstDayBack, desc: 'after bank hol' });
-    if (f.schoolHoliday) list.push({ label: 'School hol', effect: f.schoolHoliday, desc: 'holidays' });
-    if (f.firstWeekBack) list.push({ label: 'Term starts', effect: f.firstWeekBack, desc: 'first week back' });
-    if (f.shortWeek) list.push({ label: `${f.shortWeek.workingDays}d week`, effect: f.shortWeek.effect, desc: 'short week' });
-    list.sort((a,b) => Math.abs(b.effect) - Math.abs(a.effect));
-    return list.slice(0, 5);
-  }, [t, today]);
-
-  const PersonCard = ({ person, delay, reason }) => {
-    const gc = { gp: { bg: '#eff6ff', init: '#dbeafe', text: '#1d4ed8' }, nursing: { bg: '#ecfdf5', init: '#d1fae5', text: '#047857' }, allied: { bg: '#f5f3ff', init: '#ede9fe', text: '#6d28d9' }, admin: { bg: '#f8fafc', init: '#f1f5f9', text: '#64748b' } }[person.group] || { bg: '#f8fafc', init: '#f1f5f9', text: '#64748b' };
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-slate-200 mb-1.5 fs-slidein" style={{ background: gc.bg, animationDelay: `${delay}s` }}>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: gc.init, color: gc.text }}>{person.initials}</div>
-        <span className="text-sm text-slate-900 truncate flex-1">{person.name}</span>
-        {reason && <span className="text-xs text-red-500 flex-shrink-0">{reason}</span>}
-      </div>
-    );
+  const loadData = async (pwd) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/data', { headers: { 'x-password': pwd } });
+      if (res.status === 401) {
+        setPasswordError('Incorrect password');
+        setIsAuthenticated(false);
+        sessionStorage.removeItem('buddy_password');
+      } else {
+        const json = await res.json();
+        setData(normalizeData(json));
+        setIsAuthenticated(true);
+        sessionStorage.setItem('buddy_password', pwd);
+        setPasswordError('');
+      }
+    } catch (err) {
+      setData(getDefaultData());
+      setIsAuthenticated(true);
+    }
+    setLoading(false);
   };
 
-  const ClinicianRow = ({ c, delay }) => (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 fs-slidein" style={{ animationDelay: `${delay}s` }}>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm text-slate-700 truncate">{c.name}</div>
-        <div className="text-[10px] text-slate-400 truncate">{c.role || 'Staff'}</div>
-      </div>
-      <div className="flex gap-1 flex-shrink-0">
-        <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-sm font-semibold">{c.available}</span>
-        <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-sm font-semibold">{c.embargoed}</span>
-        <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-sm font-semibold">{c.booked}</span>
-      </div>
-    </div>
-  );
+  const normalizeData = (d) => {
+    if (!d) return d;
+    if (d.clinicians && !Array.isArray(d.clinicians)) d.clinicians = Object.values(d.clinicians);
+    // Backfill new staff register fields on existing clinicians
+    if (d.clinicians && Array.isArray(d.clinicians)) {
+      d.clinicians = d.clinicians.map(c => ({
+        ...c,
+        name: titleCaseName(c.name) || c.name,
+        group: c.group || guessGroupFromRole(c.role),
+        status: c.longTermAbsent ? 'longTermAbsent' : (c.status || 'active'),
+        longTermAbsent: c.status === 'longTermAbsent' || c.longTermAbsent || false,
+        buddyCover: c.buddyCover !== undefined ? c.buddyCover : true,
+        showWhosIn: c.showWhosIn !== undefined ? c.showWhosIn : true,
+        source: c.source || 'manual',
+        confirmed: c.confirmed !== undefined ? c.confirmed : true,
+        aliases: c.aliases || [],
+      }));
+    }
+    if (d.plannedAbsences && !Array.isArray(d.plannedAbsences)) d.plannedAbsences = Object.values(d.plannedAbsences);
+    if (d.weeklyRota) {
+      for (const day of Object.keys(d.weeklyRota)) {
+        if (d.weeklyRota[day] && !Array.isArray(d.weeklyRota[day])) d.weeklyRota[day] = Object.values(d.weeklyRota[day]);
+      }
+    }
+    if (d.dailyOverrides) {
+      for (const key of Object.keys(d.dailyOverrides)) {
+        const override = d.dailyOverrides[key];
+        if (override) {
+          if (override.present && !Array.isArray(override.present)) override.present = Object.values(override.present);
+          if (override.scheduled && !Array.isArray(override.scheduled)) override.scheduled = Object.values(override.scheduled);
+        }
+      }
+    }
+    if (d.allocationHistory) {
+      for (const key of Object.keys(d.allocationHistory)) {
+        const entry = d.allocationHistory[key];
+        if (entry) {
+          if (entry.presentIds && !Array.isArray(entry.presentIds)) entry.presentIds = Object.values(entry.presentIds);
+          if (entry.absentIds && !Array.isArray(entry.absentIds)) entry.absentIds = Object.values(entry.absentIds);
+          if (entry.dayOffIds && !Array.isArray(entry.dayOffIds)) entry.dayOffIds = Object.values(entry.dayOffIds);
+        }
+      }
+    }
+    return d;
+  };
+
+  const saveData = async (newData, showIndicator = true) => {
+    setData(newData);
+    setDataVersion(v => v + 1);
+    try {
+      await fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-password': password },
+        body: JSON.stringify(newData)
+      });
+      if (showIndicator) toast('Saved', 'success', 1500);
+    } catch (err) {
+      console.error('Save failed:', err);
+      toast('Save failed', 'error');
+    }
+  };
+
+  const handleLogin = (e) => { e.preventDefault(); loadData(password); };
+  const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
+
+  const getDateKey = () => { const dayIndex = DAYS.indexOf(selectedDay); const date = new Date(selectedWeek); date.setDate(date.getDate() + dayIndex); return date.toISOString().split('T')[0]; };
+  const getDateKeyForDay = (day) => { const dayIndex = DAYS.indexOf(day); const date = new Date(selectedWeek); date.setDate(date.getDate() + dayIndex); return date.toISOString().split('T')[0]; };
+  const getTodayKey = () => new Date().toISOString().split('T')[0];
+  const isPastDate = (dateKey) => dateKey < getTodayKey();
+  const isToday = (dateKey) => dateKey === getTodayKey();
+  const isClosedDay = (dateKey) => data?.closedDays?.[dateKey] !== undefined;
+  const getClosedReason = (dateKey) => data?.closedDays?.[dateKey] || '';
+  const toggleClosedDay = (dateKey, reason = 'Bank Holiday') => { if (isPastDate(dateKey)) return; const newClosedDays = { ...data.closedDays }; if (newClosedDays[dateKey]) delete newClosedDays[dateKey]; else newClosedDays[dateKey] = reason; saveData({ ...data, closedDays: newClosedDays }); };
+
+  const hasPlannedAbsence = (clinicianId, dateKey) => ensureArray(data?.plannedAbsences).some(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate);
+  const getPlannedAbsenceReason = (clinicianId, dateKey) => { const absence = ensureArray(data?.plannedAbsences).find(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate); return absence?.reason || 'Leave'; };
+  const isAbsentOnWorkingDate = (cid, dateKey, dayName) => { const rota = ensureArray(data?.weeklyRota?.[dayName]); if (!rota.includes(cid)) return false; return hasPlannedAbsence(cid, dateKey); };
+
+  const isAbsentUntilNextPresent = (cid, fromDateKey) => {
+    const clinician = data?.clinicians?.find(c => c.id === cid);
+    if (!clinician) return false;
+    if (clinician.longTermAbsent) return true;
+    const workingDays = DAYS.filter(day => ensureArray(data?.weeklyRota?.[day]).includes(cid));
+    if (workingDays.length === 0) return false;
+    const indexToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const startDate = new Date(fromDateKey + 'T12:00:00');
+    for (let i = 1; i <= 7; i++) {
+      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() - i);
+      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = checkDate.toISOString().split('T')[0];
+      if (dayIndex === 0 || dayIndex === 6) continue;
+      if (workingDays.includes(dayName)) { if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true; break; }
+    }
+    for (let i = 0; i <= 28; i++) {
+      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() + i);
+      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = checkDate.toISOString().split('T')[0];
+      if (dayIndex === 0 || dayIndex === 6) continue;
+      if (workingDays.includes(dayName)) { if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true; return false; }
+    }
+    return false;
+  };
+
+  const getScheduledClinicians = (day) => { const rota = ensureArray(data?.weeklyRota?.[day]); return rota.filter(id => { const c = data?.clinicians?.find(c => c.id === id); return c && !c.longTermAbsent; }); };
+  const getScheduledForDay = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.scheduled) return ensureArray(data.dailyOverrides[dayKey].scheduled); return getScheduledClinicians(day); };
+  const getPresentClinicians = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.present) return ensureArray(data.dailyOverrides[dayKey].present); const scheduled = getScheduledForDay(day); return scheduled.filter(id => { const c = data?.clinicians?.find(c => c.id === id); if (c?.longTermAbsent) return false; if (hasPlannedAbsence(id, dateKey)) return false; if (isAbsentUntilNextPresent(id, dateKey)) return false; return true; }); };
+  const getAbsentClinicians = (day) => { const scheduled = getScheduledForDay(day); const presentIds = getPresentClinicians(day); return scheduled.filter(id => !presentIds.includes(id)); };
+  const getDayOffClinicians = (day) => { const scheduled = getScheduledForDay(day); const allClinicians = ensureArray(data?.clinicians); return allClinicians.filter(c => c.buddyCover && !scheduled.includes(c.id) && !c.longTermAbsent && c.status !== 'left' && c.status !== 'administrative').map(c => c.id); };
+  const getClinicianStatus = (id, day) => { const p = ensureArray(getPresentClinicians(day)); const a = ensureArray(getAbsentClinicians(day)); if (p.includes(id)) return 'present'; if (a.includes(id)) return 'absent'; return 'dayoff'; };
+
+  const togglePresence = (id, day) => {
+    const dateKey = getDateKeyForDay(day); if (isPastDate(dateKey)) return;
+    const dayKey = `${dateKey}-${day}`; const scheduled = getScheduledForDay(day); const currentPresent = ensureArray(getPresentClinicians(day));
+    const isCurrentlyPresent = currentPresent.includes(id); const isOnRota = scheduled.includes(id);
+    let newPresent = isCurrentlyPresent ? currentPresent.filter(cid => cid !== id) : [...currentPresent, id];
+    let newScheduled = scheduled;
+    if (!isOnRota && !isCurrentlyPresent) newScheduled = [...scheduled, id];
+    else if (!isOnRota && isCurrentlyPresent) newScheduled = scheduled.filter(cid => cid !== id);
+    const newOverrides = { ...data.dailyOverrides, [dayKey]: { present: newPresent, scheduled: newScheduled } };
+    saveData({ ...data, dailyOverrides: newOverrides });
+  };
+
+  const getCurrentAllocations = () => data?.allocationHistory?.[getDateKey()] || null;
+  const getClinicianById = (id) => ensureArray(data?.clinicians).find(c => c.id === id);
+
+  const syncTeamNet = async (silent = false) => {
+    if (!data?.teamnetUrl) { if (!silent) { setSyncStatus('Set TeamNet URL in Settings first'); setTimeout(() => setSyncStatus(''), 4000); } return; }
+    if (!silent) setSyncStatus('Syncing...');
+    try {
+      const res = await fetch('/api/sync-teamnet', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify({ url: data.teamnetUrl, clinicians: ensureArray(data.clinicians) }) });
+      const result = await res.json();
+      if (result.error) { if (!silent) setSyncStatus(`Error: ${result.error}`); }
+      else { const newAbsences = result.absences || []; saveData({ ...data, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }, false); if (!silent) setSyncStatus(`Synced — ${newAbsences.length} absences`); }
+    } catch (err) { if (!silent) setSyncStatus('Sync failed'); }
+    if (!silent) setTimeout(() => setSyncStatus(''), 4000);
+  };
+
+  const getWeekAbsences = () => {
+    const absences = ensureArray(data?.plannedAbsences);
+    const weekStart = selectedWeek.toISOString().split('T')[0];
+    const weekEndDate = new Date(selectedWeek); weekEndDate.setDate(weekEndDate.getDate() + 4);
+    const weekEnd = weekEndDate.toISOString().split('T')[0];
+    const weekAbsences = [];
+    absences.forEach(a => { DAYS.forEach(day => { const dateKey = getDateKeyForDay(day); if (dateKey >= a.startDate && dateKey <= a.endDate && dateKey >= weekStart && dateKey <= weekEnd) { const clinician = getClinicianById(a.clinicianId); if (clinician) weekAbsences.push({ day, clinician, reason: a.reason }); } }); });
+    return weekAbsences;
+  };
+
+  const toggleRotaDay = (clinicianId, day) => { const currentRota = ensureArray(data.weeklyRota[day]); const newRota = currentRota.includes(clinicianId) ? currentRota.filter(id => id !== clinicianId) : [...currentRota, clinicianId]; saveData({ ...data, weeklyRota: { ...data.weeklyRota, [day]: newRota } }); };
+  const removeClinician = (id) => { if (!confirm('Remove this clinician?')) return; const newClinicians = ensureArray(data.clinicians).filter(c => c.id !== id); const newRota = { ...data.weeklyRota }; DAYS.forEach(day => { newRota[day] = ensureArray(newRota[day]).filter(cid => cid !== id); }); saveData({ ...data, clinicians: newClinicians, weeklyRota: newRota }); };
+  const updateClinicianField = (id, field, value) => { const newClinicians = ensureArray(data.clinicians).map(c => { if (c.id !== id) return c; let pv = value; if (field === 'sessions') pv = parseInt(value) || 6; if (field === 'primaryBuddy' || field === 'secondaryBuddy') pv = value ? parseInt(value) : null; return { ...c, [field]: pv }; }); saveData({ ...data, clinicians: newClinicians }); };
+
+  if (!isAuthenticated) return <LoginScreen password={password} setPassword={setPassword} onLogin={handleLogin} loading={loading} error={passwordError} />;
+  if (!data) return <div className="min-h-screen flex items-center justify-center bg-slate-100"><PageSkeleton /></div>;
+
+  // Shared helpers object passed to child components
+  const helpers = { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, syncTeamNet, toggleRotaDay, removeClinician, updateClinicianField, dataVersion, setDataVersion, setData };
 
   return (
-    <div ref={containerRef} className="fixed inset-0 z-[9999] flex flex-col overflow-hidden" style={{ background: '#f1f5f9', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <style>{`
-        .fs-slidein { opacity: 0; animation: fsSlidein 0.4s ease forwards; }
-        .fs-fadein { opacity: 0; animation: fsFadein 0.5s ease forwards; }
-        .fs-popin { opacity: 0; animation: fsPopin 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-        .fs-gauge-glow { animation: fsGaugeGlow 6s ease-in-out 2s infinite; }
-        .fs-gauge-sweep { animation: fsGaugeSweep 1.2s ease forwards; }
-        .fs-breathe { animation: fsBreathe 4s ease-in-out 2s infinite; }
-        .fs-live-dot { animation: fsLiveDot 2s ease infinite; }
-        @keyframes fsSlidein { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
-        @keyframes fsFadein { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
-        @keyframes fsPopin { from { opacity:0; transform:scale(0.5) translateY(10px); } to { opacity:1; transform:scale(1) translateY(0); } }
-        @keyframes fsGaugeGlow { 0%,100% { filter: drop-shadow(0 0 2px rgba(16,185,129,0.15)); } 50% { filter: drop-shadow(0 0 10px rgba(16,185,129,0.45)); } }
-        @keyframes fsGaugeSweep { to { stroke-dashoffset: var(--target); } }
-        @keyframes fsBreathe { 0%,100% { opacity:1; } 50% { opacity:0.8; } }
-        @keyframes fsLiveDot { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-        @keyframes fsGrowbar { from { transform:scaleY(0); } to { transform:scaleY(1); } }
-        @keyframes fsBarBreathe { 0%,100% { opacity:1; } 50% { opacity:0.85; } }
-      `}</style>
-
-      {/* Header */}
-      <div className="flex items-center px-6 py-3 bg-white border-b border-slate-200 flex-shrink-0">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="bg-emerald-500 rounded-lg px-4 py-1.5 text-center"><div className="text-2xl font-extrabold text-white leading-none">{today.getDate()}</div><div className="text-[9px] text-white/80 uppercase">{MONTH_SHORT[today.getMonth()]}</div></div>
-          <div><div className="text-xl font-bold text-slate-900">{dayName}</div><div className="text-sm text-slate-400">{today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div></div>
+    <div className="min-h-screen flex bg-slate-100">
+      <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <main className="flex-1 min-h-screen min-w-0">
+        <div className="max-w-6xl mx-auto p-4 lg:p-6 animate-in">
+          {activeSection === 'buddy-daily' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} />}
+          {activeSection === 'buddy-week' && <BuddyWeek data={data} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} toast={toast} helpers={helpers} />}
+          {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
+          {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
+          {activeSection === 'huddle-settings' && <HuddleSettings data={data} saveData={saveData} setActiveSection={setActiveSection} huddleData={huddleData} />}
+          {activeSection === 'huddle-history' && <HuddleHistory data={data} huddleData={huddleData} setActiveSection={setActiveSection} />}
+          {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} />}
+          {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} />}
+          {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} />}
         </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 fs-live-dot" /><span className="text-sm text-slate-400">Live</span></div>
-          {tw && <span className="text-sm text-slate-500">{Math.round(tw.temp)}°C · Feels {Math.round(tw.feelsLike)}°C{tw.precipMm > 0 ? ` · ${Math.round(tw.precipMm)}mm` : ''}</span>}
-          <LiveClock />
-          <button onClick={onExit} className="px-4 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-50">Exit fullscreen</button>
-        </div>
-      </div>
-
-      <NoticeTicker messages={messages} />
-
-      {/* 4-quadrant grid */}
-      <div className="grid grid-cols-2 flex-1 gap-2.5 p-2.5 min-h-0">
-
-        {/* TL: Demand */}
-        <div className="rounded-xl bg-slate-900 overflow-hidden flex flex-col border border-slate-800">
-          <div className="px-4 py-2.5 flex items-center justify-between border-b border-slate-800 flex-shrink-0">
-            <div className="flex items-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span className="text-sm font-semibold text-slate-200">Predicted demand</span></div>
-            <span className="text-xs text-slate-600">Model v2.0</span>
-          </div>
-          <div className="flex items-stretch flex-1">
-            <div className="px-5 py-4 flex flex-col justify-center border-r border-slate-800" style={{ minWidth: 170 }}>
-              <div className="text-xs text-slate-500 uppercase tracking-wider">Today's forecast</div>
-              <div className="text-[56px] font-extrabold leading-none mt-1 fs-popin" style={{ color: dc.text }}>{t?.predicted || '—'}</div>
-              <div className="text-sm text-slate-400 mt-1">patient requests</div>
-              {t && <div className="mt-2"><span className="text-xs font-semibold px-2.5 py-1 rounded" style={{ background: dc.bg, color: dc.text }}>{dc.label}</span></div>}
-              {t && vsPct !== 0 && <div className="mt-2 text-xs text-slate-500 fs-breathe"><span style={{ color: vsPct >= 0 ? '#fbbf24' : '#34d399' }}>{Math.abs(vsPct)}% {vsPct >= 0 ? 'above' : 'below'}</span> typical {DOW_NAMES[dowIdx]} in {MONTH_SHORT[monthIdx]}</div>}
-              {t && <div className="flex items-center gap-2 mt-3 p-2 bg-slate-800 rounded-lg">
-                <div className="text-center"><div className="text-lg font-bold text-slate-400">{t.confidence.low}</div><div className="text-[8px] text-slate-600 uppercase">Low</div></div>
-                <div className="flex-1 h-1 rounded-full bg-slate-700 relative"><div className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${rangePct}%`, background: 'linear-gradient(90deg, #10b981, #f59e0b)' }} /><div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-slate-900" style={{ left: `${rangePct}%`, marginLeft: '-5px' }} /></div>
-                <div className="text-center"><div className="text-lg font-bold text-slate-400">{t.confidence.high}</div><div className="text-[8px] text-slate-600 uppercase">High</div></div>
-              </div>}
-            </div>
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1 px-3 pt-3 relative" style={{ minHeight: 120 }}><canvas ref={chartRef} /></div>
-              <div className="grid grid-cols-5 divide-x divide-slate-800 border-t border-slate-800">
-                {topFactors.map((f, i) => (
-                  <div key={i} className="py-2 px-2 text-center fs-fadein" style={{ animationDelay: `${0.5+i*0.1}s` }}>
-                    <div className="text-[9px] text-slate-500 uppercase truncate">{f.label}</div>
-                    <div className={`text-lg font-bold ${f.effect >= 0 ? 'text-blue-400' : 'text-emerald-400'}`}>{f.effect > 0 ? '+' : ''}{Math.round(f.effect)}</div>
-                    <div className="text-[9px] text-slate-600 truncate">{f.desc}</div>
-                  </div>
-                ))}
-                {topFactors.length < 5 && Array.from({ length: 5 - topFactors.length }).map((_, i) => <div key={`e${i}`} className="py-2 px-2" />)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* TR: Urgent — AM/PM split with roles */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
-          <div className="bg-gradient-to-r from-red-600 to-red-500 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
-            <span className="text-sm font-semibold text-white">Urgent on the day</span>
-            <div className="flex items-center gap-3">
-              <span className="text-xl font-extrabold text-white">{urgentTotal} slots</span>
-            </div>
-          </div>
-          <div className="flex flex-1 min-h-0">
-            {/* AM column */}
-            <div className="flex-1 border-r border-slate-100 p-3 flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Morning</span>
-                <span className="text-2xl font-extrabold text-amber-500 fs-popin" style={{ animationDelay: '0.1s' }}>{urgentAm}</span>
-              </div>
-              <div className="space-y-1 flex-1 overflow-auto">
-                {amClinicians.map((c, i) => <ClinicianRow key={i} c={c} delay={0.2 + i * 0.06} />)}
-              </div>
-            </div>
-            {/* PM column */}
-            <div className="flex-1 p-3 flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Afternoon</span>
-                <span className="text-2xl font-extrabold text-blue-500 fs-popin" style={{ animationDelay: '0.2s' }}>{urgentPm}</span>
-              </div>
-              <div className="space-y-1 flex-1 overflow-auto">
-                {pmClinicians.map((c, i) => <ClinicianRow key={i} c={c} delay={0.3 + i * 0.06} />)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* BL: Who's in */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
-            <span className="text-sm font-semibold text-white">Who's in today</span>
-            <span className="text-xs text-white/60">{categories.inPractice.length} in · {categories.leaveAbsent.length} absent</span>
-          </div>
-          <div className="p-4 flex-1 overflow-hidden">
-            <div className="grid grid-cols-3 gap-3 h-full">
-              <div className="overflow-hidden">
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500" /> Clinicians <span className="text-slate-300">{gpTeam.length}</span></div>
-                {gpTeam.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.1 + i * 0.05} />)}
-              </div>
-              <div className="overflow-hidden">
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Nursing <span className="text-slate-300">{nursingTeam.length}</span></div>
-                {nursingTeam.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.15 + i * 0.05} />)}
-                {othersTeam.length > 0 && <>
-                  <div className="text-xs text-slate-400 uppercase tracking-wider mt-3 mb-2 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-purple-500" /> Others <span className="text-slate-300">{othersTeam.length}</span></div>
-                  {othersTeam.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.3 + i * 0.05} />)}
-                </>}
-              </div>
-              <div className="overflow-hidden">
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" /> Absent <span className="text-slate-300">{categories.leaveAbsent.length}</span></div>
-                {categories.leaveAbsent.map((e, i) => <PersonCard key={e.person.id} person={e.person} delay={0.2 + i * 0.05} reason={e.reason} />)}
-                {categories.leaveAbsent.length === 0 && <div className="text-sm text-slate-300 px-3">None</div>}
-                {categories.dayOff.length > 0 && <div className="text-xs text-slate-300 mt-4">+ {categories.dayOff.length} day off</div>}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* BR: Routine capacity */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
-            <span className="text-sm font-semibold text-white">Routine capacity</span>
-            <span className="text-xs text-white/70">30-day overview</span>
-          </div>
-          <div className="p-3 flex-1 flex flex-col gap-2 overflow-hidden">
-            {/* Gauges */}
-            <div className="flex justify-center gap-4 flex-shrink-0">
-              {routineGauges.map((g, i) => <GaugeSVG key={i} pct={g.pct} colour={g.colour} label={g.label} delay={i} />)}
-            </div>
-            {/* Capacity cards — doubled */}
-            {cardData.length > 0 && (
-              <div className="flex gap-3 flex-shrink-0">
-                {cardData.map((c, i) => (
-                  <div key={c.id} className="flex-1 bg-slate-50 rounded-xl border border-slate-200 p-4 text-center fs-fadein" style={{ animationDelay: `${0.6 + i * 0.1}s` }}>
-                    <div className="text-sm font-semibold text-slate-700 truncate">{c.title}</div>
-                    <div className="flex justify-center gap-2 mt-2">
-                      <div className="text-center"><div className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg text-lg font-bold">{c.avail}</div><div className="text-[9px] text-slate-400 mt-0.5">avail</div></div>
-                      <div className="text-center"><div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-lg text-lg font-bold">{c.emb}</div><div className="text-[9px] text-slate-400 mt-0.5">emb</div></div>
-                      <div className="text-center"><div className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-lg font-bold">{c.booked}</div><div className="text-[9px] text-slate-400 mt-0.5">bkd</div></div>
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-1">next 7 days</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* Bar chart — fixed animation */}
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="flex justify-between mb-1"><span className="text-[10px] text-slate-400">All routine · 30 days</span>
-                <div className="flex gap-2 text-[9px] text-slate-400">
-                  <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-400" />Avail</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-amber-300" />Emb</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-slate-300" />Bkd</span>
-                </div>
-              </div>
-              <div className="flex-1 flex items-end gap-px">
-                {routineDays.map((d, i) => {
-                  if (d.isWeekend) return <div key={i} style={{ flex: '0 0 3px' }} />;
-                  const avail = d.available || 0, emb = d.embargoed || 0, bkd = d.booked || 0;
-                  const total = avail + emb + bkd;
-                  const pct = total > 0 ? Math.max(4, (total / routineBarMax) * 100) : 0;
-                  const aPct = total > 0 ? (avail / total) * 100 : 0;
-                  const ePct = total > 0 ? (emb / total) * 100 : 0;
-                  const bPct = total > 0 ? (bkd / total) * 100 : 0;
-                  const delay = 0.3 + i * 0.03;
-                  return (
-                    <div key={i} className={`flex-1 flex flex-col justify-end h-full ${d.isMonday && i > 0 ? 'ml-0.5 border-l border-slate-100' : ''}`}>
-                      <div style={{ height: `${pct}%`, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', transformOrigin: 'bottom', animation: `fsGrowbar 0.8s ease ${delay}s forwards, fsBarBreathe 5s ease-in-out ${3 + delay}s infinite`, transform: 'scaleY(0)' }}>
-                        <div style={{ height: `${aPct}%`, background: '#10b981', borderRadius: '2px 2px 0 0', minHeight: avail > 0 ? 1 : 0 }} />
-                        <div style={{ height: `${ePct}%`, background: '#fbbf24', minHeight: emb > 0 ? 1 : 0 }} />
-                        <div style={{ height: `${bPct}%`, background: '#cbd5e1', borderRadius: '0 0 2px 2px', minHeight: bkd > 0 ? 1 : 0 }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex justify-between mt-1 text-[9px] text-slate-400"><span>0–7d</span><span>8–14d</span><span>15–21d</span><span>22–28d</span></div>
-            </div>
-          </div>
-        </div>
-
-      </div>
+        <footer className="mt-8 pb-6"><div className="text-center text-xs text-slate-400">GPDash — Practice Dashboard</div></footer>
+      </main>
     </div>
   );
 }
