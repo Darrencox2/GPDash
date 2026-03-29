@@ -89,6 +89,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
   const [demandData, setDemandData] = useState(null);
+  const [showFsChart, setShowFsChart] = useState(false);
 
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
@@ -340,12 +341,12 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
             <div className="text-white/80 uppercase" style={{ fontSize: 'clamp(8px, 1.2vh, 14px)' }}>{MONTH_SHORT[today.getMonth()]}</div>
           </div>
           <div className="flex items-center" style={{ gap: 'clamp(6px, 1vw, 16px)' }}>
-            {onNavigateDay && <button onClick={() => onNavigateDay(-1)} className="rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50" style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px,1.8vh,20px)',lineHeight:1}}>‹</button>}
-            <div>
+            {onNavigateDay && <button onClick={() => onNavigateDay(-1)} className="rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 flex-shrink-0" style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px,1.8vh,20px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>‹</button>}
+            <div style={{ width: 'clamp(160px, 22vw, 300px)' }}>
               <div className="font-bold text-slate-900" style={{ fontSize: 'clamp(16px, 3vh, 32px)' }}>{dayName}</div>
               <div className="text-slate-400" style={{ fontSize: 'clamp(10px, 1.5vh, 18px)' }}>{today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
             </div>
-            {onNavigateDay && <button onClick={() => onNavigateDay(1)} className="rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50" style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px,1.8vh,20px)',lineHeight:1}}>›</button>}
+            {onNavigateDay && <button onClick={() => onNavigateDay(1)} className="rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 flex-shrink-0" style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px,1.8vh,20px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>›</button>}
           </div>
         </div>
         <div className="flex items-center" style={{ gap: 'clamp(10px, 2vw, 32px)' }}>
@@ -361,121 +362,73 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
       {/* Option C layout — summary + demand left, urgent + who's in right */}
       <div className="flex flex-1 min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)', padding: 'clamp(4px, 0.5vh, 10px)' }}>
 
-        {/* LEFT COLUMN: Summary → Demand → Routine */}
+        {/* LEFT COLUMN: Summary → Demand chart → Who's In */}
         <div className="flex-1 flex flex-col min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)' }}>
 
-        {/* Summary card (merged) */}
+        {/* Summary card (merged — bigger) */}
         <div className="rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 border border-slate-800">
-          <div className="flex items-center gap-3" style={{padding:'clamp(8px,1.2vh,16px) clamp(10px,1.2vw,20px)'}}>
-            <div className="flex-1 min-w-0">
-              <div className="text-slate-500 uppercase tracking-wider" style={{fontSize:'clamp(8px,0.9vh,10px)',letterSpacing:'1px'}}>Today&apos;s summary</div>
-              <div className="flex items-center gap-2">
-                <svg style={{width:'clamp(12px,1.5vh,16px)',height:'clamp(12px,1.5vh,16px)',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke={verdictText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={coverage>=greenPct?'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z':coverage>=amberPct?'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}/></svg>
-                <span className="font-extrabold" style={{fontSize:'clamp(16px,2.5vh,24px)',color:verdictText}}>{verdict}</span>
+          <div style={{padding:'clamp(10px,1.5vh,20px) clamp(12px,1.5vw,24px)'}}>
+            <div className="text-slate-500 uppercase tracking-wider" style={{fontSize:'clamp(8px,0.9vh,10px)',letterSpacing:'1px',marginBottom:'clamp(6px,0.8vh,10px)'}}>Today&apos;s summary</div>
+            <div className="flex items-center" style={{gap:'clamp(12px,1.5vw,24px)'}}>
+              <svg viewBox="0 0 90 56" style={{width:'clamp(60px,8vw,90px)',height:'clamp(38px,5vh,56px)',flexShrink:0}}>
+                <path d="M 8 52 A 38 38 0 0 1 82 52" fill="none" stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
+                <path d="M 8 52 A 38 38 0 0 1 82 52" fill="none" stroke={arcColour} strokeWidth="7" strokeLinecap="round" strokeDasharray={`${arcPct * 116} 116`}/>
+                <text x="45" y="46" textAnchor="middle" fill={verdictText} style={{fontSize:'clamp(16px,2vh,22px)',fontWeight:800}}>{coverage}%</text>
+              </svg>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <svg style={{width:'clamp(12px,1.5vh,16px)',height:'clamp(12px,1.5vh,16px)',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke={verdictText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={coverage>=greenPct?'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z':coverage>=amberPct?'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}/></svg>
+                  <span className="font-extrabold" style={{fontSize:'clamp(18px,3vh,28px)',color:verdictText}}>{verdict}</span>
+                </div>
+                <div className="text-slate-400" style={{fontSize:'clamp(9px,1.1vh,12px)'}}>{shortfall > 0 ? `${shortfall} slots short` : `${urgentTotal - needed} above need`}</div>
               </div>
-              <div className="text-slate-400" style={{fontSize:'clamp(9px,1.1vh,12px)'}}>{shortfall > 0 ? `${shortfall} slots short` : `${urgentTotal - needed} above need`}</div>
-            </div>
-            <svg viewBox="0 0 70 44" style={{width:'clamp(50px,7vw,70px)',height:'clamp(32px,4.5vh,44px)',flexShrink:0}}>
-              <path d="M 6 40 A 30 30 0 0 1 64 40" fill="none" stroke="#1e293b" strokeWidth="6" strokeLinecap="round"/>
-              <path d="M 6 40 A 30 30 0 0 1 64 40" fill="none" stroke={arcColour} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${arcPct * 91} 91`}/>
-              <text x="35" y="36" textAnchor="middle" fill={verdictText} style={{fontSize:14,fontWeight:800}}>{coverage}%</text>
-            </svg>
-            <div className="flex gap-3" style={{flexShrink:0}}>
-              <div className="text-center"><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,9px)'}}>Prediction</div><div className="font-extrabold" style={{color:dc.text,fontSize:'clamp(14px,2vh,20px)'}}>{predicted}</div></div>
-              <div className="text-center"><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,9px)'}}>Need</div><div className="font-extrabold" style={{color:'#a78bfa',fontSize:'clamp(14px,2vh,20px)'}}>{needed}</div></div>
-              <div className="text-center"><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,9px)'}}>Have</div><div className="font-extrabold" style={{color:'#34d399',fontSize:'clamp(14px,2vh,20px)'}}>{urgentTotal}</div></div>
+              <div className="flex items-center" style={{gap:'clamp(8px,1vw,16px)',flexShrink:0}}>
+                <div className="text-center"><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,9px)'}}>Prediction</div><div className="font-extrabold" style={{color:dc.text,fontSize:'clamp(16px,2.5vh,24px)'}}>{predicted}</div></div>
+                <div className="flex items-center" style={{gap:'clamp(4px,0.5vw,8px)'}}>
+                  <div><span className="font-extrabold" style={{color:'#a78bfa',fontSize:'clamp(14px,2vh,20px)'}}>{needed}</span><span style={{fontSize:'clamp(8px,0.9vh,10px)',color:'#64748b'}}> need</span></div>
+                  <div style={{width:'clamp(30px,4vw,50px)',height:'clamp(6px,0.8vh,10px)',display:'flex',gap:1,borderRadius:3,overflow:'hidden'}}>
+                    <div style={{flex:Math.max(urgentTotal,1),background:'#34d399'}}/>
+                    {shortfall>0&&<div style={{flex:shortfall,background:arcColour}}/>}
+                  </div>
+                  <div><span className="font-extrabold" style={{color:'#34d399',fontSize:'clamp(14px,2vh,20px)'}}>{urgentTotal}</span><span style={{fontSize:'clamp(8px,0.9vh,10px)',color:'#64748b'}}> have</span></div>
+                </div>
+              </div>
             </div>
           </div>
-          {topFactors.length > 0 && <div className="flex gap-1 flex-wrap border-t border-slate-800" style={{padding:'clamp(4px,0.6vh,8px) clamp(10px,1.2vw,20px)'}}>
+          {topFactors.length > 0 && <div className="flex gap-1 flex-wrap border-t border-slate-800" style={{padding:'clamp(4px,0.6vh,8px) clamp(12px,1.5vw,24px)'}}>
             {topFactors.map((f,i) => <span key={i} style={{fontSize:'clamp(8px,0.9vh,10px)',fontWeight:600,padding:'2px 6px',borderRadius:3,background:'#1e293b',color:f.effect>=0?'#60a5fa':'#34d399'}}>{f.effect>=0?'↑':'↓'} {f.label} {f.effect>0?'+':''}{Math.round(f.effect)}</span>)}
           </div>}
         </div>
 
-        {/* Demand chart — dark card */}
-        <div className="rounded-xl bg-slate-900 overflow-hidden flex flex-col border border-slate-800 flex-1">
-          <div className="flex items-center justify-between border-b border-slate-800 flex-shrink-0" style={{padding:'clamp(4px,0.7vh,10px) clamp(8px,1vw,16px)'}}>
+        {/* Demand chart — collapsible dark card */}
+        <div className="rounded-xl bg-slate-900 overflow-hidden border border-slate-800 flex-shrink-0">
+          <button onClick={() => setShowFsChart(p => !p)} className="w-full flex items-center justify-between" style={{padding:'clamp(4px,0.7vh,10px) clamp(8px,1vw,16px)',background:'none',border:'none',cursor:'pointer'}}>
             <div className="flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span className="font-semibold text-slate-200" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>14-day demand forecast</span></div>
-            <div className="flex items-center gap-3">
-              <div className="flex gap-2" style={{fontSize:'clamp(7px,0.9vh,10px)'}}>
-                <span className="flex items-center gap-1 text-slate-500"><span style={{width:10,height:2,background:'#94a3b8',display:'inline-block'}}/>Past</span>
-                <span className="flex items-center gap-1 text-slate-500"><span style={{width:10,height:2,background:'#38bdf8',display:'inline-block'}}/>Forecast</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 flex flex-col min-h-0" style={{padding:'clamp(4px,0.5vh,8px)'}}>
-            <div className="flex-1 px-2 pt-1 relative" style={{minHeight:'clamp(60px,10vh,140px)'}}><canvas ref={chartRef}/></div>
-          </div>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" style={{transform:showFsChart?'rotate(180deg)':'none',transition:'transform 0.2s'}}><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          {showFsChart && <div className="flex-1 flex flex-col min-h-0" style={{padding:'clamp(4px,0.5vh,8px)'}}>
+            <div className="flex-1 px-2 pt-1 relative" style={{minHeight:'clamp(60px,10vh,140px)',height:'clamp(80px,14vh,180px)'}}><canvas ref={chartRef}/></div>
+          </div>}
         </div>
 
-        {/* Routine capacity — moved to left column */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 flex items-center justify-between flex-shrink-0" style={{padding:'clamp(4px,0.7vh,10px) clamp(8px,1vw,16px)'}}>
-            <span className="font-semibold text-white" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>Routine capacity</span>
-            <span className="text-white/70" style={{fontSize:'clamp(8px,1vh,12px)'}}>30-day overview</span>
+        {/* Who's In — left column */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col flex-1">
+          <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between flex-shrink-0" style={{padding:'clamp(4px,0.7vh,10px) clamp(8px,1vw,16px)'}}>
+            <span className="font-semibold text-white" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>Who&apos;s in today</span>
+            <span className="text-white/60" style={{fontSize:'clamp(8px,1vh,12px)'}}>{categories.inPractice.length} in · {categories.leaveAbsent.length} absent</span>
           </div>
-          <div className="flex-1 flex flex-col overflow-hidden" style={{padding:'clamp(4px,0.5vh,12px)',gap:'clamp(2px,0.4vh,10px)'}}>
-            <div className="flex justify-center flex-shrink-0" style={{gap:'clamp(4px,1vw,16px)'}}>{routineGauges.map((g,i) => <GaugeSVG key={i} pct={g.pct} colour={g.colour} label={g.label} delay={i}/>)}</div>
-            {cardData.length>0 && <div className="flex flex-shrink-0" style={{gap:'clamp(3px,0.5vw,12px)'}}>{cardData.map((c,i) => (
-              <div key={c.id} className="flex-1 bg-slate-50 rounded-lg border border-slate-200 text-center fs-fadein" style={{animationDelay:`${0.6+i*0.1}s`,padding:'clamp(3px,0.5vh,12px)'}}>
-                <div className="font-semibold text-slate-600" style={{fontSize:'clamp(10px,1.2vh,14px)'}}>{c.title}</div>
-                <div className="flex justify-center" style={{gap:'clamp(2px,0.3vw,8px)',marginTop:'clamp(2px,0.3vh,8px)'}}>
-                  <div className="text-center"><div className="bg-emerald-100 text-emerald-800 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px,1.5vh,18px)'}}>{c.avail}</div><div className="text-slate-400" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>available</div></div>
-                  <div className="text-center"><div className="bg-amber-100 text-amber-800 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px,1.5vh,18px)'}}>{c.emb}</div><div className="text-slate-400" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>embargoed</div></div>
-                  <div className="text-center"><div className="bg-slate-100 text-slate-600 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px,1.5vh,18px)'}}>{c.booked}</div><div className="text-slate-400" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>booked</div></div>
-                </div>
-                <div className="text-slate-400" style={{fontSize:'clamp(7px,0.9vh,10px)',marginTop:'clamp(1px,0.2vh,4px)'}}>Next 7 days</div>
-              </div>
-            ))}</div>}
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="flex justify-between" style={{marginBottom:'clamp(1px,0.3vh,4px)'}}><span className="text-slate-400" style={{fontSize:'clamp(8px,0.9vh,10px)'}}>All routine · 30 days</span><div className="flex text-slate-400" style={{gap:'clamp(3px,0.5vw,8px)',fontSize:'clamp(7px,0.9vh,10px)'}}><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-400"/>Avail</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-amber-300"/>Emb</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-slate-300"/>Bkd</span></div></div>
-              <div className="flex-1 flex items-end gap-px relative">
-                {(() => {
-                  const thresholds = [3,7,14,21];
-                  let calDay = 0;
-                  const calDays = routineDays.map(() => calDay++);
-                  return thresholds.map(t => {
-                    const idx = calDays.findIndex(cd => cd >= t);
-                    if (idx < 0) return null;
-                    const pctPos = ((idx + 1) / routineDays.length) * 100;
-                    return <div key={`t${t}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{left:`${pctPos}%`}}>
-                      <div className="absolute top-0 bottom-0 w-px" style={{background:'#94a3b8',opacity:0.4}}/>
-                      <div className="absolute left-1/2 -translate-x-1/2 px-1 rounded bg-white border border-slate-200 text-slate-400 font-semibold whitespace-nowrap" style={{top:'-2px',fontSize:'clamp(6px,0.8vh,9px)'}}>{t}d</div>
-                    </div>;
-                  });
-                })()}
-                {routineDays.map((d,i) => {
-                  if (d.isWeekend) return <div key={i} style={{flex:'0.3'}}/>;
-                  const avail=d.available||0,emb=d.embargoed||0,bkd=d.booked||0,total=avail+emb+bkd;
-                  if (total===0) return <div key={i} style={{flex:1}} className={d.isMonday&&i>0?'ml-0.5 pl-0.5 border-l border-slate-100':''}/>;
-                  const pct=Math.max(4,(total/routineBarMax)*100);
-                  const delay=0.3+i*0.03;
-                  return (
-                    <div key={i} style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',height:'100%'}} className={d.isMonday&&i>0?'ml-0.5 pl-0.5 border-l border-slate-100':''}>
-                      <div style={{height:`${pct}%`,display:'flex',flexDirection:'column',justifyContent:'flex-end',transformOrigin:'bottom',transform:'scaleY(0)',animation:`fsGrowbar 0.8s ease ${delay}s forwards, fsBarBreathe 5s ease-in-out ${delay+3}s infinite`}}>
-                        {avail>0 && <div style={{height:`${(avail/total)*100}%`,background:'#10b981',borderRadius:'2px 2px 0 0',minHeight:1}}/>}
-                        {emb>0 && <div style={{height:`${(emb/total)*100}%`,background:'#fbbf24',minHeight:1}}/>}
-                        {bkd>0 && <div style={{height:`${(bkd/total)*100}%`,background:'#cbd5e1',borderRadius:'0 0 2px 2px',minHeight:1}}/>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex gap-px" style={{marginTop:'clamp(1px,0.2vh,3px)'}}>
-                {routineDays.map((d,i) => {
-                  if (d.isWeekend) return <div key={i} style={{flex:'0.3'}}/>;
-                  return <div key={i} style={{flex:1,textAlign:'center'}} className={d.isMonday&&i>0?'ml-0.5 pl-0.5':''}>
-                    <div style={{fontSize:'clamp(6px,0.8vh,9px)',color:i===0?'#1e293b':'#94a3b8',fontWeight:i===0?700:400,lineHeight:1.2}}>{d.dayName?.charAt(0)}</div>
-                    <div style={{fontSize:'clamp(5px,0.7vh,8px)',color:i===0?'#475569':'#cbd5e1',fontWeight:i===0?600:400,lineHeight:1.2}}>{d.dayNum}</div>
-                  </div>;
-                })}
-              </div>
+          <div className="flex-1 overflow-auto" style={{padding:'clamp(4px,0.7vh,16px)'}}>
+            <div className="grid grid-cols-3 h-full" style={{gap:'clamp(4px,0.6vw,12px)'}}>
+              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-blue-500"/> Clinicians <span className="text-slate-300">{gpTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{gpTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.1+i*0.05} location={personLocationMap[e.person.id]}/>)}</div></div>
+              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-emerald-500"/> Nursing <span className="text-slate-300">{nursingTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{nursingTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.15+i*0.05} location={personLocationMap[e.person.id]}/>)}</div>{othersTeam.length>0 && <><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginTop:'clamp(4px,0.6vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-purple-500"/> Others <span className="text-slate-300">{othersTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{othersTeam.map((e,i)=><PersonCard key={e.person.id} person={e.person} delay={0.3+i*0.05} location={personLocationMap[e.person.id]}/>)}</div></>}</div>
+              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-red-500"/> Absent <span className="text-slate-300">{categories.leaveAbsent.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{categories.leaveAbsent.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.2+i*0.05} reason={e.reason}/>)}</div>{categories.leaveAbsent.length===0 && <div className="text-slate-300" style={{fontSize:'clamp(10px,1.2vh,14px)',padding:'0 8px'}}>None</div>}{categories.dayOff.length>0 && <div className="text-slate-300" style={{fontSize:'clamp(8px,1vh,12px)',marginTop:'clamp(4px,0.8vh,16px)'}}>+ {categories.dayOff.length} day off</div>}</div>
             </div>
           </div>
         </div>
 
         </div>{/* end left column */}
 
-        {/* RIGHT COLUMN: Urgent → Who's in */}
+        {/* RIGHT COLUMN: Urgent → Routine */}
         <div className="flex-1 flex flex-col min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)' }}>
 
         {/* TR: Urgent — AM/PM side by side with proportional bars */}
@@ -561,17 +514,44 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           </div>
         </div>
 
-        {/* BL: Who's in */}
+        {/* Routine capacity — right column */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between flex-shrink-0" style={{padding:'clamp(4px,0.7vh,10px) clamp(8px,1vw,16px)'}}>
-            <span className="font-semibold text-white" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>Who&apos;s in today</span>
-            <span className="text-white/60" style={{fontSize:'clamp(8px,1vh,12px)'}}>{categories.inPractice.length} in · {categories.leaveAbsent.length} absent</span>
+          <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 flex items-center justify-between flex-shrink-0" style={{padding:'clamp(4px,0.7vh,10px) clamp(8px,1vw,16px)'}}>
+            <span className="font-semibold text-white" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>Routine capacity</span>
+            <span className="text-white/70" style={{fontSize:'clamp(8px,1vh,12px)'}}>30-day overview</span>
           </div>
-          <div className="flex-1 overflow-auto" style={{padding:'clamp(4px,0.7vh,16px)'}}>
-            <div className="grid grid-cols-3 h-full" style={{gap:'clamp(4px,0.6vw,12px)'}}>
-              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-blue-500"/> Clinicians <span className="text-slate-300">{gpTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{gpTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.1+i*0.05} location={personLocationMap[e.person.id]}/>)}</div></div>
-              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-emerald-500"/> Nursing <span className="text-slate-300">{nursingTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{nursingTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.15+i*0.05} location={personLocationMap[e.person.id]}/>)}</div>{othersTeam.length>0 && <><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginTop:'clamp(4px,0.6vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-purple-500"/> Others <span className="text-slate-300">{othersTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{othersTeam.map((e,i)=><PersonCard key={e.person.id} person={e.person} delay={0.3+i*0.05} location={personLocationMap[e.person.id]}/>)}</div></>}</div>
-              <div className="overflow-hidden"><div className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px,1vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-red-500"/> Absent <span className="text-slate-300">{categories.leaveAbsent.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px,0.4vh,6px)'}}>{categories.leaveAbsent.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.2+i*0.05} reason={e.reason}/>)}</div>{categories.leaveAbsent.length===0 && <div className="text-slate-300" style={{fontSize:'clamp(10px,1.2vh,14px)',padding:'0 8px'}}>None</div>}{categories.dayOff.length>0 && <div className="text-slate-300" style={{fontSize:'clamp(8px,1vh,12px)',marginTop:'clamp(4px,0.8vh,16px)'}}>+ {categories.dayOff.length} day off</div>}</div>
+          <div className="flex-1 flex flex-col overflow-hidden" style={{padding:'clamp(4px,0.5vh,12px)',gap:'clamp(2px,0.4vh,10px)'}}>
+            <div className="flex justify-center flex-shrink-0" style={{gap:'clamp(4px,1vw,16px)'}}>{routineGauges.map((g,i) => <GaugeSVG key={i} pct={g.pct} colour={g.colour} label={g.label} delay={i}/>)}</div>
+            {cardData.length>0 && <div className="flex flex-shrink-0" style={{gap:'clamp(3px,0.5vw,12px)'}}>{cardData.map((c,i) => (
+              <div key={c.id} className="flex-1 bg-slate-50 rounded-lg border border-slate-200 text-center fs-fadein" style={{animationDelay:`${0.6+i*0.1}s`,padding:'clamp(3px,0.5vh,12px)'}}>
+                <div className="font-semibold text-slate-600" style={{fontSize:'clamp(10px,1.2vh,14px)'}}>{c.title}</div>
+                <div className="flex justify-center" style={{gap:'clamp(2px,0.3vw,8px)',marginTop:'clamp(2px,0.3vh,8px)'}}>
+                  <div className="text-center"><div className="bg-emerald-100 text-emerald-800 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px,1.5vh,18px)'}}>{c.avail}</div><div className="text-slate-400" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>available</div></div>
+                  <div className="text-center"><div className="bg-amber-100 text-amber-800 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px,1.5vh,18px)'}}>{c.emb}</div><div className="text-slate-400" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>embargoed</div></div>
+                  <div className="text-center"><div className="bg-slate-100 text-slate-600 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px,1.5vh,18px)'}}>{c.booked}</div><div className="text-slate-400" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>booked</div></div>
+                </div>
+              </div>
+            ))}</div>}
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex justify-between" style={{marginBottom:'clamp(1px,0.3vh,4px)'}}><span className="text-slate-400" style={{fontSize:'clamp(8px,0.9vh,10px)'}}>All routine · 30 days</span><div className="flex text-slate-400" style={{gap:'clamp(3px,0.5vw,8px)',fontSize:'clamp(7px,0.9vh,10px)'}}><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-400"/>Avail</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-amber-300"/>Emb</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-slate-300"/>Bkd</span></div></div>
+              <div className="flex-1 flex items-end gap-px relative">
+                {(() => { const thresholds=[3,7,14,21]; let calDay=0; const calDays=routineDays.map(()=>calDay++); return thresholds.map(t => { const idx=calDays.findIndex(cd=>cd>=t); if(idx<0) return null; const pctPos=((idx+1)/routineDays.length)*100; return <div key={`t${t}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{left:`${pctPos}%`}}><div className="absolute top-0 bottom-0 w-px" style={{background:'#94a3b8',opacity:0.4}}/><div className="absolute left-1/2 -translate-x-1/2 px-1 rounded bg-white border border-slate-200 text-slate-400 font-semibold whitespace-nowrap" style={{top:'-2px',fontSize:'clamp(6px,0.8vh,9px)'}}>{t}d</div></div>; }); })()}
+                {routineDays.map((d,i) => {
+                  if (d.isWeekend) return <div key={i} style={{flex:'0.3'}}/>;
+                  const avail=d.available||0,emb=d.embargoed||0,bkd=d.booked||0,total=avail+emb+bkd;
+                  if (total===0) return <div key={i} style={{flex:1}} className={d.isMonday&&i>0?'ml-0.5 pl-0.5 border-l border-slate-100':''}/>;
+                  const pct=Math.max(4,(total/routineBarMax)*100); const delay=0.3+i*0.03;
+                  return (<div key={i} style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',height:'100%'}} className={d.isMonday&&i>0?'ml-0.5 pl-0.5 border-l border-slate-100':''}>
+                    <div style={{height:`${pct}%`,display:'flex',flexDirection:'column',justifyContent:'flex-end',transformOrigin:'bottom',transform:'scaleY(0)',animation:`fsGrowbar 0.8s ease ${delay}s forwards, fsBarBreathe 5s ease-in-out ${delay+3}s infinite`}}>
+                      {avail>0 && <div style={{height:`${(avail/total)*100}%`,background:'#10b981',borderRadius:'2px 2px 0 0',minHeight:1}}/>}
+                      {emb>0 && <div style={{height:`${(emb/total)*100}%`,background:'#fbbf24',minHeight:1}}/>}
+                      {bkd>0 && <div style={{height:`${(bkd/total)*100}%`,background:'#cbd5e1',borderRadius:'0 0 2px 2px',minHeight:1}}/>}
+                    </div></div>);
+                })}
+              </div>
+              <div className="flex gap-px" style={{marginTop:'clamp(1px,0.2vh,3px)'}}>
+                {routineDays.map((d,i) => { if(d.isWeekend) return <div key={i} style={{flex:'0.3'}}/>; return <div key={i} style={{flex:1,textAlign:'center'}} className={d.isMonday&&i>0?'ml-0.5 pl-0.5':''}><div style={{fontSize:'clamp(6px,0.8vh,9px)',color:i===0?'#1e293b':'#94a3b8',fontWeight:i===0?700:400,lineHeight:1.2}}>{d.dayName?.charAt(0)}</div><div style={{fontSize:'clamp(5px,0.7vh,8px)',color:i===0?'#475569':'#cbd5e1',fontWeight:i===0?600:400,lineHeight:1.2}}>{d.dayNum}</div></div>; })}
+              </div>
             </div>
           </div>
         </div>

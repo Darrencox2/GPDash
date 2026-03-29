@@ -163,7 +163,10 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const dds = huddleData?.dates?.includes(vds) ? vds : null;
   const resolveDuty = (sess) => { if(!hasDuty||!dds) return null; const doc=getDutyDoctor(huddleData,dds,sess,dutySlots); if(!doc) return null; const m=teamClinicians.find(tc=>matchesStaffMember(doc.name,tc)); return {name:m?.name||doc.name,title:m?.title}; };
   const dutyAm = resolveDuty('am'), dutyPm = resolveDuty('pm');
-  const amTarget = hs?.targets?.am || 0, pmTarget = hs?.targets?.pm || 0;
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const todayDayName = dayNames[targetDate.getDay()];
+  const amTarget = hs?.expectedCapacity?.[todayDayName]?.am || 0;
+  const pmTarget = hs?.expectedCapacity?.[todayDayName]?.pm || 0;
   const amDutyCol = amTarget > 0 ? (getBand(amSlots, amTarget)?.colour || '#fbbf24') : '#fbbf24';
   const pmDutyCol = pmTarget > 0 ? (getBand(pmSlots, pmTarget)?.colour || '#34d399') : '#34d399';
 

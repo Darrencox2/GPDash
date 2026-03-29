@@ -1027,10 +1027,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         return (
                           <div key={i} className="flex items-center gap-2">
                             <div className="text-xs text-slate-600 font-medium truncate" style={{width:160,textAlign:'right',flexShrink:0}} title={s.name}>{s.name}</div>
-                            <div className="flex-1 h-4 rounded overflow-hidden flex" style={{background:'#f1f5f9'}}>
+                            <div className="flex-1 rounded overflow-hidden flex" style={{background:'#f1f5f9',height:16}}>
                               {locEntries.map((l,j) => {
                                 const lc = LOCATION_COLOURS[l.loc];
-                                return <div key={j} className="h-full" style={{width:`${(l.count/locTotal)*100}%`,background:lc?.bg||'#94a3b8'}} title={`${l.loc}: ${l.count}`}/>;
+                                return <div key={j} style={{width:`${(l.count/locTotal)*100}%`,height:'100%',background:lc?.bg||'#94a3b8',minWidth:2}} title={`${l.loc}: ${l.count}`}/>;
                               })}
                             </div>
                             <span className="text-xs font-bold text-slate-700" style={{minWidth:24,textAlign:'right'}}>{allAvail}</span>
