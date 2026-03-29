@@ -84,7 +84,7 @@ const GaugeSVG = memo(function GaugeSVG({ pct, colour, label, delay }) {
 });
 
 // ── Main component ──────────────────────────────────────────────
-export default function HuddleFullscreen({ data, huddleData, viewingDate: viewingDateProp, onExit }) {
+export default function HuddleFullscreen({ data, huddleData, viewingDate: viewingDateProp, onExit, onNavigateDay }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
@@ -323,9 +323,13 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
             <div className="font-extrabold text-white leading-none" style={{ fontSize: 'clamp(20px, 5vh, 48px)' }}>{today.getDate()}</div>
             <div className="text-white/80 uppercase" style={{ fontSize: 'clamp(8px, 1.2vh, 14px)' }}>{MONTH_SHORT[today.getMonth()]}</div>
           </div>
-          <div>
-            <div className="font-bold text-slate-900" style={{ fontSize: 'clamp(16px, 3vh, 32px)' }}>{dayName}</div>
-            <div className="text-slate-400" style={{ fontSize: 'clamp(10px, 1.5vh, 18px)' }}>{today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+          <div className="flex items-center" style={{ gap: 'clamp(6px, 1vw, 16px)' }}>
+            {onNavigateDay && <button onClick={() => onNavigateDay(-1)} className="rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50" style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px,1.8vh,20px)',lineHeight:1}}>‹</button>}
+            <div>
+              <div className="font-bold text-slate-900" style={{ fontSize: 'clamp(16px, 3vh, 32px)' }}>{dayName}</div>
+              <div className="text-slate-400" style={{ fontSize: 'clamp(10px, 1.5vh, 18px)' }}>{today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+            </div>
+            {onNavigateDay && <button onClick={() => onNavigateDay(1)} className="rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50" style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px,1.8vh,20px)',lineHeight:1}}>›</button>}
           </div>
         </div>
         <div className="flex items-center" style={{ gap: 'clamp(10px, 2vw, 32px)' }}>
@@ -376,8 +380,8 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
             <span className="font-semibold text-white" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>Urgent on the day</span>
           </div>
           <div className="flex flex-1 min-h-0 overflow-hidden">
-            {[{label:'Morning',slots:urgentAm,avail:availAm,emb:embAm,target:expectedAm,band:amBand,data:capacity?.am},
-              {label:'Afternoon',slots:urgentPm,avail:availPm,emb:embPm,target:expectedPm,band:pmBand,data:capacity?.pm}
+            {[{label:'Morning',slots:urgentAm,avail:availAm,emb:embAm,target:expectedAm,band:amBand,data:capacity?.am,session:'am'},
+              {label:'Afternoon',slots:urgentPm,avail:availPm,emb:embPm,target:expectedPm,band:pmBand,data:capacity?.pm,session:'pm'}
             ].map((s,si) => {
               const isShort = s.band.colour === '#ef4444' || s.band.colour === '#f59e0b';
               const scale = Math.max(s.slots, s.target, 1);
@@ -387,16 +391,22 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
                 return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', total: c.available + (c.embargoed || 0) };
               }).filter(c => c.total > 0).sort((a,b) => ({'Winscombe':0,'Banwell':1,'Locking':2}[a.location]??9) - ({'Winscombe':0,'Banwell':1,'Locking':2}[b.location]??9) || b.total - a.total);
+              const dutySlots = hs?.dutyDoctorSlot;
+              const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
+              const dutyDoc = hasDuty ? getDutyDoctor(huddleData, todayDateStr, s.session, dutySlots) : null;
+              const dutyDisplay = dutyDoc ? (() => { const m = allClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc)); return { name: m?.name || dutyDoc.name, title: m?.title, location: dutyDoc.location }; })() : null;
               return (
                 <div key={si} className="flex-1 flex flex-col overflow-auto" style={{padding:'clamp(6px,1vh,14px)',background:s.band.tint||'transparent',borderLeft:si===1&&isShort?`3px solid ${s.band.colour}`:si===1?'0.5px solid #e2e8f0':undefined}}>
-                  <div className="uppercase tracking-wider font-semibold flex-shrink-0" style={{color:s.band.colour,fontSize:'clamp(9px,1.1vh,12px)',marginBottom:'clamp(2px,0.5vh,6px)'}}>{s.label}</div>
+                  <div className="flex items-center justify-between flex-shrink-0" style={{marginBottom:'clamp(2px,0.5vh,6px)'}}>
+                    <span className="uppercase tracking-wider font-semibold" style={{color:s.band.colour,fontSize:'clamp(9px,1.1vh,12px)'}}>{s.label}</span>
+                    {s.target>0 && <span className="font-semibold px-1.5 py-0.5 rounded" style={{fontSize:'clamp(8px,1vh,11px)',background:s.band.colour,color:'white'}}>target {s.target}</span>}
+                  </div>
                   <div className="flex items-center flex-shrink-0" style={{gap:'clamp(4px,0.8vw,10px)',marginBottom:'clamp(4px,0.8vh,12px)'}}>
                     <span className="font-extrabold leading-none" style={{color:s.band.colour,fontSize:'clamp(24px,4vh,42px)'}}>{s.slots}</span>
                     <div className="flex-1">
                       <div className="rounded-md relative" style={{height:'clamp(10px,1.5vh,18px)',background:s.band.border,marginRight:4}}>
                         <div className="absolute left-0 top-0 bottom-0 rounded-md" style={{width:`${Math.min(fillPct,100)}%`,background:s.band.colour,borderRadius:fillPct>=100?'6px':'6px 0 0 6px'}}/>
                         {s.target>0 && <div className="absolute" style={{left:`${Math.min(markerPct,100)}%`,top:-4,bottom:-4,width:3,background:s.band.textCol,borderRadius:2,marginLeft:'-1.5px',zIndex:1}}/>}
-                        {s.target>0 && <div className="absolute whitespace-nowrap z-[2]" style={{top:'-16px',right:0,textAlign:'right'}}><span className="font-semibold px-1.5 py-0.5 rounded" style={{fontSize:'clamp(7px,0.9vh,9px)',background:s.band.colour,color:'white'}}>target {s.target}</span></div>}
                       </div>
                       <div className="flex justify-between" style={{marginTop:'clamp(10px,1.5vh,16px)'}}>
                         <span className="font-semibold" style={{color:s.band.colour,fontSize:'clamp(8px,1vh,10px)'}}>{s.avail} avail{s.emb>0?` · ${s.emb} emb`:''}</span>
@@ -404,6 +414,16 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                       </div>
                     </div>
                   </div>
+                  {dutyDisplay && (
+                    <div className="flex items-center rounded-md flex-shrink-0" style={{gap:'clamp(4px,0.5vw,8px)',padding:'clamp(3px,0.5vh,6px) clamp(6px,0.8vw,10px)',marginBottom:'clamp(4px,0.6vh,8px)',background:'#dc2626'}}>
+                      <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)'}} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold uppercase tracking-wide" style={{fontSize:'clamp(6px,0.7vh,8px)',color:'rgba(255,255,255,0.7)'}}>Duty doctor</div>
+                        <div className="font-bold text-white truncate" style={{fontSize:'clamp(9px,1.2vh,14px)'}}>{dutyDisplay.title ? `${dutyDisplay.title} ` : ''}{dutyDisplay.name}</div>
+                      </div>
+                      {dutyDisplay.location && (() => { const lc = LOCATION_COLOURS[dutyDisplay.location]; return lc ? <span className="rounded font-semibold flex-shrink-0" style={{padding:'1px clamp(3px,0.4vw,6px)',fontSize:'clamp(7px,0.8vh,9px)',background:lc.bg,color:lc.text}}>{dutyDisplay.location}</span> : null; })()}
+                    </div>
+                  )}
                   <div className="flex flex-col flex-1 overflow-auto" style={{gap:'clamp(1px,0.3vh,4px)'}}>
                     {clinicians.map((c,i) => {
                       const locCol = c.location ? LOCATION_COLOURS[c.location] : null;

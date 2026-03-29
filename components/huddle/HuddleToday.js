@@ -699,7 +699,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
   return (
     <div className="space-y-6 animate-in" onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
-      {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} viewingDate={viewingDate} onExit={() => setIsFullscreen(false)} />}
+      {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} viewingDate={viewingDate} onExit={() => setIsFullscreen(false)} onNavigateDay={navigateDay} />}
       {isDragging && (
         <div className="fixed inset-0 z-40 bg-teal-500/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-center border-2 border-dashed border-teal-400">
@@ -905,16 +905,16 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
               return (
                 <div className="flex-1 p-5" style={{ background: band.tint || 'transparent', borderLeft: isShort ? `3px solid ${band.colour}` : undefined }}>
-                  <div className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: band.colour }}>{label}</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-semibold uppercase tracking-wider" style={{ color: band.colour }}>{label}</div>
+                    {target > 0 && <span className="text-xs font-semibold px-2.5 py-1 rounded" style={{ background: band.colour, color: 'white' }}>target {target}</span>}
+                  </div>
                   <div className="flex items-center gap-4 mb-3">
                     <span className="text-5xl font-extrabold leading-none" style={{ color: band.colour }}>{slots}</span>
                     <div className="flex-1">
                       <div className="h-5 rounded-lg relative" style={{ background: band.border }}>
                         <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${Math.min(bar.fillPct, 100)}%`, background: band.colour, borderRadius: bar.fillPct >= 100 ? '8px' : '8px 0 0 8px' }} />
                         {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-8px', bottom: '-8px', width: '3px', background: band.textCol, borderRadius: '2px', marginLeft: '-1.5px' }} />}
-                        {target > 0 && <div className="absolute z-[3] whitespace-nowrap" style={{ top: '-22px', right: 0, textAlign: 'right' }}>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded" style={{ background: band.colour, color: 'white' }}>target {target}</span>
-                        </div>}
                       </div>
                       <div className="flex justify-between mt-2">
                         <span className="text-xs font-semibold" style={{ color: band.colour }}>{avail} available{emb > 0 ? ` · ${emb} embargoed` : ''}</span>
@@ -923,12 +923,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                   </div>
                   {dutyDocDisplay && (
-                    <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
-                      <span className="text-xs font-semibold text-amber-800">Duty: {dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</span>
+                    <div className="flex items-center gap-2.5 mb-3 px-3 py-2 rounded-lg" style={{ background: '#dc2626' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.7)' }}>Duty doctor</div>
+                        <div className="text-sm font-bold text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
+                      </div>
                       {dutyDocDisplay.location && (() => {
                         const lc = LOCATION_COLOURS[dutyDocDisplay.location];
-                        return lc ? <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold" style={{ background: lc.bg, color: lc.text }}>{dutyDocDisplay.location}</span> : null;
+                        return lc ? <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold flex-shrink-0" style={{ background: lc.bg, color: lc.text }}>{dutyDocDisplay.location}</span> : null;
                       })()}
                     </div>
                   )}
@@ -980,31 +983,35 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 {/* Slot type breakdown */}
                 {capacity.bySlotType.length > 0 && (
                   <div className="border-t border-slate-200">
-                    <div className="bg-slate-50 px-5 py-2.5 border-b border-slate-100"><div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">By Slot Type</div></div>
-                    <div className="px-5 py-3">
-                      <table className="w-full text-sm">
-                        <thead><tr className="text-xs text-slate-400 uppercase">
-                          <th className="text-left py-1 font-medium">Slot Type</th>
-                          <th className="text-right py-1 font-medium w-20">AM</th>
-                          <th className="text-right py-1 font-medium w-20">PM</th>
-                          <th className="text-right py-1 font-medium w-20">Total</th>
-                        </tr></thead>
-                        <tbody className="divide-y divide-slate-50">
-                          {capacity.bySlotType.map((s, i) => {
-                            const amAvail = (s.am || 0) + (s.amEmb || 0);
-                            const pmAvail = (s.pm || 0) + (s.pmEmb || 0);
-                            const totalAvail = amAvail + pmAvail;
-                            return (
-                              <tr key={i}>
-                                <td className="py-1.5 text-slate-600 text-xs">{s.name}</td>
-                                <td className="py-1.5 text-right"><span className="text-amber-600 font-medium text-xs">{amAvail || '–'}</span></td>
-                                <td className="py-1.5 text-right"><span className="text-blue-600 font-medium text-xs">{pmAvail || '–'}</span></td>
-                                <td className="py-1.5 text-right"><span className="font-semibold text-slate-800 text-xs">{totalAvail}</span></td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                    <div className="bg-slate-50 px-5 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">By Slot Type</div>
+                      <div className="flex items-center gap-3">
+                        {['Winscombe','Banwell','Locking'].map(loc => {
+                          const lc = LOCATION_COLOURS[loc];
+                          return lc ? <div key={loc} className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:lc.bg}}/><span className="text-[10px] text-slate-400">{loc}</span></div> : null;
+                        })}
+                      </div>
+                    </div>
+                    <div className="px-5 py-3 space-y-2">
+                      {capacity.bySlotType.map((s, i) => {
+                        const allAvail = (s.total || 0) + (s.totalEmb || 0);
+                        if (allAvail === 0) return null;
+                        const locs = s.byLocation || {};
+                        const locEntries = ['Winscombe','Banwell','Locking'].map(loc => ({ loc, count: locs[loc] || 0 })).filter(l => l.count > 0);
+                        const locTotal = locEntries.reduce((sum, l) => sum + l.count, 0) || 1;
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            <div className="text-xs text-slate-600 font-medium truncate" style={{width:160,textAlign:'right',flexShrink:0}} title={s.name}>{s.name}</div>
+                            <div className="flex-1 h-4 rounded overflow-hidden flex" style={{background:'#f1f5f9'}}>
+                              {locEntries.map((l,j) => {
+                                const lc = LOCATION_COLOURS[l.loc];
+                                return <div key={j} style={{width:`${(l.count/locTotal)*100}%`,background:lc?.bg||'#94a3b8'}} title={`${l.loc}: ${l.count}`}/>;
+                              })}
+                            </div>
+                            <span className="text-xs font-bold text-slate-700" style={{minWidth:24,textAlign:'right'}}>{allAvail}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
