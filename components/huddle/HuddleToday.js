@@ -960,7 +960,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         </div>
                         {dutyDocDisplay.total > 0 && <span className="text-lg font-extrabold text-white flex-shrink-0">{dutyDocDisplay.total}</span>}
                       </div>
-                      {dutyLocCol && <div className="w-[22px] flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: dutyLocCol.bg, color: dutyLocCol.text }}>{dutyLocLetter}</div>}
+                      {dutyLocLetter && <div className="w-[22px] flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: 'rgba(255,255,255,0.15)', color: '#fecaca' }}>{dutyLocLetter}</div>}
                     </div>
                   )}
                   <div className="flex flex-col gap-1.5">
@@ -1033,7 +1033,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                             <div className="flex-1 h-4 rounded overflow-hidden flex" style={{background:'#f1f5f9'}}>
                               {locEntries.map((l,j) => {
                                 const lc = LOCATION_COLOURS[l.loc];
-                                return <div key={j} style={{width:`${(l.count/locTotal)*100}%`,background:lc?.bg||'#94a3b8'}} title={`${l.loc}: ${l.count}`}/>;
+                                return <div key={j} className="h-full" style={{width:`${(l.count/locTotal)*100}%`,background:lc?.bg||'#94a3b8'}} title={`${l.loc}: ${l.count}`}/>;
                               })}
                             </div>
                             <span className="text-xs font-bold text-slate-700" style={{minWidth:24,textAlign:'right'}}>{allAvail}</span>

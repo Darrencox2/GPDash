@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
-import { getHuddleCapacity, parseHuddleDateStr } from '@/lib/huddle';
+import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor, LOCATION_COLOURS } from '@/lib/huddle';
+import { matchesStaffMember } from '@/lib/data';
 
 const DEFAULTS = { conversionRate: 0.25, greenPct: 100, amberPct: 80 };
 
@@ -94,6 +95,25 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const capDelta = typicalCapacity !== null ? urgentTotal - typicalCapacity : null;
   const shortfall = needed > urgentTotal ? needed - urgentTotal : 0;
 
+  // Duty doctor for AM/PM
+  const dutySlots = hs?.dutyDoctorSlot;
+  const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
+  const viewDateStr = `${String(targetDate.getDate()).padStart(2,'0')}-${targetDate.toLocaleString('en-GB',{month:'short'})}-${targetDate.getFullYear()}`;
+  const displayDateStr = huddleData?.dates?.includes(viewDateStr) ? viewDateStr : null;
+  const teamClinicians = useMemo(() => {
+    if (!data?.clinicians) return [];
+    return Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
+  }, [data?.clinicians]);
+  const resolveDuty = (session) => {
+    if (!hasDuty || !displayDateStr) return null;
+    const doc = getDutyDoctor(huddleData, displayDateStr, session, dutySlots);
+    if (!doc) return null;
+    const matched = teamClinicians.find(tc => matchesStaffMember(doc.name, tc));
+    return { name: matched?.name || doc.name, title: matched?.title, location: doc.location };
+  };
+  const dutyAm = resolveDuty('am');
+  const dutyPm = resolveDuty('pm');
+
   // Verdict colours for dark card
   let verdictText, arcColour;
   if (coverage >= greenPct) {
@@ -108,60 +128,82 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: '#0f172a' }}>
-      <div style={{ padding: '20px 24px' }}>
-        {/* Header: verdict + gauge */}
-        <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-          <div>
-            <div className="font-extrabold" style={{ fontSize: 24, color: verdictText }}>{verdict}</div>
-            <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>
-              {shortfall > 0 ? `${shortfall} urgent slots short of estimated need` : `${urgentTotal - needed} slots above estimated need`}
-            </div>
-          </div>
-          <div className="flex-shrink-0 text-center">
-            <svg viewBox="0 0 80 50" width="80" height="50">
-              <path d="M 6 45 A 34 34 0 0 1 74 45" fill="none" stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
-              <path d="M 6 45 A 34 34 0 0 1 74 45" fill="none" stroke={arcColour} strokeWidth="7" strokeLinecap="round"
-                strokeDasharray={`${arcPct * 107} 107`}/>
-              <text x="40" y="40" textAnchor="middle" fill={verdictText} style={{ fontSize: 16, fontWeight: 800 }}>{coverage}%</text>
-            </svg>
+      {/* Header: summary label + verdict + arc */}
+      <div className="flex items-center gap-4" style={{ padding: '16px 24px', borderBottom: '1px solid #1e293b' }}>
+        <div className="flex-1">
+          <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 2 }}>Today's summary</div>
+          <div className="font-extrabold" style={{ fontSize: 24, color: verdictText }}>{verdict}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+            {shortfall > 0 ? `${shortfall} urgent slots short of estimated need` : `${urgentTotal - needed} slots above estimated need`}
           </div>
         </div>
+        <div className="flex-shrink-0 text-center">
+          <svg viewBox="0 0 90 55" width="90" height="55">
+            <path d="M 8 50 A 38 38 0 0 1 82 50" fill="none" stroke="#1e293b" strokeWidth="7" strokeLinecap="round"/>
+            <path d="M 8 50 A 38 38 0 0 1 82 50" fill="none" stroke={arcColour} strokeWidth="7" strokeLinecap="round"
+              strokeDasharray={`${arcPct * 116} 116`}/>
+            <text x="45" y="44" textAnchor="middle" fill={verdictText} style={{ fontSize: 18, fontWeight: 800 }}>{coverage}%</text>
+          </svg>
+        </div>
+      </div>
 
-        {/* Three metric cards */}
-        <div className="flex gap-2">
-          <div className="flex-1 rounded-lg" style={{ background: '#1e293b', padding: '10px 14px' }}>
-            <div className="flex items-baseline justify-between">
-              <span style={{ fontSize: 11, color: '#64748b' }}>Demand</span>
-              {demandDelta !== null && <span style={{ fontSize: 11, fontWeight: 600, color: demandDelta > 0 ? '#fb7185' : '#34d399' }}>{demandDelta > 0 ? '+' : ''}{demandDelta}</span>}
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginTop: 2 }}>{predicted}</div>
-            <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>requests predicted</div>
+      {/* Two-column demand vs capacity in raised cards */}
+      <div className="flex gap-2.5" style={{ padding: '14px 24px' }}>
+        <div className="flex-1 rounded-lg" style={{ background: '#1e293b', padding: '14px 16px' }}>
+          <div style={{ fontSize: 11, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Demand</div>
+          <div className="flex items-baseline gap-1.5" style={{ marginBottom: 4 }}>
+            <span style={{ fontSize: 30, fontWeight: 800, color: '#38bdf8' }}>{predicted}</span>
+            <span style={{ fontSize: 12, color: '#64748b' }}>requests</span>
           </div>
-          <div className="flex-1 rounded-lg" style={{ background: '#1e293b', padding: '10px 14px' }}>
-            <div className="flex items-baseline justify-between">
-              <span style={{ fontSize: 11, color: '#64748b' }}>Est. needed</span>
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#a78bfa', marginTop: 2 }}>{needed}</div>
-            <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{predicted} × {convRate} appts</div>
+          <div className="flex items-center gap-1" style={{ marginBottom: 8 }}>
+            <span style={{ fontSize: 12, color: '#64748b' }}>× {convRate} →</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: '#a78bfa' }}>{needed}</span>
+            <span style={{ fontSize: 12, color: '#64748b' }}>needed</span>
           </div>
-          <div className="flex-1 rounded-lg" style={{ background: '#1e293b', padding: '10px 14px' }}>
-            <div className="flex items-baseline justify-between">
-              <span style={{ fontSize: 11, color: '#64748b' }}>Capacity</span>
-              {capDelta !== null && <span style={{ fontSize: 11, fontWeight: 600, color: capDelta >= 0 ? '#34d399' : '#fb7185' }}>{capDelta > 0 ? '+' : ''}{capDelta}</span>}
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#34d399', marginTop: 2 }}>{urgentTotal}</div>
-            <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{amSlots} AM · {pmSlots} PM</div>
-          </div>
+          {demandDelta !== null && <span style={{ fontSize: 11, fontWeight: 600, color: demandDelta > 0 ? '#fb7185' : '#34d399', background: demandDelta > 0 ? 'rgba(251,113,133,0.1)' : 'rgba(52,211,153,0.1)', padding: '2px 8px', borderRadius: 4 }}>{demandDelta > 0 ? '+' : ''}{demandDelta} vs typical {dayLabel}</span>}
         </div>
+        <div className="flex-1 rounded-lg" style={{ background: '#1e293b', padding: '14px 16px' }}>
+          <div style={{ fontSize: 11, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Capacity</div>
+          <div className="flex items-baseline gap-1.5" style={{ marginBottom: 4 }}>
+            <span style={{ fontSize: 30, fontWeight: 800, color: '#34d399' }}>{urgentTotal}</span>
+            <span style={{ fontSize: 12, color: '#64748b' }}>urgent slots</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>{amSlots} AM · {pmSlots} PM</div>
+          {capDelta !== null && <span style={{ fontSize: 11, fontWeight: 600, color: capDelta >= 0 ? '#34d399' : '#fb7185', background: capDelta >= 0 ? 'rgba(52,211,153,0.1)' : 'rgba(251,113,133,0.1)', padding: '2px 8px', borderRadius: 4 }}>{capDelta > 0 ? '+' : ''}{capDelta} vs typical {dayLabel}</span>}
+          {capDelta === null && <span style={{ fontSize: 11, color: '#334155', fontStyle: 'italic' }}>typical capacity needs more data</span>}
+        </div>
+      </div>
 
-        {/* Settings link */}
-        <div className="flex justify-end" style={{ marginTop: 10 }}>
-          <button onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-1 transition-colors" style={{ fontSize: 11, color: '#475569' }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06c.5.5 1.21.71 1.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-            Settings
-          </button>
+      {/* Duty doctor row */}
+      {(dutyAm || dutyPm) && (
+        <div className="flex gap-2.5" style={{ padding: '0 24px' }}>
+          {['am', 'pm'].map(sess => {
+            const doc = sess === 'am' ? dutyAm : dutyPm;
+            if (!doc) return <div key={sess} className="flex-1" />;
+            const locLetter = doc.location ? doc.location.charAt(0) : '';
+            return (
+              <div key={sess} className="flex-1 flex items-stretch rounded-lg overflow-hidden" style={{ background: '#dc2626' }}>
+                <div className="flex items-center gap-2 px-3 py-1.5 flex-1 min-w-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                  <div className="flex-1 min-w-0">
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Duty {sess === 'am' ? 'AM' : 'PM'}</div>
+                    <div className="font-bold text-white truncate" style={{ fontSize: 12 }}>{doc.title ? `${doc.title} ` : ''}{doc.name}</div>
+                  </div>
+                </div>
+                {locLetter && <div className="flex items-center justify-center flex-shrink-0" style={{ width: 18, background: 'rgba(255,255,255,0.15)', color: '#fecaca', fontSize: 11, fontWeight: 700 }}>{locLetter}</div>}
+              </div>
+            );
+          })}
         </div>
+      )}
+
+      {/* Settings link */}
+      <div className="flex justify-end" style={{ padding: '0 24px 12px' }}>
+        <button onClick={() => setShowSettings(!showSettings)}
+          className="flex items-center gap-1 transition-colors" style={{ fontSize: 11, color: '#475569' }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06c.5.5 1.21.71 1.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </button>
       </div>
 
       {/* Collapsible settings */}
