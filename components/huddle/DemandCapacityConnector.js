@@ -66,6 +66,12 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
     return count > 0 ? Math.round(total / count) : null;
   }, [huddleData, targetDate, hs, urgentOverrides]);
 
+  // Team clinicians for duty doctor resolution (must be above early return)
+  const teamClinicians = useMemo(() => {
+    if (!data?.clinicians) return [];
+    return Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
+  }, [data?.clinicians]);
+
   if (loading || !prediction) {
     return (
       <div className="card overflow-hidden animate-pulse">
@@ -100,10 +106,6 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
   const viewDateStr = `${String(targetDate.getDate()).padStart(2,'0')}-${targetDate.toLocaleString('en-GB',{month:'short'})}-${targetDate.getFullYear()}`;
   const displayDateStr = huddleData?.dates?.includes(viewDateStr) ? viewDateStr : null;
-  const teamClinicians = useMemo(() => {
-    if (!data?.clinicians) return [];
-    return Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
-  }, [data?.clinicians]);
   const resolveDuty = (session) => {
     if (!hasDuty || !displayDateStr) return null;
     const doc = getDutyDoctor(huddleData, displayDateStr, session, dutySlots);
