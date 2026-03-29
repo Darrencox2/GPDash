@@ -1,487 +1,72 @@
 'use client';
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { STAFF_GROUPS, guessGroupFromRole } from '@/lib/data';
+import { useState } from 'react';
+import { formatDate, groupAllocationsByCovering, getDefaultData } from '@/lib/data';
 
-const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof'];
-const ROLE_OPTIONS = ['GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'ANP', 'Paramedic Practitioner', 'Pharmacist', 'Physiotherapist', 'Practice Nurse', 'Nurse Associate', 'HCA', 'Medical Student', 'Admin'];
-const GROUP_OPTIONS = Object.entries(STAFF_GROUPS).map(([k, v]) => ({ value: k, label: v.label }));
-const GROUP_ORDER = ['gp', 'nursing', 'allied', 'admin'];
-const GROUP_COLOURS = {
-  gp: { bg: 'bg-blue-50', border: 'border-blue-200', badge: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
-  nursing: { bg: 'bg-teal-50', border: 'border-teal-200', badge: 'bg-teal-100 text-teal-700', dot: 'bg-teal-500' },
-  allied: { bg: 'bg-purple-50', border: 'border-purple-200', badge: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
-  admin: { bg: 'bg-slate-50', border: 'border-slate-200', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
-};
+export default function BuddySettings({ data, saveData, password, syncStatus, setSyncStatus, helpers }) {
+  const { ensureArray, getTodayKey, getClinicianById, syncTeamNet } = helpers;
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
-// Debounced text input — saves on blur or after 500ms pause
-function DebouncedInput({ value, onChange, uppercase, ...rest }) {
-  const [local, setLocal] = useState(value);
-  const timerRef = useRef(null);
-  useEffect(() => { setLocal(value); }, [value]);
-  const flush = useCallback((v) => { if (timerRef.current) clearTimeout(timerRef.current); timerRef.current = null; if (v !== value) onChange(v); }, [value, onChange]);
-  const handleChange = (e) => {
-    const v = uppercase ? e.target.value.toUpperCase() : e.target.value;
-    setLocal(v);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => flush(v), 500);
-  };
-  const handleBlur = () => flush(local);
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
-  return <input {...rest} value={local} onChange={handleChange} onBlur={handleBlur} />;
-}
-
-export default function TeamMembers({ data, saveData, toast }) {
-  const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
-  const clinicians = ensureArray(data?.clinicians);
-
-  const [search, setSearch] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [expandedId, setExpandedId] = useState(null);
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [showLeft, setShowLeft] = useState(false);
-  const [newPerson, setNewPerson] = useState({ name: '', role: 'Salaried GP', initials: '', group: 'gp', sessions: 6 });
-  const [mergeId, setMergeId] = useState(null); // unconfirmed person being merged
-  const [mergeTarget, setMergeTarget] = useState(''); // existing person id to merge into
-  const [mergeNameChoice, setMergeNameChoice] = useState('existing'); // which name to display
-
-  const unconfirmedCount = clinicians.filter(c => !c.confirmed).length;
-  const activeStaff = clinicians.filter(c => c.status === 'active' || c.status === 'longTermAbsent');
-  const adminStaff = clinicians.filter(c => c.status === 'administrative');
-  const leftStaff = clinicians.filter(c => c.status === 'left');
-
-  // Group active staff by group, filtered by search
-  const groupedActive = useMemo(() => {
-    const filtered = activeStaff.filter(c => {
-      if (!search) return true;
-      const s = search.toLowerCase();
-      return c.name.toLowerCase().includes(s) || c.role?.toLowerCase().includes(s);
-    });
-    const groups = {};
-    GROUP_ORDER.forEach(g => { groups[g] = []; });
-    filtered.forEach(c => {
-      const g = c.group || 'admin';
-      if (!groups[g]) groups[g] = [];
-      groups[g].push(c);
-    });
-    // Sort each group: unconfirmed first, then LTA, then alphabetical
-    Object.keys(groups).forEach(g => {
-      groups[g].sort((a, b) => {
-        if (!a.confirmed && b.confirmed) return -1;
-        if (a.confirmed && !b.confirmed) return 1;
-        if (a.status === 'longTermAbsent' && b.status !== 'longTermAbsent') return 1;
-        if (a.status !== 'longTermAbsent' && b.status === 'longTermAbsent') return -1;
-        return a.name.localeCompare(b.name);
-      });
-    });
-    return groups;
-  }, [activeStaff, search]);
-
-  const updateField = (id, field, value) => {
-    const updated = clinicians.map(c => {
-      if (c.id !== id) return c;
-      const u = { ...c, [field]: value };
-      if (field === 'status') u.longTermAbsent = value === 'longTermAbsent';
-      if (field === 'longTermAbsent') u.status = value ? 'longTermAbsent' : 'active';
-      if (field === 'role') u.group = guessGroupFromRole(value);
-      // When name changes, auto-add old name as alias so CSV matching keeps working
-      if (field === 'name' && c.name && value !== c.name) {
-        const aliases = [...(c.aliases || [])];
-        if (!aliases.includes(c.name)) aliases.push(c.name);
-        u.aliases = aliases;
-      }
-      return u;
-    });
-    saveData({ ...data, clinicians: updated }, false);
-  };
-
-  // Soft-delete: set status to 'left' instead of removing
-  const removePerson = (id) => {
-    if (!confirm('Mark this person as left? They can be restored later.')) return;
-    updateField(id, 'status', 'left');
-    toast?.('Person marked as left', 'info', 1500);
-  };
-
-  // Hard delete (only from left section)
-  const permanentlyDelete = (id) => {
-    if (!confirm('Permanently delete this person? This cannot be undone.')) return;
-    saveData({ ...data, clinicians: clinicians.filter(c => c.id !== id) });
-    toast?.('Person permanently removed', 'success', 1500);
-  };
-
-  const restorePerson = (id) => {
-    updateField(id, 'status', 'active');
-    toast?.('Person restored to active', 'success', 1500);
-  };
-
-  const confirmPerson = (id) => {
-    updateField(id, 'confirmed', true);
-    toast?.('Person confirmed', 'success', 1500);
-  };
-
-  const addPerson = () => {
-    if (!newPerson.name) return;
-    const newId = Math.max(0, ...clinicians.map(c => c.id)) + 1;
-    const initials = newPerson.initials || newPerson.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
-    const person = {
-      id: newId, name: newPerson.name, initials, role: newPerson.role, group: newPerson.group,
-      sessions: newPerson.sessions || 6, primaryBuddy: null, secondaryBuddy: null,
-      status: 'active', longTermAbsent: false, canProvideCover: true,
-      buddyCover: false, showWhosIn: true, source: 'manual', confirmed: true, aliases: [],
-    };
-    saveData({ ...data, clinicians: [...clinicians, person] });
-    setNewPerson({ name: '', role: 'Salaried GP', initials: '', group: 'gp', sessions: 6 });
-    setShowAddForm(false);
-    toast?.('Person added', 'success', 1500);
-  };
-
-  const addAlias = (id, alias) => {
-    if (!alias) return;
-    const c = clinicians.find(c => c.id === id);
-    if (!c) return;
-    updateField(id, 'aliases', [...(c.aliases || []), alias]);
-  };
-
-  const removeAlias = (id, aliasIdx) => {
-    const c = clinicians.find(c => c.id === id);
-    if (!c) return;
-    updateField(id, 'aliases', (c.aliases || []).filter((_, i) => i !== aliasIdx));
-  };
-
-  const mergePerson = (unconfirmedId, targetId, nameChoice) => {
-    const unconfirmed = clinicians.find(c => c.id === unconfirmedId);
-    const target = clinicians.find(c => c.id === targetId);
-    if (!unconfirmed || !target) return;
-
-    const keepName = nameChoice === 'new' ? unconfirmed.name : target.name;
-    const aliasName = nameChoice === 'new' ? target.name : unconfirmed.name;
-    const keepInitials = nameChoice === 'new'
-      ? (unconfirmed.initials || unconfirmed.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3))
-      : target.initials;
-
-    // Build merged aliases: combine both, add the aliasName, deduplicate
-    const allAliases = [...new Set([...(target.aliases || []), ...(unconfirmed.aliases || []), aliasName].filter(a => a && a !== keepName))];
-
-    const updated = clinicians
-      .filter(c => c.id !== unconfirmedId) // remove the unconfirmed duplicate
-      .map(c => {
-        if (c.id !== targetId) return c;
-        return { ...c, name: keepName, initials: keepInitials, aliases: allAliases };
-      });
-
-    saveData({ ...data, clinicians: updated });
-    setMergeId(null);
-    setMergeTarget('');
-    setMergeNameChoice('existing');
-    toast?.(`Merged "${unconfirmed.name}" into "${target.name}"`, 'success', 2000);
-  };
-
-  const buddyCoverPeople = clinicians.filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
-
-  const removeAllUnconfirmed = () => {
-    const unconfirmed = clinicians.filter(c => !c.confirmed);
-    const count = unconfirmed.length;
-    if (!confirm(`Mark all ${count} unconfirmed staff as left?`)) return;
-    const updated = clinicians.map(c => !c.confirmed ? { ...c, status: 'left' } : c);
-    saveData({ ...data, clinicians: updated });
-    toast?.(`${count} unconfirmed staff marked as left`, 'success', 1500);
-  };
-
-  // ── Person card (shared by all sections) ──────────────────────
-  const PersonRow = ({ c, compact = false, showRestore = false }) => {
-    const isExpanded = expandedId === c.id;
-    const gc = GROUP_COLOURS[c.group] || GROUP_COLOURS.admin;
-    return (
-      <div className={`card transition-colors ${!c.confirmed ? 'border-amber-300 bg-amber-50/30' : c.status === 'longTermAbsent' ? 'border-amber-200 bg-amber-50/50' : compact ? 'opacity-70 hover:opacity-100' : ''}`}>
-        <div className="p-3 flex items-center gap-3">
-          {!showRestore && (
-            <button onClick={(e) => { e.stopPropagation(); removePerson(c.id); }} className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0" title="Mark as left">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          )}
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 cursor-pointer ${!c.confirmed ? 'bg-amber-100 text-amber-700' : gc.badge}`} onClick={() => setExpandedId(isExpanded ? null : c.id)}>{c.initials || '?'}</div>
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : c.id)}>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-slate-900">{c.title ? `${c.title} ` : ''}{c.name}</span>
-              {!c.confirmed && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">Unconfirmed</span>}
-              {c.status === 'longTermAbsent' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">LTA</span>}
-            </div>
-            <div className="text-xs text-slate-500">{c.role}{c.source === 'csv' ? ' · from CSV' : ''}</div>
-          </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {c.buddyCover && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">Buddy</span>}
-            {c.showWhosIn && <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 font-medium">Who's In</span>}
-          </div>
-          {showRestore && (
-            <div className="flex gap-1.5 flex-shrink-0">
-              <button onClick={() => restorePerson(c.id)} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-medium hover:bg-emerald-100">Restore</button>
-              <button onClick={() => permanentlyDelete(c.id)} className="px-2.5 py-1 rounded-lg bg-red-50 text-red-500 text-xs font-medium hover:bg-red-100">Delete</button>
-            </div>
-          )}
-          {!showRestore && <span className="text-xs text-slate-400 flex-shrink-0">{isExpanded ? '▾' : '›'}</span>}
-        </div>
-
-        {isExpanded && (
-          <div className="px-4 pb-4 border-t border-slate-100 pt-3 space-y-4">
-            {!c.confirmed && (
-              <div className="space-y-3">
-                <div className="flex gap-2 flex-wrap">
-                  <button onClick={() => confirmPerson(c.id)} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600">Confirm as new person</button>
-                  <button onClick={() => { setMergeId(mergeId === c.id ? null : c.id); setMergeTarget(''); setMergeNameChoice('existing'); }} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${mergeId === c.id ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>Merge with existing</button>
-                  <button onClick={() => removePerson(c.id)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100">Remove</button>
-                </div>
-                {mergeId === c.id && (
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
-                    <div className="text-xs font-semibold text-blue-800">Merge &quot;{c.name}&quot; with an existing staff member</div>
-                    <div>
-                      <label className="block text-xs text-blue-700 mb-1">Select existing person</label>
-                      <select value={mergeTarget} onChange={e => setMergeTarget(e.target.value)} className="w-full px-2 py-1.5 rounded border border-blue-200 text-sm bg-white">
-                        <option value="">Choose person...</option>
-                        {clinicians.filter(x => x.confirmed && x.id !== c.id && x.status !== 'left').map(x => (
-                          <option key={x.id} value={x.id}>{x.name} — {x.role}</option>
-                        ))}
-                      </select>
-                    </div>
-                    {mergeTarget && (() => {
-                      const target = clinicians.find(x => x.id === parseInt(mergeTarget));
-                      if (!target) return null;
-                      return (
-                        <>
-                          <div>
-                            <label className="block text-xs text-blue-700 mb-1.5">Which name should be displayed?</label>
-                            <div className="flex flex-col gap-1.5">
-                              <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${mergeNameChoice === 'existing' ? 'bg-white border-blue-400 shadow-sm' : 'border-blue-100 hover:bg-white/50'}`}>
-                                <input type="radio" name={`merge-name-${c.id}`} checked={mergeNameChoice === 'existing'} onChange={() => setMergeNameChoice('existing')} className="accent-blue-500" />
-                                <span className="text-sm font-medium text-slate-800">{target.name}</span>
-                                <span className="text-xs text-slate-400">(current)</span>
-                              </label>
-                              <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${mergeNameChoice === 'new' ? 'bg-white border-blue-400 shadow-sm' : 'border-blue-100 hover:bg-white/50'}`}>
-                                <input type="radio" name={`merge-name-${c.id}`} checked={mergeNameChoice === 'new'} onChange={() => setMergeNameChoice('new')} className="accent-blue-500" />
-                                <span className="text-sm font-medium text-slate-800">{c.name}</span>
-                                <span className="text-xs text-slate-400">(from CSV)</span>
-                              </label>
-                            </div>
-                          </div>
-                          <div className="text-xs text-blue-600">
-                            The other name will be saved as an alias for future CSV matching.
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => mergePerson(c.id, parseInt(mergeTarget), mergeNameChoice)} className="px-3 py-1.5 rounded-lg bg-blue-500 text-white text-xs font-medium hover:bg-blue-600">
-                              Merge into {target.name.split(' ')[0]}
-                            </button>
-                            <button onClick={() => { setMergeId(null); setMergeTarget(''); }} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Cancel</button>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div><label className="block text-xs text-slate-500 mb-1">Title</label><select value={c.title || ''} onChange={e => updateField(c.id, 'title', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{TITLE_OPTIONS.map(t => <option key={t} value={t}>{t || '—'}</option>)}</select></div>
-              <div className="md:col-span-2"><label className="block text-xs text-slate-500 mb-1">Name</label><DebouncedInput type="text" value={c.name || ''} onChange={v => updateField(c.id, 'name', v)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm" /></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Initials</label><DebouncedInput type="text" maxLength={4} value={c.initials || ''} onChange={v => updateField(c.id, 'initials', v)} uppercase className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center uppercase" /></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Sessions/week</label><input type="number" min="0" max="10" value={c.sessions || 0} onChange={e => updateField(c.id, 'sessions', parseInt(e.target.value) || 0)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center" /></div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div><label className="block text-xs text-slate-500 mb-1">Role</label><select value={c.role || ''} onChange={e => updateField(c.id, 'role', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Group</label><select value={c.group || 'gp'} onChange={e => updateField(c.id, 'group', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{GROUP_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Status</label><select value={c.status || 'active'} onChange={e => updateField(c.id, 'status', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="active">Active</option><option value="longTermAbsent">Long-term absent</option><option value="administrative">Administrative</option><option value="left">Left practice</option></select></div>
-            </div>
-
-            <div>
-              <label className="block text-xs text-slate-500 mb-2">Features</label>
-              <div className="flex gap-2 flex-wrap">
-                <button onClick={() => updateField(c.id, 'buddyCover', !c.buddyCover)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${c.buddyCover ? 'bg-purple-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{c.buddyCover ? '✓ ' : ''}Buddy Cover</button>
-                <button onClick={() => updateField(c.id, 'showWhosIn', !c.showWhosIn)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${c.showWhosIn ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{c.showWhosIn ? '✓ ' : ''}Who's In</button>
-                <button onClick={() => updateField(c.id, 'canProvideCover', c.canProvideCover === false ? true : false)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${c.canProvideCover !== false ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{c.canProvideCover !== false ? '✓ ' : ''}Can Cover Others</button>
-              </div>
-            </div>
-
-            {c.buddyCover && (
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs text-slate-500 mb-1">Primary buddy</label><select value={c.primaryBuddy || ''} onChange={e => updateField(c.id, 'primaryBuddy', e.target.value ? parseInt(e.target.value) : null)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="">None</option>{buddyCoverPeople.filter(x => x.id !== c.id).map(x => <option key={x.id} value={x.id}>{x.initials} — {x.name}</option>)}</select></div>
-                <div><label className="block text-xs text-slate-500 mb-1">Secondary buddy</label><select value={c.secondaryBuddy || ''} onChange={e => updateField(c.id, 'secondaryBuddy', e.target.value ? parseInt(e.target.value) : null)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="">None</option>{buddyCoverPeople.filter(x => x.id !== c.id && x.id !== c.primaryBuddy).map(x => <option key={x.id} value={x.id}>{x.initials} — {x.name}</option>)}</select></div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Name aliases (for CSV/TeamNet matching)</label>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {(c.aliases || []).map((alias, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-xs text-slate-600">
-                    {alias}<button onClick={() => removeAlias(c.id, i)} className="text-slate-400 hover:text-red-500">✕</button>
-                  </span>
-                ))}
-                {(c.aliases || []).length === 0 && <span className="text-xs text-slate-400 italic">No aliases</span>}
-              </div>
-              <div className="flex gap-2">
-                <input type="text" placeholder="Add alias..." id={`alias-${c.id}`} className="flex-1 px-2 py-1 rounded border border-slate-200 text-xs"
-                  onKeyDown={e => { if (e.key === 'Enter') { addAlias(c.id, e.target.value); e.target.value = ''; } }} />
-                <button onClick={() => { const el = document.getElementById(`alias-${c.id}`); addAlias(c.id, el.value); el.value = ''; }}
-                  className="px-2 py-1 rounded bg-slate-100 text-xs text-slate-600 hover:bg-slate-200">Add</button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-[10px] text-slate-400">Source: {c.source || 'manual'} · ID: {c.id}</span>
-              {c.confirmed && <button onClick={() => removePerson(c.id)} className="text-xs text-red-400 hover:text-red-600">Mark as left</button>}
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  const updateSettings = (field, value) => {
+    const newSettings = { ...data.settings, [field]: parseFloat(value) || 1 };
+    saveData({ ...data, settings: newSettings });
+    setSettingsSaved(true);
+    setTimeout(() => setSettingsSaved(false), 2000);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Staff Register</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {activeStaff.filter(c => c.status === 'active').length} active
-            {activeStaff.filter(c => c.status === 'longTermAbsent').length > 0 ? ` · ${activeStaff.filter(c => c.status === 'longTermAbsent').length} LTA` : ''}
-            {adminStaff.length > 0 ? ` · ${adminStaff.length} administrative` : ''}
-            {leftStaff.length > 0 ? ` · ${leftStaff.length} left` : ''}
-            {unconfirmedCount > 0 ? ` · ${unconfirmedCount} unconfirmed` : ''}
-          </p>
+      <div><h1 className="text-xl font-bold text-slate-900">Settings</h1><p className="text-sm text-slate-500 mt-1">Configure TeamNet sync and allocation weights</p></div>
+      <div className="card p-5">
+        <h2 className="text-base font-semibold text-slate-900 mb-4">TeamNet Calendar Sync</h2>
+        <p className="text-sm text-slate-500 mb-4">Import planned absences from your TeamNet calendar. The app syncs automatically when you open it.</p>
+        <div className="space-y-4">
+          <div><label className="block text-sm font-medium text-slate-700 mb-1">TeamNet Calendar URL</label><input type="url" value={data.teamnetUrl || ''} onChange={e => saveData({ ...data, teamnetUrl: e.target.value }, false)} onBlur={() => data.teamnetUrl && saveData(data)} placeholder="https://teamnet.clarity.co.uk/Diary/Sync/..." className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" /></div>
+          <div className="flex items-center gap-3"><button onClick={() => syncTeamNet()} className="btn-primary">Sync Now</button>{syncStatus && <span className={`text-sm ${syncStatus.includes('Error') || syncStatus.includes('failed') ? 'text-red-600' : 'text-emerald-600'}`}>{syncStatus}</span>}{data.lastSyncTime && <span className="text-xs text-slate-400">Last: {new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}</div>
         </div>
-        <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">+ Add Person</button>
-      </div>
-
-      {unconfirmedCount > 0 && (
-        <div className="card p-4 bg-amber-50 border-amber-200">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-sm font-medium text-amber-800">{unconfirmedCount} new staff discovered from CSV — review and confirm</span>
-            <div className="ml-auto flex gap-2">
-              <button onClick={removeAllUnconfirmed} className="text-xs font-medium text-red-600 hover:text-red-800 underline">Remove all unconfirmed</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddForm && (
-        <div className="card p-4 bg-slate-50 space-y-3">
-          <div className="text-sm font-semibold text-slate-700">Add new person</div>
-          <div className="flex gap-3 flex-wrap items-end">
-            <div className="flex-1 min-w-[180px]"><label className="block text-xs font-medium text-slate-600 mb-1">Name</label><input type="text" placeholder="Dr. Jane Smith" value={newPerson.name} onChange={e => setNewPerson(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" /></div>
-            <div className="w-20"><label className="block text-xs font-medium text-slate-600 mb-1">Initials</label><input type="text" placeholder="JS" maxLength={4} value={newPerson.initials} onChange={e => setNewPerson(p => ({ ...p, initials: e.target.value.toUpperCase() }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm text-center uppercase focus:outline-none focus:ring-2 focus:ring-slate-900" /></div>
-            <div className="w-40"><label className="block text-xs font-medium text-slate-600 mb-1">Role</label><select value={newPerson.role} onChange={e => setNewPerson(p => ({ ...p, role: e.target.value, group: guessGroupFromRole(e.target.value) }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm">{ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-            <div className="w-32"><label className="block text-xs font-medium text-slate-600 mb-1">Group</label><select value={newPerson.group} onChange={e => setNewPerson(p => ({ ...p, group: e.target.value }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm">{GROUP_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select></div>
-            <button onClick={addPerson} className="btn-primary text-sm">Add</button>
-          </div>
-        </div>
-      )}
-
-      <div className="flex gap-2 items-center">
-        <input type="text" placeholder="Search by name or role..." value={search} onChange={e => setSearch(e.target.value)}
-          className="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
-      </div>
-
-      {/* Active staff grouped by role */}
-      {GROUP_ORDER.map(groupKey => {
-        const members = groupedActive[groupKey];
-        if (!members || members.length === 0) return null;
-        const gc = GROUP_COLOURS[groupKey];
-        const groupLabel = STAFF_GROUPS[groupKey]?.label || groupKey;
-
-        // GP team gets subcategories
-        if (groupKey === 'gp') {
-          const GP_SUBS = [
-            { label: 'Partners', roles: ['GP Partner', 'Associate Partner'] },
-            { label: 'Salaried GPs', roles: ['Salaried GP'] },
-            { label: 'Registrars', roles: ['GP Registrar'] },
-            { label: 'Locums', roles: ['Locum'] },
-            { label: 'Medical Students', roles: ['Medical Student'] },
-          ];
-          return (
-            <div key={groupKey}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${gc.dot}`} />
-                <span className="text-sm font-semibold text-slate-700">{groupLabel}</span>
-                <span className="text-xs text-slate-400">{members.length}</span>
-              </div>
-              {GP_SUBS.map(sub => {
-                const subMembers = members.filter(c => sub.roles.includes(c.role));
-                if (subMembers.length === 0) return null;
-                return (
-                  <div key={sub.label} className="mb-3">
-                    <div className="text-xs text-slate-400 font-medium ml-5 mb-1">{sub.label}</div>
-                    <div className="space-y-1.5">
-                      {subMembers.map(c => <PersonRow key={c.id} c={c} />)}
-                    </div>
-                  </div>
-                );
+        {(ensureArray(data.plannedAbsences).length > 0) && (
+          <div className="mt-6 pt-4 border-t border-slate-200">
+            <h3 className="text-sm font-medium text-slate-900 mb-3">Upcoming Planned Absences</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {ensureArray(data.plannedAbsences).filter(a => a.endDate >= getTodayKey()).sort((a, b) => a.startDate.localeCompare(b.startDate)).slice(0, 20).map((a, i) => {
+                const c = ensureArray(data.clinicians).find(c => c.id === a.clinicianId);
+                if (!c) return null;
+                const sd = new Date(a.startDate + 'T12:00:00');
+                const ed = new Date(a.endDate + 'T12:00:00');
+                const ds = a.startDate === a.endDate ? sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : `${sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${ed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+                return <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded text-sm"><div><span className="font-medium">{c.initials}</span><span className="text-slate-500 ml-2">{ds}</span><span className="text-slate-400 ml-2">({a.reason})</span></div><button onClick={() => { const abs = ensureArray(data.plannedAbsences); saveData({ ...data, plannedAbsences: abs.filter((_, j) => j !== abs.indexOf(a)) }); }} className="text-xs text-red-500 hover:text-red-700">Remove</button></div>;
               })}
-              {/* Any GP team members with unrecognised roles */}
-              {members.filter(c => !['GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'Medical Student'].includes(c.role)).length > 0 && (
-                <div className="mb-3">
-                  <div className="text-xs text-slate-400 font-medium ml-5 mb-1">Other</div>
-                  <div className="space-y-1.5">
-                    {members.filter(c => !['GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'Medical Student'].includes(c.role)).map(c => <PersonRow key={c.id} c={c} />)}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        }
-
-        return (
-          <div key={groupKey}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${gc.dot}`} />
-              <span className="text-sm font-semibold text-slate-700">{groupLabel}</span>
-              <span className="text-xs text-slate-400">{members.length}</span>
-            </div>
-            <div className="space-y-1.5">
-              {members.map(c => <PersonRow key={c.id} c={c} />)}
             </div>
           </div>
-        );
-      })}
-
-      {groupedActive && Object.values(groupedActive).every(g => g.length === 0) && search && (
-        <div className="card p-8 text-center text-sm text-slate-400">No active staff match &quot;{search}&quot;</div>
-      )}
-
-      {/* Administrative section — collapsible */}
-      {adminStaff.length > 0 && (
-        <div>
-          <button onClick={() => setShowAdmin(!showAdmin)} className="flex items-center gap-2 w-full text-left group">
-            <span className="text-xs text-slate-400">{showAdmin ? '▾' : '›'}</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-            <span className="text-sm font-semibold text-slate-500">Administrative</span>
-            <span className="text-xs text-slate-400">{adminStaff.length}</span>
-            <span className="text-xs text-slate-400 ml-1">— hidden from all views</span>
-          </button>
-          {showAdmin && (
-            <div className="space-y-1.5 mt-2 ml-5">
-              {adminStaff.map(c => <PersonRow key={c.id} c={c} compact />)}
-            </div>
-          )}
+        )}
+      </div>
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-5"><h2 className="text-base font-semibold text-slate-900">Workload Weights</h2>{settingsSaved && <span className="text-xs text-emerald-600 font-medium">Saved</span>}</div>
+        <p className="text-sm text-slate-500 mb-6">Adjust how workload is calculated when balancing buddy allocations.</p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"><div><div className="text-sm font-medium text-slate-900">Absent (File & Action)</div><div className="text-xs text-slate-500 mt-0.5">Multiplier when covering absent clinician</div></div><div className="flex items-center gap-2"><input type="number" min="0.5" max="10" step="0.5" value={data.settings?.absentWeight || 2} onChange={e => updateSettings('absentWeight', e.target.value)} className="w-20 px-3 py-2 rounded-md border border-slate-300 text-sm text-center focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" /><span className="text-sm text-slate-500">× sessions</span></div></div>
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"><div><div className="text-sm font-medium text-slate-900">Day Off (View Only)</div><div className="text-xs text-slate-500 mt-0.5">Multiplier when viewing day-off results</div></div><div className="flex items-center gap-2"><input type="number" min="0.5" max="10" step="0.5" value={data.settings?.dayOffWeight || 1} onChange={e => updateSettings('dayOffWeight', e.target.value)} className="w-20 px-3 py-2 rounded-md border border-slate-300 text-sm text-center focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" /><span className="text-sm text-slate-500">× sessions</span></div></div>
         </div>
-      )}
+      </div>
+      <div className="card p-4 bg-slate-50 border-slate-200"><h3 className="text-xs font-medium text-slate-700 mb-1">How the algorithm works</h3><p className="text-xs text-slate-600 leading-relaxed"><strong>Round-robin first:</strong> Everyone gets 1 allocation before anyone gets 2. Primary buddy is tried first, then secondary, then any eligible clinician.<br/><br/><strong>Weighted tiebreaking:</strong> When multiple clinicians have same count, lowest weighted load wins. Load = (absent × {data.settings?.absentWeight || 2}) + (day-off × {data.settings?.dayOffWeight || 1}).</p></div>
 
-      {/* Left / removed section — collapsible */}
-      {leftStaff.length > 0 && (
-        <div>
-          <button onClick={() => setShowLeft(!showLeft)} className="flex items-center gap-2 w-full text-left group">
-            <span className="text-xs text-slate-400">{showLeft ? '▾' : '›'}</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-red-300" />
-            <span className="text-sm font-semibold text-slate-500">Left / Removed</span>
-            <span className="text-xs text-slate-400">{leftStaff.length}</span>
-            <span className="text-xs text-slate-400 ml-1">— can be restored</span>
-          </button>
-          {showLeft && (
-            <div className="space-y-1.5 mt-2 ml-5">
-              {leftStaff.map(c => <PersonRow key={c.id} c={c} compact showRestore />)}
-            </div>
-          )}
-        </div>
-      )}
+      <div className="card p-5 border-red-200">
+        <h2 className="text-base font-semibold text-red-700 mb-4">Danger Zone</h2>
+        <p className="text-sm text-slate-500 mb-4">Reset all data to defaults. This will clear ALL clinicians, rotas, and history.</p>
+        <button onClick={async () => { if (confirm('Delete ALL DATA and reset? Cannot be undone.')) { if (confirm('FINAL WARNING: Everything will be deleted. Continue?')) { const d = getDefaultData(); saveData(d); try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(d) }); alert('Reset successful. Refreshing...'); window.location.reload(); } catch (err) { alert('Reset failed: ' + err.message); } } } }} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium">Reset All Data</button>
+      </div>
+      <div className="card p-5">
+        <button onClick={() => setShowHistory(!showHistory)} className="flex items-center justify-between w-full"><h2 className="text-base font-semibold text-slate-900">Allocation History</h2><span className="text-sm text-slate-500">{showHistory ? '▼' : '▶'}</span></button>
+        {showHistory && (
+          <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
+            {Object.entries(data.allocationHistory || {}).sort(([a], [b]) => b.localeCompare(a)).slice(0, 30).map(([dk, e]) => {
+              const g = groupAllocationsByCovering(e.allocations || {}, e.dayOffAllocations || {}, e.presentIds || []);
+              const has = Object.entries(g).some(([_, t]) => t.absent.length > 0 || t.dayOff.length > 0);
+              return <div key={dk} className="p-3 bg-slate-50 rounded-lg"><div className="text-sm font-medium text-slate-900">{formatDate(dk)}</div>{has ? <div className="mt-2 text-xs text-slate-600">{Object.entries(g).map(([bid, t]) => { if (t.absent.length === 0 && t.dayOff.length === 0) return null; const b = getClinicianById(parseInt(bid)); if (!b) return null; const as = t.absent.map(i => getClinicianById(i)?.initials || '??').join(', '); const ds = t.dayOff.map(i => getClinicianById(i)?.initials || '??').join(', '); return <div key={bid}>{b.initials} → {as}{ds ? ` (view: ${ds})` : ''}</div>; })}</div> : <div className="mt-1 text-xs text-slate-400">All present</div>}</div>;
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,159 +1,293 @@
 'use client';
 import { useState } from 'react';
-import { SectionHeading, Button } from '@/components/ui';
-import { calculateHistoricalTargets } from '@/lib/huddle';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS } from '@/lib/data';
 
-export default function HuddleSettings({ data, saveData, setActiveSection, huddleData }) {
-  const [newFilterName, setNewFilterName] = useState('');
-  const hs = data?.huddleSettings || {};
+export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers }) {
+  const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
 
-  const hasData = hs?.knownClinicians?.length > 0 || hs?.knownSlotTypes?.length > 0;
+  const currentAlloc = getCurrentAllocations();
+  const presentIds = ensureArray(getPresentClinicians(selectedDay));
+  const absentIds = ensureArray(getAbsentClinicians(selectedDay));
+  const dayOffIds = ensureArray(getDayOffClinicians(selectedDay));
+  const cliniciansList = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
+  const presentClinicians = cliniciansList.filter(c => presentIds.includes(c.id));
+  const absentClinicians = cliniciansList.filter(c => absentIds.includes(c.id));
+  const dayOffClinicians = cliniciansList.filter(c => dayOffIds.includes(c.id));
+  const hasAllocations = currentAlloc && (Object.keys(currentAlloc.allocations || {}).length > 0 || Object.keys(currentAlloc.dayOffAllocations || {}).length > 0);
+  const groupedAllocations = currentAlloc ? groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, presentIds) : {};
 
-  if (!hasData) {
-    return (
-      <div className="space-y-6 animate-in">
-        <SectionHeading title="Huddle Settings" subtitle="Configure clinicians, slot filters, and capacity targets" />
-        <div className="card p-12 text-center"><div className="text-5xl mb-4">⚙️</div><h2 className="text-lg font-semibold text-slate-900 mb-2">Upload a Report First</h2><p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload an EMIS report on the Today page.</p><button onClick={() => setActiveSection('huddle-today')} className="btn-primary">Go to Today</button></div>
-      </div>
-    );
-  }
-
-  const updateHs = (newHs) => saveData({ ...data, huddleSettings: newHs });
-  const dropSlotToCategory = (slot, targetCat) => {
-    const newHs = { ...hs }; const cats = { ...newHs.slotCategories };
-    Object.keys(cats).forEach(c => { cats[c] = (cats[c] || []).filter(x => x !== slot); });
-    const cf = { ...newHs.customFilters || {} };
-    Object.keys(cf).forEach(f => { cf[f] = cf[f].filter(x => x !== slot); });
-    if (targetCat === 'urgent' || targetCat === 'excluded') { cats[targetCat] = [...(cats[targetCat] || []), slot]; }
-    else { cf[targetCat] = [...(cf[targetCat] || []), slot]; }
-    updateHs({ ...newHs, slotCategories: cats, customFilters: cf });
+  const handleGenerate = () => {
+    const dateKey = getDateKey();
+    const day = selectedDay;
+    const pIds = ensureArray(getPresentClinicians(day));
+    const aIds = ensureArray(getAbsentClinicians(day));
+    const doIds = ensureArray(getDayOffClinicians(day));
+    const cls = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
+    const { allocations, dayOffAllocations } = generateBuddyAllocations(cls, pIds, aIds, doIds, data.settings || DEFAULT_SETTINGS);
+    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: pIds, absentIds: aIds, dayOffIds: doIds } };
+    saveData({ ...data, allocationHistory: newHistory });
   };
 
-  const dropClinician = (name, group) => {
-    const g = { ...hs.clinicianGroups }; ['clinician','nursing','other'].forEach(c => { g[c] = (g[c]||[]).filter(x => x !== name); }); g[group] = [...(g[group]||[]), name];
-    updateHs({ ...hs, clinicianGroups: g });
+  const handleCopyAllocations = () => {
+    const dateKey = getDateKey();
+    const date = new Date(dateKey + 'T12:00:00');
+    const dateStr = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (!currentAlloc) return;
+    const grouped = groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, currentAlloc.presentIds || []);
+    let text = `BUDDY ALLOCATION\n${dateStr}\n\n`;
+    const allPresentIds = ensureArray(currentAlloc.presentIds);
+    const allPresentRows = allPresentIds.map(id => {
+      const clinician = getClinicianById(id);
+      const tasks = grouped[id] || { absent: [], dayOff: [] };
+      const canCover = clinician?.canProvideCover !== false;
+      const hasAllocs = tasks.absent.length > 0 || tasks.dayOff.length > 0;
+      return { id, clinician, tasks, canCover, hasAllocs };
+    }).filter(row => row.clinician);
+    allPresentRows.sort((a, b) => {
+      if (a.canCover && !b.canCover) return -1;
+      if (!a.canCover && b.canCover) return 1;
+      if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; }
+      return 0;
+    });
+    allPresentRows.forEach(({ clinician, tasks }) => {
+      const fileStr = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-';
+      const viewStr = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-';
+      text += `${clinician.initials}: File ${fileStr} / View ${viewStr}\n`;
+    });
+    navigator.clipboard.writeText(text.trim());
+    toast('Copied to clipboard', 'success', 2000);
   };
-
-  const toggleClinician = (name) => {
-    const inc = hs.includedClinicians || [];
-    updateHs({ ...hs, includedClinicians: inc.includes(name) ? inc.filter(c => c !== name) : [...inc, name] });
-  };
-
-  const allCategorised = [...(hs.slotCategories?.urgent||[]), ...(hs.slotCategories?.excluded||[]), ...Object.values(hs.customFilters||{}).flat()];
-  const uncategorised = (hs.knownSlotTypes || []).filter(s => !allCategorised.includes(s));
-  const ungrouped = (hs.knownClinicians || []).filter(c => !['clinician','nursing','other'].some(g => (hs.clinicianGroups?.[g]||[]).includes(c)));
-
-  const DZ = ({ onDrop: handler, colour, children }) => (
-    <div className={`min-h-[36px] p-2 rounded-lg border-2 border-dashed ${colour}`} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); const s = e.dataTransfer.getData('slot'); const c = e.dataTransfer.getData('clinician'); if (s) handler(s); if (c) handler(c); }}>
-      <div className="flex flex-wrap gap-1">{children}</div>
-    </div>
-  );
 
   return (
-    <div className="space-y-6 animate-in">
-      <SectionHeading title="Huddle Settings" subtitle="Configure clinicians, slot filters, and capacity targets" />
-
-      {/* Clinician Groups */}
-      <div className="card p-5">
-        <h2 className="text-base font-semibold text-slate-900 mb-2">Clinicians to Include</h2>
-        <p className="text-xs text-slate-500 mb-3">Click to toggle. Drag to assign to groups.</p>
-        {['clinician','nursing','other'].map(group => {
-          const labels = { clinician: '👨‍⚕️ Clinician Team', nursing: '👩‍⚕️ Nursing Team', other: '📋 Other' };
-          const members = hs.clinicianGroups?.[group] || [];
-          return (
-            <div key={group} className="mb-3">
-              <div className="text-xs font-medium text-slate-600 mb-1">{labels[group]}</div>
-              <DZ onDrop={n => dropClinician(n, group)} colour="border-slate-200 bg-white">
-                {members.map(name => {
-                  const inc = (hs.includedClinicians||[]).includes(name);
-                  return <div key={name} draggable onDragStart={e => e.dataTransfer.setData('clinician', name)} onClick={() => toggleClinician(name)} className={`px-2 py-1 rounded-md text-xs cursor-pointer transition-colors ${inc ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}>{name}</div>;
-                })}
-                {members.length === 0 && <span className="text-xs text-slate-400 italic">Drag here</span>}
-              </DZ>
-            </div>
-          );
-        })}
-        {ungrouped.length > 0 && <div className="mt-2"><div className="text-xs text-slate-500 mb-1">Ungrouped:</div><div className="flex flex-wrap gap-1">{ungrouped.map(n => <div key={n} draggable onDragStart={e => e.dataTransfer.setData('clinician', n)} className="px-2 py-1 rounded-md text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move">{n}</div>)}</div></div>}
-      </div>
-
-      {/* Slot Type Filters */}
-      <div className="card p-5">
-        <h2 className="text-base font-semibold text-slate-900 mb-2">Slot Type Filters</h2>
-        <p className="text-xs text-slate-500 mb-4">Create named filters by dragging slot types.</p>
-
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-1"><span className="text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded-md">🔴 Urgent</span></div>
-          <DZ onDrop={s => dropSlotToCategory(s, 'urgent')} colour="border-red-200 bg-red-50/50">
-            {(hs.slotCategories?.urgent||[]).map(s => <div key={s} draggable onDragStart={e => e.dataTransfer.setData('slot', s)} className="px-2 py-0.5 rounded-md text-xs cursor-move bg-red-100 text-red-800 truncate max-w-[200px]" title={s}>{s}</div>)}
-            {!(hs.slotCategories?.urgent||[]).length && <span className="text-xs text-slate-400 italic">Drag slot types here</span>}
-          </DZ>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Daily Allocation</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {data.lastSyncTime ? `TeamNet synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'TeamNet not synced'}
+            {syncStatus && <span className="ml-2 text-emerald-600">{syncStatus}</span>}
+          </p>
         </div>
-
-        {Object.entries(hs.customFilters || {}).map(([name, slots]) => (
-          <div key={name} className="mb-4">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">🔵 {name}</span>
-              <button onClick={() => { const cf = { ...hs.customFilters }; delete cf[name]; updateHs({ ...hs, customFilters: cf }); }} className="text-[10px] text-red-400 hover:text-red-600">Remove</button>
-            </div>
-            <DZ onDrop={s => dropSlotToCategory(s, name)} colour="border-blue-200 bg-blue-50/30">
-              {slots.map(s => <div key={s} draggable onDragStart={e => e.dataTransfer.setData('slot', s)} className="px-2 py-0.5 rounded-md text-xs cursor-move bg-blue-100 text-blue-800 truncate max-w-[200px]" title={s}>{s}</div>)}
-              {slots.length === 0 && <span className="text-xs text-slate-400 italic">Drag slot types here</span>}
-            </DZ>
+        {isGenerating ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-[160px]"><div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden"><div className="h-full w-1/3 bg-gradient-to-r from-violet-500 to-purple-600 rounded-full animate-progress" /></div></div>
+            <button onClick={() => setIsGenerating(false)} className="btn-secondary text-xs py-1 px-2">Stop</button>
           </div>
-        ))}
-
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-1"><span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">⚪ Excluded</span></div>
-          <DZ onDrop={s => dropSlotToCategory(s, 'excluded')} colour="border-slate-200 bg-slate-50">
-            {(hs.slotCategories?.excluded||[]).map(s => <div key={s} draggable onDragStart={e => e.dataTransfer.setData('slot', s)} className="px-2 py-0.5 rounded-md text-xs cursor-move bg-white text-slate-500 border border-slate-200 truncate max-w-[200px]" title={s}>{s}</div>)}
-            {!(hs.slotCategories?.excluded||[]).length && <span className="text-xs text-slate-400 italic">Drag here</span>}
-          </DZ>
-        </div>
-
-        <div className="flex gap-2 items-center pt-2 border-t border-slate-200">
-          <input type="text" value={newFilterName} onChange={e => setNewFilterName(e.target.value)} placeholder="New filter name..." className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900" onKeyDown={e => { if (e.key === 'Enter' && newFilterName.trim()) { updateHs({ ...hs, customFilters: { ...hs.customFilters, [newFilterName.trim()]: [] } }); setNewFilterName(''); }}} />
-          <button onClick={() => { if (!newFilterName.trim()) return; updateHs({ ...hs, customFilters: { ...hs.customFilters, [newFilterName.trim()]: [] } }); setNewFilterName(''); }} className="btn-primary text-xs">+ Add Filter</button>
-        </div>
-
-        {uncategorised.length > 0 && <div className="mt-4 pt-3 border-t border-slate-200"><div className="text-xs text-slate-500 mb-2">Uncategorised ({uncategorised.length}):</div><div className="max-h-32 overflow-y-auto"><div className="flex flex-wrap gap-1">{uncategorised.sort().map(s => <div key={s} draggable onDragStart={e => e.dataTransfer.setData('slot', s)} className="px-2 py-0.5 rounded-md text-xs bg-amber-50 text-amber-700 border border-amber-200 cursor-move truncate max-w-[200px]" title={s}>{s}</div>)}</div></div></div>}
+        ) : (
+          <button onClick={async () => {
+            setIsGenerating(true);
+            await new Promise(r => setTimeout(r, 50));
+            const currentData = data;
+            let generated = 0;
+            const newHistory = { ...currentData.allocationHistory };
+            const newOverrides = { ...currentData.dailyOverrides };
+            const today = new Date();
+            let stopped = false;
+            const clins = (Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {})).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
+            const plannedAbs = Array.isArray(currentData.plannedAbsences) ? currentData.plannedAbsences : Object.values(currentData.plannedAbsences || {});
+            
+            for (let i = 0; i < 28 && !stopped; i++) {
+              const checkDate = new Date(today);
+              checkDate.setDate(checkDate.getDate() + i);
+              const dayIndex = checkDate.getDay();
+              if (dayIndex === 0 || dayIndex === 6) continue;
+              const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
+              const dateKey = checkDate.toISOString().split('T')[0];
+              const dayKey = `${dateKey}-${dayName}`;
+              if (currentData.closedDays?.[dateKey]) continue;
+              delete newOverrides[dayKey];
+              const rota = currentData.weeklyRota?.[dayName] || [];
+              const scheduled = Array.isArray(rota) ? rota : Object.values(rota);
+              const present = scheduled.filter(id => {
+                const c = clins.find(c => c.id === id);
+                if (c?.longTermAbsent) return false;
+                return !plannedAbs.some(a => a.clinicianId === id && dateKey >= a.startDate && dateKey <= a.endDate);
+              });
+              const absentIdsGen = scheduled.filter(id => !present.includes(id));
+              const dayOffIdsGen = clins.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
+              
+              const cascadeAbsent = [];
+              const idxToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+              for (const doId of dayOffIdsGen) {
+                const c = clins.find(c => c.id === doId);
+                if (!c) continue;
+                if (c.longTermAbsent) { cascadeAbsent.push(doId); continue; }
+                const wDays = DAYS.filter(d => { const r = currentData.weeklyRota?.[d] || []; return (Array.isArray(r) ? r : Object.values(r)).includes(doId); });
+                if (wDays.length === 0) continue;
+                const cd = new Date(dateKey + 'T12:00:00');
+                let shouldAbs = false;
+                for (let j = 1; j <= 14; j++) {
+                  const pd = new Date(cd); pd.setDate(pd.getDate() - j);
+                  const pdi = pd.getDay(); const pdn = idxToDay[pdi]; const pdk = pd.toISOString().split('T')[0];
+                  if (pdi === 0 || pdi === 6) continue;
+                  if (wDays.includes(pdn)) { if (plannedAbs.some(a => a.clinicianId === doId && pdk >= a.startDate && pdk <= a.endDate)) shouldAbs = true; break; }
+                }
+                if (!shouldAbs) {
+                  for (let j = 1; j <= 14; j++) {
+                    const fd = new Date(cd); fd.setDate(fd.getDate() + j);
+                    const fdi = fd.getDay(); const fdn = idxToDay[fdi]; const fdk = fd.toISOString().split('T')[0];
+                    if (fdi === 0 || fdi === 6) continue;
+                    if (wDays.includes(fdn)) { if (plannedAbs.some(a => a.clinicianId === doId && fdk >= a.startDate && fdk <= a.endDate)) shouldAbs = true; break; }
+                  }
+                }
+                if (shouldAbs) cascadeAbsent.push(doId);
+              }
+              const finalAbsent = [...absentIdsGen, ...cascadeAbsent];
+              const finalDayOff = dayOffIdsGen.filter(id => !cascadeAbsent.includes(id));
+              const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, present, finalAbsent, finalDayOff, currentData.settings || DEFAULT_SETTINGS);
+              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds: finalAbsent, dayOffIds: finalDayOff };
+              generated++;
+              await new Promise(r => setTimeout(r, 10));
+              if (!isGenerating) stopped = true;
+            }
+            if (generated > 0) {
+              const nd = { ...currentData, allocationHistory: newHistory, dailyOverrides: newOverrides };
+              setData(nd);
+              try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(nd) }); } catch (err) { console.error(err); }
+              setDataVersion(v => v + 1);
+            }
+            setIsGenerating(false);
+            setSyncStatus(stopped ? `Stopped — ${generated} days` : `Done — ${generated} days`);
+            setTimeout(() => setSyncStatus(''), 4000);
+          }} className="btn-primary">Generate Next 4 Weeks</button>
+        )}
       </div>
 
-      {/* Expected Capacity Targets */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-base font-semibold text-slate-900">Expected Capacity Targets</h2>
-          {huddleData && (
-            <Button size="sm" variant="secondary" onClick={() => {
-              const calculated = calculateHistoricalTargets(huddleData, hs);
-              if (Object.keys(calculated).length === 0) return;
-              updateHs({ ...hs, expectedCapacity: { ...hs.expectedCapacity, ...calculated } });
-            }}>
-              📊 Auto-fill from history
-            </Button>
-          )}
-        </div>
-        <p className="text-xs text-slate-500 mb-3">Set expected urgent slots per session. Auto-fill calculates averages from your uploaded data. You can override any value. Capacity Planning colour-codes: green (≥100%), amber (80–99%), red (&lt;80%).</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className="text-xs text-slate-500 uppercase"><th className="text-left py-2 font-medium w-24"></th>{['Monday','Tuesday','Wednesday','Thursday','Friday'].map(d => <th key={d} className="text-center py-2 font-medium px-2">{d.slice(0,3)}</th>)}</tr></thead>
-            <tbody>
-              {['am','pm'].map(session => (
-                <tr key={session} className="border-t border-slate-100">
-                  <td className={`py-2 text-xs font-medium ${session === 'am' ? 'text-amber-600' : 'text-blue-600'}`}>{session === 'am' ? 'Morning' : 'Afternoon'}</td>
-                  {['Monday','Tuesday','Wednesday','Thursday','Friday'].map(d => (
-                    <td key={d} className="text-center px-1 py-2">
-                      <input type="number" min="0" max="999" value={hs.expectedCapacity?.[d]?.[session] || ''} onChange={e => {
-                        const newHs = { ...hs }; if (!newHs.expectedCapacity) newHs.expectedCapacity = {}; if (!newHs.expectedCapacity[d]) newHs.expectedCapacity[d] = {};
-                        newHs.expectedCapacity[d][session] = parseInt(e.target.value) || 0; updateHs(newHs);
-                      }} placeholder="–" className="w-16 px-2 py-1 rounded-lg border border-slate-200 text-center text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Week navigator */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">◀</button>
+            <div className="text-sm font-medium text-slate-900 min-w-[180px] text-center">{formatWeekRange(selectedWeek)}</div>
+            <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">▶</button>
+            <button onClick={() => { setSelectedWeek(getWeekStart(new Date())); setSelectedDay(getCurrentDay()); }} className="ml-2 px-4 py-1.5 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 shadow-md">Today</button>
+          </div>
+          <div className="flex items-center gap-2">
+            {DAYS.map(day => {
+              const dk = getDateKeyForDay(day);
+              const closed = isClosedDay(dk);
+              const todayDate = isToday(dk);
+              return (
+                <button key={day} onClick={() => setSelectedDay(day)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors relative ${selectedDay === day ? 'bg-slate-900 text-white' : closed ? 'bg-slate-200 text-slate-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  {day.slice(0, 3)}
+                  {todayDate && <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full"></span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
+
+      {isClosedDay(getDateKey()) ? (
+        <div className="card p-8 text-center">
+          <div className="text-2xl mb-2">🏠</div>
+          <div className="text-lg font-medium text-slate-900 mb-1">Practice Closed</div>
+          <div className="text-sm text-slate-500">{getClosedReason(getDateKey())}</div>
+          {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-600 hover:text-purple-800">Mark as open →</button>}
+        </div>
+      ) : (
+        <>
+          {/* Attendance */}
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Attendance</h2>
+                <p className="text-xs text-slate-500 mt-0.5">{formatDate(getDateKey())}{!isPastDate(getDateKey()) && ' — Click to toggle'}</p>
+              </div>
+              {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-400 hover:text-slate-600">Mark closed</button>}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {cliniciansList.map(c => {
+                const status = getClinicianStatus(c.id, selectedDay);
+                const lta = c.longTermAbsent;
+                const hasPlanned = hasPlannedAbsence(c.id, getDateKey());
+                const plannedReason = getPlannedAbsenceReason(c.id, getDateKey());
+                const past = isPastDate(getDateKey());
+                const showInfo = lta || hasPlanned;
+                return (
+                  <div key={c.id} className={`clinician-card ${status}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`initials-badge ${status}`}>{c.initials || '??'}</div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">{c.name}</div>
+                          <div className="text-xs text-slate-500">{c.role}</div>
+                          {showInfo && <div className="text-xs mt-0.5">{hasPlanned && <span className="text-blue-600">TeamNet: {plannedReason}</span>}{hasPlanned && lta && <span className="text-slate-400"> · </span>}{lta && <span className="text-amber-600">LTA</span>}</div>}
+                        </div>
+                      </div>
+                      {past ? <span className="text-xs text-slate-400">{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span> : <button onClick={() => togglePresence(c.id, selectedDay)} className={`toggle-btn ${status === 'present' ? 'on' : status === 'dayoff' ? 'dayoff' : 'off'}`} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Allocations */}
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Buddy Allocations</h2>
+                <p className="text-sm text-slate-500 mt-0.5">Workload balanced across present clinicians</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {hasAllocations && <button onClick={handleCopyAllocations} className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 shadow-md flex items-center gap-2">📋 Copy</button>}
+                {!isPastDate(getDateKey()) && <button onClick={handleGenerate} disabled={presentClinicians.length === 0} className="btn-primary">{hasAllocations ? 'Regenerate' : 'Generate'}</button>}
+              </div>
+            </div>
+            {!hasAllocations ? (
+              <div className="text-center py-8 text-slate-400">
+                <div className="text-2xl mb-2">📋</div>
+                <div className="text-sm">No allocations yet for {selectedDay}</div>
+                {presentClinicians.length > 0 && !isPastDate(getDateKey()) && <div className="text-xs mt-1">Click Generate to create buddy assignments</div>}
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide">Covering</th>
+                        <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide"><span className="text-red-600">File & Action</span><span className="text-slate-400 font-normal ml-1">(absent)</span></th>
+                        <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide"><span className="text-amber-600">View Only</span><span className="text-slate-400 font-normal ml-1">(day off)</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const rows = presentIds.map(id => {
+                          const c = getClinicianById(id);
+                          const t = groupedAllocations[id] || { absent: [], dayOff: [] };
+                          const can = c?.canProvideCover !== false;
+                          const has = t.absent.length > 0 || t.dayOff.length > 0;
+                          return { id, clinician: c, tasks: t, canCover: can, hasAllocs: has };
+                        }).filter(r => r.clinician);
+                        rows.sort((a, b) => {
+                          if (a.canCover && !b.canCover) return -1;
+                          if (!a.canCover && b.canCover) return 1;
+                          if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; }
+                          return 0;
+                        });
+                        return rows.map(({ clinician, tasks, canCover }) => (
+                          <tr key={clinician.id} className={`border-b border-slate-50 last:border-0 ${!canCover ? 'opacity-50' : ''}`}>
+                            <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="initials-badge present">{clinician.initials}</div><div><div className="text-sm font-medium text-slate-900">{clinician.name}</div><div className="text-xs text-slate-500">{clinician.role}</div></div></div></td>
+                            <td className="py-3 px-4">{tasks.absent.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="status-tag absent">{x.initials}</span> : null; })}</div> : <span className="text-slate-300">—</span>}</td>
+                            <td className="py-3 px-4">{tasks.dayOff.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="status-tag dayoff">{x.initials}</span> : null; })}</div> : <span className="text-slate-300">—</span>}</td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-100 flex gap-6 text-xs text-slate-500">
+                  <span><strong className="text-emerald-600">{presentClinicians.length}</strong> present</span>
+                  <span><strong className="text-red-600">{absentClinicians.length}</strong> absent</span>
+                  <span><strong className="text-amber-600">{dayOffClinicians.length}</strong> day off</span>
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,60 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer base {
-  body {
-    @apply antialiased;
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-    background: #f1f5f9;
-    min-height: 100vh;
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
   }
-}
-
-@layer components {
-  .card { @apply bg-white rounded-xl shadow-sm border border-slate-200/80; }
-  .btn-primary { @apply bg-slate-900 text-white font-medium py-2 px-4 rounded-lg text-sm hover:bg-slate-800 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed; }
-  .btn-secondary { @apply bg-white text-slate-700 border border-slate-200 font-medium py-1.5 px-3 rounded-lg text-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1; }
-  .btn-success { @apply bg-emerald-600 text-white font-medium py-1.5 px-3 rounded-lg text-sm hover:bg-emerald-700 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1; }
-  .day-pill { @apply px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-600 text-sm transition-all duration-150 hover:border-slate-400 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1; }
-  .day-pill.active { @apply bg-slate-900 text-white border-slate-900 shadow-sm; }
-  .toggle-btn { @apply w-10 h-5 rounded-full relative transition-colors duration-150 cursor-pointer; }
-  .toggle-btn::after { content: ''; @apply absolute w-4 h-4 rounded-full bg-white top-0.5 transition-all duration-150 shadow-sm; }
-  .toggle-btn.on { @apply bg-emerald-600; }
-  .toggle-btn.on::after { @apply left-5; }
-  .toggle-btn.off { @apply bg-red-500; }
-  .toggle-btn.off::after { @apply left-0.5; }
-  .toggle-btn.dayoff { @apply bg-purple-500; }
-  .toggle-btn.dayoff::after { @apply left-0.5; }
-  .clinician-card { @apply p-3 rounded-lg border transition-all duration-150 min-h-[72px]; }
-  .clinician-card.present { @apply border-emerald-200 bg-emerald-50; }
-  .clinician-card.absent { @apply border-red-200 bg-red-50; }
-  .clinician-card.dayoff { @apply border-purple-200 bg-purple-50; }
-  .clinician-card.non-coverer { @apply border-slate-200 bg-slate-50; }
-  .initials-badge { @apply inline-flex items-center justify-center w-9 h-9 rounded-full text-xs font-semibold; }
-  .initials-badge.present { @apply bg-emerald-200 text-emerald-800; }
-  .initials-badge.absent { @apply bg-red-200 text-red-800; }
-  .initials-badge.dayoff { @apply bg-purple-200 text-purple-800; }
-  .initials-badge.non-coverer { @apply bg-slate-200 text-slate-500; }
-  .initials-badge.neutral { @apply bg-slate-100 text-slate-700; }
-  .status-tag { @apply text-xs font-medium px-1.5 py-0.5 rounded-md; }
-  .status-tag.present { @apply bg-emerald-100 text-emerald-700; }
-  .status-tag.absent { @apply bg-red-100 text-red-700; }
-  .status-tag.dayoff { @apply bg-purple-100 text-purple-700; }
-  .status-tag.non-coverer { @apply bg-slate-100 text-slate-500; }
-
-  @keyframes slide-up { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  .animate-slide-up { animation: slide-up 0.25s ease-out; }
-  @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-  .animate-in { animation: fade-in 0.2s ease-out; }
-  @keyframes tooltip-in { from { opacity: 0; } to { opacity: 1; } }
-  .animate-fade-in { animation: tooltip-in 0.25s ease-in; }
-  @keyframes progress-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
-  .animate-progress { animation: progress-slide 1.2s ease-in-out infinite; }
-  @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
-  .animate-slide-in-right { animation: slide-in-right 0.2s ease-out; }
-  .drop-zone { @apply border-2 border-dashed border-slate-300 rounded-xl transition-all duration-200; }
-  .drop-zone.active { @apply border-teal-400 bg-teal-50/50; }
 }

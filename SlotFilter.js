@@ -1,133 +1,264 @@
 'use client';
+import { useState } from 'react';
+import { SectionHeading } from '@/components/ui';
+import { getHuddleCapacity, getDateTotals, getHuddleWeeks, getCapacityColour, getGradientColour, getFilterOverrides, getAllFilterNames, getMergedFilterOverrides, parseHuddleDateStr } from '@/lib/huddle';
+import SlotFilter from './SlotFilter';
 
-// GPDash Logo — gauge + bars hybrid with load animation
-// Bars are inset from circle edge. Gauge ring sweeps green. Bars drift up.
-// PRACTICE / DASHBOARD on separate lines, larger. GP+Dash tighter.
+const DAY_NAMES = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-const keyframeStyle = `
-@keyframes gpd-gauge { from { stroke-dashoffset: var(--gpd-circ); } }
-@keyframes gpd-bar { from { opacity: 0; transform: translateY(6px); } to { opacity: var(--gpd-op); transform: translateY(0); } }
-`;
+export default function HuddleForward({ data, saveData, huddleData, setActiveSection }) {
+  const [viewMode, setViewMode] = useState('urgent');
+  const [slotOverrides, setSlotOverrides] = useState(null);
+  const [selectedCell, setSelectedCell] = useState(null);
+  const [chartFilters, setChartFilters] = useState(['urgent']);
+  const hs = data?.huddleSettings || {};
+  const filterNames = getAllFilterNames(hs);
 
-function Keyframes() {
-  return <style>{keyframeStyle}</style>;
-}
-
-function BarSet({ cx, cy, r, barWidth, gap, count = 7, heights, opacities, animate = true }) {
-  // Centre the bars horizontally inside the circle with clearance
-  const innerR = r - 8;
-  const totalW = count * barWidth + (count - 1) * gap;
-  const startX = cx - totalW / 2;
-  const baseY = cy + innerR * 0.55;
-
-  return heights.map((h, i) => {
-    const x = startX + i * (barWidth + gap);
-    const scaledH = h * innerR * 1.1;
-    const y = baseY - scaledH;
-    const fill = i === 3 ? '#f59e0b' : '#10b981';
-    const op = opacities[i];
-    const delay = 0.3 + i * 0.08;
+  if (!huddleData) {
     return (
-      <rect key={i} x={x} y={y} width={barWidth} height={scaledH} rx={barWidth / 3} fill={fill}
-        style={animate
-          ? { '--gpd-op': op, animation: `gpd-bar 0.5s ease-out ${delay}s both` }
-          : { opacity: op }} />
+      <div className="space-y-6 animate-in">
+        <SectionHeading title="Urgent Capacity Planning" subtitle="This week + next 5 weeks" />
+        <div className="card p-12 text-center">
+          <div className="text-5xl mb-4">📅</div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">No Report Data</h2>
+          <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload a report on the Today page first.</p>
+          <button onClick={() => setActiveSection('huddle-today')} className="btn-primary">Go to Today</button>
+        </div>
+      </div>
     );
+  }
+
+  const weeks = getHuddleWeeks(huddleData);
+  const viewOverrides = slotOverrides || getFilterOverrides(viewMode, hs);
+
+  // Pre-compute all values for gradient colouring
+  const allVals = [];
+  const weekData = weeks.map(week => {
+    const days = {};
+    DAYS_SHORT.forEach(d => {
+      const dateStr = week.dates[d];
+      if (!dateStr) { days[d] = null; return; }
+      const cap = getHuddleCapacity(huddleData, dateStr, hs, viewOverrides);
+      days[d] = cap;
+      if (cap.am.total > 0) allVals.push(cap.am.total);
+      if (cap.pm.total > 0) allVals.push(cap.pm.total);
+    });
+    return { week, days };
   });
-}
 
-export default function GPDashLogo({ size = 'full', className = '', animate = true }) {
-  const heights = [0.3, 0.5, 0.85, 0.65, 0.95, 0.6, 0.4];
-  const opacities = [0.35, 0.55, 1, 0.9, 0.85, 0.5, 0.3];
+  // Summary stats
+  let totalSlots = 0, dayCount = 0, lowDays = 0;
+  weekData.forEach(({ week, days }) => {
+    DAYS_SHORT.forEach(d => {
+      const cap = days[d];
+      if (!cap) return;
+      const total = cap.am.total + cap.pm.total;
+      if (total === 0) return;
+      totalSlots += total; dayCount++;
+      if (viewMode === 'urgent') {
+        const exp = (hs.expectedCapacity?.[DAY_NAMES[d]]?.am || 0) + (hs.expectedCapacity?.[DAY_NAMES[d]]?.pm || 0);
+        if (exp > 0 && total < exp * 0.8) lowDays++;
+      }
+    });
+  });
+  const avgPerDay = dayCount > 0 ? Math.round(totalSlots / dayCount) : 0;
 
-  if (size === 'icon') {
-    const r = 40, cx = 50, cy = 50, sw = 4, circ = 2 * Math.PI * r;
-    return (
-      <svg viewBox="0 0 100 100" className={className} fill="none">
-        {animate && <Keyframes />}
-        <circle cx={cx} cy={cy} r={r} stroke="#334155" strokeWidth={sw} />
-        <circle cx={cx} cy={cy} r={r} stroke="#10b981" strokeWidth={sw}
-          strokeDasharray={circ} strokeDashoffset={circ * 0.25} strokeLinecap="round"
-          transform={`rotate(-90 ${cx} ${cy})`}
-          style={animate ? { '--gpd-circ': circ, animation: 'gpd-gauge 0.9s ease-out forwards' } : {}} />
-        <BarSet cx={cx} cy={cy} r={r} barWidth={6} gap={2} heights={heights} opacities={opacities} animate={animate} />
-      </svg>
-    );
-  }
-
-  if (size === 'sidebar-collapsed') {
-    const r = 20, cx = 24, cy = 24, sw = 3, circ = 2 * Math.PI * r;
-    return (
-      <svg viewBox="0 0 48 48" className={className} fill="none">
-        {animate && <Keyframes />}
-        <circle cx={cx} cy={cy} r={r} stroke="#334155" strokeWidth={sw} />
-        <circle cx={cx} cy={cy} r={r} stroke="#10b981" strokeWidth={sw}
-          strokeDasharray={circ} strokeDashoffset={circ * 0.25} strokeLinecap="round"
-          transform={`rotate(-90 ${cx} ${cy})`}
-          style={animate ? { '--gpd-circ': circ, animation: 'gpd-gauge 0.8s ease-out forwards' } : {}} />
-        <BarSet cx={cx} cy={cy} r={r} barWidth={3.5} gap={1} count={5} heights={[0.4, 0.7, 0.95, 0.75, 0.55]} opacities={[0.4, 0.6, 1, 0.9, 0.5]} animate={animate} />
-      </svg>
-    );
-  }
-
-  if (size === 'sidebar') {
-    const r = 32, cx = 38, cy = 40, sw = 3.5, circ = 2 * Math.PI * r;
-    return (
-      <svg viewBox="0 0 175 120" className={className} fill="none">
-        {animate && <Keyframes />}
-        <circle cx={cx} cy={cy} r={r} stroke="#334155" strokeWidth={sw} />
-        <circle cx={cx} cy={cy} r={r} stroke="#10b981" strokeWidth={sw}
-          strokeDasharray={circ} strokeDashoffset={circ * 0.25} strokeLinecap="round"
-          transform={`rotate(-90 ${cx} ${cy})`}
-          style={animate ? { '--gpd-circ': circ, animation: 'gpd-gauge 1s ease-out forwards' } : {}} />
-        <BarSet cx={cx} cy={cy} r={r} barWidth={5} gap={1.5} heights={heights} opacities={opacities} animate={animate} />
-        <text x="82" y="34" fill="#ffffff" style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'system-ui, sans-serif', letterSpacing: '-1.5px' }}>GP</text>
-        <text x="115" y="34" fill="#10b981" style={{ fontSize: '20px', fontWeight: 300, fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.5px' }}>Dash</text>
-        <text x="82" y="54" fill="#94a3b8" style={{ fontSize: '9px', fontWeight: 400, fontFamily: 'system-ui, sans-serif', letterSpacing: '2.5px' }}>PRACTICE</text>
-        <text x="82" y="68" fill="#64748b" style={{ fontSize: '9px', fontWeight: 400, fontFamily: 'system-ui, sans-serif', letterSpacing: '2.5px' }}>DASHBOARD</text>
-      </svg>
-    );
-  }
-
-  if (size === 'compact') {
-    const r = 24, cx = 28, cy = 30, sw = 3, circ = 2 * Math.PI * r;
-    return (
-      <svg viewBox="0 0 230 68" className={className} fill="none">
-        {animate && <Keyframes />}
-        <circle cx={cx} cy={cy} r={r} stroke="rgba(255,255,255,0.1)" strokeWidth={sw} />
-        <circle cx={cx} cy={cy} r={r} stroke="#10b981" strokeWidth={sw}
-          strokeDasharray={circ} strokeDashoffset={circ * 0.25} strokeLinecap="round"
-          transform={`rotate(-90 ${cx} ${cy})`}
-          style={animate ? { '--gpd-circ': circ, animation: 'gpd-gauge 0.8s ease-out forwards' } : {}} />
-        <BarSet cx={cx} cy={cy} r={r} barWidth={4} gap={1} heights={heights} opacities={opacities} animate={animate} />
-        <text x="62" y="28" fill="#ffffff" style={{ fontSize: '24px', fontWeight: 800, fontFamily: 'system-ui, sans-serif', letterSpacing: '-1.5px' }}>GP</text>
-        <text x="100" y="28" fill="#10b981" style={{ fontSize: '24px', fontWeight: 300, fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.5px' }}>Dash</text>
-        <text x="62" y="44" fill="rgba(255,255,255,0.5)" style={{ fontSize: '7px', fontWeight: 400, fontFamily: 'system-ui, sans-serif', letterSpacing: '2.5px' }}>PRACTICE</text>
-        <text x="62" y="54" fill="rgba(255,255,255,0.35)" style={{ fontSize: '7px', fontWeight: 400, fontFamily: 'system-ui, sans-serif', letterSpacing: '2.5px' }}>DASHBOARD</text>
-      </svg>
-    );
-  }
-
-  // Full size (login screen)
-  const r = 54, cx = 62, cy = 62, sw = 6, circ = 2 * Math.PI * r;
   return (
-    <svg viewBox="0 0 420 140" className={className} fill="none">
-      {animate && <Keyframes />}
-      <circle cx={cx} cy={cy} r={r} stroke="#e2e8f0" strokeWidth={sw} />
-      <circle cx={cx} cy={cy} r={r} stroke="#10b981" strokeWidth={sw}
-        strokeDasharray={circ} strokeDashoffset={circ * 0.25} strokeLinecap="round"
-        transform={`rotate(-90 ${cx} ${cy})`}
-        style={animate ? { '--gpd-circ': circ, animation: 'gpd-gauge 1s ease-out forwards' } : {}} />
-      <BarSet cx={cx} cy={cy} r={r} barWidth={8} gap={2} heights={heights} opacities={opacities} animate={animate} />
-      <text x="135" y="52" fill="#1e293b" style={{ fontSize: '46px', fontWeight: 800, fontFamily: 'system-ui, sans-serif', letterSpacing: '-2px' }}>GP</text>
-      <text x="228" y="52" fill="#10b981" style={{ fontSize: '46px', fontWeight: 300, fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.5px' }}>Dash</text>
-      <text x="135" y="78" fill="#94a3b8" style={{ fontSize: '14px', fontWeight: 400, fontFamily: 'system-ui, sans-serif', letterSpacing: '5px' }}>PRACTICE</text>
-      <text x="135" y="98" fill="#b0b8c4" style={{ fontSize: '14px', fontWeight: 300, fontFamily: 'system-ui, sans-serif', letterSpacing: '5px' }}>DASHBOARD</text>
-    </svg>
-  );
-}
+    <div className="space-y-4 animate-in">
+      <SectionHeading title="Urgent Capacity Planning" subtitle="This week + next 5 weeks">
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+          {filterNames.map(f => (
+            <button key={f} onClick={() => { setViewMode(f); setSlotOverrides(null); }}
+              className={`px-3 py-1.5 font-medium transition-colors border-r border-slate-200 last:border-r-0 capitalize ${viewMode === f ? 'bg-slate-900 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>{f}</button>
+          ))}
+        </div>
+        <SlotFilter overrides={slotOverrides} setOverrides={setSlotOverrides} knownSlotTypes={hs?.knownSlotTypes || []} title="Capacity Planning Slots" variant="light" />
+      </SectionHeading>
 
-// Light-on-dark variant for dark headers
-export function GPDashLogoLight({ size = 'compact', className = '', animate = false }) {
-  return <GPDashLogo size={size} className={className} animate={animate} />;
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="card p-4 text-center"><div className="text-3xl font-bold text-slate-900">{totalSlots}</div><div className="text-xs text-slate-500 mt-1">Total slots ({weeks.length}wk)</div></div>
+        <div className="card p-4 text-center"><div className="text-3xl font-bold text-slate-900">{avgPerDay}</div><div className="text-xs text-slate-500 mt-1">Avg per day</div></div>
+        <div className="card p-4 text-center"><div className={`text-3xl font-bold ${lowDays > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{lowDays}</div><div className="text-xs text-slate-500 mt-1">{viewMode === 'urgent' ? 'Days below target' : 'Low capacity days'}</div></div>
+      </div>
+
+      {/* Colour key */}
+      <div className="flex items-center gap-4 text-xs text-slate-500">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-200 border border-emerald-300" />{viewMode === 'urgent' ? '≥100% target' : 'High'}</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-200 border border-amber-300" />{viewMode === 'urgent' ? '80–99%' : 'Medium'}</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-200 border border-red-300" />{viewMode === 'urgent' ? '<80%' : 'Low'}</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-100 border border-slate-200" />Closed</span>
+      </div>
+
+      {/* Grid — taller cells */}
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="text-left px-4 py-3 font-semibold text-slate-700 sticky left-0 bg-slate-50 min-w-[100px]">Week</th>
+                {DAYS_SHORT.map(d => <th key={d} className="text-center px-2 py-3 font-semibold text-slate-700 min-w-[70px]">{d}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {weekData.map(({ week, days }, wi) => {
+                const weekLabel = week.monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                return (
+                  <tr key={wi} className={`border-b border-slate-100 ${wi % 2 ? 'bg-slate-50/30' : ''}`}>
+                    <td className="px-4 py-2 font-semibold text-slate-700 sticky left-0 bg-white text-sm whitespace-nowrap">{weekLabel}</td>
+                    {DAYS_SHORT.map(d => {
+                      const cap = days[d];
+                      if (!cap) return <td key={d} className="text-center px-2 py-2 text-slate-300 text-sm">–</td>;
+                      const dateStr = week.dates[d];
+                      const amC = viewMode === 'urgent' ? getCapacityColour(cap.am.total, DAY_NAMES[d], 'am', 'urgent', hs.expectedCapacity) : getGradientColour(cap.am.total, allVals);
+                      const pmC = viewMode === 'urgent' ? getCapacityColour(cap.pm.total, DAY_NAMES[d], 'pm', 'urgent', hs.expectedCapacity) : getGradientColour(cap.pm.total, allVals);
+                      const isSel = selectedCell?.dateStr === dateStr;
+                      return (
+                        <td key={d} className={`px-2 py-2 cursor-pointer transition-all ${isSel ? 'ring-2 ring-slate-900 ring-inset rounded' : 'hover:bg-slate-100'}`}
+                          onClick={() => setSelectedCell(isSel ? null : { dateStr, dayName: d })}>
+                          <div className="flex flex-col items-center gap-1">
+                            <div className={`w-full text-center rounded px-1.5 py-1.5 font-semibold text-sm border ${amC || 'text-slate-700 border-transparent'}`}>
+                              <span className="text-[10px] font-normal text-slate-400 mr-0.5">AM</span>{cap.am.total}
+                              {cap.am.embargoed > 0 && <span className="text-[10px] font-normal text-amber-500 ml-0.5">+{cap.am.embargoed}</span>}
+                              {(cap.am.booked || 0) > 0 && <span className="text-[10px] font-normal text-slate-400 ml-0.5">({cap.am.booked})</span>}
+                            </div>
+                            <div className={`w-full text-center rounded px-1.5 py-1.5 font-semibold text-sm border ${pmC || 'text-slate-700 border-transparent'}`}>
+                              <span className="text-[10px] font-normal text-slate-400 mr-0.5">PM</span>{cap.pm.total}
+                              {cap.pm.embargoed > 0 && <span className="text-[10px] font-normal text-amber-500 ml-0.5">+{cap.pm.embargoed}</span>}
+                              {(cap.pm.booked || 0) > 0 && <span className="text-[10px] font-normal text-slate-400 ml-0.5">({cap.pm.booked})</span>}
+                            </div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Fixed popup panel */}
+      {selectedCell && (() => {
+        const cap = getHuddleCapacity(huddleData, selectedCell.dateStr, hs, viewOverrides);
+        const totalBooked = (cap.am.booked || 0) + (cap.pm.booked || 0);
+        return (
+          <div className="fixed right-4 top-20 z-30 w-80 shadow-xl">
+            <div className="card overflow-hidden border-slate-300">
+              <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-3">
+                <div className="flex items-center justify-between text-white">
+                  <div>
+                    <div className="text-sm font-bold">{selectedCell.dayName} {selectedCell.dateStr}</div>
+                    <div className="text-xs opacity-80">
+                      {cap.am.total + cap.pm.total} available
+                      {(cap.am.embargoed||0) + (cap.pm.embargoed||0) > 0 ? `, ${(cap.am.embargoed||0) + (cap.pm.embargoed||0)} embargoed` : ''}
+                      {totalBooked > 0 ? `, ${totalBooked} booked` : ''}
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedCell(null)} className="text-white/70 hover:text-white text-lg leading-none">✕</button>
+                </div>
+              </div>
+              <div className="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto">
+                {[{ label: 'Morning', data: cap.am, colour: 'text-amber-600' }, { label: 'Afternoon', data: cap.pm, colour: 'text-blue-600' }].map(s => (
+                  <div key={s.label} className="p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-xs font-semibold ${s.colour}`}>{s.label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-bold ${s.colour}`}>{s.data.total}</span>
+                        {(s.data.embargoed||0) > 0 && <span className="text-xs text-amber-500">+{s.data.embargoed}</span>}
+                        {(s.data.booked||0) > 0 && <span className="text-xs text-slate-400">({s.data.booked} bkd)</span>}
+                      </div>
+                    </div>
+                    {s.data.byClinician.length > 0 ? s.data.byClinician.map((c, i) => (
+                      <div key={i} className="flex items-center justify-between py-1">
+                        <span className="text-xs text-slate-600 truncate mr-2">{c.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs font-semibold ${s.colour} tabular-nums`}>{c.available}</span>
+                          {c.embargoed > 0 && <span className="text-[10px] text-amber-500">+{c.embargoed}</span>}
+                          {(c.booked || 0) > 0 && <span className="text-[10px] text-slate-400">({c.booked})</span>}
+                        </div>
+                      </div>
+                    )) : <div className="text-xs text-slate-400">No capacity</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Chart */}
+      <div className="card overflow-hidden">
+        <div className="px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">Capacity Overview — Available / Embargoed / Booked</h2>
+            <div className="flex flex-wrap gap-1">
+              {filterNames.map(f => {
+                const isActive = chartFilters.includes(f);
+                return (
+                  <button key={f} onClick={() => {
+                    if (f === 'all') { setChartFilters(['all']); return; }
+                    let next = chartFilters.filter(x => x !== 'all');
+                    next = isActive ? next.filter(x => x !== f) : [...next, f];
+                    if (next.length === 0) next = ['urgent'];
+                    setChartFilters(next);
+                  }} className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${isActive ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                    {f}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="p-5">
+          {(() => {
+            const merged = getMergedFilterOverrides(chartFilters, hs);
+            const nowDate = new Date(), cDay = nowDate.getDay();
+            const cMon = new Date(nowDate); cMon.setDate(nowDate.getDate() - (cDay === 0 ? 6 : cDay - 1)); cMon.setHours(0,0,0,0);
+            const endD = new Date(cMon); endD.setDate(endD.getDate() + 28);
+            const chartDates = huddleData.dates.filter(d => { const dt = parseHuddleDateStr(d); return dt >= cMon && dt < endD && dt.getDay() !== 0 && dt.getDay() !== 6; });
+            if (chartDates.length === 0) return <div className="text-sm text-slate-400 text-center py-8">No data available.</div>;
+            const chartData = chartDates.map(d => ({ date: d, ...getDateTotals(huddleData, d, hs, merged) }));
+            const maxVal = Math.max(...chartData.map(d => d.available + (d.embargoed || 0) + d.booked), 1);
+            return (
+              <div>
+                <div className="flex items-center gap-5 mb-4 text-xs text-slate-600">
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gradient-to-t from-emerald-500 to-emerald-400" /> Available</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gradient-to-t from-amber-400 to-amber-300" /> Embargoed</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gradient-to-t from-slate-400 to-slate-300" /> Booked</span>
+                  <span className="text-[10px] text-slate-400 ml-auto">{chartFilters.join(' + ')}</span>
+                </div>
+                <div className="flex items-end gap-[3px]" style={{ height: '220px' }}>
+                  {chartData.map((d, i) => {
+                    const emb = d.embargoed || 0;
+                    const total = d.available + emb + d.booked;
+                    const barH = Math.round((total / maxVal) * 180);
+                    const bookedH = total > 0 ? Math.round((d.booked / total) * barH) : 0;
+                    const embH = total > 0 ? Math.round((emb / total) * barH) : 0;
+                    const availH = barH - bookedH - embH;
+                    const dt = parseHuddleDateStr(d.date);
+                    const dayL = ['','M','T','W','T','F'][dt.getDay()], dateL = dt.getDate(), isMon = dt.getDay() === 1;
+                    return (
+                      <div key={i} className={`flex-1 flex flex-col items-center justify-end ${isMon && i > 0 ? 'ml-1.5 border-l border-slate-200 pl-1.5' : ''}`}>
+                        <div className="text-[9px] text-slate-500 mb-1 font-semibold tabular-nums">{total > 0 ? total : ''}</div>
+                        <div className="w-full flex flex-col justify-end">
+                          {availH > 0 && <div className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-sm" style={{ height: `${availH}px` }} />}
+                          {embH > 0 && <div className={`w-full bg-gradient-to-t from-amber-400 to-amber-300 ${availH === 0 ? 'rounded-t-sm' : ''}`} style={{ height: `${embH}px` }} />}
+                          {bookedH > 0 && <div className={`w-full bg-gradient-to-t from-slate-400 to-slate-300 ${availH === 0 && embH === 0 ? 'rounded-t-sm' : ''}`} style={{ height: `${bookedH}px` }} />}
+                        </div>
+                        <div className="text-[9px] text-slate-400 mt-1.5 font-semibold">{dayL}</div>
+                        <div className="text-[9px] text-slate-500 leading-none">{dateL}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+    </div>
+  );
 }
