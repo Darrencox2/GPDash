@@ -165,17 +165,6 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
     return { inPractice, leaveAbsent, dayOff };
   }, [visibleStaff, csvPresentIds, absenceMap, manualPresent, manualOverride, hasCSV, rotaScheduled]);
 
-  // Group in-practice by staff group
-  const LOCATION_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
-  const sortByLocation = (arr) => arr.sort((a, b) => {
-    const la = LOCATION_SORT[personLocationMap[a.person.id]] ?? 9;
-    const lb = LOCATION_SORT[personLocationMap[b.person.id]] ?? 9;
-    return la - lb;
-  });
-  const gpTeam = sortByLocation(categories.inPractice.filter(e => e.person.group === 'gp'));
-  const nursingTeam = sortByLocation(categories.inPractice.filter(e => e.person.group === 'nursing'));
-  const othersTeam = sortByLocation(categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing'));
-
   // Map person IDs to their CSV location
   const personLocationMap = useMemo(() => {
     const map = {};
@@ -186,6 +175,17 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
     });
     return map;
   }, [allClinicians, csvLocationMap]);
+
+  // Group in-practice by staff group, sorted by location
+  const LOCATION_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
+  const sortByLocation = (arr) => arr.sort((a, b) => {
+    const la = LOCATION_SORT[personLocationMap[a.person.id]] ?? 9;
+    const lb = LOCATION_SORT[personLocationMap[b.person.id]] ?? 9;
+    return la - lb;
+  });
+  const gpTeam = sortByLocation(categories.inPractice.filter(e => e.person.group === 'gp'));
+  const nursingTeam = sortByLocation(categories.inPractice.filter(e => e.person.group === 'nursing'));
+  const othersTeam = sortByLocation(categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing'));
 
   // ── NOW safe to early return ───────────────────────────────────────
   if (!DAYS.includes(dayName) || allClinicians.length === 0) return null;
