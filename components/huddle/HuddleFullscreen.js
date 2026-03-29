@@ -285,11 +285,13 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
     const isAbsent = !!reason;
     const displayName = person.title ? `${person.title} ${person.name}` : person.name;
     const locCol = location ? LOCATION_COLOURS[location] : null;
-    return (<div className={`text-center rounded-lg border fs-slidein ${roleBg} ${isAbsent ? 'opacity-60' : ''}`} style={{animationDelay:`${delay}s`, padding: 'clamp(4px, 0.6vh, 10px) clamp(3px, 0.5vw, 8px)' }}>
-      <div className="rounded-full flex items-center justify-center font-bold mx-auto flex-shrink-0" style={{width:'clamp(22px, 3vh, 32px)',height:'clamp(22px, 3vh, 32px)',fontSize:'clamp(9px, 1.1vh, 12px)',background:isAbsent?'#fee2e2':gc.init,color:isAbsent?'#991b1b':gc.text,marginBottom:'clamp(2px,0.3vh,4px)'}}>{person.initials}</div>
-      <div className={`font-semibold leading-tight ${isAbsent ? 'line-through text-slate-400' : 'text-slate-900'}`} style={{fontSize:'clamp(9px, 1.1vh, 13px)'}}>{displayName}</div>
-      <div className="text-slate-400 leading-tight" style={{fontSize:'clamp(7px, 0.9vh, 11px)',marginTop:'1px'}}>{person.role || 'Staff'}{reason ? ` · ${reason}` : ''}</div>
-      {locCol && !isAbsent && <div className="inline-block rounded font-semibold" style={{marginTop:'clamp(1px,0.2vh,4px)',padding:'1px clamp(3px,0.4vw,6px)',fontSize:'clamp(7px,0.8vh,9px)',background:locCol.bg,color:locCol.text}}>{location}</div>}
+    return (<div className={`text-center rounded-lg border overflow-hidden fs-slidein ${roleBg} ${isAbsent ? 'opacity-60' : ''}`} style={{animationDelay:`${delay}s`}}>
+      <div style={{padding: 'clamp(4px, 0.6vh, 10px) clamp(3px, 0.5vw, 8px)'}}>
+        <div className="rounded-full flex items-center justify-center font-bold mx-auto flex-shrink-0" style={{width:'clamp(22px, 3vh, 32px)',height:'clamp(22px, 3vh, 32px)',fontSize:'clamp(9px, 1.1vh, 12px)',background:isAbsent?'#fee2e2':gc.init,color:isAbsent?'#991b1b':gc.text,marginBottom:'clamp(2px,0.3vh,4px)'}}>{person.initials}</div>
+        <div className={`font-semibold leading-tight ${isAbsent ? 'line-through text-slate-400' : 'text-slate-900'}`} style={{fontSize:'clamp(9px, 1.1vh, 13px)'}}>{displayName}</div>
+        <div className="text-slate-400 leading-tight" style={{fontSize:'clamp(7px, 0.9vh, 11px)',marginTop:'1px'}}>{person.role || 'Staff'}{reason ? ` · ${reason}` : ''}</div>
+      </div>
+      {locCol && !isAbsent && <div className="text-center font-semibold" style={{padding:'clamp(1px,0.2vh,3px) 0',fontSize:'clamp(7px,0.8vh,10px)',background:locCol.bg,color:locCol.text}}>{location}</div>}
     </div>);
   };
 
@@ -405,11 +407,14 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                   <div className="flex flex-col flex-1 overflow-auto" style={{gap:'clamp(1px,0.3vh,4px)'}}>
                     {clinicians.map((c,i) => {
                       const locCol = c.location ? LOCATION_COLOURS[c.location] : null;
+                      const locLetter = c.location ? c.location.charAt(0) : '';
                       return (
-                      <div key={i} className="flex items-center rounded-md fs-slidein" style={{animationDelay:`${0.3+i*0.06}s`,padding:'clamp(2px,0.4vh,6px) clamp(4px,0.6vw,8px)',background:si===0?'white':'rgba(255,255,255,0.6)',border:`1px solid ${s.band.border}`}}>
-                        <span className="truncate flex-1" style={{fontSize:'clamp(9px,1.1vh,12px)',color:'#475569'}}>{c.displayName}</span>
-                        {locCol && <span className="rounded font-semibold flex-shrink-0" style={{padding:'1px clamp(2px,0.3vw,5px)',fontSize:'clamp(7px,0.8vh,9px)',background:locCol.bg,color:locCol.text,marginRight:'clamp(2px,0.3vw,6px)'}}>{c.location}</span>}
-                        <span className="font-extrabold flex-shrink-0" style={{color:s.band.colour,fontSize:'clamp(11px,1.4vh,15px)',minWidth:18,textAlign:'right'}}>{c.total}</span>
+                      <div key={i} className="flex items-stretch rounded-md overflow-hidden fs-slidein" style={{animationDelay:`${0.3+i*0.06}s`,border:`1px solid ${s.band.border}`}}>
+                        <div className="flex items-center flex-1 min-w-0" style={{padding:'clamp(2px,0.4vh,6px) clamp(4px,0.6vw,8px)',background:si===0?'white':'rgba(255,255,255,0.6)'}}>
+                          <span className="truncate flex-1" style={{fontSize:'clamp(9px,1.1vh,12px)',color:'#475569'}}>{c.displayName}</span>
+                          <span className="font-extrabold flex-shrink-0" style={{color:s.band.colour,fontSize:'clamp(11px,1.4vh,15px)',minWidth:18,textAlign:'right'}}>{c.total}</span>
+                        </div>
+                        {locCol && <div className="flex items-center justify-center flex-shrink-0 font-bold" style={{width:'clamp(14px,1.8vw,20px)',background:locCol.bg,color:locCol.text,fontSize:'clamp(8px,1vh,11px)'}}>{locLetter}</div>}
                       </div>
                       );
                     })}

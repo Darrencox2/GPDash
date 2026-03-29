@@ -26,22 +26,23 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location }) {
   const locCol = location ? LOCATION_COLOURS[location] : null;
   return (
     <div draggable onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
-      className={`relative text-center rounded-lg border transition-all cursor-grab active:cursor-grabbing group ${colourClass} ${isAbsent ? 'opacity-60' : ''}`}
-      style={{ padding: '8px 6px' }}>
+      className={`relative text-center rounded-lg border overflow-hidden transition-all cursor-grab active:cursor-grabbing group ${colourClass} ${isAbsent ? 'opacity-60' : ''}`}>
       {onHide && (
         <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
-          className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 hover:text-red-500 transition-opacity absolute top-1 right-1" title="Hide">✕</button>
+          className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 hover:text-red-500 transition-opacity absolute top-1 right-1 z-10" title="Hide">✕</button>
       )}
-      <div className="flex items-center justify-center mb-1">
-        <div className="rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-          style={{ width: 28, height: 28, background: isAbsent ? '#fee2e2' : gc.init, color: isAbsent ? '#991b1b' : gc.text }}>
-          {person.initials || '?'}
+      <div style={{ padding: '8px 6px 6px' }}>
+        <div className="flex items-center justify-center mb-1">
+          <div className="rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+            style={{ width: 28, height: 28, background: isAbsent ? '#fee2e2' : gc.init, color: isAbsent ? '#991b1b' : gc.text }}>
+            {person.initials || '?'}
+          </div>
         </div>
+        <div className={`text-xs font-semibold leading-tight ${isAbsent ? 'line-through text-slate-400' : 'text-slate-900'}`}>{displayName}</div>
+        <div className="text-[10px] text-slate-400 leading-tight mt-0.5">{person.role || 'Staff'}{reason ? ` · ${reason}` : ''}</div>
       </div>
-      <div className={`text-xs font-semibold leading-tight ${isAbsent ? 'line-through text-slate-400' : 'text-slate-900'}`}>{displayName}</div>
-      <div className="text-[10px] text-slate-400 leading-tight mt-0.5">{person.role || 'Staff'}{reason ? ` · ${reason}` : ''}</div>
       {locCol && !isAbsent && (
-        <div className="mt-1 inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold" style={{ background: locCol.bg, color: locCol.text }}>{location}</div>
+        <div className="text-center text-[11px] font-semibold py-0.5" style={{ background: locCol.bg, color: locCol.text }}>{location}</div>
       )}
     </div>
   );

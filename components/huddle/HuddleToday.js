@@ -937,17 +937,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       const roleColour = ROLE_COLOURS[c.role] || 'bg-slate-50 border-slate-200';
                       const gc = c.role?.includes('Nurse') || c.role === 'HCA' || c.role === 'Nurse Associate' ? { bg: '#d1fae5', text: '#047857' } : c.role === 'ANP' || c.role?.includes('Paramedic') || c.role?.includes('Pharma') || c.role?.includes('Physio') ? { bg: '#ede9fe', text: '#6d28d9' } : { bg: '#dbeafe', text: '#1d4ed8' };
                       const locCol = c.location ? LOCATION_COLOURS[c.location] : null;
+                      const locLetter = c.location ? c.location.charAt(0) : '';
                       return (
-                        <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${roleColour}`}>
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: gc.bg, color: gc.text }}>{c.initials}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold text-slate-900 truncate">{c.displayName}</div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-slate-400">{c.role || 'Staff'}</span>
-                              {locCol && <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold" style={{ background: locCol.bg, color: locCol.text }}>{c.location}</span>}
+                        <div key={i} className={`flex items-stretch rounded-lg border overflow-hidden ${roleColour}`}>
+                          <div className="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-0">
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: gc.bg, color: gc.text }}>{c.initials}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold text-slate-900 truncate">{c.displayName}</div>
+                              <div className="text-xs text-slate-400">{c.role || 'Staff'}</div>
                             </div>
+                            <span className="text-lg font-extrabold min-w-[24px] text-right flex-shrink-0" style={{ color: band.colour }}>{c.total}</span>
                           </div>
-                          <span className="text-lg font-extrabold min-w-[24px] text-right" style={{ color: band.colour }}>{c.total}</span>
+                          {locCol && <div className="w-[22px] flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: locCol.bg, color: locCol.text }}>{locLetter}</div>}
                         </div>
                       );
                     })}
