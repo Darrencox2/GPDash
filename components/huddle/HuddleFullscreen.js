@@ -387,14 +387,23 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
               const scale = Math.max(s.slots, s.target, 1);
               const fillPct = (s.slots / scale) * 100;
               const markerPct = (s.target / scale) * 100;
-              const clinicians = (s.data?.byClinician || []).map(c => {
+              const allCliniciansList = (s.data?.byClinician || []).map(c => {
                 const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
                 return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', total: c.available + (c.embargoed || 0) };
               }).filter(c => c.total > 0).sort((a,b) => ({'Winscombe':0,'Banwell':1,'Locking':2}[a.location]??9) - ({'Winscombe':0,'Banwell':1,'Locking':2}[b.location]??9) || b.total - a.total);
               const dutySlots = hs?.dutyDoctorSlot;
               const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
               const dutyDoc = hasDuty ? getDutyDoctor(huddleData, todayDateStr, s.session, dutySlots) : null;
-              const dutyDisplay = dutyDoc ? (() => { const m = allClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc)); return { name: m?.name || dutyDoc.name, title: m?.title, location: dutyDoc.location }; })() : null;
+              const dutyDisplay = dutyDoc ? (() => {
+                const m = allClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
+                const dutyInList = allCliniciansList.find(c => matchesStaffMember(c.name, m || { name: dutyDoc.name }));
+                return { name: m?.name || dutyDoc.name, title: m?.title, location: dutyDoc.location, total: dutyInList?.total || 0 };
+              })() : null;
+              const clinicians = dutyDisplay
+                ? allCliniciansList.filter(c => !matchesStaffMember(c.name, { name: dutyDisplay.name, aliases: [] }))
+                : allCliniciansList;
+              const dutyLocCol = dutyDisplay?.location ? LOCATION_COLOURS[dutyDisplay.location] : null;
+              const dutyLocLetter = dutyDisplay?.location ? dutyDisplay.location.charAt(0) : '';
               return (
                 <div key={si} className="flex-1 flex flex-col overflow-auto" style={{padding:'clamp(6px,1vh,14px)',background:s.band.tint||'transparent',borderLeft:si===1&&isShort?`3px solid ${s.band.colour}`:si===1?'0.5px solid #e2e8f0':undefined}}>
                   <div className="flex items-center justify-between flex-shrink-0" style={{marginBottom:'clamp(2px,0.5vh,6px)'}}>
@@ -415,13 +424,16 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                     </div>
                   </div>
                   {dutyDisplay && (
-                    <div className="flex items-center rounded-md flex-shrink-0" style={{gap:'clamp(4px,0.5vw,8px)',padding:'clamp(3px,0.5vh,6px) clamp(6px,0.8vw,10px)',marginBottom:'clamp(4px,0.6vh,8px)',background:'#dc2626'}}>
-                      <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)'}} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold uppercase tracking-wide" style={{fontSize:'clamp(6px,0.7vh,8px)',color:'rgba(255,255,255,0.7)'}}>Duty doctor</div>
-                        <div className="font-bold text-white truncate" style={{fontSize:'clamp(9px,1.2vh,14px)'}}>{dutyDisplay.title ? `${dutyDisplay.title} ` : ''}{dutyDisplay.name}</div>
+                    <div className="flex items-stretch rounded-md overflow-hidden flex-shrink-0" style={{marginBottom:'clamp(4px,0.6vh,8px)',border:'2px solid #dc2626'}}>
+                      <div className="flex items-center flex-1 min-w-0" style={{gap:'clamp(4px,0.5vw,8px)',padding:'clamp(3px,0.5vh,6px) clamp(6px,0.8vw,10px)',background:'#dc2626'}}>
+                        <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)',flexShrink:0}} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold uppercase tracking-wide" style={{fontSize:'clamp(6px,0.7vh,8px)',color:'rgba(255,255,255,0.7)'}}>Duty doctor</div>
+                          <div className="font-bold text-white truncate" style={{fontSize:'clamp(9px,1.2vh,14px)'}}>{dutyDisplay.title ? `${dutyDisplay.title} ` : ''}{dutyDisplay.name}</div>
+                        </div>
+                        {dutyDisplay.total > 0 && <span className="font-extrabold text-white flex-shrink-0" style={{fontSize:'clamp(11px,1.4vh,16px)'}}>{dutyDisplay.total}</span>}
                       </div>
-                      {dutyDisplay.location && (() => { const lc = LOCATION_COLOURS[dutyDisplay.location]; return lc ? <span className="rounded font-semibold flex-shrink-0" style={{padding:'1px clamp(3px,0.4vw,6px)',fontSize:'clamp(7px,0.8vh,9px)',background:lc.bg,color:lc.text}}>{dutyDisplay.location}</span> : null; })()}
+                      {dutyLocCol && <div className="flex items-center justify-center flex-shrink-0 font-bold" style={{width:'clamp(14px,1.8vw,20px)',background:dutyLocCol.bg,color:dutyLocCol.text,fontSize:'clamp(8px,1vh,11px)'}}>{dutyLocLetter}</div>}
                     </div>
                   )}
                   <div className="flex flex-col flex-1 overflow-auto" style={{gap:'clamp(1px,0.3vh,4px)'}}>

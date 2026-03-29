@@ -856,7 +856,20 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload or drag-and-drop your EMIS CSV to see urgent capacity.</p>
           <Button onClick={() => fileRef.current?.click()}>Select CSV File</Button>
         </div>
-      ) : capacity && (
+      ) : !capacity ? (
+        <div className="card overflow-hidden">
+          <div className="py-12 px-6 text-center">
+            <div className="mx-auto mb-4" style={{ width: 64, height: 64, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <path d="M9 22V12h6v10" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-slate-700 mb-1">Practice closed</h2>
+            <p className="text-sm text-slate-400">No appointment data for {viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          </div>
+        </div>
+      ) : (
         <>
           {/* ─── URGENT ON THE DAY ─── */}
           {(() => {
@@ -895,7 +908,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             const SessionPanel = ({ label, slots, avail, emb, target, band, isShort, sessionData, dutyDoc }) => {
               const bar = barPct(slots, target);
               const LOCATION_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
-              const clinicians = (sessionData?.byClinician || [])
+              const allClinicians = (sessionData?.byClinician || [])
                 .map(c => {
                   const matched = teamClinicians.find(tc => matchesStaffMember(c.name, tc));
                   return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', initials: matched?.initials || (c.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2), total: c.available + (c.embargoed || 0) };
@@ -903,11 +916,20 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 .filter(c => c.total > 0)
                 .sort((a, b) => (LOCATION_SORT[a.location] ?? 9) - (LOCATION_SORT[b.location] ?? 9) || b.total - a.total);
 
-              // Resolve duty doctor display name
+              // Resolve duty doctor and remove from clinician list
               const dutyDocDisplay = dutyDoc ? (() => {
                 const matched = teamClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
-                return { name: matched?.name || dutyDoc.name, initials: matched?.initials || (dutyDoc.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2), title: matched?.title, location: dutyDoc.location };
+                const dutyInList = allClinicians.find(c => matchesStaffMember(c.name, matched || { name: dutyDoc.name }));
+                return { name: matched?.name || dutyDoc.name, initials: matched?.initials || (dutyDoc.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2), title: matched?.title, location: dutyDoc.location, total: dutyInList?.total || 0, csvName: dutyDoc.name };
               })() : null;
+
+              // Filter duty doctor out of the list
+              const clinicians = dutyDocDisplay
+                ? allClinicians.filter(c => !matchesStaffMember(c.name, { name: dutyDocDisplay.name, aliases: [] }))
+                : allClinicians;
+
+              const dutyLocCol = dutyDocDisplay?.location ? LOCATION_COLOURS[dutyDocDisplay.location] : null;
+              const dutyLocLetter = dutyDocDisplay?.location ? dutyDocDisplay.location.charAt(0) : '';
 
               return (
                 <div className="flex-1 p-5" style={{ background: band.tint || 'transparent', borderLeft: isShort ? `3px solid ${band.colour}` : undefined }}>
@@ -929,16 +951,16 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                   </div>
                   {dutyDocDisplay && (
-                    <div className="flex items-center gap-2.5 mb-3 px-3 py-2 rounded-lg" style={{ background: '#dc2626' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.7)' }}>Duty doctor</div>
-                        <div className="text-sm font-bold text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
+                    <div className="flex items-stretch rounded-lg overflow-hidden mb-3" style={{ border: '2px solid #dc2626' }}>
+                      <div className="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-0" style={{ background: '#dc2626' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.7)' }}>Duty doctor</div>
+                          <div className="text-sm font-bold text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
+                        </div>
+                        {dutyDocDisplay.total > 0 && <span className="text-lg font-extrabold text-white flex-shrink-0">{dutyDocDisplay.total}</span>}
                       </div>
-                      {dutyDocDisplay.location && (() => {
-                        const lc = LOCATION_COLOURS[dutyDocDisplay.location];
-                        return lc ? <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold flex-shrink-0" style={{ background: lc.bg, color: lc.text }}>{dutyDocDisplay.location}</span> : null;
-                      })()}
+                      {dutyLocCol && <div className="w-[22px] flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: dutyLocCol.bg, color: dutyLocCol.text }}>{dutyLocLetter}</div>}
                     </div>
                   )}
                   <div className="flex flex-col gap-1.5">
