@@ -69,13 +69,11 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   const dayKey = `${dateKey}-${dayName}`;
   const isViewingToday = useMemo(() => { const n = new Date(); n.setHours(0,0,0,0); const v = new Date(vd); v.setHours(0,0,0,0); return v.getTime() === n.getTime(); }, [vd]);
 
-  if (!DAYS.includes(dayName) || allClinicians.length === 0) return null;
-
   // Only show people who are visible, not left, not administrative
   const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');
   const unconfirmedCount = allClinicians.filter(c => !c.confirmed).length;
 
-  // ── Data sources ──────────────────────────────────────────────────
+  // ── Data sources (all hooks MUST be above any early return) ─────
 
   // 1. CSV: who has slots on viewed date specifically
   const viewingDateStr = `${String(vd.getDate()).padStart(2,'0')}-${vd.toLocaleString('en-GB',{month:'short'})}-${vd.getFullYear()}`;
@@ -122,13 +120,10 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
     const dayOff = [];
 
     visibleStaff.forEach(person => {
-      // 1. LTA → always absent
       if (person.longTermAbsent || person.status === 'longTermAbsent') {
         leaveAbsent.push({ person, reason: 'Long-term absent' });
         return;
       }
-
-      // 2. Manual drag override today
       if (manualPresent !== null) {
         const isManualScheduled = ensureArray(manualOverride?.scheduled || []).includes(person.id);
         if (isManualScheduled && !manualPresent.has(person.id)) {
@@ -140,26 +135,18 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           return;
         }
       }
-
-      // 3. Planned absence (TeamNet / manual)
       if (absenceMap[person.id]) {
         leaveAbsent.push({ person, reason: absenceMap[person.id] });
         return;
       }
-
-      // 4. CSV says they have slots TODAY
       if (hasCSV && csvPresentIds.has(person.id)) {
         inPractice.push({ person });
         return;
       }
-
-      // 5. No CSV: fall back to rota for buddy cover people
       if (!hasCSV && person.buddyCover && rotaScheduled.includes(person.id)) {
         inPractice.push({ person });
         return;
       }
-
-      // 6. Everyone else → day off
       dayOff.push({ person });
     });
 
@@ -170,6 +157,9 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   const gpTeam = categories.inPractice.filter(e => e.person.group === 'gp');
   const nursingTeam = categories.inPractice.filter(e => e.person.group === 'nursing');
   const othersTeam = categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing');
+
+  // ── NOW safe to early return ───────────────────────────────────────
+  if (!DAYS.includes(dayName) || allClinicians.length === 0) return null;
 
   // ── Drag handlers ─────────────────────────────────────────────────
   const handleDragStart = (e, person) => {

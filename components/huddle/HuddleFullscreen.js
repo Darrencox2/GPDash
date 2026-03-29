@@ -388,7 +388,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                       <div className="rounded-md relative" style={{height:'clamp(10px,1.5vh,18px)',background:s.band.border,marginRight:4}}>
                         <div className="absolute left-0 top-0 bottom-0 rounded-md" style={{width:`${Math.min(fillPct,100)}%`,background:s.band.colour,borderRadius:fillPct>=100?'6px':'6px 0 0 6px'}}/>
                         {s.target>0 && <div className="absolute" style={{left:`${Math.min(markerPct,100)}%`,top:-4,bottom:-4,width:3,background:s.band.textCol,borderRadius:2,marginLeft:'-1.5px',zIndex:1}}/>}
-                        {s.target>0 && <div className="absolute whitespace-nowrap z-[2]" style={{top:'-16px',...(markerPct>75?{right:`${Math.max(100-markerPct,0)}%`,transform:'translateX(50%)'}:{left:`${markerPct}%`,transform:'translateX(-50%)'})}}><span className="font-semibold px-1.5 py-0.5 rounded" style={{fontSize:'clamp(7px,0.9vh,9px)',background:s.band.colour,color:'white'}}>target {s.target}</span></div>}
+                        {s.target>0 && <div className="absolute whitespace-nowrap z-[2]" style={{top:'-16px',right:0,textAlign:'right'}}><span className="font-semibold px-1.5 py-0.5 rounded" style={{fontSize:'clamp(7px,0.9vh,9px)',background:s.band.colour,color:'white'}}>target {s.target}</span></div>}
                       </div>
                       <div className="flex justify-between" style={{marginTop:'clamp(10px,1.5vh,16px)'}}>
                         <span className="font-semibold" style={{color:s.band.colour,fontSize:'clamp(8px,1vh,10px)'}}>{s.avail} avail{s.emb>0?` · ${s.emb} emb`:''}</span>

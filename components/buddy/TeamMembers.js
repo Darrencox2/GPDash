@@ -14,20 +14,20 @@ const GROUP_COLOURS = {
 };
 
 // Debounced text input — saves on blur or after 500ms pause
-function DebouncedInput({ value, onChange, ...props }) {
+function DebouncedInput({ value, onChange, uppercase, ...rest }) {
   const [local, setLocal] = useState(value);
   const timerRef = useRef(null);
   useEffect(() => { setLocal(value); }, [value]);
   const flush = useCallback((v) => { if (timerRef.current) clearTimeout(timerRef.current); timerRef.current = null; if (v !== value) onChange(v); }, [value, onChange]);
   const handleChange = (e) => {
-    const v = props.uppercase ? e.target.value.toUpperCase() : e.target.value;
+    const v = uppercase ? e.target.value.toUpperCase() : e.target.value;
     setLocal(v);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => flush(v), 500);
   };
   const handleBlur = () => flush(local);
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
-  return <input {...props} value={local} onChange={handleChange} onBlur={handleBlur} />;
+  return <input {...rest} value={local} onChange={handleChange} onBlur={handleBlur} />;
 }
 
 export default function TeamMembers({ data, saveData, toast }) {

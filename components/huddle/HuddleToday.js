@@ -902,7 +902,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <div className="h-5 rounded-lg relative" style={{ background: band.border }}>
                         <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${Math.min(bar.fillPct, 100)}%`, background: band.colour, borderRadius: bar.fillPct >= 100 ? '8px' : '8px 0 0 8px' }} />
                         {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-8px', bottom: '-8px', width: '3px', background: band.textCol, borderRadius: '2px', marginLeft: '-1.5px' }} />}
-                        {target > 0 && <div className="absolute z-[3] whitespace-nowrap" style={{ top: '-22px', ...(bar.markerPct > 75 ? { right: `${Math.max(100 - bar.markerPct, 0)}%`, transform: 'translateX(50%)' } : { left: `${bar.markerPct}%`, transform: 'translateX(-50%)' }) }}>
+                        {target > 0 && <div className="absolute z-[3] whitespace-nowrap" style={{ top: '-22px', right: 0, textAlign: 'right' }}>
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded" style={{ background: band.colour, color: 'white' }}>target {target}</span>
                         </div>}
                       </div>
