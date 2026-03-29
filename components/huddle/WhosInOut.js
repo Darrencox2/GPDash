@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { DAYS, STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
-import { getCliniciansForDate } from '@/lib/huddle';
+import { getCliniciansForDate, getClinicianLocationsForDate, LOCATION_COLOURS } from '@/lib/huddle';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -18,11 +18,12 @@ const ROLE_COLOURS = {
   'Medical Student': 'bg-rose-50 border-rose-200 text-rose-800',
 };
 
-function PersonCard({ person, status, reason, onDragStart, onHide }) {
+function PersonCard({ person, status, reason, onDragStart, onHide, location }) {
   const gc = {gp:{init:'#dbeafe',text:'#1d4ed8'},nursing:{init:'#d1fae5',text:'#047857'},allied:{init:'#ede9fe',text:'#6d28d9'},admin:{init:'#f1f5f9',text:'#64748b'}}[person.group]||{init:'#f1f5f9',text:'#64748b'};
   const colourClass = ROLE_COLOURS[person.role] || 'bg-slate-50 border-slate-200 text-slate-700';
   const isAbsent = status === 'absent';
   const displayName = person.title ? `${person.title} ${person.name}` : person.name;
+  const locCol = location ? LOCATION_COLOURS[location] : null;
   return (
     <div draggable onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
       className={`relative text-center rounded-lg border transition-all cursor-grab active:cursor-grabbing group ${colourClass} ${isAbsent ? 'opacity-60' : ''}`}
@@ -39,6 +40,9 @@ function PersonCard({ person, status, reason, onDragStart, onHide }) {
       </div>
       <div className={`text-xs font-semibold leading-tight ${isAbsent ? 'line-through text-slate-400' : 'text-slate-900'}`}>{displayName}</div>
       <div className="text-[10px] text-slate-400 leading-tight mt-0.5">{person.role || 'Staff'}{reason ? ` · ${reason}` : ''}</div>
+      {locCol && !isAbsent && (
+        <div className="mt-1 inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold" style={{ background: locCol.bg, color: locCol.text }}>{location}</div>
+      )}
     </div>
   );
 }
@@ -94,6 +98,14 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   }, [allClinicians, todayCsvClinicians]);
 
   const hasCSV = todayCsvClinicians.length > 0;
+
+  // Location data for this date
+  const csvLocationMap = useMemo(() => {
+    if (!huddleData) return {};
+    const displayDate = huddleData.dates?.includes(viewingDateStr) ? viewingDateStr : null;
+    if (!displayDate) return {};
+    return getClinicianLocationsForDate(huddleData, displayDate);
+  }, [huddleData, viewingDateStr]);
 
   // 2. Planned absences: who is on leave today?
   const absenceMap = useMemo(() => {
@@ -157,6 +169,17 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   const gpTeam = categories.inPractice.filter(e => e.person.group === 'gp');
   const nursingTeam = categories.inPractice.filter(e => e.person.group === 'nursing');
   const othersTeam = categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing');
+
+  // Map person IDs to their CSV location
+  const personLocationMap = useMemo(() => {
+    const map = {};
+    allClinicians.forEach(person => {
+      Object.entries(csvLocationMap).forEach(([csvName, loc]) => {
+        if (matchesStaffMember(csvName, person)) map[person.id] = loc;
+      });
+    });
+    return map;
+  }, [allClinicians, csvLocationMap]);
 
   // ── NOW safe to early return ───────────────────────────────────────
   if (!DAYS.includes(dayName) || allClinicians.length === 0) return null;
@@ -240,19 +263,19 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
             <div>
               <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Clinicians ({gpTeam.length})</div>
               <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={gpTeam.length === 0}>
-                {gpTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
+                {gpTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} />)}
               </DropZone>
             </div>
             <div>
               <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Nursing ({nursingTeam.length})</div>
               <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={nursingTeam.length === 0}>
-                {nursingTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
+                {nursingTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} />)}
               </DropZone>
             </div>
             <div>
               <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Others ({othersTeam.length})</div>
               <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={othersTeam.length === 0}>
-                {othersTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
+                {othersTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} />)}
               </DropZone>
             </div>
           </div>
@@ -288,7 +311,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
                     <span className="text-xs font-semibold text-slate-700">Leave / Absent ({categories.leaveAbsent.length})</span>
                   </div>
                   <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'absent')} isEmpty={categories.leaveAbsent.length === 0}>
-                    {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
+                    {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} />)}
                   </DropZone>
                 </div>
                 <div>
@@ -297,7 +320,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
                     <span className="text-xs font-semibold text-slate-700">Day Off ({categories.dayOff.length})</span>
                   </div>
                   <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'dayoff')} isEmpty={categories.dayOff.length === 0}>
-                    {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} />)}
+                    {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} />)}
                   </DropZone>
                 </div>
               </div>

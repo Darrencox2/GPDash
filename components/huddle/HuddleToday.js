@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
-import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability } from '@/lib/huddle';
+import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability, LOCATION_COLOURS } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import DemandPredictor from './DemandPredictor';
@@ -916,12 +916,16 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     {clinicians.map((c, i) => {
                       const roleColour = ROLE_COLOURS[c.role] || 'bg-slate-50 border-slate-200';
                       const gc = c.role?.includes('Nurse') || c.role === 'HCA' || c.role === 'Nurse Associate' ? { bg: '#d1fae5', text: '#047857' } : c.role === 'ANP' || c.role?.includes('Paramedic') || c.role?.includes('Pharma') || c.role?.includes('Physio') ? { bg: '#ede9fe', text: '#6d28d9' } : { bg: '#dbeafe', text: '#1d4ed8' };
+                      const locCol = c.location ? LOCATION_COLOURS[c.location] : null;
                       return (
                         <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${roleColour}`}>
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: gc.bg, color: gc.text }}>{c.initials}</div>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold text-slate-900 truncate">{c.displayName}</div>
-                            <div className="text-xs text-slate-400 truncate">{c.role || 'Staff'}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-slate-400">{c.role || 'Staff'}</span>
+                              {locCol && <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold" style={{ background: locCol.bg, color: locCol.text }}>{c.location}</span>}
+                            </div>
                           </div>
                           <span className="text-lg font-extrabold min-w-[24px] text-right" style={{ color: band.colour }}>{c.total}</span>
                         </div>
