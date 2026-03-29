@@ -364,12 +364,15 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
         {/* LEFT COLUMN: Summary → Demand → Routine */}
         <div className="flex-1 flex flex-col min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)' }}>
 
-        {/* Summary card (compact) */}
+        {/* Summary card (merged) */}
         <div className="rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 border border-slate-800">
           <div className="flex items-center gap-3" style={{padding:'clamp(8px,1.2vh,16px) clamp(10px,1.2vw,20px)'}}>
             <div className="flex-1 min-w-0">
-              <div className="text-slate-500 uppercase tracking-wider" style={{fontSize:'clamp(8px,0.9vh,10px)',letterSpacing:'1px'}}>Today's summary</div>
-              <div className="font-extrabold" style={{fontSize:'clamp(16px,2.5vh,24px)',color:verdictText}}>{verdict}</div>
+              <div className="text-slate-500 uppercase tracking-wider" style={{fontSize:'clamp(8px,0.9vh,10px)',letterSpacing:'1px'}}>Today&apos;s summary</div>
+              <div className="flex items-center gap-2">
+                <svg style={{width:'clamp(12px,1.5vh,16px)',height:'clamp(12px,1.5vh,16px)',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke={verdictText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={coverage>=greenPct?'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z':coverage>=amberPct?'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}/></svg>
+                <span className="font-extrabold" style={{fontSize:'clamp(16px,2.5vh,24px)',color:verdictText}}>{verdict}</span>
+              </div>
               <div className="text-slate-400" style={{fontSize:'clamp(9px,1.1vh,12px)'}}>{shortfall > 0 ? `${shortfall} slots short` : `${urgentTotal - needed} above need`}</div>
             </div>
             <svg viewBox="0 0 70 44" style={{width:'clamp(50px,7vw,70px)',height:'clamp(32px,4.5vh,44px)',flexShrink:0}}>
@@ -378,39 +381,29 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
               <text x="35" y="36" textAnchor="middle" fill={verdictText} style={{fontSize:14,fontWeight:800}}>{coverage}%</text>
             </svg>
             <div className="flex gap-3" style={{flexShrink:0}}>
-              <div className="text-center"><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,9px)'}}>Demand</div><div className="font-extrabold" style={{color:'#38bdf8',fontSize:'clamp(14px,2vh,20px)'}}>{predicted}</div></div>
+              <div className="text-center"><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,9px)'}}>Prediction</div><div className="font-extrabold" style={{color:dc.text,fontSize:'clamp(14px,2vh,20px)'}}>{predicted}</div></div>
               <div className="text-center"><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,9px)'}}>Need</div><div className="font-extrabold" style={{color:'#a78bfa',fontSize:'clamp(14px,2vh,20px)'}}>{needed}</div></div>
               <div className="text-center"><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,9px)'}}>Have</div><div className="font-extrabold" style={{color:'#34d399',fontSize:'clamp(14px,2vh,20px)'}}>{urgentTotal}</div></div>
             </div>
           </div>
+          {topFactors.length > 0 && <div className="flex gap-1 flex-wrap border-t border-slate-800" style={{padding:'clamp(4px,0.6vh,8px) clamp(10px,1.2vw,20px)'}}>
+            {topFactors.map((f,i) => <span key={i} style={{fontSize:'clamp(8px,0.9vh,10px)',fontWeight:600,padding:'2px 6px',borderRadius:3,background:'#1e293b',color:f.effect>=0?'#60a5fa':'#34d399'}}>{f.effect>=0?'↑':'↓'} {f.label} {f.effect>0?'+':''}{Math.round(f.effect)}</span>)}
+          </div>}
         </div>
 
-        {/* Demand — dark card */}
-        <div className="rounded-xl bg-slate-900 overflow-hidden flex flex-col border border-slate-800">
+        {/* Demand chart — dark card */}
+        <div className="rounded-xl bg-slate-900 overflow-hidden flex flex-col border border-slate-800 flex-1">
           <div className="flex items-center justify-between border-b border-slate-800 flex-shrink-0" style={{padding:'clamp(4px,0.7vh,10px) clamp(8px,1vw,16px)'}}>
-            <div className="flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span className="font-semibold text-slate-200" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>Predicted demand</span></div>
-            <span className="text-slate-600" style={{fontSize:'clamp(8px,1vh,12px)'}}>Model v2.0</span>
-          </div>
-          <div className="flex items-stretch flex-1 min-h-0">
-            <div className="flex flex-col justify-center border-r border-slate-800" style={{minWidth:'clamp(120px,14vw,190px)',padding:'clamp(6px,1vh,16px) clamp(8px,1.2vw,20px)'}}>
-              <div className="text-slate-500 uppercase tracking-wider" style={{fontSize:'clamp(8px,1vh,12px)'}}>Today&apos;s forecast</div>
-              <div className="font-extrabold leading-none mt-1 fs-popin" style={{color:dc.text,fontSize:'clamp(32px,6vh,56px)'}}>{t?.predicted||'—'}</div>
-              <div className="text-slate-400 mt-1" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>patient requests</div>
-              {t && <div className="mt-1"><span className="font-semibold rounded" style={{background:dc.bg,color:dc.text,fontSize:'clamp(9px,1.1vh,12px)',padding:'2px 8px'}}>{dc.label}</span></div>}
-              {t && vsPct!==0 && <div className="text-slate-500 fs-breathe" style={{marginTop:'clamp(2px,0.5vh,8px)',fontSize:'clamp(8px,1vh,12px)'}}><span style={{color:vsPct>=0?'#fbbf24':'#34d399'}}>{Math.abs(vsPct)}% {vsPct>=0?'above':'below'}</span> typical {DOW_NAMES[dowIdx]} in {MONTH_SHORT[monthIdx]}</div>}
-              {t && <div className="flex items-center gap-2 bg-slate-800 rounded-lg" style={{marginTop:'clamp(4px,0.7vh,12px)',padding:'clamp(4px,0.5vh,8px)'}}>
-                <div className="text-center"><div className="font-bold text-slate-400" style={{fontSize:'clamp(12px,1.5vh,18px)'}}>{t.confidence.low}</div><div className="text-slate-600 uppercase" style={{fontSize:'clamp(6px,0.8vh,8px)'}}>Low</div></div>
-                <div className="flex-1 h-1 rounded-full bg-slate-700 relative"><div className="absolute left-0 top-0 h-full rounded-full" style={{width:`${rangePct}%`,background:'linear-gradient(90deg, #10b981, #f59e0b)'}}/><div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-slate-900" style={{left:`${rangePct}%`,marginLeft:'-5px'}}/></div>
-                <div className="text-center"><div className="font-bold text-slate-400" style={{fontSize:'clamp(12px,1.5vh,18px)'}}>{t.confidence.high}</div><div className="text-slate-600 uppercase" style={{fontSize:'clamp(6px,0.8vh,8px)'}}>High</div></div>
-              </div>}
-            </div>
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="flex-1 px-2 pt-2 relative" style={{minHeight:'clamp(60px,10vh,140px)'}}><canvas ref={chartRef}/></div>
-              <div className="grid grid-cols-5 divide-x divide-slate-800 border-t border-slate-800">
-                {topFactors.map((f,i) => (<div key={i} className="text-center fs-fadein" style={{animationDelay:`${0.5+i*0.1}s`,padding:'clamp(2px,0.5vh,8px) clamp(2px,0.3vw,8px)'}}><div className="text-slate-500 uppercase truncate" style={{fontSize:'clamp(7px,0.9vh,10px)'}}>{f.label}</div><div className={`font-bold ${f.effect>=0?'text-blue-400':'text-emerald-400'}`} style={{fontSize:'clamp(12px,1.8vh,18px)'}}>{f.effect>0?'+':''}{Math.round(f.effect)}</div><div className="text-slate-600 truncate" style={{fontSize:'clamp(7px,0.9vh,10px)'}}>{f.desc}</div></div>))}
-                {topFactors.length<5 && Array.from({length:5-topFactors.length}).map((_,i)=><div key={`e${i}`} style={{padding:'clamp(2px,0.5vh,8px)'}}/>)}
+            <div className="flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span className="font-semibold text-slate-200" style={{fontSize:'clamp(10px,1.3vh,14px)'}}>14-day demand forecast</span></div>
+            <div className="flex items-center gap-3">
+              <div className="flex gap-2" style={{fontSize:'clamp(7px,0.9vh,10px)'}}>
+                <span className="flex items-center gap-1 text-slate-500"><span style={{width:10,height:2,background:'#94a3b8',display:'inline-block'}}/>Past</span>
+                <span className="flex items-center gap-1 text-slate-500"><span style={{width:10,height:2,background:'#38bdf8',display:'inline-block'}}/>Forecast</span>
               </div>
             </div>
+          </div>
+          <div className="flex-1 flex flex-col min-h-0" style={{padding:'clamp(4px,0.5vh,8px)'}}>
+            <div className="flex-1 px-2 pt-1 relative" style={{minHeight:'clamp(60px,10vh,140px)'}}><canvas ref={chartRef}/></div>
           </div>
         </div>
 

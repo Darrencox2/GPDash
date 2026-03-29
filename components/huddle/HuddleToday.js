@@ -4,7 +4,6 @@ import { Button, Card, SectionHeading } from '@/components/ui';
 import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
-import DemandPredictor from './DemandPredictor';
 import DemandCapacityConnector from './DemandCapacityConnector';
 import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, normalizeName, matchesStaffMember } from '@/lib/data';
@@ -764,8 +763,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => setIsFullscreen(true)} className="w-9 h-9 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors" title="Fullscreen huddle board">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+              <button onClick={() => setIsFullscreen(true)} className="h-9 px-3 rounded-lg flex items-center gap-2 text-white/50 hover:text-white hover:bg-white/10 transition-colors" title="Fullscreen huddle board">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+                <span className="text-xs font-medium">Huddle board</span>
               </button>
               <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
               <div className="flex flex-col items-end">
@@ -841,9 +841,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
       {/* DEMAND vs CAPACITY CONNECTOR */}
       <DemandCapacityConnector viewingDate={viewingDate} huddleData={huddleData} capacity={capacity} hs={hs} data={data} saveData={saveData} urgentOverrides={urgentOverrides} />
-
-      {/* DEMAND PREDICTOR */}
-      <DemandPredictor viewingDate={viewingDate} />
 
       {/* WHO'S IN / OUT */}
       <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />
