@@ -5,6 +5,7 @@ import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import DemandPredictor from './DemandPredictor';
+import DemandCapacityConnector from './DemandCapacityConnector';
 import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, normalizeName, matchesStaffMember } from '@/lib/data';
 
@@ -436,8 +437,10 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
         {/* Threshold divider lines */}
         {thresholdIndices.map((tidx, ti) => {
           if (tidx < 0) return null;
-          const totalBars = days.length;
-          const pct = ((tidx + 1) / totalBars) * 100;
+          // Calculate position based on actual flex widths (weekends=0.3, workdays=1)
+          const flexBefore = days.slice(0, tidx).reduce((sum, d) => sum + (d.isWeekend ? 0.3 : 1), 0);
+          const totalFlex = days.reduce((sum, d) => sum + (d.isWeekend ? 0.3 : 1), 0);
+          const pct = (flexBefore / totalFlex) * 100;
           return (
             <div key={`t${ti}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{ left: `${pct}%` }}>
               <div className="absolute top-0 bottom-0 w-px" style={{ background: '#94a3b8', opacity: 0.4 }} />
@@ -835,6 +838,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           </div>
         </div>
       </div>
+
+      {/* DEMAND vs CAPACITY CONNECTOR */}
+      <DemandCapacityConnector viewingDate={viewingDate} huddleData={huddleData} capacity={capacity} hs={hs} data={data} saveData={saveData} urgentOverrides={urgentOverrides} />
 
       {/* DEMAND PREDICTOR */}
       <DemandPredictor viewingDate={viewingDate} />
