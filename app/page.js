@@ -14,6 +14,7 @@ import HuddleToday from '@/components/huddle/HuddleToday';
 import HuddleForward from '@/components/huddle/HuddleForward';
 import HuddleSettings from '@/components/huddle/HuddleSettings';
 import HuddleHistory from '@/components/huddle/HuddleHistory';
+import MyRota from '@/components/huddle/MyRota';
 
 export default function Home() {
   return (
@@ -41,6 +42,12 @@ function AppContent() {
   const [huddleData, setHuddleData] = useState(null);
   const [huddleMessages, setHuddleMessages] = useState([]);
   const huddleLoadedRef = useRef(false);
+
+  // Hash routing for direct links (e.g. gpdash.net#rota-TM)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#rota-')) setActiveSection('huddle-rota');
+  }, []);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('buddy_password');
@@ -250,6 +257,7 @@ function AppContent() {
           {activeSection === 'buddy-daily' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} />}
           {activeSection === 'buddy-week' && <BuddyWeek data={data} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} toast={toast} helpers={helpers} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
+          {activeSection === 'huddle-rota' && <MyRota data={data} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-settings' && <HuddleSettings data={data} saveData={saveData} setActiveSection={setActiveSection} huddleData={huddleData} />}
           {activeSection === 'huddle-history' && <HuddleHistory data={data} huddleData={huddleData} setActiveSection={setActiveSection} />}

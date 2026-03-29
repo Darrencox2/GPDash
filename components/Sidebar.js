@@ -10,6 +10,7 @@ const NAV_SECTIONS = [
     colour: 'teal',
     items: [
       { id: 'huddle-today', label: 'Today' },
+      { id: 'huddle-rota', label: 'My Rota' },
       { id: 'huddle-forward', label: 'Capacity Planning' },
       { id: 'huddle-history', label: 'History' },
       { id: 'huddle-settings', label: 'Settings' },
