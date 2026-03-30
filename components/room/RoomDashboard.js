@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { autoAllocateRooms, ROOM_TYPES, matchesRecurrence } from '@/lib/roomAllocation';
+import { autoAllocateRooms, DEFAULT_DEFAULT_ROOM_TYPES, getRoomTypes, matchesRecurrence } from '@/lib/roomAllocation';
 import { matchesStaffMember, toLocalIso } from '@/lib/data';
 import { getCliniciansForDate, LOCATION_COLOURS } from '@/lib/huddle';
 import { predictDemand } from '@/lib/demandPredictor';
@@ -12,18 +12,27 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
   const [session, setSession] = useState('am');
   const [editMode, setEditMode] = useState(false);
   const [dragPerson, setDragPerson] = useState(null);
+  const [viewingDate, setViewingDate] = useState(new Date());
 
   const selectedSite = sites.find(s => s.id === selectedSiteId);
-  const today = new Date();
-  const todayStr = toLocalIso(today);
-  const pred = predictDemand(today, null);
+  const dateStr = toLocalIso(viewingDate);
+  const pred = predictDemand(viewingDate, null);
   const isBH = pred?.isBankHoliday || false;
+  const isToday = dateStr === toLocalIso(new Date());
+
+  const navigateDay = (dir) => {
+    const d = new Date(viewingDate);
+    d.setDate(d.getDate() + dir);
+    // Skip weekends
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + dir);
+    setViewingDate(d);
+  };
 
   // Get CSV date string
   const csvDateStr = useMemo(() => {
-    const d = new Date(todayStr + 'T12:00:00');
+    const d = new Date(dateStr + 'T12:00:00');
     return `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`;
-  }, [todayStr]);
+  }, [dateStr]);
 
   // Get clinicians at each site from CSV for this session
   const cliniciansAtSite = useMemo(() => {
@@ -39,6 +48,8 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
     csvClinicians.forEach(csvName => {
       const clin = allClinicians.find(c => matchesStaffMember(csvName, c));
       if (!clin) return;
+      // Skip administrative staff — they don't need rooms
+      if (clin.status === 'administrative' || clin.group === 'admin') return;
       // Determine this clinician's location for this session
       const clinIdx = huddleData.clinicians.indexOf(csvName);
       const clinLocations = locData[clinIdx];
@@ -63,17 +74,17 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
     return autoAllocateRooms(
       selectedSite, session, cliniciansAtSite,
       ra.recurringBookings || [], ra.adHocBookings || [],
-      todayStr, allClinicians, ra.clinicianPriority || [],
+      dateStr, allClinicians, ra.clinicianPriority || [],
       ra.dailyOverrides || {}
     );
-  }, [selectedSite, session, cliniciansAtSite, ra, todayStr, isBH, data?.clinicians]);
+  }, [selectedSite, session, cliniciansAtSite, ra, dateStr, isBH, data?.clinicians]);
 
   const allClinicians = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians || {});
 
   // Edit mode: drag clinician to room
   const handleDrop = (roomId) => {
     if (!dragPerson || !selectedSite) return;
-    const overrideKey = `${todayStr}-${session}`;
+    const overrideKey = `${dateStr}-${session}`;
     const currentOverride = { ...(ra.dailyOverrides?.[selectedSite.id]?.[overrideKey] || allocation.assignments) };
     // Remove person from old room
     Object.keys(currentOverride).forEach(rId => {
@@ -89,7 +100,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
 
   const removeOverride = () => {
     if (!selectedSite) return;
-    const overrideKey = `${todayStr}-${session}`;
+    const overrideKey = `${dateStr}-${session}`;
     const newSiteOverrides = { ...(ra.dailyOverrides?.[selectedSite.id] || {}) };
     delete newSiteOverrides[overrideKey];
     const newOverrides = { ...ra.dailyOverrides, [selectedSite.id]: newSiteOverrides };
@@ -97,7 +108,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
     toast('Reset to auto-allocation', 'success');
   };
 
-  const hasOverrides = selectedSite && ra.dailyOverrides?.[selectedSite.id]?.[`${todayStr}-${session}`];
+  const hasOverrides = selectedSite && ra.dailyOverrides?.[selectedSite.id]?.[`${dateStr}-${session}`];
 
   if (sites.length === 0) return (
     <div className="card p-12 text-center">
@@ -115,12 +126,20 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
           <div className="flex items-center gap-2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             <span className="text-sm font-semibold text-white">Room Allocation</span>
-            <span className="text-xs text-white/60 ml-2">{today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
           </div>
           <div className="flex items-center gap-2">
             {hasOverrides && <button onClick={removeOverride} className="text-xs text-white/60 hover:text-white">Reset overrides</button>}
             <button onClick={() => setEditMode(!editMode)} className={`px-3 py-1 rounded text-xs font-medium transition-colors ${editMode ? 'bg-white text-indigo-600' : 'bg-white/20 text-white hover:bg-white/30'}`}>{editMode ? 'Done' : 'Edit'}</button>
           </div>
+        </div>
+
+        {/* Day navigation */}
+        <div className="px-5 py-2 border-b border-indigo-400/20 bg-indigo-700/30 flex items-center justify-center gap-3">
+          <button onClick={() => navigateDay(-1)} className="text-white/60 hover:text-white text-sm font-bold px-2">◀</button>
+          <span className="text-sm font-semibold text-white min-w-[200px] text-center">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}</span>
+          <button onClick={() => navigateDay(1)} className="text-white/60 hover:text-white text-sm font-bold px-2">▶</button>
+          {!isToday && <button onClick={() => setViewingDate(new Date())} className="text-xs px-2 py-0.5 rounded bg-white/20 text-white hover:bg-white/30 ml-2">Today</button>}
+        </div>
         </div>
 
         {/* Site tabs + session toggle */}
@@ -149,16 +168,17 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
               {(selectedSite.rooms || []).filter(r => r.isClinical !== false).map(room => {
                 const assigned = allocation.assignments[room.id];
                 const isOv = assigned?.isOverride;
-                const roomTypes = (room.types || []).map(t => ROOM_TYPES.find(rt => rt.id === t)).filter(Boolean);
+                const roomTypes = getRoomTypes(ra);
+                const roomTypeDots = (room.types || []).map(t => roomTypes.find(rt => rt.id === t)).filter(Boolean);
                 return (
                   <div key={room.id}
                     className={`rounded-xl border-2 transition-all duration-150 ${editMode ? 'cursor-pointer' : ''} ${assigned ? 'border-slate-200' : 'border-dashed border-slate-300'}`}
                     style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'-1px'} : undefined}
                     onDragOver={editMode ? e => e.preventDefault() : undefined}
                     onDrop={editMode ? () => handleDrop(room.id) : undefined}>
-                    <div className="px-3 py-2 border-b border-slate-100" style={{background: (selectedSite.colour || '#6366f1') + '10'}}>
-                      <div className="text-xs font-semibold text-slate-700">{room.name}</div>
-                      <div className="flex gap-1 mt-0.5">{roomTypes.map(rt => <span key={rt.id} className="text-[8px] font-bold px-1 py-0.5 rounded" style={{background:rt.colour + '20',color:rt.colour}}>{rt.label}</span>)}</div>
+                    <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2" style={{background: (selectedSite.colour || '#6366f1') + '10'}}>
+                      <div className="text-xs font-semibold text-slate-700 flex-1">{room.name}</div>
+                      <div className="flex gap-1">{roomTypeDots.map(rt => <span key={rt.id} className="w-2 h-2 rounded-full flex-shrink-0" style={{background:rt.colour}} title={rt.label} />)}</div>
                     </div>
                     <div className="p-3 min-h-[60px] flex items-center justify-center">
                       {assigned ? (
@@ -233,9 +253,11 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
 
             {/* Key */}
             <div className="flex items-center gap-4 mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-500 flex-wrap">
+              {getRoomTypes(ra).map(rt => <span key={rt.id} className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{background:rt.colour}} />{rt.label}</span>)}
+              <span className="text-slate-300">|</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{background:selectedSite?.colour || '#6366f1'}} />Assigned</span>
-              <span className="flex items-center gap-1"><span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-blue-500 text-white" style={{fontSize:8,fontWeight:800}}>?</span>Not in preferred room</span>
-              <span className="flex items-center gap-1"><span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-400 text-white" style={{fontSize:8,fontWeight:800}}>!</span>Manual override</span>
+              <span className="flex items-center gap-1"><span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-blue-500 text-white" style={{fontSize:8,fontWeight:800}}>?</span>Not preferred</span>
+              <span className="flex items-center gap-1"><span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-400 text-white" style={{fontSize:8,fontWeight:800}}>!</span>Override</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-400" />Unassigned</span>
             </div>
 

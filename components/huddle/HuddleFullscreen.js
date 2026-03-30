@@ -231,7 +231,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
 
   // ── Capacity ──────────────────────────────────────────────────
   const displayDate = huddleData?.dates?.includes(todayDateStr) ? todayDateStr : null;
-  const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs) : null;
+  const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs, saved.urgent || null) : null;
   const urgentAm = (capacity?.am?.total||0) + (capacity?.am?.embargoed||0);
   const availAm = capacity?.am?.total||0, embAm = capacity?.am?.embargoed||0;
   const urgentPm = (capacity?.pm?.total||0) + (capacity?.pm?.embargoed||0);
@@ -538,7 +538,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
               </div>
             ))}</div>}
             <div className="flex-1 flex flex-col" style={{minHeight:'clamp(80px,12vh,200px)'}}>
-              <div className="flex justify-between" style={{marginBottom:'clamp(1px,0.3vh,4px)'}}><span className="text-slate-400" style={{fontSize:'clamp(8px, 1.1vh, 14px)'}}>All routine · 30 days</span><div className="flex text-slate-400" style={{gap:'clamp(3px,0.5vw,8px)',fontSize:'clamp(7px, 1vh, 14px)'}}><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-400"/>Avail</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-amber-300"/>Emb</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-slate-300"/>Bkd</span></div></div>
+              <div className="flex justify-between" style={{marginBottom:'clamp(1px,0.3vh,4px)'}}><span className="text-slate-400" style={{fontSize:'clamp(8px, 1.1vh, 14px)'}}>All routine · 30 days</span><div className="flex text-slate-400" style={{gap:'clamp(3px,0.5vw,8px)',fontSize:'clamp(7px, 1vh, 14px)'}}><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-400"/>Avail</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-amber-300"/>Emb</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444'}}/>Bkd</span></div></div>
               <div className="flex-1 flex items-end gap-px relative">
                 {(() => { const thresholds=[3,7,14,21]; let calDay=0; const calDays=routineDays.map(()=>calDay++); return thresholds.map(t => { const idx=calDays.findIndex(cd=>cd>=t); if(idx<0) return null; const pctPos=((idx+1)/routineDays.length)*100; return <div key={`t${t}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{left:`${pctPos}%`}}><div className="absolute top-0 bottom-0 w-px" style={{background:'#94a3b8',opacity:0.4}}/><div className="absolute left-1/2 -translate-x-1/2 px-1 rounded bg-white border border-slate-200 text-slate-400 font-semibold whitespace-nowrap" style={{top:'-2px',fontSize:'clamp(7px, 0.9vh, 13px)'}}>{t}d</div></div>; }); })()}
                 {routineDays.map((d,i) => {
@@ -550,7 +550,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                     <div style={{height:`${pct}%`,display:'flex',flexDirection:'column',justifyContent:'flex-end',transformOrigin:'bottom',transform:'scaleY(0)',animation:`fsGrowbar 0.8s ease ${delay}s forwards, fsBarBreathe 5s ease-in-out ${delay+3}s infinite`}}>
                       {avail>0 && <div style={{height:`${(avail/total)*100}%`,background:'#10b981',borderRadius:'2px 2px 0 0',minHeight:1}}/>}
                       {emb>0 && <div style={{height:`${(emb/total)*100}%`,background:'#fbbf24',minHeight:1}}/>}
-                      {bkd>0 && <div style={{height:`${(bkd/total)*100}%`,background:'#cbd5e1',borderRadius:'0 0 2px 2px',minHeight:1}}/>}
+                      {bkd>0 && <div style={{height:`${(bkd/total)*100}%`,background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444',borderRadius:'0 0 2px 2px',minHeight:1}}/>}
                     </div></div>);
                 })}
               </div>

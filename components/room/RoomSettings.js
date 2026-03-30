@@ -1,7 +1,6 @@
 'use client';
-import { useState, useMemo, useRef, useCallback } from 'react';
-import { GRID_SIZES, ROOM_TYPES, SITE_COLOUR_PRESETS, RECURRENCE_LABELS, DAY_LABELS, describeRecurrence } from '@/lib/roomAllocation';
-import { matchesStaffMember } from '@/lib/data';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { GRID_SIZES, DEFAULT_ROOM_TYPES, getRoomTypes, SITE_COLOUR_PRESETS, RECURRENCE_LABELS, DAY_LABELS, describeRecurrence } from '@/lib/roomAllocation';
 
 export default function RoomSettings({ data, saveData, toast, huddleData }) {
   const ra = data?.roomAllocation || {};
@@ -11,9 +10,10 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
   const [dragStart, setDragStart] = useState(null);
   const [dragCurrent, setDragCurrent] = useState(null);
   const [showAddSite, setShowAddSite] = useState(false);
-  const [tab, setTab] = useState('grid'); // grid | bookings | priority
-  const gridRef = useRef(null);
-
+  const [editBooking, setEditBooking] = useState(null);
+  const [dragPriorityId, setDragPriorityId] = useState(null);
+  const gridContainerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(700);
   const selectedSite = sites.find(s => s.id === selectedSiteId);
   const csvLocations = useMemo(() => {
     if (!huddleData) return [];
@@ -25,313 +25,193 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
     });
     return Array.from(locs).filter(Boolean).sort();
   }, [huddleData]);
-
+  useEffect(() => {
+    const el = gridContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => { if (entries[0]) setContainerWidth(entries[0].contentRect.width); });
+    ro.observe(el);
+    setContainerWidth(el.offsetWidth);
+    return () => ro.disconnect();
+  }, [selectedSiteId]);
   const save = (newRA) => saveData({ ...data, roomAllocation: newRA });
-
-  // Site management
   const addSite = (name, colour, gridSize) => {
     const id = 'site_' + Date.now();
-    const newSites = [...sites, { id, name, colour, gridSize: gridSize || 'small', rooms: [] }];
-    save({ ...ra, sites: newSites });
-    setSelectedSiteId(id);
-    setShowAddSite(false);
-    toast('Site added', 'success');
+    save({ ...ra, sites: [...sites, { id, name, colour, gridSize: gridSize || 'small', rooms: [] }] });
+    setSelectedSiteId(id); setShowAddSite(false); toast('Site added', 'success');
   };
-
-  const updateSite = (siteId, updates) => {
-    const newSites = sites.map(s => s.id === siteId ? { ...s, ...updates } : s);
-    save({ ...ra, sites: newSites });
-  };
-
+  const updateSite = (siteId, updates) => save({ ...ra, sites: sites.map(s => s.id === siteId ? { ...s, ...updates } : s) });
   const deleteSite = (siteId) => {
     if (!confirm('Delete this site and all its rooms?')) return;
     save({ ...ra, sites: sites.filter(s => s.id !== siteId) });
-    setSelectedSiteId(sites.find(s => s.id !== siteId)?.id || null);
-    toast('Site deleted', 'success');
+    setSelectedSiteId(sites.find(s => s.id !== siteId)?.id || null); toast('Site deleted', 'success');
   };
-
   const convertGridSize = (siteId, newSize) => {
-    const site = sites.find(s => s.id === siteId);
-    if (!site) return;
-    const newGrid = GRID_SIZES[newSize];
-    const rooms = site.rooms || [];
+    const site = sites.find(s => s.id === siteId); if (!site) return;
+    const newGrid = GRID_SIZES[newSize]; const rooms = site.rooms || [];
     if (rooms.length === 0) { updateSite(siteId, { gridSize: newSize }); return; }
-    const minX = Math.min(...rooms.map(r => r.x));
-    const maxX = Math.max(...rooms.map(r => r.x + (r.w || 1) - 1));
-    const minY = Math.min(...rooms.map(r => r.y));
-    const maxY = Math.max(...rooms.map(r => r.y + (r.h || 1) - 1));
-    const clusterW = maxX - minX + 1;
-    const clusterH = maxY - minY + 1;
-    if (clusterW > newGrid.cols || clusterH > newGrid.rows) { toast('Rooms too large for this grid size', 'error'); return; }
-    const offsetX = Math.floor((newGrid.cols - clusterW) / 2) - minX;
-    const offsetY = Math.floor((newGrid.rows - clusterH) / 2) - minY;
-    const movedRooms = rooms.map(r => ({ ...r, x: r.x + offsetX, y: r.y + offsetY }));
-    updateSite(siteId, { gridSize: newSize, rooms: movedRooms });
-    toast(`Converted to ${GRID_SIZES[newSize].label}`, 'success');
+    const minX = Math.min(...rooms.map(r => r.x)), maxX = Math.max(...rooms.map(r => r.x + (r.w || 1) - 1));
+    const minY = Math.min(...rooms.map(r => r.y)), maxY = Math.max(...rooms.map(r => r.y + (r.h || 1) - 1));
+    if (maxX - minX + 1 > newGrid.cols || maxY - minY + 1 > newGrid.rows) { toast('Rooms too large for this grid size', 'error'); return; }
+    const offsetX = Math.floor((newGrid.cols - (maxX - minX + 1)) / 2) - minX;
+    const offsetY = Math.floor((newGrid.rows - (maxY - minY + 1)) / 2) - minY;
+    updateSite(siteId, { gridSize: newSize, rooms: rooms.map(r => ({ ...r, x: r.x + offsetX, y: r.y + offsetY })) });
+    toast('Grid resized', 'success');
   };
-
-  // Room management
-  const addRoom = (x, y, w, h) => {
-    if (!selectedSite) return;
-    const id = 'room_' + Date.now();
-    const newRoom = { id, name: `Room ${(selectedSite.rooms?.length || 0) + 1}`, x, y, w: w || 1, h: h || 1, types: [], isClinical: true };
-    setEditingRoom(newRoom);
-  };
-
-  const saveRoom = (room) => {
-    if (!selectedSite) return;
-    const existing = selectedSite.rooms.find(r => r.id === room.id);
-    const newRooms = existing ? selectedSite.rooms.map(r => r.id === room.id ? room : r) : [...selectedSite.rooms, room];
-    updateSite(selectedSite.id, { rooms: newRooms });
-    setEditingRoom(null);
-  };
-
-  const deleteRoom = (roomId) => {
-    if (!selectedSite) return;
-    updateSite(selectedSite.id, { rooms: selectedSite.rooms.filter(r => r.id !== roomId) });
-    setEditingRoom(null);
-    toast('Room deleted', 'success');
-  };
-
-  // Check if a cell is occupied by any room (excluding a specific room)
-  // Grid config — must be before hooks that reference it
+  const saveRoom = (room) => { if (!selectedSite) return; const existing = selectedSite.rooms.find(r => r.id === room.id); updateSite(selectedSite.id, { rooms: existing ? selectedSite.rooms.map(r => r.id === room.id ? room : r) : [...selectedSite.rooms, room] }); setEditingRoom(null); };
+  const deleteRoom = (roomId) => { if (!selectedSite) return; updateSite(selectedSite.id, { rooms: selectedSite.rooms.filter(r => r.id !== roomId) }); setEditingRoom(null); toast('Room deleted', 'success'); };
   const grid = selectedSite ? GRID_SIZES[selectedSite.gridSize] || GRID_SIZES.small : GRID_SIZES.small;
-  const cellSize = 80;
-
+  const cellSize = Math.max(36, Math.floor((containerWidth - 4) / grid.cols));
   const isCellOccupied = useCallback((x, y, excludeId) => {
     if (!selectedSite) return false;
     return selectedSite.rooms.some(r => r.id !== excludeId && x >= r.x && x < r.x + (r.w || 1) && y >= r.y && y < r.y + (r.h || 1));
   }, [selectedSite]);
-
   const canPlaceRoom = useCallback((x, y, w, h, excludeId) => {
-    for (let cx = x; cx < x + w; cx++) {
-      for (let cy = y; cy < y + h; cy++) {
-        if (cx >= grid.cols || cy >= grid.rows) return false;
-        if (isCellOccupied(cx, cy, excludeId)) return false;
-      }
-    }
+    for (let cx = x; cx < x + w; cx++) for (let cy = y; cy < y + h; cy++) { if (cx >= grid.cols || cy >= grid.rows || isCellOccupied(cx, cy, excludeId)) return false; }
     return true;
   }, [grid, isCellOccupied]);
-
-  const moveRoom = (roomId, newX, newY) => {
-    if (!selectedSite) return;
-    const room = selectedSite.rooms.find(r => r.id === roomId);
-    if (!room) return;
-    const w = room.w || 1, h = room.h || 1;
-    if (!canPlaceRoom(newX, newY, w, h, roomId)) return;
-    updateSite(selectedSite.id, { rooms: selectedSite.rooms.map(r => r.id === roomId ? { ...r, x: newX, y: newY } : r) });
-  };
-
+  const moveRoom = (roomId, newX, newY) => { const room = selectedSite?.rooms?.find(r => r.id === roomId); if (!room || !canPlaceRoom(newX, newY, room.w || 1, room.h || 1, roomId)) return; updateSite(selectedSite.id, { rooms: selectedSite.rooms.map(r => r.id === roomId ? { ...r, x: newX, y: newY } : r) }); };
   const getRoomAt = (x, y) => selectedSite?.rooms?.find(r => x >= r.x && x < r.x + (r.w || 1) && y >= r.y && y < r.y + (r.h || 1));
-
-  const handleGridMouseDown = (x, y, e) => {
-    if (!selectedSite) return;
-    const existing = getRoomAt(x, y);
-    if (existing) {
-      e.preventDefault();
-      setDragStart({ roomId: existing.id, x, y, mode: 'move', origX: existing.x, origY: existing.y });
-    } else {
-      e.preventDefault();
-      setDragStart({ x, y, mode: 'create' });
-      setDragCurrent({ x, y });
-    }
-  };
-
-  const handleGridMouseMove = (x, y) => {
-    if (dragStart) setDragCurrent({ x, y });
-  };
-
+  const handleGridMouseDown = (x, y, e) => { if (!selectedSite) return; e.preventDefault(); const existing = getRoomAt(x, y); if (existing) setDragStart({ roomId: existing.id, x, y, mode: 'move' }); else { setDragStart({ x, y, mode: 'create' }); setDragCurrent({ x, y }); } };
+  const handleGridMouseMove = (x, y) => { if (dragStart) setDragCurrent({ x, y }); };
   const handleGridMouseUp = (x, y) => {
     if (!dragStart) return;
     if (dragStart.mode === 'create') {
       const x1 = Math.min(dragStart.x, x), y1 = Math.min(dragStart.y, y);
-      const x2 = Math.max(dragStart.x, x), y2 = Math.max(dragStart.y, y);
-      const w = x2 - x1 + 1, h = y2 - y1 + 1;
-      // Check no overlap
-      if (canPlaceRoom(x1, y1, w, h, null)) {
-        addRoom(x1, y1, w, h);
-      }
+      const w = Math.max(dragStart.x, x) - x1 + 1, h = Math.max(dragStart.y, y) - y1 + 1;
+      if (canPlaceRoom(x1, y1, w, h, null)) setEditingRoom({ id: 'room_' + Date.now(), name: 'Room ' + ((selectedSite.rooms?.length || 0) + 1), x: x1, y: y1, w, h, types: [], isClinical: true });
     } else if (dragStart.mode === 'move') {
-      if (x === dragStart.x && y === dragStart.y) {
-        // Click without moving — edit
-        const room = selectedSite.rooms.find(r => r.id === dragStart.roomId);
-        if (room) setEditingRoom(room);
-      } else {
-        // Calculate offset from where they grabbed within the room
-        const room = selectedSite.rooms.find(r => r.id === dragStart.roomId);
-        if (room) {
-          const offsetX = dragStart.x - room.x;
-          const offsetY = dragStart.y - room.y;
-          moveRoom(room.id, x - offsetX, y - offsetY);
-        }
-      }
+      const room = selectedSite.rooms.find(r => r.id === dragStart.roomId);
+      if (room && x === dragStart.x && y === dragStart.y) setEditingRoom(room);
+      else if (room) moveRoom(room.id, x - (dragStart.x - room.x), y - (dragStart.y - room.y));
     }
-    setDragStart(null);
-    setDragCurrent(null);
+    setDragStart(null); setDragCurrent(null);
   };
-
-  // Bookings
   const recurringBookings = ra.recurringBookings || [];
   const adHocBookings = ra.adHocBookings || [];
-  const [editBooking, setEditBooking] = useState(null);
-
-  const saveRecurring = (booking) => {
-    const existing = recurringBookings.find(b => b.id === booking.id);
-    const newList = existing ? recurringBookings.map(b => b.id === booking.id ? booking : b) : [...recurringBookings, { ...booking, id: 'rec_' + Date.now() }];
-    save({ ...ra, recurringBookings: newList });
-    setEditBooking(null);
-    toast('Recurring booking saved', 'success');
+  const saveBooking = (b) => {
+    if (b.type === 'recurring') { const list = recurringBookings.find(x => x.id === b.id) ? recurringBookings.map(x => x.id === b.id ? b : x) : [...recurringBookings, { ...b, id: 'rec_' + Date.now() }]; save({ ...ra, recurringBookings: list }); }
+    else { const list = adHocBookings.find(x => x.id === b.id) ? adHocBookings.map(x => x.id === b.id ? b : x) : [...adHocBookings, { ...b, id: 'adhoc_' + Date.now() }]; save({ ...ra, adHocBookings: list }); }
+    setEditBooking(null); toast('Booking saved', 'success');
   };
-
-  const deleteRecurring = (id) => {
-    save({ ...ra, recurringBookings: recurringBookings.filter(b => b.id !== id) });
-    toast('Booking deleted', 'success');
-  };
-
-  const saveAdHoc = (booking) => {
-    const existing = adHocBookings.find(b => b.id === booking.id);
-    const newList = existing ? adHocBookings.map(b => b.id === booking.id ? booking : b) : [...adHocBookings, { ...booking, id: 'adhoc_' + Date.now() }];
-    save({ ...ra, adHocBookings: newList });
-    setEditBooking(null);
-    toast('Ad hoc booking saved', 'success');
-  };
-
-  const deleteAdHoc = (id) => {
-    save({ ...ra, adHocBookings: adHocBookings.filter(b => b.id !== id) });
-    toast('Booking deleted', 'success');
-  };
-
-  // Priority
-  const cliniciansList = useMemo(() => {
-    if (!data?.clinicians) return [];
-    return (Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians)).filter(c => c.buddyCover && c.status !== 'left');
-  }, [data?.clinicians]);
-  const priorityOrder = ra.clinicianPriority || cliniciansList.map(c => c.id);
-
-  const movePriority = (id, dir) => {
-    const list = [...priorityOrder];
-    const idx = list.indexOf(id);
-    if (idx < 0) return;
-    const newIdx = idx + dir;
-    if (newIdx < 0 || newIdx >= list.length) return;
-    [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
-    save({ ...ra, clinicianPriority: list });
+  const deleteBooking = (id, type) => { save(type === 'recurring' ? { ...ra, recurringBookings: recurringBookings.filter(b => b.id !== id) } : { ...ra, adHocBookings: adHocBookings.filter(b => b.id !== id) }); toast('Deleted', 'success'); };
+  const allStaff = useMemo(() => (Array.isArray(data?.clinicians) ? data.clinicians : Object.values(data?.clinicians || {})).filter(c => c.status !== 'left'), [data?.clinicians]);
+  const priorityOrder = ra.clinicianPriority || allStaff.map(c => c.id);
+  const sortedPriority = [...allStaff].sort((a, b) => { const ai = priorityOrder.indexOf(a.id), bi = priorityOrder.indexOf(b.id); return (ai < 0 ? 9999 : ai) - (bi < 0 ? 9999 : bi); });
+  const handlePriorityDrop = (targetId) => {
+    if (!dragPriorityId || dragPriorityId === targetId) return;
+    const list = sortedPriority.map(c => c.id); const fi = list.indexOf(dragPriorityId), ti = list.indexOf(targetId);
+    if (fi < 0 || ti < 0) return; list.splice(fi, 1); list.splice(ti, 0, dragPriorityId);
+    save({ ...ra, clinicianPriority: list }); setDragPriorityId(null);
   };
 
   return (
     <div className="space-y-6">
-      {/* Site tabs */}
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center gap-2">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          <span className="text-sm font-semibold text-white">Room Allocation Settings</span>
+          <span className="text-sm font-semibold text-white">Site Room Layout</span>
         </div>
-        <div className="border-b border-slate-200">
-          <div className="flex items-center gap-1 px-4 pt-3">
-            {sites.map(s => (
-              <button key={s.id} onClick={() => setSelectedSiteId(s.id)} className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${selectedSiteId === s.id ? 'bg-white border border-b-0 border-slate-200 text-slate-900' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
-                <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{background: s.colour || '#94a3b8'}} />
-                {s.name}
-              </button>
-            ))}
-            <button onClick={() => setShowAddSite(true)} className="px-3 py-2 text-sm text-slate-400 hover:text-slate-600">+ Add site</button>
-          </div>
-        </div>
-
-        {/* Add site form */}
+        <div className="border-b border-slate-200"><div className="flex items-center gap-1 px-4 pt-3">
+          {sites.map(s => <button key={s.id} onClick={() => setSelectedSiteId(s.id)} className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${selectedSiteId === s.id ? 'bg-white border border-b-0 border-slate-200 text-slate-900' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}><span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{background: s.colour || '#94a3b8'}} />{s.name}</button>)}
+          <button onClick={() => setShowAddSite(true)} className="px-3 py-2 text-sm text-slate-400 hover:text-slate-600">+ Add site</button>
+        </div></div>
         {showAddSite && <AddSiteForm csvLocations={csvLocations} existingSites={sites} onSave={addSite} onCancel={() => setShowAddSite(false)} />}
-
-        {selectedSite && (
-          <div className="p-5">
-            {/* Sub-tabs */}
-            <div className="flex items-center gap-1 mb-5">
-              {[{id:'grid',label:'Room Layout'},{id:'bookings',label:'Bookings'},{id:'priority',label:'Priority'}].map(t => (
-                <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === t.id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t.label}</button>
-              ))}
-              <div className="ml-auto flex items-center gap-2">
-                <label className="text-xs text-slate-500">Grid size:</label>
-                <select value={selectedSite.gridSize} onChange={e => convertGridSize(selectedSite.id, e.target.value)} className="text-xs border border-slate-200 rounded px-2 py-1">
-                  {Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
-                <button onClick={() => deleteSite(selectedSite.id)} className="text-xs text-red-400 hover:text-red-600 ml-2">Delete site</button>
-              </div>
+        {selectedSite && <div className="p-5">
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <label className="text-xs text-slate-500">Colour:</label>
+            <div className="flex gap-1.5">{SITE_COLOUR_PRESETS.map(c => <button key={c} onClick={() => updateSite(selectedSite.id, { colour: c })} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background: c, outline: selectedSite.colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={selectedSite.colour || '#8c64c3'} onChange={e => updateSite(selectedSite.id, { colour: e.target.value })} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div>
+            <span className="text-slate-300">|</span>
+            <label className="text-xs text-slate-500">Grid:</label>
+            <select value={selectedSite.gridSize} onChange={e => convertGridSize(selectedSite.id, e.target.value)} className="text-xs border border-slate-200 rounded px-2 py-1">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
+            <button onClick={() => deleteSite(selectedSite.id)} className="text-xs text-red-400 hover:text-red-600 ml-auto">Delete site</button>
+          </div>
+          <div className="text-xs text-slate-400 mb-2">Click + drag to create a room. Click a room to edit. Drag to reposition.</div>
+          <div ref={gridContainerRef} className="relative rounded-xl" style={{border:'2px solid #e2e8f0',background:'#f8fafc'}} onMouseLeave={() => { setDragStart(null); setDragCurrent(null); }}>
+            <div style={{display:'grid',gridTemplateColumns:`repeat(${grid.cols}, ${cellSize}px)`,gridTemplateRows:`repeat(${grid.rows}, ${cellSize}px)`}}>
+              {Array.from({length: grid.rows * grid.cols}).map((_, i) => {
+                const x = i % grid.cols, y = Math.floor(i / grid.cols);
+                const isInDrag = dragStart?.mode === 'create' && dragCurrent && x >= Math.min(dragStart.x, dragCurrent.x) && x <= Math.max(dragStart.x, dragCurrent.x) && y >= Math.min(dragStart.y, dragCurrent.y) && y <= Math.max(dragStart.y, dragCurrent.y);
+                return <div key={i} onMouseDown={e => handleGridMouseDown(x, y, e)} onMouseMove={() => handleGridMouseMove(x, y)} onMouseUp={() => handleGridMouseUp(x, y)} className="cursor-crosshair" style={{width:cellSize,height:cellSize,border:'0.5px solid #e2e8f0',background: isInDrag ? (selectedSite.colour || '#6366f1') + '25' : 'transparent'}} />;
+              })}
             </div>
-
-            {tab === 'grid' && (
-              <>
-                {/* Site colour */}
-                <div className="flex items-center gap-3 mb-4">
-                  <label className="text-xs text-slate-500">Site colour:</label>
-                  <div className="flex gap-1.5">
-                    {SITE_COLOUR_PRESETS.map(c => <button key={c} onClick={() => updateSite(selectedSite.id, { colour: c })} className="w-5 h-5 rounded-full transition-transform hover:scale-125" style={{background: c, outline: selectedSite.colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}
-                    <input type="color" value={selectedSite.colour || '#8c64c3'} onChange={e => updateSite(selectedSite.id, { colour: e.target.value })} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} />
-                  </div>
-                </div>
-                {/* Grid */}
-                <div className="text-xs text-slate-400 mb-2">Click + drag to create a room. Click a room to edit. Drag rooms to reposition.</div>
-                <div ref={gridRef} className="relative rounded-xl overflow-auto" style={{border:'2px solid #e2e8f0',background:'#f8fafc',maxWidth:'100%',maxHeight:'70vh'}} onMouseLeave={() => { setDragStart(null); setDragCurrent(null); }}>
-                  {/* Grid cells (background) */}
-                  <div style={{display:'grid',gridTemplateColumns:`repeat(${grid.cols}, ${cellSize}px)`,gridTemplateRows:`repeat(${grid.rows}, ${cellSize}px)`}}>
-                    {Array.from({length: grid.rows * grid.cols}).map((_, i) => {
-                      const x = i % grid.cols, y = Math.floor(i / grid.cols);
-                      const isInDragRect = dragStart?.mode === 'create' && dragCurrent && x >= Math.min(dragStart.x, dragCurrent.x) && x <= Math.max(dragStart.x, dragCurrent.x) && y >= Math.min(dragStart.y, dragCurrent.y) && y <= Math.max(dragStart.y, dragCurrent.y);
-                      const isDragMoveTarget = dragStart?.mode === 'move' && dragCurrent?.x === x && dragCurrent?.y === y;
-                      return <div key={i}
-                        onMouseDown={e => handleGridMouseDown(x, y, e)}
-                        onMouseMove={() => handleGridMouseMove(x, y)}
-                        onMouseUp={() => handleGridMouseUp(x, y)}
-                        className="cursor-crosshair"
-                        style={{width:cellSize,height:cellSize,border:'0.5px solid #e2e8f0',
-                          background: isInDragRect ? (selectedSite.colour || '#6366f1') + '25' : isDragMoveTarget ? '#dbeafe' : 'transparent'}} />;
-                    })}
-                  </div>
-                  {/* Room overlays */}
-                  {(selectedSite.rooms || []).map(room => {
-                    const w = room.w || 1, h = room.h || 1;
-                    const isDragging = dragStart?.mode === 'move' && dragStart.roomId === room.id && dragCurrent && (dragCurrent.x !== dragStart.x || dragCurrent.y !== dragStart.y);
-                    return <div key={room.id}
-                      className="absolute rounded-md flex items-center justify-center text-center cursor-pointer transition-opacity"
-                      style={{
-                        left: room.x * cellSize + 3, top: room.y * cellSize + 3,
-                        width: w * cellSize - 6, height: h * cellSize - 6,
-                        background: room.isClinical === false ? '#cbd5e1' : selectedSite.colour || '#8c64c3',
-                        opacity: isDragging ? 0.3 : (room.isClinical === false ? 0.5 : 0.85),
-                        pointerEvents: 'none',
-                      }}>
-                      <span className="text-white font-bold leading-tight px-1 select-none" style={{fontSize: Math.min(12, cellSize * w / (room.name.length * 0.7)),textShadow:'0 1px 2px rgba(0,0,0,0.3)'}}>{room.name}</span>
-                    </div>;
-                  })}
-                </div>
-                {/* Room type legend */}
-                <div className="flex items-center gap-4 mt-3 text-[10px] text-slate-500">
-                  {ROOM_TYPES.map(rt => <span key={rt.id} className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{background:rt.colour}}/>{rt.label}</span>)}
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-300"/>Non-clinical</span>
-                </div>
-              </>
-            )}
-
-            {tab === 'bookings' && (
-              <BookingsTab sites={sites} selectedSite={selectedSite} recurringBookings={recurringBookings} adHocBookings={adHocBookings} saveRecurring={saveRecurring} deleteRecurring={deleteRecurring} saveAdHoc={saveAdHoc} deleteAdHoc={deleteAdHoc} editBooking={editBooking} setEditBooking={setEditBooking} />
-            )}
-
-            {tab === 'priority' && (
-              <PriorityTab cliniciansList={cliniciansList} priorityOrder={priorityOrder} movePriority={movePriority} />
-            )}
+            {(selectedSite.rooms || []).map(room => {
+              const w = room.w || 1, h = room.h || 1, nc = room.isClinical === false;
+              const isDragging = dragStart?.mode === 'move' && dragStart.roomId === room.id && dragCurrent && (dragCurrent.x !== dragStart.x || dragCurrent.y !== dragStart.y);
+              return <div key={room.id} className="absolute rounded-md flex items-center justify-center text-center transition-opacity" style={{left: room.x * cellSize + 3, top: room.y * cellSize + 3, width: w * cellSize - 6, height: h * cellSize - 6, background: nc ? '#e2e8f0' : selectedSite.colour || '#8c64c3', opacity: isDragging ? 0.3 : (nc ? 0.7 : 0.85), pointerEvents: 'none'}}>
+                <span className="font-bold leading-tight px-1 select-none" style={{fontSize: Math.min(12, cellSize * w / Math.max(room.name.length * 0.7, 1)), color: nc ? '#475569' : '#fff', textShadow: nc ? 'none' : '0 1px 2px rgba(0,0,0,0.3)'}}>{room.name}</span>
+              </div>;
+            })}
           </div>
-        )}
-
-        {!selectedSite && !showAddSite && (
-          <div className="p-12 text-center">
-            <div className="text-2xl mb-2">🏥</div>
-            <h3 className="text-sm font-semibold text-slate-600 mb-1">No sites configured</h3>
-            <p className="text-xs text-slate-400 mb-4">Add a site to start setting up rooms.</p>
-            <button onClick={() => setShowAddSite(true)} className="btn-primary">Add site</button>
-          </div>
-        )}
+          <div className="flex items-center gap-4 mt-3 text-[10px] text-slate-500">{getRoomTypes(ra).map(rt => <span key={rt.id} className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{background:rt.colour}}/>{rt.label}</span>)}<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-300"/>Non-clinical</span></div>
+        </div>}
+        {!selectedSite && !showAddSite && <div className="p-12 text-center"><div className="text-2xl mb-2">🏥</div><h3 className="text-sm font-semibold text-slate-600 mb-1">No sites configured</h3><p className="text-xs text-slate-400 mb-4">Add a site to start setting up rooms.</p><button onClick={() => setShowAddSite(true)} className="btn-primary">Add site</button></div>}
       </div>
 
-      {/* Room edit popup */}
-      {editingRoom && <RoomEditPopup room={editingRoom} site={selectedSite} onSave={saveRoom} onDelete={deleteRoom} onCancel={() => setEditingRoom(null)} />}
+      {/* ROOM TYPES CARD */}
+      <div className="card overflow-hidden">
+        <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-3 flex items-center justify-between">
+          <span className="text-sm font-semibold text-white">Room Types</span>
+          <button onClick={() => {
+            const name = prompt('New room type name:');
+            if (!name?.trim()) return;
+            const colour = SITE_COLOUR_PRESETS[Math.floor(Math.random() * SITE_COLOUR_PRESETS.length)];
+            const id = name.trim().toLowerCase().replace(/\s+/g, '_');
+            const current = getRoomTypes(ra);
+            save({ ...ra, roomTypes: [...current, { id, label: name.trim(), colour }] });
+            toast('Room type added', 'success');
+          }} className="text-xs px-2 py-1 rounded bg-white/20 text-white hover:bg-white/30">+ Add type</button>
+        </div>
+        <div className="p-5">
+          <div className="space-y-2">
+            {getRoomTypes(ra).map((rt, i) => (
+              <div key={rt.id} className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                <input type="color" value={rt.colour} onChange={e => { const types = [...getRoomTypes(ra)]; types[i] = { ...types[i], colour: e.target.value }; save({ ...ra, roomTypes: types }); }} className="w-5 h-5 rounded-full border-0 cursor-pointer flex-shrink-0" style={{padding:0}} />
+                <input type="text" value={rt.label} onChange={e => { const types = [...getRoomTypes(ra)]; types[i] = { ...types[i], label: e.target.value }; save({ ...ra, roomTypes: types }); }} className="text-sm font-medium text-slate-700 bg-transparent border-0 flex-1 outline-none" />
+                <span className="text-[10px] text-slate-400">{rt.id}</span>
+                <button onClick={() => { if (!confirm('Delete this room type?')) return; save({ ...ra, roomTypes: getRoomTypes(ra).filter(x => x.id !== rt.id) }); toast('Deleted', 'success'); }} className="text-xs text-red-400 hover:text-red-600">×</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* BOOKINGS CARD */}
+      <div className="card overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-3 flex items-center justify-between">
+          <span className="text-sm font-semibold text-white">Room Bookings</span>
+          <div className="flex gap-2">
+            <button onClick={() => setEditBooking({ type: 'recurring', siteId: sites[0]?.id || '', name: '', session: 'am', roomTypes: [], preferredRoom: null, recurrence: { frequency: 'weekly', day: 1 } })} className="text-xs px-2 py-1 rounded bg-white/20 text-white hover:bg-white/30">+ Recurring</button>
+            <button onClick={() => setEditBooking({ type: 'adhoc', siteId: sites[0]?.id || '', name: '', session: 'am', roomTypes: [], preferredRoom: null, date: new Date().toISOString().split('T')[0] })} className="text-xs px-2 py-1 rounded bg-white/20 text-white hover:bg-white/30">+ Ad hoc</button>
+          </div>
+        </div>
+        <div className="p-5 space-y-2">
+          {recurringBookings.length === 0 && adHocBookings.length === 0 && <p className="text-sm text-slate-400 text-center py-4">No bookings configured</p>}
+          {recurringBookings.map(b => { const site = sites.find(s => s.id === b.siteId); return <div key={b.id} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+            {site && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: site.colour || '#94a3b8'}} />}
+            <span className="text-sm font-medium text-slate-700 flex-1">{b.name}</span><span className="text-xs text-slate-400">{site?.name}</span><span className="text-xs text-slate-500">{describeRecurrence(b.recurrence)}</span><span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-600">{b.session.toUpperCase()}</span>
+            <button onClick={() => setEditBooking({ ...b, type: 'recurring' })} className="text-xs text-indigo-500 hover:text-indigo-700">Edit</button><button onClick={() => deleteBooking(b.id, 'recurring')} className="text-xs text-red-400 hover:text-red-600">×</button>
+          </div>; })}
+          {adHocBookings.map(b => { const site = sites.find(s => s.id === b.siteId); return <div key={b.id} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
+            {site && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: site.colour || '#94a3b8'}} />}
+            <span className="text-sm font-medium text-slate-700 flex-1">{b.name}</span><span className="text-xs text-slate-400">{site?.name}</span><span className="text-xs text-amber-600">{b.date}</span><span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-600">{b.session.toUpperCase()}</span>
+            <button onClick={() => setEditBooking({ ...b, type: 'adhoc' })} className="text-xs text-indigo-500 hover:text-indigo-700">Edit</button><button onClick={() => deleteBooking(b.id, 'adhoc')} className="text-xs text-red-400 hover:text-red-600">×</button>
+          </div>; })}
+        </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-3"><span className="text-sm font-semibold text-white">Clinician Priority</span><span className="text-xs text-white/50 ml-2">Drag to reorder — higher = gets preferred room first</span></div>
+        <div className="p-5"><div className="space-y-1 max-w-lg">
+          {sortedPriority.map((c, i) => <div key={c.id} draggable onDragStart={() => setDragPriorityId(c.id)} onDragOver={e => e.preventDefault()} onDrop={() => handlePriorityDrop(c.id)}
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors cursor-grab active:cursor-grabbing ${dragPriorityId === c.id ? 'bg-indigo-50 border border-indigo-200' : 'bg-slate-50 hover:bg-slate-100'}`}>
+            <span className="text-xs font-bold text-slate-300 w-5">{i + 1}</span><span className="text-sm font-medium text-slate-700 flex-1">{c.name}</span><span className="text-xs text-slate-400">{c.role}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2"><circle cx="8" cy="6" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="6" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="16" cy="18" r="1.5"/></svg>
+          </div>)}
+        </div></div>
+      </div>
+
+      {editingRoom && <RoomEditPopup room={editingRoom} site={selectedSite} roomTypes={getRoomTypes(ra)} onSave={saveRoom} onDelete={deleteRoom} onCancel={() => setEditingRoom(null)} />}
+      {editBooking && <BookingEditModal booking={editBooking} sites={sites} roomTypes={getRoomTypes(ra)} onSave={saveBooking} onCancel={() => setEditBooking(null)} />}
     </div>
   );
 }
@@ -341,234 +221,71 @@ function AddSiteForm({ csvLocations, existingSites, onSave, onCancel }) {
   const [colour, setColour] = useState(SITE_COLOUR_PRESETS[0]);
   const [gridSize, setGridSize] = useState('small');
   const suggestions = csvLocations.filter(l => !existingSites.some(s => s.name === l));
-  return (
-    <div className="p-5 border-b border-slate-200 bg-slate-50">
-      <h3 className="text-sm font-semibold text-slate-900 mb-3">Add site</h3>
-      <div className="flex items-end gap-4 flex-wrap">
-        <div>
-          <label className="text-xs text-slate-500 block mb-1">Site name</label>
-          <div className="flex items-center gap-2">
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Winscombe" className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 w-48" />
-            {suggestions.length > 0 && (
-              <div className="flex gap-1">{suggestions.map(s => <button key={s} onClick={() => setName(s)} className="text-xs px-2 py-1 rounded bg-slate-200 text-slate-600 hover:bg-slate-300">{s}</button>)}</div>
-            )}
-          </div>
-        </div>
-        <div>
-          <label className="text-xs text-slate-500 block mb-1">Colour</label>
-          <div className="flex gap-1.5 items-center">
-            {SITE_COLOUR_PRESETS.slice(0, 6).map(c => <button key={c} onClick={() => setColour(c)} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background:c, outline: colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}
-            <input type="color" value={colour} onChange={e => setColour(e.target.value)} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs text-slate-500 block mb-1">Grid size</label>
-          <select value={gridSize} onChange={e => setGridSize(e.target.value)} className="text-sm border border-slate-200 rounded-lg px-3 py-1.5">
-            {Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-          </select>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => name.trim() && onSave(name.trim(), colour, gridSize)} disabled={!name.trim()} className="btn-primary text-sm">Add</button>
-          <button onClick={onCancel} className="btn-secondary text-sm">Cancel</button>
-        </div>
-      </div>
-      {/* Grid preview */}
-      <div className="mt-3">
-        <div className="text-[10px] text-slate-400 mb-1">Preview ({GRID_SIZES[gridSize].cols} × {GRID_SIZES[gridSize].rows})</div>
-        <div className="inline-block rounded overflow-auto" style={{border:'1px solid #e2e8f0',maxWidth:'100%',maxHeight:200}}>
-          {Array.from({length: GRID_SIZES[gridSize].rows}).map((_, y) => (
-            <div key={y} className="flex">{Array.from({length: GRID_SIZES[gridSize].cols}).map((_, x) => <div key={x} style={{width:18,height:18,border:'0.5px solid #e2e8f0',background: colour + '10'}} />)}</div>
-          ))}
-        </div>
-      </div>
+  return <div className="p-5 border-b border-slate-200 bg-slate-50">
+    <h3 className="text-sm font-semibold text-slate-900 mb-3">Add site</h3>
+    <div className="flex items-end gap-4 flex-wrap">
+      <div><label className="text-xs text-slate-500 block mb-1">Site name</label><div className="flex items-center gap-2"><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Winscombe" className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 w-48" />{suggestions.length > 0 && <div className="flex gap-1">{suggestions.map(s => <button key={s} onClick={() => setName(s)} className="text-xs px-2 py-1 rounded bg-slate-200 text-slate-600 hover:bg-slate-300">{s}</button>)}</div>}</div></div>
+      <div><label className="text-xs text-slate-500 block mb-1">Colour</label><div className="flex gap-1.5 items-center">{SITE_COLOUR_PRESETS.slice(0, 6).map(c => <button key={c} onClick={() => setColour(c)} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background:c, outline: colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={colour} onChange={e => setColour(e.target.value)} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div></div>
+      <div><label className="text-xs text-slate-500 block mb-1">Grid size</label><select value={gridSize} onChange={e => setGridSize(e.target.value)} className="text-sm border border-slate-200 rounded-lg px-3 py-1.5">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
+      <div className="flex gap-2"><button onClick={() => name.trim() && onSave(name.trim(), colour, gridSize)} disabled={!name.trim()} className="btn-primary text-sm">Add</button><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button></div>
     </div>
-  );
+  </div>;
 }
 
-function RoomEditPopup({ room, site, onSave, onDelete, onCancel }) {
+function RoomEditPopup({ room, site, roomTypes, onSave, onDelete, onCancel }) {
   const [name, setName] = useState(room.name || '');
   const [types, setTypes] = useState(room.types || []);
   const [isClinical, setIsClinical] = useState(room.isClinical !== false);
   const toggleType = (t) => setTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
-  return (
-    <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={onCancel}>
-      <div className="bg-white rounded-xl shadow-2xl p-5 w-96" onClick={e => e.stopPropagation()}>
-        <h3 className="text-sm font-semibold text-slate-900 mb-4">{room.id?.startsWith('room_') && !site?.rooms?.find(r => r.id === room.id) ? 'Add room' : 'Edit room'}</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs text-slate-500 block mb-1">Room name</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" autoFocus />
-          </div>
-          <div className="flex items-center gap-3">
-            <label className="text-xs text-slate-500">Non-clinical space</label>
-            <button onClick={() => setIsClinical(!isClinical)} className={`w-8 h-5 rounded-full transition-colors ${isClinical ? 'bg-slate-300' : 'bg-amber-400'}`}>
-              <div className={`w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${isClinical ? 'translate-x-1' : 'translate-x-[17px]'}`} />
-            </button>
-            <span className="text-xs text-slate-400">{isClinical ? 'Clinical room' : 'Non-clinical (e.g. waiting room, corridor)'}</span>
-          </div>
-          {isClinical && (
-            <div>
-              <label className="text-xs text-slate-500 block mb-2">Suitable for</label>
-              <div className="flex flex-wrap gap-2">
-                {ROOM_TYPES.map(rt => (
-                  <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${types.includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`} style={types.includes(rt.id) ? {background: rt.colour} : undefined}>
-                    {rt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+  return <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={onCancel}>
+    <div className="bg-white rounded-xl shadow-2xl p-5 w-96" onClick={e => e.stopPropagation()}>
+      <h3 className="text-sm font-semibold text-slate-900 mb-4">{!site?.rooms?.find(r => r.id === room.id) ? 'Add room' : 'Edit room'}</h3>
+      <div className="space-y-4">
+        <div><label className="text-xs text-slate-500 block mb-1">Room name</label><input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" autoFocus /></div>
+        <div className="flex items-center gap-3">
+          <label className="text-xs text-slate-500">Non-clinical space</label>
+          <button onClick={() => setIsClinical(!isClinical)} className={`w-8 h-5 rounded-full transition-colors ${isClinical ? 'bg-slate-300' : 'bg-amber-400'}`}><div className={`w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${isClinical ? 'translate-x-1' : 'translate-x-[17px]'}`} /></button>
+          <span className="text-xs text-slate-400">{isClinical ? 'Clinical room' : 'Non-clinical'}</span>
         </div>
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
-          {site?.rooms?.find(r => r.id === room.id) ? <button onClick={() => onDelete(room.id)} className="text-xs text-red-400 hover:text-red-600">Delete room</button> : <div />}
-          <div className="flex gap-2">
-            <button onClick={onCancel} className="btn-secondary text-sm">Cancel</button>
-            <button onClick={() => name.trim() && onSave({ ...room, name: name.trim(), types: isClinical ? types : [], isClinical })} disabled={!name.trim()} className="btn-primary text-sm">Save</button>
-          </div>
-        </div>
+        {isClinical && <div><label className="text-xs text-slate-500 block mb-2">Suitable for</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${types.includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`} style={types.includes(rt.id) ? {background: rt.colour} : undefined}>{rt.label}</button>)}</div></div>}
+        {(room.w > 1 || room.h > 1) && <div className="text-xs text-slate-400">Size: {room.w || 1} x {room.h || 1} squares</div>}
+      </div>
+      <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
+        {site?.rooms?.find(r => r.id === room.id) ? <button onClick={() => onDelete(room.id)} className="text-xs text-red-400 hover:text-red-600">Delete room</button> : <div />}
+        <div className="flex gap-2"><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button><button onClick={() => name.trim() && onSave({ ...room, name: name.trim(), types: isClinical ? types : [], isClinical })} disabled={!name.trim()} className="btn-primary text-sm">Save</button></div>
       </div>
     </div>
-  );
+  </div>;
 }
 
-function BookingsTab({ sites, selectedSite, recurringBookings, adHocBookings, saveRecurring, deleteRecurring, saveAdHoc, deleteAdHoc, editBooking, setEditBooking }) {
-  const siteBookings = recurringBookings.filter(b => b.siteId === selectedSite.id);
-  const siteAdHoc = adHocBookings.filter(b => b.siteId === selectedSite.id);
-  const clinicalRooms = (selectedSite.rooms || []).filter(r => r.isClinical !== false);
-  return (
-    <div className="space-y-6">
-      {/* Recurring */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-slate-900">Recurring bookings</h3>
-          <button onClick={() => setEditBooking({ type: 'recurring', siteId: selectedSite.id, name: '', session: 'am', roomTypes: [], preferredRoom: null, recurrence: { frequency: 'weekly', day: 1 } })} className="text-xs text-indigo-600 hover:text-indigo-800">+ Add recurring</button>
-        </div>
-        {siteBookings.length === 0 && <p className="text-xs text-slate-400">No recurring bookings at this site.</p>}
-        <div className="space-y-2">
-          {siteBookings.map(b => (
-            <div key={b.id} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-              <span className="text-sm font-medium text-slate-700 flex-1">{b.name}</span>
-              <span className="text-xs text-slate-500">{describeRecurrence(b.recurrence)}</span>
-              <span className="text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-600">{b.session.toUpperCase()}</span>
-              <span className="text-xs text-slate-400">{clinicalRooms.find(r => r.id === b.preferredRoom)?.name || 'Any suitable'}</span>
-              <button onClick={() => setEditBooking({ ...b, type: 'recurring' })} className="text-xs text-indigo-500 hover:text-indigo-700">Edit</button>
-              <button onClick={() => deleteRecurring(b.id)} className="text-xs text-red-400 hover:text-red-600">×</button>
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Ad hoc */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-slate-900">Ad hoc bookings</h3>
-          <button onClick={() => setEditBooking({ type: 'adhoc', siteId: selectedSite.id, name: '', session: 'am', roomTypes: [], preferredRoom: null, date: new Date().toISOString().split('T')[0] })} className="text-xs text-indigo-600 hover:text-indigo-800">+ Add ad hoc</button>
-        </div>
-        {siteAdHoc.length === 0 && <p className="text-xs text-slate-400">No ad hoc bookings at this site.</p>}
-        <div className="space-y-2">
-          {siteAdHoc.map(b => (
-            <div key={b.id} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-              <span className="text-sm font-medium text-slate-700 flex-1">{b.name}</span>
-              <span className="text-xs text-slate-500">{b.date}</span>
-              <span className="text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-600">{b.session.toUpperCase()}</span>
-              <button onClick={() => setEditBooking({ ...b, type: 'adhoc' })} className="text-xs text-indigo-500 hover:text-indigo-700">Edit</button>
-              <button onClick={() => deleteAdHoc(b.id)} className="text-xs text-red-400 hover:text-red-600">×</button>
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Edit modal */}
-      {editBooking && <BookingEditModal booking={editBooking} site={selectedSite} rooms={clinicalRooms} onSave={editBooking.type === 'recurring' ? saveRecurring : saveAdHoc} onCancel={() => setEditBooking(null)} />}
-    </div>
-  );
-}
-
-function BookingEditModal({ booking, site, rooms, onSave, onCancel }) {
+function BookingEditModal({ booking, sites, roomTypes, onSave, onCancel }) {
   const [b, setB] = useState(booking);
   const update = (k, v) => setB(prev => ({ ...prev, [k]: v }));
   const updateRec = (k, v) => setB(prev => ({ ...prev, recurrence: { ...prev.recurrence, [k]: v } }));
   const toggleType = (t) => setB(prev => ({ ...prev, roomTypes: (prev.roomTypes || []).includes(t) ? prev.roomTypes.filter(x => x !== t) : [...(prev.roomTypes || []), t] }));
-  return (
-    <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={onCancel}>
-      <div className="bg-white rounded-xl shadow-2xl p-5 w-[420px]" onClick={e => e.stopPropagation()}>
-        <h3 className="text-sm font-semibold text-slate-900 mb-4">{b.type === 'recurring' ? 'Recurring booking' : 'Ad hoc booking'}</h3>
-        <div className="space-y-4">
-          <div><label className="text-xs text-slate-500 block mb-1">Name</label><input type="text" value={b.name} onChange={e => update('name', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g. Podiatry" autoFocus /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-slate-500 block mb-1">Session</label><select value={b.session} onChange={e => update('session', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="am">AM</option><option value="pm">PM</option></select></div>
-            {b.type === 'adhoc' && <div><label className="text-xs text-slate-500 block mb-1">Date</label><input type="date" value={b.date || ''} onChange={e => update('date', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>}
-          </div>
-          {b.type === 'recurring' && (
-            <div className="space-y-3">
-              <div><label className="text-xs text-slate-500 block mb-1">Frequency</label>
-                <select value={b.recurrence?.frequency || 'weekly'} onChange={e => updateRec('frequency', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">
-                  {Object.entries(RECURRENCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
-              {['weekly','biweekly','monthly_day'].includes(b.recurrence?.frequency) && (
-                <div><label className="text-xs text-slate-500 block mb-1">Day</label>
-                  <select value={b.recurrence?.day ?? 1} onChange={e => updateRec('day', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">
-                    {[1,2,3,4,5].map(d => <option key={d} value={d}>{DAY_LABELS[d]}</option>)}
-                  </select>
-                </div>
-              )}
-              {b.recurrence?.frequency === 'monthly_day' && (
-                <div><label className="text-xs text-slate-500 block mb-1">Which week</label>
-                  <select value={b.recurrence?.nth ?? 1} onChange={e => updateRec('nth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">
-                    {[1,2,3,4].map(n => <option key={n} value={n}>{['','1st','2nd','3rd','4th'][n]}</option>)}
-                  </select>
-                </div>
-              )}
-              {b.recurrence?.frequency === 'monthly_date' && (
-                <div><label className="text-xs text-slate-500 block mb-1">Date of month</label>
-                  <input type="number" min={1} max={31} value={b.recurrence?.dateOfMonth ?? 1} onChange={e => updateRec('dateOfMonth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" />
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-slate-500 block mb-1">Start date (optional)</label><input type="date" value={b.recurrence?.startDate || ''} onChange={e => updateRec('startDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>
-                <div><label className="text-xs text-slate-500 block mb-1">End date (optional)</label><input type="date" value={b.recurrence?.endDate || ''} onChange={e => updateRec('endDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>
-              </div>
-            </div>
-          )}
-          <div><label className="text-xs text-slate-500 block mb-1">Preferred room (optional)</label>
-            <select value={b.preferredRoom || ''} onChange={e => update('preferredRoom', e.target.value || null)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">
-              <option value="">Any suitable room</option>
-              {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
-          </div>
-          <div><label className="text-xs text-slate-500 block mb-2">Room type (if no preferred room)</label>
-            <div className="flex flex-wrap gap-2">
-              {ROOM_TYPES.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${(b.roomTypes || []).includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-500'}`} style={(b.roomTypes || []).includes(rt.id) ? {background:rt.colour} : undefined}>{rt.label}</button>)}
-            </div>
-          </div>
+  const selectedSite = sites.find(s => s.id === b.siteId);
+  const rooms = selectedSite ? (selectedSite.rooms || []).filter(r => r.isClinical !== false) : [];
+  return <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={onCancel}>
+    <div className="bg-white rounded-xl shadow-2xl p-5 w-[420px]" onClick={e => e.stopPropagation()}>
+      <h3 className="text-sm font-semibold text-slate-900 mb-4">{b.type === 'recurring' ? 'Recurring booking' : 'Ad hoc booking'}</h3>
+      <div className="space-y-4">
+        <div><label className="text-xs text-slate-500 block mb-1">Name</label><input type="text" value={b.name} onChange={e => update('name', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g. Podiatry" autoFocus /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className="text-xs text-slate-500 block mb-1">Site</label><select value={b.siteId || ''} onChange={e => { update('siteId', e.target.value); update('preferredRoom', null); }} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="">Select site</option>{sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+          <div><label className="text-xs text-slate-500 block mb-1">Session</label><select value={b.session} onChange={e => update('session', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="am">AM</option><option value="pm">PM</option></select></div>
         </div>
-        <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100">
-          <button onClick={onCancel} className="btn-secondary text-sm">Cancel</button>
-          <button onClick={() => b.name.trim() && onSave(b)} disabled={!b.name.trim()} className="btn-primary text-sm">Save</button>
-        </div>
+        {b.type === 'adhoc' && <div><label className="text-xs text-slate-500 block mb-1">Date</label><input type="date" value={b.date || ''} onChange={e => update('date', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>}
+        {b.type === 'recurring' && <div className="space-y-3">
+          <div><label className="text-xs text-slate-500 block mb-1">Frequency</label><select value={b.recurrence?.frequency || 'weekly'} onChange={e => updateRec('frequency', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{Object.entries(RECURRENCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+          {['weekly','biweekly','monthly_day'].includes(b.recurrence?.frequency) && <div><label className="text-xs text-slate-500 block mb-1">Day</label><select value={b.recurrence?.day ?? 1} onChange={e => updateRec('day', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{[1,2,3,4,5].map(d => <option key={d} value={d}>{DAY_LABELS[d]}</option>)}</select></div>}
+          {b.recurrence?.frequency === 'monthly_day' && <div><label className="text-xs text-slate-500 block mb-1">Which week</label><select value={b.recurrence?.nth ?? 1} onChange={e => updateRec('nth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{[1,2,3,4].map(n => <option key={n} value={n}>{['','1st','2nd','3rd','4th'][n]}</option>)}</select></div>}
+          {b.recurrence?.frequency === 'monthly_date' && <div><label className="text-xs text-slate-500 block mb-1">Date of month</label><input type="number" min={1} max={31} value={b.recurrence?.dateOfMonth ?? 1} onChange={e => updateRec('dateOfMonth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>}
+          <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-slate-500 block mb-1">Start date</label><input type="date" value={b.recurrence?.startDate || ''} onChange={e => updateRec('startDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div><div><label className="text-xs text-slate-500 block mb-1">End date</label><input type="date" value={b.recurrence?.endDate || ''} onChange={e => updateRec('endDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div></div>
+        </div>}
+        <div><label className="text-xs text-slate-500 block mb-1">Preferred room</label><select value={b.preferredRoom || ''} onChange={e => update('preferredRoom', e.target.value || null)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="">Any suitable room</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
+        <div><label className="text-xs text-slate-500 block mb-2">Room type (fallback)</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${(b.roomTypes || []).includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-500'}`} style={(b.roomTypes || []).includes(rt.id) ? {background:rt.colour} : undefined}>{rt.label}</button>)}</div></div>
       </div>
+      <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100"><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button><button onClick={() => b.name.trim() && b.siteId && onSave(b)} disabled={!b.name.trim() || !b.siteId} className="btn-primary text-sm">Save</button></div>
     </div>
-  );
-}
-
-function PriorityTab({ cliniciansList, priorityOrder, movePriority }) {
-  const sorted = [...cliniciansList].sort((a, b) => {
-    const ai = priorityOrder.indexOf(a.id); const bi = priorityOrder.indexOf(b.id);
-    return (ai < 0 ? 9999 : ai) - (bi < 0 ? 9999 : bi);
-  });
-  return (
-    <div>
-      <p className="text-xs text-slate-500 mb-3">When room preferences clash, clinicians higher in this list get priority. Drag or use arrows to reorder.</p>
-      <div className="space-y-1 max-w-md">
-        {sorted.map((c, i) => (
-          <div key={c.id} className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-            <span className="text-xs font-bold text-slate-300 w-5">{i + 1}</span>
-            <span className="text-sm font-medium text-slate-700 flex-1">{c.name}</span>
-            <span className="text-xs text-slate-400">{c.role}</span>
-            <button onClick={() => movePriority(c.id, -1)} disabled={i === 0} className="text-slate-400 hover:text-slate-600 disabled:opacity-20 text-sm">▲</button>
-            <button onClick={() => movePriority(c.id, 1)} disabled={i === sorted.length - 1} className="text-slate-400 hover:text-slate-600 disabled:opacity-20 text-sm">▼</button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  </div>;
 }
