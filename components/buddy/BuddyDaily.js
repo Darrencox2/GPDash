@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS } from '@/lib/data';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso } from '@/lib/data';
 
 export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers }) {
   const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
@@ -92,7 +92,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               const dayIndex = checkDate.getDay();
               if (dayIndex === 0 || dayIndex === 6) continue;
               const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
-              const dateKey = checkDate.toISOString().split('T')[0];
+              const dateKey = toLocalIso(checkDate);
               const dayKey = `${dateKey}-${dayName}`;
               if (currentData.closedDays?.[dateKey]) continue;
               delete newOverrides[dayKey];
@@ -118,14 +118,14 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 let shouldAbs = false;
                 for (let j = 1; j <= 14; j++) {
                   const pd = new Date(cd); pd.setDate(pd.getDate() - j);
-                  const pdi = pd.getDay(); const pdn = idxToDay[pdi]; const pdk = pd.toISOString().split('T')[0];
+                  const pdi = pd.getDay(); const pdn = idxToDay[pdi]; const pdk = toLocalIso(pd);
                   if (pdi === 0 || pdi === 6) continue;
                   if (wDays.includes(pdn)) { if (plannedAbs.some(a => a.clinicianId === doId && pdk >= a.startDate && pdk <= a.endDate)) shouldAbs = true; break; }
                 }
                 if (!shouldAbs) {
                   for (let j = 1; j <= 14; j++) {
                     const fd = new Date(cd); fd.setDate(fd.getDate() + j);
-                    const fdi = fd.getDay(); const fdn = idxToDay[fdi]; const fdk = fd.toISOString().split('T')[0];
+                    const fdi = fd.getDay(); const fdn = idxToDay[fdi]; const fdk = toLocalIso(fd);
                     if (fdi === 0 || fdi === 6) continue;
                     if (wDays.includes(fdn)) { if (plannedAbs.some(a => a.clinicianId === doId && fdk >= a.startDate && fdk <= a.endDate)) shouldAbs = true; break; }
                   }

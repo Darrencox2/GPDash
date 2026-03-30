@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { DAYS, STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
+import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso } from '@/lib/data';
 import { getCliniciansForDate, getClinicianLocationsForDate, LOCATION_COLOURS } from '@/lib/huddle';
 
 const ROLE_COLOURS = {
@@ -70,7 +70,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   const vd = viewingDateProp || new Date();
   const dayIndex = vd.getDay();
   const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
-  const dateKey = vd.toISOString().split('T')[0];
+  const dateKey = toLocalIso(vd);
   const dayKey = `${dateKey}-${dayName}`;
   const isViewingToday = useMemo(() => { const n = new Date(); n.setHours(0,0,0,0); const v = new Date(vd); v.setHours(0,0,0,0); return v.getTime() === n.getTime(); }, [vd]);
 

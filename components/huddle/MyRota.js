@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { getHuddleCapacity, getDutyDoctor, LOCATION_COLOURS } from '@/lib/huddle';
-import { matchesStaffMember, DAYS, getWeekStart } from '@/lib/data';
+import { matchesStaffMember, DAYS, getWeekStart, toLocalIso } from '@/lib/data';
 
 const ROLE_BG = { gp: 'rgba(99,102,241,0.15)', nursing: 'rgba(16,185,129,0.15)', allied: 'rgba(168,85,247,0.15)' };
 const ROLE_TX = { gp: '#a5b4fc', nursing: '#6ee7b7', allied: '#c4b5fd' };
@@ -39,11 +39,11 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   const rc = selected ? { bg: ROLE_BG[selected.group] || ROLE_BG.allied, tx: ROLE_TX[selected.group] || ROLE_TX.allied } : { bg: ROLE_BG.allied, tx: ROLE_TX.allied };
   const navigateWeek = d => { const dt = new Date(weekStart); dt.setDate(dt.getDate() + d * 7); setWeekStart(dt); };
   const isThisWeek = weekStart.getTime() === getWeekStart(new Date()).getTime();
-  const todayIso = new Date().toISOString().split('T')[0];
+  const todayIso = toLocalIso(new Date());
 
   const weekDays = useMemo(() => {
     const days = [];
-    for (let i = 0; i < 5; i++) { const d = new Date(weekStart); d.setDate(d.getDate() + i); days.push({ date: d, dateStr: `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`, isoKey: d.toISOString().split('T')[0], dayName: DAYS[i], dayShort: DAYS[i].slice(0,3), dayNum: d.getDate(), monthStr: d.toLocaleString('en-GB',{month:'short'}) }); }
+    for (let i = 0; i < 5; i++) { const d = new Date(weekStart); d.setDate(d.getDate() + i); days.push({ date: d, dateStr: `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`, isoKey: toLocalIso(d), dayName: DAYS[i], dayShort: DAYS[i].slice(0,3), dayNum: d.getDate(), monthStr: d.toLocaleString('en-GB',{month:'short'}) }); }
     return days;
   }, [weekStart]);
 
@@ -149,7 +149,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
       </div>
 
       {/* Desktop grid */}
-      <div className="hidden sm:block">
+      <div>
         <div style={{ border: '1px solid #334155', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '76px 1fr 1fr', background: '#1e293b', borderBottom: '1px solid #334155' }}>
             <div style={{ padding: '8px 12px' }} />
@@ -189,36 +189,6 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
             );
           })}
         </div>
-      </div>
-
-      {/* Mobile stacked cards */}
-      <div className="sm:hidden" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {weekDays.map((day, di) => {
-          const wd = weekData[di], covers = buddyCover[di];
-          const absence = absences[day.isoKey];
-          const isOff = (wd && !wd.amIn && !wd.pmIn) || (!wd && absence);
-          const noData = !wd && !absence;
-          const isToday = day.isoKey === todayIso;
-          if (isOff || noData) return <div key={di} style={{ background: '#1e293b', borderRadius: 10, padding: '12px 16px', textAlign: 'center', border: '1px solid #334155' }}><span style={{ fontSize: 13, color: '#475569' }}>{day.dayName} {day.dayNum} {day.monthStr} · {absence || ('Not in')}</span>{absence && <span style={{ fontSize: 10, marginLeft: 6, padding: '2px 6px', borderRadius: 4, background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}>TeamNet</span>}</div>;
-          return (
-            <div key={di} style={{ background: '#0f172a', borderRadius: 10, overflow: 'hidden', border: isToday ? '2px solid #10b981' : '1px solid #334155' }}>
-              <div style={{ padding: '8px 12px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{day.dayName} {day.dayNum} {day.monthStr}</span>
-                {isToday && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'rgba(16,185,129,0.15)', color: '#34d399', fontWeight: 500 }}>Today</span>}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: 6 }}>
-                <div><div style={{ textAlign: 'center', fontSize: 10, color: '#475569', marginBottom: 3 }}>AM</div><Cell isIn={wd?.amIn} loc={wd?.amLoc} duty={wd?.amDuty} mobile /></div>
-                <div><div style={{ textAlign: 'center', fontSize: 10, color: '#475569', marginBottom: 3 }}>PM</div><Cell isIn={wd?.pmIn} loc={wd?.pmLoc} duty={wd?.pmDuty} mobile /></div>
-              </div>
-              {covers.length > 0 && (
-                <div style={{ padding: '2px 10px 8px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>Covering:</span>
-                  {covers.map((c, i) => <div key={i} style={{ width: 20, height: 20, borderRadius: '50%', background: '#1e293b', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 600, color: c.reason === 'Leave' ? '#f87171' : '#60a5fa' }} title={`${c.name} — ${c.reason}`}>{c.initials}</div>)}
-                </div>
-              )}
-            </div>
-          );
-        })}
       </div>
 
       {/* Direct link */}

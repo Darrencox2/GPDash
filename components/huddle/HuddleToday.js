@@ -6,7 +6,7 @@ import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import DemandCapacityConnector from './DemandCapacityConnector';
 import HuddleFullscreen from './HuddleFullscreen';
-import { guessGroupFromRole, normalizeName, matchesStaffMember } from '@/lib/data';
+import { guessGroupFromRole, normalizeName, matchesStaffMember, toLocalIso } from '@/lib/data';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -726,9 +726,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             {showCalendar && (
               <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-xl shadow-2xl border border-slate-200 p-3">
                 <input type="date"
-                  value={viewingDate.toISOString().split('T')[0]}
-                  min={minDate.toISOString().split('T')[0]}
-                  max={maxDate.toISOString().split('T')[0]}
+                  value={toLocalIso(viewingDate)}
+                  min={toLocalIso(minDate)}
+                  max={toLocalIso(maxDate)}
                   onChange={(e) => goToDate(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900" />
               </div>

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
-import { STAFF_GROUPS, matchesStaffMember } from '@/lib/data';
+import { STAFF_GROUPS, matchesStaffMember, toLocalIso } from '@/lib/data';
 import { getHuddleCapacity, getTodayDateStr, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS, DOW_NAMES } from '@/lib/demandPredictor';
 
@@ -96,7 +96,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const realToday = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
   const today = useMemo(() => { if (viewingDateProp) { const d = new Date(viewingDateProp); d.setHours(0,0,0,0); return d; } return realToday; }, [viewingDateProp, realToday]);
   const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
-  const dateKey = today.toISOString().split('T')[0];
+  const dateKey = toLocalIso(today);
   const todayDateStr = useMemo(() => {
     const d = today;
     return `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`;
@@ -119,14 +119,14 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   useEffect(() => {
     async function load() {
       const w = await getWeatherForecast(16);
-      const todayDk = today.toISOString().split('T')[0];
+      const todayDk = toLocalIso(today);
       const todayW = w?.[todayDk] || null;
       const todayPred = predictDemand(today, todayW);
       const chartDays = [];
       for (let i = 14; i >= 1; i--) {
         const d = new Date(today); d.setDate(d.getDate() - i);
         const isWE = d.getDay() === 0 || d.getDay() === 6;
-        const dk = d.toISOString().split('T')[0];
+        const dk = toLocalIso(d);
         const pred = isWE ? null : predictDemand(d, w?.[dk] || null);
         chartDays.push({ predicted: pred?.predicted||null, date: d, dk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: true, isToday: false, isBH: pred?.isBankHoliday||false, isWE, confidence: pred?.confidence||{low:null,high:null} });
       }
@@ -134,7 +134,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
       for (let i = 1; i <= 14; i++) {
         const d = new Date(today); d.setDate(d.getDate() + i);
         const isWE = d.getDay() === 0 || d.getDay() === 6;
-        const dk = d.toISOString().split('T')[0];
+        const dk = toLocalIso(d);
         const pred = isWE ? null : predictDemand(d, w?.[dk] || null);
         chartDays.push({ predicted: pred?.predicted||null, date: d, dk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: false, isToday: false, isBH: pred?.isBankHoliday||false, isWE, confidence: pred?.confidence||{low:null,high:null} });
       }

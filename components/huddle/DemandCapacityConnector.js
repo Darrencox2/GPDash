@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
 import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor, getBand } from '@/lib/huddle';
-import { matchesStaffMember } from '@/lib/data';
+import { matchesStaffMember, toLocalIso } from '@/lib/data';
 
 const DEMAND_COLOURS = {
   low: { bg: '#10b98122', text: '#34d399', label: 'Low' },
@@ -62,10 +62,10 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
       try {
         const weather = await getWeatherForecast(16);
         const days = [];
-        for (let i=14;i>=1;i--) { const d=new Date(targetDate);d.setDate(d.getDate()-i);const dk=d.toISOString().split('T')[0];const p=predictDemand(d,weather?.[dk]||null);days.push({date:d,dateKey:dk,dayOfWeek:d.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],dayNum:d.getDate(),isPast:true,isToday:false,isWeekend:d.getDay()===0||d.getDay()===6,...p}); }
-        const tdk=targetDate.toISOString().split('T')[0];const tw=weather?.[tdk]||null;const tp=predictDemand(targetDate,tw);
+        for (let i=14;i>=1;i--) { const d=new Date(targetDate);d.setDate(d.getDate()-i);const dk=toLocalIso(d);const p=predictDemand(d,weather?.[dk]||null);days.push({date:d,dateKey:dk,dayOfWeek:d.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],dayNum:d.getDate(),isPast:true,isToday:false,isWeekend:d.getDay()===0||d.getDay()===6,...p}); }
+        const tdk=toLocalIso(targetDate);const tw=weather?.[tdk]||null;const tp=predictDemand(targetDate,tw);
         days.push({date:targetDate,dateKey:tdk,dayOfWeek:targetDate.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][targetDate.getDay()],dayNum:targetDate.getDate(),isPast:false,isToday:true,isWeekend:targetDate.getDay()===0||targetDate.getDay()===6,weather:tw,...tp});
-        for (let i=1;i<=14;i++) { const d=new Date(targetDate);d.setDate(d.getDate()+i);const dk=d.toISOString().split('T')[0];const p=predictDemand(d,weather?.[dk]||null);days.push({date:d,dateKey:dk,dayOfWeek:d.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],dayNum:d.getDate(),isPast:false,isToday:false,isWeekend:d.getDay()===0||d.getDay()===6,...p}); }
+        for (let i=1;i<=14;i++) { const d=new Date(targetDate);d.setDate(d.getDate()+i);const dk=toLocalIso(d);const p=predictDemand(d,weather?.[dk]||null);days.push({date:d,dateKey:dk,dayOfWeek:d.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],dayNum:d.getDate(),isPast:false,isToday:false,isWeekend:d.getDay()===0||d.getDay()===6,...p}); }
         if (!cancelled) { const r={days,today:days.find(d=>d.isToday),todayWeather:tw}; setForecast(r); setPrevData(r); }
       } catch(e) { console.error('Forecast error:',e); }
       if (!cancelled) setLoading(false);

@@ -188,7 +188,7 @@ function processKeyValue(event, key, value) {
       // Subtract one day for exclusive end date
       const d = new Date(endDate + 'T12:00:00');
       d.setDate(d.getDate() - 1);
-      endDate = d.toISOString().split('T')[0];
+      endDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
     event.endDate = endDate;
   }

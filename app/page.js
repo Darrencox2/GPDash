@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName } from '@/lib/data';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso } from '@/lib/data';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LoginScreen from '@/components/LoginScreen';
@@ -163,9 +163,9 @@ function AppContent() {
   const handleLogin = (e) => { e.preventDefault(); loadData(password); };
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
 
-  const getDateKey = () => { const dayIndex = DAYS.indexOf(selectedDay); const date = new Date(selectedWeek); date.setDate(date.getDate() + dayIndex); return date.toISOString().split('T')[0]; };
-  const getDateKeyForDay = (day) => { const dayIndex = DAYS.indexOf(day); const date = new Date(selectedWeek); date.setDate(date.getDate() + dayIndex); return date.toISOString().split('T')[0]; };
-  const getTodayKey = () => new Date().toISOString().split('T')[0];
+  const getDateKey = () => { const dayIndex = DAYS.indexOf(selectedDay); const date = new Date(selectedWeek); date.setDate(date.getDate() + dayIndex); return toLocalIso(date); };
+  const getDateKeyForDay = (day) => { const dayIndex = DAYS.indexOf(day); const date = new Date(selectedWeek); date.setDate(date.getDate() + dayIndex); return toLocalIso(date); };
+  const getTodayKey = () => toLocalIso(new Date());
   const isPastDate = (dateKey) => dateKey < getTodayKey();
   const isToday = (dateKey) => dateKey === getTodayKey();
   const isClosedDay = (dateKey) => data?.closedDays?.[dateKey] !== undefined;
@@ -186,13 +186,13 @@ function AppContent() {
     const startDate = new Date(fromDateKey + 'T12:00:00');
     for (let i = 1; i <= 7; i++) {
       const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() - i);
-      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = checkDate.toISOString().split('T')[0];
+      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = toLocalIso(checkDate);
       if (dayIndex === 0 || dayIndex === 6) continue;
       if (workingDays.includes(dayName)) { if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true; break; }
     }
     for (let i = 0; i <= 28; i++) {
       const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() + i);
-      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = checkDate.toISOString().split('T')[0];
+      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = toLocalIso(checkDate);
       if (dayIndex === 0 || dayIndex === 6) continue;
       if (workingDays.includes(dayName)) { if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true; return false; }
     }
@@ -235,9 +235,9 @@ function AppContent() {
 
   const getWeekAbsences = () => {
     const absences = ensureArray(data?.plannedAbsences);
-    const weekStart = selectedWeek.toISOString().split('T')[0];
+    const weekStart = toLocalIso(selectedWeek);
     const weekEndDate = new Date(selectedWeek); weekEndDate.setDate(weekEndDate.getDate() + 4);
-    const weekEnd = weekEndDate.toISOString().split('T')[0];
+    const weekEnd = toLocalIso(weekEndDate);
     const weekAbsences = [];
     absences.forEach(a => { DAYS.forEach(day => { const dateKey = getDateKeyForDay(day); if (dateKey >= a.startDate && dateKey <= a.endDate && dateKey >= weekStart && dateKey <= weekEnd) { const clinician = getClinicianById(a.clinicianId); if (clinician) weekAbsences.push({ day, clinician, reason: a.reason }); } }); });
     return weekAbsences;
