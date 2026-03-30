@@ -19,12 +19,14 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const handleGenerate = () => {
     const dateKey = getDateKey();
     const day = selectedDay;
+    const dayKey = `${dateKey}-${day}`;
+    const hasOverride = !!(data?.dailyOverrides?.[dayKey]?.present);
     const pIds = ensureArray(getPresentClinicians(day));
     const aIds = ensureArray(getAbsentClinicians(day));
     const doIds = ensureArray(getDayOffClinicians(day));
     const cls = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
     const { allocations, dayOffAllocations } = generateBuddyAllocations(cls, pIds, aIds, doIds, data.settings || DEFAULT_SETTINGS);
-    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: pIds, absentIds: aIds, dayOffIds: doIds } };
+    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: pIds, absentIds: aIds, dayOffIds: doIds, hasOverride } };
     saveData({ ...data, allocationHistory: newHistory });
   };
 
@@ -80,7 +82,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             const currentData = data;
             let generated = 0;
             const newHistory = { ...currentData.allocationHistory };
-            const newOverrides = { ...currentData.dailyOverrides };
             const today = new Date();
             let stopped = false;
             const clins = (Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {})).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
@@ -124,32 +125,41 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               const dateKey = toLocalIso(checkDate);
               const dayKey = `${dateKey}-${dayName}`;
               if (currentData.closedDays?.[dateKey]) continue;
-              delete newOverrides[dayKey];
               
-              // Same logic as getPresentClinicians
-              const rota = currentData.weeklyRota?.[dayName] || [];
-              const scheduled = Array.isArray(rota) ? rota : Object.values(rota);
-              const present = scheduled.filter(id => {
-                const c = allClins.find(c => c.id === id);
-                if (!c) return false;
-                if (c.longTermAbsent) return false;
-                if (isAbsOnDate(id, dateKey)) return false;
-                if (isAbsentCascade(id, dateKey)) return false;
-                return true;
-              });
+              // Check for manual override — respect it if present
+              const override = currentData.dailyOverrides?.[dayKey];
+              const hasOverride = !!(override?.present);
+              let present, scheduled;
+              
+              if (hasOverride) {
+                // Use manual override
+                present = Array.isArray(override.present) ? override.present : Object.values(override.present);
+                scheduled = Array.isArray(override.scheduled || []) ? (override.scheduled || []) : Object.values(override.scheduled || {});
+              } else {
+                // Compute from rota + absences (same as getPresentClinicians)
+                const rota = currentData.weeklyRota?.[dayName] || [];
+                scheduled = Array.isArray(rota) ? rota : Object.values(rota);
+                present = scheduled.filter(id => {
+                  const c = allClins.find(c => c.id === id);
+                  if (!c) return false;
+                  if (c.longTermAbsent) return false;
+                  if (isAbsOnDate(id, dateKey)) return false;
+                  if (isAbsentCascade(id, dateKey)) return false;
+                  return true;
+                });
+              }
+              
               const absentIds = scheduled.filter(id => !present.includes(id));
-              
-              // Same logic as getDayOffClinicians
               const dayOffIds = clins.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
               
               const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, present, absentIds, dayOffIds, currentData.settings || DEFAULT_SETTINGS);
-              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds, dayOffIds };
+              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds, dayOffIds, hasOverride };
               generated++;
               await new Promise(r => setTimeout(r, 10));
               if (!isGenerating) stopped = true;
             }
             if (generated > 0) {
-              const nd = { ...currentData, allocationHistory: newHistory, dailyOverrides: newOverrides };
+              const nd = { ...currentData, allocationHistory: newHistory };
               setData(nd);
               try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(nd) }); } catch (err) { console.error(err); }
               setDataVersion(v => v + 1);
@@ -202,7 +212,15 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 <h2 className="text-base font-semibold text-slate-900">Attendance</h2>
                 <p className="text-xs text-slate-500 mt-0.5">{formatDate(getDateKey())}{!isPastDate(getDateKey()) && ' — Click to toggle'}</p>
               </div>
-              {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-400 hover:text-slate-600">Mark closed</button>}
+              <div className="flex items-center gap-2">
+                {data?.dailyOverrides?.[`${getDateKey()}-${selectedDay}`]?.present && (
+                  <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Manual override
+                  </span>
+                )}
+                {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-400 hover:text-slate-600">Mark closed</button>}
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {cliniciansList.map(c => {
@@ -240,7 +258,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               </div>
               <div className="flex items-center gap-2">
                 {hasAllocations && <button onClick={handleCopyAllocations} className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 shadow-md flex items-center gap-2">📋 Copy</button>}
-                {!isPastDate(getDateKey()) && <button onClick={handleGenerate} disabled={presentClinicians.length === 0} className="btn-primary">{hasAllocations ? 'Regenerate' : 'Generate'}</button>}
+                {!isPastDate(getDateKey()) && <button onClick={handleGenerate} disabled={presentClinicians.length === 0} className="btn-primary">{hasAllocations ? 'Generate day' : 'Generate'}</button>}
               </div>
             </div>
             {!hasAllocations ? (

@@ -48,20 +48,47 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
           const e = data?.allocationHistory?.[dk];
           const has = !!e;
           const g = has ? groupAllocationsByCovering(e.allocations || {}, e.dayOffAllocations || {}, e.presentIds || []) : {};
-          const hasA = has && Object.entries(g).some(([_, t]) => t.absent.length > 0 || t.dayOff.length > 0);
           return (
             <div key={d} className={`card overflow-hidden ${closed ? 'bg-slate-100' : ''}`}>
               <div className={`px-4 py-3 border-b ${closed ? 'bg-slate-200 border-slate-300' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex items-center justify-between">
-                  <div><div className="text-sm font-medium text-slate-900">{d}</div><div className="text-xs text-slate-500">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div>
+                  <div className="flex items-center gap-2">
+                    <div><div className="text-sm font-medium text-slate-900">{d}</div><div className="text-xs text-slate-500">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div>
+                    {has && e.hasOverride && <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-700 border border-amber-200"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Override</span>}
+                  </div>
                   <button onClick={() => toggleClosedDay(dk, 'Bank Holiday')} className={`text-xs px-2 py-1 rounded transition-colors ${closed ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{closed ? 'Closed' : 'Open'}</button>
                 </div>
               </div>
               <div className="p-4 min-h-[120px]">
                 {closed ? <div className="text-center text-slate-500 text-sm py-4"><div className="font-medium">Practice Closed</div><div className="text-xs mt-1">{getClosedReason(dk)}</div></div>
                 : !has ? <div className="text-center text-amber-600 text-sm py-4"><div className="font-medium">Not generated</div><div className="text-xs mt-1 text-slate-500">Go to Daily view</div></div>
-                : !hasA ? <div className="text-center text-emerald-600 text-sm py-4"><div className="font-medium">All present</div><div className="text-xs mt-1 text-slate-500">No cover needed</div></div>
-                : <div className="space-y-2 text-sm">{Object.entries(g).map(([bid, t]) => { if (t.absent.length === 0 && t.dayOff.length === 0) return null; const b = getClinicianById(parseInt(bid)); if (!b) return null; return (<div key={bid} className="flex items-start gap-2"><span className="font-medium text-slate-700 w-8">{b.initials}</span><div className="flex flex-wrap gap-1">{t.absent.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag absent text-xs">{x.initials}</span> : null; })}{t.dayOff.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag dayoff text-xs">{x.initials}</span> : null; })}</div></div>); })}</div>}
+                : <div className="space-y-1.5 text-sm">
+                  {(e.presentIds || []).map(bid => {
+                    const b = getClinicianById(bid);
+                    if (!b) return null;
+                    const t = g[bid] || { absent: [], dayOff: [] };
+                    const hasTasks = t.absent.length > 0 || t.dayOff.length > 0;
+                    return (
+                      <div key={bid} className="flex items-center gap-2">
+                        <span className={`font-medium w-8 ${hasTasks ? 'text-slate-700' : 'text-slate-400'}`}>{b.initials}</span>
+                        {hasTasks ? (
+                          <div className="flex flex-wrap gap-1">
+                            {t.absent.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag absent text-xs">{x.initials}</span> : null; })}
+                            {t.dayOff.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag dayoff text-xs">{x.initials}</span> : null; })}
+                          </div>
+                        ) : <span className="text-xs text-slate-300">—</span>}
+                      </div>
+                    );
+                  })}
+                  {(e.absentIds || []).length > 0 && (
+                    <div className="pt-1.5 mt-1.5 border-t border-slate-100">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-semibold text-red-400 uppercase">Absent:</span>
+                        {(e.absentIds || []).map(id => { const c = getClinicianById(id); return c ? <span key={id} className="text-xs text-red-600 font-medium">{c.initials}</span> : null; })}
+                      </div>
+                    </div>
+                  )}
+                </div>}
               </div>
             </div>
           );
