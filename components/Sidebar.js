@@ -12,6 +12,7 @@ const NAV_SECTIONS = [
     items: [
       { id: 'huddle-today', label: 'Today' },
       { id: 'huddle-forward', label: 'Capacity Planning' },
+      { id: 'room-dashboard', label: 'Room Allocation', badge: 'Testing' },
     ],
   },
   {
@@ -40,6 +41,7 @@ const NAV_SECTIONS = [
       { id: 'settings', label: 'General' },
       { id: 'team-members', label: 'Team Members' },
       { id: 'team-rota', label: 'Rota' },
+      { id: 'room-settings', label: 'Room Allocation' },
     ],
   },
 ];
@@ -137,6 +139,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                               : `text-slate-500 hover:text-slate-300 ${accent.hover}`
                           }`}>
                           {item.label}
+                          {item.badge && <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400">{item.badge}</span>}
                         </button>
                       ))}
                     </div>

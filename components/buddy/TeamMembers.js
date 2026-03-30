@@ -307,6 +307,33 @@ export default function TeamMembers({ data, saveData, toast }) {
               </div>
             )}
 
+            {/* Room preferences */}
+            {(data?.roomAllocation?.sites || []).length > 0 && (
+              <div>
+                <label className="block text-xs text-slate-500 mb-2">Room preferences</label>
+                <div className="space-y-2">
+                  {(data.roomAllocation.sites || []).map(site => {
+                    const clinicalRooms = (site.rooms || []).filter(r => r.isClinical !== false);
+                    const prefs = c.roomPreferences?.[site.id] || {};
+                    return (
+                      <div key={site.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50">
+                        <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: site.colour || '#94a3b8'}} />
+                        <span className="text-xs font-medium text-slate-700 w-20 flex-shrink-0">{site.name}</span>
+                        <select value={prefs.preferred || ''} onChange={e => updateField(c.id, 'roomPreferences', { ...(c.roomPreferences || {}), [site.id]: { ...prefs, preferred: e.target.value || null } })} className="flex-1 px-2 py-1 rounded border border-slate-200 text-xs">
+                          <option value="">No preferred room</option>
+                          {clinicalRooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                        <select value={prefs.secondary || ''} onChange={e => updateField(c.id, 'roomPreferences', { ...(c.roomPreferences || {}), [site.id]: { ...prefs, secondary: e.target.value || null } })} className="flex-1 px-2 py-1 rounded border border-slate-200 text-xs">
+                          <option value="">No secondary</option>
+                          {clinicalRooms.filter(r => r.id !== prefs.preferred).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs text-slate-500 mb-1">Name aliases (for CSV/TeamNet matching)</label>
               <div className="flex flex-wrap gap-1.5 mb-2">

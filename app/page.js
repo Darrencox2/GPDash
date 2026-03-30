@@ -13,6 +13,8 @@ import BuddySettings from '@/components/buddy/BuddySettings';
 import HuddleToday from '@/components/huddle/HuddleToday';
 import HuddleForward from '@/components/huddle/HuddleForward';
 import MyRota from '@/components/huddle/MyRota';
+import RoomSettings from '@/components/room/RoomSettings';
+import RoomDashboard from '@/components/room/RoomDashboard';
 
 export default function Home() {
   return (
@@ -115,6 +117,12 @@ function AppContent() {
       }));
     }
     if (d.plannedAbsences && !Array.isArray(d.plannedAbsences)) d.plannedAbsences = Object.values(d.plannedAbsences);
+    // Clean up past absences — remove any that ended more than 1 day ago
+    if (Array.isArray(d.plannedAbsences)) {
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+      const cutoff = toLocalIso(yesterday);
+      d.plannedAbsences = d.plannedAbsences.filter(a => a.endDate >= cutoff);
+    }
     if (d.weeklyRota) {
       for (const day of Object.keys(d.weeklyRota)) {
         if (d.weeklyRota[day] && !Array.isArray(d.weeklyRota[day])) d.weeklyRota[day] = Object.values(d.weeklyRota[day]);
@@ -287,6 +295,8 @@ function AppContent() {
           {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} />}
           {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} />}
           {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} huddleData={huddleData} />}
+          {activeSection === 'room-settings' && <RoomSettings data={data} saveData={saveData} toast={toast} huddleData={huddleData} />}
+          {activeSection === 'room-dashboard' && <RoomDashboard data={data} saveData={saveData} huddleData={huddleData} toast={toast} />}
         </div>
         <footer className="mt-8 pb-6"><div className="text-center text-xs text-slate-400">GPDash — Practice Dashboard</div></footer>
       </main>

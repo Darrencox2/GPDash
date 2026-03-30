@@ -62,6 +62,45 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   })();
   const hasCsvMismatches = csvMismatches.presentNoCSV.size > 0 || csvMismatches.absentHasCSV.size > 0;
 
+  // Diagnostic: compute reason for each clinician's status
+  const getDiagnostic = (c) => {
+    const dateKey = getDateKey();
+    const dayKey = `${dateKey}-${selectedDay}`;
+    const status = getClinicianStatus(c.id, selectedDay);
+    const rota = ensureArray(data?.weeklyRota?.[selectedDay]);
+    const onRota = rota.includes(c.id);
+    const hasOverride = !!(data?.dailyOverrides?.[dayKey]?.present);
+    const isOverridden = overriddenIds.has(c.id);
+    const plannedAbs = ensureArray(data?.plannedAbsences);
+    const absence = plannedAbs.find(a => a.clinicianId === c.id && dateKey >= a.startDate && dateKey <= a.endDate);
+    const lines = [];
+    lines.push(`Status: ${status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}`);
+    if (onRota) lines.push('On rota for ' + selectedDay);
+    else lines.push('Not on rota for ' + selectedDay);
+    if (c.longTermAbsent) lines.push('Long-term absent');
+    if (absence) lines.push('TeamNet: ' + (absence.reason || 'Leave') + ' (' + absence.startDate + ' to ' + absence.endDate + ')');
+    if (!onRota && status === 'absent') {
+      // Check cascade
+      const workDays = DAYS.filter(d => ensureArray(data?.weeklyRota?.[d]).includes(c.id));
+      if (workDays.length > 0) {
+        const idxToDay = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const startDate = new Date(dateKey + 'T12:00:00');
+        for (let j = 1; j <= 7; j++) {
+          const pd = new Date(startDate); pd.setDate(pd.getDate() - j);
+          const pdi = pd.getDay(); const pdn = idxToDay[pdi]; const pdk = toLocalIso(pd);
+          if (pdi === 0 || pdi === 6) continue;
+          if (workDays.includes(pdn)) {
+            const prevAbs = plannedAbs.find(a => a.clinicianId === c.id && pdk >= a.startDate && pdk <= a.endDate);
+            if (prevAbs) lines.push('Cascade: absent on ' + pdn + ' ' + pd.getDate() + ' (' + (prevAbs.reason || 'Leave') + ')');
+            break;
+          }
+        }
+      }
+    }
+    if (isOverridden && hasOverride) lines.push('⚠ Manual override active');
+    return lines.join('\n');
+  };
+
   const handleGenerate = () => {
     const dateKey = getDateKey();
     const day = selectedDay;
@@ -277,7 +316,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 const hasCsvFlag = csvNoSession || csvHasSession;
                 const outlineCol = isOverridden ? '#f59e0b' : hasCsvFlag ? '#3b82f6' : null;
                 return (
-                  <div key={c.id} className={`clinician-card ${status}`} style={{minHeight:56,maxHeight:56,overflow:'hidden',...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}>
+                  <div key={c.id} className={`clinician-card ${status}`} title={getDiagnostic(c)} style={{minHeight:56,maxHeight:56,overflow:'hidden',cursor:'help',...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}>
                     <div className="flex items-center justify-between h-full">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <div className={`initials-badge ${status} flex-shrink-0`}>{c.initials || '??'}</div>
