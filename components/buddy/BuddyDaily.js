@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso } from '@/lib/data';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, matchesStaffMember } from '@/lib/data';
+import { getCliniciansForDate } from '@/lib/huddle';
 
-export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers }) {
+export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData }) {
   const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
 
   const currentAlloc = getCurrentAllocations();
@@ -39,6 +40,27 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     naturalPresent.forEach(id => { if (!overridePresent.has(id)) changed.add(id); });
     return changed;
   })();
+
+  // CSV cross-reference: detect mismatches between buddy attendance and EMIS sessions
+  const csvMismatches = (() => {
+    if (!huddleData) return { presentNoCSV: new Set(), absentHasCSV: new Set() };
+    const dateKey = getDateKey();
+    // Convert dateKey (YYYY-MM-DD) to CSV format (DD-Mon-YYYY)
+    const d = new Date(dateKey + 'T12:00:00');
+    const csvDateStr = `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`;
+    const csvClinicians = getCliniciansForDate(huddleData, csvDateStr);
+    if (csvClinicians.length === 0) return { presentNoCSV: new Set(), absentHasCSV: new Set() };
+    const presentNoCSV = new Set();
+    const absentHasCSV = new Set();
+    cliniciansList.forEach(c => {
+      const hasCSV = csvClinicians.some(csvName => matchesStaffMember(csvName, c));
+      const isPresent = presentIds.includes(c.id);
+      if (isPresent && !hasCSV) presentNoCSV.add(c.id);
+      if (!isPresent && hasCSV) absentHasCSV.add(c.id);
+    });
+    return { presentNoCSV, absentHasCSV };
+  })();
+  const hasCsvMismatches = csvMismatches.presentNoCSV.size > 0 || csvMismatches.absentHasCSV.size > 0;
 
   const handleGenerate = () => {
     const dateKey = getDateKey();
@@ -251,15 +273,20 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 const plannedReason = getPlannedAbsenceReason(c.id, getDateKey());
                 const past = isPastDate(getDateKey());
                 const isOverridden = overriddenIds.has(c.id);
+                const csvNoSession = csvMismatches.presentNoCSV.has(c.id);
+                const csvHasSession = csvMismatches.absentHasCSV.has(c.id);
+                const hasCsvFlag = csvNoSession || csvHasSession;
+                const outlineCol = isOverridden ? '#f59e0b' : hasCsvFlag ? '#3b82f6' : null;
                 return (
-                  <div key={c.id} className={`clinician-card ${status}`} style={{minHeight:56,maxHeight:56,overflow:'hidden',...(isOverridden?{outline:'2px solid #f59e0b',outlineOffset:'-2px'}:{})}}>
+                  <div key={c.id} className={`clinician-card ${status}`} style={{minHeight:56,maxHeight:56,overflow:'hidden',...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}>
                     <div className="flex items-center justify-between h-full">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <div className={`initials-badge ${status} flex-shrink-0`}>{c.initials || '??'}</div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-slate-900 truncate">{c.name}</span>
-                            {isOverridden && <span className="group relative flex-shrink-0" title={status === 'present' ? 'Manually set to present (would normally be absent/day off)' : 'Manually set to absent (would normally be present)'}><span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span></span>}
+                            {isOverridden && <span className="flex-shrink-0" title={status === 'present' ? 'Manually set to present (would normally be absent/day off)' : 'Manually set to absent (would normally be present)'}><span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span></span>}
+                            {hasCsvFlag && <span className="flex-shrink-0" title={csvNoSession ? 'Marked present but no EMIS sessions found' : 'Marked absent but has EMIS sessions booked'}><span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span></span>}
                           </div>
                           <div className="text-xs text-slate-500 truncate">{c.role}{hasPlanned ? ` · ${plannedReason}` : ''}{lta ? ' · LTA' : ''}</div>
                         </div>
@@ -270,10 +297,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 );
               })}
             </div>
-            {overriddenIds.size > 0 && (
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>
-                <span>Manually overridden — attendance differs from rota / planned absences</span>
+            {(overriddenIds.size > 0 || hasCsvMismatches) && (
+              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500 flex-wrap">
+                {overriddenIds.size > 0 && <span className="flex items-center gap-1.5"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>Manually overridden</span>}
+                {hasCsvMismatches && <span className="flex items-center gap-1.5"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>CSV / attendance mismatch</span>}
               </div>
             )}
           </div>

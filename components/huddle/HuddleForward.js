@@ -38,7 +38,7 @@ function DonutGauge({ avail, emb, booked }) {
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/><span className="text-[11px] text-slate-400">Available</span><span className="text-xs font-bold text-emerald-400 ml-auto">{avail}</span></div>
         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}}/><span className="text-[11px] text-slate-400">Embargoed</span><span className="text-xs font-bold text-amber-400 ml-auto">{emb}</span></div>
-        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444'}}/><span className="text-[11px] text-slate-400">Booked</span><span className="text-xs font-bold text-red-400 ml-auto">{booked}</span></div>
+        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444'}}/><span className="text-[11px] text-slate-400">Booked</span><span className="text-xs font-bold text-red-400 ml-auto">{booked}</span></div>
       </div>
     </div>
   );
@@ -198,7 +198,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         {d.rTotal>0&&<>
                           {d.rA>0&&<div style={{width:`${(d.rA/d.rTotal)*100}%`,height:10,backgroundColor:'#10b981',minWidth:1}}/>}
                           {d.rE>0&&<div style={{width:`${(d.rE/d.rTotal)*100}%`,height:10,backgroundColor:'#f59e0b',minWidth:1}}/>}
-                          {d.rB>0&&<div style={{width:`${(d.rB/d.rTotal)*100}%`,height:10,background:'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444',minWidth:1}}/>}
+                          {d.rB>0&&<div style={{width:`${(d.rB/d.rTotal)*100}%`,height:10,background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444',minWidth:1}}/>}
                         </>}
                       </div>
                     </div>
@@ -227,7 +227,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           <span className="font-semibold text-slate-400">Key:</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/>Available</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}}/>Embargoed</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444'}}/>Booked</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444'}}/>Booked</span>
           <span className="text-slate-700">|</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#3b82f6'}}/>Over</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/>On target</span>
@@ -247,7 +247,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               <div className="rounded-lg p-2 w-20 flex-shrink-0" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)'}}>
                 <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-bold text-slate-400">5</span><span className="text-[8px] font-bold px-1 rounded" style={{background:'#10b981',color:'white'}}>132</span></div>
                 <div className="flex gap-0.5 mb-1"><div className="flex-1 text-center rounded py-0.5" style={{background:'#10b981'}}><span className="text-[8px] font-bold text-white">18</span></div><div className="flex-1 text-center rounded py-0.5" style={{background:'#f59e0b'}}><span className="text-[8px] font-bold text-white">10</span></div></div>
-                <div className="flex items-center gap-1"><span className="text-[8px] font-bold text-slate-500">42</span><div className="rounded overflow-hidden flex flex-1" style={{height:5,background:'#334155'}}><div style={{width:'50%',background:'#10b981',height:5}}/><div style={{width:'20%',background:'#f59e0b',height:5}}/><div style={{width:'30%',background:'repeating-linear-gradient(55deg,transparent,transparent 1.5px,rgba(255,255,255,0.4) 1.5px,rgba(255,255,255,0.4) 2.5px),#ef4444',height:5}}/></div></div>
+                <div className="flex items-center gap-1"><span className="text-[8px] font-bold text-slate-500">42</span><div className="rounded overflow-hidden flex flex-1" style={{height:5,background:'#334155'}}><div style={{width:'50%',background:'#10b981',height:5}}/><div style={{width:'20%',background:'#f59e0b',height:5}}/><div style={{width:'30%',background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444',height:5}}/></div></div>
               </div>
               <div className="text-[11px] text-slate-500 leading-relaxed" style={{maxWidth:200}}>
                 <div className="text-slate-400 font-semibold mb-1">Each day shows:</div>

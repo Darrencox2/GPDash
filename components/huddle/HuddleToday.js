@@ -320,7 +320,7 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
     </div>
   );
   const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
-  const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444';
+  const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444';
 
   return (
     <div className="p-4" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
@@ -396,7 +396,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
   const totalEmb = days.reduce((sum, d) => sum + (d.embargoed || 0), 0);
   const totalBooked = days.reduce((sum, d) => sum + (d.booked || 0), 0);
   const THRESHOLDS = [3, 7, 14, 21];
-  const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444';
+  const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444';
 
   return (
     <div className="p-4 rounded-b-xl" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>

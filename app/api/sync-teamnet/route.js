@@ -67,13 +67,24 @@ export async function POST(request) {
         }
         
         if (matched) {
-          // Extract absence type from summary
-          let reason = 'Leave';
-          if (summaryLower.includes('holiday')) reason = 'Holiday';
-          else if (summaryLower.includes('training') || summaryLower.includes('cpd')) reason = 'Training';
-          else if (summaryLower.includes('sick')) reason = 'Sick';
-          else if (summaryLower.includes('study')) reason = 'Study';
-          else if (summaryLower.includes('annual')) reason = 'Annual Leave';
+          // Extract absence reason: strip clinician name parts from summary, use remainder
+          let reason = summary;
+          // Remove known name parts (case-insensitive)
+          [firstName, surname, fullName, initials].filter(Boolean).forEach(part => {
+            if (part.length >= 2) {
+              reason = reason.replace(new RegExp(part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
+            }
+          });
+          // Remove common prefixes/titles
+          reason = reason.replace(/\b(dr|mr|mrs|ms|miss|prof)\.?\b/gi, '');
+          // Clean up: trim, collapse whitespace, remove leading/trailing punctuation
+          reason = reason.replace(/[,\-–—:;]+/g, ' ').replace(/\s+/g, ' ').trim();
+          // Title case
+          if (reason.length > 0) {
+            reason = reason.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
+          } else {
+            reason = 'Leave';
+          }
           
           absences.push({
             clinicianId: id,
