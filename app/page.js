@@ -213,7 +213,21 @@ function AppContent() {
     if (!isOnRota && !isCurrentlyPresent) newScheduled = [...scheduled, id];
     else if (!isOnRota && isCurrentlyPresent) newScheduled = scheduled.filter(cid => cid !== id);
     const newOverrides = { ...data.dailyOverrides, [dayKey]: { present: newPresent, scheduled: newScheduled } };
-    saveData({ ...data, dailyOverrides: newOverrides });
+    // Auto-regenerate buddy allocations with updated presence
+    const clins = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
+    const absentIds = newScheduled.filter(sid => !newPresent.includes(sid));
+    const dayOffIds = clins.filter(c => !newScheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
+    const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, newPresent, absentIds, dayOffIds, data.settings || DEFAULT_SETTINGS);
+    // Compute natural present to detect overrides
+    const plannedAbs = ensureArray(data.plannedAbsences);
+    const rota = ensureArray(data.weeklyRota?.[day]);
+    const naturalPresent = new Set(rota.filter(rid => { const c = clins.find(c => c.id === rid); return c && !c.longTermAbsent && !plannedAbs.some(a => a.clinicianId === rid && dateKey >= a.startDate && dateKey <= a.endDate); }));
+    const overrideSet = new Set(newPresent);
+    const overriddenIds = [];
+    overrideSet.forEach(oid => { if (!naturalPresent.has(oid)) overriddenIds.push(oid); });
+    naturalPresent.forEach(nid => { if (!overrideSet.has(nid)) overriddenIds.push(nid); });
+    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: newPresent, absentIds, dayOffIds, hasOverride: overriddenIds.length > 0, overriddenIds } };
+    saveData({ ...data, dailyOverrides: newOverrides, allocationHistory: newHistory });
   };
 
   const getCurrentAllocations = () => data?.allocationHistory?.[getDateKey()] || null;

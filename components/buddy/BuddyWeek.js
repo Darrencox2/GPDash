@@ -70,8 +70,8 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
                   }).filter(Boolean).sort((a, b) => (b.hasTasks ? 1 : 0) - (a.hasTasks ? 1 : 0));
                   return <div className="space-y-1.5 text-sm">
                     {rows.map(({ bid, b, t, hasTasks, isOv }) => (
-                      <div key={bid} className="flex items-center gap-2" style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'-1px',borderRadius:4,padding:'2px 4px'} : undefined}>
-                        <span className={`font-medium w-8 ${hasTasks ? 'text-slate-700' : 'text-slate-400'}`}>{b.initials}</span>
+                      <div key={bid} className="flex items-center gap-2">
+                        <span className={`font-medium w-8 ${hasTasks ? 'text-slate-700' : 'text-slate-400'}`} style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px',borderRadius:3} : undefined}>{b.initials}</span>
                         {hasTasks ? (
                           <div className="flex flex-wrap gap-1">
                             {t.absent.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag absent text-xs">{x.initials}</span> : null; })}
@@ -91,7 +91,7 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
       <div className="flex gap-6 text-xs text-slate-500 justify-center flex-wrap">
         <span className="flex items-center gap-1.5"><span className="status-tag absent">XX</span>File & Action (absent)</span>
         <span className="flex items-center gap-1.5"><span className="status-tag dayoff">XX</span>View Only (day off)</span>
-        <span className="flex items-center gap-1.5"><span style={{display:'inline-block',width:24,height:14,borderRadius:3,outline:'2px solid #f59e0b',outlineOffset:'-1px'}} /><span>Manually overridden</span></span>
+        <span className="flex items-center gap-1.5"><span style={{display:'inline-block',padding:'1px 4px',borderRadius:3,outline:'2px solid #f59e0b',outlineOffset:'1px',fontSize:11,fontWeight:500,color:'#64748b'}}>XX</span><span>Manually overridden</span></span>
       </div>
 
       <div className="card p-5">
