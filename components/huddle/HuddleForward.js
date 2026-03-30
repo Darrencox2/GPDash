@@ -14,8 +14,8 @@ function dowDemandColour(predicted, dayOfWeek) {
   if (!predicted || dayOfWeek < 0 || dayOfWeek > 4) return { bg: '#475569', text: '#fff', label: '–' };
   const dowBaseline = BASELINE + DOW_EFFECTS[dayOfWeek];
   const ratio = predicted / dowBaseline;
-  if (ratio <= 0.9) return { bg: '#10b981', text: '#fff', label: 'Low' };
-  if (ratio <= 1.1) return { bg: '#3b82f6', text: '#fff', label: 'Normal' };
+  if (ratio <= 0.9) return { bg: '#0ea5e9', text: '#fff', label: 'Low' };
+  if (ratio <= 1.1) return { bg: '#10b981', text: '#fff', label: 'Normal' };
   if (ratio <= 1.25) return { bg: '#f59e0b', text: '#fff', label: 'High' };
   return { bg: '#ef4444', text: '#fff', label: 'V.High' };
 }
@@ -31,14 +31,14 @@ function DonutGauge({ avail, emb, booked }) {
         <circle cx="40" cy="40" r={r} fill="none" stroke="#334155" strokeWidth="8"/>
         <circle cx="40" cy="40" r={r} fill="none" stroke="#10b981" strokeWidth="8" strokeDasharray={`${aLen} ${c}`} strokeDashoffset="0" transform="rotate(-90 40 40)"/>
         <circle cx="40" cy="40" r={r} fill="none" stroke="#f59e0b" strokeWidth="8" strokeDasharray={`${eLen} ${c}`} strokeDashoffset={`${-aLen}`} transform="rotate(-90 40 40)"/>
-        <circle cx="40" cy="40" r={r} fill="none" stroke="#8b5cf6" strokeWidth="8" strokeDasharray={`${bLen} ${c}`} strokeDashoffset={`${-(aLen+eLen)}`} transform="rotate(-90 40 40)"/>
+        <circle cx="40" cy="40" r={r} fill="none" stroke="#ef4444" strokeWidth="8" strokeDasharray={`${bLen} ${c}`} strokeDashoffset={`${-(aLen+eLen)}`} transform="rotate(-90 40 40)"/>
         <text x="40" y="38" textAnchor="middle" fill="#e2e8f0" style={{fontSize:14,fontWeight:800}}>{total}</text>
         <text x="40" y="49" textAnchor="middle" fill="#64748b" style={{fontSize:8}}>total</text>
       </svg>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/><span className="text-[11px] text-slate-400">Available</span><span className="text-xs font-bold text-emerald-400 ml-auto">{avail}</span></div>
         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}}/><span className="text-[11px] text-slate-400">Embargoed</span><span className="text-xs font-bold text-amber-400 ml-auto">{emb}</span></div>
-        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#8b5cf6'}}/><span className="text-[11px] text-slate-400">Booked</span><span className="text-xs font-bold text-purple-400 ml-auto">{booked}</span></div>
+        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444'}}/><span className="text-[11px] text-slate-400">Booked</span><span className="text-xs font-bold text-red-400 ml-auto">{booked}</span></div>
       </div>
     </div>
   );
@@ -192,14 +192,16 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         <div className="text-[7px] font-bold" style={{color:pmV.text,opacity:0.8}}>PM</div>
                       </div>
                     </div>
-                    <div className="rounded-md overflow-hidden flex" style={{height:12,background:'#334155'}}>
-                      {d.rTotal>0&&<>
-                        {d.rA>0&&<div style={{width:`${(d.rA/d.rTotal)*100}%`,height:12,backgroundColor:'#10b981',minWidth:1}}/>}
-                        {d.rE>0&&<div style={{width:`${(d.rE/d.rTotal)*100}%`,height:12,backgroundColor:'#f59e0b',minWidth:1}}/>}
-                        {d.rB>0&&<div style={{width:`${(d.rB/d.rTotal)*100}%`,height:12,backgroundColor:'#8b5cf6',minWidth:1}}/>}
-                      </>}
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-slate-500 flex-shrink-0">{d.rTotal}</span>
+                      <div className="rounded-md overflow-hidden flex flex-1" style={{height:10,background:'#334155'}}>
+                        {d.rTotal>0&&<>
+                          {d.rA>0&&<div style={{width:`${(d.rA/d.rTotal)*100}%`,height:10,backgroundColor:'#10b981',minWidth:1}}/>}
+                          {d.rE>0&&<div style={{width:`${(d.rE/d.rTotal)*100}%`,height:10,backgroundColor:'#f59e0b',minWidth:1}}/>}
+                          {d.rB>0&&<div style={{width:`${(d.rB/d.rTotal)*100}%`,height:10,background:'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444',minWidth:1}}/>}
+                        </>}
+                      </div>
                     </div>
-                    <div className="text-center text-[9px] text-slate-500 mt-1">{d.rTotal} rout</div>
                   </div>
                 </div>
               );
@@ -213,7 +215,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             </div>
             {/* Routine total */}
             <div className="p-1.5 border-l border-emerald-900/30 flex items-center justify-center" style={{background:'rgba(16,185,129,0.08)'}}>
-              {wk.wR>0?<div className="rounded-md text-center py-2 px-1 w-full" style={{background:rTarget>0?vBand(wk.wR,rTarget).bg:'#8b5cf6'}}>
+              {wk.wR>0?<div className="rounded-md text-center py-2 px-1 w-full" style={{background:rTarget>0?vBand(wk.wR,rTarget).bg:'#10b981'}}>
                 <div className="text-base font-extrabold text-white">{wk.wR}</div>
                 {rTarget>0&&<div className="text-[8px] text-white" style={{opacity:0.6}}>/ {rTarget}</div>}
               </div>:<div className="text-[10px] text-slate-600">—</div>}
@@ -225,7 +227,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           <span className="font-semibold text-slate-400">Key:</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/>Available</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}}/>Embargoed</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#8b5cf6'}}/>Booked</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444'}}/>Booked</span>
           <span className="text-slate-700">|</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#3b82f6'}}/>Over</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/>On target</span>
@@ -243,22 +245,21 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           <div className="flex gap-6 flex-wrap">
             <div className="flex items-start gap-3">
               <div className="rounded-lg p-2 w-20 flex-shrink-0" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)'}}>
-                <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-bold text-slate-400">5</span><span className="text-[8px] font-bold px-1 rounded" style={{background:'#3b82f6',color:'white'}}>132</span></div>
+                <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-bold text-slate-400">5</span><span className="text-[8px] font-bold px-1 rounded" style={{background:'#10b981',color:'white'}}>132</span></div>
                 <div className="flex gap-0.5 mb-1"><div className="flex-1 text-center rounded py-0.5" style={{background:'#10b981'}}><span className="text-[8px] font-bold text-white">18</span></div><div className="flex-1 text-center rounded py-0.5" style={{background:'#f59e0b'}}><span className="text-[8px] font-bold text-white">10</span></div></div>
-                <div className="rounded overflow-hidden flex" style={{height:6,background:'#334155'}}><div style={{width:'50%',background:'#10b981',height:6}}/><div style={{width:'20%',background:'#f59e0b',height:6}}/><div style={{width:'30%',background:'#8b5cf6',height:6}}/></div>
-                <div className="text-center text-[7px] text-slate-600 mt-0.5">42 rout</div>
+                <div className="flex items-center gap-1"><span className="text-[8px] font-bold text-slate-500">42</span><div className="rounded overflow-hidden flex flex-1" style={{height:5,background:'#334155'}}><div style={{width:'50%',background:'#10b981',height:5}}/><div style={{width:'20%',background:'#f59e0b',height:5}}/><div style={{width:'30%',background:'repeating-linear-gradient(55deg,transparent,transparent 1.5px,rgba(255,255,255,0.4) 1.5px,rgba(255,255,255,0.4) 2.5px),#ef4444',height:5}}/></div></div>
               </div>
               <div className="text-[11px] text-slate-500 leading-relaxed" style={{maxWidth:200}}>
                 <div className="text-slate-400 font-semibold mb-1">Each day shows:</div>
                 <div><span className="text-slate-300">Date</span> + predicted demand (colour = vs typical for this weekday)</div>
                 <div className="mt-0.5"><span className="text-slate-300">AM / PM</span> urgent slots (colour = vs target)</div>
-                <div className="mt-0.5"><span className="text-slate-300">Bar</span> = routine split (avail / embargo / booked)</div>
+                <div className="mt-0.5"><span className="text-slate-300">Number + bar</span> = routine slots (avail / embargo / booked)</div>
               </div>
             </div>
             <div className="text-[11px] text-slate-500 leading-relaxed" style={{maxWidth:220}}>
               <div className="text-slate-400 font-semibold mb-1">Prediction colours:</div>
-              <div className="flex items-center gap-2 mb-0.5"><span className="w-2 h-2 rounded-sm" style={{background:'#10b981'}}/> Below typical for this weekday</div>
-              <div className="flex items-center gap-2 mb-0.5"><span className="w-2 h-2 rounded-sm" style={{background:'#3b82f6'}}/> Normal for this weekday</div>
+              <div className="flex items-center gap-2 mb-0.5"><span className="w-2 h-2 rounded-sm" style={{background:'#0ea5e9'}}/> Below typical for this weekday</div>
+              <div className="flex items-center gap-2 mb-0.5"><span className="w-2 h-2 rounded-sm" style={{background:'#10b981'}}/> Normal for this weekday</div>
               <div className="flex items-center gap-2 mb-0.5"><span className="w-2 h-2 rounded-sm" style={{background:'#f59e0b'}}/> Above typical for this weekday</div>
               <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-sm" style={{background:'#ef4444'}}/> Well above typical for this weekday</div>
             </div>
@@ -305,8 +306,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             </div>
             <div className="p-5">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-bold uppercase text-purple-500">Routine</span>
-                <span className="text-sm font-extrabold text-purple-500">{detailDay.rTotal}</span>
+                <span className="text-xs font-bold uppercase text-red-500">Routine</span>
+                <span className="text-sm font-extrabold text-red-500">{detailDay.rTotal}</span>
               </div>
               <div className="mb-4"><DonutGauge avail={detailDay.rA} emb={detailDay.rE} booked={detailDay.rB}/></div>
               <div className="space-y-1.5">
@@ -387,7 +388,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             {weeks.filter(w=>w.wU>0).map((w,i,arr)=>{const delta=i>0?w.wU-arr[i-1].wU:0;return<div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50">
               <span className="text-xs font-semibold text-slate-700 w-12">Wk {weeks.indexOf(w)+1}</span>
               <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-800">{w.wU}</span><span className="text-[10px] text-slate-400">urg</span></div>
-              <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'#8b5cf6'}}>{w.wR}</span><span className="text-[10px] text-slate-400">rout</span></div>
+              <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'#10b981'}}>{w.wR}</span><span className="text-[10px] text-slate-400">rout</span></div>
               {delta!==0&&<span className={`text-xs font-bold ml-auto ${delta>0?'text-emerald-500':'text-red-500'}`}>{delta>0?'↑':'↓'}{Math.abs(delta)} urg</span>}
             </div>;})}
           </div>

@@ -313,29 +313,17 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   if (!hasFilter) return (
-    <div className="py-8 px-6 text-center">
-      <div className="text-slate-300 mb-2" style={{fontSize:28}}>↑</div>
-      <h3 className="text-sm font-semibold text-slate-600 mb-1">No slots selected</h3>
-      <p className="text-xs text-slate-400">Open the filter to configure.</p>
+    <div className="py-8 px-6 text-center" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
+      <div className="text-slate-600 mb-2" style={{fontSize:28}}>↑</div>
+      <h3 className="text-sm font-semibold text-slate-400 mb-1">No slots selected</h3>
+      <p className="text-xs text-slate-600">Open the filter to configure.</p>
     </div>
   );
   const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
-  const accentColours = {
-    teal: { bar: 'bg-teal-400', emb: 'bg-teal-200', book: 'bg-slate-300', text: 'text-teal-600', glow: 'ring-teal-400/50 shadow-teal-400/20' },
-    violet: { bar: 'bg-violet-400', emb: 'bg-violet-200', book: 'bg-slate-300', text: 'text-violet-600', glow: 'ring-violet-400/50 shadow-violet-400/20' },
-    sky: { bar: 'bg-sky-400', emb: 'bg-sky-200', book: 'bg-slate-300', text: 'text-sky-600', glow: 'ring-sky-400/50 shadow-sky-400/20' },
-    rose: { bar: 'bg-rose-400', emb: 'bg-rose-200', book: 'bg-slate-300', text: 'text-rose-600', glow: 'ring-rose-400/50 shadow-rose-400/20' },
-    indigo: { bar: 'bg-indigo-400', emb: 'bg-indigo-200', book: 'bg-slate-300', text: 'text-indigo-600', glow: 'ring-indigo-400/50 shadow-indigo-400/20' },
-    amber: { bar: 'bg-amber-400', emb: 'bg-amber-200', book: 'bg-slate-300', text: 'text-amber-600', glow: 'ring-amber-400/50 shadow-amber-400/20' },
-    lime: { bar: 'bg-lime-400', emb: 'bg-lime-200', book: 'bg-slate-300', text: 'text-lime-600', glow: 'ring-lime-400/50 shadow-lime-400/20' },
-    fuchsia: { bar: 'bg-fuchsia-400', emb: 'bg-fuchsia-200', book: 'bg-slate-300', text: 'text-fuchsia-600', glow: 'ring-fuchsia-400/50 shadow-fuchsia-400/20' },
-    cyan: { bar: 'bg-cyan-400', emb: 'bg-cyan-200', book: 'bg-slate-300', text: 'text-cyan-600', glow: 'ring-cyan-400/50 shadow-cyan-400/20' },
-    emerald: { bar: 'bg-emerald-400', emb: 'bg-emerald-200', book: 'bg-slate-300', text: 'text-emerald-600', glow: 'ring-emerald-400/50 shadow-emerald-400/20' },
-  };
-  const ac = accentColours[accent] || accentColours.teal;
+  const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444';
 
   return (
-    <div className="p-4">
+    <div className="p-4" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
       <div className="flex items-end gap-1.5 relative" style={{ height: 100 }}>
         {days.map((d, i) => {
           const isToday = i === 0;
@@ -352,47 +340,46 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {hasData && total > 0 && (
-                <div className={`text-[10px] font-bold transition-all duration-150 ${isToday ? 'text-slate-800' : isHovered ? ac.text + ' scale-110' : ac.text}`}>
-                  {avail}{emb > 0 && <span className="text-slate-400">+{emb}</span>}
+                <div className="text-[10px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? '#34d399' : '#64748b'}}>
+                  {avail}{emb > 0 && <span style={{color:'#fbbf24'}}>+{emb}</span>}
                 </div>
               )}
-              <div className={`w-full rounded-t-md overflow-hidden cursor-pointer transition-all duration-200 ${isToday ? 'ring-2 ring-slate-900 z-10' : ''} ${isHovered ? `ring-2 ${ac.glow} shadow-lg scale-x-110 z-10` : ''}`}
-                style={{ height: hasData ? `${totalPct}%` : '8%', minHeight: 3 }}>
+              <div className="w-full rounded-t-md overflow-hidden cursor-pointer transition-all duration-200"
+                style={{ height: hasData ? `${totalPct}%` : '8%', minHeight: 3,
+                  outline: isToday ? '2px solid #e2e8f0' : isHovered ? '2px solid #34d399' : 'none', outlineOffset: -1,
+                  boxShadow: isHovered ? '0 0 12px rgba(52,211,153,0.3)' : 'none',
+                  transform: isHovered ? 'scaleX(1.1)' : 'none', zIndex: isHovered || isToday ? 10 : 1 }}>
                 {hasData && total > 0 ? (
-                  <div className={`w-full h-full flex flex-col justify-end transition-all duration-200 ${isHovered ? 'brightness-110' : ''}`}>
-                    {avail > 0 && <div className={`${ac.bar} opacity-80`} style={{ height: `${(avail / total) * 100}%` }} />}
-                    {emb > 0 && <div className={ac.emb} style={{ height: `${(emb / total) * 100}%` }} />}
-                    {book > 0 && <div className={ac.book} style={{ height: `${(book / total) * 100}%` }} />}
+                  <div className="w-full h-full flex flex-col justify-end">
+                    {avail > 0 && <div style={{height:`${(avail/total)*100}%`,background:'#10b981'}} />}
+                    {emb > 0 && <div style={{height:`${(emb/total)*100}%`,background:'#f59e0b'}} />}
+                    {book > 0 && <div style={{height:`${(book/total)*100}%`,background:HATCH}} />}
                   </div>
-                ) : (
-                  <div className="w-full h-full bg-slate-200" />
-                )}
+                ) : <div className="w-full h-full" style={{background:'#334155'}} />}
               </div>
-              <div className={`mt-0.5 text-center ${isToday ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
-                <div className="text-[9px] leading-tight">{d.dayName?.charAt(0)}</div>
-                <div className="text-[8px] leading-tight" style={{ color: isToday ? '#475569' : '#cbd5e1' }}>{d.dayNum}</div>
+              <div className="mt-0.5 text-center">
+                <div className="text-[9px] leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+                <div className="text-[8px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
               </div>
-              {/* Hover tooltip */}
               {isHovered && hasData && total > 0 && (
-                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 bg-slate-900 text-white rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap pointer-events-none animate-fade-in" style={{ minWidth: '100px' }}>
-                  <div className="text-xs font-bold mb-0.5">{d.dayName} {d.dayNum}</div>
+                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap pointer-events-none" style={{background:'#0f172a',border:'1px solid #334155',minWidth:'100px'}}>
+                  <div className="text-xs font-bold mb-0.5 text-slate-200">{d.dayName} {d.dayNum}</div>
                   <div className="space-y-0.5 text-[11px]">
-                    <div className="flex justify-between gap-3"><span>Available</span><span className="font-semibold">{avail}</span></div>
-                    {emb > 0 && <div className="flex justify-between gap-3"><span>Embargoed</span><span className="font-semibold">{emb}</span></div>}
-                    {book > 0 && <div className="flex justify-between gap-3"><span>Booked</span><span className="font-semibold">{book}</span></div>}
+                    <div className="flex justify-between gap-3"><span className="text-slate-400">Available</span><span className="font-semibold text-emerald-400">{avail}</span></div>
+                    {emb > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
+                    {book > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
                   </div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid #334155'}} />
                 </div>
               )}
             </div>
           );
         })}
       </div>
-      {/* Legend */}
-      <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
-        <div className="flex items-center gap-1"><div className={`w-2.5 h-2.5 rounded-sm ${ac.bar}`} /><span className="text-xs text-slate-500">Available</span></div>
-        <div className="flex items-center gap-1"><div className={`w-2.5 h-2.5 rounded-sm ${ac.emb}`} /><span className="text-xs text-slate-500">Embargoed</span></div>
-        <div className="flex items-center gap-1"><div className={`w-2.5 h-2.5 rounded-sm ${ac.book}`} /><span className="text-xs text-slate-500">Booked</span></div>
+      <div className="flex items-center gap-3 mt-2 pt-2" style={{borderTop:'1px solid #334155'}}>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}} /><span className="text-xs text-slate-500">Available</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}} /><span className="text-xs text-slate-500">Embargoed</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:HATCH,backgroundSize:'5px 5px'}} /><span className="text-xs text-slate-500">Booked</span></div>
       </div>
       {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
     </div>
@@ -408,52 +395,37 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
   const totalAvail = days.reduce((sum, d) => sum + (d.available || 0), 0);
   const totalEmb = days.reduce((sum, d) => sum + (d.embargoed || 0), 0);
   const totalBooked = days.reduce((sum, d) => sum + (d.booked || 0), 0);
-
-  // Calculate calendar-day index for each entry (counting from 0 = today)
-  const dayIndicesWithCalendarDay = useMemo(() => {
-    let calDay = 0;
-    return days.map((d, i) => {
-      const cd = calDay;
-      calDay++;
-      return cd;
-    });
-  }, [days]);
-
-  // Threshold positions (calendar days) for dividers — placed AFTER the threshold day
   const THRESHOLDS = [3, 7, 14, 21];
-  const thresholdIndices = THRESHOLDS.map(t => {
-    const idx = dayIndicesWithCalendarDay.findIndex(cd => cd >= t);
-    return idx >= 0 ? idx : -1;
-  });
-
-  // Background zone colours (alternating subtle tints)
-  const ZONE_COLOURS = ['rgba(16,185,129,0.04)', 'rgba(59,130,246,0.04)', 'rgba(16,185,129,0.04)', 'rgba(59,130,246,0.04)', 'rgba(16,185,129,0.04)'];
+  const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 3.5px),#ef4444';
 
   return (
-    <div className="p-4">
+    <div className="p-4 rounded-b-xl" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
       <div className="flex items-center justify-between mb-3">
-        <div className="text-sm text-slate-500">Next 30 days</div>
+        <div className="text-sm text-slate-400">Next 30 days</div>
         <div className="flex items-center gap-3 text-sm">
-          <span className="font-semibold text-emerald-700">{totalAvail} avail</span>
-          {totalEmb > 0 && <span className="font-semibold text-amber-600">{totalEmb} emb</span>}
-          {totalBooked > 0 && <span className="font-semibold text-slate-500">{totalBooked} booked</span>}
+          <span className="font-semibold text-emerald-400">{totalAvail} avail</span>
+          {totalEmb > 0 && <span className="font-semibold text-amber-400">{totalEmb} emb</span>}
+          {totalBooked > 0 && <span className="font-semibold text-red-400">{totalBooked} booked</span>}
         </div>
       </div>
       <div className="flex items-end gap-px relative" style={{ height: 140 }}>
-        {/* Threshold divider lines */}
-        {thresholdIndices.map((tidx, ti) => {
-          if (tidx < 0) return null;
-          // Calculate position based on actual flex widths (weekends=0.3, workdays=1)
-          const flexBefore = days.slice(0, tidx).reduce((sum, d) => sum + (d.isWeekend ? 0.3 : 1), 0);
-          const totalFlex = days.reduce((sum, d) => sum + (d.isWeekend ? 0.3 : 1), 0);
-          const pct = (flexBefore / totalFlex) * 100;
-          return (
-            <div key={`t${ti}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{ left: `${pct}%` }}>
-              <div className="absolute top-0 bottom-0 w-px" style={{ background: '#94a3b8', opacity: 0.4 }} />
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-400 bg-white border border-slate-200 whitespace-nowrap">{THRESHOLDS[ti]}d</div>
-            </div>
-          );
-        })}
+        {(() => {
+          let calDay = 0;
+          const calDays = days.map(() => calDay++);
+          const totalFlex = days.reduce((s, d) => s + (d.isWeekend ? 0.3 : 1), 0);
+          return <>
+            {THRESHOLDS.map((t, ti) => {
+              const idx = calDays.findIndex(cd => cd >= t);
+              if (idx < 0) return null;
+              const flexBefore = days.slice(0, idx).reduce((s, d) => s + (d.isWeekend ? 0.3 : 1), 0);
+              const pct = (flexBefore / totalFlex) * 100;
+              return <div key={`t${ti}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{ left: `${pct}%` }}>
+                <div className="absolute top-0 bottom-0 w-px" style={{ background: '#475569', opacity: 0.6 }} />
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-500 whitespace-nowrap" style={{background:'#1e293b',border:'1px solid #334155'}}>{t}d</div>
+              </div>;
+            })}
+          </>;
+        })()}
         {days.map((d, i) => {
           const isToday = i === 0;
           const hasData = d.available !== null && !d.isWeekend;
@@ -463,68 +435,63 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
           const total = avail + emb + book;
           const pct = hasData && total > 0 ? Math.max(6, (total / maxVal) * 100) : 0;
           const isHovered = hoveredIdx === i;
-
           if (d.isWeekend) return <div key={i} className="flex-[0.3] h-full" />;
-
           return (
             <div key={i}
-              className={`flex-1 flex flex-col items-center justify-end h-full relative ${d.isMonday && i > 0 ? 'ml-1 pl-1 border-l border-slate-200' : ''}`}
+              className={`flex-1 flex flex-col items-center justify-end h-full relative ${d.isMonday && i > 0 ? 'ml-1 pl-1' : ''}`}
+              style={{borderLeft: d.isMonday && i > 0 ? '1px solid #334155' : 'none'}}
               onMouseEnter={() => setHoveredIdx(i)}
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {hasData && total > 0 && (
-                <div className={`text-[10px] font-bold transition-all duration-150 ${isToday ? 'text-slate-800' : isHovered ? 'text-emerald-700' : 'text-slate-400'}`}>
-                  {avail}{emb > 0 && <span className="text-amber-500">+{emb}</span>}
+                <div className="text-[10px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? '#34d399' : '#64748b'}}>
+                  {avail}{emb > 0 && <span style={{color:'#fbbf24'}}>+{emb}</span>}
                 </div>
               )}
-              <div className={`w-full rounded-t overflow-hidden cursor-pointer transition-all duration-200 ${isToday ? 'ring-2 ring-slate-900 z-10' : ''} ${isHovered ? 'ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-400/20 scale-x-110 z-10' : ''}`}
-                style={{ height: hasData ? `${pct}%` : '4%', minHeight: 2 }}>
-                {!hasData ? (
-                  <div className="w-full h-full bg-slate-100" />
-                ) : total === 0 ? (
-                  <div className="w-full h-full bg-red-200" />
-                ) : (
-                  <div className={`w-full h-full flex flex-col justify-end transition-all duration-200 ${isHovered ? 'brightness-110' : ''}`}>
-                    {avail > 0 && <div className="bg-emerald-400" style={{ height: `${(avail / total) * 100}%` }} />}
-                    {emb > 0 && <div className="bg-amber-300" style={{ height: `${(emb / total) * 100}%` }} />}
-                    {book > 0 && <div className="bg-slate-300" style={{ height: `${(book / total) * 100}%` }} />}
+              <div className="w-full rounded-t overflow-hidden cursor-pointer transition-all duration-200"
+                style={{ height: hasData ? `${pct}%` : '4%', minHeight: 2,
+                  outline: isToday ? '2px solid #e2e8f0' : isHovered ? '2px solid #34d399' : 'none',
+                  outlineOffset: -1,
+                  boxShadow: isHovered ? '0 0 12px rgba(52,211,153,0.3)' : 'none',
+                  transform: isHovered ? 'scaleX(1.15)' : 'none', zIndex: isHovered || isToday ? 10 : 1 }}>
+                {!hasData ? <div className="w-full h-full" style={{background:'#1e293b'}} /> : total === 0 ? <div className="w-full h-full" style={{background:'#334155'}} /> : (
+                  <div className="w-full h-full flex flex-col justify-end">
+                    {avail > 0 && <div style={{height:`${(avail/total)*100}%`,background:'#10b981'}} />}
+                    {emb > 0 && <div style={{height:`${(emb/total)*100}%`,background:'#f59e0b'}} />}
+                    {book > 0 && <div style={{height:`${(book/total)*100}%`,background:HATCH}} />}
                   </div>
                 )}
               </div>
               {isHovered && hasData && (
-                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 bg-slate-900 text-white rounded-lg px-3 py-2 shadow-xl whitespace-nowrap pointer-events-none animate-fade-in" style={{ minWidth: '120px' }}>
-                  <div className="text-xs font-bold mb-1">{d.dayName} {d.dayNum} {d.monthShort}</div>
+                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-3 py-2 shadow-xl whitespace-nowrap pointer-events-none" style={{background:'#0f172a',border:'1px solid #334155',minWidth:'120px'}}>
+                  <div className="text-xs font-bold mb-1 text-slate-200">{d.dayName} {d.dayNum} {d.monthShort}</div>
                   <div className="space-y-0.5">
-                    <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />Available</span><span className="font-semibold">{avail}</span></div>
-                    {emb > 0 && <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-300" />Embargoed</span><span className="font-semibold">{emb}</span></div>}
-                    {book > 0 && <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" />Booked</span><span className="font-semibold">{book}</span></div>}
-                    <div className="flex items-center justify-between gap-3 text-[11px] pt-0.5 border-t border-white/20"><span>Total</span><span className="font-bold">{total}</span></div>
+                    <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#10b981'}} />Available</span><span className="font-semibold text-emerald-400">{avail}</span></div>
+                    {emb > 0 && <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f59e0b'}} />Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
+                    {book > 0 && <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#ef4444'}} />Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
+                    <div className="flex items-center justify-between gap-3 text-[11px] pt-0.5" style={{borderTop:'1px solid #334155'}}><span className="text-slate-400">Total</span><span className="font-bold text-white">{total}</span></div>
                   </div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid #334155'}} />
                 </div>
               )}
             </div>
           );
         })}
       </div>
-      {/* Day + date labels */}
       <div className="flex gap-px mt-1.5">
         {days.map((d, i) => {
           if (d.isWeekend) return <div key={i} className="flex-[0.3]" />;
           const isToday = i === 0;
-          return (
-            <div key={i} className={`flex-1 text-center ${d.isMonday && i > 0 ? 'ml-1 pl-1' : ''}`}>
-              <div className={`text-[9px] leading-tight ${isToday ? 'text-slate-800 font-bold' : 'text-slate-400'}`}>{d.dayName?.charAt(0)}</div>
-              <div className={`text-[8px] leading-tight ${isToday ? 'text-slate-600 font-semibold' : 'text-slate-300'}`}>{d.dayNum}</div>
-            </div>
-          );
+          return <div key={i} className={`flex-1 text-center ${d.isMonday && i > 0 ? 'ml-1 pl-1' : ''}`}>
+            <div className="text-[9px] leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+            <div className="text-[8px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
+          </div>;
         })}
       </div>
-      {/* Legend */}
-      <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-400" /><span className="text-xs text-slate-500">Available</span></div>
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-amber-300" /><span className="text-xs text-slate-500">Embargoed</span></div>
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-slate-300" /><span className="text-xs text-slate-500">Booked</span></div>
+      <div className="flex items-center gap-4 mt-3 pt-3" style={{borderTop:'1px solid #334155'}}>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}} /><span className="text-xs text-slate-500">Available</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}} /><span className="text-xs text-slate-500">Embargoed</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:HATCH,backgroundSize:'5px 5px'}} /><span className="text-xs text-slate-500">Booked</span></div>
       </div>
       {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
     </div>

@@ -84,58 +84,66 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             const today = new Date();
             let stopped = false;
             const clins = (Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {})).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
+            const allClins = Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {});
             const plannedAbs = Array.isArray(currentData.plannedAbsences) ? currentData.plannedAbsences : Object.values(currentData.plannedAbsences || {});
+            const idxToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            // Replicate isAbsentUntilNextPresent from page.js
+            const isAbsOnDate = (cid, dk) => plannedAbs.some(a => a.clinicianId === cid && dk >= a.startDate && dk <= a.endDate);
+            const isAbsentCascade = (cid, fromDk) => {
+              const c = allClins.find(c => c.id === cid);
+              if (!c) return false;
+              if (c.longTermAbsent) return true;
+              const rota = currentData.weeklyRota || {};
+              const workDays = DAYS.filter(d => { const r = rota[d] || []; return (Array.isArray(r) ? r : Object.values(r)).includes(cid); });
+              if (workDays.length === 0) return false;
+              const startDate = new Date(fromDk + 'T12:00:00');
+              // Check backwards for last working day
+              for (let j = 1; j <= 7; j++) {
+                const pd = new Date(startDate); pd.setDate(pd.getDate() - j);
+                const pdi = pd.getDay(); const pdn = idxToDay[pdi]; const pdk = toLocalIso(pd);
+                if (pdi === 0 || pdi === 6) continue;
+                if (workDays.includes(pdn)) { if (isAbsOnDate(cid, pdk)) return true; break; }
+              }
+              // Check forwards for next working day
+              for (let j = 0; j <= 28; j++) {
+                const fd = new Date(startDate); fd.setDate(fd.getDate() + j);
+                const fdi = fd.getDay(); const fdn = idxToDay[fdi]; const fdk = toLocalIso(fd);
+                if (fdi === 0 || fdi === 6) continue;
+                if (workDays.includes(fdn)) { if (isAbsOnDate(cid, fdk)) return true; return false; }
+              }
+              return false;
+            };
             
             for (let i = 0; i < 28 && !stopped; i++) {
               const checkDate = new Date(today);
               checkDate.setDate(checkDate.getDate() + i);
               const dayIndex = checkDate.getDay();
               if (dayIndex === 0 || dayIndex === 6) continue;
-              const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
+              const dayName = idxToDay[dayIndex];
               const dateKey = toLocalIso(checkDate);
               const dayKey = `${dateKey}-${dayName}`;
               if (currentData.closedDays?.[dateKey]) continue;
               delete newOverrides[dayKey];
+              
+              // Same logic as getPresentClinicians
               const rota = currentData.weeklyRota?.[dayName] || [];
               const scheduled = Array.isArray(rota) ? rota : Object.values(rota);
               const present = scheduled.filter(id => {
-                const c = clins.find(c => c.id === id);
-                if (c?.longTermAbsent) return false;
-                return !plannedAbs.some(a => a.clinicianId === id && dateKey >= a.startDate && dateKey <= a.endDate);
+                const c = allClins.find(c => c.id === id);
+                if (!c) return false;
+                if (c.longTermAbsent) return false;
+                if (isAbsOnDate(id, dateKey)) return false;
+                if (isAbsentCascade(id, dateKey)) return false;
+                return true;
               });
-              const absentIdsGen = scheduled.filter(id => !present.includes(id));
-              const dayOffIdsGen = clins.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
+              const absentIds = scheduled.filter(id => !present.includes(id));
               
-              const cascadeAbsent = [];
-              const idxToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-              for (const doId of dayOffIdsGen) {
-                const c = clins.find(c => c.id === doId);
-                if (!c) continue;
-                if (c.longTermAbsent) { cascadeAbsent.push(doId); continue; }
-                const wDays = DAYS.filter(d => { const r = currentData.weeklyRota?.[d] || []; return (Array.isArray(r) ? r : Object.values(r)).includes(doId); });
-                if (wDays.length === 0) continue;
-                const cd = new Date(dateKey + 'T12:00:00');
-                let shouldAbs = false;
-                for (let j = 1; j <= 14; j++) {
-                  const pd = new Date(cd); pd.setDate(pd.getDate() - j);
-                  const pdi = pd.getDay(); const pdn = idxToDay[pdi]; const pdk = toLocalIso(pd);
-                  if (pdi === 0 || pdi === 6) continue;
-                  if (wDays.includes(pdn)) { if (plannedAbs.some(a => a.clinicianId === doId && pdk >= a.startDate && pdk <= a.endDate)) shouldAbs = true; break; }
-                }
-                if (!shouldAbs) {
-                  for (let j = 1; j <= 14; j++) {
-                    const fd = new Date(cd); fd.setDate(fd.getDate() + j);
-                    const fdi = fd.getDay(); const fdn = idxToDay[fdi]; const fdk = toLocalIso(fd);
-                    if (fdi === 0 || fdi === 6) continue;
-                    if (wDays.includes(fdn)) { if (plannedAbs.some(a => a.clinicianId === doId && fdk >= a.startDate && fdk <= a.endDate)) shouldAbs = true; break; }
-                  }
-                }
-                if (shouldAbs) cascadeAbsent.push(doId);
-              }
-              const finalAbsent = [...absentIdsGen, ...cascadeAbsent];
-              const finalDayOff = dayOffIdsGen.filter(id => !cascadeAbsent.includes(id));
-              const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, present, finalAbsent, finalDayOff, currentData.settings || DEFAULT_SETTINGS);
-              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds: finalAbsent, dayOffIds: finalDayOff };
+              // Same logic as getDayOffClinicians
+              const dayOffIds = clins.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
+              
+              const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, present, absentIds, dayOffIds, currentData.settings || DEFAULT_SETTINGS);
+              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds, dayOffIds };
               generated++;
               await new Promise(r => setTimeout(r, 10));
               if (!isGenerating) stopped = true;
