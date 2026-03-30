@@ -52,27 +52,26 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
             <div key={d} className={`card overflow-hidden ${closed ? 'bg-slate-100' : ''}`}>
               <div className={`px-4 py-3 border-b ${closed ? 'bg-slate-200 border-slate-300' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div><div className="text-sm font-medium text-slate-900">{d}</div><div className="text-xs text-slate-500">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div>
-                    {has && e.hasOverride && <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-700 border border-amber-200"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Override</span>}
-                  </div>
+                  <div><div className="text-sm font-medium text-slate-900">{d}</div><div className="text-xs text-slate-500">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div>
                   <button onClick={() => toggleClosedDay(dk, 'Bank Holiday')} className={`text-xs px-2 py-1 rounded transition-colors ${closed ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{closed ? 'Closed' : 'Open'}</button>
                 </div>
               </div>
               <div className="p-4 min-h-[120px]">
                 {closed ? <div className="text-center text-slate-500 text-sm py-4"><div className="font-medium">Practice Closed</div><div className="text-xs mt-1">{getClosedReason(dk)}</div></div>
                 : !has ? <div className="text-center text-amber-600 text-sm py-4"><div className="font-medium">Not generated</div><div className="text-xs mt-1 text-slate-500">Go to Daily view</div></div>
-                : <div className="space-y-1.5 text-sm">
-                  {(e.presentIds || []).map(bid => {
+                : (() => {
+                  const rows = (e.presentIds || []).map(bid => {
                     const b = getClinicianById(bid);
                     if (!b) return null;
                     const t = g[bid] || { absent: [], dayOff: [] };
                     const hasTasks = t.absent.length > 0 || t.dayOff.length > 0;
-                    const isOverridden = (e.overriddenIds || []).includes(bid);
-                    return (
-                      <div key={bid} className="flex items-center gap-2" style={isOverridden ? {background:'#fffbeb',borderRadius:4,padding:'2px 4px',border:'1px solid #fde68a'} : undefined}>
+                    const isOv = (e.overriddenIds || []).includes(bid);
+                    return { bid, b, t, hasTasks, isOv };
+                  }).filter(Boolean).sort((a, b) => (b.hasTasks ? 1 : 0) - (a.hasTasks ? 1 : 0));
+                  return <div className="space-y-1.5 text-sm">
+                    {rows.map(({ bid, b, t, hasTasks, isOv }) => (
+                      <div key={bid} className="flex items-center gap-2" style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'-1px',borderRadius:4,padding:'2px 4px'} : undefined}>
                         <span className={`font-medium w-8 ${hasTasks ? 'text-slate-700' : 'text-slate-400'}`}>{b.initials}</span>
-                        {isOverridden && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="3" className="flex-shrink-0"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
                         {hasTasks ? (
                           <div className="flex flex-wrap gap-1">
                             {t.absent.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag absent text-xs">{x.initials}</span> : null; })}
@@ -80,18 +79,19 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
                           </div>
                         ) : <span className="text-xs text-slate-300">—</span>}
                       </div>
-                    );
-                  })}
-                </div>}
+                    ))}
+                  </div>;
+                })()}
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="flex gap-6 text-xs text-slate-500 justify-center">
+      <div className="flex gap-6 text-xs text-slate-500 justify-center flex-wrap">
         <span className="flex items-center gap-1.5"><span className="status-tag absent">XX</span>File & Action (absent)</span>
         <span className="flex items-center gap-1.5"><span className="status-tag dayoff">XX</span>View Only (day off)</span>
+        <span className="flex items-center gap-1.5"><span style={{display:'inline-block',width:24,height:14,borderRadius:3,outline:'2px solid #f59e0b',outlineOffset:'-1px'}} /><span>Manually overridden</span></span>
       </div>
 
       <div className="card p-5">

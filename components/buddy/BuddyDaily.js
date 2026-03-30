@@ -107,7 +107,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             let generated = 0;
             const newHistory = { ...currentData.allocationHistory };
             const today = new Date();
-            let stopped = false;
             const clins = (Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {})).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
             const allClins = Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {});
             const plannedAbs = Array.isArray(currentData.plannedAbsences) ? currentData.plannedAbsences : Object.values(currentData.plannedAbsences || {});
@@ -140,7 +139,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               return false;
             };
             
-            for (let i = 0; i < 28 && !stopped; i++) {
+            for (let i = 0; i < 28; i++) {
               const checkDate = new Date(today);
               checkDate.setDate(checkDate.getDate() + i);
               const dayIndex = checkDate.getDay();
@@ -185,7 +184,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds, dayOffIds, hasOverride, overriddenIds: genOverriddenIds };
               generated++;
               await new Promise(r => setTimeout(r, 10));
-              if (!isGenerating) stopped = true;
             }
             if (generated > 0) {
               const nd = { ...currentData, allocationHistory: newHistory };
@@ -194,7 +192,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               setDataVersion(v => v + 1);
             }
             setIsGenerating(false);
-            setSyncStatus(stopped ? `Stopped — ${generated} days` : `Done — ${generated} days`);
+            setSyncStatus(`Done — ${generated} days`);
             setTimeout(() => setSyncStatus(''), 4000);
           }} className="btn-primary">Generate Next 4 Weeks</button>
         )}
@@ -252,28 +250,32 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 const hasPlanned = hasPlannedAbsence(c.id, getDateKey());
                 const plannedReason = getPlannedAbsenceReason(c.id, getDateKey());
                 const past = isPastDate(getDateKey());
-                const showInfo = lta || hasPlanned;
                 const isOverridden = overriddenIds.has(c.id);
                 return (
-                  <div key={c.id} className={`clinician-card ${status}`} style={isOverridden ? {outline:'2px solid #f59e0b',outlineOffset:'-2px'} : undefined}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`initials-badge ${status}`}>{c.initials || '??'}</div>
-                        <div>
+                  <div key={c.id} className={`clinician-card ${status}`} style={{minHeight:56,maxHeight:56,overflow:'hidden',...(isOverridden?{outline:'2px solid #f59e0b',outlineOffset:'-2px'}:{})}}>
+                    <div className="flex items-center justify-between h-full">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className={`initials-badge ${status} flex-shrink-0`}>{c.initials || '??'}</div>
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium text-slate-900">{c.name}</span>
-                            {isOverridden && <span className="flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-700 border border-amber-200"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>}
+                            <span className="text-sm font-medium text-slate-900 truncate">{c.name}</span>
+                            {isOverridden && <span className="group relative flex-shrink-0" title={status === 'present' ? 'Manually set to present (would normally be absent/day off)' : 'Manually set to absent (would normally be present)'}><span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span></span>}
                           </div>
-                          <div className="text-xs text-slate-500">{c.role}</div>
-                          {showInfo && <div className="text-xs mt-0.5">{hasPlanned && <span className="text-blue-600">TeamNet: {plannedReason}</span>}{hasPlanned && lta && <span className="text-slate-400"> · </span>}{lta && <span className="text-amber-600">LTA</span>}</div>}
+                          <div className="text-xs text-slate-500 truncate">{c.role}{hasPlanned ? ` · ${plannedReason}` : ''}{lta ? ' · LTA' : ''}</div>
                         </div>
                       </div>
-                      {past ? <span className="text-xs text-slate-400">{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span> : <button onClick={() => togglePresence(c.id, selectedDay)} className={`toggle-btn ${status === 'present' ? 'on' : status === 'dayoff' ? 'dayoff' : 'off'}`} />}
+                      {past ? <span className="text-xs text-slate-400 flex-shrink-0">{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span> : <button onClick={() => togglePresence(c.id, selectedDay)} className={`toggle-btn ${status === 'present' ? 'on' : status === 'dayoff' ? 'dayoff' : 'off'} flex-shrink-0`} />}
                     </div>
                   </div>
                 );
               })}
             </div>
+            {overriddenIds.size > 0 && (
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>
+                <span>Manually overridden — attendance differs from rota / planned absences</span>
+              </div>
+            )}
           </div>
 
           {/* Allocations */}
