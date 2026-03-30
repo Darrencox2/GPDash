@@ -101,7 +101,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
 
   // Grid interaction
   const grid = selectedSite ? GRID_SIZES[selectedSite.gridSize] || GRID_SIZES.small : GRID_SIZES.small;
-  const cellSize = Math.min(56, Math.floor(600 / grid.cols));
+  const cellSize = 80;
 
   const handleGridMouseDown = (x, y, e) => {
     if (!selectedSite) return;
@@ -227,7 +227,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                 </div>
                 {/* Grid */}
                 <div className="text-xs text-slate-400 mb-2">Click an empty square to add a room. Click a room to edit. Drag rooms to reposition.</div>
-                <div ref={gridRef} className="inline-block rounded-xl overflow-hidden" style={{border:'2px solid #e2e8f0',background:'#f8fafc'}} onMouseLeave={() => { setDragStart(null); setDragCurrent(null); }}>
+                <div ref={gridRef} className="inline-block rounded-xl overflow-auto" style={{border:'2px solid #e2e8f0',background:'#f8fafc',maxWidth:'100%',maxHeight:'70vh'}} onMouseLeave={() => { setDragStart(null); setDragCurrent(null); }}>
                   {Array.from({length: grid.rows}).map((_, y) => (
                     <div key={y} className="flex">
                       {Array.from({length: grid.cols}).map((_, x) => {
@@ -247,7 +247,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                               <div className="absolute inset-1 rounded flex items-center justify-center text-center" style={{
                                 background: room.isClinical === false ? '#e2e8f0' : selectedSite.colour || '#8c64c3',
                                 opacity: room.isClinical === false ? 0.6 : 0.85}}>
-                                <span className="text-white text-[8px] font-bold leading-tight px-0.5 select-none" style={{textShadow:'0 1px 2px rgba(0,0,0,0.3)'}}>{room.name}</span>
+                                <span className="text-white text-[10px] font-bold leading-tight px-1 select-none" style={{textShadow:'0 1px 2px rgba(0,0,0,0.3)'}}>{room.name}</span>
                               </div>
                             )}
                           </div>
@@ -329,9 +329,9 @@ function AddSiteForm({ csvLocations, existingSites, onSave, onCancel }) {
       {/* Grid preview */}
       <div className="mt-3">
         <div className="text-[10px] text-slate-400 mb-1">Preview ({GRID_SIZES[gridSize].cols} × {GRID_SIZES[gridSize].rows})</div>
-        <div className="inline-block rounded overflow-hidden" style={{border:'1px solid #e2e8f0'}}>
+        <div className="inline-block rounded overflow-auto" style={{border:'1px solid #e2e8f0',maxWidth:'100%',maxHeight:200}}>
           {Array.from({length: GRID_SIZES[gridSize].rows}).map((_, y) => (
-            <div key={y} className="flex">{Array.from({length: GRID_SIZES[gridSize].cols}).map((_, x) => <div key={x} style={{width:12,height:12,border:'0.5px solid #e2e8f0',background: colour + '10'}} />)}</div>
+            <div key={y} className="flex">{Array.from({length: GRID_SIZES[gridSize].cols}).map((_, x) => <div key={x} style={{width:18,height:18,border:'0.5px solid #e2e8f0',background: colour + '10'}} />)}</div>
           ))}
         </div>
       </div>
