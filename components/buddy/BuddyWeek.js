@@ -60,26 +60,28 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
                 {closed ? <div className="text-center text-slate-500 text-sm py-4"><div className="font-medium">Practice Closed</div><div className="text-xs mt-1">{getClosedReason(dk)}</div></div>
                 : !has ? <div className="text-center text-amber-600 text-sm py-4"><div className="font-medium">Not generated</div><div className="text-xs mt-1 text-slate-500">Go to Daily view</div></div>
                 : (() => {
+                  const ovIds = e.overriddenIds || [];
                   const rows = (e.presentIds || []).map(bid => {
                     const b = getClinicianById(bid);
                     if (!b) return null;
                     const t = g[bid] || { absent: [], dayOff: [] };
                     const hasTasks = t.absent.length > 0 || t.dayOff.length > 0;
-                    const isOv = (e.overriddenIds || []).includes(bid);
-                    return { bid, b, t, hasTasks, isOv };
+                    return { bid, b, t, hasTasks };
                   }).filter(Boolean).sort((a, b) => (b.hasTasks ? 1 : 0) - (a.hasTasks ? 1 : 0));
                   return <div className="space-y-1.5 text-sm">
-                    {rows.map(({ bid, b, t, hasTasks, isOv }) => (
+                    {rows.map(({ bid, b, t, hasTasks }) => {
+                      const covererOv = ovIds.includes(bid);
+                      return (
                       <div key={bid} className="flex items-center gap-2">
-                        <span className={`font-medium w-8 ${hasTasks ? 'text-slate-700' : 'text-slate-400'}`} style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px',borderRadius:3} : undefined}>{b.initials}</span>
+                        <span className={`font-medium w-8 ${hasTasks ? 'text-slate-700' : 'text-slate-400'}`} style={covererOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px',borderRadius:3} : undefined}>{b.initials}</span>
                         {hasTasks ? (
                           <div className="flex flex-wrap gap-1">
-                            {t.absent.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag absent text-xs">{x.initials}</span> : null; })}
-                            {t.dayOff.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag dayoff text-xs">{x.initials}</span> : null; })}
+                            {t.absent.map(i => { const x = getClinicianById(i); const isOv = ovIds.includes(i); return x ? <span key={i} className="status-tag absent text-xs" style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px'} : undefined}>{x.initials}</span> : null; })}
+                            {t.dayOff.map(i => { const x = getClinicianById(i); const isOv = ovIds.includes(i); return x ? <span key={i} className="status-tag dayoff text-xs" style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px'} : undefined}>{x.initials}</span> : null; })}
                           </div>
                         ) : <span className="text-xs text-slate-300">—</span>}
                       </div>
-                    ))}
+                    );})}
                   </div>;
                 })()}
               </div>
