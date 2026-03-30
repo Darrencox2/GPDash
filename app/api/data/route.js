@@ -28,6 +28,7 @@ export async function GET(request) {
         allocationHistory: data.allocationHistory || {},
         weeklyRota: data.weeklyRota || {},
         huddleSettings: { dutyDoctorSlot: data.huddleSettings?.dutyDoctorSlot },
+        huddleCsvData: data.huddleCsvData || null,
         settings: data.settings,
         dailyOverrides: data.dailyOverrides || {},
         _readOnly: true,

@@ -20,15 +20,15 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   const ref = useRef(null);
 
   useEffect(() => {
+    if (clinicians.length === 0) return;
     const hash = window.location.hash;
     if (hash.startsWith('#rota-')) {
       const init = hash.slice(6).toUpperCase();
       const m = clinicians.find(c => c.initials === init);
-      if (m) setSelectedId(m.id);
+      if (m) { setSelectedId(m.id); return; }
     }
+    if (!selectedId) setSelectedId(clinicians[0].id);
   }, [clinicians]);
-
-  useEffect(() => { if (!selectedId && clinicians.length > 0) setSelectedId(clinicians[0].id); }, [clinicians, selectedId]);
   useEffect(() => { const h = e => { if (ref.current && !ref.current.contains(e.target)) setShowDrop(false); }; document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h); }, []);
 
   const select = c => { setSelectedId(c.id); setSearch(''); setShowDrop(false); window.location.hash = `rota-${c.initials}`; };
@@ -64,8 +64,8 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
       const cap = getHuddleCapacity(huddleData, day.dateStr, hs);
       const find = sess => (sess?.byClinician || []).find(c => matchesStaffMember(c.name, selected));
       const am = find(cap.am), pm = find(cap.pm);
-      const amIn = am && (am.available + (am.embargoed || 0)) > 0;
-      const pmIn = pm && (pm.available + (pm.embargoed || 0)) > 0;
+      const amIn = am && ((am.available||0) + (am.embargoed||0) + (am.booked||0)) > 0;
+      const pmIn = pm && ((pm.available||0) + (pm.embargoed||0) + (pm.booked||0)) > 0;
       let amDuty = false, pmDuty = false;
       if (hasDuty) { const ad = getDutyDoctor(huddleData, day.dateStr, 'am', dutySlots); const pd = getDutyDoctor(huddleData, day.dateStr, 'pm', dutySlots); if (ad && matchesStaffMember(ad.name, selected)) amDuty = true; if (pd && matchesStaffMember(pd.name, selected)) pmDuty = true; }
       return { amIn, pmIn, amLoc: am?.location, pmLoc: pm?.location, amDuty, pmDuty };
@@ -84,11 +84,13 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   }, [selected, data?.allocationHistory, weekDays, clinicians]);
 
   const weekLabel = `${weekDays[0].dayNum} ${weekDays[0].monthStr} – ${weekDays[4].dayNum} ${weekDays[4].monthStr} ${weekDays[4].date.getFullYear()}`;
-  const directLink = selected ? `gpdash.net#rota-${selected.initials}` : '';
+  const [origin, setOrigin] = useState('');
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const directLink = selected && origin ? `${origin}#rota-${selected.initials}` : '';
   const filtered = search ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.initials.toLowerCase().includes(search.toLowerCase())) : clinicians;
 
   const Cell = ({ isIn, loc, duty, mobile }) => {
-    if (!isIn) return <div style={{ background: '#1e293b', borderRadius: 8, minHeight: mobile ? 40 : 54, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 12, color: '#334155' }}>—</span></div>;
+    if (!isIn) return <div style={{ background: '#1e293b', borderRadius: 8, minHeight: mobile ? 40 : 54, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 11, color: '#334155' }}>Not in</span></div>;
     const lc = loc ? LOCATION_COLOURS[loc] : null;
     const bg = lc?.bg || '#475569';
     return (
@@ -169,7 +171,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
                   </div>
                   {(isOff || noData) ? (
                     <div style={{ gridColumn: '2 / 4', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 13, color: '#475569' }}>{absence || (noData ? 'No data' : 'Not in')}</span>
+                      <span style={{ fontSize: 13, color: '#475569' }}>{absence || ('Not in')}</span>
                       {absence && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' }}>TeamNet</span>}
                     </div>
                   ) : (<>
@@ -197,7 +199,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
           const isOff = (wd && !wd.amIn && !wd.pmIn) || (!wd && absence);
           const noData = !wd && !absence;
           const isToday = day.isoKey === todayIso;
-          if (isOff || noData) return <div key={di} style={{ background: '#1e293b', borderRadius: 10, padding: '12px 16px', textAlign: 'center', border: '1px solid #334155' }}><span style={{ fontSize: 13, color: '#475569' }}>{day.dayName} {day.dayNum} {day.monthStr} · {absence || (noData ? 'No data' : 'Not in')}</span>{absence && <span style={{ fontSize: 10, marginLeft: 6, padding: '2px 6px', borderRadius: 4, background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}>TeamNet</span>}</div>;
+          if (isOff || noData) return <div key={di} style={{ background: '#1e293b', borderRadius: 10, padding: '12px 16px', textAlign: 'center', border: '1px solid #334155' }}><span style={{ fontSize: 13, color: '#475569' }}>{day.dayName} {day.dayNum} {day.monthStr} · {absence || ('Not in')}</span>{absence && <span style={{ fontSize: 10, marginLeft: 6, padding: '2px 6px', borderRadius: 4, background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}>TeamNet</span>}</div>;
           return (
             <div key={di} style={{ background: '#0f172a', borderRadius: 10, overflow: 'hidden', border: isToday ? '2px solid #10b981' : '1px solid #334155' }}>
               <div style={{ padding: '8px 12px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -224,7 +226,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, padding: '8px 12px', borderRadius: 8, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
           <span style={{ fontSize: 12, color: '#a5b4fc', flex: 1 }}>{directLink}</span>
-          <button onClick={() => navigator.clipboard?.writeText(directLink)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)', cursor: 'pointer' }}>Copy</button>
+          <button onClick={() => { try { navigator.clipboard.writeText(directLink); } catch { const t = document.createElement('textarea'); t.value = directLink; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); } }} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)', cursor: 'pointer' }}>Copy</button>
         </div>
       )}
     </>
