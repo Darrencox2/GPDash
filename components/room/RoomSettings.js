@@ -18,8 +18,10 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
   const csvLocations = useMemo(() => {
     if (!huddleData) return [];
     const locs = new Set();
-    Object.values(huddleData.slotLocationData || {}).forEach(dateData => {
-      ['am','pm'].forEach(s => { Object.values(dateData[s] || {}).forEach(clinData => { Object.values(clinData || {}).forEach(loc => { if (loc) locs.add(loc); }); }); });
+    Object.values(huddleData.locationData || {}).forEach(dateData => {
+      Object.values(dateData || {}).forEach(clinLocs => {
+        Object.keys(clinLocs || {}).forEach(loc => { if (loc) locs.add(loc); });
+      });
     });
     return Array.from(locs).filter(Boolean).sort();
   }, [huddleData]);
@@ -92,6 +94,10 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
   };
 
   // Check if a cell is occupied by any room (excluding a specific room)
+  // Grid config — must be before hooks that reference it
+  const grid = selectedSite ? GRID_SIZES[selectedSite.gridSize] || GRID_SIZES.small : GRID_SIZES.small;
+  const cellSize = 80;
+
   const isCellOccupied = useCallback((x, y, excludeId) => {
     if (!selectedSite) return false;
     return selectedSite.rooms.some(r => r.id !== excludeId && x >= r.x && x < r.x + (r.w || 1) && y >= r.y && y < r.y + (r.h || 1));
@@ -115,10 +121,6 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
     if (!canPlaceRoom(newX, newY, w, h, roomId)) return;
     updateSite(selectedSite.id, { rooms: selectedSite.rooms.map(r => r.id === roomId ? { ...r, x: newX, y: newY } : r) });
   };
-
-  // Grid interaction — click+drag to create, click existing to edit, drag existing to move
-  const grid = selectedSite ? GRID_SIZES[selectedSite.gridSize] || GRID_SIZES.small : GRID_SIZES.small;
-  const cellSize = 80;
 
   const getRoomAt = (x, y) => selectedSite?.rooms?.find(r => x >= r.x && x < r.x + (r.w || 1) && y >= r.y && y < r.y + (r.h || 1));
 
