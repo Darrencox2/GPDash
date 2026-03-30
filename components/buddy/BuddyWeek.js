@@ -68,9 +68,11 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
                     if (!b) return null;
                     const t = g[bid] || { absent: [], dayOff: [] };
                     const hasTasks = t.absent.length > 0 || t.dayOff.length > 0;
+                    const isOverridden = (e.overriddenIds || []).includes(bid);
                     return (
-                      <div key={bid} className="flex items-center gap-2">
+                      <div key={bid} className="flex items-center gap-2" style={isOverridden ? {background:'#fffbeb',borderRadius:4,padding:'2px 4px',border:'1px solid #fde68a'} : undefined}>
                         <span className={`font-medium w-8 ${hasTasks ? 'text-slate-700' : 'text-slate-400'}`}>{b.initials}</span>
+                        {isOverridden && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="3" className="flex-shrink-0"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
                         {hasTasks ? (
                           <div className="flex flex-wrap gap-1">
                             {t.absent.map(i => { const x = getClinicianById(i); return x ? <span key={i} className="status-tag absent text-xs">{x.initials}</span> : null; })}
@@ -80,14 +82,6 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
                       </div>
                     );
                   })}
-                  {(e.absentIds || []).length > 0 && (
-                    <div className="pt-1.5 mt-1.5 border-t border-slate-100">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-semibold text-red-400 uppercase">Absent:</span>
-                        {(e.absentIds || []).map(id => { const c = getClinicianById(id); return c ? <span key={id} className="text-xs text-red-600 font-medium">{c.initials}</span> : null; })}
-                      </div>
-                    </div>
-                  )}
                 </div>}
               </div>
             </div>

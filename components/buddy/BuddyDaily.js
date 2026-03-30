@@ -16,6 +16,30 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const hasAllocations = currentAlloc && (Object.keys(currentAlloc.allocations || {}).length > 0 || Object.keys(currentAlloc.dayOffAllocations || {}).length > 0);
   const groupedAllocations = currentAlloc ? groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, presentIds) : {};
 
+  // Detect which clinicians have been manually overridden
+  const overriddenIds = (() => {
+    const dateKey = getDateKey();
+    const dayKey = `${dateKey}-${selectedDay}`;
+    const override = data?.dailyOverrides?.[dayKey];
+    if (!override?.present) return new Set();
+    // Compute "natural" present from rota + absences (without override)
+    const plannedAbs = Array.isArray(data.plannedAbsences) ? data.plannedAbsences : Object.values(data.plannedAbsences || {});
+    const rota = data.weeklyRota?.[selectedDay] || [];
+    const scheduled = Array.isArray(rota) ? rota : Object.values(rota);
+    const naturalPresent = new Set(scheduled.filter(id => {
+      const c = cliniciansList.find(c => c.id === id);
+      if (!c || c.longTermAbsent) return false;
+      return !plannedAbs.some(a => a.clinicianId === id && dateKey >= a.startDate && dateKey <= a.endDate);
+    }));
+    const overridePresent = new Set(Array.isArray(override.present) ? override.present : Object.values(override.present));
+    const changed = new Set();
+    // Present in override but not naturally → manually added
+    overridePresent.forEach(id => { if (!naturalPresent.has(id)) changed.add(id); });
+    // Naturally present but removed in override → manually removed
+    naturalPresent.forEach(id => { if (!overridePresent.has(id)) changed.add(id); });
+    return changed;
+  })();
+
   const handleGenerate = () => {
     const dateKey = getDateKey();
     const day = selectedDay;
@@ -26,7 +50,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const doIds = ensureArray(getDayOffClinicians(day));
     const cls = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
     const { allocations, dayOffAllocations } = generateBuddyAllocations(cls, pIds, aIds, doIds, data.settings || DEFAULT_SETTINGS);
-    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: pIds, absentIds: aIds, dayOffIds: doIds, hasOverride } };
+    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: pIds, absentIds: aIds, dayOffIds: doIds, hasOverride, overriddenIds: hasOverride ? Array.from(overriddenIds) : [] } };
     saveData({ ...data, allocationHistory: newHistory });
   };
 
@@ -130,30 +154,35 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               const override = currentData.dailyOverrides?.[dayKey];
               const hasOverride = !!(override?.present);
               let present, scheduled;
+              let genOverriddenIds = [];
+              
+              // Always compute natural present for comparison
+              const rota = currentData.weeklyRota?.[dayName] || [];
+              const naturalScheduled = Array.isArray(rota) ? rota : Object.values(rota);
+              const naturalPresent = new Set(naturalScheduled.filter(id => {
+                const c = allClins.find(c => c.id === id);
+                if (!c || c.longTermAbsent) return false;
+                if (isAbsOnDate(id, dateKey)) return false;
+                if (isAbsentCascade(id, dateKey)) return false;
+                return true;
+              }));
               
               if (hasOverride) {
-                // Use manual override
                 present = Array.isArray(override.present) ? override.present : Object.values(override.present);
                 scheduled = Array.isArray(override.scheduled || []) ? (override.scheduled || []) : Object.values(override.scheduled || {});
+                const overrideSet = new Set(present);
+                naturalPresent.forEach(id => { if (!overrideSet.has(id)) genOverriddenIds.push(id); });
+                overrideSet.forEach(id => { if (!naturalPresent.has(id)) genOverriddenIds.push(id); });
               } else {
-                // Compute from rota + absences (same as getPresentClinicians)
-                const rota = currentData.weeklyRota?.[dayName] || [];
-                scheduled = Array.isArray(rota) ? rota : Object.values(rota);
-                present = scheduled.filter(id => {
-                  const c = allClins.find(c => c.id === id);
-                  if (!c) return false;
-                  if (c.longTermAbsent) return false;
-                  if (isAbsOnDate(id, dateKey)) return false;
-                  if (isAbsentCascade(id, dateKey)) return false;
-                  return true;
-                });
+                scheduled = naturalScheduled;
+                present = Array.from(naturalPresent);
               }
               
               const absentIds = scheduled.filter(id => !present.includes(id));
               const dayOffIds = clins.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
               
               const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, present, absentIds, dayOffIds, currentData.settings || DEFAULT_SETTINGS);
-              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds, dayOffIds, hasOverride };
+              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds, dayOffIds, hasOverride, overriddenIds: genOverriddenIds };
               generated++;
               await new Promise(r => setTimeout(r, 10));
               if (!isGenerating) stopped = true;
@@ -213,12 +242,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 <p className="text-xs text-slate-500 mt-0.5">{formatDate(getDateKey())}{!isPastDate(getDateKey()) && ' — Click to toggle'}</p>
               </div>
               <div className="flex items-center gap-2">
-                {data?.dailyOverrides?.[`${getDateKey()}-${selectedDay}`]?.present && (
-                  <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Manual override
-                  </span>
-                )}
                 {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-400 hover:text-slate-600">Mark closed</button>}
               </div>
             </div>
@@ -230,13 +253,17 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 const plannedReason = getPlannedAbsenceReason(c.id, getDateKey());
                 const past = isPastDate(getDateKey());
                 const showInfo = lta || hasPlanned;
+                const isOverridden = overriddenIds.has(c.id);
                 return (
-                  <div key={c.id} className={`clinician-card ${status}`}>
+                  <div key={c.id} className={`clinician-card ${status}`} style={isOverridden ? {outline:'2px solid #f59e0b',outlineOffset:'-2px'} : undefined}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={`initials-badge ${status}`}>{c.initials || '??'}</div>
                         <div>
-                          <div className="text-sm font-medium text-slate-900">{c.name}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-slate-900">{c.name}</span>
+                            {isOverridden && <span className="flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-700 border border-amber-200"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>}
+                          </div>
                           <div className="text-xs text-slate-500">{c.role}</div>
                           {showInfo && <div className="text-xs mt-0.5">{hasPlanned && <span className="text-blue-600">TeamNet: {plannedReason}</span>}{hasPlanned && lta && <span className="text-slate-400"> · </span>}{lta && <span className="text-amber-600">LTA</span>}</div>}
                         </div>
