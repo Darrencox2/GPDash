@@ -308,10 +308,17 @@ function getInitials(csvName, clinicians) {
 
 
 // ── 7-day compact bar chart strip with available/embargoed/booked ──
-function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal', teamClinicians }) {
+function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal', teamClinicians, hasFilter = true }) {
   const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 7, overrides), [huddleData, huddleSettings, overrides]);
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
+  if (!hasFilter) return (
+    <div className="py-8 px-6 text-center">
+      <div className="text-slate-300 mb-2" style={{fontSize:28}}>↑</div>
+      <h3 className="text-sm font-semibold text-slate-600 mb-1">No slots selected</h3>
+      <p className="text-xs text-slate-400">Open the filter to configure.</p>
+    </div>
+  );
   const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
   const accentColours = {
     teal: { bar: 'bg-teal-400', emb: 'bg-teal-200', book: 'bg-slate-300', text: 'text-teal-600', glow: 'ring-teal-400/50 shadow-teal-400/20' },
@@ -691,16 +698,20 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const allCapacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, {}) : null;
   const hasSlots = allCapacity && ((allCapacity.am.total||0) + (allCapacity.pm.total||0) + (allCapacity.am.embargoed||0) + (allCapacity.pm.embargoed||0) + (allCapacity.am.booked||0) + (allCapacity.pm.booked||0)) > 0;
 
-  // Build initial overrides for urgent filter from the urgent slot categories
-  const urgentInitialOverrides = useMemo(() => {
-    const urgentSlots = hs?.slotCategories?.urgent || [];
-    if (urgentSlots.length === 0) return null; // no urgent config, fall back to all-true default
-    const o = {};
-    (knownSlotTypes || []).forEach(s => { o[s] = urgentSlots.includes(s); });
-    // Also include any live slot types
-    if (huddleData?.allSlotTypes) huddleData.allSlotTypes.forEach(s => { if (o[s] === undefined) o[s] = urgentSlots.includes(s); });
-    return o;
-  }, [hs?.slotCategories?.urgent, knownSlotTypes, huddleData?.allSlotTypes]);
+  const hasUrgentFilter = !!urgentOverrides;
+  const hasRoutineFilter = !!routineOverrides;
+
+  // Smooth fade transition when changing dates
+  const [contentOpacity, setContentOpacity] = useState(1);
+  const prevDateRef = useRef(viewingDate);
+  useEffect(() => {
+    if (prevDateRef.current.getTime() !== viewingDate.getTime()) {
+      setContentOpacity(0);
+      const t = setTimeout(() => setContentOpacity(1), 50);
+      prevDateRef.current = viewingDate;
+      return () => clearTimeout(t);
+    }
+  }, [viewingDate]);
 
   return (
     <div className="space-y-6 animate-in" onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
@@ -789,6 +800,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
       {error && <Card className="p-4 bg-red-50 border-red-200 text-red-700 text-sm">{error}</Card>}
 
+      <div style={{ opacity: contentOpacity, transition: 'opacity 0.15s ease-in-out' }}>
       {/* NOTICEBOARD */}
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center gap-2">
@@ -979,12 +991,19 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <div className="text-base font-semibold text-white">Urgent on the Day</div>
                       <div className="text-[11px] text-white/70">Available urgent capacity{displayDate && displayDate !== viewingDateStr ? ` (${displayDate})` : ''}</div>
                     </div>
-                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" initialOverrides={urgentInitialOverrides} dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} />
+                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} />
                   </div>
                 </div>
                 {displayDate && displayDate !== viewingDateStr && (
                   <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">Date not found in report. Showing {displayDate}.</div>
                 )}
+                {!hasUrgentFilter ? (
+                  <div className="py-12 px-6 text-center">
+                    <div className="text-slate-300 mb-2" style={{fontSize:32}}>↑</div>
+                    <h3 className="text-base font-semibold text-slate-700 mb-1">No slots selected</h3>
+                    <p className="text-sm text-slate-400 max-w-sm mx-auto">Open the filter above to choose which slot types to include as urgent on the day.</p>
+                  </div>
+                ) : (<>
                 <div className="flex flex-col md:flex-row md:divide-x divide-slate-200">
                   <SessionPanel label="Morning" slots={urgentAm} avail={availAm} emb={embAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
                   <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} emb={embPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
@@ -1026,6 +1045,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                   </div>
                 )}
+                </>)}
               </div>
             );
           })()}
@@ -1061,6 +1081,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 </div>
 
+                {!hasRoutineFilter ? (
+                  <div className="py-12 px-6 text-center">
+                    <div className="text-slate-300 mb-2" style={{fontSize:32}}>↑</div>
+                    <h3 className="text-base font-semibold text-slate-700 mb-1">No slots selected</h3>
+                    <p className="text-sm text-slate-400 max-w-sm mx-auto">Open the filter above to choose which slot types to include as routine capacity.</p>
+                  </div>
+                ) : (<>
                 {/* Booking gauges — non-overlapping weekly ranges */}
                 <div className="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
                   {periodGauges.map(g => (
@@ -1076,6 +1103,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 </div>
 
                 <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={effectiveRoutineOverrides} teamClinicians={teamClinicians} />
+                </>)}
               </div>
             );
           })()}
@@ -1101,7 +1129,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       </div>
                     </div>
                   </div>
-                  <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={effective} accent={card.colour} teamClinicians={teamClinicians} />
+                  <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={effective} accent={card.colour} teamClinicians={teamClinicians} hasFilter={!!overrides} />
                 </div>
               );
             })}
@@ -1153,13 +1181,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             )}
           </div>
 
-          {!hs?.slotCategories?.urgent?.length && (
-            <Card className="p-4 bg-amber-50 border-amber-200">
-              <div className="flex items-start gap-3"><span className="text-lg">⚠️</span><div><div className="text-sm font-medium text-amber-800">Configure Urgent Slot Types</div><p className="text-xs text-amber-700 mt-1">Go to Huddle → Settings to define which slot types count as urgent capacity.</p></div></div>
-            </Card>
-          )}
         </>
       )}
+      </div>
     </div>
   );
 }

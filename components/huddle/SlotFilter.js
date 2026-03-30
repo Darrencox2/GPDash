@@ -14,7 +14,7 @@ export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show
         if (initialOverrides) {
           setOverrides(initialOverrides);
         } else {
-          const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o);
+          const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = false; }); setOverrides(o);
         }
       }
       setShow(!show);

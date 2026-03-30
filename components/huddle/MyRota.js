@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { getHuddleCapacity, getDutyDoctor, LOCATION_COLOURS } from '@/lib/huddle';
 import { matchesStaffMember, DAYS, getWeekStart, toLocalIso } from '@/lib/data';
+import { predictDemand } from '@/lib/demandPredictor';
 
 const ROLE_BG = { gp: 'rgba(99,102,241,0.15)', nursing: 'rgba(16,185,129,0.15)', allied: 'rgba(168,85,247,0.15)' };
 const ROLE_TX = { gp: '#a5b4fc', nursing: '#6ee7b7', allied: '#c4b5fd' };
@@ -43,7 +44,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
 
   const weekDays = useMemo(() => {
     const days = [];
-    for (let i = 0; i < 5; i++) { const d = new Date(weekStart); d.setDate(d.getDate() + i); days.push({ date: d, dateStr: `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`, isoKey: toLocalIso(d), dayName: DAYS[i], dayShort: DAYS[i].slice(0,3), dayNum: d.getDate(), monthStr: d.toLocaleString('en-GB',{month:'short'}) }); }
+    for (let i = 0; i < 5; i++) { const d = new Date(weekStart); d.setDate(d.getDate() + i); const pred = predictDemand(d, null); days.push({ date: d, dateStr: `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`, isoKey: toLocalIso(d), dayName: DAYS[i], dayShort: DAYS[i].slice(0,3), dayNum: d.getDate(), monthStr: d.toLocaleString('en-GB',{month:'short'}), isBH: pred?.isBankHoliday || false }); }
     return days;
   }, [weekStart]);
 
@@ -162,6 +163,19 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
             const isOff = (wd && !wd.amIn && !wd.pmIn) || (!wd && absence);
             const noData = !wd && !absence;
             const isToday = day.isoKey === todayIso;
+            if (day.isBH) return (
+              <div key={di} style={{ borderBottom: di < 4 ? '1px solid #334155' : 'none', background: '#0f172a' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '76px 1fr 1fr' }}>
+                  <div style={{ padding: '8px 10px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderLeft: '3px solid transparent' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#334155' }}>{day.dayShort}</div>
+                    <div style={{ fontSize: 11, color: '#475569' }}>{day.dayNum} {day.monthStr}</div>
+                  </div>
+                  <div style={{ gridColumn: '2 / 4', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 500 }}>Bank holiday</span>
+                  </div>
+                </div>
+              </div>
+            );
             return (
               <div key={di} style={{ borderBottom: di < 4 ? '1px solid #334155' : 'none', background: '#0f172a' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '76px 1fr 1fr' }}>

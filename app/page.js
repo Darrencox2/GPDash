@@ -12,8 +12,6 @@ import TeamRota from '@/components/buddy/TeamRota';
 import BuddySettings from '@/components/buddy/BuddySettings';
 import HuddleToday from '@/components/huddle/HuddleToday';
 import HuddleForward from '@/components/huddle/HuddleForward';
-import HuddleSettings from '@/components/huddle/HuddleSettings';
-import HuddleHistory from '@/components/huddle/HuddleHistory';
 import MyRota from '@/components/huddle/MyRota';
 
 export default function Home() {
@@ -272,11 +270,9 @@ function AppContent() {
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-rota' && <MyRota data={data} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
-          {activeSection === 'huddle-settings' && <HuddleSettings data={data} saveData={saveData} setActiveSection={setActiveSection} huddleData={huddleData} />}
-          {activeSection === 'huddle-history' && <HuddleHistory data={data} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} />}
           {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} />}
-          {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} />}
+          {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} huddleData={huddleData} />}
         </div>
         <footer className="mt-8 pb-6"><div className="text-center text-xs text-slate-400">GPDash — Practice Dashboard</div></footer>
       </main>

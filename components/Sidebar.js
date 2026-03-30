@@ -11,11 +11,15 @@ const NAV_SECTIONS = [
     colour: 'teal',
     items: [
       { id: 'huddle-today', label: 'Today' },
-      { id: 'huddle-rota', label: 'My Rota' },
       { id: 'huddle-forward', label: 'Capacity Planning' },
-      { id: 'huddle-history', label: 'History' },
-      { id: 'huddle-settings', label: 'Settings' },
     ],
+  },
+  {
+    id: 'rota-section',
+    iconPath: 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5zm2 4h5v5H7v-5z',
+    label: 'My Rota',
+    colour: 'blue',
+    items: [],
   },
   {
     id: 'buddy',
@@ -53,6 +57,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
   const toggleMenu = (menu) => setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
 
   const isSectionActive = (sectionId) => {
+    if (sectionId === 'rota-section') return activeSection === 'huddle-rota';
     const section = NAV_SECTIONS.find(s => s.id === sectionId);
     if (!section) return false;
     if (section.items.length === 0) return activeSection === sectionId;
@@ -75,11 +80,11 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
       `}>
         <div className="h-full flex flex-col w-60 lg:w-auto">
           {/* Logo */}
-          <div className="px-3 pt-4 pb-3">
+          <div className="px-3 pt-3 pb-2">
             {sidebarOpen ? (
-              <div className="flex flex-col items-center gap-1.5">
+              <div className="flex flex-col items-center gap-0.5">
                 <GPDashLogo size="sidebar" className="w-full max-w-[200px]" />
-                <div className="w-full bg-white rounded-2xl p-2.5 flex items-center justify-center">
+                <div className="w-full bg-white rounded-2xl p-2 flex items-center justify-center">
                   <img src="/logo.png" alt="Practice" className="h-12 w-auto object-contain" />
                 </div>
               </div>
@@ -98,7 +103,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
               if (section.items.length === 0) {
                 return (
-                  <button key={section.id} onClick={() => setActiveSection(section.id)}
+                  <button key={section.id} onClick={() => setActiveSection(section.id === 'rota-section' ? 'huddle-rota' : section.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive ? accent.active : `text-slate-400 ${accent.hover}`
                     }`}>

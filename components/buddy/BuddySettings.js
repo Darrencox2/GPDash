@@ -1,11 +1,43 @@
 'use client';
 import { useState } from 'react';
-import { formatDate, groupAllocationsByCovering, getDefaultData } from '@/lib/data';
+import { getDefaultData } from '@/lib/data';
+import { Button } from '@/components/ui';
 
-export default function BuddySettings({ data, saveData, password, syncStatus, setSyncStatus, helpers }) {
-  const { ensureArray, getTodayKey, getClinicianById, syncTeamNet } = helpers;
+function calculateHistoricalTargets(huddleData) {
+  if (!huddleData?.dates) return {};
+  const dayTotals = {};
+  const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  huddleData.dates.forEach(dateStr => {
+    const parts = dateStr.split('-');
+    const d = new Date(`${parts[1]} ${parts[0]}, ${parts[2]}`);
+    if (isNaN(d.getTime())) return;
+    const dayName = DAY_NAMES[d.getDay()];
+    if (dayName === 'Saturday' || dayName === 'Sunday') return;
+    const dd = huddleData.dateData[dateStr];
+    if (!dd) return;
+    if (!dayTotals[dayName]) dayTotals[dayName] = { am: [], pm: [] };
+    let amT = 0, pmT = 0;
+    Object.entries(dd.am || {}).forEach(([_, slots]) => { Object.values(slots).forEach(v => { amT += v; }); });
+    Object.entries(dd.pm || {}).forEach(([_, slots]) => { Object.values(slots).forEach(v => { pmT += v; }); });
+    dayTotals[dayName].am.push(amT);
+    dayTotals[dayName].pm.push(pmT);
+  });
+  const result = {};
+  Object.entries(dayTotals).forEach(([day, data]) => {
+    if (data.am.length < 3) return;
+    result[day] = {
+      am: Math.round(data.am.reduce((s, v) => s + v, 0) / data.am.length),
+      pm: Math.round(data.pm.reduce((s, v) => s + v, 0) / data.pm.length),
+    };
+  });
+  return result;
+}
+
+export default function BuddySettings({ data, saveData, password, syncStatus, setSyncStatus, helpers, huddleData }) {
+  const { ensureArray, getTodayKey, syncTeamNet } = helpers;
   const [settingsSaved, setSettingsSaved] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showAbsences, setShowAbsences] = useState(false);
+  const hs = data?.huddleSettings || {};
 
   const updateSettings = (field, value) => {
     const newSettings = { ...data.settings, [field]: parseFloat(value) || 1 };
@@ -14,9 +46,13 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
     setTimeout(() => setSettingsSaved(false), 2000);
   };
 
+  const updateHs = (newHs) => saveData({ ...data, huddleSettings: newHs }, false);
+
   return (
     <div className="space-y-6">
-      <div><h1 className="text-xl font-bold text-slate-900">Settings</h1><p className="text-sm text-slate-500 mt-1">Configure TeamNet sync and allocation weights</p></div>
+      <div><h1 className="text-xl font-bold text-slate-900">Settings</h1><p className="text-sm text-slate-500 mt-1">General settings, capacity targets, and TeamNet sync</p></div>
+
+      {/* TeamNet Calendar Sync */}
       <div className="card p-5">
         <h2 className="text-base font-semibold text-slate-900 mb-4">TeamNet Calendar Sync</h2>
         <p className="text-sm text-slate-500 mb-4">Import planned absences from your TeamNet calendar. The app syncs automatically when you open it.</p>
@@ -26,20 +62,74 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
         </div>
         {(ensureArray(data.plannedAbsences).length > 0) && (
           <div className="mt-6 pt-4 border-t border-slate-200">
-            <h3 className="text-sm font-medium text-slate-900 mb-3">Upcoming Planned Absences</h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {ensureArray(data.plannedAbsences).filter(a => a.endDate >= getTodayKey()).sort((a, b) => a.startDate.localeCompare(b.startDate)).slice(0, 20).map((a, i) => {
-                const c = ensureArray(data.clinicians).find(c => c.id === a.clinicianId);
-                if (!c) return null;
-                const sd = new Date(a.startDate + 'T12:00:00');
-                const ed = new Date(a.endDate + 'T12:00:00');
-                const ds = a.startDate === a.endDate ? sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : `${sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${ed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-                return <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded text-sm"><div><span className="font-medium">{c.initials}</span><span className="text-slate-500 ml-2">{ds}</span><span className="text-slate-400 ml-2">({a.reason})</span></div><button onClick={() => { const abs = ensureArray(data.plannedAbsences); saveData({ ...data, plannedAbsences: abs.filter((_, j) => j !== abs.indexOf(a)) }); }} className="text-xs text-red-500 hover:text-red-700">Remove</button></div>;
-              })}
-            </div>
+            <button onClick={() => setShowAbsences(!showAbsences)} className="flex items-center justify-between w-full text-left" style={{background:'none',border:'none',cursor:'pointer'}}>
+              <h3 className="text-sm font-medium text-slate-900">Upcoming Planned Absences</h3>
+              <span className="text-sm text-slate-400">{showAbsences ? '▾' : '›'} {ensureArray(data.plannedAbsences).filter(a => a.endDate >= getTodayKey()).length}</span>
+            </button>
+            {showAbsences && (
+              <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+                {ensureArray(data.plannedAbsences).filter(a => a.endDate >= getTodayKey()).sort((a, b) => a.startDate.localeCompare(b.startDate)).slice(0, 20).map((a, i) => {
+                  const c = ensureArray(data.clinicians).find(c => c.id === a.clinicianId);
+                  if (!c) return null;
+                  const sd = new Date(a.startDate + 'T12:00:00');
+                  const ed = new Date(a.endDate + 'T12:00:00');
+                  const ds = a.startDate === a.endDate ? sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : `${sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${ed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+                  return <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded text-sm"><div><span className="font-medium">{c.initials}</span><span className="text-slate-500 ml-2">{ds}</span><span className="text-slate-400 ml-2">({a.reason})</span></div><button onClick={() => { const abs = ensureArray(data.plannedAbsences); saveData({ ...data, plannedAbsences: abs.filter((_, j) => j !== abs.indexOf(a)) }); }} className="text-xs text-red-500 hover:text-red-700">Remove</button></div>;
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Urgent Expected Capacity */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-base font-semibold text-slate-900">Urgent Expected Capacity</h2>
+          {huddleData && (
+            <Button size="sm" variant="secondary" onClick={() => {
+              const calculated = calculateHistoricalTargets(huddleData);
+              if (Object.keys(calculated).length === 0) return;
+              updateHs({ ...hs, expectedCapacity: { ...hs.expectedCapacity, ...calculated } });
+            }}>
+              Auto-fill from history
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mb-3">Set expected urgent slots per session. These targets colour-code the Today page and Capacity Planning: green (≥90%), amber (80–89%), red (&lt;80%).</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="text-xs text-slate-500 uppercase"><th className="text-left py-2 font-medium w-24"></th>{['Monday','Tuesday','Wednesday','Thursday','Friday'].map(d => <th key={d} className="text-center py-2 font-medium px-2">{d.slice(0,3)}</th>)}</tr></thead>
+            <tbody>
+              {['am','pm'].map(session => (
+                <tr key={session} className="border-t border-slate-100">
+                  <td className={`py-2 text-xs font-medium ${session === 'am' ? 'text-amber-600' : 'text-blue-600'}`}>{session === 'am' ? 'Morning' : 'Afternoon'}</td>
+                  {['Monday','Tuesday','Wednesday','Thursday','Friday'].map(d => (
+                    <td key={d} className="text-center px-1 py-2">
+                      <input type="number" min="0" max="999" value={hs.expectedCapacity?.[d]?.[session] || ''} onChange={e => {
+                        const newHs = { ...hs }; if (!newHs.expectedCapacity) newHs.expectedCapacity = {}; if (!newHs.expectedCapacity[d]) newHs.expectedCapacity[d] = {};
+                        newHs.expectedCapacity[d][session] = parseInt(e.target.value) || 0; updateHs(newHs);
+                      }} placeholder="–" className="w-16 px-2 py-1 rounded-lg border border-slate-200 text-center text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Routine Weekly Target */}
+      <div className="card p-5">
+        <h2 className="text-base font-semibold text-slate-900 mb-2">Routine Weekly Target</h2>
+        <p className="text-xs text-slate-500 mb-3">Set a weekly target for routine appointment slots. Used in Capacity Planning to colour-code weekly routine totals.</p>
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-slate-700">Target slots per week</label>
+          <input type="number" min="0" max="9999" value={hs.routineWeeklyTarget || ''} onChange={e => updateHs({ ...hs, routineWeeklyTarget: parseInt(e.target.value) || 0 })} placeholder="e.g. 200" className="w-24 px-3 py-1.5 rounded-lg border border-slate-200 text-center text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
+        </div>
+      </div>
+
+      {/* Workload Weights */}
       <div className="card p-5">
         <div className="flex items-center justify-between mb-5"><h2 className="text-base font-semibold text-slate-900">Workload Weights</h2>{settingsSaved && <span className="text-xs text-emerald-600 font-medium">Saved</span>}</div>
         <p className="text-sm text-slate-500 mb-6">Adjust how workload is calculated when balancing buddy allocations.</p>
@@ -50,22 +140,11 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
       </div>
       <div className="card p-4 bg-slate-50 border-slate-200"><h3 className="text-xs font-medium text-slate-700 mb-1">How the algorithm works</h3><p className="text-xs text-slate-600 leading-relaxed"><strong>Round-robin first:</strong> Everyone gets 1 allocation before anyone gets 2. Primary buddy is tried first, then secondary, then any eligible clinician.<br/><br/><strong>Weighted tiebreaking:</strong> When multiple clinicians have same count, lowest weighted load wins. Load = (absent × {data.settings?.absentWeight || 2}) + (day-off × {data.settings?.dayOffWeight || 1}).</p></div>
 
+      {/* Danger Zone */}
       <div className="card p-5 border-red-200">
         <h2 className="text-base font-semibold text-red-700 mb-4">Danger Zone</h2>
         <p className="text-sm text-slate-500 mb-4">Reset all data to defaults. This will clear ALL clinicians, rotas, and history.</p>
         <button onClick={async () => { if (confirm('Delete ALL DATA and reset? Cannot be undone.')) { if (confirm('FINAL WARNING: Everything will be deleted. Continue?')) { const d = getDefaultData(); saveData(d); try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(d) }); alert('Reset successful. Refreshing...'); window.location.reload(); } catch (err) { alert('Reset failed: ' + err.message); } } } }} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium">Reset All Data</button>
-      </div>
-      <div className="card p-5">
-        <button onClick={() => setShowHistory(!showHistory)} className="flex items-center justify-between w-full"><h2 className="text-base font-semibold text-slate-900">Allocation History</h2><span className="text-sm text-slate-500">{showHistory ? '▼' : '▶'}</span></button>
-        {showHistory && (
-          <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
-            {Object.entries(data.allocationHistory || {}).sort(([a], [b]) => b.localeCompare(a)).slice(0, 30).map(([dk, e]) => {
-              const g = groupAllocationsByCovering(e.allocations || {}, e.dayOffAllocations || {}, e.presentIds || []);
-              const has = Object.entries(g).some(([_, t]) => t.absent.length > 0 || t.dayOff.length > 0);
-              return <div key={dk} className="p-3 bg-slate-50 rounded-lg"><div className="text-sm font-medium text-slate-900">{formatDate(dk)}</div>{has ? <div className="mt-2 text-xs text-slate-600">{Object.entries(g).map(([bid, t]) => { if (t.absent.length === 0 && t.dayOff.length === 0) return null; const b = getClinicianById(parseInt(bid)); if (!b) return null; const as = t.absent.map(i => getClinicianById(i)?.initials || '??').join(', '); const ds = t.dayOff.map(i => getClinicianById(i)?.initials || '??').join(', '); return <div key={bid}>{b.initials} → {as}{ds ? ` (view: ${ds})` : ''}</div>; })}</div> : <div className="mt-1 text-xs text-slate-400">All present</div>}</div>;
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
