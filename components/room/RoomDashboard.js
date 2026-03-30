@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { autoAllocateRooms, DEFAULT_DEFAULT_ROOM_TYPES, getRoomTypes, matchesRecurrence } from '@/lib/roomAllocation';
+import { autoAllocateRooms, DEFAULT_ROOM_TYPES, getRoomTypes, matchesRecurrence } from '@/lib/roomAllocation';
 import { matchesStaffMember, toLocalIso } from '@/lib/data';
 import { getCliniciansForDate, LOCATION_COLOURS } from '@/lib/huddle';
 import { predictDemand } from '@/lib/demandPredictor';
