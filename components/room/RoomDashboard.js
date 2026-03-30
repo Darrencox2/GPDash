@@ -1,8 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { autoAllocateRooms, DEFAULT_ROOM_TYPES, getRoomTypes, matchesRecurrence } from '@/lib/roomAllocation';
+import { autoAllocateRooms, getRoomTypes } from '@/lib/roomAllocation';
 import { matchesStaffMember, toLocalIso } from '@/lib/data';
-import { getCliniciansForDate, LOCATION_COLOURS } from '@/lib/huddle';
+import { getCliniciansForDate } from '@/lib/huddle';
 import { predictDemand } from '@/lib/demandPredictor';
 
 export default function RoomDashboard({ data, saveData, huddleData, toast }) {
@@ -12,7 +12,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
   const [session, setSession] = useState('am');
   const [editMode, setEditMode] = useState(false);
   const [dragPerson, setDragPerson] = useState(null);
-  const [viewingDate, setViewingDate] = useState(new Date());
+  const [viewingDate, setViewingDate] = useState(() => { const d = new Date(); d.setHours(12,0,0,0); return d; });
 
   const selectedSite = sites.find(s => s.id === selectedSiteId);
   const dateStr = toLocalIso(viewingDate);
@@ -23,6 +23,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
   const navigateDay = (dir) => {
     const d = new Date(viewingDate);
     d.setDate(d.getDate() + dir);
+    d.setHours(12,0,0,0);
     // Skip weekends
     while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + dir);
     setViewingDate(d);
@@ -138,7 +139,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
           <button onClick={() => navigateDay(-1)} className="text-white/60 hover:text-white text-sm font-bold px-2">◀</button>
           <span className="text-sm font-semibold text-white min-w-[200px] text-center">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}</span>
           <button onClick={() => navigateDay(1)} className="text-white/60 hover:text-white text-sm font-bold px-2">▶</button>
-          {!isToday && <button onClick={() => setViewingDate(new Date())} className="text-xs px-2 py-0.5 rounded bg-white/20 text-white hover:bg-white/30 ml-2">Today</button>}
+          {!isToday && <button onClick={() => { const d = new Date(); d.setHours(12,0,0,0); setViewingDate(d); }} className="text-xs px-2 py-0.5 rounded bg-white/20 text-white hover:bg-white/30 ml-2">Today</button>}
         </div>
 
         {/* Site tabs + session toggle */}

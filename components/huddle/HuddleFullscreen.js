@@ -230,6 +230,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const othersTeam = fsSortByLoc(categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing'));
 
   // ── Capacity ──────────────────────────────────────────────────
+  const saved = hs?.savedSlotFilters || {};
   const displayDate = huddleData?.dates?.includes(todayDateStr) ? todayDateStr : null;
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs, saved.urgent || null) : null;
   const urgentAm = (capacity?.am?.total||0) + (capacity?.am?.embargoed||0);
@@ -254,7 +255,6 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   // ── Routine ───────────────────────────────────────────────────
   const knownSlotTypes = hs?.knownSlotTypes || [];
   const allSlotsOverrides = useMemo(() => { const o={}; knownSlotTypes.forEach(s=>{o[s]=true;}); if(huddleData?.allSlotTypes) huddleData.allSlotTypes.forEach(s=>{o[s]=true;}); return o; }, [knownSlotTypes, huddleData]);
-  const saved = hs?.savedSlotFilters || {};
   const effectiveRoutineOverrides = saved.routine || allSlotsOverrides;
   const routineDays = useMemo(() => huddleData ? getNDayAvailability(huddleData, hs, 30, effectiveRoutineOverrides) : [], [huddleData, hs, effectiveRoutineOverrides]);
   const routineGauges = useMemo(() => {

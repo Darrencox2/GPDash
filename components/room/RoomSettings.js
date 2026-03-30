@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { GRID_SIZES, DEFAULT_ROOM_TYPES, getRoomTypes, SITE_COLOUR_PRESETS, RECURRENCE_LABELS, DAY_LABELS, describeRecurrence } from '@/lib/roomAllocation';
+import { GRID_SIZES, getRoomTypes, SITE_COLOUR_PRESETS, RECURRENCE_LABELS, DAY_LABELS, describeRecurrence } from '@/lib/roomAllocation';
 
 export default function RoomSettings({ data, saveData, toast, huddleData }) {
   const ra = data?.roomAllocation || {};
