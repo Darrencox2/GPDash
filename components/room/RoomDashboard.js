@@ -140,7 +140,6 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
           <button onClick={() => navigateDay(1)} className="text-white/60 hover:text-white text-sm font-bold px-2">▶</button>
           {!isToday && <button onClick={() => setViewingDate(new Date())} className="text-xs px-2 py-0.5 rounded bg-white/20 text-white hover:bg-white/30 ml-2">Today</button>}
         </div>
-        </div>
 
         {/* Site tabs + session toggle */}
         <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
