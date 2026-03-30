@@ -61,7 +61,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     if (!selected || !huddleData) return weekDays.map(() => null);
     return weekDays.map(day => {
       if (!huddleData.dates?.includes(day.dateStr)) return null;
-      const cap = getHuddleCapacity(huddleData, day.dateStr, hs);
+      const cap = getHuddleCapacity(huddleData, day.dateStr, {});
       const find = sess => (sess?.byClinician || []).find(c => matchesStaffMember(c.name, selected));
       const am = find(cap.am), pm = find(cap.pm);
       const amIn = am && ((am.available||0) + (am.embargoed||0) + (am.booked||0)) > 0;
