@@ -104,16 +104,18 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const hs = data?.huddleSettings || {};
   const messages = ensureArray(data?.huddleMessages || []);
 
-  // Fullscreen API
+  // Fullscreen API — use ref for onExit to avoid effect re-running on every render
+  const onExitRef = useRef(onExit);
+  onExitRef.current = onExit;
   useEffect(() => {
     const el = containerRef.current;
     if (el?.requestFullscreen) el.requestFullscreen().catch(() => {});
-    const onFs = () => { if (!document.fullscreenElement) onExit(); };
+    const onFs = () => { if (!document.fullscreenElement) onExitRef.current(); };
     document.addEventListener('fullscreenchange', onFs);
-    const onKey = (e) => { if (e.key === 'Escape') onExit(); };
+    const onKey = (e) => { if (e.key === 'Escape') onExitRef.current(); };
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('fullscreenchange', onFs); document.removeEventListener('keydown', onKey); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
-  }, [onExit]);
+  }, []);
 
   // Demand + weather
   useEffect(() => {
