@@ -51,29 +51,28 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
   const convertGridSize = (siteId, newSize) => {
     const site = sites.find(s => s.id === siteId);
     if (!site) return;
-    const oldGrid = GRID_SIZES[site.gridSize];
     const newGrid = GRID_SIZES[newSize];
-    // Find bounding box of existing rooms
     const rooms = site.rooms || [];
     if (rooms.length === 0) { updateSite(siteId, { gridSize: newSize }); return; }
     const minX = Math.min(...rooms.map(r => r.x));
-    const maxX = Math.max(...rooms.map(r => r.x));
+    const maxX = Math.max(...rooms.map(r => r.x + (r.w || 1) - 1));
     const minY = Math.min(...rooms.map(r => r.y));
-    const maxY = Math.max(...rooms.map(r => r.y));
+    const maxY = Math.max(...rooms.map(r => r.y + (r.h || 1) - 1));
     const clusterW = maxX - minX + 1;
     const clusterH = maxY - minY + 1;
+    if (clusterW > newGrid.cols || clusterH > newGrid.rows) { toast('Rooms too large for this grid size', 'error'); return; }
     const offsetX = Math.floor((newGrid.cols - clusterW) / 2) - minX;
     const offsetY = Math.floor((newGrid.rows - clusterH) / 2) - minY;
-    const movedRooms = rooms.map(r => ({ ...r, x: Math.max(0, Math.min(r.x + offsetX, newGrid.cols - 1)), y: Math.max(0, Math.min(r.y + offsetY, newGrid.rows - 1)) }));
+    const movedRooms = rooms.map(r => ({ ...r, x: r.x + offsetX, y: r.y + offsetY }));
     updateSite(siteId, { gridSize: newSize, rooms: movedRooms });
     toast(`Converted to ${GRID_SIZES[newSize].label}`, 'success');
   };
 
   // Room management
-  const addRoom = (x, y) => {
+  const addRoom = (x, y, w, h) => {
     if (!selectedSite) return;
     const id = 'room_' + Date.now();
-    const newRoom = { id, name: `Room ${(selectedSite.rooms?.length || 0) + 1}`, x, y, types: [], isClinical: true };
+    const newRoom = { id, name: `Room ${(selectedSite.rooms?.length || 0) + 1}`, x, y, w: w || 1, h: h || 1, types: [], isClinical: true };
     setEditingRoom(newRoom);
   };
 
@@ -92,37 +91,78 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
     toast('Room deleted', 'success');
   };
 
+  // Check if a cell is occupied by any room (excluding a specific room)
+  const isCellOccupied = useCallback((x, y, excludeId) => {
+    if (!selectedSite) return false;
+    return selectedSite.rooms.some(r => r.id !== excludeId && x >= r.x && x < r.x + (r.w || 1) && y >= r.y && y < r.y + (r.h || 1));
+  }, [selectedSite]);
+
+  const canPlaceRoom = useCallback((x, y, w, h, excludeId) => {
+    for (let cx = x; cx < x + w; cx++) {
+      for (let cy = y; cy < y + h; cy++) {
+        if (cx >= grid.cols || cy >= grid.rows) return false;
+        if (isCellOccupied(cx, cy, excludeId)) return false;
+      }
+    }
+    return true;
+  }, [grid, isCellOccupied]);
+
   const moveRoom = (roomId, newX, newY) => {
     if (!selectedSite) return;
-    const occupied = selectedSite.rooms.find(r => r.id !== roomId && r.x === newX && r.y === newY);
-    if (occupied) return;
+    const room = selectedSite.rooms.find(r => r.id === roomId);
+    if (!room) return;
+    const w = room.w || 1, h = room.h || 1;
+    if (!canPlaceRoom(newX, newY, w, h, roomId)) return;
     updateSite(selectedSite.id, { rooms: selectedSite.rooms.map(r => r.id === roomId ? { ...r, x: newX, y: newY } : r) });
   };
 
-  // Grid interaction
+  // Grid interaction — click+drag to create, click existing to edit, drag existing to move
   const grid = selectedSite ? GRID_SIZES[selectedSite.gridSize] || GRID_SIZES.small : GRID_SIZES.small;
   const cellSize = 80;
 
+  const getRoomAt = (x, y) => selectedSite?.rooms?.find(r => x >= r.x && x < r.x + (r.w || 1) && y >= r.y && y < r.y + (r.h || 1));
+
   const handleGridMouseDown = (x, y, e) => {
     if (!selectedSite) return;
-    const existing = selectedSite.rooms.find(r => r.x === x && r.y === y);
+    const existing = getRoomAt(x, y);
     if (existing) {
-      // Start drag to move
       e.preventDefault();
-      setDragStart({ roomId: existing.id, x, y, mode: 'move' });
+      setDragStart({ roomId: existing.id, x, y, mode: 'move', origX: existing.x, origY: existing.y });
     } else {
-      // Click empty cell to create room
-      addRoom(x, y);
+      e.preventDefault();
+      setDragStart({ x, y, mode: 'create' });
+      setDragCurrent({ x, y });
     }
   };
 
   const handleGridMouseMove = (x, y) => {
-    if (dragStart?.mode === 'move') setDragCurrent({ x, y });
+    if (dragStart) setDragCurrent({ x, y });
   };
 
   const handleGridMouseUp = (x, y) => {
-    if (dragStart?.mode === 'move' && (x !== dragStart.x || y !== dragStart.y)) {
-      moveRoom(dragStart.roomId, x, y);
+    if (!dragStart) return;
+    if (dragStart.mode === 'create') {
+      const x1 = Math.min(dragStart.x, x), y1 = Math.min(dragStart.y, y);
+      const x2 = Math.max(dragStart.x, x), y2 = Math.max(dragStart.y, y);
+      const w = x2 - x1 + 1, h = y2 - y1 + 1;
+      // Check no overlap
+      if (canPlaceRoom(x1, y1, w, h, null)) {
+        addRoom(x1, y1, w, h);
+      }
+    } else if (dragStart.mode === 'move') {
+      if (x === dragStart.x && y === dragStart.y) {
+        // Click without moving — edit
+        const room = selectedSite.rooms.find(r => r.id === dragStart.roomId);
+        if (room) setEditingRoom(room);
+      } else {
+        // Calculate offset from where they grabbed within the room
+        const room = selectedSite.rooms.find(r => r.id === dragStart.roomId);
+        if (room) {
+          const offsetX = dragStart.x - room.x;
+          const offsetY = dragStart.y - room.y;
+          moveRoom(room.id, x - offsetX, y - offsetY);
+        }
+      }
     }
     setDragStart(null);
     setDragCurrent(null);
@@ -226,35 +266,39 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                   </div>
                 </div>
                 {/* Grid */}
-                <div className="text-xs text-slate-400 mb-2">Click an empty square to add a room. Click a room to edit. Drag rooms to reposition.</div>
-                <div ref={gridRef} className="inline-block rounded-xl overflow-auto" style={{border:'2px solid #e2e8f0',background:'#f8fafc',maxWidth:'100%',maxHeight:'70vh'}} onMouseLeave={() => { setDragStart(null); setDragCurrent(null); }}>
-                  {Array.from({length: grid.rows}).map((_, y) => (
-                    <div key={y} className="flex">
-                      {Array.from({length: grid.cols}).map((_, x) => {
-                        const room = selectedSite.rooms.find(r => r.x === x && r.y === y);
-                        const isDragTarget = dragCurrent?.x === x && dragCurrent?.y === y;
-                        const isDragging = dragStart?.mode === 'move' && dragStart.x === x && dragStart.y === y;
-                        return (
-                          <div key={x}
-                            onMouseDown={e => handleGridMouseDown(x, y, e)}
-                            onMouseMove={() => handleGridMouseMove(x, y)}
-                            onMouseUp={() => handleGridMouseUp(x, y)}
-                            className="relative cursor-pointer transition-all duration-100"
-                            style={{width: cellSize, height: cellSize, border: '0.5px solid #e2e8f0',
-                              background: room ? (room.isClinical === false ? '#f1f5f9' : (selectedSite.colour || '#8c64c3') + '20') : isDragTarget ? '#dbeafe' : 'transparent',
-                              opacity: isDragging ? 0.3 : 1}}>
-                            {room && (
-                              <div className="absolute inset-1 rounded flex items-center justify-center text-center" style={{
-                                background: room.isClinical === false ? '#e2e8f0' : selectedSite.colour || '#8c64c3',
-                                opacity: room.isClinical === false ? 0.6 : 0.85}}>
-                                <span className="text-white text-[10px] font-bold leading-tight px-1 select-none" style={{textShadow:'0 1px 2px rgba(0,0,0,0.3)'}}>{room.name}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+                <div className="text-xs text-slate-400 mb-2">Click + drag to create a room. Click a room to edit. Drag rooms to reposition.</div>
+                <div ref={gridRef} className="relative rounded-xl overflow-auto" style={{border:'2px solid #e2e8f0',background:'#f8fafc',maxWidth:'100%',maxHeight:'70vh'}} onMouseLeave={() => { setDragStart(null); setDragCurrent(null); }}>
+                  {/* Grid cells (background) */}
+                  <div style={{display:'grid',gridTemplateColumns:`repeat(${grid.cols}, ${cellSize}px)`,gridTemplateRows:`repeat(${grid.rows}, ${cellSize}px)`}}>
+                    {Array.from({length: grid.rows * grid.cols}).map((_, i) => {
+                      const x = i % grid.cols, y = Math.floor(i / grid.cols);
+                      const isInDragRect = dragStart?.mode === 'create' && dragCurrent && x >= Math.min(dragStart.x, dragCurrent.x) && x <= Math.max(dragStart.x, dragCurrent.x) && y >= Math.min(dragStart.y, dragCurrent.y) && y <= Math.max(dragStart.y, dragCurrent.y);
+                      const isDragMoveTarget = dragStart?.mode === 'move' && dragCurrent?.x === x && dragCurrent?.y === y;
+                      return <div key={i}
+                        onMouseDown={e => handleGridMouseDown(x, y, e)}
+                        onMouseMove={() => handleGridMouseMove(x, y)}
+                        onMouseUp={() => handleGridMouseUp(x, y)}
+                        className="cursor-crosshair"
+                        style={{width:cellSize,height:cellSize,border:'0.5px solid #e2e8f0',
+                          background: isInDragRect ? (selectedSite.colour || '#6366f1') + '25' : isDragMoveTarget ? '#dbeafe' : 'transparent'}} />;
+                    })}
+                  </div>
+                  {/* Room overlays */}
+                  {(selectedSite.rooms || []).map(room => {
+                    const w = room.w || 1, h = room.h || 1;
+                    const isDragging = dragStart?.mode === 'move' && dragStart.roomId === room.id && dragCurrent && (dragCurrent.x !== dragStart.x || dragCurrent.y !== dragStart.y);
+                    return <div key={room.id}
+                      className="absolute rounded-md flex items-center justify-center text-center cursor-pointer transition-opacity"
+                      style={{
+                        left: room.x * cellSize + 3, top: room.y * cellSize + 3,
+                        width: w * cellSize - 6, height: h * cellSize - 6,
+                        background: room.isClinical === false ? '#cbd5e1' : selectedSite.colour || '#8c64c3',
+                        opacity: isDragging ? 0.3 : (room.isClinical === false ? 0.5 : 0.85),
+                        pointerEvents: 'none',
+                      }}>
+                      <span className="text-white font-bold leading-tight px-1 select-none" style={{fontSize: Math.min(12, cellSize * w / (room.name.length * 0.7)),textShadow:'0 1px 2px rgba(0,0,0,0.3)'}}>{room.name}</span>
+                    </div>;
+                  })}
                 </div>
                 {/* Room type legend */}
                 <div className="flex items-center gap-4 mt-3 text-[10px] text-slate-500">
