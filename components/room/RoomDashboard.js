@@ -308,10 +308,9 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
             {/* Main layout: rooms left, clinicians right */}
             <div className="flex gap-5">
               {/* LEFT — Spatial room grid with mini-cards */}
-              {(() => { const minW = selectedSite.minRoomWidth || 140; return (
               <div className="flex-1 min-w-0 overflow-x-auto" ref={gridRef}>
                 <div className="relative rounded-xl p-2" style={{background:'#f8fafc', border:'1px solid #e2e8f0'}}>
-                  <div style={{display:'grid', gridTemplateColumns:`repeat(${cropBounds.w}, minmax(${minW}px, 1fr))`, gridTemplateRows:`repeat(${cropBounds.h}, auto)`, gap: 6}}>
+                  <div style={{display:'grid', gridTemplateColumns:`repeat(${cropBounds.w}, 200px)`, gridTemplateRows:`repeat(${cropBounds.h}, auto)`, gap: 6}}>
                     {(selectedSite.rooms || []).map(room => {
                       const w = room.w || 1, h = room.h || 1, nc = room.isClinical === false;
                       const assigned = nc ? null : allocation.assignments[room.id];
@@ -359,7 +358,6 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                   </div>
                 </div>
               </div>
-              ); })()}
 
               {/* RIGHT — Clinician cards sorted by role */}
               {cliniciansAtSite.length > 0 && (

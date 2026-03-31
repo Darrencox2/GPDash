@@ -59,7 +59,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
   const saveRoom = (room) => { if (!selectedSite) return; const existing = selectedSite.rooms.find(r => r.id === room.id); updateSite(selectedSite.id, { rooms: existing ? selectedSite.rooms.map(r => r.id === room.id ? room : r) : [...selectedSite.rooms, room] }); setEditingRoom(null); };
   const deleteRoom = (roomId) => { if (!selectedSite) return; updateSite(selectedSite.id, { rooms: selectedSite.rooms.filter(r => r.id !== roomId) }); setEditingRoom(null); toast('Room deleted', 'success'); };
   const grid = selectedSite ? GRID_SIZES[selectedSite.gridSize] || GRID_SIZES.small : GRID_SIZES.small;
-  const cellSize = Math.max(36, Math.floor((containerWidth - 4) / grid.cols));
+  const cellSize = Math.max(36, Math.min(100, Math.floor((containerWidth - 4) / grid.cols)));
   const isCellOccupied = useCallback((x, y, excludeId) => {
     if (!selectedSite) return false;
     return selectedSite.rooms.some(r => r.id !== excludeId && x >= r.x && x < r.x + (r.w || 1) && y >= r.y && y < r.y + (r.h || 1));
@@ -114,10 +114,6 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
             <span className="text-slate-300">|</span>
             <label className="text-xs text-slate-500">Grid:</label>
             <select value={selectedSite.gridSize} onChange={e => convertGridSize(selectedSite.id, e.target.value)} className="text-xs border border-slate-200 rounded px-2 py-1">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
-            <span className="text-slate-300">|</span>
-            <label className="text-xs text-slate-500">Card width:</label>
-            <input type="range" min="100" max="220" step="10" value={selectedSite.minRoomWidth || 140} onChange={e => updateSite(selectedSite.id, { minRoomWidth: parseInt(e.target.value) })} className="w-24" />
-            <span className="text-xs text-slate-600 font-medium w-8">{selectedSite.minRoomWidth || 140}</span>
             <button onClick={() => deleteSite(selectedSite.id)} className="text-xs text-red-400 hover:text-red-600 ml-auto">Delete site</button>
           </div>
           <div className="text-xs text-slate-400 mb-2">Click + drag to create a room. Click a room to edit. Drag to reposition.</div>
@@ -132,8 +128,19 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
             {(selectedSite.rooms || []).map(room => {
               const w = room.w || 1, h = room.h || 1, nc = room.isClinical === false;
               const isDragging = dragStart?.mode === 'move' && dragStart.roomId === room.id && dragCurrent && (dragCurrent.x !== dragStart.x || dragCurrent.y !== dragStart.y);
-              return <div key={room.id} className="absolute rounded-md flex items-center justify-center text-center transition-opacity" style={{left: room.x * cellSize + 3, top: room.y * cellSize + 3, width: w * cellSize - 6, height: h * cellSize - 6, background: nc ? '#e2e8f0' : selectedSite.colour || '#8c64c3', opacity: isDragging ? 0.3 : (nc ? 0.7 : 0.85), pointerEvents: 'none'}}>
-                <span className="font-bold leading-tight px-1 select-none" style={{fontSize: Math.min(12, cellSize * w / Math.max(room.name.length * 0.7, 1)), color: nc ? '#475569' : '#fff', textShadow: nc ? 'none' : '0 1px 2px rgba(0,0,0,0.3)'}}>{room.name}</span>
+              const typeDots = nc ? [] : (room.types || []).map(t => getRoomTypes(ra).find(rt => rt.id === t)).filter(Boolean);
+              const sc = selectedSite.colour || '#8c64c3';
+              if (nc) return <div key={room.id} className="absolute rounded-lg flex items-center justify-center text-center" style={{left: room.x * cellSize + 2, top: room.y * cellSize + 2, width: w * cellSize - 4, height: h * cellSize - 4, background: '#e2e8f0', opacity: isDragging ? 0.3 : 0.7, pointerEvents: 'none'}}>
+                <span className="text-[10px] font-semibold text-slate-500 leading-tight px-1">{room.name}</span>
+              </div>;
+              return <div key={room.id} className="absolute rounded-lg overflow-hidden" style={{left: room.x * cellSize + 2, top: room.y * cellSize + 2, width: w * cellSize - 4, height: h * cellSize - 4, background: '#fff', border: `2px solid ${sc}40`, opacity: isDragging ? 0.3 : 1, pointerEvents: 'none'}}>
+                <div className="flex items-center gap-1 px-2 py-1" style={{background: sc + '15', borderBottom: '1px solid #f1f5f9'}}>
+                  <span className="text-[10px] font-bold truncate flex-1" style={{color: sc}}>{room.name}</span>
+                  {typeDots.map(rt => <span key={rt.id} className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: rt.colour}} />)}
+                </div>
+                <div className="px-2 py-1 flex items-center justify-center" style={{minHeight: h * cellSize - 30}}>
+                  <span className="text-[10px] text-slate-300">Click to edit</span>
+                </div>
               </div>;
             })}
           </div>
