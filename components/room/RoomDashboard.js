@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { autoAllocateRooms, getRoomTypes, RECURRENCE_LABELS, DAY_LABELS, describeRecurrence } from '@/lib/roomAllocation';
+import { autoAllocateRooms, getRoomTypes, GRID_SIZES, RECURRENCE_LABELS, DAY_LABELS, describeRecurrence } from '@/lib/roomAllocation';
 import { matchesStaffMember, toLocalIso } from '@/lib/data';
 import { getCliniciansForSession } from '@/lib/huddle';
 import { predictDemand } from '@/lib/demandPredictor';
@@ -142,6 +142,17 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
 
   const siteColour = selectedSite?.colour || '#6366f1';
   const roomTypes = getRoomTypes(ra);
+  const grid = selectedSite ? GRID_SIZES[selectedSite.gridSize] || GRID_SIZES.small : GRID_SIZES.small;
+
+  const cropBounds = useMemo(() => {
+    if (!selectedSite || !selectedSite.rooms?.length) return { x: 0, y: 0, w: grid.cols, h: grid.rows };
+    const rooms = selectedSite.rooms;
+    const minX = Math.max(0, Math.min(...rooms.map(r => r.x)) - 1);
+    const minY = Math.max(0, Math.min(...rooms.map(r => r.y)) - 1);
+    const maxX = Math.min(grid.cols - 1, Math.max(...rooms.map(r => r.x + (r.w || 1) - 1)) + 1);
+    const maxY = Math.min(grid.rows - 1, Math.max(...rooms.map(r => r.y + (r.h || 1) - 1)) + 1);
+    return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+  }, [selectedSite, grid]);
 
   const assignedIds = useMemo(() => {
     const s = new Set();
@@ -296,54 +307,56 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
 
             {/* Main layout: rooms left, clinicians right */}
             <div className="flex gap-5">
-              {/* LEFT — Room cards */}
+              {/* LEFT — Spatial room grid with mini-cards */}
               <div className="flex-1 min-w-0" ref={gridRef}>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                  {(selectedSite.rooms || []).filter(r => r.isClinical !== false).map(room => {
-                    const assigned = allocation.assignments[room.id];
-                    const isOv = assigned?.isOverride;
-                    const typeDots = (room.types || []).map(t => roomTypes.find(rt => rt.id === t)).filter(Boolean);
-                    const isHovered = hoveredRoom === room.id;
-                    const beingDraggedFrom = isDragging && assigned && dragPerson?.id === assigned.id;
-                    const procSlots = assigned ? procedureFlags[assigned.id] : null;
-                    return (
-                      <div key={room.id}
-                        ref={el => { roomRefs.current[room.id] = el; }}
-                        onPointerDown={editMode && assigned ? (e) => startDrag(assigned, e) : undefined}
-                        className={`rounded-xl overflow-hidden transition-all duration-150
-                          ${editMode && assigned ? 'cursor-grab active:cursor-grabbing' : ''}
-                          ${isHovered ? 'ring-2 ring-indigo-500 ring-offset-2 scale-[1.03] shadow-lg' : 'shadow-sm'}
-                          ${beingDraggedFrom ? 'opacity-25 scale-95' : ''}`}
-                        style={{border: isOv ? '2px solid #f59e0b' : assigned ? `2px solid ${siteColour}40` : '2px dashed #e2e8f0', background: assigned ? '#fff' : '#fafafa'}}>
-                        <div className="px-3 py-1.5 flex items-center gap-1.5" style={{background: assigned ? siteColour + '15' : '#f8fafc', borderBottom: '1px solid #f1f5f9'}}>
-                          <span className="text-[11px] font-bold flex-1 truncate" style={{color: assigned ? siteColour : '#94a3b8'}}>{room.name}</span>
-                          {typeDots.map(rt => <span key={rt.id} className="w-2 h-2 rounded-full flex-shrink-0" style={{background:rt.colour}} title={rt.label} />)}
+                <div className="relative rounded-xl p-1.5" style={{background:'#f8fafc', border:'1px solid #e2e8f0'}}>
+                  <div style={{display:'grid', gridTemplateColumns:`repeat(${cropBounds.w}, minmax(0, 1fr))`, gridTemplateRows:`repeat(${cropBounds.h}, auto)`, gap: 4}}>
+                    {(selectedSite.rooms || []).map(room => {
+                      const w = room.w || 1, h = room.h || 1, nc = room.isClinical === false;
+                      const assigned = nc ? null : allocation.assignments[room.id];
+                      const isOv = assigned?.isOverride;
+                      const typeDots = nc ? [] : (room.types || []).map(t => roomTypes.find(rt => rt.id === t)).filter(Boolean);
+                      const rx = room.x - cropBounds.x + 1, ry = room.y - cropBounds.y + 1;
+                      const isHovered = hoveredRoom === room.id;
+                      const beingDraggedFrom = isDragging && assigned && dragPerson?.id === assigned.id;
+                      const procSlots = assigned ? procedureFlags[assigned.id] : null;
+
+                      if (nc) return (
+                        <div key={room.id} style={{gridColumn:`${rx} / span ${w}`, gridRow:`${ry} / span ${h}`, background:'#e2e8f0', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', padding:8, opacity:0.7, minHeight:48}}>
+                          <span className="text-[10px] font-semibold text-slate-500 text-center leading-tight">{room.name}</span>
                         </div>
-                        <div className="px-3 py-2.5 min-h-[52px] flex items-center gap-2.5">
-                          {assigned && !beingDraggedFrom ? (<>
-                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{background: siteColour}}>{assigned.initials || '?'}</div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-semibold text-slate-900 truncate">{assigned.name}</div>
-                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                {assigned.isPreferred === false && <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 font-medium">Not preferred</span>}
-                                {isOv && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">Override</span>}
-                                {procSlots && <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 font-medium" title={procSlots.join(', ')}>Procedure</span>}
+                      );
+
+                      return (
+                        <div key={room.id}
+                          ref={el => { roomRefs.current[room.id] = el; }}
+                          onPointerDown={editMode && assigned ? (e) => startDrag(assigned, e) : undefined}
+                          style={{gridColumn:`${rx} / span ${w}`, gridRow:`${ry} / span ${h}`, background: assigned && !beingDraggedFrom ? '#fff' : '#fafafa', border: isOv ? '2px solid #f59e0b' : assigned ? `2px solid ${siteColour}40` : '2px dashed #e2e8f0', borderRadius:10, overflow:'hidden', opacity: beingDraggedFrom ? 0.25 : 1, transition:'all 0.15s'}}
+                          className={`${editMode && assigned ? 'cursor-grab active:cursor-grabbing' : ''} ${isHovered ? 'ring-2 ring-indigo-500 ring-offset-1 scale-[1.03] shadow-lg' : ''}`}>
+                          <div className="flex items-center gap-1 px-2 py-1" style={{background: assigned && !beingDraggedFrom ? siteColour + '15' : '#f8fafc', borderBottom:'1px solid #f1f5f9'}}>
+                            <span className="text-[10px] font-bold flex-1 truncate" style={{color: assigned && !beingDraggedFrom ? siteColour : '#94a3b8'}}>{room.name}</span>
+                            {typeDots.map(rt => <span key={rt.id} className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background:rt.colour}} title={rt.label} />)}
+                          </div>
+                          <div className="px-2 py-1.5 flex items-center gap-2" style={{minHeight:44}}>
+                            {assigned && !beingDraggedFrom ? (<>
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{background: siteColour}}>{assigned.initials || '?'}</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-semibold text-slate-900 truncate">{assigned.name}</div>
+                                <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                                  {isOv && <span className="text-[8px] px-1 py-px rounded bg-amber-50 text-amber-600 font-medium">Override</span>}
+                                  {procSlots && <span className="text-[8px] px-1 py-px rounded bg-sky-50 text-sky-600 font-medium" title={procSlots.join(', ')}>Procedure</span>}
+                                  {assigned.isPreferred === false && <span className="text-[8px] px-1 py-px rounded bg-blue-50 text-blue-500 font-medium">Not pref</span>}
+                                </div>
                               </div>
-                            </div>
-                          </>) : (
-                            <span className="text-xs text-slate-300 w-full text-center">{isDragging ? 'Drop here' : 'Vacant'}</span>
-                          )}
+                            </>) : (
+                              <span className="text-[10px] text-slate-300 w-full text-center">{isDragging ? 'Drop here' : 'Vacant'}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {(selectedSite.rooms || []).some(r => r.isClinical === false) && (
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <div className="text-[10px] text-slate-400 mb-1">Non-clinical</div>
-                    <div className="flex gap-1.5 flex-wrap">{(selectedSite.rooms || []).filter(r => r.isClinical === false).map(r => <span key={r.id} className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs text-slate-500">{r.name}</span>)}</div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
               </div>{/* end left panel */}
 
               {/* RIGHT — Clinician cards sorted by role */}
