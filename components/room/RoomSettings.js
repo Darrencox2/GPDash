@@ -125,15 +125,35 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                 return <div key={i} onMouseDown={e => handleGridMouseDown(x, y, e)} onMouseMove={() => handleGridMouseMove(x, y)} onMouseUp={() => handleGridMouseUp(x, y)} className="cursor-crosshair" style={{width:cellSize,height:cellSize,border:'0.5px solid #e2e8f0',background: isInDrag ? (selectedSite.colour || '#6366f1') + '25' : 'transparent'}} />;
               })}
             </div>
-            {(selectedSite.rooms || []).map(room => {
+            {(() => {
+              const rooms = selectedSite.rooms || [];
+              const occupied = new Set();
+              rooms.forEach(r => { for (let dx = 0; dx < (r.w||1); dx++) for (let dy = 0; dy < (r.h||1); dy++) occupied.add(`${r.x+dx},${r.y+dy}`); });
+              const ncSet = new Set();
+              rooms.filter(r => r.isClinical === false).forEach(r => { for (let dx = 0; dx < (r.w||1); dx++) for (let dy = 0; dy < (r.h||1); dy++) ncSet.add(`${r.x+dx},${r.y+dy}`); });
+              const minCardCells = 2;
+              return rooms.map(room => {
               const w = room.w || 1, h = room.h || 1, nc = room.isClinical === false;
               const isDragging = dragStart?.mode === 'move' && dragStart.roomId === room.id && dragCurrent && (dragCurrent.x !== dragStart.x || dragCurrent.y !== dragStart.y);
               const typeDots = nc ? [] : (room.types || []).map(t => getRoomTypes(ra).find(rt => rt.id === t)).filter(Boolean);
               const sc = selectedSite.colour || '#8c64c3';
+              let visW = w, visX = room.x;
+              if (!nc && w < minCardCells) {
+                const ncLeft = ncSet.has(`${room.x-1},${room.y}`);
+                const ncRight = ncSet.has(`${room.x+w},${room.y}`);
+                let expandRight = 0, expandLeft = 0;
+                for (let dx = 1; dx <= minCardCells - w; dx++) { if (!occupied.has(`${room.x+w+dx-1},${room.y}`) && room.x+w+dx-1 < grid.cols) expandRight++; else break; }
+                for (let dx = 1; dx <= minCardCells - w; dx++) { if (!occupied.has(`${room.x-dx},${room.y}`) && room.x-dx >= 0) expandLeft++; else break; }
+                const need = minCardCells - w;
+                if (ncLeft && expandRight >= need) { visW = minCardCells; }
+                else if (ncRight && expandLeft >= need) { visW = minCardCells; visX = room.x - need; }
+                else if (expandRight >= need) { visW = minCardCells; }
+                else if (expandLeft >= need) { visW = minCardCells; visX = room.x - need; }
+              }
               if (nc) return <div key={room.id} className="absolute rounded-lg flex items-center justify-center text-center" style={{left: room.x * cellSize + 2, top: room.y * cellSize + 2, width: w * cellSize - 4, height: h * cellSize - 4, background: '#e2e8f0', opacity: isDragging ? 0.3 : 0.7, pointerEvents: 'none'}}>
                 <span className="text-[10px] font-semibold text-slate-500 leading-tight px-1">{room.name}</span>
               </div>;
-              return <div key={room.id} className="absolute rounded-lg overflow-hidden" style={{left: room.x * cellSize + 2, top: room.y * cellSize + 2, width: w * cellSize - 4, height: h * cellSize - 4, background: '#fff', border: `2px solid ${sc}40`, opacity: isDragging ? 0.3 : 1, pointerEvents: 'none'}}>
+              return <div key={room.id} className="absolute rounded-lg overflow-hidden" style={{left: visX * cellSize + 2, top: room.y * cellSize + 2, width: visW * cellSize - 4, height: h * cellSize - 4, background: '#fff', border: `2px solid ${sc}40`, opacity: isDragging ? 0.3 : 1, pointerEvents: 'none'}}>
                 <div className="flex items-center gap-1 px-2 py-1" style={{background: sc + '15', borderBottom: '1px solid #f1f5f9'}}>
                   <span className="text-[10px] font-bold truncate flex-1" style={{color: sc}}>{room.name}</span>
                   {typeDots.map(rt => <span key={rt.id} className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: rt.colour}} />)}
@@ -142,7 +162,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                   <span className="text-[10px] text-slate-300">Click to edit</span>
                 </div>
               </div>;
-            })}
+            }); })()}
           </div>
           <div className="flex items-center gap-4 mt-3 text-[10px] text-slate-500">{getRoomTypes(ra).map(rt => <span key={rt.id} className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{background:rt.colour}}/>{rt.label}</span>)}<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-300"/>Non-clinical</span></div>
         </div>}
