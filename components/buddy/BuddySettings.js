@@ -140,6 +140,26 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
       </div>
       <div className="card p-4 bg-slate-50 border-slate-200"><h3 className="text-xs font-medium text-slate-700 mb-1">How the algorithm works</h3><p className="text-xs text-slate-600 leading-relaxed"><strong>Round-robin first:</strong> Everyone gets 1 allocation before anyone gets 2. Primary buddy is tried first, then secondary, then any eligible clinician.<br/><br/><strong>Weighted tiebreaking:</strong> When multiple clinicians have same count, lowest weighted load wins. Load = (absent × {data.settings?.absentWeight || 2}) + (day-off × {data.settings?.dayOffWeight || 1}).</p></div>
 
+      {/* Data Cleanup */}
+      <div className="card p-5">
+        <h2 className="text-base font-semibold text-slate-900 mb-2">Data Cleanup</h2>
+        <p className="text-sm text-slate-500 mb-4">Clear specific data without resetting everything.</p>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+            <div><div className="text-sm font-medium text-slate-700">Room allocation history</div><div className="text-xs text-slate-400">Saved room assignments for past dates</div></div>
+            <button onClick={() => { if (!confirm('Clear all room allocation history?')) return; const ra = { ...(data.roomAllocation || {}), allocationHistory: {}, dailyOverrides: {} }; saveData({ ...data, roomAllocation: ra }); toast('Room history cleared', 'success'); }} className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">Clear</button>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+            <div><div className="text-sm font-medium text-slate-700">Huddle CSV data</div><div className="text-xs text-slate-400">Parsed appointment data — will need re-upload</div></div>
+            <button onClick={() => { if (!confirm('Clear CSV data? You will need to re-upload.')) return; saveData({ ...data, huddleCsvData: null, huddleCsvUploadedAt: null }); toast('CSV data cleared', 'success'); }} className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">Clear</button>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+            <div><div className="text-sm font-medium text-slate-700">Buddy allocation history</div><div className="text-xs text-slate-400">Past buddy cover assignments</div></div>
+            <button onClick={() => { if (!confirm('Clear all buddy allocation history?')) return; saveData({ ...data, allocationHistory: {} }); toast('Buddy history cleared', 'success'); }} className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">Clear</button>
+          </div>
+        </div>
+      </div>
+
       {/* Danger Zone */}
       <div className="card p-5 border-red-200">
         <h2 className="text-base font-semibold text-red-700 mb-4">Danger Zone</h2>

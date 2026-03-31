@@ -24,9 +24,6 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
   const isAbsent = status === 'absent';
   const displayName = person.title ? `${person.title} ${person.name}` : person.name;
   const locCol = location ? LOCATION_COLOURS[location] : null;
-  const isSplitSite = sessionLoc && sessionLoc.am && sessionLoc.pm && sessionLoc.am !== sessionLoc.pm;
-  const amCol = isSplitSite ? LOCATION_COLOURS[sessionLoc.am] : null;
-  const pmCol = isSplitSite ? LOCATION_COLOURS[sessionLoc.pm] : null;
   return (
     <div draggable onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
       className={`relative text-center rounded-lg border overflow-hidden transition-all cursor-grab active:cursor-grabbing group ${colourClass} ${isAbsent ? 'opacity-60' : ''}`}>
@@ -44,12 +41,24 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
         <div className={`text-xs font-semibold leading-tight ${isAbsent ? 'line-through text-slate-400' : 'text-slate-900'}`}>{displayName}</div>
         <div className="text-[10px] text-slate-400 leading-tight mt-0.5">{person.role || 'Staff'}{reason ? ` · ${reason}` : ''}</div>
       </div>
-      {!isAbsent && isSplitSite && amCol && pmCol ? (
-        <div className="flex">
-          <div className="flex-1 text-center text-[10px] font-semibold py-0.5" style={{ background: amCol.bg, color: amCol.text }}>{sessionLoc.am?.charAt(0)}</div>
-          <div className="flex-1 text-center text-[10px] font-semibold py-0.5" style={{ background: pmCol.bg, color: pmCol.text }}>{sessionLoc.pm?.charAt(0)}</div>
-        </div>
-      ) : locCol && !isAbsent ? (
+      {!isAbsent && sessionLoc && (sessionLoc.am || sessionLoc.pm) ? (() => {
+        const amLoc = sessionLoc.am;
+        const pmLoc = sessionLoc.pm;
+        const amC = amLoc ? LOCATION_COLOURS[amLoc] : null;
+        const pmC = pmLoc ? LOCATION_COLOURS[pmLoc] : null;
+        const isSplit = amLoc && pmLoc && amLoc !== pmLoc;
+        const isHalfDay = (amLoc && !pmLoc) || (!amLoc && pmLoc);
+        if (isSplit || isHalfDay) {
+          return (
+            <div className="flex">
+              <div className="flex-1 text-center text-[10px] font-semibold py-0.5" style={{ background: amC?.bg || '#e2e8f0', color: amC?.text || '#94a3b8' }}>{amLoc ? amLoc.charAt(0) : '—'}</div>
+              <div className="flex-1 text-center text-[10px] font-semibold py-0.5" style={{ background: pmC?.bg || '#e2e8f0', color: pmC?.text || '#94a3b8' }}>{pmLoc ? pmLoc.charAt(0) : '—'}</div>
+            </div>
+          );
+        }
+        if (amC) return <div className="text-center text-[11px] font-semibold py-0.5" style={{ background: amC.bg, color: amC.text }}>{amLoc}</div>;
+        return null;
+      })() : locCol && !isAbsent ? (
         <div className="text-center text-[11px] font-semibold py-0.5" style={{ background: locCol.bg, color: locCol.text }}>{location}</div>
       ) : null}
     </div>
