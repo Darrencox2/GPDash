@@ -928,7 +928,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         {dutyDocDisplay.total > 0 && (
                           <div className="flex items-center gap-0.5 flex-shrink-0 flex-wrap" style={{maxWidth:80}}>
                             {Array.from({length: dutyDocDisplay.avail}).map((_,i) => <span key={`a${i}`} className="w-2 h-2 rounded-full" style={{background:'#4ade80'}} />)}
-                            {Array.from({length: dutyDocDisplay.booked}).map((_,i) => <span key={`b${i}`} className="w-2 h-2 rounded-full" style={{background:'#fbbf24'}} />)}
+                            {Array.from({length: dutyDocDisplay.booked}).map((_,i) => <span key={`b${i}`} className="w-2 h-2 rounded-full" style={{background:'#ef4444'}} />)}
                           </div>
                         )}
                       </div>
@@ -949,7 +949,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                               <div className="text-sm font-semibold text-slate-900 truncate">{c.displayName}</div>
                               <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
                                 {Array.from({length: c.available + (c.embargoed || 0)}).map((_,j) => <span key={`a${j}`} className="w-2 h-2 rounded-full" style={{background: band.colour}} />)}
-                                {Array.from({length: c.booked || 0}).map((_,j) => <span key={`b${j}`} className="w-2 h-2 rounded-full" style={{background:'#fbbf24'}} />)}
+                                {Array.from({length: c.booked || 0}).map((_,j) => <span key={`b${j}`} className="w-2 h-2 rounded-full" style={{background:'#ef4444'}} />)}
                               </div>
                             </div>
                             <span className="text-lg font-extrabold min-w-[24px] text-right flex-shrink-0" style={{ color: band.colour }}>{c.total}</span>
@@ -959,6 +959,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       );
                     })}
                     {clinicians.length === 0 && <div className="text-center text-slate-400 text-sm py-3">No capacity</div>}
+                  </div>
+                  <div className="flex items-center gap-4 mt-3 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{background: band.colour}} /><span className="text-[10px] text-slate-400">Available</span></div>
+                    <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /><span className="text-[10px] text-slate-400">Booked</span></div>
                   </div>
                 </div>
               );
