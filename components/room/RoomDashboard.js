@@ -173,7 +173,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
 
   // ── Pointer-based drag ──────────────────────────────────────
   const startDrag = useCallback((person, e) => {
-    if (!editMode) return;
+    if (!editMode) setEditMode(true);
     e.preventDefault();
     setDragPerson(person);
     setDragPos({ x: e.clientX, y: e.clientY });
@@ -380,7 +380,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                                 <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                                   {isOv && <span className="text-[8px] px-1 py-px rounded bg-amber-50 text-amber-600 font-medium">Override</span>}
                                   {procSlots && <span className="text-[8px] px-1 py-px rounded bg-sky-50 text-sky-600 font-medium" title={procSlots.join(', ')}>Procedure</span>}
-                                  {assigned.isPreferred === false && <span className="text-[8px] px-1 py-px rounded bg-blue-50 text-blue-500 font-medium">Not pref</span>}
+                                  {assigned.isPreferred === false && <span className="text-[8px] px-1 py-px rounded bg-orange-50 text-orange-600 font-medium">Not pref</span>}
                                 </div>
                               </div>
                             </>) : (
@@ -415,10 +415,9 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                               const procSlots = procedureFlags[c.id];
                               return (
                                 <div key={c.id}
-                                  onPointerDown={editMode ? (e) => startDrag({ id: c.id, name: clin.name, initials: clin.initials, source: 'csv' }, e) : undefined}
-                                  className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all duration-150 select-none
+                                  onPointerDown={(e) => startDrag({ id: c.id, name: clin.name, initials: clin.initials, source: 'csv' }, e)}
+                                  className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all duration-150 select-none cursor-grab active:cursor-grabbing hover:shadow-md
                                     ${hasRoom ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}
-                                    ${editMode ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''}
                                     ${beingDragged ? 'opacity-30 scale-95' : ''}`}>
                                   <span className={`w-2 h-2 rounded-full flex-shrink-0 ${hasRoom ? 'bg-emerald-500' : 'bg-red-400'}`} />
                                   <div className="flex-1 min-w-0">
