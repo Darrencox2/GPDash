@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { GRID_SIZES, getRoomTypes, SITE_COLOUR_PRESETS, RECURRENCE_LABELS, DAY_LABELS, describeRecurrence } from '@/lib/roomAllocation';
 
 export default function RoomSettings({ data, saveData, toast, huddleData }) {
@@ -199,6 +199,66 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
         </div>
       </div>
 
+      {/* ROOM PREFERENCES MATRIX */}
+      {sites.length > 0 && allStaff.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-5 py-3">
+            <span className="text-sm font-semibold text-white">Room Preferences</span>
+            <span className="text-xs text-white/50 ml-2">Set preferred & secondary rooms per clinician per site</span>
+          </div>
+          <div className="p-5 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-2 px-2 text-xs font-semibold text-slate-500 w-40">Clinician</th>
+                  {sites.map(s => (
+                    <th key={s.id} className="text-center py-2 px-2" colSpan={2}>
+                      <span className="inline-block w-2 h-2 rounded-full mr-1" style={{background: s.colour || '#94a3b8'}} />
+                      <span className="text-xs font-semibold text-slate-700">{s.name}</span>
+                    </th>
+                  ))}
+                </tr>
+                <tr className="border-b border-slate-100">
+                  <th />
+                  {sites.map(s => (
+                    <React.Fragment key={s.id}>
+                      <th className="text-center py-1 px-1 text-[10px] text-slate-400 font-normal">Preferred</th>
+                      <th className="text-center py-1 px-1 text-[10px] text-slate-400 font-normal">Secondary</th>
+                    </React.Fragment>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {allStaff.filter(c => c.group !== 'admin' && c.status !== 'administrative').map(c => (
+                  <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                    <td className="py-1.5 px-2">
+                      <div className="text-xs font-medium text-slate-700">{c.name}</div>
+                      <div className="text-[10px] text-slate-400">{c.role}</div>
+                    </td>
+                    {sites.map(s => {
+                      const rooms = (s.rooms || []).filter(r => r.isClinical !== false);
+                      const prefs = c.roomPreferences?.[s.id] || {};
+                      const updatePref = (field, val) => {
+                        const newPrefs = { ...(c.roomPreferences || {}), [s.id]: { ...prefs, [field]: val || null } };
+                        const clinicians = (Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians || {})).map(cl => cl.id === c.id ? { ...cl, roomPreferences: newPrefs } : cl);
+                        saveData({ ...data, clinicians });
+                      };
+                      return (
+                        <React.Fragment key={s.id}>
+                          <td className="py-1 px-1"><select value={prefs.preferred || ''} onChange={e => updatePref('preferred', e.target.value)} className="w-full text-[11px] border border-slate-200 rounded px-1 py-1"><option value="">—</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></td>
+                          <td className="py-1 px-1"><select value={prefs.secondary || ''} onChange={e => updatePref('secondary', e.target.value)} className="w-full text-[11px] border border-slate-200 rounded px-1 py-1"><option value="">—</option>{rooms.filter(r => r.id !== prefs.preferred).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></td>
+                        </React.Fragment>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* PRIORITY CARD */}
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-3"><span className="text-sm font-semibold text-white">Clinician Priority</span><span className="text-xs text-white/50 ml-2">Drag to reorder — higher = gets preferred room first</span></div>
         <div className="p-5"><div className="space-y-1 max-w-lg">

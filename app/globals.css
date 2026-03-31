@@ -61,3 +61,19 @@
   .drop-zone { @apply border-2 border-dashed border-slate-300 rounded-xl transition-all duration-200; }
   .drop-zone.active { @apply border-teal-400 bg-teal-50/50; }
 }
+
+@media print {
+  body { background: white !important; }
+  .print\:hidden { display: none !important; }
+  .print\:shadow-none { box-shadow: none !important; }
+  .print\:border-0 { border: 0 !important; }
+  .print\:bg-white { background: white !important; }
+  .print\:border-b { border-bottom: 1px solid #e2e8f0 !important; }
+  .print\:border-slate-200 { border-color: #e2e8f0 !important; }
+  .print\:text-slate-900 { color: #0f172a !important; }
+  .print\:text-slate-600 { color: #475569 !important; }
+  .print\:text-slate-400 { color: #94a3b8 !important; }
+  .print\:stroke-slate-700 { stroke: #334155 !important; }
+  nav, aside, [class*="Sidebar"] { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
+}
