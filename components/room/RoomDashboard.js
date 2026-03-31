@@ -188,11 +188,20 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
     return () => { document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp); };
   }, [isDragging, hoveredRoom, dragPerson]);
 
+  // Compute natural allocation (without overrides) for override comparison
+  const naturalAllocation = useMemo(() => {
+    if (!selectedSite || isBH) return { assignments: {} };
+    return autoAllocateRooms(selectedSite, session, cliniciansAtSite, ra.recurringBookings || [], ra.adHocBookings || [], dateStr, allClinicians, ra.clinicianPriority || [], {});
+  }, [selectedSite, session, cliniciansAtSite, ra.recurringBookings, ra.adHocBookings, dateStr, allClinicians, ra.clinicianPriority, isBH]);
+
   const doPlace = (roomId) => {
     if (!dragPerson || !selectedSite) return;
     const cur = { ...(allocation.assignments) };
     Object.keys(cur).forEach(rId => { if (cur[rId]?.id === dragPerson.id) delete cur[rId]; });
-    cur[roomId] = { ...dragPerson, isOverride: true };
+    // Check if this is where auto-allocation would have put them
+    const naturalRoom = Object.entries(naturalAllocation.assignments).find(([_, a]) => a?.id === dragPerson.id)?.[0];
+    const isBackToNatural = naturalRoom === roomId;
+    cur[roomId] = { ...dragPerson, isOverride: !isBackToNatural };
     const newOverrides = { ...ra.dailyOverrides, [selectedSite.id]: { ...(ra.dailyOverrides?.[selectedSite.id] || {}), [overrideKey]: cur } };
     const newHistory = { ...(ra.allocationHistory || {}), [historyKey]: { ...allocation, assignments: cur } };
     saveData({ ...data, roomAllocation: { ...ra, dailyOverrides: newOverrides, allocationHistory: newHistory } });
@@ -278,33 +287,6 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
         : !selectedSite ? <div className="p-12 text-center text-sm text-slate-400">Select a site</div>
         : (
           <div className="p-5">
-            {/* Clinician cards */}
-            {cliniciansAtSite.length > 0 && (
-              <div className="mb-5">
-                <div className="text-xs text-slate-500 font-medium mb-2">{session.toUpperCase()} — {cliniciansAtSite.length} clinician{cliniciansAtSite.length !== 1 ? 's' : ''} at {selectedSite.name}</div>
-                <div className="flex flex-wrap gap-2">
-                  {cliniciansAtSite.map(c => {
-                    const clin = allClinicians.find(cl => cl.id === c.id);
-                    if (!clin) return null;
-                    const hasRoom = assignedIds.has(c.id);
-                    const beingDragged = isDragging && dragPerson?.id === c.id;
-                    return (
-                      <div key={c.id}
-                        onPointerDown={editMode ? (e) => startDrag({ id: c.id, name: clin.name, initials: clin.initials, source: 'csv' }, e) : undefined}
-                        className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 select-none
-                          ${hasRoom ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-red-50 border border-red-200 text-red-800'}
-                          ${editMode ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:scale-[1.03]' : ''}
-                          ${beingDragged ? 'opacity-30 scale-95' : ''}`}>
-                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${hasRoom ? 'bg-emerald-500' : 'bg-red-400'}`} />
-                        <span className="font-bold">{clin.initials}</span>
-                        <span className="text-xs font-normal opacity-70">{clin.name}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Unallocate drop zone — visible during drag */}
             {isDragging && (
               <div ref={el => roomRefs.current['__unallocate__'] = el}
@@ -313,8 +295,11 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
               </div>
             )}
 
-            {/* BUILDING GRID */}
-            <div ref={gridRef} className="relative rounded-xl mb-4" style={{border:'2px solid #e2e8f0',background:'#f8fafc'}}>
+            {/* Main layout: grid left, clinicians right */}
+            <div className="flex gap-5">
+              {/* LEFT — Building grid */}
+              <div className="flex-1 min-w-0">
+                <div ref={gridRef} className="relative rounded-xl mb-4" style={{border:'2px solid #e2e8f0',background:'#f8fafc'}}>
               <div style={{display:'grid',gridTemplateColumns:`repeat(${cropBounds.w}, ${cellSize}px)`,gridTemplateRows:`repeat(${cropBounds.h}, ${cellSize}px)`}}>
                 {Array.from({length: cropBounds.h * cropBounds.w}).map((_, i) => <div key={i} style={{width:cellSize,height:cellSize,border:'0.5px solid #f1f5f9'}} />)}
               </div>
@@ -355,11 +340,54 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                 </div>;
               })}
             </div>
+              </div>{/* end left panel */}
+
+              {/* RIGHT — Clinician cards sorted by role */}
+              {cliniciansAtSite.length > 0 && (
+                <div className="w-52 flex-shrink-0">
+                  <div className="text-xs text-slate-500 font-medium mb-2">{session.toUpperCase()} · {cliniciansAtSite.length} at {selectedSite.name}</div>
+                  <div className="space-y-3">
+                    {[{group:'gp',label:'Clinicians',col:'#3b82f6'},{group:'nursing',label:'Nursing',col:'#10b981'},{group:'allied',label:'Allied',col:'#8b5cf6'}].map(g => {
+                      const members = cliniciansAtSite.map(c => {
+                        const clin = allClinicians.find(cl => cl.id === c.id);
+                        return clin?.group === g.group ? { ...c, clin } : null;
+                      }).filter(Boolean);
+                      if (members.length === 0) return null;
+                      return (
+                        <div key={g.group}>
+                          <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-1 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{background:g.col}}/>{g.label}</div>
+                          <div className="space-y-1">
+                            {members.map(({clin, ...c}) => {
+                              const hasRoom = assignedIds.has(c.id);
+                              const beingDragged = isDragging && dragPerson?.id === c.id;
+                              return (
+                                <div key={c.id}
+                                  onPointerDown={editMode ? (e) => startDrag({ id: c.id, name: clin.name, initials: clin.initials, source: 'csv' }, e) : undefined}
+                                  className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all duration-150 select-none
+                                    ${hasRoom ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}
+                                    ${editMode ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''}
+                                    ${beingDragged ? 'opacity-30 scale-95' : ''}`}>
+                                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${hasRoom ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-semibold text-slate-800 truncate">{clin.name}</div>
+                                    <div className="text-[10px] text-slate-400">{clin.role}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>{/* end flex container */}
 
             {/* Floating drag element */}
             {isDragging && dragPerson && (
               <div className="fixed z-50 pointer-events-none" style={{left: dragPos.x - 30, top: dragPos.y - 20}}>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl shadow-2xl border border-indigo-300 bg-white" style={{transform:'rotate(-2deg)'}}>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl shadow-2xl border border-indigo-300 bg-white">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{background: siteColour}}>{dragPerson.initials}</div>
                   <div className="text-sm font-semibold text-slate-900">{dragPerson.name}</div>
                 </div>
