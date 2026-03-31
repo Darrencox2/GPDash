@@ -14,6 +14,15 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
   const [showDebug, setShowDebug] = useState(false);
   const [viewingDate, setViewingDate] = useState(() => { const d = new Date(); d.setHours(12,0,0,0); return d; });
   const gridRef = useRef(null);
+  const [gridWidth, setGridWidth] = useState(600);
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => { if (entries[0]) setGridWidth(entries[0].contentRect.width); });
+    ro.observe(el); setGridWidth(el.offsetWidth);
+    return () => ro.disconnect();
+  }, [selectedSiteId]);
 
   // Drag state
   const [dragPerson, setDragPerson] = useState(null);
@@ -153,6 +162,8 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
     const maxY = Math.min(grid.rows - 1, Math.max(...rooms.map(r => r.y + (r.h || 1) - 1)) + 1);
     return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
   }, [selectedSite, grid]);
+
+  const cellSize = Math.max(36, Math.min(100, Math.floor((gridWidth - 4) / cropBounds.w)));
 
   const assignedIds = useMemo(() => {
     const s = new Set();
@@ -309,21 +320,43 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
             <div className="flex gap-5">
               {/* LEFT — Spatial room grid with mini-cards */}
               <div className="flex-1 min-w-0" ref={gridRef}>
-                <div className="relative rounded-xl p-2" style={{background:'#f8fafc', border:'1px solid #e2e8f0'}}>
-                  <div style={{display:'grid', gridTemplateColumns:`repeat(${cropBounds.w}, 1fr)`, gridTemplateRows:`repeat(${cropBounds.h}, auto)`, gap: 6}}>
-                    {(selectedSite.rooms || []).map(room => {
+                <div className="relative rounded-xl" style={{background:'#f8fafc', border:'1px solid #e2e8f0'}}>
+                  <div style={{display:'grid',gridTemplateColumns:`repeat(${cropBounds.w}, ${cellSize}px)`,gridTemplateRows:`repeat(${cropBounds.h}, ${cellSize}px)`}}>
+                    {Array.from({length: cropBounds.h * cropBounds.w}).map((_, i) => <div key={i} style={{width:cellSize,height:cellSize,border:'0.5px solid #f1f5f9'}} />)}
+                  </div>
+                  {(() => {
+                    const rooms = selectedSite.rooms || [];
+                    const occupied = new Set();
+                    rooms.forEach(r => { for (let dx = 0; dx < (r.w||1); dx++) for (let dy = 0; dy < (r.h||1); dy++) occupied.add(`${r.x+dx},${r.y+dy}`); });
+                    const ncSet = new Set();
+                    rooms.filter(r => r.isClinical === false).forEach(r => { for (let dx = 0; dx < (r.w||1); dx++) for (let dy = 0; dy < (r.h||1); dy++) ncSet.add(`${r.x+dx},${r.y+dy}`); });
+                    const minCardCells = 2;
+                    return rooms.map(room => {
                       const w = room.w || 1, h = room.h || 1, nc = room.isClinical === false;
                       const assigned = nc ? null : allocation.assignments[room.id];
                       const isOv = assigned?.isOverride;
                       const typeDots = nc ? [] : (room.types || []).map(t => roomTypes.find(rt => rt.id === t)).filter(Boolean);
-                      const rx = room.x - cropBounds.x + 1, ry = room.y - cropBounds.y + 1;
                       const isHovered = hoveredRoom === room.id;
                       const beingDraggedFrom = isDragging && assigned && dragPerson?.id === assigned.id;
                       const procSlots = assigned ? procedureFlags[assigned.id] : null;
+                      const rx = room.x - cropBounds.x, ry = room.y - cropBounds.y;
+                      let visW = w, visX = rx;
+                      if (!nc && w < minCardCells) {
+                        const ncLeft = ncSet.has(`${room.x-1},${room.y}`);
+                        const ncRight = ncSet.has(`${room.x+w},${room.y}`);
+                        let expandRight = 0, expandLeft = 0;
+                        for (let dx = 1; dx <= minCardCells - w; dx++) { if (!occupied.has(`${room.x+w+dx-1},${room.y}`) && room.x+w+dx-1 < grid.cols) expandRight++; else break; }
+                        for (let dx = 1; dx <= minCardCells - w; dx++) { if (!occupied.has(`${room.x-dx},${room.y}`) && room.x-dx >= 0) expandLeft++; else break; }
+                        const need = minCardCells - w;
+                        if (ncLeft && expandRight >= need) { visW = minCardCells; }
+                        else if (ncRight && expandLeft >= need) { visW = minCardCells; visX = rx - need; }
+                        else if (expandRight >= need) { visW = minCardCells; }
+                        else if (expandLeft >= need) { visW = minCardCells; visX = rx - need; }
+                      }
 
                       if (nc) return (
-                        <div key={room.id} style={{gridColumn:`${rx} / span ${w}`, gridRow:`${ry} / span ${h}`, background:'#e2e8f0', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', padding:10, opacity:0.7, minHeight:52}}>
-                          <span className="text-xs font-semibold text-slate-500 text-center leading-tight">{room.name}</span>
+                        <div key={room.id} className="absolute rounded-lg flex items-center justify-center text-center" style={{left: rx * cellSize + 2, top: ry * cellSize + 2, width: w * cellSize - 4, height: h * cellSize - 4, background:'#e2e8f0', opacity:0.7}}>
+                          <span className="text-[10px] font-semibold text-slate-500 leading-tight px-1">{room.name}</span>
                         </div>
                       );
 
@@ -331,31 +364,33 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                         <div key={room.id}
                           ref={el => { roomRefs.current[room.id] = el; }}
                           onPointerDown={editMode && assigned ? (e) => startDrag(assigned, e) : undefined}
-                          style={{gridColumn:`${rx} / span ${w}`, gridRow:`${ry} / span ${h}`, background: assigned && !beingDraggedFrom ? '#fff' : '#fafafa', border: isOv ? '2px solid #f59e0b' : assigned ? `2px solid ${siteColour}40` : '2px dashed #e2e8f0', borderRadius:10, overflow:'hidden', opacity: beingDraggedFrom ? 0.25 : 1, transition:'all 0.15s'}}
-                          className={`${editMode && assigned ? 'cursor-grab active:cursor-grabbing' : ''} ${isHovered ? 'ring-2 ring-indigo-500 ring-offset-1 scale-[1.03] shadow-lg' : ''}`}>
-                          <div className="flex items-center gap-1.5 px-2.5 py-1.5" style={{background: assigned && !beingDraggedFrom ? siteColour + '15' : '#f8fafc', borderBottom:'1px solid #f1f5f9'}}>
-                            <span className="text-[11px] font-bold flex-1 truncate" style={{color: assigned && !beingDraggedFrom ? siteColour : '#94a3b8'}}>{room.name}</span>
-                            {typeDots.map(rt => <span key={rt.id} className="w-2 h-2 rounded-full flex-shrink-0" style={{background:rt.colour}} title={rt.label} />)}
+                          className={`absolute rounded-lg overflow-hidden transition-all duration-150
+                            ${editMode && assigned ? 'cursor-grab active:cursor-grabbing' : ''}
+                            ${isHovered ? 'ring-2 ring-indigo-500 ring-offset-1 scale-[1.03] shadow-lg' : ''}`}
+                          style={{left: visX * cellSize + 2, top: ry * cellSize + 2, width: visW * cellSize - 4, height: h * cellSize - 4, background: assigned && !beingDraggedFrom ? '#fff' : '#fafafa', border: isOv ? '2px solid #f59e0b' : assigned ? `2px solid ${siteColour}40` : '2px dashed #e2e8f0', opacity: beingDraggedFrom ? 0.25 : 1}}>
+                          <div className="flex items-center gap-1 px-2 py-1" style={{background: assigned && !beingDraggedFrom ? siteColour + '15' : '#f8fafc', borderBottom:'1px solid #f1f5f9'}}>
+                            <span className="text-[10px] font-bold truncate flex-1" style={{color: assigned && !beingDraggedFrom ? siteColour : '#94a3b8'}}>{room.name}</span>
+                            {typeDots.map(rt => <span key={rt.id} className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background:rt.colour}} title={rt.label} />)}
                           </div>
-                          <div className="px-2.5 py-2 flex items-center gap-2.5" style={{minHeight:50}}>
+                          <div className="px-2 py-1 flex items-center gap-2" style={{minHeight: h * cellSize - 30}}>
                             {assigned && !beingDraggedFrom ? (<>
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{background: siteColour}}>{assigned.initials || '?'}</div>
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{background: siteColour}}>{assigned.initials || '?'}</div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold text-slate-900 truncate">{assigned.name}</div>
+                                <div className="text-xs font-semibold text-slate-900 truncate">{assigned.name}</div>
                                 <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                                  {isOv && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">Override</span>}
-                                  {procSlots && <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 font-medium" title={procSlots.join(', ')}>Procedure</span>}
-                                  {assigned.isPreferred === false && <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 font-medium">Not pref</span>}
+                                  {isOv && <span className="text-[8px] px-1 py-px rounded bg-amber-50 text-amber-600 font-medium">Override</span>}
+                                  {procSlots && <span className="text-[8px] px-1 py-px rounded bg-sky-50 text-sky-600 font-medium" title={procSlots.join(', ')}>Procedure</span>}
+                                  {assigned.isPreferred === false && <span className="text-[8px] px-1 py-px rounded bg-blue-50 text-blue-500 font-medium">Not pref</span>}
                                 </div>
                               </div>
                             </>) : (
-                              <span className="text-xs text-slate-300 w-full text-center">{isDragging ? 'Drop here' : 'Vacant'}</span>
+                              <span className="text-[10px] text-slate-300 w-full text-center">{isDragging ? 'Drop here' : 'Vacant'}</span>
                             )}
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
+                    });
+                  })()}
                 </div>
               </div>
 
