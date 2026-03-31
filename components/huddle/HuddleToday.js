@@ -67,10 +67,6 @@ function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981',
     return () => observer.disconnect();
   }, []);
 
-  // Over-target: a second ring animates past 360° with a pulsing glow
-  const overExtra = overTarget ? Math.min(rawPct - 100, 30) : 0;
-  const overDashOffset = circumference - (circumference * (overExtra / 100));
-
   return (
     <div className="flex flex-col items-center" ref={gaugeRef}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
@@ -86,23 +82,6 @@ function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981',
             style={{
               transition: `stroke-dashoffset ${overTarget ? '1.2s' : '0.8s'} cubic-bezier(0.4, 0, 0.2, 1)`,
             }} />
-        )}
-        {/* Over-target: second glow ring that goes past full */}
-        {overTarget && (
-          <circle cx={cx} cy={cy} r={r + 2} fill="none" stroke={colour} strokeWidth={2}
-            strokeLinecap="round"
-            strokeDasharray={2 * Math.PI * (r + 2)}
-            strokeDashoffset={inView ? (2 * Math.PI * (r + 2)) - (2 * Math.PI * (r + 2) * overExtra / 100) : 2 * Math.PI * (r + 2)}
-            transform={`rotate(-90 ${cx} ${cy})`}
-            opacity={0.35}
-            style={{ transition: 'stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.4s' }} />
-        )}
-        {/* Over-target pulsing glow dot at the leading edge */}
-        {overTarget && inView && (
-          <circle cx={cx} cy={cy - r} r={3} fill={colour} opacity={0.6}
-            transform={`rotate(${(displayPct / 100) * 360 - 90 + (overExtra / 100) * 360} ${cx} ${cy})`}>
-            <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
-          </circle>
         )}
         {children}
       </svg>
@@ -309,7 +288,7 @@ function getInitials(csvName, clinicians) {
 
 // ── 7-day compact bar chart strip with available/embargoed/booked ──
 function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal', teamClinicians, hasFilter = true }) {
-  const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 7, overrides), [huddleData, huddleSettings, overrides]);
+  const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 14, overrides), [huddleData, huddleSettings, overrides]);
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   if (!hasFilter) return (
@@ -399,7 +378,7 @@ function TwentyEightDayChart({ huddleData, huddleSettings, overrides, teamClinic
   const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444';
 
   return (
-    <div className="p-4 rounded-b-xl" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
+    <div className="p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm text-slate-400">Next 30 days</div>
         <div className="flex items-center gap-3 text-sm">
@@ -1037,12 +1016,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             });
 
             return (
-              <div className="card overflow-hidden">
-                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3">
+              <div className="card overflow-hidden" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
+                <div className="px-5 py-3 border-b border-white/10">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-base font-semibold text-white">Routine Capacity</div>
-                      <div className="text-[11px] text-white/70">30-day availability overview</div>
+                      <div className="text-[11px] text-white/50">30-day availability overview</div>
                     </div>
                     <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" />
                   </div>
@@ -1050,13 +1029,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
                 {routineOverrides && Object.values(routineOverrides).every(v => !v) ? (
                   <div className="py-12 px-6 text-center">
-                    <div className="text-slate-300 mb-2" style={{fontSize:32}}>↑</div>
-                    <h3 className="text-base font-semibold text-slate-700 mb-1">No slots selected</h3>
-                    <p className="text-sm text-slate-400 max-w-sm mx-auto">Open the filter above to choose which slot types to include as routine capacity.</p>
+                    <div className="text-slate-600 mb-2" style={{fontSize:32}}>↑</div>
+                    <h3 className="text-base font-semibold text-slate-400 mb-1">No slots selected</h3>
+                    <p className="text-sm text-slate-500 max-w-sm mx-auto">Open the filter above to choose which slot types to include as routine capacity.</p>
                   </div>
                 ) : (<>
                 {/* Booking gauges — non-overlapping weekly ranges */}
-                <div className="grid grid-cols-4 divide-x divide-white/10" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',borderBottom:'1px solid #334155'}}>
+                <div className="grid grid-cols-4 divide-x divide-white/10 border-b border-white/10">
                   {periodGauges.map(g => (
                     <div key={g.label} className="flex flex-col items-center py-4 px-2">
                       <MiniGauge value={g.avail} max={g.total} size={80} strokeWidth={7} colour={g.colour}>
@@ -1075,7 +1054,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             );
           })()}
 
-          {/* ─── CUSTOM CAPACITY CARDS (7 days each) ─── */}
+          {/* ─── CUSTOM CAPACITY CARDS (14 days each) ─── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {capacityCards.map(card => {
               const gradient = GRADIENT_MAP[card.colour] || GRADIENT_MAP.violet;
@@ -1087,7 +1066,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm font-semibold text-white">{card.title}</div>
-                        <div className="text-[10px] text-white/70">Next 7 days</div>
+                        <div className="text-[10px] text-white/70">Next 14 days</div>
                       </div>
                       <div className="flex items-center gap-1">
                         <SlotFilter overrides={overrides} setOverrides={(v) => setCardOverride(card.id, v)} knownSlotTypes={knownSlotTypes} title={`${card.title} Slots`} />
