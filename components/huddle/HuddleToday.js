@@ -306,11 +306,13 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
         {days.map((d, i) => {
           const isToday = i === 0;
           const hasData = d.available !== null;
-          const avail = (d.available || 0) + (d.embargoed || 0);
+          const avail = d.available || 0;
+          const emb = d.embargoed || 0;
           const book = d.booked || 0;
-          const total = avail + book;
+          const total = avail + emb + book;
           const totalPct = hasData && total > 0 ? Math.max(12, (total / maxVal) * 100) : 0;
           const isHovered = hoveredIdx === i;
+          const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444';
           return (
             <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5 relative"
               onMouseEnter={() => setHoveredIdx(i)}
@@ -318,7 +320,7 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {hasData && total > 0 && (
                 <div className="text-[10px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? '#34d399' : '#64748b'}}>
-                  {avail}{book > 0 && <span style={{color:'#fbbf24'}}>+{book}</span>}
+                  {avail + emb}{book > 0 && <span style={{color:'#ef4444'}}>+{book}</span>}
                 </div>
               )}
               <div className="w-full rounded-t-md overflow-hidden cursor-pointer transition-all duration-200"
@@ -329,7 +331,8 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
                 {hasData && total > 0 ? (
                   <div className="w-full h-full flex flex-col justify-end">
                     {avail > 0 && <div style={{height:`${(avail/total)*100}%`,background:'#10b981'}} />}
-                    {book > 0 && <div style={{height:`${(book/total)*100}%`,background:'#fbbf24'}} />}
+                    {emb > 0 && <div style={{height:`${(emb/total)*100}%`,background:'#f59e0b'}} />}
+                    {book > 0 && <div style={{height:`${(book/total)*100}%`,background:HATCH}} />}
                   </div>
                 ) : <div className="w-full h-full" style={{background:'#334155'}} />}
               </div>
@@ -342,7 +345,8 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
                   <div className="text-xs font-bold mb-0.5 text-slate-200">{d.dayName} {d.dayNum}</div>
                   <div className="space-y-0.5 text-[11px]">
                     <div className="flex justify-between gap-3"><span className="text-slate-400">Available</span><span className="font-semibold text-emerald-400">{avail}</span></div>
-                    {book > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Booked</span><span className="font-semibold text-amber-400">{book}</span></div>}
+                    {emb > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
+                    {book > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
                   </div>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid #334155'}} />
                 </div>
@@ -353,7 +357,8 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
       </div>
       <div className="flex items-center gap-3 mt-2 pt-2" style={{borderTop:'1px solid #334155'}}>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}} /><span className="text-xs text-slate-500">Available</span></div>
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#fbbf24'}} /><span className="text-xs text-slate-500">Booked</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}} /><span className="text-xs text-slate-500">Embargoed</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444',backgroundSize:'5px 5px'}} /><span className="text-xs text-slate-500">Booked</span></div>
       </div>
       {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
     </div>
@@ -948,7 +953,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-semibold text-slate-900 truncate">{c.displayName}</div>
                               <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
-                                {Array.from({length: c.available + (c.embargoed || 0)}).map((_,j) => <span key={`a${j}`} className="w-2 h-2 rounded-full" style={{background: band.colour}} />)}
+                                {Array.from({length: c.available + (c.embargoed || 0)}).map((_,j) => <span key={`a${j}`} className="w-2 h-2 rounded-full" style={{background:'#10b981'}} />)}
                                 {Array.from({length: c.booked || 0}).map((_,j) => <span key={`b${j}`} className="w-2 h-2 rounded-full" style={{background:'#ef4444'}} />)}
                               </div>
                             </div>
@@ -1102,8 +1107,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               const overrides = cardOverrides[card.id] || null;
               const effective = overrides || allSlotsOverrides;
               return (
-                <div key={card.id} className="rounded-xl overflow-hidden group relative" style={{border:'1px solid #334155'}}>
-                  <div className={`bg-gradient-to-r ${gradient} px-4 py-2.5`}>
+                <div key={card.id} className="rounded-xl overflow-visible group relative" style={{border:'1px solid #334155'}}>
+                  <div className={`bg-gradient-to-r ${gradient} px-4 py-2.5 rounded-t-xl`}>
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm font-semibold text-white">{card.title}</div>
