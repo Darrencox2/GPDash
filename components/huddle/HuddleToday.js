@@ -952,6 +952,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                                 {Array.from({length: c.booked || 0}).map((_,j) => <span key={`b${j}`} className="w-2 h-2 rounded-full" style={{background:'#fbbf24'}} />)}
                               </div>
                             </div>
+                            <span className="text-lg font-extrabold min-w-[24px] text-right flex-shrink-0" style={{ color: band.colour }}>{c.total}</span>
                           </div>
                           {locCol && <div className="w-[22px] flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: locCol.bg, color: locCol.text }}>{locLetter}</div>}
                         </div>
@@ -1004,7 +1005,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="px-5 py-3 space-y-2">
                       {capacity.bySlotType.map((s, i) => {
                         const allAvail = (s.total || 0) + (s.totalEmb || 0);
-                        if (allAvail === 0) return null;
+                        const allBooked = s.totalBook || 0;
+                        const slotTotal = allAvail + allBooked;
+                        if (slotTotal === 0) return null;
                         const locs = s.byLocation || {};
                         const locEntries = ['Winscombe','Banwell','Locking'].map(loc => ({ loc, count: locs[loc] || 0 })).filter(l => l.count > 0);
                         const locTotal = locEntries.reduce((sum, l) => sum + l.count, 0) || 1;
@@ -1018,7 +1021,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                                 return <div key={j} style={{width:pct+'%',height:14,backgroundColor:lc?.bg||'#94a3b8',minWidth:2,display:'block'}} title={`${l.loc}: ${l.count}`} />;
                               })}
                             </div>
-                            <span className="text-xs font-bold text-slate-700" style={{minWidth:24,textAlign:'right'}}>{allAvail}</span>
+                            <span className="text-xs font-bold text-slate-700" style={{minWidth:24,textAlign:'right'}}>{slotTotal}{allBooked > 0 && <span className="text-[10px] font-medium text-amber-500 ml-1">({allBooked})</span>}</span>
                           </div>
                         );
                       })}
@@ -1050,12 +1053,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             });
 
             return (
-              <div className="rounded-xl overflow-hidden" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', border:'1px solid #334155'}}>
-                <div className="px-5 py-3" style={{borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
+              <div className="rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
+                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-base font-semibold text-white">Routine Capacity</div>
-                      <div className="text-[11px] text-white/50">30-day availability overview</div>
+                      <div className="text-[11px] text-white/70">30-day availability overview</div>
                     </div>
                     <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" />
                   </div>
@@ -1095,7 +1098,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               const overrides = cardOverrides[card.id] || null;
               const effective = overrides || allSlotsOverrides;
               return (
-                <div key={card.id} className="card overflow-hidden group relative">
+                <div key={card.id} className="rounded-xl overflow-hidden group relative" style={{border:'1px solid #334155'}}>
                   <div className={`bg-gradient-to-r ${gradient} px-4 py-2.5`}>
                     <div className="flex items-center justify-between">
                       <div>
