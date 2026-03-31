@@ -114,6 +114,10 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
             <span className="text-slate-300">|</span>
             <label className="text-xs text-slate-500">Grid:</label>
             <select value={selectedSite.gridSize} onChange={e => convertGridSize(selectedSite.id, e.target.value)} className="text-xs border border-slate-200 rounded px-2 py-1">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
+            <span className="text-slate-300">|</span>
+            <label className="text-xs text-slate-500">Card width:</label>
+            <input type="range" min="100" max="220" step="10" value={selectedSite.minRoomWidth || 140} onChange={e => updateSite(selectedSite.id, { minRoomWidth: parseInt(e.target.value) })} className="w-24" />
+            <span className="text-xs text-slate-600 font-medium w-8">{selectedSite.minRoomWidth || 140}</span>
             <button onClick={() => deleteSite(selectedSite.id)} className="text-xs text-red-400 hover:text-red-600 ml-auto">Delete site</button>
           </div>
           <div className="text-xs text-slate-400 mb-2">Click + drag to create a room. Click a room to edit. Drag to reposition.</div>
