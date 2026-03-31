@@ -964,7 +964,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 {displayDate && displayDate !== viewingDateStr && (
                   <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-sm flex items-center gap-2">Date not found in report. Showing {displayDate}.</div>
                 )}
-                {!hasUrgentFilter ? (
+                {urgentOverrides && Object.values(urgentOverrides).every(v => !v) ? (
                   <div className="py-12 px-6 text-center">
                     <div className="text-slate-300 mb-2" style={{fontSize:32}}>↑</div>
                     <h3 className="text-base font-semibold text-slate-700 mb-1">No slots selected</h3>
@@ -1048,7 +1048,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 </div>
 
-                {!hasRoutineFilter ? (
+                {routineOverrides && Object.values(routineOverrides).every(v => !v) ? (
                   <div className="py-12 px-6 text-center">
                     <div className="text-slate-300 mb-2" style={{fontSize:32}}>↑</div>
                     <h3 className="text-base font-semibold text-slate-700 mb-1">No slots selected</h3>
@@ -1056,15 +1056,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 ) : (<>
                 {/* Booking gauges — non-overlapping weekly ranges */}
-                <div className="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
+                <div className="grid grid-cols-4 divide-x divide-white/10" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',borderBottom:'1px solid #334155'}}>
                   {periodGauges.map(g => (
                     <div key={g.label} className="flex flex-col items-center py-4 px-2">
                       <MiniGauge value={g.avail} max={g.total} size={80} strokeWidth={7} colour={g.colour}>
-                        <text x="40" y="35" textAnchor="middle" fill="#1e293b" style={{ fontSize: '18px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
-                        <text x="40" y="48" textAnchor="middle" fill="#94a3b8" style={{ fontSize: '9px' }}>available</text>
+                        <text x="40" y="35" textAnchor="middle" fill="#e2e8f0" style={{ fontSize: '18px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
+                        <text x="40" y="48" textAnchor="middle" fill="#64748b" style={{ fontSize: '9px' }}>available</text>
                       </MiniGauge>
-                      <div className="text-[11px] font-semibold text-slate-700 mt-1">{g.label}</div>
-                      <div className="text-[9px] text-slate-400">{g.avail} avail · {g.booked} bkd</div>
+                      <div className="text-[11px] font-semibold text-slate-300 mt-1">{g.label}</div>
+                      <div className="text-[9px] text-slate-500">{g.avail} avail · {g.booked} bkd</div>
                     </div>
                   ))}
                 </div>
