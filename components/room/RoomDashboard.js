@@ -103,6 +103,27 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
     return matched;
   }, [huddleData, csvDateStr, session, selectedSite, allClinicians]);
 
+  // Detect which nurses need procedure rooms this session
+  const procedureFlags = useMemo(() => {
+    const procSlots = ra.procedureSlotTypes || [];
+    if (procSlots.length === 0 || !huddleData) return {};
+    const flags = {}; // { clinicianId: [matchingSlotType, ...] }
+    cliniciansAtSite.forEach(c => {
+      const clin = allClinicians.find(cl => cl.id === c.id);
+      if (!clin || clin.group !== 'nursing') return;
+      const clinIdx = huddleData.clinicians.indexOf(c.csvName);
+      if (clinIdx < 0) return;
+      const matchedSlots = [];
+      [huddleData.dateData, huddleData.bookedData, huddleData.embargoedData].forEach(store => {
+        const sessData = store?.[csvDateStr]?.[session]?.[clinIdx];
+        if (!sessData) return;
+        Object.keys(sessData).forEach(st => { if (procSlots.some(ps => st.toLowerCase().includes(ps.toLowerCase())) && !matchedSlots.includes(st)) matchedSlots.push(st); });
+      });
+      if (matchedSlots.length > 0) flags[c.id] = matchedSlots;
+    });
+    return flags;
+  }, [cliniciansAtSite, ra.procedureSlotTypes, huddleData, csvDateStr, session, allClinicians]);
+
   // Allocation — always recompute for today, use history only for past dates
   const historyKey = `${dateStr}-${session}-${selectedSiteId}`;
   const overrideKey = `${dateStr}-${session}`;
@@ -116,8 +137,8 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
       const saved = ra.allocationHistory?.[historyKey];
       if (saved) return saved;
     }
-    return autoAllocateRooms(selectedSite, session, cliniciansAtSite, ra.recurringBookings || [], ra.adHocBookings || [], dateStr, allClinicians, ra.clinicianPriority || [], ra.dailyOverrides || {});
-  }, [selectedSite, session, cliniciansAtSite, ra, dateStr, isBH, allClinicians, isToday, historyKey]);
+    return autoAllocateRooms(selectedSite, session, cliniciansAtSite, ra.recurringBookings || [], ra.adHocBookings || [], dateStr, allClinicians, ra.clinicianPriority || [], ra.dailyOverrides || {}, procedureFlags);
+  }, [selectedSite, session, cliniciansAtSite, ra, dateStr, isBH, allClinicians, isToday, historyKey, procedureFlags]);
 
   // Auto-save today's allocation
   useEffect(() => {
@@ -191,8 +212,8 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
   // Compute natural allocation (without overrides) for override comparison
   const naturalAllocation = useMemo(() => {
     if (!selectedSite || isBH) return { assignments: {} };
-    return autoAllocateRooms(selectedSite, session, cliniciansAtSite, ra.recurringBookings || [], ra.adHocBookings || [], dateStr, allClinicians, ra.clinicianPriority || [], {});
-  }, [selectedSite, session, cliniciansAtSite, ra.recurringBookings, ra.adHocBookings, dateStr, allClinicians, ra.clinicianPriority, isBH]);
+    return autoAllocateRooms(selectedSite, session, cliniciansAtSite, ra.recurringBookings || [], ra.adHocBookings || [], dateStr, allClinicians, ra.clinicianPriority || [], {}, procedureFlags);
+  }, [selectedSite, session, cliniciansAtSite, ra.recurringBookings, ra.adHocBookings, dateStr, allClinicians, ra.clinicianPriority, isBH, procedureFlags]);
 
   const doPlace = (roomId) => {
     if (!dragPerson || !selectedSite) return;
@@ -360,6 +381,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                             {members.map(({clin, ...c}) => {
                               const hasRoom = assignedIds.has(c.id);
                               const beingDragged = isDragging && dragPerson?.id === c.id;
+                              const procSlots = procedureFlags[c.id];
                               return (
                                 <div key={c.id}
                                   onPointerDown={editMode ? (e) => startDrag({ id: c.id, name: clin.name, initials: clin.initials, source: 'csv' }, e) : undefined}
@@ -372,6 +394,9 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                                     <div className="font-semibold text-slate-800 truncate">{clin.name}</div>
                                     <div className="text-[10px] text-slate-400">{clin.role}</div>
                                   </div>
+                                  {procSlots && (
+                                    <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold bg-sky-500 text-white flex-shrink-0 cursor-default" title={`Procedure room needed: ${procSlots.join(', ')}`}>P</span>
+                                  )}
                                 </div>
                               );
                             })}

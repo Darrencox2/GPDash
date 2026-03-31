@@ -1016,8 +1016,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             });
 
             return (
-              <div className="card overflow-hidden" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
-                <div className="px-5 py-3 border-b border-white/10">
+              <div className="rounded-xl overflow-hidden" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', border:'1px solid #334155'}}>
+                <div className="px-5 py-3" style={{borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-base font-semibold text-white">Routine Capacity</div>

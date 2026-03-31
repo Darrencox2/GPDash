@@ -166,6 +166,38 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
         </div>
       </div>
 
+      {/* PROCEDURE SLOT TYPES */}
+      <div className="card overflow-hidden">
+        <div className="bg-gradient-to-r from-sky-600 to-cyan-500 px-5 py-3 flex items-center justify-between">
+          <div>
+            <span className="text-sm font-semibold text-white">Procedure Slot Types</span>
+            <span className="text-xs text-white/50 ml-2">Slot types that require a procedure room for nurses</span>
+          </div>
+          <button onClick={() => {
+            const name = prompt('Slot type name (must match CSV exactly):');
+            if (!name?.trim()) return;
+            const current = ra.procedureSlotTypes || [];
+            if (current.includes(name.trim())) { toast('Already added', 'error'); return; }
+            save({ ...ra, procedureSlotTypes: [...current, name.trim()] });
+            toast('Procedure slot type added', 'success');
+          }} className="text-xs px-2 py-1 rounded bg-white/20 text-white hover:bg-white/30">+ Add</button>
+        </div>
+        <div className="p-5">
+          {(ra.procedureSlotTypes || []).length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-3">No procedure slot types defined. Add slot types from your CSV that indicate a nurse needs a procedure room.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {(ra.procedureSlotTypes || []).map((st, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-50 border border-sky-200">
+                  <span className="text-sm text-sky-800 font-medium">{st}</span>
+                  <button onClick={() => save({ ...ra, procedureSlotTypes: (ra.procedureSlotTypes || []).filter((_, j) => j !== i) })} className="text-xs text-sky-400 hover:text-red-500">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ROOM PREFERENCES MATRIX */}
       {sites.length > 0 && allStaff.length > 0 && (
         <div className="card overflow-hidden">
