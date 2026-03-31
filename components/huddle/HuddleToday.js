@@ -299,7 +299,6 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
     </div>
   );
   const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
-  const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444';
 
   return (
     <div className="p-4" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
@@ -307,10 +306,9 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
         {days.map((d, i) => {
           const isToday = i === 0;
           const hasData = d.available !== null;
-          const avail = d.available || 0;
-          const emb = d.embargoed || 0;
+          const avail = (d.available || 0) + (d.embargoed || 0);
           const book = d.booked || 0;
-          const total = avail + emb + book;
+          const total = avail + book;
           const totalPct = hasData && total > 0 ? Math.max(12, (total / maxVal) * 100) : 0;
           const isHovered = hoveredIdx === i;
           return (
@@ -320,7 +318,7 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {hasData && total > 0 && (
                 <div className="text-[10px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? '#34d399' : '#64748b'}}>
-                  {avail}{emb > 0 && <span style={{color:'#fbbf24'}}>+{emb}</span>}
+                  {avail}{book > 0 && <span style={{color:'#fbbf24'}}>+{book}</span>}
                 </div>
               )}
               <div className="w-full rounded-t-md overflow-hidden cursor-pointer transition-all duration-200"
@@ -331,8 +329,7 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
                 {hasData && total > 0 ? (
                   <div className="w-full h-full flex flex-col justify-end">
                     {avail > 0 && <div style={{height:`${(avail/total)*100}%`,background:'#10b981'}} />}
-                    {emb > 0 && <div style={{height:`${(emb/total)*100}%`,background:'#f59e0b'}} />}
-                    {book > 0 && <div style={{height:`${(book/total)*100}%`,background:HATCH}} />}
+                    {book > 0 && <div style={{height:`${(book/total)*100}%`,background:'#fbbf24'}} />}
                   </div>
                 ) : <div className="w-full h-full" style={{background:'#334155'}} />}
               </div>
@@ -345,8 +342,7 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
                   <div className="text-xs font-bold mb-0.5 text-slate-200">{d.dayName} {d.dayNum}</div>
                   <div className="space-y-0.5 text-[11px]">
                     <div className="flex justify-between gap-3"><span className="text-slate-400">Available</span><span className="font-semibold text-emerald-400">{avail}</span></div>
-                    {emb > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
-                    {book > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
+                    {book > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Booked</span><span className="font-semibold text-amber-400">{book}</span></div>}
                   </div>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid #334155'}} />
                 </div>
@@ -357,8 +353,7 @@ function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal',
       </div>
       <div className="flex items-center gap-3 mt-2 pt-2" style={{borderTop:'1px solid #334155'}}>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}} /><span className="text-xs text-slate-500">Available</span></div>
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}} /><span className="text-xs text-slate-500">Embargoed</span></div>
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:HATCH,backgroundSize:'5px 5px'}} /><span className="text-xs text-slate-500">Booked</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#fbbf24'}} /><span className="text-xs text-slate-500">Booked</span></div>
       </div>
       {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
     </div>
@@ -647,6 +642,27 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const hasUrgentFilter = !!urgentOverrides;
   const hasRoutineFilter = !!routineOverrides;
 
+  // 8AM prediction snapshot — save today's capacity once per day
+  useEffect(() => {
+    if (!isViewingToday || !capacity || !displayDate) return;
+    const now = new Date();
+    if (now.getHours() < 8) return;
+    const todayKey = toLocalIso(realToday);
+    const existing = data.predictionHistory?.[todayKey];
+    if (existing) return;
+    const urgentTotal = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0)
+      + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0);
+    const snapshot = {
+      savedAt: now.toISOString(),
+      urgentAm: (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0),
+      urgentPm: (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0),
+      urgentTotal,
+      bookedAm: capacity.am.booked || 0,
+      bookedPm: capacity.pm.booked || 0,
+    };
+    saveData({ ...data, predictionHistory: { ...(data.predictionHistory || {}), [todayKey]: snapshot } }, false);
+  }, [isViewingToday, capacity, displayDate]);
+
   // Smooth fade transition when changing dates
   const [contentOpacity, setContentOpacity] = useState(1);
   const prevDateRef = useRef(viewingDate);
@@ -822,12 +838,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         <>
           {/* ─── URGENT ON THE DAY ─── */}
           {(() => {
-            const urgentAm = capacity.am.total + (capacity.am.embargoed || 0);
-            const availAm = capacity.am.total || 0;
-            const embAm = capacity.am.embargoed || 0;
-            const urgentPm = capacity.pm.total + (capacity.pm.embargoed || 0);
-            const availPm = capacity.pm.total || 0;
-            const embPm = capacity.pm.embargoed || 0;
+            const urgentAm = capacity.am.total + (capacity.am.embargoed || 0) + (capacity.am.booked || 0);
+            const availAm = (capacity.am.total || 0) + (capacity.am.embargoed || 0);
+            const bookedAm = capacity.am.booked || 0;
+            const urgentPm = capacity.pm.total + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0);
+            const availPm = (capacity.pm.total || 0) + (capacity.pm.embargoed || 0);
+            const bookedPm = capacity.pm.booked || 0;
 
             const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const todayDayName = dayNames[viewingDate.getDay()];
@@ -845,13 +861,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             };
 
             // Session panel renderer
-            const SessionPanel = ({ label, slots, avail, emb, target, band, isShort, sessionData, dutyDoc }) => {
+            const SessionPanel = ({ label, slots, avail, booked, target, band, isShort, sessionData, dutyDoc }) => {
               const bar = barPct(slots, target);
+              const availPct = slots > 0 ? (avail / slots) * 100 : 0;
+              const bookedPct = slots > 0 ? (booked / slots) * 100 : 0;
               const LOCATION_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
               const allClinicians = (sessionData?.byClinician || [])
                 .map(c => {
                   const matched = teamClinicians.find(tc => matchesStaffMember(c.name, tc));
-                  return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', initials: matched?.initials || (c.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2), total: c.available + (c.embargoed || 0) };
+                  return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', initials: matched?.initials || (c.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2), total: c.available + (c.embargoed || 0) + (c.booked || 0) };
                 })
                 .filter(c => c.total > 0)
                 .sort((a, b) => (LOCATION_SORT[a.location] ?? 9) - (LOCATION_SORT[b.location] ?? 9) || b.total - a.total);
@@ -860,7 +878,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               const dutyDocDisplay = dutyDoc ? (() => {
                 const matched = teamClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
                 const dutyInList = allClinicians.find(c => matchesStaffMember(c.name, matched || { name: dutyDoc.name }));
-                return { name: matched?.name || dutyDoc.name, initials: matched?.initials || (dutyDoc.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2), title: matched?.title, location: dutyDoc.location, total: dutyInList?.total || 0, csvName: dutyDoc.name };
+                return { name: matched?.name || dutyDoc.name, initials: matched?.initials || (dutyDoc.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2), title: matched?.title, location: dutyDoc.location, total: dutyInList?.total || 0, csvName: dutyDoc.name, booked: dutyInList?.booked || 0, avail: (dutyInList?.available || 0) + (dutyInList?.embargoed || 0) };
               })() : null;
 
               // Filter duty doctor out of the list
@@ -880,12 +898,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="flex items-center gap-4 mb-3">
                     <span className="text-5xl font-extrabold leading-none" style={{ color: band.colour }}>{slots}</span>
                     <div className="flex-1">
-                      <div className="h-5 rounded-lg relative" style={{ background: band.border }}>
-                        <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${Math.min(bar.fillPct, 100)}%`, background: band.colour, borderRadius: bar.fillPct >= 100 ? '8px' : '8px 0 0 8px' }} />
+                      <div className="h-5 rounded-lg relative overflow-hidden" style={{ background: band.border }}>
+                        <div className="absolute left-0 top-0 bottom-0" style={{ width: `${Math.min(bar.fillPct, 100)}%`, display:'flex', borderRadius: bar.fillPct >= 100 ? '8px' : '8px 0 0 8px' }}>
+                          {avail > 0 && <div style={{flex: avail, background: band.colour}} />}
+                          {booked > 0 && <div style={{flex: booked, background: '#f59e0b'}} />}
+                        </div>
                         {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-8px', bottom: '-8px', width: '3px', background: band.textCol, borderRadius: '2px', marginLeft: '-1.5px' }} />}
                       </div>
                       <div className="flex justify-between mt-2">
-                        <span className="text-xs font-semibold" style={{ color: band.colour }}>{avail} available{emb > 0 ? ` · ${emb} embargoed` : ''}</span>
+                        <span className="text-xs font-semibold" style={{ color: band.colour }}>{avail} available{booked > 0 ? <span style={{color:'#f59e0b'}}> · {booked} booked</span> : ''}</span>
                         {target > 0 && <span className="text-xs font-semibold" style={{ color: band.textCol }}>{band.label} · {Math.round(band.pct)}%</span>}
                       </div>
                     </div>
@@ -898,7 +919,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                           <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.7)' }}>Duty doctor</div>
                           <div className="text-sm font-bold text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
                         </div>
-                        {dutyDocDisplay.total > 0 && <span className="text-lg font-extrabold text-white flex-shrink-0">{dutyDocDisplay.total}</span>}
+                        {dutyDocDisplay.total > 0 && (
+                          <div className="flex items-center gap-0.5 flex-shrink-0 flex-wrap" style={{maxWidth:80}}>
+                            {Array.from({length: dutyDocDisplay.avail}).map((_,i) => <span key={`a${i}`} className="w-2 h-2 rounded-full" style={{background:'#4ade80'}} />)}
+                            {Array.from({length: dutyDocDisplay.booked}).map((_,i) => <span key={`b${i}`} className="w-2 h-2 rounded-full" style={{background:'#fbbf24'}} />)}
+                          </div>
+                        )}
                       </div>
                       {dutyLocLetter && <div className="w-[22px] flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: 'rgba(255,255,255,0.15)', color: '#fecaca' }}>{dutyLocLetter}</div>}
                     </div>
@@ -915,9 +941,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                             <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: gc.bg, color: gc.text }}>{c.initials}</div>
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-semibold text-slate-900 truncate">{c.displayName}</div>
-                              <div className="text-xs text-slate-400">{c.role || 'Staff'}</div>
+                              <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
+                                {Array.from({length: c.available + (c.embargoed || 0)}).map((_,j) => <span key={`a${j}`} className="w-2 h-2 rounded-full" style={{background: band.colour}} />)}
+                                {Array.from({length: c.booked || 0}).map((_,j) => <span key={`b${j}`} className="w-2 h-2 rounded-full" style={{background:'#fbbf24'}} />)}
+                              </div>
                             </div>
-                            <span className="text-lg font-extrabold min-w-[24px] text-right flex-shrink-0" style={{ color: band.colour }}>{c.total}</span>
                           </div>
                           {locCol && <div className="w-[22px] flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: locCol.bg, color: locCol.text }}>{locLetter}</div>}
                         </div>
@@ -951,8 +979,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 ) : (<>
                 <div className="flex flex-col md:flex-row md:divide-x divide-slate-200">
-                  <SessionPanel label="Morning" slots={urgentAm} avail={availAm} emb={embAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
-                  <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} emb={embPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
+                  <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
+                  <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
                 </div>
 
                 {/* Slot type breakdown */}

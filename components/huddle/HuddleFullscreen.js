@@ -233,10 +233,10 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const saved = hs?.savedSlotFilters || {};
   const displayDate = huddleData?.dates?.includes(todayDateStr) ? todayDateStr : null;
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs, saved.urgent || null) : null;
-  const urgentAm = (capacity?.am?.total||0) + (capacity?.am?.embargoed||0);
-  const availAm = capacity?.am?.total||0, embAm = capacity?.am?.embargoed||0;
-  const urgentPm = (capacity?.pm?.total||0) + (capacity?.pm?.embargoed||0);
-  const availPm = capacity?.pm?.total||0, embPm = capacity?.pm?.embargoed||0;
+  const urgentAm = (capacity?.am?.total||0) + (capacity?.am?.embargoed||0) + (capacity?.am?.booked||0);
+  const availAm = (capacity?.am?.total||0) + (capacity?.am?.embargoed||0), bookedAm = capacity?.am?.booked||0;
+  const urgentPm = (capacity?.pm?.total||0) + (capacity?.pm?.embargoed||0) + (capacity?.pm?.booked||0);
+  const availPm = (capacity?.pm?.total||0) + (capacity?.pm?.embargoed||0), bookedPm = capacity?.pm?.booked||0;
   const mergedClinicians = useMemo(() => {
     if (!capacity) return [];
     const m = {};
@@ -244,7 +244,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
       if (!m[c.name]) m[c.name] = { name: c.name, available: 0, embargoed: 0, booked: 0 };
       m[c.name].available += c.available || 0; m[c.name].embargoed += c.embargoed || 0; m[c.name].booked += c.booked || 0;
     });
-    return Object.values(m).sort((a, b) => (b.available + b.embargoed) - (a.available + a.embargoed));
+    return Object.values(m).sort((a, b) => (b.available + b.embargoed + b.booked) - (a.available + a.embargoed + a.booked));
   }, [capacity]);
   const todayDayName = dayName;
   const expectedAm = hs.expectedCapacity?.[todayDayName]?.am || 0;
@@ -442,8 +442,8 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
             <span className="font-semibold text-white" style={{fontSize:'clamp(10px, 1.5vh, 20px)'}}>Urgent on the day</span>
           </div>
           <div className="flex flex-1 min-h-0 overflow-hidden">
-            {[{label:'Morning',slots:urgentAm,avail:availAm,emb:embAm,target:expectedAm,band:amBand,data:capacity?.am,session:'am'},
-              {label:'Afternoon',slots:urgentPm,avail:availPm,emb:embPm,target:expectedPm,band:pmBand,data:capacity?.pm,session:'pm'}
+            {[{label:'Morning',slots:urgentAm,avail:availAm,booked:bookedAm,target:expectedAm,band:amBand,data:capacity?.am,session:'am'},
+              {label:'Afternoon',slots:urgentPm,avail:availPm,booked:bookedPm,target:expectedPm,band:pmBand,data:capacity?.pm,session:'pm'}
             ].map((s,si) => {
               const isShort = s.band.colour === '#ef4444' || s.band.colour === '#f59e0b';
               const scale = Math.max(s.slots, s.target, 1);
@@ -451,7 +451,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
               const markerPct = (s.target / scale) * 100;
               const allCliniciansList = (s.data?.byClinician || []).map(c => {
                 const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
-                return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', total: c.available + (c.embargoed || 0) };
+                return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', total: c.available + (c.embargoed || 0) + (c.booked || 0) };
               }).filter(c => c.total > 0).sort((a,b) => ({'Winscombe':0,'Banwell':1,'Locking':2}[a.location]??9) - ({'Winscombe':0,'Banwell':1,'Locking':2}[b.location]??9) || b.total - a.total);
               const dutySlots = hs?.dutyDoctorSlot;
               const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
@@ -475,12 +475,15 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                   <div className="flex items-center flex-shrink-0" style={{gap:'clamp(4px,0.8vw,10px)',marginBottom:'clamp(4px,0.8vh,12px)'}}>
                     <span className="font-extrabold leading-none" style={{color:s.band.colour,fontSize:'clamp(24px, 4vh, 56px)'}}>{s.slots}</span>
                     <div className="flex-1">
-                      <div className="rounded-md relative" style={{height:'clamp(10px, 1.5vh, 22px)',background:s.band.border,marginRight:4}}>
-                        <div className="absolute left-0 top-0 bottom-0 rounded-md" style={{width:`${Math.min(fillPct,100)}%`,background:s.band.colour,borderRadius:fillPct>=100?'6px':'6px 0 0 6px'}}/>
+                      <div className="rounded-md relative overflow-hidden" style={{height:'clamp(10px, 1.5vh, 22px)',background:s.band.border,marginRight:4}}>
+                        <div className="absolute left-0 top-0 bottom-0 flex" style={{width:`${Math.min(fillPct,100)}%`,borderRadius:fillPct>=100?'6px':'6px 0 0 6px'}}>
+                          {s.avail > 0 && <div style={{flex: s.avail, background: s.band.colour}} />}
+                          {s.booked > 0 && <div style={{flex: s.booked, background: '#f59e0b'}} />}
+                        </div>
                         {s.target>0 && <div className="absolute" style={{left:`${Math.min(markerPct,100)}%`,top:-4,bottom:-4,width:3,background:s.band.textCol,borderRadius:2,marginLeft:'-1.5px',zIndex:1}}/>}
                       </div>
                       <div className="flex justify-between" style={{marginTop:'clamp(10px,1.5vh,16px)'}}>
-                        <span className="font-semibold" style={{color:s.band.colour,fontSize:'clamp(8px, 1.2vh, 14px)'}}>{s.avail} avail{s.emb>0?` · ${s.emb} emb`:''}</span>
+                        <span className="font-semibold" style={{color:s.band.colour,fontSize:'clamp(8px, 1.2vh, 14px)'}}>{s.avail} avail{s.booked>0?<span style={{color:'#f59e0b'}}> · {s.booked} booked</span>:''}</span>
                         {s.target>0 && <span className="font-semibold" style={{color:s.band.textCol,fontSize:'clamp(8px, 1.2vh, 14px)'}}>{s.band.label} · {Math.round(s.band.pct)}%</span>}
                       </div>
                     </div>
