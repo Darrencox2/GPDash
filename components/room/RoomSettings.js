@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { GRID_SIZES, getRoomTypes, SITE_COLOUR_PRESETS, RECURRENCE_LABELS, DAY_LABELS, describeRecurrence } from '@/lib/roomAllocation';
+import { GRID_SIZES, getRoomTypes, SITE_COLOUR_PRESETS } from '@/lib/roomAllocation';
 
 export default function RoomSettings({ data, saveData, toast, huddleData }) {
   const ra = data?.roomAllocation || {};
@@ -10,7 +10,6 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
   const [dragStart, setDragStart] = useState(null);
   const [dragCurrent, setDragCurrent] = useState(null);
   const [showAddSite, setShowAddSite] = useState(false);
-  const [editBooking, setEditBooking] = useState(null);
   const [dragPriorityId, setDragPriorityId] = useState(null);
   const gridContainerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(700);
@@ -86,14 +85,6 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
     }
     setDragStart(null); setDragCurrent(null);
   };
-  const recurringBookings = ra.recurringBookings || [];
-  const adHocBookings = ra.adHocBookings || [];
-  const saveBooking = (b) => {
-    if (b.type === 'recurring') { const list = recurringBookings.find(x => x.id === b.id) ? recurringBookings.map(x => x.id === b.id ? b : x) : [...recurringBookings, { ...b, id: 'rec_' + Date.now() }]; save({ ...ra, recurringBookings: list }); }
-    else { const list = adHocBookings.find(x => x.id === b.id) ? adHocBookings.map(x => x.id === b.id ? b : x) : [...adHocBookings, { ...b, id: 'adhoc_' + Date.now() }]; save({ ...ra, adHocBookings: list }); }
-    setEditBooking(null); toast('Booking saved', 'success');
-  };
-  const deleteBooking = (id, type) => { save(type === 'recurring' ? { ...ra, recurringBookings: recurringBookings.filter(b => b.id !== id) } : { ...ra, adHocBookings: adHocBookings.filter(b => b.id !== id) }); toast('Deleted', 'success'); };
   const allStaff = useMemo(() => (Array.isArray(data?.clinicians) ? data.clinicians : Object.values(data?.clinicians || {})).filter(c => c.status !== 'left'), [data?.clinicians]);
   const priorityOrder = ra.clinicianPriority || allStaff.map(c => c.id);
   const sortedPriority = [...allStaff].sort((a, b) => { const ai = priorityOrder.indexOf(a.id), bi = priorityOrder.indexOf(b.id); return (ai < 0 ? 9999 : ai) - (bi < 0 ? 9999 : bi); });
@@ -175,30 +166,6 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
         </div>
       </div>
 
-      {/* BOOKINGS CARD */}
-      <div className="card overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-3 flex items-center justify-between">
-          <span className="text-sm font-semibold text-white">Room Bookings</span>
-          <div className="flex gap-2">
-            <button onClick={() => setEditBooking({ type: 'recurring', siteId: sites[0]?.id || '', name: '', session: 'am', roomTypes: [], preferredRoom: null, recurrence: { frequency: 'weekly', day: 1 } })} className="text-xs px-2 py-1 rounded bg-white/20 text-white hover:bg-white/30">+ Recurring</button>
-            <button onClick={() => setEditBooking({ type: 'adhoc', siteId: sites[0]?.id || '', name: '', session: 'am', roomTypes: [], preferredRoom: null, date: new Date().toISOString().split('T')[0] })} className="text-xs px-2 py-1 rounded bg-white/20 text-white hover:bg-white/30">+ Ad hoc</button>
-          </div>
-        </div>
-        <div className="p-5 space-y-2">
-          {recurringBookings.length === 0 && adHocBookings.length === 0 && <p className="text-sm text-slate-400 text-center py-4">No bookings configured</p>}
-          {recurringBookings.map(b => { const site = sites.find(s => s.id === b.siteId); return <div key={b.id} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-            {site && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: site.colour || '#94a3b8'}} />}
-            <span className="text-sm font-medium text-slate-700 flex-1">{b.name}</span><span className="text-xs text-slate-400">{site?.name}</span><span className="text-xs text-slate-500">{describeRecurrence(b.recurrence)}</span><span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-600">{b.session.toUpperCase()}</span>
-            <button onClick={() => setEditBooking({ ...b, type: 'recurring' })} className="text-xs text-indigo-500 hover:text-indigo-700">Edit</button><button onClick={() => deleteBooking(b.id, 'recurring')} className="text-xs text-red-400 hover:text-red-600">×</button>
-          </div>; })}
-          {adHocBookings.map(b => { const site = sites.find(s => s.id === b.siteId); return <div key={b.id} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
-            {site && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: site.colour || '#94a3b8'}} />}
-            <span className="text-sm font-medium text-slate-700 flex-1">{b.name}</span><span className="text-xs text-slate-400">{site?.name}</span><span className="text-xs text-amber-600">{b.date}</span><span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-600">{b.session.toUpperCase()}</span>
-            <button onClick={() => setEditBooking({ ...b, type: 'adhoc' })} className="text-xs text-indigo-500 hover:text-indigo-700">Edit</button><button onClick={() => deleteBooking(b.id, 'adhoc')} className="text-xs text-red-400 hover:text-red-600">×</button>
-          </div>; })}
-        </div>
-      </div>
-
       {/* ROOM PREFERENCES MATRIX */}
       {sites.length > 0 && allStaff.length > 0 && (
         <div className="card overflow-hidden">
@@ -271,7 +238,6 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
       </div>
 
       {editingRoom && <RoomEditPopup room={editingRoom} site={selectedSite} roomTypes={getRoomTypes(ra)} onSave={saveRoom} onDelete={deleteRoom} onCancel={() => setEditingRoom(null)} />}
-      {editBooking && <BookingEditModal booking={editBooking} sites={sites} roomTypes={getRoomTypes(ra)} onSave={saveBooking} onCancel={() => setEditBooking(null)} />}
     </div>
   );
 }
@@ -314,38 +280,6 @@ function RoomEditPopup({ room, site, roomTypes, onSave, onDelete, onCancel }) {
         {site?.rooms?.find(r => r.id === room.id) ? <button onClick={() => onDelete(room.id)} className="text-xs text-red-400 hover:text-red-600">Delete room</button> : <div />}
         <div className="flex gap-2"><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button><button onClick={() => name.trim() && onSave({ ...room, name: name.trim(), types: isClinical ? types : [], isClinical })} disabled={!name.trim()} className="btn-primary text-sm">Save</button></div>
       </div>
-    </div>
-  </div>;
-}
-
-function BookingEditModal({ booking, sites, roomTypes, onSave, onCancel }) {
-  const [b, setB] = useState(booking);
-  const update = (k, v) => setB(prev => ({ ...prev, [k]: v }));
-  const updateRec = (k, v) => setB(prev => ({ ...prev, recurrence: { ...prev.recurrence, [k]: v } }));
-  const toggleType = (t) => setB(prev => ({ ...prev, roomTypes: (prev.roomTypes || []).includes(t) ? prev.roomTypes.filter(x => x !== t) : [...(prev.roomTypes || []), t] }));
-  const selectedSite = sites.find(s => s.id === b.siteId);
-  const rooms = selectedSite ? (selectedSite.rooms || []).filter(r => r.isClinical !== false) : [];
-  return <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={onCancel}>
-    <div className="bg-white rounded-xl shadow-2xl p-5 w-[420px]" onClick={e => e.stopPropagation()}>
-      <h3 className="text-sm font-semibold text-slate-900 mb-4">{b.type === 'recurring' ? 'Recurring booking' : 'Ad hoc booking'}</h3>
-      <div className="space-y-4">
-        <div><label className="text-xs text-slate-500 block mb-1">Name</label><input type="text" value={b.name} onChange={e => update('name', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g. Podiatry" autoFocus /></div>
-        <div className="grid grid-cols-2 gap-3">
-          <div><label className="text-xs text-slate-500 block mb-1">Site</label><select value={b.siteId || ''} onChange={e => { update('siteId', e.target.value); update('preferredRoom', null); }} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="">Select site</option>{sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-          <div><label className="text-xs text-slate-500 block mb-1">Session</label><select value={b.session} onChange={e => update('session', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="am">AM</option><option value="pm">PM</option></select></div>
-        </div>
-        {b.type === 'adhoc' && <div><label className="text-xs text-slate-500 block mb-1">Date</label><input type="date" value={b.date || ''} onChange={e => update('date', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>}
-        {b.type === 'recurring' && <div className="space-y-3">
-          <div><label className="text-xs text-slate-500 block mb-1">Frequency</label><select value={b.recurrence?.frequency || 'weekly'} onChange={e => updateRec('frequency', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{Object.entries(RECURRENCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
-          {['weekly','biweekly','monthly_day'].includes(b.recurrence?.frequency) && <div><label className="text-xs text-slate-500 block mb-1">Day</label><select value={b.recurrence?.day ?? 1} onChange={e => updateRec('day', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{[1,2,3,4,5].map(d => <option key={d} value={d}>{DAY_LABELS[d]}</option>)}</select></div>}
-          {b.recurrence?.frequency === 'monthly_day' && <div><label className="text-xs text-slate-500 block mb-1">Which week</label><select value={b.recurrence?.nth ?? 1} onChange={e => updateRec('nth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{[1,2,3,4].map(n => <option key={n} value={n}>{['','1st','2nd','3rd','4th'][n]}</option>)}</select></div>}
-          {b.recurrence?.frequency === 'monthly_date' && <div><label className="text-xs text-slate-500 block mb-1">Date of month</label><input type="number" min={1} max={31} value={b.recurrence?.dateOfMonth ?? 1} onChange={e => updateRec('dateOfMonth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>}
-          <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-slate-500 block mb-1">Start date</label><input type="date" value={b.recurrence?.startDate || ''} onChange={e => updateRec('startDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div><div><label className="text-xs text-slate-500 block mb-1">End date</label><input type="date" value={b.recurrence?.endDate || ''} onChange={e => updateRec('endDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div></div>
-        </div>}
-        <div><label className="text-xs text-slate-500 block mb-1">Preferred room</label><select value={b.preferredRoom || ''} onChange={e => update('preferredRoom', e.target.value || null)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="">Any suitable room</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
-        <div><label className="text-xs text-slate-500 block mb-2">Room type (fallback)</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${(b.roomTypes || []).includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-500'}`} style={(b.roomTypes || []).includes(rt.id) ? {background:rt.colour} : undefined}>{rt.label}</button>)}</div></div>
-      </div>
-      <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100"><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button><button onClick={() => b.name.trim() && b.siteId && onSave(b)} disabled={!b.name.trim() || !b.siteId} className="btn-primary text-sm">Save</button></div>
     </div>
   </div>;
 }
