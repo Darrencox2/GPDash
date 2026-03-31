@@ -650,13 +650,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     const todayKey = toLocalIso(realToday);
     const existing = data.predictionHistory?.[todayKey];
     if (existing) return;
-    const urgentTotal = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0)
-      + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0);
     const snapshot = {
       savedAt: now.toISOString(),
       urgentAm: (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0),
       urgentPm: (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0),
-      urgentTotal,
+      urgentTotal: (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0) + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0),
+      availAm: (capacity.am.total || 0) + (capacity.am.embargoed || 0),
+      availPm: (capacity.pm.total || 0) + (capacity.pm.embargoed || 0),
       bookedAm: capacity.am.booked || 0,
       bookedPm: capacity.pm.booked || 0,
     };
@@ -854,6 +854,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             const amBand = getBand(urgentAm, expectedAm);
             const pmBand = getBand(urgentPm, expectedPm);
 
+            // 8AM snapshot for overflow detection
+            const snapshotKey = toLocalIso(viewingDate);
+            const snapshot = data.predictionHistory?.[snapshotKey];
+            const addedAm = snapshot ? urgentAm - snapshot.urgentAm : 0;
+            const addedPm = snapshot ? urgentPm - snapshot.urgentPm : 0;
+
             // Bar scale = max(actual, target)
             const barPct = (slots, target) => {
               const scale = Math.max(slots, target, 1);
@@ -861,7 +867,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             };
 
             // Session panel renderer
-            const SessionPanel = ({ label, slots, avail, booked, target, band, isShort, sessionData, dutyDoc }) => {
+            const SessionPanel = ({ label, slots, avail, booked, added, target, band, isShort, sessionData, dutyDoc }) => {
               const bar = barPct(slots, target);
               const availPct = slots > 0 ? (avail / slots) * 100 : 0;
               const bookedPct = slots > 0 ? (booked / slots) * 100 : 0;
@@ -906,7 +912,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-8px', bottom: '-8px', width: '3px', background: band.textCol, borderRadius: '2px', marginLeft: '-1.5px' }} />}
                       </div>
                       <div className="flex justify-between mt-2">
-                        <span className="text-xs font-semibold" style={{ color: band.colour }}>{avail} available{booked > 0 ? <span style={{color:'#f59e0b'}}> · {booked} booked</span> : ''}</span>
+                        <span className="text-xs font-semibold" style={{ color: band.colour }}>{avail} available{booked > 0 ? <span style={{color:'#f59e0b'}}> · {booked} booked</span> : ''}{added > 0 ? <span style={{color:'#818cf8'}}> · {added} added</span> : ''}</span>
                         {target > 0 && <span className="text-xs font-semibold" style={{ color: band.textCol }}>{band.label} · {Math.round(band.pct)}%</span>}
                       </div>
                     </div>
@@ -979,8 +985,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 ) : (<>
                 <div className="flex flex-col md:flex-row md:divide-x divide-slate-200">
-                  <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
-                  <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
+                  <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
+                  <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
                 </div>
 
                 {/* Slot type breakdown */}

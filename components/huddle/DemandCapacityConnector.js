@@ -51,7 +51,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
     if (!huddleData?.dates || !urgentOverrides) return null;
     const dow = targetDate.getDay(); let tot=0, cnt=0;
     const vds = `${String(targetDate.getDate()).padStart(2,'0')}-${targetDate.toLocaleString('en-GB',{month:'short'})}-${targetDate.getFullYear()}`;
-    huddleData.dates.forEach(ds => { if(ds===vds) return; const d=parseHuddleDateStr(ds); if(d.getDay()!==dow) return; const c=getHuddleCapacity(huddleData,ds,hs,urgentOverrides); const t=(c.am.total||0)+(c.pm.total||0)+(c.am.embargoed||0)+(c.pm.embargoed||0); if(t>0){tot+=t;cnt++;} });
+    huddleData.dates.forEach(ds => { if(ds===vds) return; const d=parseHuddleDateStr(ds); if(d.getDay()!==dow) return; const c=getHuddleCapacity(huddleData,ds,hs,urgentOverrides); const t=(c.am.total||0)+(c.pm.total||0)+(c.am.embargoed||0)+(c.pm.embargoed||0)+(c.am.booked||0)+(c.pm.booked||0); if(t>0){tot+=t;cnt++;} });
     return cnt>0 ? Math.round(tot/cnt) : null;
   }, [huddleData, targetDate, hs, urgentOverrides]);
 
@@ -112,9 +112,9 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const t = active.today;
   const demandCol = DEMAND_COLOURS[t.demandLevel] || DEMAND_COLOURS.normal;
   const predicted = Math.round(t.predicted);
-  const urgentTotal = capacity ? (capacity.am.total||0)+(capacity.pm.total||0)+(capacity.am.embargoed||0)+(capacity.pm.embargoed||0) : 0;
-  const amSlots = capacity ? (capacity.am.total||0)+(capacity.am.embargoed||0) : 0;
-  const pmSlots = capacity ? (capacity.pm.total||0)+(capacity.pm.embargoed||0) : 0;
+  const urgentTotal = capacity ? (capacity.am.total||0)+(capacity.pm.total||0)+(capacity.am.embargoed||0)+(capacity.pm.embargoed||0)+(capacity.am.booked||0)+(capacity.pm.booked||0) : 0;
+  const amSlots = capacity ? (capacity.am.total||0)+(capacity.am.embargoed||0)+(capacity.am.booked||0) : 0;
+  const pmSlots = capacity ? (capacity.pm.total||0)+(capacity.pm.embargoed||0)+(capacity.pm.booked||0) : 0;
   const needed = Math.round(predicted * convRate);
   const coverage = needed > 0 ? Math.round((urgentTotal / needed) * 100) : 100;
 
