@@ -12,6 +12,7 @@ const NAV_SECTIONS = [
     items: [
       { id: 'huddle-today', label: 'Today' },
       { id: 'huddle-forward', label: 'Capacity Planning' },
+      { id: 'workload-audit', label: 'Workload Audit' },
       { id: 'room-dashboard', label: 'Room Allocation', badge: 'Testing' },
     ],
   },

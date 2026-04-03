@@ -893,12 +893,23 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               })() : null;
 
               // Filter duty doctor out of the list
-              const clinicians = dutyDocDisplay
+              const cliniciansAfterDuty = dutyDocDisplay
                 ? allClinicians.filter(c => !matchesStaffMember(c.name, { name: dutyDocDisplay.name, aliases: [] }))
                 : allClinicians;
 
+              // Duty support = clinician with most total slots (after removing duty doctor)
+              const dutySupportClin = cliniciansAfterDuty.length > 0 ? cliniciansAfterDuty.reduce((best, c) => c.total > best.total ? c : best, cliniciansAfterDuty[0]) : null;
+              const dutySupportDisplay = dutySupportClin && dutySupportClin.total > 0 ? dutySupportClin : null;
+
+              // Filter duty support out of main list
+              const clinicians = dutySupportDisplay
+                ? cliniciansAfterDuty.filter(c => c.name !== dutySupportDisplay.name)
+                : cliniciansAfterDuty;
+
               const dutyLocCol = dutyDocDisplay?.location ? LOCATION_COLOURS[dutyDocDisplay.location] : null;
               const dutyLocLetter = dutyDocDisplay?.location ? dutyDocDisplay.location.charAt(0) : '';
+              const supportLocCol = dutySupportDisplay?.location ? LOCATION_COLOURS[dutySupportDisplay.location] : null;
+              const supportLocLetter = dutySupportDisplay?.location ? dutySupportDisplay.location.charAt(0) : '';
 
               return (
                 <div className="flex-1 p-5" style={{ background: band.tint || 'transparent', borderLeft: isShort ? `3px solid ${band.colour}` : undefined }}>
@@ -923,7 +934,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                   </div>
                   {dutyDocDisplay && (
-                    <div className="flex items-stretch rounded-lg overflow-hidden mb-3" style={{ border: '2px solid #dc2626' }}>
+                    <div className="flex items-stretch rounded-lg overflow-hidden mb-1.5" style={{ border: '2px solid #dc2626' }}>
                       <div className="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-0" style={{ background: '#dc2626' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
                         <div className="flex-1 min-w-0">
@@ -938,6 +949,24 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         )}
                       </div>
                       {dutyLocLetter && <div className="w-[22px] flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: 'rgba(255,255,255,0.15)', color: '#fecaca' }}>{dutyLocLetter}</div>}
+                    </div>
+                  )}
+                  {dutySupportDisplay && (
+                    <div className="flex items-stretch rounded-lg overflow-hidden mb-3" style={{ border: '2px solid #2563eb' }}>
+                      <div className="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-0" style={{ background: '#2563eb' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none" className="flex-shrink-0"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4" fill="none" stroke="white" strokeWidth="2"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" fill="none" stroke="white" strokeWidth="2"/></svg>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.7)' }}>Duty support</div>
+                          <div className="text-sm font-bold text-white truncate">{dutySupportDisplay.displayName}</div>
+                        </div>
+                        {dutySupportDisplay.total > 0 && (
+                          <div className="flex items-center gap-0.5 flex-shrink-0 flex-wrap" style={{maxWidth:80}}>
+                            {Array.from({length: dutySupportDisplay.available + (dutySupportDisplay.embargoed || 0)}).map((_,i) => <span key={`a${i}`} className="w-2 h-2 rounded-full" style={{background:'#4ade80'}} />)}
+                            {Array.from({length: dutySupportDisplay.booked || 0}).map((_,i) => <span key={`b${i}`} className="w-2 h-2 rounded-full" style={{background:'#ef4444'}} />)}
+                          </div>
+                        )}
+                      </div>
+                      {supportLocLetter && <div className="w-[22px] flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: 'rgba(255,255,255,0.15)', color: '#bfdbfe' }}>{supportLocLetter}</div>}
                     </div>
                   )}
                   <div className="flex flex-col gap-1.5">
