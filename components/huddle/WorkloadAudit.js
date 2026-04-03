@@ -27,14 +27,17 @@ export default function WorkloadAudit({ data, huddleData }) {
       const d = parseHuddleDateStr(dateStr);
       if (!d || d.getDay() === 0 || d.getDay() === 6) return;
 
-      const cap = getHuddleCapacity(huddleData, dateStr, hs, urgentOverrides);
-      if (!cap) return;
+      // Unfiltered capacity for session counting (all slot types)
+      const allCap = getHuddleCapacity(huddleData, dateStr, hs);
+      // Urgent-filtered capacity for duty/support detection
+      const urgentCap = getHuddleCapacity(huddleData, dateStr, hs, urgentOverrides);
 
       ['am', 'pm'].forEach(session => {
-        const sessionData = cap[session];
-        if (!sessionData?.byClinician?.length) return;
+        // Count sessions from ALL slots
+        const allSessionData = allCap?.[session];
+        if (!allSessionData?.byClinician?.length) return;
 
-        const present = sessionData.byClinician
+        const present = allSessionData.byClinician
           .map(c => {
             const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
             const total = (c.available || 0) + (c.embargoed || 0) + (c.booked || 0);
@@ -49,6 +52,7 @@ export default function WorkloadAudit({ data, huddleData }) {
           clinMap[c.matched.id].sessions++;
         });
 
+        // Duty/support from urgent-filtered data
         const dutyDoc = getDutyDoctor(huddleData, dateStr, session, dutySlots);
         if (dutyDoc) {
           const matched = allClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
@@ -57,7 +61,17 @@ export default function WorkloadAudit({ data, huddleData }) {
             clinMap[matched.id].dutySessions++;
           }
 
-          const afterDuty = present.filter(c =>
+          // Duty support from urgent slots
+          const urgentSessionData = urgentCap?.[session];
+          const urgentPresent = (urgentSessionData?.byClinician || [])
+            .map(c => {
+              const m = allClinicians.find(tc => matchesStaffMember(c.name, tc));
+              const total = (c.available || 0) + (c.embargoed || 0) + (c.booked || 0);
+              return m && total > 0 ? { ...c, matched: m, total } : null;
+            })
+            .filter(Boolean);
+
+          const afterDuty = urgentPresent.filter(c =>
             !matchesStaffMember(c.name, matched || { name: dutyDoc.name }) &&
             !c.matched.name.toLowerCase().includes('balson')
           );
@@ -100,7 +114,7 @@ export default function WorkloadAudit({ data, huddleData }) {
   const maxDutyRatio = Math.max(...audit.clinicians.map(c => c.dutyRatio), 0.01);
   const maxSupportRatio = Math.max(...audit.clinicians.map(c => c.supportRatio), 0.01);
 
-  const RatioRow = ({ c, ratio, avg, max, colour }) => {
+  const RatioRow = ({ c, ratio, avg, max, colour, count }) => {
     const delta = ratio - avg;
     const absDelta = Math.abs(delta);
     const isHigh = delta > 0.03;
@@ -108,17 +122,19 @@ export default function WorkloadAudit({ data, huddleData }) {
     return (
       <div className="flex items-center gap-3">
         <div className="w-32 text-xs font-medium text-slate-700 truncate text-right">{c.name}</div>
-        <div className="flex-1 relative h-5 rounded bg-slate-100 overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 rounded" style={{ width: `${(ratio / max) * 100}%`, background: isHigh ? '#ef4444' : isLow ? '#3b82f6' : colour, opacity: 0.75 }} />
-          <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(avg / max) * 100}%`, background: '#1e293b' }} title={`Average: ${avg.toFixed(2)}`} />
+        <div className="flex-1 relative h-7 rounded-lg bg-slate-100 overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${(ratio / max) * 100}%`, background: isHigh ? '#ef4444' : isLow ? '#3b82f6' : colour, opacity: 0.75 }} />
+          <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(avg / max) * 100}%`, background: '#1e293b', zIndex: 1 }} title={`Average: ${avg.toFixed(2)}`} />
+          <div className="absolute inset-0 flex items-center px-2">
+            <span className="text-[10px] font-bold text-white drop-shadow-sm" style={{marginLeft: `${Math.min((ratio / max) * 100 - 8, 92)}%`}}>{ratio.toFixed(2)}</span>
+          </div>
         </div>
-        <div className="w-10 text-sm font-bold text-slate-800 text-center">{ratio.toFixed(2)}</div>
         <div className="w-16 text-right">
           {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 font-medium">Fair</span>
             : isHigh ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
             : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
         </div>
-        <div className="w-16 text-[10px] text-slate-400 text-right">{ratio === c.dutyRatio ? c.dutySessions : c.supportSessions}/{c.sessions}</div>
+        <div className="w-14 text-[11px] text-slate-500 text-right font-medium">{count}/{c.sessions}</div>
       </div>
     );
   };
@@ -136,10 +152,10 @@ export default function WorkloadAudit({ data, huddleData }) {
             <div className="text-sm font-semibold text-slate-700">Duty doctor ratio</div>
             <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">avg {audit.avgDutyRatio.toFixed(2)}</span>
           </div>
-          <div className="text-xs text-slate-400 mb-3">Duty sessions ÷ total sessions worked. Black line = average. Everyone should be similar.</div>
-          <div className="space-y-1.5">
-            {audit.clinicians.filter(c => c.dutySessions > 0 || c.sessions >= 5).sort((a, b) => b.dutyRatio - a.dutyRatio).map(c => (
-              <RatioRow key={c.id} c={c} ratio={c.dutyRatio} avg={audit.avgDutyRatio} max={maxDutyRatio} colour="#10b981" />
+          <div className="text-xs text-slate-400 mb-4">Duty sessions ÷ total sessions worked. Black line = average. Everyone should be similar.</div>
+          <div className="space-y-2">
+            {audit.clinicians.filter(c => c.dutySessions > 0).sort((a, b) => b.dutyRatio - a.dutyRatio).map(c => (
+              <RatioRow key={c.id} c={c} ratio={c.dutyRatio} avg={audit.avgDutyRatio} max={maxDutyRatio} colour="#10b981" count={c.dutySessions} />
             ))}
           </div>
         </div>
@@ -149,10 +165,10 @@ export default function WorkloadAudit({ data, huddleData }) {
             <div className="text-sm font-semibold text-slate-700">Duty support ratio</div>
             <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">avg {audit.avgSupportRatio.toFixed(2)}</span>
           </div>
-          <div className="text-xs text-slate-400 mb-3">Support sessions ÷ total sessions worked. Clinician with most urgent slots (excl. duty doctor).</div>
-          <div className="space-y-1.5">
-            {audit.clinicians.filter(c => c.supportSessions > 0 || c.sessions >= 5).sort((a, b) => b.supportRatio - a.supportRatio).map(c => (
-              <RatioRow key={c.id} c={c} ratio={c.supportRatio} avg={audit.avgSupportRatio} max={maxSupportRatio} colour="#3b82f6" />
+          <div className="text-xs text-slate-400 mb-4">Support sessions ÷ total sessions worked. Clinician with most urgent slots (excl. duty doctor).</div>
+          <div className="space-y-2">
+            {audit.clinicians.filter(c => c.supportSessions > 0).sort((a, b) => b.supportRatio - a.supportRatio).map(c => (
+              <RatioRow key={c.id} c={c} ratio={c.supportRatio} avg={audit.avgSupportRatio} max={maxSupportRatio} colour="#3b82f6" count={c.supportSessions} />
             ))}
           </div>
         </div>
