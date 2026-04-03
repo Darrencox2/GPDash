@@ -897,8 +897,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 ? allClinicians.filter(c => !matchesStaffMember(c.name, { name: dutyDocDisplay.name, aliases: [] }))
                 : allClinicians;
 
-              // Duty support = clinician with most total slots (after removing duty doctor)
-              const dutySupportClin = cliniciansAfterDuty.length > 0 ? cliniciansAfterDuty.reduce((best, c) => c.total > best.total ? c : best, cliniciansAfterDuty[0]) : null;
+              // Duty support = clinician with most total slots (after removing duty doctor and exclusions)
+              const supportCandidates = cliniciansAfterDuty.filter(c => !c.displayName?.toLowerCase().includes('balson'));
+              const dutySupportClin = supportCandidates.length > 0 ? supportCandidates.reduce((best, c) => c.total > best.total ? c : best, supportCandidates[0]) : null;
               const dutySupportDisplay = dutySupportClin && dutySupportClin.total > 0 ? dutySupportClin : null;
 
               // Filter duty support out of main list
