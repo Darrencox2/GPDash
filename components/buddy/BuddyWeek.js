@@ -1,5 +1,5 @@
 'use client';
-import { DAYS, formatWeekRange, getWeekStart, getCurrentDay, groupAllocationsByCovering } from '@/lib/data';
+import { DAYS, formatWeekRange, getWeekStart, groupAllocationsByCovering } from '@/lib/data';
 
 export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, helpers }) {
   const { ensureArray, getDateKeyForDay, isClosedDay, getClosedReason, toggleClosedDay, getClinicianById, getWeekAbsences } = helpers;

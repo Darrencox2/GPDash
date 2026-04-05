@@ -1,14 +1,14 @@
 'use client';
-import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import { Button, Card, SectionHeading } from '@/components/ui';
-import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, mergeHuddleData, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
+import { useState, useRef, useMemo, useEffect } from 'react';
+import { Button, Card } from '@/components/ui';
+import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import DemandCapacityConnector from './DemandCapacityConnector';
 import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, matchesStaffMember, toLocalIso } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
-import { MiniGauge, CapacityDayPanel, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS } from './HuddleShared';
+import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS } from './HuddleShared';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [

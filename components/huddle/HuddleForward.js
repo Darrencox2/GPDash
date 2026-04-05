@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
-import { getHuddleCapacity, getDateTotals, getBand, getDutyDoctor, LOCATION_COLOURS } from '@/lib/huddle';
+import { getHuddleCapacity, getDateTotals, getDutyDoctor, LOCATION_COLOURS } from '@/lib/huddle';
 import { matchesStaffMember, toLocalIso } from '@/lib/data';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS } from '@/lib/demandPredictor';
 

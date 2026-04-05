@@ -1,8 +1,8 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
-import { STAFF_GROUPS, matchesStaffMember, toLocalIso } from '@/lib/data';
-import { getHuddleCapacity, getTodayDateStr, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
-import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS, DOW_NAMES } from '@/lib/demandPredictor';
+import { matchesStaffMember, toLocalIso } from '@/lib/data';
+import { getHuddleCapacity, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
+import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DEFAULT_CAPACITY_CARDS = [
