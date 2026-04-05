@@ -20,131 +20,107 @@ export default function WorkloadAudit({ data, huddleData }) {
   const audit = useMemo(() => {
     if (!huddleData?.dates || !hasDuty) return null;
 
-    const clinMap = {};
-    const initClin = (id, name) => {
-      if (!clinMap[id]) clinMap[id] = { id, name, sessions: 0, dutySessions: 0, supportSessions: 0, dutyDates: [], supportDates: [] };
-    };
-
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    let earliestDate = null, latestDate = null;
+    const eightWeeksOut = new Date(today); eightWeeksOut.setDate(eightWeeksOut.getDate() + 56);
+    const fmtDate = (d) => d ? `${d.getDate()} ${d.toLocaleString('en-GB',{month:'short'})} ${d.getFullYear()}` : '';
 
-    huddleData.dates.forEach(dateStr => {
-      const d = parseHuddleDateStr(dateStr);
-      if (!d || d.getDay() === 0 || d.getDay() === 6) return;
-      // Only historical data (before today)
-      if (d >= today) return;
-      if (!earliestDate || d < earliestDate) earliestDate = d;
-      if (!latestDate || d > latestDate) latestDate = d;
+    // Reusable scanner: processes dates within a filter and returns clinician stats
+    const scanDates = (dateFilter) => {
+      const clinMap = {};
+      const initClin = (id, name) => {
+        if (!clinMap[id]) clinMap[id] = { id, name, sessions: 0, dutySessions: 0, supportSessions: 0, dutyDates: [], supportDates: [] };
+      };
+      let earliest = null, latest = null;
 
-      // Unfiltered capacity for session counting (all slot types)
-      const allCap = getHuddleCapacity(huddleData, dateStr, hs);
-      // Urgent-filtered capacity for duty/support detection
-      const urgentCap = getHuddleCapacity(huddleData, dateStr, hs, urgentOverrides);
+      huddleData.dates.forEach(dateStr => {
+        const d = parseHuddleDateStr(dateStr);
+        if (!d || d.getDay() === 0 || d.getDay() === 6) return;
+        if (!dateFilter(d)) return;
+        if (!earliest || d < earliest) earliest = d;
+        if (!latest || d > latest) latest = d;
 
-      ['am', 'pm'].forEach(session => {
-        // Count sessions from ALL slots
-        const allSessionData = allCap?.[session];
-        if (!allSessionData?.byClinician?.length) return;
+        const allCap = getHuddleCapacity(huddleData, dateStr, hs);
+        const urgentCap = getHuddleCapacity(huddleData, dateStr, hs, urgentOverrides);
 
-        const present = allSessionData.byClinician
-          .map(c => {
-            const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
-            const total = (c.available || 0) + (c.embargoed || 0) + (c.booked || 0);
-            return matched && total > 0 ? { ...c, matched, total } : null;
-          })
-          .filter(Boolean);
+        ['am', 'pm'].forEach(session => {
+          const allSessionData = allCap?.[session];
+          if (!allSessionData?.byClinician?.length) return;
 
-        if (present.length === 0) return;
-
-        present.forEach(c => {
-          initClin(c.matched.id, c.matched.name);
-          clinMap[c.matched.id].sessions++;
-        });
-
-        // Duty/support from urgent-filtered data
-        const dutyDoc = getDutyDoctor(huddleData, dateStr, session, dutySlots);
-        if (dutyDoc) {
-          const matched = allClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
-          if (matched) {
-            initClin(matched.id, matched.name);
-            clinMap[matched.id].dutySessions++;
-            clinMap[matched.id].dutyDates.push({ date: dateStr, session });
-          }
-
-          // Duty support from urgent slots
-          const urgentSessionData = urgentCap?.[session];
-          const urgentPresent = (urgentSessionData?.byClinician || [])
+          const present = allSessionData.byClinician
             .map(c => {
-              const m = allClinicians.find(tc => matchesStaffMember(c.name, tc));
+              const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
               const total = (c.available || 0) + (c.embargoed || 0) + (c.booked || 0);
-              return m && total > 0 ? { ...c, matched: m, total } : null;
+              return matched && total > 0 ? { ...c, matched, total } : null;
             })
             .filter(Boolean);
 
-          const afterDuty = urgentPresent.filter(c =>
-            !matchesStaffMember(c.name, matched || { name: dutyDoc.name }) &&
-            !c.matched.name.toLowerCase().includes('balson')
-          );
-          if (afterDuty.length > 0) {
-            const support = afterDuty.reduce((best, c) => c.total > best.total ? c : best, afterDuty[0]);
-            initClin(support.matched.id, support.matched.name);
-            clinMap[support.matched.id].supportSessions++;
-            clinMap[support.matched.id].supportDates.push({ date: dateStr, session });
+          if (present.length === 0) return;
+
+          present.forEach(c => {
+            initClin(c.matched.id, c.matched.name);
+            clinMap[c.matched.id].sessions++;
+          });
+
+          const dutyDoc = getDutyDoctor(huddleData, dateStr, session, dutySlots);
+          if (dutyDoc) {
+            const matched = allClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
+            if (matched) {
+              initClin(matched.id, matched.name);
+              clinMap[matched.id].dutySessions++;
+              clinMap[matched.id].dutyDates.push({ date: dateStr, session });
+            }
+
+            const urgentSessionData = urgentCap?.[session];
+            const urgentPresent = (urgentSessionData?.byClinician || [])
+              .map(c => {
+                const m = allClinicians.find(tc => matchesStaffMember(c.name, tc));
+                const total = (c.available || 0) + (c.embargoed || 0) + (c.booked || 0);
+                return m && total > 0 ? { ...c, matched: m, total } : null;
+              })
+              .filter(Boolean);
+
+            const afterDuty = urgentPresent.filter(c =>
+              !matchesStaffMember(c.name, matched || { name: dutyDoc.name }) &&
+              !c.matched.name.toLowerCase().includes('balson')
+            );
+            if (afterDuty.length > 0) {
+              const support = afterDuty.reduce((best, c) => c.total > best.total ? c : best, afterDuty[0]);
+              initClin(support.matched.id, support.matched.name);
+              clinMap[support.matched.id].supportSessions++;
+              clinMap[support.matched.id].supportDates.push({ date: dateStr, session });
+            }
           }
-        }
+        });
       });
-    });
 
-    const clinicians = Object.values(clinMap)
-      .filter(c => c.sessions > 0)
-      .map(c => ({
-        ...c,
-        dutyRatio: c.sessions > 0 ? Math.round((c.dutySessions / c.sessions) * 100) / 100 : 0,
-        supportRatio: c.sessions > 0 ? Math.round((c.supportSessions / c.sessions) * 100) / 100 : 0,
-      }))
-      .sort((a, b) => b.sessions - a.sessions);
+      const clinicians = Object.values(clinMap)
+        .filter(c => c.sessions > 0)
+        .map(c => ({
+          ...c,
+          dutyRatio: c.sessions > 0 ? Math.round((c.dutySessions / c.sessions) * 100) / 100 : 0,
+          supportRatio: c.sessions > 0 ? Math.round((c.supportSessions / c.sessions) * 100) / 100 : 0,
+        }))
+        .sort((a, b) => b.sessions - a.sessions);
 
-    const dutyClinicans = clinicians.filter(c => c.dutySessions > 0);
-    const supportClinicians = clinicians.filter(c => c.supportSessions > 0);
-    const avgDutyRatio = dutyClinicans.length > 0 ? Math.round((dutyClinicans.reduce((s, c) => s + c.dutyRatio, 0) / dutyClinicans.length) * 100) / 100 : 0;
-    const avgSupportRatio = supportClinicians.length > 0 ? Math.round((supportClinicians.reduce((s, c) => s + c.supportRatio, 0) / supportClinicians.length) * 100) / 100 : 0;
+      const dutyC = clinicians.filter(c => c.dutySessions > 0);
+      const supportC = clinicians.filter(c => c.supportSessions > 0);
+      const avgDutyRatio = dutyC.length > 0 ? Math.round((dutyC.reduce((s, c) => s + c.dutyRatio, 0) / dutyC.length) * 100) / 100 : 0;
+      const avgSupportRatio = supportC.length > 0 ? Math.round((supportC.reduce((s, c) => s + c.supportRatio, 0) / supportC.length) * 100) / 100 : 0;
 
-    const fmtDate = (d) => d ? `${d.getDate()} ${d.toLocaleString('en-GB',{month:'short'})} ${d.getFullYear()}` : '';
+      return { clinicians, avgDutyRatio, avgSupportRatio, earliestDate: fmtDate(earliest), latestDate: fmtDate(latest) };
+    };
 
-    return { clinicians, avgDutyRatio, avgSupportRatio, earliestDate: fmtDate(earliestDate), latestDate: fmtDate(latestDate) };
+    // Historical: before today
+    const historical = scanDates(d => d < today);
+    // Projected: all data up to 8 weeks out (historical + future)
+    const projected = scanDates(d => d <= eightWeeksOut);
+
+    // Build a lookup of projected ratios by clinician id
+    const projectedMap = {};
+    projected.clinicians.forEach(c => { projectedMap[c.id] = c; });
+
+    return { ...historical, projected: projectedMap, projAvgDutyRatio: projected.avgDutyRatio, projAvgSupportRatio: projected.avgSupportRatio, projectedDate: fmtDate(eightWeeksOut) };
   }, [huddleData, hs, dutySlots, hasDuty, allClinicians, urgentOverrides]);
-
-  // 8-week forward projection: expected sessions and leave days per clinician
-  const projection = useMemo(() => {
-    if (!data?.clinicians || !data?.weeklyRota) return {};
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const DAYS_LIST = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-    const absences = Array.isArray(data.plannedAbsences) ? data.plannedAbsences : [];
-    const indexToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const proj = {};
-
-    const clinList = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
-    clinList.forEach(c => {
-      if (c.status === 'left' || c.status === 'administrative' || c.longTermAbsent) return;
-      const workingDays = DAYS_LIST.filter(day => {
-        const rota = Array.isArray(data.weeklyRota?.[day]) ? data.weeklyRota[day] : [];
-        return rota.includes(c.id);
-      });
-      let sessions = 0, leaveDays = 0;
-      for (let i = 1; i <= 56; i++) {
-        const d = new Date(today); d.setDate(d.getDate() + i);
-        if (d.getDay() === 0 || d.getDay() === 6) continue;
-        const dayName = indexToDay[d.getDay()];
-        if (!workingDays.includes(dayName)) continue;
-        const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        const isAbsent = absences.some(a => a.clinicianId === c.id && dateKey >= a.startDate && dateKey <= a.endDate);
-        if (isAbsent) leaveDays++;
-        else sessions++;
-      }
-      proj[c.id] = { sessions, leaveDays, totalRota: sessions + leaveDays };
-    });
-    return proj;
-  }, [data?.clinicians, data?.weeklyRota, data?.plannedAbsences]);
 
   if (!huddleData) return (
     <div className="card p-12 text-center"><div className="text-2xl mb-2">📊</div><h3 className="text-sm font-semibold text-slate-600 mb-1">No CSV data</h3><p className="text-xs text-slate-400">Upload a huddle CSV on the Today page to see workload audit.</p></div>
@@ -159,12 +135,14 @@ export default function WorkloadAudit({ data, huddleData }) {
   const maxDutyRatio = Math.max(...audit.clinicians.map(c => c.dutyRatio), 0.01);
   const maxSupportRatio = Math.max(...audit.clinicians.map(c => c.supportRatio), 0.01);
 
-  const RatioRow = ({ c, ratio, avg, max, colour, count, dates, expanded, onToggle }) => {
+  const RatioRow = ({ c, ratio, avg, max, colour, count, dates, expanded, onToggle, ratioKey }) => {
     const delta = ratio - avg;
     const absDelta = Math.abs(delta);
     const isHigh = delta > 0.03;
     const isLow = delta < -0.03;
-    const proj = projection[c.id];
+    const proj = audit.projected[c.id];
+    const projRatio = proj ? proj[ratioKey] : null;
+    const projDelta = projRatio !== null && projRatio !== undefined ? projRatio - ratio : null;
     return (
       <div>
         <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg px-1 py-0.5 -mx-1 transition-colors" onClick={onToggle}>
@@ -183,10 +161,11 @@ export default function WorkloadAudit({ data, huddleData }) {
           </div>
           <div className="w-14 text-[11px] text-slate-500 text-right font-medium">{count}/{c.sessions}</div>
           <div className="w-20 text-right">
-            {proj ? (
-              proj.leaveDays > 0
-                ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">{proj.leaveDays}d leave</span>
-                : <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-medium">{proj.sessions}s</span>
+            {projRatio !== null && projRatio !== undefined ? (
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{
+                background: projDelta > 0.02 ? '#fef2f2' : projDelta < -0.02 ? '#eff6ff' : '#f0fdf4',
+                color: projDelta > 0.02 ? '#dc2626' : projDelta < -0.02 ? '#2563eb' : '#16a34a'
+              }}>→ {projRatio.toFixed(2)}</span>
             ) : null}
           </div>
           <span className="text-[10px] text-slate-400 w-4">{expanded ? '▲' : '▼'}</span>
@@ -258,12 +237,12 @@ export default function WorkloadAudit({ data, huddleData }) {
             <div className="flex-1 text-[9px] text-slate-400">Ratio</div>
             <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
             <div className="w-14 text-[9px] text-slate-400 text-right">count</div>
-            <div className="w-20 text-[9px] text-slate-400 text-right">next 8wk</div>
+            <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>
             <div className="w-4"></div>
           </div>
           <div className="space-y-2">
             {audit.clinicians.filter(c => c.dutySessions > 0).sort((a, b) => b.dutyRatio - a.dutyRatio).map(c => (
-              <RatioRow key={c.id} c={c} ratio={c.dutyRatio} avg={audit.avgDutyRatio} max={maxDutyRatio} colour="#10b981" count={c.dutySessions} dates={c.dutyDates} expanded={expandedDuty === c.id} onToggle={() => setExpandedDuty(expandedDuty === c.id ? null : c.id)} />
+              <RatioRow key={c.id} c={c} ratio={c.dutyRatio} avg={audit.avgDutyRatio} max={maxDutyRatio} colour="#10b981" count={c.dutySessions} dates={c.dutyDates} expanded={expandedDuty === c.id} onToggle={() => setExpandedDuty(expandedDuty === c.id ? null : c.id)} ratioKey="dutyRatio" />
             ))}
           </div>
         </div>
@@ -279,12 +258,12 @@ export default function WorkloadAudit({ data, huddleData }) {
             <div className="flex-1 text-[9px] text-slate-400">Ratio</div>
             <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
             <div className="w-14 text-[9px] text-slate-400 text-right">count</div>
-            <div className="w-20 text-[9px] text-slate-400 text-right">next 8wk</div>
+            <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>
             <div className="w-4"></div>
           </div>
           <div className="space-y-2">
             {audit.clinicians.filter(c => c.supportSessions > 0).sort((a, b) => b.supportRatio - a.supportRatio).map(c => (
-              <RatioRow key={c.id} c={c} ratio={c.supportRatio} avg={audit.avgSupportRatio} max={maxSupportRatio} colour="#3b82f6" count={c.supportSessions} dates={c.supportDates} expanded={expandedSupport === c.id} onToggle={() => setExpandedSupport(expandedSupport === c.id ? null : c.id)} />
+              <RatioRow key={c.id} c={c} ratio={c.supportRatio} avg={audit.avgSupportRatio} max={maxSupportRatio} colour="#3b82f6" count={c.supportSessions} dates={c.supportDates} expanded={expandedSupport === c.id} onToggle={() => setExpandedSupport(expandedSupport === c.id ? null : c.id)} ratioKey="supportRatio" />
             ))}
           </div>
         </div>
