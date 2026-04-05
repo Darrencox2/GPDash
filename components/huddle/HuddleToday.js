@@ -7,6 +7,7 @@ import WhosInOut from './WhosInOut';
 import DemandCapacityConnector from './DemandCapacityConnector';
 import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, normalizeName, matchesStaffMember, toLocalIso } from '@/lib/data';
+import { predictDemand } from '@/lib/demandPredictor';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -644,6 +645,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   // Check ALL slots (unfiltered) to determine if practice is open
   const allCapacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, {}) : null;
   const hasSlots = allCapacity && ((allCapacity.am.total||0) + (allCapacity.pm.total||0) + (allCapacity.am.embargoed||0) + (allCapacity.pm.embargoed||0) + (allCapacity.am.booked||0) + (allCapacity.pm.booked||0)) > 0;
+  const viewingPrediction = useMemo(() => predictDemand(viewingDate, null), [viewingDate]);
+  const isPracticeClosed = !hasSlots || viewingPrediction?.isBankHoliday || viewingDate.getDay() === 0 || viewingDate.getDay() === 6;
 
   const hasUrgentFilter = !!urgentOverrides;
   const hasRoutineFilter = !!routineOverrides;
@@ -778,7 +781,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload or drag-and-drop your EMIS CSV to see urgent capacity.</p>
           <Button onClick={() => fileRef.current?.click()}>Select CSV File</Button>
         </div>
-      ) : !hasSlots ? (
+      ) : isPracticeClosed ? (
         <div className="card overflow-hidden">
           <div className="py-16 px-6 text-center">
             <div className="mx-auto mb-4" style={{ width: 72, height: 72, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -789,6 +792,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             </div>
             <h2 className="text-xl font-bold text-slate-700 mb-2">Practice closed</h2>
             <p className="text-sm text-slate-400">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            {viewingPrediction?.isBankHoliday && <p className="text-xs text-amber-500 mt-2 font-medium">Bank Holiday</p>}
           </div>
         </div>
       ) : (
