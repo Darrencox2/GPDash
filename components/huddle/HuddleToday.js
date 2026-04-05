@@ -1093,7 +1093,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             });
 
             return (
-              <div className="rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
+              <div className="rounded-xl overflow-hidden" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', border:'1px solid #334155'}}>
                 <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1138,7 +1138,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               const overrides = cardOverrides[card.id] || null;
               const effective = overrides || allSlotsOverrides;
               return (
-                <div key={card.id} className="rounded-xl overflow-visible group relative" style={{border:'1px solid #334155'}}>
+                <div key={card.id} className="rounded-xl overflow-visible group relative" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', border:'1px solid #334155'}}>
                   <div className={`bg-gradient-to-r ${gradient} px-4 py-2.5 rounded-t-xl`}>
                     <div className="flex items-center justify-between">
                       <div>

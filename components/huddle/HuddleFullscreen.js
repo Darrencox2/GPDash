@@ -267,7 +267,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   }, [routineDays]);
   const routineBarMax = useMemo(() => Math.max(...routineDays.filter(d=>d.available!==null&&!d.isWeekend).map(d=>(d.available||0)+(d.embargoed||0)+(d.booked||0)),1), [routineDays]);
   const capacityCards = hs?.capacityCards || DEFAULT_CAPACITY_CARDS;
-  const cardData = useMemo(() => { if(!huddleData) return []; return capacityCards.map(card=>{ const ov=saved[card.id]||allSlotsOverrides; const days=getNDayAvailability(huddleData,hs,7,ov); const w=days.filter(d=>d.available!==null&&!d.isWeekend); return {...card,avail:w.reduce((s,d)=>s+(d.available||0),0),emb:w.reduce((s,d)=>s+(d.embargoed||0),0),booked:w.reduce((s,d)=>s+(d.booked||0),0)}; }); }, [huddleData,hs,capacityCards,saved,allSlotsOverrides]);
+  const cardData = useMemo(() => { if(!huddleData) return []; return capacityCards.map(card=>{ const ov=saved[card.id]||allSlotsOverrides; const days=getNDayAvailability(huddleData,hs,14,ov); const w=days.filter(d=>d.available!==null&&!d.isWeekend); return {...card,avail:w.reduce((s,d)=>s+(d.available||0),0),emb:w.reduce((s,d)=>s+(d.embargoed||0),0),booked:w.reduce((s,d)=>s+(d.booked||0),0)}; }); }, [huddleData,hs,capacityCards,saved,allSlotsOverrides]);
 
   // ── Demand derived ────────────────────────────────────────────
   const t = demandData?.today;
@@ -459,13 +459,25 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
               const dutyDisplay = dutyDoc ? (() => {
                 const m = allClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
                 const dutyInList = allCliniciansList.find(c => matchesStaffMember(c.name, m || { name: dutyDoc.name }));
-                return { name: m?.name || dutyDoc.name, title: m?.title, location: dutyDoc.location, total: dutyInList?.total || 0 };
+                return { name: m?.name || dutyDoc.name, title: m?.title, location: dutyDoc.location, total: dutyInList?.total || 0, avail: (dutyInList?.available||0) + (dutyInList?.embargoed||0), booked: dutyInList?.booked||0 };
               })() : null;
-              const clinicians = dutyDisplay
+
+              // Duty support
+              const cliniciansAfterDuty = dutyDisplay
                 ? allCliniciansList.filter(c => !matchesStaffMember(c.name, { name: dutyDisplay.name, aliases: [] }))
                 : allCliniciansList;
+              const supportCandidates = cliniciansAfterDuty.filter(c => !c.displayName?.toLowerCase().includes('balson'));
+              const dutySupportClin = supportCandidates.length > 0 ? supportCandidates.reduce((best, c) => c.total > best.total ? c : best, supportCandidates[0]) : null;
+              const dutySupportDisplay = dutySupportClin && dutySupportClin.total > 0 ? dutySupportClin : null;
+
+              const clinicians = dutySupportDisplay
+                ? cliniciansAfterDuty.filter(c => c.name !== dutySupportDisplay.name)
+                : cliniciansAfterDuty;
+
               const dutyLocCol = dutyDisplay?.location ? LOCATION_COLOURS[dutyDisplay.location] : null;
               const dutyLocLetter = dutyDisplay?.location ? dutyDisplay.location.charAt(0) : '';
+              const supportLocCol = dutySupportDisplay?.location ? LOCATION_COLOURS[dutySupportDisplay.location] : null;
+              const supportLocLetter = dutySupportDisplay?.location ? dutySupportDisplay.location.charAt(0) : '';
               return (
                 <div key={si} className="flex-1 flex flex-col overflow-auto" style={{padding:'clamp(6px,1vh,14px)',background:s.band.tint||'transparent',borderLeft:si===1&&isShort?`3px solid ${s.band.colour}`:si===1?'0.5px solid #e2e8f0':undefined}}>
                   <div className="flex items-center justify-between flex-shrink-0" style={{marginBottom:'clamp(2px,0.5vh,6px)'}}>
@@ -489,27 +501,52 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                     </div>
                   </div>
                   {dutyDisplay && (
-                    <div className="flex items-stretch rounded-md overflow-hidden flex-shrink-0" style={{marginBottom:'clamp(4px,0.6vh,8px)',border:'2px solid #dc2626'}}>
+                    <div className="flex items-stretch rounded-md overflow-hidden flex-shrink-0" style={{marginBottom:'clamp(2px,0.3vh,4px)',border:'2px solid #dc2626'}}>
                       <div className="flex items-center flex-1 min-w-0" style={{gap:'clamp(4px,0.5vw,8px)',padding:'clamp(3px,0.5vh,6px) clamp(6px,0.8vw,10px)',background:'#dc2626'}}>
                         <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)',flexShrink:0}} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold uppercase tracking-wide" style={{fontSize:'clamp(6px,0.7vh,8px)',color:'rgba(255,255,255,0.7)'}}>Duty doctor</div>
                           <div className="font-bold text-white truncate" style={{fontSize:'clamp(9px, 1.4vh, 20px)'}}>{dutyDisplay.title ? `${dutyDisplay.title} ` : ''}{dutyDisplay.name}</div>
                         </div>
-                        {dutyDisplay.total > 0 && <span className="font-extrabold text-white flex-shrink-0" style={{fontSize:'clamp(11px,1.4vh,16px)'}}>{dutyDisplay.total}</span>}
+                        <div className="flex items-center gap-px flex-shrink-0 flex-wrap" style={{maxWidth:60}}>
+                          {Array.from({length: dutyDisplay.avail}).map((_,i) => <span key={`a${i}`} style={{width:'clamp(4px,0.6vh,8px)',height:'clamp(4px,0.6vh,8px)',borderRadius:'50%',background:'#4ade80'}} />)}
+                          {Array.from({length: dutyDisplay.booked}).map((_,i) => <span key={`b${i}`} style={{width:'clamp(4px,0.6vh,8px)',height:'clamp(4px,0.6vh,8px)',borderRadius:'50%',background:'#ef4444'}} />)}
+                        </div>
                       </div>
                       {dutyLocLetter && <div className="flex items-center justify-center flex-shrink-0 font-bold" style={{width:'clamp(14px,1.8vw,20px)',background:'rgba(255,255,255,0.15)',color:'#fecaca',fontSize:'clamp(8px,1vh,11px)'}}>{dutyLocLetter}</div>}
+                    </div>
+                  )}
+                  {dutySupportDisplay && (
+                    <div className="flex items-stretch rounded-md overflow-hidden flex-shrink-0" style={{marginBottom:'clamp(4px,0.6vh,8px)',border:'2px solid #2563eb'}}>
+                      <div className="flex items-center flex-1 min-w-0" style={{gap:'clamp(4px,0.5vw,8px)',padding:'clamp(3px,0.5vh,6px) clamp(6px,0.8vw,10px)',background:'#2563eb'}}>
+                        <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold uppercase tracking-wide" style={{fontSize:'clamp(6px,0.7vh,8px)',color:'rgba(255,255,255,0.7)'}}>Duty support</div>
+                          <div className="font-bold text-white truncate" style={{fontSize:'clamp(9px, 1.4vh, 20px)'}}>{dutySupportDisplay.displayName}</div>
+                        </div>
+                        <div className="flex items-center gap-px flex-shrink-0 flex-wrap" style={{maxWidth:60}}>
+                          {Array.from({length: (dutySupportDisplay.available||0) + (dutySupportDisplay.embargoed||0)}).map((_,i) => <span key={`a${i}`} style={{width:'clamp(4px,0.6vh,8px)',height:'clamp(4px,0.6vh,8px)',borderRadius:'50%',background:'#4ade80'}} />)}
+                          {Array.from({length: dutySupportDisplay.booked||0}).map((_,i) => <span key={`b${i}`} style={{width:'clamp(4px,0.6vh,8px)',height:'clamp(4px,0.6vh,8px)',borderRadius:'50%',background:'#ef4444'}} />)}
+                        </div>
+                      </div>
+                      {supportLocLetter && <div className="flex items-center justify-center flex-shrink-0 font-bold" style={{width:'clamp(14px,1.8vw,20px)',background:'rgba(255,255,255,0.15)',color:'#bfdbfe',fontSize:'clamp(8px,1vh,11px)'}}>{supportLocLetter}</div>}
                     </div>
                   )}
                   <div className="flex flex-col flex-1 overflow-auto" style={{gap:'clamp(1px,0.3vh,4px)'}}>
                     {clinicians.map((c,i) => {
                       const locCol = c.location ? LOCATION_COLOURS[c.location] : null;
                       const locLetter = c.location ? c.location.charAt(0) : '';
+                      const cAvail = (c.available||0) + (c.embargoed||0);
+                      const cBooked = c.booked||0;
                       return (
                       <div key={i} className="flex items-stretch rounded-md overflow-hidden fs-slidein" style={{animationDelay:`${0.3+i*0.06}s`,border:`1px solid ${s.band.border}`}}>
                         <div className="flex items-center flex-1 min-w-0" style={{padding:'clamp(2px, 0.5vh, 8px) clamp(4px,0.6vw,8px)',background:si===0?'white':'rgba(255,255,255,0.6)'}}>
                           <span className="truncate flex-1" style={{fontSize:'clamp(9px, 1.3vh, 16px)',color:'#475569'}}>{c.displayName}</span>
-                          <span className="font-extrabold flex-shrink-0" style={{color:s.band.colour,fontSize:'clamp(11px,1.4vh,15px)',minWidth:18,textAlign:'right'}}>{c.total}</span>
+                          <div className="flex items-center gap-px flex-shrink-0 flex-wrap" style={{maxWidth:50}}>
+                            {Array.from({length: cAvail}).map((_,j) => <span key={`a${j}`} style={{width:'clamp(3px,0.5vh,6px)',height:'clamp(3px,0.5vh,6px)',borderRadius:'50%',background:'#10b981'}} />)}
+                            {Array.from({length: cBooked}).map((_,j) => <span key={`b${j}`} style={{width:'clamp(3px,0.5vh,6px)',height:'clamp(3px,0.5vh,6px)',borderRadius:'50%',background:'#ef4444'}} />)}
+                          </div>
+                          <span className="font-extrabold flex-shrink-0" style={{color:s.band.colour,fontSize:'clamp(9px,1.2vh,13px)',minWidth:16,textAlign:'right',marginLeft:4}}>{c.total}</span>
                         </div>
                         {locCol && <div className="flex items-center justify-center flex-shrink-0 font-bold" style={{width:'clamp(14px,1.8vw,20px)',background:locCol.bg,color:locCol.text,fontSize:'clamp(8px,1vh,11px)'}}>{locLetter}</div>}
                       </div>
@@ -523,7 +560,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
         </div>
 
         {/* Routine capacity — right column */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
+        <div className="rounded-xl overflow-hidden flex flex-col" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', border:'1px solid #334155'}}>
           <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 flex items-center justify-between flex-shrink-0" style={{padding:'clamp(4px, 0.8vh, 14px) clamp(8px, 1.2vw, 24px)'}}>
             <span className="font-semibold text-white" style={{fontSize:'clamp(10px, 1.5vh, 20px)'}}>Routine capacity</span>
             <span className="text-white/70" style={{fontSize:'clamp(8px, 1.2vh, 16px)'}}>30-day overview</span>

@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { getHuddleCapacity, getDutyDoctor, parseHuddleDateStr } from '@/lib/huddle';
 import { matchesStaffMember } from '@/lib/data';
 
@@ -8,6 +8,8 @@ export default function WorkloadAudit({ data, huddleData }) {
   const dutySlots = hs?.dutyDoctorSlot;
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
   const urgentOverrides = useMemo(() => hs?.savedSlotFilters?.urgent || null, [hs]);
+  const [expandedDuty, setExpandedDuty] = useState(null);
+  const [expandedSupport, setExpandedSupport] = useState(null);
 
   const allClinicians = useMemo(() => {
     if (!data?.clinicians) return [];
@@ -20,7 +22,7 @@ export default function WorkloadAudit({ data, huddleData }) {
 
     const clinMap = {};
     const initClin = (id, name) => {
-      if (!clinMap[id]) clinMap[id] = { id, name, sessions: 0, dutySessions: 0, supportSessions: 0 };
+      if (!clinMap[id]) clinMap[id] = { id, name, sessions: 0, dutySessions: 0, supportSessions: 0, dutyDates: [], supportDates: [] };
     };
 
     huddleData.dates.forEach(dateStr => {
@@ -59,6 +61,7 @@ export default function WorkloadAudit({ data, huddleData }) {
           if (matched) {
             initClin(matched.id, matched.name);
             clinMap[matched.id].dutySessions++;
+            clinMap[matched.id].dutyDates.push({ date: dateStr, session });
           }
 
           // Duty support from urgent slots
@@ -79,6 +82,7 @@ export default function WorkloadAudit({ data, huddleData }) {
             const support = afterDuty.reduce((best, c) => c.total > best.total ? c : best, afterDuty[0]);
             initClin(support.matched.id, support.matched.name);
             clinMap[support.matched.id].supportSessions++;
+            clinMap[support.matched.id].supportDates.push({ date: dateStr, session });
           }
         }
       });
@@ -114,27 +118,37 @@ export default function WorkloadAudit({ data, huddleData }) {
   const maxDutyRatio = Math.max(...audit.clinicians.map(c => c.dutyRatio), 0.01);
   const maxSupportRatio = Math.max(...audit.clinicians.map(c => c.supportRatio), 0.01);
 
-  const RatioRow = ({ c, ratio, avg, max, colour, count }) => {
+  const RatioRow = ({ c, ratio, avg, max, colour, count, dates, expanded, onToggle }) => {
     const delta = ratio - avg;
     const absDelta = Math.abs(delta);
     const isHigh = delta > 0.03;
     const isLow = delta < -0.03;
     return (
-      <div className="flex items-center gap-3">
-        <div className="w-32 text-xs font-medium text-slate-700 truncate text-right">{c.name}</div>
-        <div className="flex-1 relative h-7 rounded-lg bg-slate-100 overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${(ratio / max) * 100}%`, background: isHigh ? '#ef4444' : isLow ? '#3b82f6' : colour, opacity: 0.75 }} />
-          <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(avg / max) * 100}%`, background: '#1e293b', zIndex: 1 }} title={`Average: ${avg.toFixed(2)}`} />
-          <div className="absolute inset-0 flex items-center px-2">
-            <span className="text-[10px] font-bold text-white drop-shadow-sm" style={{marginLeft: `${Math.min((ratio / max) * 100 - 8, 92)}%`}}>{ratio.toFixed(2)}</span>
+      <div>
+        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg px-1 -mx-1 transition-colors" onClick={onToggle}>
+          <div className="w-32 text-xs font-medium text-slate-700 truncate text-right">{c.name}</div>
+          <div className="flex-1 relative h-7 rounded-lg bg-slate-100 overflow-hidden">
+            <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${(ratio / max) * 100}%`, background: isHigh ? '#ef4444' : isLow ? '#3b82f6' : colour, opacity: 0.75 }} />
+            <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(avg / max) * 100}%`, background: '#1e293b', zIndex: 1 }} title={`Average: ${avg.toFixed(2)}`} />
+            <div className="absolute inset-0 flex items-center px-2">
+              <span className="text-[10px] font-bold text-white drop-shadow-sm" style={{marginLeft: `${Math.min((ratio / max) * 100 - 8, 92)}%`}}>{ratio.toFixed(2)}</span>
+            </div>
           </div>
+          <div className="w-16 text-right">
+            {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 font-medium">Fair</span>
+              : isHigh ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
+              : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
+          </div>
+          <div className="w-14 text-[11px] text-slate-500 text-right font-medium">{count}/{c.sessions}</div>
+          <span className="text-[10px] text-slate-400 w-4">{expanded ? '▲' : '▼'}</span>
         </div>
-        <div className="w-16 text-right">
-          {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 font-medium">Fair</span>
-            : isHigh ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
-            : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
-        </div>
-        <div className="w-14 text-[11px] text-slate-500 text-right font-medium">{count}/{c.sessions}</div>
+        {expanded && dates && dates.length > 0 && (
+          <div className="ml-36 mt-1 mb-2 flex flex-wrap gap-1">
+            {dates.map((d, i) => (
+              <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600">{d.date} <span className="text-slate-400">{d.session.toUpperCase()}</span></span>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -192,7 +206,7 @@ export default function WorkloadAudit({ data, huddleData }) {
           <div className="text-xs text-slate-400 mb-4">Duty sessions ÷ total sessions worked. Black line = average. Everyone should be similar.</div>
           <div className="space-y-2">
             {audit.clinicians.filter(c => c.dutySessions > 0).sort((a, b) => b.dutyRatio - a.dutyRatio).map(c => (
-              <RatioRow key={c.id} c={c} ratio={c.dutyRatio} avg={audit.avgDutyRatio} max={maxDutyRatio} colour="#10b981" count={c.dutySessions} />
+              <RatioRow key={c.id} c={c} ratio={c.dutyRatio} avg={audit.avgDutyRatio} max={maxDutyRatio} colour="#10b981" count={c.dutySessions} dates={c.dutyDates} expanded={expandedDuty === c.id} onToggle={() => setExpandedDuty(expandedDuty === c.id ? null : c.id)} />
             ))}
           </div>
         </div>
@@ -205,7 +219,7 @@ export default function WorkloadAudit({ data, huddleData }) {
           <div className="text-xs text-slate-400 mb-4">Support sessions ÷ total sessions worked. Clinician with most urgent slots (excl. duty doctor).</div>
           <div className="space-y-2">
             {audit.clinicians.filter(c => c.supportSessions > 0).sort((a, b) => b.supportRatio - a.supportRatio).map(c => (
-              <RatioRow key={c.id} c={c} ratio={c.supportRatio} avg={audit.avgSupportRatio} max={maxSupportRatio} colour="#3b82f6" count={c.supportSessions} />
+              <RatioRow key={c.id} c={c} ratio={c.supportRatio} avg={audit.avgSupportRatio} max={maxSupportRatio} colour="#3b82f6" count={c.supportSessions} dates={c.supportDates} expanded={expandedSupport === c.id} onToggle={() => setExpandedSupport(expandedSupport === c.id ? null : c.id)} />
             ))}
           </div>
         </div>

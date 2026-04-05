@@ -206,11 +206,52 @@ function AppContent() {
     return false;
   };
 
+  // Check if a day-off clinician should be upgraded to absent (File & Action)
+  // True if their next working day is absent — meaning no one is looking after their patients
+  const isDayOffUpgradedToAbsent = (cid, fromDateKey) => {
+    const clinician = data?.clinicians?.find(c => c.id === cid);
+    if (!clinician) return false;
+    if (clinician.longTermAbsent) return true;
+    const workingDays = DAYS.filter(day => ensureArray(data?.weeklyRota?.[day]).includes(cid));
+    if (workingDays.length === 0) return false;
+    const indexToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const startDate = new Date(fromDateKey + 'T12:00:00');
+    // Look forward up to 28 days for the next working day
+    for (let i = 1; i <= 28; i++) {
+      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() + i);
+      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = toLocalIso(checkDate);
+      if (dayIndex === 0 || dayIndex === 6) continue;
+      if (workingDays.includes(dayName)) {
+        // Found their next working day — is it absent?
+        return isAbsentOnWorkingDate(cid, checkDateKey, dayName);
+      }
+    }
+    return false;
+  };
+
   const getScheduledClinicians = (day) => { const rota = ensureArray(data?.weeklyRota?.[day]); return rota.filter(id => { const c = data?.clinicians?.find(c => c.id === id); return c && !c.longTermAbsent; }); };
   const getScheduledForDay = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.scheduled) return ensureArray(data.dailyOverrides[dayKey].scheduled); return getScheduledClinicians(day); };
   const getPresentClinicians = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.present) return ensureArray(data.dailyOverrides[dayKey].present); const scheduled = getScheduledForDay(day); return scheduled.filter(id => { const c = data?.clinicians?.find(c => c.id === id); if (c?.longTermAbsent) return false; if (hasPlannedAbsence(id, dateKey)) return false; if (isAbsentUntilNextPresent(id, dateKey)) return false; return true; }); };
-  const getAbsentClinicians = (day) => { const scheduled = getScheduledForDay(day); const presentIds = getPresentClinicians(day); return scheduled.filter(id => !presentIds.includes(id)); };
-  const getDayOffClinicians = (day) => { const scheduled = getScheduledForDay(day); const allClinicians = ensureArray(data?.clinicians); return allClinicians.filter(c => c.buddyCover && !scheduled.includes(c.id) && !c.longTermAbsent && c.status !== 'left' && c.status !== 'administrative').map(c => c.id); };
+  const getAbsentClinicians = (day) => {
+    const dateKey = getDateKeyForDay(day);
+    const scheduled = getScheduledForDay(day);
+    const presentIds = getPresentClinicians(day);
+    const scheduledAbsent = scheduled.filter(id => !presentIds.includes(id));
+    // Also include day-off clinicians whose next working day is absent (upgrade to File & Action)
+    const allClinicians = ensureArray(data?.clinicians);
+    const upgradedDayOff = allClinicians
+      .filter(c => c.buddyCover && !scheduled.includes(c.id) && !c.longTermAbsent && c.status !== 'left' && c.status !== 'administrative' && isDayOffUpgradedToAbsent(c.id, dateKey))
+      .map(c => c.id);
+    return [...scheduledAbsent, ...upgradedDayOff];
+  };
+  const getDayOffClinicians = (day) => {
+    const dateKey = getDateKeyForDay(day);
+    const scheduled = getScheduledForDay(day);
+    const allClinicians = ensureArray(data?.clinicians);
+    return allClinicians
+      .filter(c => c.buddyCover && !scheduled.includes(c.id) && !c.longTermAbsent && c.status !== 'left' && c.status !== 'administrative' && !isDayOffUpgradedToAbsent(c.id, dateKey))
+      .map(c => c.id);
+  };
   const getClinicianStatus = (id, day) => { const p = ensureArray(getPresentClinicians(day)); const a = ensureArray(getAbsentClinicians(day)); if (p.includes(id)) return 'present'; if (a.includes(id)) return 'absent'; return 'dayoff'; };
 
   const togglePresence = (id, day) => {
