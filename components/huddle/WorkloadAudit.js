@@ -192,11 +192,16 @@ export default function WorkloadAudit({ data, huddleData }) {
     const routineOv = hs?.savedSlotFilters?.routine;
     if (!urgentOv && !routineOv) return [];
 
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const earliest = new Date(today); earliest.setDate(earliest.getDate() - 56); // 8 weeks back
+    const latest = new Date(today); latest.setDate(latest.getDate() + 28); // 4 weeks forward
+
     // Group dates into ISO weeks
     const weekMap = {};
     huddleData.dates.forEach(dateStr => {
       const d = parseHuddleDateStr(dateStr);
       if (!d || d.getDay() === 0 || d.getDay() === 6) return;
+      if (d < earliest || d > latest) return;
       const weekStart = new Date(d);
       weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
       const weekKey = `${String(weekStart.getDate()).padStart(2,'0')}-${weekStart.toLocaleString('en-GB',{month:'short'})}`;

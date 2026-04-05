@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso } from '@/lib/data';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LoginScreen from '@/components/LoginScreen';
@@ -181,90 +181,12 @@ function AppContent() {
 
   const hasPlannedAbsence = (clinicianId, dateKey) => ensureArray(data?.plannedAbsences).some(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate);
   const getPlannedAbsenceReason = (clinicianId, dateKey) => { const absence = ensureArray(data?.plannedAbsences).find(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate); return absence?.reason || 'Leave'; };
-  const isAbsentOnWorkingDate = (cid, dateKey, dayName) => { const rota = ensureArray(data?.weeklyRota?.[dayName]); if (!rota.includes(cid)) return false; return hasPlannedAbsence(cid, dateKey); };
 
-  const isAbsentUntilNextPresent = (cid, fromDateKey) => {
-    const clinician = data?.clinicians?.find(c => c.id === cid);
-    if (!clinician) return false;
-    if (clinician.longTermAbsent) return true;
-    const workingDays = DAYS.filter(day => ensureArray(data?.weeklyRota?.[day]).includes(cid));
-    if (workingDays.length === 0) return false;
-    const indexToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const startDate = new Date(fromDateKey + 'T12:00:00');
-    for (let i = 1; i <= 7; i++) {
-      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() - i);
-      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = toLocalIso(checkDate);
-      if (dayIndex === 0 || dayIndex === 6) continue;
-      if (workingDays.includes(dayName)) { if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true; break; }
-    }
-    for (let i = 0; i <= 28; i++) {
-      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() + i);
-      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = toLocalIso(checkDate);
-      if (dayIndex === 0 || dayIndex === 6) continue;
-      if (workingDays.includes(dayName)) { if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true; return false; }
-    }
-    return false;
-  };
-
-  // Check if a day-off clinician should be upgraded to absent (File & Action)
-  // True if their next OR previous working day is absent — covers both directions:
-  // Before leave: day off → next working day is absent → upgrade
-  // After leave: previous working day was absent → day off → upgrade
-  const isDayOffUpgradedToAbsent = (cid, fromDateKey) => {
-    const clinician = data?.clinicians?.find(c => c.id === cid);
-    if (!clinician) return false;
-    if (clinician.longTermAbsent) return true;
-    const workingDays = DAYS.filter(day => ensureArray(data?.weeklyRota?.[day]).includes(cid));
-    if (workingDays.length === 0) return false;
-    const indexToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const startDate = new Date(fromDateKey + 'T12:00:00');
-    // Look forward — is next working day absent?
-    for (let i = 1; i <= 28; i++) {
-      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() + i);
-      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = toLocalIso(checkDate);
-      if (dayIndex === 0 || dayIndex === 6) continue;
-      if (workingDays.includes(dayName)) {
-        if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true;
-        break;
-      }
-    }
-    // Look backward — was previous working day absent?
-    for (let i = 1; i <= 28; i++) {
-      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() - i);
-      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = toLocalIso(checkDate);
-      if (dayIndex === 0 || dayIndex === 6) continue;
-      if (workingDays.includes(dayName)) {
-        if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true;
-        break;
-      }
-    }
-    return false;
-  };
-
-  const getScheduledClinicians = (day) => { const rota = ensureArray(data?.weeklyRota?.[day]); return rota.filter(id => { const c = data?.clinicians?.find(c => c.id === id); return c && !c.longTermAbsent; }); };
-  const getScheduledForDay = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.scheduled) return ensureArray(data.dailyOverrides[dayKey].scheduled); return getScheduledClinicians(day); };
-  const getPresentClinicians = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.present) return ensureArray(data.dailyOverrides[dayKey].present); const scheduled = getScheduledForDay(day); return scheduled.filter(id => { const c = data?.clinicians?.find(c => c.id === id); if (c?.longTermAbsent) return false; if (hasPlannedAbsence(id, dateKey)) return false; if (isAbsentUntilNextPresent(id, dateKey)) return false; return true; }); };
-  const getAbsentClinicians = (day) => {
-    const dateKey = getDateKeyForDay(day);
-    const scheduled = getScheduledForDay(day);
-    const presentIds = getPresentClinicians(day);
-    const scheduledAbsent = scheduled.filter(id => !presentIds.includes(id));
-    // Also include day-off clinicians whose next working day is absent (upgrade to File & Action)
-    const allClinicians = ensureArray(data?.clinicians);
-    const upgradedDayOff = allClinicians
-      .filter(c => c.buddyCover && !scheduled.includes(c.id) && !c.longTermAbsent && c.status !== 'left' && c.status !== 'administrative' && isDayOffUpgradedToAbsent(c.id, dateKey))
-      .map(c => c.id);
-    return [...scheduledAbsent, ...upgradedDayOff];
-  };
-  const getDayOffClinicians = (day) => {
-    const dateKey = getDateKeyForDay(day);
-    const scheduled = getScheduledForDay(day);
-    const allClinicians = ensureArray(data?.clinicians);
-    return allClinicians
-      .filter(c => c.buddyCover && !scheduled.includes(c.id) && !c.longTermAbsent && c.status !== 'left' && c.status !== 'administrative' && !isDayOffUpgradedToAbsent(c.id, dateKey))
-      .map(c => c.id);
-  };
-  const getClinicianStatus = (id, day) => { const p = ensureArray(getPresentClinicians(day)); const a = ensureArray(getAbsentClinicians(day)); if (p.includes(id)) return 'present'; if (a.includes(id)) return 'absent'; return 'dayoff'; };
+  const getScheduledForDay = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.scheduled) return ensureArray(data.dailyOverrides[dayKey].scheduled); const rota = ensureArray(data?.weeklyRota?.[day]); return rota.filter(id => { const c = data?.clinicians?.find(c => c.id === id); return c && !c.longTermAbsent; }); };
+  const getPresentClinicians = (day) => computeDayStatus(data, getDateKeyForDay(day), day).present;
+  const getAbsentClinicians = (day) => computeDayStatus(data, getDateKeyForDay(day), day).absent;
+  const getDayOffClinicians = (day) => computeDayStatus(data, getDateKeyForDay(day), day).dayOff;
+  const getClinicianStatus = (id, day) => { const s = computeDayStatus(data, getDateKeyForDay(day), day); if (s.present.includes(id)) return 'present'; if (s.absent.includes(id)) return 'absent'; return 'dayoff'; };
 
   const togglePresence = (id, day) => {
     const dateKey = getDateKeyForDay(day); if (isPastDate(dateKey)) return;
