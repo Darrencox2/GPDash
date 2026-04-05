@@ -137,32 +137,37 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   // ═══ Search bar JSX (not a component — avoids remount on every keystroke) ═══
   const searchJsx = (
     <div className="relative">
-      <div className="flex items-center gap-3">
-        {selected && <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{background: gm.bg, color: gm.tx, border: `2px solid ${gm.tx}30`}}>{selected.initials}</div>}
-        <div className="flex-1 relative">
+      {!isSearching ? (
+        <button onClick={() => { setIsSearching(true); setSearch(''); setShowDropdown(true); setTimeout(() => searchRef.current?.focus(), 50); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left" style={{background:'#0f172a',border:'1px solid #334155'}}>
+          {selected && <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{background: gm.bg, color: gm.tx}}>{selected.initials}</div>}
+          <span className="text-sm text-slate-200 flex-1">{selected?.name || 'Select clinician...'}</span>
+          <span className="text-xs text-slate-500">Change</span>
+        </button>
+      ) : (
+        <div>
           <input type="text"
-            value={isSearching ? search : (selected?.name || '')}
-            onChange={e => { setSearch(e.target.value); setIsSearching(true); setShowDropdown(true); }}
-            onFocus={() => { setSearch(''); setIsSearching(true); setShowDropdown(true); }}
-            onBlur={() => setTimeout(() => { setShowDropdown(false); setIsSearching(false); }, 200)}
-            placeholder="Search clinician..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setShowDropdown(true); }}
+            placeholder="Type to search..."
+            autoFocus
             className="w-full text-sm rounded-lg px-3 py-2.5 outline-none"
-            style={{background:'#0f172a',border:'1px solid #334155',color:'#e2e8f0'}}
+            style={{background:'#0f172a',border:'1px solid #6366f1',color:'#e2e8f0'}}
             ref={searchRef} />
-          {showDropdown && isSearching && (
+          {showDropdown && (
             <div className="absolute top-full left-0 right-0 mt-1 rounded-lg overflow-hidden z-30 max-h-64 overflow-y-auto" style={{background:'#1e293b',border:'1px solid #334155',boxShadow:'0 10px 30px rgba(0,0,0,0.4)'}}>
               {(search ? filtered : clinicians).map(c => (
-                <button key={c.id} onMouseDown={() => select(c)} className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors" style={{background: c.id === selectedId ? 'rgba(255,255,255,0.08)' : 'transparent'}}>
+                <button key={c.id} onClick={() => select(c)} className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors" style={{background: c.id === selectedId ? 'rgba(255,255,255,0.08)' : 'transparent'}}>
                   <span className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold" style={{background: GROUP_META[c.group]?.bg, color: GROUP_META[c.group]?.tx}}>{c.initials}</span>
                   <span className="text-xs text-slate-200">{c.name}</span>
                   <span className="text-[10px] text-slate-500 ml-auto">{c.role}</span>
                 </button>
               ))}
               {search && filtered.length === 0 && <div className="px-3 py-3 text-xs text-slate-500 text-center">No matches</div>}
+              <button onClick={() => { setIsSearching(false); setShowDropdown(false); }} className="w-full text-center py-2 text-[10px] text-slate-500 border-t border-slate-700">Cancel</button>
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 
