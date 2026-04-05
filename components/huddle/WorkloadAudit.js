@@ -139,6 +139,43 @@ export default function WorkloadAudit({ data, huddleData }) {
     );
   };
 
+  // Weekly urgent vs routine trend
+  const weeklyTrend = useMemo(() => {
+    if (!huddleData?.dates) return [];
+    const urgentOv = hs?.savedSlotFilters?.urgent;
+    const routineOv = hs?.savedSlotFilters?.routine;
+    if (!urgentOv && !routineOv) return [];
+
+    // Group dates into ISO weeks
+    const weekMap = {};
+    huddleData.dates.forEach(dateStr => {
+      const d = parseHuddleDateStr(dateStr);
+      if (!d || d.getDay() === 0 || d.getDay() === 6) return;
+      const weekStart = new Date(d);
+      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+      const weekKey = `${String(weekStart.getDate()).padStart(2,'0')}-${weekStart.toLocaleString('en-GB',{month:'short'})}`;
+      if (!weekMap[weekKey]) weekMap[weekKey] = { weekKey, dates: [], weekStart };
+      weekMap[weekKey].dates.push(dateStr);
+    });
+
+    return Object.values(weekMap).sort((a, b) => a.weekStart - b.weekStart).map(week => {
+      let urgent = 0, routine = 0;
+      week.dates.forEach(dateStr => {
+        if (urgentOv) {
+          const cap = getHuddleCapacity(huddleData, dateStr, hs, urgentOv);
+          urgent += (cap.am.total||0) + (cap.pm.total||0) + (cap.am.embargoed||0) + (cap.pm.embargoed||0) + (cap.am.booked||0) + (cap.pm.booked||0);
+        }
+        if (routineOv) {
+          const cap = getHuddleCapacity(huddleData, dateStr, hs, routineOv);
+          routine += (cap.am.total||0) + (cap.pm.total||0) + (cap.am.embargoed||0) + (cap.pm.embargoed||0) + (cap.am.booked||0) + (cap.pm.booked||0);
+        }
+      });
+      return { ...week, urgent, routine, total: urgent + routine };
+    });
+  }, [huddleData, hs]);
+
+  const trendMax = Math.max(...weeklyTrend.map(w => w.total), 1);
+
   return (
     <div className="space-y-6">
       <div className="card overflow-hidden">
@@ -173,6 +210,49 @@ export default function WorkloadAudit({ data, huddleData }) {
           </div>
         </div>
       </div>
+
+      {/* Weekly urgent vs routine trend */}
+      {weeklyTrend.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-700 to-violet-600 px-5 py-3">
+            <div className="text-base font-semibold text-white">Weekly capacity trend</div>
+            <div className="text-[11px] text-white/60">Urgent vs routine slots offered per week (available + embargoed + booked)</div>
+          </div>
+          <div className="p-5">
+            <div className="flex items-end gap-1" style={{height: 180}}>
+              {weeklyTrend.map((w, i) => {
+                const totalPct = (w.total / trendMax) * 100;
+                const urgentPct = w.total > 0 ? (w.urgent / w.total) * 100 : 0;
+                const routinePct = w.total > 0 ? (w.routine / w.total) * 100 : 0;
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5 group relative">
+                    <div className="w-full rounded-t-md overflow-hidden" style={{height: `${Math.max(totalPct, 4)}%`}}>
+                      <div className="w-full h-full flex flex-col justify-end">
+                        {w.urgent > 0 && <div style={{height: `${urgentPct}%`, background: '#ef4444'}} />}
+                        {w.routine > 0 && <div style={{height: `${routinePct}%`, background: '#10b981'}} />}
+                      </div>
+                    </div>
+                    <div className="text-[8px] text-slate-400 text-center leading-tight mt-0.5">{w.weekKey}</div>
+                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" style={{background:'#1e293b',border:'1px solid #334155',minWidth:'110px'}}>
+                      <div className="text-xs font-bold text-slate-200 mb-0.5">w/c {w.weekKey}</div>
+                      <div className="space-y-0.5 text-[11px]">
+                        <div className="flex justify-between gap-3"><span className="text-slate-400">Urgent</span><span className="font-semibold text-red-400">{w.urgent}</span></div>
+                        <div className="flex justify-between gap-3"><span className="text-slate-400">Routine</span><span className="font-semibold text-emerald-400">{w.routine}</span></div>
+                        <div className="flex justify-between gap-3 border-t border-slate-600 pt-0.5"><span className="text-slate-400">Total</span><span className="font-semibold text-slate-200">{w.total}</span></div>
+                      </div>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid #334155'}} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-4 mt-3 pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#ef4444'}} /><span className="text-xs text-slate-500">Urgent</span></div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}} /><span className="text-xs text-slate-500">Routine</span></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

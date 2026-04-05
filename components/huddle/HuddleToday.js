@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Button, Card, SectionHeading } from '@/components/ui';
-import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
+import { getHuddleCapacity, getTodayDateStr, parseHuddleCSV, mergeHuddleData, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import DemandCapacityConnector from './DemandCapacityConnector';
@@ -579,9 +579,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const processCSV = (csvText) => {
     try {
       const parsed = parseHuddleCSV(csvText);
-      setHuddleData(parsed);
+      const merged = mergeHuddleData(huddleData, parsed);
+      setHuddleData(merged);
       const uploadTime = new Date().toISOString();
-      const newHs = { ...hs, knownClinicians: [...new Set([...(hs.knownClinicians||[]), ...parsed.clinicians])], knownSlotTypes: [...new Set([...(hs.knownSlotTypes||[]), ...parsed.allSlotTypes])], lastUploadDate: uploadTime };
+      const newHs = { ...hs, knownClinicians: [...new Set([...(hs.knownClinicians||[]), ...merged.clinicians])], knownSlotTypes: [...new Set([...(hs.knownSlotTypes||[]), ...merged.allSlotTypes])], lastUploadDate: uploadTime };
 
       // Auto-discover unmatched CSV clinicians
       let updatedClinicians = [...teamClinicians];
@@ -616,7 +617,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         }
       });
 
-      saveData({ ...data, clinicians: updatedClinicians, huddleCsvData: parsed, huddleCsvUploadedAt: uploadTime, huddleSettings: newHs }, false);
+      saveData({ ...data, clinicians: updatedClinicians, huddleCsvData: merged, huddleCsvUploadedAt: uploadTime, huddleSettings: newHs }, false);
       const msg = newCount > 0 ? `Report uploaded — ${newCount} new staff discovered` : 'Report uploaded successfully';
       toast(msg, newCount > 0 ? 'warning' : 'success');
       setError('');

@@ -86,17 +86,18 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         const dowIdx = date.getDay() - 1; // 0=Mon, 4=Fri
         const dc = dowDemandColour(predicted, dowIdx);
         const uCap = hasData&&!isBH?getHuddleCapacity(huddleData,dateStr,hs,urgOv):null;
-        const amS=uCap?(uCap.am.total||0)+(uCap.am.embargoed||0):0;
-        const pmS=uCap?(uCap.pm.total||0)+(uCap.pm.embargoed||0):0;
+        const amS=uCap?(uCap.am.total||0)+(uCap.am.embargoed||0)+(uCap.am.booked||0):0;
+        const pmS=uCap?(uCap.pm.total||0)+(uCap.pm.embargoed||0)+(uCap.pm.booked||0):0;
         const amT=hs?.expectedCapacity?.[dayName]?.am||0;
         const pmT=hs?.expectedCapacity?.[dayName]?.pm||0;
         const rTots = hasData&&!isBH?getDateTotals(huddleData,dateStr,hs,routOv):null;
         const rA=rTots?.available||0,rE=rTots?.embargoed||0,rB=rTots?.booked||0;
+        const isPast = date < today;
         let amDuty=null,pmDuty=null;
         if(hasDuty&&hasData&&!isBH){amDuty=getDutyDoctor(huddleData,dateStr,'am',dutySlots);pmDuty=getDutyDoctor(huddleData,dateStr,'pm',dutySlots);}
         if(!isBH){wU+=amS+pmS;wRA+=rA;wRE+=rE;wRB+=rB;wT+=amT+pmT;}
         days.push({date,dateStr,isoKey,dayName,dayShort:DAY_SHORT[date.getDay()],dayNum:date.getDate(),
-          monthStr:date.toLocaleString('en-GB',{month:'short'}),hasData,isToday,isBH,
+          monthStr:date.toLocaleString('en-GB',{month:'short'}),hasData,isToday,isBH,isPast,
           amS,pmS,amT,pmT,rA,rE,rB,rTotal:rA+rE+rB,
           predicted,dc,needed:predicted?Math.round(predicted*convRate):0,
           uCap,routCap:hasData&&!isBH?getHuddleCapacity(huddleData,dateStr,hs,routOv):null,
@@ -177,7 +178,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     className="rounded-lg h-full cursor-pointer transition-all duration-150"
                     style={{padding:'6px',borderLeft:d.isToday?'3px solid #10b981':'3px solid transparent',
                       outline:sel?'2px solid #6366f1':'none',outlineOffset:-1,
-                      background:sel?'rgba(99,102,241,0.15)':'transparent'}}>
+                      background:sel?'rgba(99,102,241,0.15)':d.isPast?'rgba(255,255,255,0.02)':'transparent',
+                      opacity:d.isPast?0.5:1, filter:d.isPast?'saturate(0.4)':'none'}}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-slate-300">{d.dayNum}</span>
                       {d.predicted&&<span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
