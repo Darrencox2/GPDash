@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { getHuddleCapacity, getDutyDoctor, LOCATION_COLOURS } from '@/lib/huddle';
-import { matchesStaffMember, DAYS, getWeekStart, toLocalIso } from '@/lib/data';
+import { matchesStaffMember, DAYS, getWeekStart, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 
 const GROUP_META = {
@@ -126,7 +126,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
       const weekDays = [];
       for (let d = 0; d < 5; d++) {
         const dt = new Date(ws); dt.setDate(dt.getDate() + w * 7 + d);
-        const dateStr = `${String(dt.getDate()).padStart(2,'0')}-${dt.toLocaleString('en-GB',{month:'short'})}-${dt.getFullYear()}`;
+        const dateStr = toHuddleDateStr(dt);
         weekDays.push({ date: dt, dateStr, isoKey: toLocalIso(dt), dayName: DAYS[d], dayShort: DAYS[d].slice(0,3), dayNum: dt.getDate(), monthStr: dt.toLocaleString('en-GB',{month:'short'}) });
       }
       weeks.push(weekDays);
@@ -210,7 +210,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
             const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
             const isoKey = toLocalIso(day.date);
             const isToday = isoKey === todayIso;
-            const dateStr = `${String(day.date.getDate()).padStart(2,'0')}-${day.date.toLocaleString('en-GB',{month:'short'})}-${day.date.getFullYear()}`;
+            const dateStr = toHuddleDateStr(day.date);
             const dd = !isWeekend && day.inMonth ? getDayData(day.date, dateStr, isoKey) : null;
 
             return (

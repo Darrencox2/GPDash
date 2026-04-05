@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
 import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor, getBand } from '@/lib/huddle';
-import { matchesStaffMember, toLocalIso } from '@/lib/data';
+import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 
 const DEMAND_COLOURS = {
   low: { bg: '#10b98122', text: '#34d399', label: 'Low' },
@@ -50,7 +50,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const typicalCapacity = useMemo(() => {
     if (!huddleData?.dates || !urgentOverrides) return null;
     const dow = targetDate.getDay(); let tot=0, cnt=0;
-    const vds = `${String(targetDate.getDate()).padStart(2,'0')}-${targetDate.toLocaleString('en-GB',{month:'short'})}-${targetDate.getFullYear()}`;
+    const vds = toHuddleDateStr(targetDate);
     huddleData.dates.forEach(ds => { if(ds===vds) return; const d=parseHuddleDateStr(ds); if(d.getDay()!==dow) return; const c=getHuddleCapacity(huddleData,ds,hs,urgentOverrides); const t=(c.am.total||0)+(c.pm.total||0)+(c.am.embargoed||0)+(c.pm.embargoed||0)+(c.am.booked||0)+(c.pm.booked||0); if(t>0){tot+=t;cnt++;} });
     return cnt>0 ? Math.round(tot/cnt) : null;
   }, [huddleData, targetDate, hs, urgentOverrides]);
@@ -150,7 +150,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   // Duty doctors
   const dutySlots = hs?.dutyDoctorSlot;
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
-  const vds = `${String(targetDate.getDate()).padStart(2,'0')}-${targetDate.toLocaleString('en-GB',{month:'short'})}-${targetDate.getFullYear()}`;
+  const vds = toHuddleDateStr(targetDate);
   const dds = huddleData?.dates?.includes(vds) ? vds : null;
   const resolveDuty = (sess) => { if(!hasDuty||!dds) return null; const doc=getDutyDoctor(huddleData,dds,sess,dutySlots); if(!doc) return null; const m=teamClinicians.find(tc=>matchesStaffMember(doc.name,tc)); return {name:m?.name||doc.name,title:m?.title}; };
   const dutyAm = resolveDuty('am'), dutyPm = resolveDuty('pm');

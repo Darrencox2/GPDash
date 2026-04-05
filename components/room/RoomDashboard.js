@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { autoAllocateRooms, getRoomTypes, GRID_SIZES, RECURRENCE_LABELS, DAY_LABELS, describeRecurrence } from '@/lib/roomAllocation';
-import { matchesStaffMember, toLocalIso } from '@/lib/data';
+import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getCliniciansForSession } from '@/lib/huddle';
 import { predictDemand } from '@/lib/demandPredictor';
 
@@ -43,10 +43,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
     setViewingDate(d);
   };
 
-  const csvDateStr = useMemo(() => {
-    const d = new Date(dateStr + 'T12:00:00');
-    return `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`;
-  }, [dateStr]);
+  const csvDateStr = useMemo(() => toHuddleDateStr(new Date(dateStr + 'T12:00:00')), [dateStr]);
 
   const allClinicians = useMemo(() => Array.isArray(data?.clinicians) ? data.clinicians : Object.values(data?.clinicians || {}), [data?.clinicians]);
 

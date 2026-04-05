@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
-import { matchesStaffMember, toLocalIso } from '@/lib/data';
+import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getHuddleCapacity, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
 
@@ -97,10 +97,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const today = useMemo(() => { if (viewingDateProp) { const d = new Date(viewingDateProp); d.setHours(0,0,0,0); return d; } return realToday; }, [viewingDateProp, realToday]);
   const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
   const dateKey = toLocalIso(today);
-  const todayDateStr = useMemo(() => {
-    const d = today;
-    return `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`;
-  }, [today]);
+  const todayDateStr = useMemo(() => toHuddleDateStr(today), [today]);
   const hs = data?.huddleSettings || {};
   const messages = ensureArray(data?.huddleMessages || []);
 

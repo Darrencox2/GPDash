@@ -6,7 +6,7 @@ import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import DemandCapacityConnector from './DemandCapacityConnector';
 import HuddleFullscreen from './HuddleFullscreen';
-import { guessGroupFromRole, matchesStaffMember, toLocalIso } from '@/lib/data';
+import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS } from './HuddleShared';
 
@@ -185,7 +185,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const removeMessage = (i) => { const updated = huddleMessages.filter((_, idx) => idx !== i); setHuddleMessages(updated); saveData({ ...data, huddleMessages: updated }, false); };
 
   const isUploadedToday = data?.huddleCsvUploadedAt ? new Date(data.huddleCsvUploadedAt).toDateString() === realToday.toDateString() : false;
-  const viewingDateStr = `${String(viewingDate.getDate()).padStart(2,'0')}-${viewingDate.toLocaleString('en-GB',{month:'short'})}-${viewingDate.getFullYear()}`;
+  const viewingDateStr = toHuddleDateStr(viewingDate);
   const displayDate = huddleData?.dates?.includes(viewingDateStr) ? viewingDateStr : null;
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs, urgentOverrides) : null;
   const hasDataForDate = !!displayDate;

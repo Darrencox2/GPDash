@@ -47,7 +47,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const dateKey = getDateKey();
     // Convert dateKey (YYYY-MM-DD) to CSV format (DD-Mon-YYYY)
     const d = new Date(dateKey + 'T12:00:00');
-    const csvDateStr = `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`;
+    const csvDateStr = toHuddleDateStr(d);
     const csvClinicians = getCliniciansForDate(huddleData, csvDateStr);
     if (csvClinicians.length === 0) return { presentNoCSV: new Set(), absentHasCSV: new Set() };
     const presentNoCSV = new Set();

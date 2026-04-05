@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso } from '@/lib/data';
+import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations, LOCATION_COLOURS } from '@/lib/huddle';
 
 const ROLE_COLOURS = {
@@ -98,7 +98,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   // ── Data sources (all hooks MUST be above any early return) ─────
 
   // 1. CSV: who has slots on viewed date specifically
-  const viewingDateStr = `${String(vd.getDate()).padStart(2,'0')}-${vd.toLocaleString('en-GB',{month:'short'})}-${vd.getFullYear()}`;
+  const viewingDateStr = toHuddleDateStr(vd);
   const todayCsvClinicians = useMemo(() => {
     if (!huddleData) return [];
     const displayDate = huddleData.dates?.includes(viewingDateStr) ? viewingDateStr : null;

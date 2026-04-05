@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { getHuddleCapacity, getDateTotals, getDutyDoctor, LOCATION_COLOURS } from '@/lib/huddle';
-import { matchesStaffMember, toLocalIso } from '@/lib/data';
+import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS } from '@/lib/demandPredictor';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -75,7 +75,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       const days = []; let wU=0,wRA=0,wRE=0,wRB=0,wT=0;
       for (let d=0;d<5;d++) {
         const date = new Date(ws); date.setDate(ws.getDate()+d);
-        const dateStr = `${String(date.getDate()).padStart(2,'0')}-${date.toLocaleString('en-GB',{month:'short'})}-${date.getFullYear()}`;
+        const dateStr = toHuddleDateStr(date);
         const isoKey = toLocalIso(date);
         const dayName = DAY_NAMES[date.getDay()];
         const hasData = huddleData.dates?.includes(dateStr);
