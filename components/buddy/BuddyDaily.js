@@ -344,12 +344,25 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           <div className="text-xs text-slate-500 truncate">{c.role}{hasPlanned ? ` · ${plannedReason}` : ''}{lta ? ' · LTA' : ''}</div>
                         </div>
                       </div>
-                      {past ? <span className="text-xs flex-shrink-0" style={{color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#94a3b8'}}>{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span> : <button onClick={() => togglePresence(c.id, selectedDay)} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors" style={{
-                        background: status === 'present' ? '#10b98130' : status === 'absent' ? '#ef444420' : '#f59e0b15',
-                        border: `1px solid ${status === 'present' ? '#10b98160' : status === 'absent' ? '#ef444440' : '#f59e0b30'}`,
-                        color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24',
-                        fontSize: 14,
-                      }}>{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</button>}
+                      {past ? (
+                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full flex-shrink-0" style={{
+                          background: status === 'present' ? '#10b98125' : status === 'absent' ? '#ef444425' : '#f59e0b18',
+                          border: `1px solid ${status === 'present' ? '#10b98140' : status === 'absent' ? '#ef444440' : '#f59e0b30'}`,
+                        }}>
+                          <span style={{fontSize:12, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span>
+                          <span style={{fontSize:11, fontWeight:500, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}</span>
+                        </span>
+                      ) : (
+                        <button onClick={() => togglePresence(c.id, selectedDay)} className="flex items-center gap-1.5 rounded-full flex-shrink-0 transition-all duration-150" style={{
+                          padding: '5px 14px',
+                          background: status === 'present' ? '#10b98130' : status === 'absent' ? '#ef444430' : '#f59e0b20',
+                          border: `1px solid ${status === 'present' ? '#10b98160' : status === 'absent' ? '#ef444460' : '#f59e0b40'}`,
+                          cursor: 'pointer',
+                        }}>
+                          <span style={{fontSize:13, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span>
+                          <span style={{fontSize:12, fontWeight:500, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

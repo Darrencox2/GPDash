@@ -210,14 +210,28 @@ function AppContent() {
   const getDayOffClinicians = (day) => getCachedDayStatus(getDateKeyForDay(day), day).dayOff;
   const getClinicianStatus = (id, day) => { const s = getCachedDayStatus(getDateKeyForDay(day), day); if (s.present.includes(id)) return 'present'; if (s.absent.includes(id)) return 'absent'; return 'dayoff'; };
 
-  const togglePresence = (id, day) => {
+  const togglePresence = (id, day, targetStatus) => {
     const dateKey = getDateKeyForDay(day); if (isPastDate(dateKey)) return;
     const dayKey = `${dateKey}-${day}`; const scheduled = getScheduledForDay(day); const currentPresent = ensureArray(getPresentClinicians(day));
-    const isCurrentlyPresent = currentPresent.includes(id); const isOnRota = scheduled.includes(id);
-    let newPresent = isCurrentlyPresent ? currentPresent.filter(cid => cid !== id) : [...currentPresent, id];
-    let newScheduled = scheduled;
-    if (!isOnRota && !isCurrentlyPresent) newScheduled = [...scheduled, id];
-    else if (!isOnRota && isCurrentlyPresent) newScheduled = scheduled.filter(cid => cid !== id);
+    const currentStatus = getClinicianStatus(id, day);
+
+    // If targetStatus provided, go directly there; otherwise cycle: present → dayoff → absent → present
+    const next = targetStatus || (currentStatus === 'present' ? 'dayoff' : currentStatus === 'dayoff' ? 'absent' : 'present');
+
+    let newPresent = [...currentPresent];
+    let newScheduled = [...scheduled];
+
+    if (next === 'present') {
+      if (!newPresent.includes(id)) newPresent.push(id);
+      if (!newScheduled.includes(id)) newScheduled.push(id);
+    } else if (next === 'absent') {
+      newPresent = newPresent.filter(cid => cid !== id);
+      if (!newScheduled.includes(id)) newScheduled.push(id);
+    } else { // dayoff
+      newPresent = newPresent.filter(cid => cid !== id);
+      newScheduled = newScheduled.filter(cid => cid !== id);
+    }
+
     const newOverrides = { ...data.dailyOverrides, [dayKey]: { present: newPresent, scheduled: newScheduled } };
     // Auto-regenerate buddy allocations with updated presence
     const clins = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
