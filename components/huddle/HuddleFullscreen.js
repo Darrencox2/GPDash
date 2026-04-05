@@ -570,16 +570,20 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           </div>
           <div className="flex-1 flex flex-col overflow-hidden" style={{padding:'clamp(4px,0.5vh,12px)',gap:'clamp(2px,0.4vh,10px)'}}>
             <div className="flex justify-center flex-shrink-0" style={{gap:'clamp(4px,1vw,16px)'}}>{routineGauges.map((g,i) => <GaugeSVG key={i} pct={g.pct} colour={g.colour} label={g.label} delay={i}/>)}</div>
-            {cardData.length>0 && <div className="flex flex-shrink-0" style={{gap:'clamp(3px,0.5vw,12px)'}}>{cardData.map((c,i) => (
-              <div key={c.id} className="flex-1 bg-slate-50 rounded-lg border border-slate-200 text-center fs-fadein" style={{animationDelay:`${0.6+i*0.1}s`,padding:'clamp(3px,0.5vh,12px)'}}>
-                <div className="font-semibold text-slate-600" style={{fontSize:'clamp(10px, 1.4vh, 20px)'}}>{c.title}</div>
-                <div className="flex justify-center" style={{gap:'clamp(2px,0.3vw,8px)',marginTop:'clamp(2px,0.3vh,8px)'}}>
+            {cardData.length>0 && <div className="flex flex-shrink-0" style={{gap:'clamp(3px,0.5vw,12px)'}}>{cardData.map((c,i) => {
+              const CARD_COLOURS = {rose:{bg:'#fff1f2',border:'#fecdd3',text:'#be123c'},violet:{bg:'#f5f3ff',border:'#ddd6fe',text:'#6d28d9'},blue:{bg:'#eff6ff',border:'#bfdbfe',text:'#1d4ed8'},amber:{bg:'#fffbeb',border:'#fde68a',text:'#b45309'},emerald:{bg:'#ecfdf5',border:'#a7f3d0',text:'#047857'},teal:{bg:'#f0fdfa',border:'#99f6e4',text:'#0f766e'},slate:{bg:'#f8fafc',border:'#e2e8f0',text:'#475569'},sky:{bg:'#f0f9ff',border:'#bae6fd',text:'#0369a1'}};
+              const cc = CARD_COLOURS[c.colour] || CARD_COLOURS.violet;
+              return (
+              <div key={c.id} className="flex-1 rounded-lg text-center fs-fadein" style={{animationDelay:`${0.6+i*0.1}s`,padding:'clamp(3px,0.5vh,12px)',background:cc.bg,border:`1px solid ${cc.border}`}}>
+                <div className="font-semibold" style={{fontSize:'clamp(10px, 1.4vh, 20px)',color:cc.text}}>{c.title}</div>
+                <div style={{fontSize:'clamp(7px,0.8vh,10px)',color:cc.text,opacity:0.6,marginBottom:'clamp(2px,0.3vh,6px)'}}>14 days</div>
+                <div className="flex justify-center" style={{gap:'clamp(2px,0.3vw,8px)'}}>
                   <div className="text-center"><div className="bg-emerald-100 text-emerald-800 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.avail}</div><div className="text-slate-400" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>available</div></div>
                   <div className="text-center"><div className="bg-amber-100 text-amber-800 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.emb}</div><div className="text-slate-400" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>embargoed</div></div>
                   <div className="text-center"><div className="bg-slate-100 text-slate-600 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.booked}</div><div className="text-slate-400" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>booked</div></div>
                 </div>
               </div>
-            ))}</div>}
+            );})}</div>}
             <div className="flex-1 flex flex-col" style={{minHeight:'clamp(80px,12vh,200px)'}}>
               <div className="flex justify-between" style={{marginBottom:'clamp(1px,0.3vh,4px)'}}><span className="text-slate-400" style={{fontSize:'clamp(8px, 1.1vh, 14px)'}}>All routine · 30 days</span><div className="flex text-slate-400" style={{gap:'clamp(3px,0.5vw,8px)',fontSize:'clamp(7px, 1vh, 14px)'}}><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-emerald-400"/>Avail</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm bg-amber-300"/>Emb</span><span className="flex items-center gap-1"><span className="w-2 h-1.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444'}}/>Bkd</span></div></div>
               <div className="flex-1 flex items-end gap-px relative">
