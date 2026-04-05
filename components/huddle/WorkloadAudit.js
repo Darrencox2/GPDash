@@ -290,8 +290,8 @@ export default function WorkloadAudit({ data, huddleData }) {
                   <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5 group relative">
                     <div className="w-full rounded-t-md overflow-hidden" style={{height: `${Math.max(totalPct, 4)}%`}}>
                       <div className="w-full h-full flex flex-col justify-end">
-                        {w.urgent > 0 && <div style={{height: `${urgentPct}%`, background: '#ef4444'}} />}
                         {w.routine > 0 && <div style={{height: `${routinePct}%`, background: '#10b981'}} />}
+                        {w.urgent > 0 && <div style={{height: `${urgentPct}%`, background: '#ef4444'}} />}
                       </div>
                     </div>
                     <div className="text-[8px] text-slate-400 text-center leading-tight mt-0.5">{w.weekKey}</div>
@@ -301,6 +301,7 @@ export default function WorkloadAudit({ data, huddleData }) {
                         <div className="flex justify-between gap-3"><span className="text-slate-400">Urgent</span><span className="font-semibold text-red-400">{w.urgent}</span></div>
                         <div className="flex justify-between gap-3"><span className="text-slate-400">Routine</span><span className="font-semibold text-emerald-400">{w.routine}</span></div>
                         <div className="flex justify-between gap-3 border-t border-slate-600 pt-0.5"><span className="text-slate-400">Total</span><span className="font-semibold text-slate-200">{w.total}</span></div>
+                        <div className="flex justify-between gap-3"><span className="text-slate-400">Urgent %</span><span className="font-semibold text-red-400">{Math.round(urgentPct)}%</span></div>
                       </div>
                       <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid #334155'}} />
                     </div>
@@ -313,6 +314,53 @@ export default function WorkloadAudit({ data, huddleData }) {
               <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}} /><span className="text-xs text-slate-500">Routine</span></div>
             </div>
           </div>
+
+          {/* Urgent percentage trend */}
+          {(() => {
+            const urgPcts = weeklyTrend.map(w => w.total > 0 ? Math.round((w.urgent / w.total) * 100) : 0);
+            const avgPct = urgPcts.length > 0 ? Math.round(urgPcts.reduce((s, p) => s + p, 0) / urgPcts.length) : 0;
+            const maxPct = Math.max(...urgPcts, avgPct + 10, 60);
+            const svgW = 600, svgH = 160, padL = 36, padR = 10, padT = 16, padB = 28;
+            const cw = svgW - padL - padR, ch = svgH - padT - padB;
+            const points = urgPcts.map((p, i) => {
+              const x = padL + (urgPcts.length > 1 ? (i / (urgPcts.length - 1)) * cw : cw / 2);
+              const y = padT + ch - (p / maxPct) * ch;
+              return { x, y, pct: p };
+            });
+            const lineStr = points.map(p => `${p.x},${p.y}`).join(' ');
+            const areaStr = lineStr + ` ${padL + cw},${padT + ch} ${padL},${padT + ch}`;
+            const avgY = padT + ch - (avgPct / maxPct) * ch;
+            const gridLines = [20, 40, 60].filter(v => v <= maxPct);
+
+            return (
+              <div className="p-5 border-t border-slate-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="text-sm font-semibold text-slate-700">Urgent capacity %</div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-red-50 text-red-600">avg {avgPct}%</span>
+                </div>
+                <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full">
+                  {gridLines.map(v => {
+                    const y = padT + ch - (v / maxPct) * ch;
+                    return <g key={v}><line x1={padL} x2={padL + cw} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="0.5" /><text x={padL - 6} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize="10">{v}%</text></g>;
+                  })}
+                  <line x1={padL} x2={padL + cw} y1={avgY} y2={avgY} stroke="#94a3b8" strokeWidth="1" strokeDasharray="4,3" />
+                  <text x={padL + cw + 4} y={avgY + 4} fill="#94a3b8" fontSize="9">avg</text>
+                  <polygon points={areaStr} fill="#ef4444" opacity="0.12" />
+                  <polyline points={lineStr} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                  {points.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="4" fill="#ef4444" />)}
+                  {points.map((p, i) => <text key={`t${i}`} x={p.x} y={p.y - 8} textAnchor="middle" fill="#ef4444" fontSize="10" fontWeight="600">{p.pct}%</text>)}
+                  {weeklyTrend.map((w, i) => {
+                    const x = padL + (urgPcts.length > 1 ? (i / (urgPcts.length - 1)) * cw : cw / 2);
+                    return <text key={`l${i}`} x={x} y={padT + ch + 16} textAnchor="middle" fill="#94a3b8" fontSize="9">{w.weekKey}</text>;
+                  })}
+                </svg>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#ef4444'}} /><span className="text-xs text-slate-500">Urgent %</span></div>
+                  <div className="flex items-center gap-1"><div className="w-6 h-0.5" style={{background:'#94a3b8',backgroundImage:'repeating-linear-gradient(90deg,#94a3b8 0,#94a3b8 4px,transparent 4px,transparent 7px)'}} /><span className="text-xs text-slate-500">Average</span></div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
