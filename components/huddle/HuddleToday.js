@@ -198,14 +198,25 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const hasUrgentFilter = !!urgentOverrides;
   const hasRoutineFilter = !!routineOverrides;
 
-  // 8AM prediction snapshot — save today's capacity once per day
+  // 8AM daily snapshot — save today's capacity once per day
   useEffect(() => {
-    if (!isViewingToday || !capacity || !displayDate) return;
+    if (!isViewingToday || !capacity || !displayDate || !huddleData) return;
     const now = new Date();
     if (now.getHours() < 8) return;
     const todayKey = toLocalIso(realToday);
     const existing = data.predictionHistory?.[todayKey];
     if (existing) return;
+    const dutySlots = hs?.dutyDoctorSlot;
+    const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
+    const dutyAm = hasDuty ? getDutyDoctor(huddleData, displayDate, 'am', dutySlots) : null;
+    const dutyPm = hasDuty ? getDutyDoctor(huddleData, displayDate, 'pm', dutySlots) : null;
+    // Routine capacity (unfiltered for simplicity)
+    const routineOv = hs?.savedSlotFilters?.routine;
+    let routineTotal = 0;
+    if (routineOv) {
+      const rCap = getHuddleCapacity(huddleData, displayDate, hs, routineOv);
+      routineTotal = (rCap.am.total||0) + (rCap.pm.total||0) + (rCap.am.embargoed||0) + (rCap.pm.embargoed||0) + (rCap.am.booked||0) + (rCap.pm.booked||0);
+    }
     const snapshot = {
       savedAt: now.toISOString(),
       urgentAm: (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0),
@@ -215,9 +226,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       availPm: (capacity.pm.total || 0) + (capacity.pm.embargoed || 0),
       bookedAm: capacity.am.booked || 0,
       bookedPm: capacity.pm.booked || 0,
+      dutyDoctorAm: dutyAm?.name || null,
+      dutyDoctorPm: dutyPm?.name || null,
+      routineTotal,
+      clinicianCount: (capacity.am.byClinician?.length || 0),
     };
     saveData({ ...data, predictionHistory: { ...(data.predictionHistory || {}), [todayKey]: snapshot } }, false);
-  }, [isViewingToday, capacity, displayDate]);
+  }, [isViewingToday, capacity, displayDate, huddleData]);
 
   // Smooth fade transition when changing dates
   const [contentOpacity, setContentOpacity] = useState(1);
