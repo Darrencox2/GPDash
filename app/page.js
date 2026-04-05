@@ -207,7 +207,9 @@ function AppContent() {
   };
 
   // Check if a day-off clinician should be upgraded to absent (File & Action)
-  // True if their next working day is absent — meaning no one is looking after their patients
+  // True if their next OR previous working day is absent — covers both directions:
+  // Before leave: day off → next working day is absent → upgrade
+  // After leave: previous working day was absent → day off → upgrade
   const isDayOffUpgradedToAbsent = (cid, fromDateKey) => {
     const clinician = data?.clinicians?.find(c => c.id === cid);
     if (!clinician) return false;
@@ -216,14 +218,24 @@ function AppContent() {
     if (workingDays.length === 0) return false;
     const indexToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const startDate = new Date(fromDateKey + 'T12:00:00');
-    // Look forward up to 28 days for the next working day
+    // Look forward — is next working day absent?
     for (let i = 1; i <= 28; i++) {
       const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() + i);
       const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = toLocalIso(checkDate);
       if (dayIndex === 0 || dayIndex === 6) continue;
       if (workingDays.includes(dayName)) {
-        // Found their next working day — is it absent?
-        return isAbsentOnWorkingDate(cid, checkDateKey, dayName);
+        if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true;
+        break;
+      }
+    }
+    // Look backward — was previous working day absent?
+    for (let i = 1; i <= 28; i++) {
+      const checkDate = new Date(startDate); checkDate.setDate(checkDate.getDate() - i);
+      const dayIndex = checkDate.getDay(); const dayName = indexToDay[dayIndex]; const checkDateKey = toLocalIso(checkDate);
+      if (dayIndex === 0 || dayIndex === 6) continue;
+      if (workingDays.includes(dayName)) {
+        if (isAbsentOnWorkingDate(cid, checkDateKey, dayName)) return true;
+        break;
       }
     }
     return false;

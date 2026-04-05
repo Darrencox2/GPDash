@@ -25,9 +25,16 @@ export default function WorkloadAudit({ data, huddleData }) {
       if (!clinMap[id]) clinMap[id] = { id, name, sessions: 0, dutySessions: 0, supportSessions: 0, dutyDates: [], supportDates: [] };
     };
 
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let earliestDate = null, latestDate = null;
+
     huddleData.dates.forEach(dateStr => {
       const d = parseHuddleDateStr(dateStr);
       if (!d || d.getDay() === 0 || d.getDay() === 6) return;
+      // Only historical data (before today)
+      if (d >= today) return;
+      if (!earliestDate || d < earliestDate) earliestDate = d;
+      if (!latestDate || d > latestDate) latestDate = d;
 
       // Unfiltered capacity for session counting (all slot types)
       const allCap = getHuddleCapacity(huddleData, dateStr, hs);
@@ -102,8 +109,42 @@ export default function WorkloadAudit({ data, huddleData }) {
     const avgDutyRatio = dutyClinicans.length > 0 ? Math.round((dutyClinicans.reduce((s, c) => s + c.dutyRatio, 0) / dutyClinicans.length) * 100) / 100 : 0;
     const avgSupportRatio = supportClinicians.length > 0 ? Math.round((supportClinicians.reduce((s, c) => s + c.supportRatio, 0) / supportClinicians.length) * 100) / 100 : 0;
 
-    return { clinicians, avgDutyRatio, avgSupportRatio };
+    const fmtDate = (d) => d ? `${d.getDate()} ${d.toLocaleString('en-GB',{month:'short'})} ${d.getFullYear()}` : '';
+
+    return { clinicians, avgDutyRatio, avgSupportRatio, earliestDate: fmtDate(earliestDate), latestDate: fmtDate(latestDate) };
   }, [huddleData, hs, dutySlots, hasDuty, allClinicians, urgentOverrides]);
+
+  // 8-week forward projection: expected sessions and leave days per clinician
+  const projection = useMemo(() => {
+    if (!data?.clinicians || !data?.weeklyRota) return {};
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const DAYS_LIST = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const absences = Array.isArray(data.plannedAbsences) ? data.plannedAbsences : [];
+    const indexToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const proj = {};
+
+    const clinList = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
+    clinList.forEach(c => {
+      if (c.status === 'left' || c.status === 'administrative' || c.longTermAbsent) return;
+      const workingDays = DAYS_LIST.filter(day => {
+        const rota = Array.isArray(data.weeklyRota?.[day]) ? data.weeklyRota[day] : [];
+        return rota.includes(c.id);
+      });
+      let sessions = 0, leaveDays = 0;
+      for (let i = 1; i <= 56; i++) {
+        const d = new Date(today); d.setDate(d.getDate() + i);
+        if (d.getDay() === 0 || d.getDay() === 6) continue;
+        const dayName = indexToDay[d.getDay()];
+        if (!workingDays.includes(dayName)) continue;
+        const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const isAbsent = absences.some(a => a.clinicianId === c.id && dateKey >= a.startDate && dateKey <= a.endDate);
+        if (isAbsent) leaveDays++;
+        else sessions++;
+      }
+      proj[c.id] = { sessions, leaveDays, totalRota: sessions + leaveDays };
+    });
+    return proj;
+  }, [data?.clinicians, data?.weeklyRota, data?.plannedAbsences]);
 
   if (!huddleData) return (
     <div className="card p-12 text-center"><div className="text-2xl mb-2">📊</div><h3 className="text-sm font-semibold text-slate-600 mb-1">No CSV data</h3><p className="text-xs text-slate-400">Upload a huddle CSV on the Today page to see workload audit.</p></div>
@@ -123,9 +164,10 @@ export default function WorkloadAudit({ data, huddleData }) {
     const absDelta = Math.abs(delta);
     const isHigh = delta > 0.03;
     const isLow = delta < -0.03;
+    const proj = projection[c.id];
     return (
       <div>
-        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg px-1 -mx-1 transition-colors" onClick={onToggle}>
+        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg px-1 py-0.5 -mx-1 transition-colors" onClick={onToggle}>
           <div className="w-32 text-xs font-medium text-slate-700 truncate text-right">{c.name}</div>
           <div className="flex-1 relative h-7 rounded-lg bg-slate-100 overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${(ratio / max) * 100}%`, background: isHigh ? '#ef4444' : isLow ? '#3b82f6' : colour, opacity: 0.75 }} />
@@ -140,6 +182,13 @@ export default function WorkloadAudit({ data, huddleData }) {
               : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
           </div>
           <div className="w-14 text-[11px] text-slate-500 text-right font-medium">{count}/{c.sessions}</div>
+          <div className="w-20 text-right">
+            {proj ? (
+              proj.leaveDays > 0
+                ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">{proj.leaveDays}d leave</span>
+                : <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-medium">{proj.sessions}s</span>
+            ) : null}
+          </div>
           <span className="text-[10px] text-slate-400 w-4">{expanded ? '▲' : '▼'}</span>
         </div>
         {expanded && dates && dates.length > 0 && (
@@ -195,7 +244,7 @@ export default function WorkloadAudit({ data, huddleData }) {
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3">
           <div className="text-base font-semibold text-white">Workload Audit</div>
-          <div className="text-[11px] text-white/60">Duty and support ratios from CSV history</div>
+          <div className="text-[11px] text-white/60">{audit.earliestDate} — {audit.latestDate}</div>
         </div>
 
         <div className="p-5">
@@ -204,6 +253,14 @@ export default function WorkloadAudit({ data, huddleData }) {
             <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">avg {audit.avgDutyRatio.toFixed(2)}</span>
           </div>
           <div className="text-xs text-slate-400 mb-4">Duty sessions ÷ total sessions worked. Black line = average. Everyone should be similar.</div>
+          <div className="flex items-center gap-3 mb-1 px-1">
+            <div className="w-32 text-[9px] text-slate-400 text-right">Clinician</div>
+            <div className="flex-1 text-[9px] text-slate-400">Ratio</div>
+            <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
+            <div className="w-14 text-[9px] text-slate-400 text-right">count</div>
+            <div className="w-20 text-[9px] text-slate-400 text-right">next 8wk</div>
+            <div className="w-4"></div>
+          </div>
           <div className="space-y-2">
             {audit.clinicians.filter(c => c.dutySessions > 0).sort((a, b) => b.dutyRatio - a.dutyRatio).map(c => (
               <RatioRow key={c.id} c={c} ratio={c.dutyRatio} avg={audit.avgDutyRatio} max={maxDutyRatio} colour="#10b981" count={c.dutySessions} dates={c.dutyDates} expanded={expandedDuty === c.id} onToggle={() => setExpandedDuty(expandedDuty === c.id ? null : c.id)} />
@@ -217,6 +274,14 @@ export default function WorkloadAudit({ data, huddleData }) {
             <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">avg {audit.avgSupportRatio.toFixed(2)}</span>
           </div>
           <div className="text-xs text-slate-400 mb-4">Support sessions ÷ total sessions worked. Clinician with most urgent slots (excl. duty doctor).</div>
+          <div className="flex items-center gap-3 mb-1 px-1">
+            <div className="w-32 text-[9px] text-slate-400 text-right">Clinician</div>
+            <div className="flex-1 text-[9px] text-slate-400">Ratio</div>
+            <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
+            <div className="w-14 text-[9px] text-slate-400 text-right">count</div>
+            <div className="w-20 text-[9px] text-slate-400 text-right">next 8wk</div>
+            <div className="w-4"></div>
+          </div>
           <div className="space-y-2">
             {audit.clinicians.filter(c => c.supportSessions > 0).sort((a, b) => b.supportRatio - a.supportRatio).map(c => (
               <RatioRow key={c.id} c={c} ratio={c.supportRatio} avg={audit.avgSupportRatio} max={maxSupportRatio} colour="#3b82f6" count={c.supportSessions} dates={c.supportDates} expanded={expandedSupport === c.id} onToggle={() => setExpandedSupport(expandedSupport === c.id ? null : c.id)} />
