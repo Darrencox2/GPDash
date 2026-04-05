@@ -1,37 +1,8 @@
 'use client';
 import { useState } from 'react';
+import { calculateHistoricalTargets } from '@/lib/huddle';
 import { getDefaultData } from '@/lib/data';
 import { Button } from '@/components/ui';
-
-function calculateHistoricalTargets(huddleData) {
-  if (!huddleData?.dates) return {};
-  const dayTotals = {};
-  const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  huddleData.dates.forEach(dateStr => {
-    const parts = dateStr.split('-');
-    const d = new Date(`${parts[1]} ${parts[0]}, ${parts[2]}`);
-    if (isNaN(d.getTime())) return;
-    const dayName = DAY_NAMES[d.getDay()];
-    if (dayName === 'Saturday' || dayName === 'Sunday') return;
-    const dd = huddleData.dateData[dateStr];
-    if (!dd) return;
-    if (!dayTotals[dayName]) dayTotals[dayName] = { am: [], pm: [] };
-    let amT = 0, pmT = 0;
-    Object.entries(dd.am || {}).forEach(([_, slots]) => { Object.values(slots).forEach(v => { amT += v; }); });
-    Object.entries(dd.pm || {}).forEach(([_, slots]) => { Object.values(slots).forEach(v => { pmT += v; }); });
-    dayTotals[dayName].am.push(amT);
-    dayTotals[dayName].pm.push(pmT);
-  });
-  const result = {};
-  Object.entries(dayTotals).forEach(([day, data]) => {
-    if (data.am.length < 3) return;
-    result[day] = {
-      am: Math.round(data.am.reduce((s, v) => s + v, 0) / data.am.length),
-      pm: Math.round(data.pm.reduce((s, v) => s + v, 0) / data.pm.length),
-    };
-  });
-  return result;
-}
 
 export default function BuddySettings({ data, saveData, password, syncStatus, setSyncStatus, helpers, huddleData }) {
   const { ensureArray, getTodayKey, syncTeamNet } = helpers;
@@ -88,7 +59,7 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
           <h2 className="text-base font-semibold text-slate-900">Urgent Expected Capacity</h2>
           {huddleData && (
             <Button size="sm" variant="secondary" onClick={() => {
-              const calculated = calculateHistoricalTargets(huddleData);
+              const calculated = calculateHistoricalTargets(huddleData, hs);
               if (Object.keys(calculated).length === 0) return;
               updateHs({ ...hs, expectedCapacity: { ...hs.expectedCapacity, ...calculated } });
             }}>
