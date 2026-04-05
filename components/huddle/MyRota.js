@@ -32,6 +32,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   const [search, setSearch] = useState('');
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [isMobile, setIsMobile] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -53,7 +54,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     if (!selectedId) setSelectedId(clinicians[0].id);
   }, [clinicians]);
 
-  const select = c => { setSelectedId(c.id); setSearch(''); setShowDropdown(false); window.location.hash = `rota-${c.initials}`; };
+  const select = c => { setSelectedId(c.id); setSearch(''); setShowDropdown(false); setIsSearching(false); window.location.hash = `rota-${c.initials}`; };
   const selected = clinicians.find(c => c.id === selectedId);
   const hs = data?.huddleSettings || {};
   const dutySlots = hs?.dutyDoctorSlot;
@@ -133,14 +134,22 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     return weeks;
   }, []);
 
-  // ═══ Search bar (shared) ═══
-  const SearchBar = () => (
+  // ═══ Search bar JSX (not a component — avoids remount on every keystroke) ═══
+  const searchJsx = (
     <div className="relative">
       <div className="flex items-center gap-3">
         {selected && <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{background: gm.bg, color: gm.tx, border: `2px solid ${gm.tx}30`}}>{selected.initials}</div>}
         <div className="flex-1 relative">
-          <input type="text" value={search || (selected?.name || '')} onChange={e => { setSearch(e.target.value); setShowDropdown(true); }} onFocus={() => { if (!search) setSearch(''); setShowDropdown(true); }} onBlur={() => setTimeout(() => setShowDropdown(false), 200)} placeholder="Search clinician..." className="w-full text-sm rounded-lg px-3 py-2.5 outline-none" style={{background:'#0f172a',border:'1px solid #334155',color:'#e2e8f0'}} ref={searchRef} />
-          {showDropdown && (search !== null) && (
+          <input type="text"
+            value={isSearching ? search : (selected?.name || '')}
+            onChange={e => { setSearch(e.target.value); setIsSearching(true); setShowDropdown(true); }}
+            onFocus={() => { setSearch(''); setIsSearching(true); setShowDropdown(true); }}
+            onBlur={() => setTimeout(() => { setShowDropdown(false); setIsSearching(false); }, 200)}
+            placeholder="Search clinician..."
+            className="w-full text-sm rounded-lg px-3 py-2.5 outline-none"
+            style={{background:'#0f172a',border:'1px solid #334155',color:'#e2e8f0'}}
+            ref={searchRef} />
+          {showDropdown && isSearching && (
             <div className="absolute top-full left-0 right-0 mt-1 rounded-lg overflow-hidden z-30 max-h-64 overflow-y-auto" style={{background:'#1e293b',border:'1px solid #334155',boxShadow:'0 10px 30px rgba(0,0,0,0.4)'}}>
               {(search ? filtered : clinicians).map(c => (
                 <button key={c.id} onMouseDown={() => select(c)} className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors" style={{background: c.id === selectedId ? 'rgba(255,255,255,0.08)' : 'transparent'}}>
@@ -162,7 +171,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
       {/* Header */}
       <div className="p-6 pb-4">
-        <SearchBar />
+        {searchJsx}
         {selected && <div className="text-sm text-slate-400 mt-3">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>}
       </div>
 
@@ -236,7 +245,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
       {/* Search */}
       <div className="p-4 pb-2">
-        <SearchBar />
+        {searchJsx}
         {selected && <div className="text-xs text-slate-400 mt-2">{selected.role}</div>}
       </div>
 
