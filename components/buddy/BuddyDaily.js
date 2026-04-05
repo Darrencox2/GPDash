@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, matchesStaffMember } from '@/lib/data';
+import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, matchesStaffMember, computeDayStatus } from '@/lib/data';
 import { getCliniciansForDate } from '@/lib/huddle';
 
 export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData }) {
@@ -104,14 +104,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const handleGenerate = () => {
     const dateKey = getDateKey();
     const day = selectedDay;
-    const dayKey = `${dateKey}-${day}`;
-    const hasOverride = !!(data?.dailyOverrides?.[dayKey]?.present);
-    const pIds = ensureArray(getPresentClinicians(day));
-    const aIds = ensureArray(getAbsentClinicians(day));
-    const doIds = ensureArray(getDayOffClinicians(day));
     const cls = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
-    const { allocations, dayOffAllocations } = generateBuddyAllocations(cls, pIds, aIds, doIds, data.settings || DEFAULT_SETTINGS);
-    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: pIds, absentIds: aIds, dayOffIds: doIds, hasOverride, overriddenIds: hasOverride ? Array.from(overriddenIds) : [] } };
+    const status = computeDayStatus(data, dateKey, day);
+    const { allocations, dayOffAllocations } = generateBuddyAllocations(cls, status.present, status.absent, status.dayOff, data.settings || DEFAULT_SETTINGS);
+    const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: status.present, absentIds: status.absent, dayOffIds: status.dayOff, hasOverride: status.hasOverride, overriddenIds: status.overriddenIds } };
     saveData({ ...data, allocationHistory: newHistory });
   };
 
@@ -169,36 +165,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             const newHistory = { ...currentData.allocationHistory };
             const today = new Date();
             const clins = (Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {})).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
-            const allClins = Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {});
-            const plannedAbs = Array.isArray(currentData.plannedAbsences) ? currentData.plannedAbsences : Object.values(currentData.plannedAbsences || {});
             const idxToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            
-            // Replicate isAbsentUntilNextPresent from page.js
-            const isAbsOnDate = (cid, dk) => plannedAbs.some(a => a.clinicianId === cid && dk >= a.startDate && dk <= a.endDate);
-            const isAbsentCascade = (cid, fromDk) => {
-              const c = allClins.find(c => c.id === cid);
-              if (!c) return false;
-              if (c.longTermAbsent) return true;
-              const rota = currentData.weeklyRota || {};
-              const workDays = DAYS.filter(d => { const r = rota[d] || []; return (Array.isArray(r) ? r : Object.values(r)).includes(cid); });
-              if (workDays.length === 0) return false;
-              const startDate = new Date(fromDk + 'T12:00:00');
-              // Check backwards for last working day
-              for (let j = 1; j <= 7; j++) {
-                const pd = new Date(startDate); pd.setDate(pd.getDate() - j);
-                const pdi = pd.getDay(); const pdn = idxToDay[pdi]; const pdk = toLocalIso(pd);
-                if (pdi === 0 || pdi === 6) continue;
-                if (workDays.includes(pdn)) { if (isAbsOnDate(cid, pdk)) return true; break; }
-              }
-              // Check forwards for next working day
-              for (let j = 0; j <= 28; j++) {
-                const fd = new Date(startDate); fd.setDate(fd.getDate() + j);
-                const fdi = fd.getDay(); const fdn = idxToDay[fdi]; const fdk = toLocalIso(fd);
-                if (fdi === 0 || fdi === 6) continue;
-                if (workDays.includes(fdn)) { if (isAbsOnDate(cid, fdk)) return true; return false; }
-              }
-              return false;
-            };
             
             for (let i = 0; i < 28; i++) {
               const checkDate = new Date(today);
@@ -207,42 +174,11 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               if (dayIndex === 0 || dayIndex === 6) continue;
               const dayName = idxToDay[dayIndex];
               const dateKey = toLocalIso(checkDate);
-              const dayKey = `${dateKey}-${dayName}`;
               if (currentData.closedDays?.[dateKey]) continue;
               
-              // Check for manual override — respect it if present
-              const override = currentData.dailyOverrides?.[dayKey];
-              const hasOverride = !!(override?.present);
-              let present, scheduled;
-              let genOverriddenIds = [];
-              
-              // Always compute natural present for comparison
-              const rota = currentData.weeklyRota?.[dayName] || [];
-              const naturalScheduled = Array.isArray(rota) ? rota : Object.values(rota);
-              const naturalPresent = new Set(naturalScheduled.filter(id => {
-                const c = allClins.find(c => c.id === id);
-                if (!c || c.longTermAbsent) return false;
-                if (isAbsOnDate(id, dateKey)) return false;
-                if (isAbsentCascade(id, dateKey)) return false;
-                return true;
-              }));
-              
-              if (hasOverride) {
-                present = Array.isArray(override.present) ? override.present : Object.values(override.present);
-                scheduled = Array.isArray(override.scheduled || []) ? (override.scheduled || []) : Object.values(override.scheduled || {});
-                const overrideSet = new Set(present);
-                naturalPresent.forEach(id => { if (!overrideSet.has(id)) genOverriddenIds.push(id); });
-                overrideSet.forEach(id => { if (!naturalPresent.has(id)) genOverriddenIds.push(id); });
-              } else {
-                scheduled = naturalScheduled;
-                present = Array.from(naturalPresent);
-              }
-              
-              const absentIds = scheduled.filter(id => !present.includes(id));
-              const dayOffIds = clins.filter(c => !scheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);
-              
-              const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, present, absentIds, dayOffIds, currentData.settings || DEFAULT_SETTINGS);
-              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: present, absentIds, dayOffIds, hasOverride, overriddenIds: genOverriddenIds };
+              const status = computeDayStatus(currentData, dateKey, dayName);
+              const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, status.present, status.absent, status.dayOff, currentData.settings || DEFAULT_SETTINGS);
+              newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: status.present, absentIds: status.absent, dayOffIds: status.dayOff, hasOverride: status.hasOverride, overriddenIds: status.overriddenIds };
               generated++;
               await new Promise(r => setTimeout(r, 10));
             }
