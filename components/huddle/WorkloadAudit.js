@@ -217,7 +217,7 @@ export default function WorkloadAudit({ data, huddleData }) {
         }
       });
       return { ...week, urgent, routine, total: urgent + routine };
-    });
+    }).filter(w => w.total > 0);
   }, [huddleData, hs]);
 
   const trendMax = Math.max(...weeklyTrend.map(w => w.total), 1);
