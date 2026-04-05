@@ -769,6 +769,30 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       {error && <Card className="p-4 bg-red-50 border-red-200 text-red-700 text-sm">{error}</Card>}
 
       <div style={{ opacity: contentOpacity, transition: 'opacity 0.15s ease-in-out' }}>
+
+      {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
+      {!huddleData ? (
+        <div className="card p-12 text-center">
+          <div className="text-5xl mb-4">📊</div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Upload Appointment Report</h2>
+          <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload or drag-and-drop your EMIS CSV to see urgent capacity.</p>
+          <Button onClick={() => fileRef.current?.click()}>Select CSV File</Button>
+        </div>
+      ) : !hasSlots ? (
+        <div className="card overflow-hidden">
+          <div className="py-16 px-6 text-center">
+            <div className="mx-auto mb-4" style={{ width: 72, height: 72, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <path d="M9 22V12h6v10" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-slate-700 mb-2">Practice closed</h2>
+            <p className="text-sm text-slate-400">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* NOTICEBOARD */}
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center gap-2">
@@ -813,35 +837,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       </div>
 
-      {/* DEMAND vs CAPACITY CONNECTOR — only when we have data for this date */}
-      {hasSlots && <DemandCapacityConnector viewingDate={viewingDate} huddleData={huddleData} capacity={capacity} hs={hs} data={data} saveData={saveData} urgentOverrides={urgentOverrides} />}
+      {/* DEMAND vs CAPACITY CONNECTOR */}
+      <DemandCapacityConnector viewingDate={viewingDate} huddleData={huddleData} capacity={capacity} hs={hs} data={data} saveData={saveData} urgentOverrides={urgentOverrides} />
 
-      {/* WHO'S IN / OUT — only when we have data for this date */}
-      {hasSlots && <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />}
-
-      {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
-      {!huddleData ? (
-        <div className="card p-12 text-center">
-          <div className="text-5xl mb-4">📊</div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Upload Appointment Report</h2>
-          <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload or drag-and-drop your EMIS CSV to see urgent capacity.</p>
-          <Button onClick={() => fileRef.current?.click()}>Select CSV File</Button>
-        </div>
-      ) : !hasSlots ? (
-        <div className="card overflow-hidden">
-          <div className="py-12 px-6 text-center">
-            <div className="mx-auto mb-4" style={{ width: 64, height: 64, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                <path d="M9 22V12h6v10" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-700 mb-1">Practice closed</h2>
-            <p className="text-sm text-slate-400">No appointment data for {viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-          </div>
-        </div>
-      ) : (
-        <>
+      {/* WHO'S IN / OUT */}
+      <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />
           {/* ─── URGENT ON THE DAY ─── */}
           {(() => {
             const urgentAm = capacity.am.total + (capacity.am.embargoed || 0) + (capacity.am.booked || 0);
