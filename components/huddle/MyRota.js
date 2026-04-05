@@ -10,6 +10,16 @@ const GROUP_META = {
   allied: { label: 'Allied Health', bg: 'rgba(168,85,247,0.15)', tx: '#c4b5fd', dot: '#8b5cf6' },
 };
 
+function LocSquare({ loc, size = 24 }) {
+  const lc = loc ? LOCATION_COLOURS[loc] : null;
+  if (!loc) return <div style={{width:size,height:size,borderRadius:4,background:'#1e293b'}} />;
+  return (
+    <div style={{width:size,height:size,borderRadius:4,background:lc?.bg||'#475569',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <span style={{fontSize:size*0.5,fontWeight:700,color:lc?.text||'#fff'}}>{loc.charAt(0)}</span>
+    </div>
+  );
+}
+
 export default function MyRota({ data, huddleData, standalone, setActiveSection }) {
   const clinicians = useMemo(() => {
     if (!data?.clinicians) return [];
@@ -18,8 +28,18 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   }, [data?.clinicians]);
 
   const [selectedId, setSelectedId] = useState(null);
-  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [search, setSearch] = useState('');
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [isMobile, setIsMobile] = useState(false);
+  const searchRef = useRef(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     if (clinicians.length === 0) return;
@@ -32,187 +52,256 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     if (!selectedId) setSelectedId(clinicians[0].id);
   }, [clinicians]);
 
-  const select = c => { setSelectedId(c.id); setSearch(''); window.location.hash = `rota-${c.initials}`; };
+  const select = c => { setSelectedId(c.id); setSearch(''); setShowDropdown(false); window.location.hash = `rota-${c.initials}`; };
   const selected = clinicians.find(c => c.id === selectedId);
   const hs = data?.huddleSettings || {};
   const dutySlots = hs?.dutyDoctorSlot;
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
   const gm = selected ? GROUP_META[selected.group] || GROUP_META.allied : GROUP_META.allied;
-  const navigateWeek = d => { const dt = new Date(weekStart); dt.setDate(dt.getDate() + d * 7); setWeekStart(dt); };
-  const isThisWeek = weekStart.getTime() === getWeekStart(new Date()).getTime();
   const todayIso = toLocalIso(new Date());
-  const [origin, setOrigin] = useState('');
-  useEffect(() => { setOrigin(window.location.origin); }, []);
 
-  const weekDays = useMemo(() => {
-    const days = [];
-    for (let i = 0; i < 5; i++) { const d = new Date(weekStart); d.setDate(d.getDate() + i); const pred = predictDemand(d, null); days.push({ date: d, dateStr: `${String(d.getDate()).padStart(2,'0')}-${d.toLocaleString('en-GB',{month:'short'})}-${d.getFullYear()}`, isoKey: toLocalIso(d), dayName: DAYS[i], dayShort: DAYS[i].slice(0,3), dayNum: d.getDate(), monthStr: d.toLocaleString('en-GB',{month:'short'}), isBH: pred?.isBankHoliday || false }); }
-    return days;
-  }, [weekStart]);
+  const filtered = search ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.initials.toLowerCase().includes(search.toLowerCase())) : [];
 
-  const weekLabel = useMemo(() => { const s = weekDays[0], e = weekDays[4]; return `${s.dayNum} ${s.monthStr} — ${e.dayNum} ${e.monthStr} ${e.date.getFullYear()}`; }, [weekDays]);
-
-  const weekData = useMemo(() => {
-    if (!selected || !huddleData) return weekDays.map(() => null);
-    return weekDays.map(day => {
-      const cap = huddleData.dates?.includes(day.dateStr) ? getHuddleCapacity(huddleData, day.dateStr, hs) : null;
-      if (!cap) return null;
-      const am = cap.am?.byClinician?.find(c => matchesStaffMember(c.name, selected));
-      const pm = cap.pm?.byClinician?.find(c => matchesStaffMember(c.name, selected));
-      const amIn = am && (am.available > 0 || am.embargoed > 0 || am.booked > 0);
-      const pmIn = pm && (pm.available > 0 || pm.embargoed > 0 || pm.booked > 0);
-      const amDuty = hasDuty ? getDutyDoctor(huddleData, day.dateStr, 'am', dutySlots) : null;
-      const pmDuty = hasDuty ? getDutyDoctor(huddleData, day.dateStr, 'pm', dutySlots) : null;
-      return { amIn, pmIn, amLoc: am?.location, pmLoc: pm?.location, amDuty: amDuty && matchesStaffMember(amDuty.name, selected), pmDuty: pmDuty && matchesStaffMember(pmDuty.name, selected) };
-    });
-  }, [selected, huddleData, weekDays, hs, hasDuty, dutySlots]);
-
-  const absences = useMemo(() => { const m = {}; if (!selected) return m; (data.plannedAbsences || []).forEach(a => { if (a.clinicianId === selected.id) weekDays.forEach(d => { if (d.isoKey >= a.startDate && d.isoKey <= a.endDate) m[d.isoKey] = a.reason || 'Leave'; }); }); return m; }, [selected, data.plannedAbsences, weekDays]);
-
-  const buddyCover = useMemo(() => {
-    if (!selected || !data?.allocationHistory) return weekDays.map(() => []);
-    return weekDays.map(day => {
-      const alloc = data.allocationHistory[day.isoKey]; if (!alloc) return [];
-      const covers = [];
-      Object.entries(alloc.allocations || {}).forEach(([aid, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(aid)); if (c) covers.push({ ...c, reason: 'Leave' }); } });
-      Object.entries(alloc.dayOffAllocations || {}).forEach(([did, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(did)); if (c) covers.push({ ...c, reason: 'Day off' }); } });
-      return covers;
-    });
-  }, [selected, data?.allocationHistory, weekDays, clinicians]);
-
-  const directLink = selected && origin ? `${origin}#rota-${selected.initials}` : '';
-  const filtered = search ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.initials.toLowerCase().includes(search.toLowerCase())) : clinicians;
-  const grouped = useMemo(() => {
-    const groups = {};
-    filtered.forEach(c => { const g = c.group || 'allied'; if (!groups[g]) groups[g] = []; groups[g].push(c); });
-    return groups;
-  }, [filtered]);
-
-  const Cell = ({ isIn, loc, duty }) => {
-    if (!isIn) return <div className="rounded-lg flex items-center justify-center" style={{ background: '#1e293b', minHeight: 56 }}><span className="text-xs text-slate-700">Not in</span></div>;
-    const lc = loc ? LOCATION_COLOURS[loc] : null;
-    return (
-      <div className="rounded-lg flex items-center justify-center gap-2 px-3" style={{ background: lc?.bg || '#475569', minHeight: 56 }}>
-        {duty && <svg width={14} height={14} viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
-        <span className="text-sm font-medium text-white">{loc || 'In'}</span>
-      </div>
-    );
+  // Get day data for a clinician on a specific date
+  const getDayData = (dateObj, dateStr, isoKey) => {
+    if (!selected || !huddleData) return null;
+    const pred = predictDemand(dateObj, null);
+    if (pred?.isBankHoliday) return { isBH: true };
+    if (!huddleData.dates?.includes(dateStr)) return null;
+    const cap = getHuddleCapacity(huddleData, dateStr, hs);
+    if (!cap) return null;
+    const am = cap.am?.byClinician?.find(c => matchesStaffMember(c.name, selected));
+    const pm = cap.pm?.byClinician?.find(c => matchesStaffMember(c.name, selected));
+    const amIn = am && (am.available > 0 || am.embargoed > 0 || am.booked > 0);
+    const pmIn = pm && (pm.available > 0 || pm.embargoed > 0 || pm.booked > 0);
+    const amDuty = hasDuty ? getDutyDoctor(huddleData, dateStr, 'am', dutySlots) : null;
+    const pmDuty = hasDuty ? getDutyDoctor(huddleData, dateStr, 'pm', dutySlots) : null;
+    const absence = (data.plannedAbsences || []).find(a => a.clinicianId === selected.id && isoKey >= a.startDate && isoKey <= a.endDate);
+    const alloc = data.allocationHistory?.[isoKey];
+    const covers = [];
+    if (alloc) {
+      Object.entries(alloc.allocations || {}).forEach(([aid, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(aid)); if (c) covers.push(c); } });
+      Object.entries(alloc.dayOffAllocations || {}).forEach(([did, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(did)); if (c) covers.push(c); } });
+    }
+    return { amIn, pmIn, amLoc: am?.location, pmLoc: pm?.location, amDuty: amDuty && matchesStaffMember(amDuty.name, selected), pmDuty: pmDuty && matchesStaffMember(pmDuty.name, selected), absence: absence?.reason, covers };
   };
 
-  const content = (
-    <div className="flex gap-0 min-h-[400px]" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
-      {/* LEFT — Clinician sidebar */}
-      <div className="w-56 flex-shrink-0 border-r border-white/5 flex flex-col">
-        <div className="p-3 border-b border-white/5">
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-full text-xs rounded-lg px-3 py-2 outline-none" style={{background:'#0f172a',border:'1px solid #334155',color:'#e2e8f0'}} />
-        </div>
-        <div className="flex-1 overflow-y-auto" style={{maxHeight: 500}}>
-          {['gp','nursing','allied'].map(g => {
-            const members = grouped[g];
-            if (!members?.length) return null;
-            const meta = GROUP_META[g];
-            return (
-              <div key={g}>
-                <div className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-wider font-semibold flex items-center gap-1.5" style={{color: meta.tx}}><span className="w-1.5 h-1.5 rounded-full" style={{background: meta.dot}}/>{meta.label}</div>
-                {members.map(c => (
-                  <button key={c.id} onClick={() => select(c)} className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors" style={{background: c.id === selectedId ? 'rgba(255,255,255,0.08)' : 'transparent'}}>
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{background: GROUP_META[c.group]?.bg || meta.bg, color: GROUP_META[c.group]?.tx || meta.tx}}>{c.initials}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-slate-200 truncate">{c.name}</div>
-                      <div className="text-[10px] text-slate-500 truncate">{c.role}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+  // ═══ CALENDAR (Desktop) ═══
+  const calDays = useMemo(() => {
+    const year = calMonth.getFullYear(), month = calMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    let startDow = firstDay.getDay(); if (startDow === 0) startDow = 7; // Mon=1
+    const days = [];
+    // Pad start
+    for (let i = 1; i < startDow; i++) {
+      const d = new Date(year, month, 1 - (startDow - i));
+      days.push({ date: d, dayNum: d.getDate(), inMonth: false });
+    }
+    // Month days
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      const d = new Date(year, month, i);
+      days.push({ date: d, dayNum: i, inMonth: true });
+    }
+    // Pad end to complete final row
+    while (days.length % 7 !== 0) {
+      const d = new Date(year, month + 1, days.length - lastDay.getDate() - (startDow - 1) + 1);
+      days.push({ date: d, dayNum: d.getDate(), inMonth: false });
+    }
+    return days;
+  }, [calMonth]);
 
-      {/* RIGHT — Rota view */}
-      <div className="flex-1 p-5">
-        {/* Selected clinician header */}
-        {selected && (
-          <div className="flex items-center gap-4 mb-5">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold" style={{background: gm.bg, color: gm.tx, border: `2px solid ${gm.tx}30`}}>{selected.initials}</div>
-            <div className="flex-1">
-              <div className="text-lg font-semibold text-slate-100">{selected.name}</div>
-              <div className="text-sm text-slate-400">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions` : ''}</div>
+  const calLabel = calMonth.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+  const navMonth = (dir) => { const d = new Date(calMonth); d.setMonth(d.getMonth() + dir); setCalMonth(d); };
+  const goThisMonth = () => { const d = new Date(); setCalMonth(new Date(d.getFullYear(), d.getMonth(), 1)); };
+  const isThisMonth = calMonth.getMonth() === new Date().getMonth() && calMonth.getFullYear() === new Date().getFullYear();
+
+  // ═══ 2-WEEK (Mobile) ═══
+  const twoWeeks = useMemo(() => {
+    const ws = getWeekStart(new Date());
+    const weeks = [];
+    for (let w = 0; w < 2; w++) {
+      const weekDays = [];
+      for (let d = 0; d < 5; d++) {
+        const dt = new Date(ws); dt.setDate(dt.getDate() + w * 7 + d);
+        const dateStr = `${String(dt.getDate()).padStart(2,'0')}-${dt.toLocaleString('en-GB',{month:'short'})}-${dt.getFullYear()}`;
+        weekDays.push({ date: dt, dateStr, isoKey: toLocalIso(dt), dayName: DAYS[d], dayShort: DAYS[d].slice(0,3), dayNum: dt.getDate(), monthStr: dt.toLocaleString('en-GB',{month:'short'}) });
+      }
+      weeks.push(weekDays);
+    }
+    return weeks;
+  }, []);
+
+  // ═══ Search bar (shared) ═══
+  const SearchBar = () => (
+    <div className="relative">
+      <div className="flex items-center gap-3">
+        {selected && <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{background: gm.bg, color: gm.tx, border: `2px solid ${gm.tx}30`}}>{selected.initials}</div>}
+        <div className="flex-1 relative">
+          <input type="text" value={search || (selected?.name || '')} onChange={e => { setSearch(e.target.value); setShowDropdown(true); }} onFocus={() => { if (!search) setSearch(''); setShowDropdown(true); }} onBlur={() => setTimeout(() => setShowDropdown(false), 200)} placeholder="Search clinician..." className="w-full text-sm rounded-lg px-3 py-2.5 outline-none" style={{background:'#0f172a',border:'1px solid #334155',color:'#e2e8f0'}} ref={searchRef} />
+          {showDropdown && (search !== null) && (
+            <div className="absolute top-full left-0 right-0 mt-1 rounded-lg overflow-hidden z-30 max-h-64 overflow-y-auto" style={{background:'#1e293b',border:'1px solid #334155',boxShadow:'0 10px 30px rgba(0,0,0,0.4)'}}>
+              {(search ? filtered : clinicians).map(c => (
+                <button key={c.id} onMouseDown={() => select(c)} className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors" style={{background: c.id === selectedId ? 'rgba(255,255,255,0.08)' : 'transparent'}}>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold" style={{background: GROUP_META[c.group]?.bg, color: GROUP_META[c.group]?.tx}}>{c.initials}</span>
+                  <span className="text-xs text-slate-200">{c.name}</span>
+                  <span className="text-[10px] text-slate-500 ml-auto">{c.role}</span>
+                </button>
+              ))}
+              {search && filtered.length === 0 && <div className="px-3 py-3 text-xs text-slate-500 text-center">No matches</div>}
             </div>
-          </div>
-        )}
-
-        {/* Week nav */}
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => navigateWeek(-1)} className="px-3 py-1.5 rounded-lg text-sm" style={{background:'#1e293b',border:'1px solid #334155',color:'#94a3b8',cursor:'pointer'}}>‹</button>
-          <div className="flex-1 text-center">
-            <span className="text-sm font-medium text-slate-200">{weekLabel}</span>
-            {!isThisWeek && <button onClick={() => setWeekStart(getWeekStart(new Date()))} className="block mx-auto mt-0.5 text-[10px]" style={{color:'#818cf8',background:'none',border:'none',cursor:'pointer'}}>This week</button>}
-          </div>
-          <button onClick={() => navigateWeek(1)} className="px-3 py-1.5 rounded-lg text-sm" style={{background:'#1e293b',border:'1px solid #334155',color:'#94a3b8',cursor:'pointer'}}>›</button>
+          )}
         </div>
-
-        {/* Key */}
-        <div className="flex gap-4 mb-4 flex-wrap">
-          {Object.entries(LOCATION_COLOURS).map(([name, lc]) => <div key={name} className="flex items-center gap-1.5"><div className="w-3 h-3 rounded" style={{background:lc.bg}}/><span className="text-xs text-slate-500">{name}</span></div>)}
-          {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-xs text-slate-500">Duty</span></div>}
-        </div>
-
-        {/* Week grid */}
-        <div className="rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
-          <div className="grid" style={{gridTemplateColumns:'100px 1fr 1fr',background:'#1e293b',borderBottom:'1px solid #334155'}}>
-            <div className="py-2.5 px-4"/>
-            <div className="py-2.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">AM</div>
-            <div className="py-2.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">PM</div>
-          </div>
-          {weekDays.map((day, di) => {
-            const wd = weekData[di], covers = buddyCover[di];
-            const absence = absences[day.isoKey];
-            const isOff = (wd && !wd.amIn && !wd.pmIn) || (!wd && absence);
-            const noData = !wd && !absence;
-            const isToday = day.isoKey === todayIso;
-            return (
-              <div key={di} style={{borderBottom: di < 4 ? '1px solid #334155' : 'none', background:'#0f172a'}}>
-                <div className="grid" style={{gridTemplateColumns:'100px 1fr 1fr'}}>
-                  <div className="py-3 px-4 flex flex-col justify-center" style={{borderRight:'1px solid #1e293b', borderLeft: isToday ? '3px solid #10b981' : '3px solid transparent'}}>
-                    <div className="text-base font-semibold" style={{color: (isOff || noData || day.isBH) ? '#334155' : '#e2e8f0'}}>{day.dayShort}</div>
-                    <div className="text-xs text-slate-600">{day.dayNum} {day.monthStr}</div>
-                  </div>
-                  {day.isBH ? (
-                    <div className="col-span-2 py-4 px-5 flex items-center"><span className="text-sm font-medium text-amber-400">Bank holiday</span></div>
-                  ) : (isOff || noData) ? (
-                    <div className="col-span-2 py-4 px-5 flex items-center gap-3">
-                      <span className="text-sm text-slate-600">{absence || 'Not in'}</span>
-                      {absence && <span className="text-[10px] px-2 py-0.5 rounded" style={{background:'rgba(251,191,36,0.1)',color:'#fbbf24',border:'1px solid rgba(251,191,36,0.2)'}}>TeamNet</span>}
-                    </div>
-                  ) : (<>
-                    <div className="p-1.5"><Cell isIn={wd?.amIn} loc={wd?.amLoc} duty={wd?.amDuty} /></div>
-                    <div className="p-1.5"><Cell isIn={wd?.pmIn} loc={wd?.pmLoc} duty={wd?.pmDuty} /></div>
-                  </>)}
-                </div>
-                {covers.length > 0 && (
-                  <div className="flex items-center gap-2 px-4 pb-2" style={{marginLeft:100}}>
-                    <span className="text-[10px] text-slate-600 font-medium">Covering:</span>
-                    {covers.map((c, i) => <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold" style={{background:'#1e293b',border:'1px solid #334155',color: c.reason==='Leave'?'#f87171':'#60a5fa'}} title={`${c.name} — ${c.reason}`}>{c.initials}</div>)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Direct link */}
-        {selected && (
-          <div className="flex items-center gap-2 mt-4 px-3 py-2 rounded-lg" style={{background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.15)'}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-            <span className="text-xs flex-1 truncate" style={{color:'#a5b4fc'}}>{directLink}</span>
-            <button onClick={() => { try { navigator.clipboard.writeText(directLink); } catch { const t = document.createElement('textarea'); t.value = directLink; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); } }} className="text-[11px] px-2.5 py-1 rounded-md" style={{background:'rgba(99,102,241,0.15)',color:'#a5b4fc',border:'1px solid rgba(99,102,241,0.2)',cursor:'pointer'}}>Copy</button>
-          </div>
-        )}
       </div>
     </div>
   );
 
+  // ═══ DESKTOP CALENDAR ═══
+  const DesktopView = () => (
+    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+      {/* Header */}
+      <div className="p-5 pb-3">
+        <SearchBar />
+        {selected && <div className="text-sm text-slate-400 mt-2">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>}
+      </div>
+
+      {/* Month nav */}
+      <div className="px-5 pb-3 flex items-center gap-3">
+        <button onClick={() => navMonth(-1)} className="px-3 py-1.5 rounded-lg text-sm" style={{background:'#1e293b',border:'1px solid #334155',color:'#94a3b8',cursor:'pointer'}}>‹</button>
+        <div className="flex-1 text-center">
+          <span className="text-sm font-semibold text-slate-200">{calLabel}</span>
+          {!isThisMonth && <button onClick={goThisMonth} className="block mx-auto mt-0.5 text-[10px]" style={{color:'#818cf8',background:'none',border:'none',cursor:'pointer'}}>This month</button>}
+        </div>
+        <button onClick={() => navMonth(1)} className="px-3 py-1.5 rounded-lg text-sm" style={{background:'#1e293b',border:'1px solid #334155',color:'#94a3b8',cursor:'pointer'}}>›</button>
+      </div>
+
+      {/* Key */}
+      <div className="px-5 pb-3 flex gap-3 flex-wrap">
+        {Object.entries(LOCATION_COLOURS).map(([name, lc]) => <div key={name} className="flex items-center gap-1.5"><LocSquare loc={name} size={16} /><span className="text-[10px] text-slate-500">{name}</span></div>)}
+        {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[10px] text-slate-500">Duty</span></div>}
+        <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold" style={{background:'#1e293b',border:'1px solid #475569',color:'#f87171'}}>AB</div><span className="text-[10px] text-slate-500">Covering</span></div>
+      </div>
+
+      {/* Calendar grid */}
+      <div className="px-5 pb-5">
+        <div className="grid grid-cols-7 gap-px rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
+          {/* Day headers */}
+          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+            <div key={d} className="py-2 text-center text-[10px] font-semibold uppercase tracking-wider" style={{background:'#1e293b',color:'#64748b'}}>{d}</div>
+          ))}
+          {/* Day cells */}
+          {calDays.map((day, i) => {
+            const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
+            const isoKey = toLocalIso(day.date);
+            const isToday = isoKey === todayIso;
+            const dateStr = `${String(day.date.getDate()).padStart(2,'0')}-${day.date.toLocaleString('en-GB',{month:'short'})}-${day.date.getFullYear()}`;
+            const dd = !isWeekend && day.inMonth ? getDayData(day.date, dateStr, isoKey) : null;
+
+            return (
+              <div key={i} style={{background: isToday ? 'rgba(16,185,129,0.08)' : '#0f172a', minHeight: 72, opacity: day.inMonth ? 1 : 0.3, padding: '4px 5px', borderTop: '1px solid #1e293b'}}>
+                <div className="text-[11px] font-semibold mb-1" style={{color: isToday ? '#10b981' : isWeekend ? '#334155' : '#94a3b8'}}>{day.dayNum}</div>
+                {isWeekend ? null : dd?.isBH ? (
+                  <div className="text-[9px] font-medium text-amber-500">Bank hol</div>
+                ) : dd?.absence && !dd?.amIn && !dd?.pmIn ? (
+                  <div className="text-[9px] font-medium text-amber-400">{dd.absence}</div>
+                ) : dd ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1">
+                      <LocSquare loc={dd.amIn ? dd.amLoc : null} size={20} />
+                      <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={20} />
+                      {(dd.amDuty || dd.pmDuty) && <svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
+                    </div>
+                    {dd.covers.length > 0 && (
+                      <div className="flex gap-0.5 flex-wrap">
+                        {dd.covers.slice(0, 3).map((c, j) => <div key={j} className="w-4 h-4 rounded-full flex items-center justify-center text-[6px] font-bold" style={{background:'#1e293b',border:'1px solid #475569',color:'#f87171'}} title={c.name}>{c.initials}</div>)}
+                        {dd.covers.length > 3 && <span className="text-[8px] text-slate-600">+{dd.covers.length - 3}</span>}
+                      </div>
+                    )}
+                  </div>
+                ) : day.inMonth ? <div className="text-[9px] text-slate-700">No data</div> : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ═══ MOBILE 2-WEEK ═══
+  const MobileView = () => (
+    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+      {/* Search */}
+      <div className="p-4 pb-2">
+        <SearchBar />
+        {selected && <div className="text-xs text-slate-400 mt-2">{selected.role}</div>}
+      </div>
+
+      {/* Key */}
+      <div className="px-4 pb-3 flex gap-3 flex-wrap">
+        {Object.entries(LOCATION_COLOURS).map(([name, lc]) => <div key={name} className="flex items-center gap-1"><LocSquare loc={name} size={14} /><span className="text-[9px] text-slate-500">{name}</span></div>)}
+        {hasDuty && <div className="flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[9px] text-slate-500">Duty</span></div>}
+      </div>
+
+      {/* 2-week grid */}
+      {twoWeeks.map((week, wi) => (
+        <div key={wi} className="px-4 pb-4">
+          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{wi === 0 ? 'This week' : 'Next week'}</div>
+          <div className="rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
+            <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr',background:'#1e293b',borderBottom:'1px solid #334155'}}>
+              <div className="py-2 px-3"/>
+              <div className="py-2 text-center text-[10px] font-semibold text-slate-500 uppercase">AM</div>
+              <div className="py-2 text-center text-[10px] font-semibold text-slate-500 uppercase">PM</div>
+            </div>
+            {week.map((day, di) => {
+              const dd = getDayData(day.date, day.dateStr, day.isoKey);
+              const isToday = day.isoKey === todayIso;
+              const isOff = dd && !dd.amIn && !dd.pmIn && !dd.isBH;
+              const noData = !dd;
+              const alloc = data.allocationHistory?.[day.isoKey];
+              const covers = [];
+              if (alloc && selected) {
+                Object.entries(alloc.allocations || {}).forEach(([aid, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(aid)); if (c) covers.push(c); } });
+                Object.entries(alloc.dayOffAllocations || {}).forEach(([did, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(did)); if (c) covers.push(c); } });
+              }
+              return (
+                <div key={di} style={{borderBottom: di < 4 ? '1px solid #334155' : 'none', background:'#0f172a'}}>
+                  <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr'}}>
+                    <div className="py-2.5 px-3 flex flex-col justify-center" style={{borderRight:'1px solid #1e293b', borderLeft: isToday ? '3px solid #10b981' : '3px solid transparent'}}>
+                      <div className="text-sm font-semibold" style={{color: (isOff || noData || dd?.isBH) ? '#334155' : '#e2e8f0'}}>{day.dayShort}</div>
+                      <div className="text-[10px] text-slate-600">{day.dayNum} {day.monthStr}</div>
+                    </div>
+                    {dd?.isBH ? (
+                      <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-xs font-medium text-amber-400">Bank holiday</span></div>
+                    ) : (isOff || noData) ? (
+                      <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-xs text-slate-600">{dd?.absence || 'Not in'}</span></div>
+                    ) : dd ? (<>
+                      <div className="p-1.5 flex items-center justify-center gap-1">
+                        <LocSquare loc={dd.amIn ? dd.amLoc : null} size={32} />
+                        {dd.amDuty && <svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
+                      </div>
+                      <div className="p-1.5 flex items-center justify-center gap-1">
+                        <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={32} />
+                        {dd.pmDuty && <svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
+                      </div>
+                    </>) : null}
+                  </div>
+                  {covers.length > 0 && (
+                    <div className="flex items-center gap-1.5 px-3 pb-2" style={{marginLeft:80}}>
+                      <span className="text-[9px] text-slate-600">Covering:</span>
+                      {covers.map((c, j) => <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:'1px solid #334155',color:'#f87171'}} title={c.name}>{c.initials}</div>)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const content = isMobile ? <MobileView /> : <DesktopView />;
+
   if (standalone) return content;
-  return <div className="mx-auto" style={{maxWidth:960}}>{content}</div>;
+  return <div className="mx-auto" style={{maxWidth: isMobile ? 480 : 960}}>{content}</div>;
 }
