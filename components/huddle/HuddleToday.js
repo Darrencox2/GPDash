@@ -899,9 +899,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 : allClinicians;
 
               // Duty support = clinician with most total slots (after removing duty doctor and exclusions)
+              // Must have at least 5 urgent slots AND at least 2 more than runner-up
               const supportCandidates = cliniciansAfterDuty.filter(c => !c.displayName?.toLowerCase().includes('balson'));
-              const dutySupportClin = supportCandidates.length > 0 ? supportCandidates.reduce((best, c) => c.total > best.total ? c : best, supportCandidates[0]) : null;
-              const dutySupportDisplay = dutySupportClin && dutySupportClin.total > 0 ? dutySupportClin : null;
+              const sortedSupport = [...supportCandidates].sort((a, b) => b.total - a.total);
+              const topSupport = sortedSupport[0] || null;
+              const runnerUp = sortedSupport[1] || null;
+              const dutySupportClin = topSupport && topSupport.total >= 5 && topSupport.total >= ((runnerUp?.total || 0) + 2) ? topSupport : null;
+              const dutySupportDisplay = dutySupportClin ? dutySupportClin : null;
 
               // Filter duty support out of main list
               const clinicians = dutySupportDisplay

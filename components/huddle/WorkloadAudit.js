@@ -84,10 +84,14 @@ export default function WorkloadAudit({ data, huddleData }) {
               !c.matched.name.toLowerCase().includes('balson')
             );
             if (afterDuty.length > 0) {
-              const support = afterDuty.reduce((best, c) => c.total > best.total ? c : best, afterDuty[0]);
-              initClin(support.matched.id, support.matched.name);
-              clinMap[support.matched.id].supportSessions++;
-              clinMap[support.matched.id].supportDates.push({ date: dateStr, session });
+              const sorted = [...afterDuty].sort((a, b) => b.total - a.total);
+              const top = sorted[0];
+              const second = sorted[1] || null;
+              if (top.total >= 5 && top.total >= ((second?.total || 0) + 2)) {
+                initClin(top.matched.id, top.matched.name);
+                clinMap[top.matched.id].supportSessions++;
+                clinMap[top.matched.id].supportDates.push({ date: dateStr, session });
+              }
             }
           }
         });
