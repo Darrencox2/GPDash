@@ -139,13 +139,26 @@ function AppContent() {
       }
     }
     if (d.allocationHistory) {
+      const pruneDate = new Date();
+      pruneDate.setMonth(pruneDate.getMonth() - 12);
+      const pruneKey = toLocalIso(pruneDate);
       for (const key of Object.keys(d.allocationHistory)) {
+        if (key < pruneKey) { delete d.allocationHistory[key]; continue; }
         const entry = d.allocationHistory[key];
         if (entry) {
           if (entry.presentIds && !Array.isArray(entry.presentIds)) entry.presentIds = Object.values(entry.presentIds);
           if (entry.absentIds && !Array.isArray(entry.absentIds)) entry.absentIds = Object.values(entry.absentIds);
           if (entry.dayOffIds && !Array.isArray(entry.dayOffIds)) entry.dayOffIds = Object.values(entry.dayOffIds);
         }
+      }
+    }
+    // Prune predictionHistory older than 12 months
+    if (d.predictionHistory) {
+      const pruneDate = new Date();
+      pruneDate.setMonth(pruneDate.getMonth() - 12);
+      const pruneKey = toLocalIso(pruneDate);
+      for (const key of Object.keys(d.predictionHistory)) {
+        if (key < pruneKey) delete d.predictionHistory[key];
       }
     }
     return d;
@@ -183,10 +196,20 @@ function AppContent() {
   const getPlannedAbsenceReason = (clinicianId, dateKey) => { const absence = ensureArray(data?.plannedAbsences).find(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate); return absence?.reason || 'Leave'; };
 
   const getScheduledForDay = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.scheduled) return ensureArray(data.dailyOverrides[dayKey].scheduled); const rota = ensureArray(data?.weeklyRota?.[day]); return rota.filter(id => { const c = data?.clinicians?.find(c => c.id === id); return c && !c.longTermAbsent; }); };
-  const getPresentClinicians = (day) => computeDayStatus(data, getDateKeyForDay(day), day).present;
-  const getAbsentClinicians = (day) => computeDayStatus(data, getDateKeyForDay(day), day).absent;
-  const getDayOffClinicians = (day) => computeDayStatus(data, getDateKeyForDay(day), day).dayOff;
-  const getClinicianStatus = (id, day) => { const s = computeDayStatus(data, getDateKeyForDay(day), day); if (s.present.includes(id)) return 'present'; if (s.absent.includes(id)) return 'absent'; return 'dayoff'; };
+  // Cache computeDayStatus per dateKey to avoid repeated cascade computation
+  const dayStatusCache = useRef({});
+  const getCachedDayStatus = (dateKey, day) => {
+    const cacheKey = `${dateKey}-${day}-${dataVersion}`;
+    if (!dayStatusCache.current[cacheKey]) {
+      dayStatusCache.current = { [cacheKey]: computeDayStatus(data, dateKey, day) };
+    }
+    return dayStatusCache.current[cacheKey] || computeDayStatus(data, dateKey, day);
+  };
+
+  const getPresentClinicians = (day) => getCachedDayStatus(getDateKeyForDay(day), day).present;
+  const getAbsentClinicians = (day) => getCachedDayStatus(getDateKeyForDay(day), day).absent;
+  const getDayOffClinicians = (day) => getCachedDayStatus(getDateKeyForDay(day), day).dayOff;
+  const getClinicianStatus = (id, day) => { const s = getCachedDayStatus(getDateKeyForDay(day), day); if (s.present.includes(id)) return 'present'; if (s.absent.includes(id)) return 'absent'; return 'dayoff'; };
 
   const togglePresence = (id, day) => {
     const dateKey = getDateKeyForDay(day); if (isPastDate(dateKey)) return;
