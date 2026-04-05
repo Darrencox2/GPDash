@@ -220,13 +220,14 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             const dayAbs = weekAbsences[day] || [];
 
             return (
-              <button key={day} onClick={() => setSelectedDay(day)} className="text-left transition-all duration-150" style={{
+              <button key={day} onClick={() => setSelectedDay(day)} className="text-left transition-all duration-150 flex flex-col" style={{
                 background: isSel ? 'linear-gradient(135deg, #7c3aed08, #7c3aed12)' : 'white',
                 borderBottom: isSel ? '4px solid #7c3aed' : todayDate ? '4px solid #c4b5fd' : '4px solid transparent',
                 boxShadow: isSel ? 'inset 0 0 0 1px rgba(124,58,237,0.15)' : 'none',
+                height: 160,
               }}>
                 {/* Day header */}
-                <div className="px-3 py-2.5 flex items-center justify-between">
+                <div className="px-3 py-2 flex items-center justify-between flex-shrink-0">
                   <div>
                     <div className="text-sm font-bold" style={{color: isSel ? '#7c3aed' : closed ? '#94a3b8' : '#334155'}}>{day.slice(0, 3)}</div>
                     <div className="text-[10px]" style={{color: isSel ? '#7c3aed' : '#94a3b8'}}>{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
@@ -240,34 +241,40 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                   )}
                 </div>
 
-                {/* Mini allocations */}
-                {!closed && has && (
-                  <div className="px-3 pb-2 space-y-0.5">
-                    {(e.presentIds || []).slice(0, 6).map(bid => {
-                      const b = getClinicianById(bid);
-                      const t = g[bid] || { absent: [], dayOff: [] };
-                      if (!b || (t.absent.length === 0 && t.dayOff.length === 0)) return null;
-                      return (
-                        <div key={bid} className="flex items-center gap-1 text-[10px]">
-                          <span className="font-semibold text-slate-600 w-5">{b.initials}</span>
-                          <div className="flex gap-0.5 flex-wrap">
-                            {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="px-1 py-px rounded text-[8px] font-medium bg-red-100 text-red-700">{x.initials}</span> : null; })}
-                            {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="px-1 py-px rounded text-[8px] font-medium bg-amber-100 text-amber-700">{x.initials}</span> : null; })}
+                {/* Mini allocations — two columns */}
+                {!closed && has && (() => {
+                  const rows = (e.presentIds || []).map(bid => {
+                    const b = getClinicianById(bid);
+                    const t = g[bid] || { absent: [], dayOff: [] };
+                    if (!b || (t.absent.length === 0 && t.dayOff.length === 0)) return null;
+                    return { bid, b, t };
+                  }).filter(Boolean);
+                  return rows.length > 0 ? (
+                    <div className="px-2 flex-1 overflow-hidden" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1px 4px', alignContent:'start'}}>
+                      {rows.slice(0, 8).map(({ bid, b, t }) => (
+                        <div key={bid} className="flex items-center gap-1 text-[9px] truncate">
+                          <span className="font-semibold text-slate-600 flex-shrink-0">{b.initials}</span>
+                          <div className="flex gap-px flex-shrink-0">
+                            {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="px-0.5 rounded text-[7px] font-medium bg-red-100 text-red-700">{x.initials}</span> : null; })}
+                            {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="px-0.5 rounded text-[7px] font-medium bg-amber-100 text-amber-700">{x.initials}</span> : null; })}
                           </div>
                         </div>
-                      );
-                    }).filter(Boolean)}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
 
-                {/* Leave badges */}
+                {/* Leave badges — separated */}
                 {dayAbs.length > 0 && !closed && (
-                  <div className="px-3 pb-2 flex gap-0.5 flex-wrap">
-                    {dayAbs.slice(0, 4).map((a, i) => {
-                      const cc = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? 'bg-blue-50 text-blue-600' : a.reason === 'Training' || a.reason === 'Study' ? 'bg-amber-50 text-amber-600' : a.reason === 'Sick' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-500';
-                      return <span key={i} className={`text-[8px] font-medium px-1 py-px rounded ${cc}`} title={`${a.clinician.name} — ${a.reason}`}>{a.clinician.initials}</span>;
-                    })}
-                    {dayAbs.length > 4 && <span className="text-[8px] text-slate-400">+{dayAbs.length - 4}</span>}
+                  <div className="px-2 pb-2 mt-auto flex-shrink-0">
+                    <div className="pt-1.5 flex gap-0.5 flex-wrap" style={{borderTop:'1px solid #e2e8f0'}}>
+                      <span className="text-[7px] text-slate-400 mr-0.5" style={{lineHeight:'16px'}}>Leave:</span>
+                      {dayAbs.slice(0, 4).map((a, i) => {
+                        const cc = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? 'bg-blue-50 text-blue-600' : a.reason === 'Training' || a.reason === 'Study' ? 'bg-amber-50 text-amber-600' : a.reason === 'Sick' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-500';
+                        return <span key={i} className={`text-[8px] font-medium px-1 py-px rounded ${cc}`} title={`${a.clinician.name} — ${a.reason}`}>{a.clinician.initials}</span>;
+                      })}
+                      {dayAbs.length > 4 && <span className="text-[8px] text-slate-400">+{dayAbs.length - 4}</span>}
+                    </div>
                   </div>
                 )}
               </button>
