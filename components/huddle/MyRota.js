@@ -10,12 +10,13 @@ const GROUP_META = {
   allied: { label: 'Allied Health', bg: 'rgba(168,85,247,0.15)', tx: '#c4b5fd', dot: '#8b5cf6' },
 };
 
-function LocSquare({ loc, size = 24 }) {
+function LocSquare({ loc, size = 24, duty }) {
   const lc = loc ? LOCATION_COLOURS[loc] : null;
   if (!loc) return <div style={{width:size,height:size,borderRadius:4,background:'#1e293b'}} />;
   return (
-    <div style={{width:size,height:size,borderRadius:4,background:lc?.bg||'#475569',display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <span style={{fontSize:size*0.5,fontWeight:700,color:lc?.text||'#fff'}}>{loc.charAt(0)}</span>
+    <div style={{width:size,height:size,borderRadius:4,background:lc?.bg||'#475569',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+      <span style={{fontSize:size*0.45,fontWeight:700,color:lc?.text||'#fff'}}>{loc.charAt(0)}</span>
+      {duty && <svg style={{position:'absolute',top:-2,right:-2,width:size*0.4,height:size*0.4}} viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
     </div>
   );
 }
@@ -80,8 +81,8 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     const alloc = data.allocationHistory?.[isoKey];
     const covers = [];
     if (alloc) {
-      Object.entries(alloc.allocations || {}).forEach(([aid, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(aid)); if (c) covers.push(c); } });
-      Object.entries(alloc.dayOffAllocations || {}).forEach(([did, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(did)); if (c) covers.push(c); } });
+      Object.entries(alloc.allocations || {}).forEach(([aid, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(aid)); if (c) covers.push({ ...c, coverType: 'fileAction' }); } });
+      Object.entries(alloc.dayOffAllocations || {}).forEach(([did, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(did)); if (c) covers.push({ ...c, coverType: 'viewOnly' }); } });
     }
     return { amIn, pmIn, amLoc: am?.location, pmLoc: pm?.location, amDuty: amDuty && matchesStaffMember(amDuty.name, selected), pmDuty: pmDuty && matchesStaffMember(pmDuty.name, selected), absence: absence?.reason, covers };
   };
@@ -160,34 +161,35 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   const DesktopView = () => (
     <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
       {/* Header */}
-      <div className="p-5 pb-3">
+      <div className="p-6 pb-4">
         <SearchBar />
-        {selected && <div className="text-sm text-slate-400 mt-2">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>}
+        {selected && <div className="text-sm text-slate-400 mt-3">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>}
       </div>
 
       {/* Month nav */}
-      <div className="px-5 pb-3 flex items-center gap-3">
+      <div className="px-6 pb-4 flex items-center gap-3">
         <button onClick={() => navMonth(-1)} className="px-3 py-1.5 rounded-lg text-sm" style={{background:'#1e293b',border:'1px solid #334155',color:'#94a3b8',cursor:'pointer'}}>‹</button>
         <div className="flex-1 text-center">
-          <span className="text-sm font-semibold text-slate-200">{calLabel}</span>
-          {!isThisMonth && <button onClick={goThisMonth} className="block mx-auto mt-0.5 text-[10px]" style={{color:'#818cf8',background:'none',border:'none',cursor:'pointer'}}>This month</button>}
+          <span className="text-base font-semibold text-slate-200">{calLabel}</span>
+          {!isThisMonth && <button onClick={goThisMonth} className="block mx-auto mt-1 text-[11px]" style={{color:'#818cf8',background:'none',border:'none',cursor:'pointer'}}>This month</button>}
         </div>
         <button onClick={() => navMonth(1)} className="px-3 py-1.5 rounded-lg text-sm" style={{background:'#1e293b',border:'1px solid #334155',color:'#94a3b8',cursor:'pointer'}}>›</button>
       </div>
 
       {/* Key */}
-      <div className="px-5 pb-3 flex gap-3 flex-wrap">
-        {Object.entries(LOCATION_COLOURS).map(([name, lc]) => <div key={name} className="flex items-center gap-1.5"><LocSquare loc={name} size={16} /><span className="text-[10px] text-slate-500">{name}</span></div>)}
-        {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[10px] text-slate-500">Duty</span></div>}
-        <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold" style={{background:'#1e293b',border:'1px solid #475569',color:'#f87171'}}>AB</div><span className="text-[10px] text-slate-500">Covering</span></div>
+      <div className="px-6 pb-4 flex gap-4 flex-wrap">
+        {Object.entries(LOCATION_COLOURS).map(([name, lc]) => <div key={name} className="flex items-center gap-1.5"><LocSquare loc={name} size={18} /><span className="text-[11px] text-slate-500">{name}</span></div>)}
+        {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[11px] text-slate-500">Duty</span></div>}
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:'1px solid #f87171',color:'#f87171'}}>AB</div><span className="text-[11px] text-slate-500">File & action</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:'1px solid #60a5fa',color:'#60a5fa'}}>AB</div><span className="text-[11px] text-slate-500">View only</span></div>
       </div>
 
       {/* Calendar grid */}
-      <div className="px-5 pb-5">
+      <div className="px-6 pb-6">
         <div className="grid grid-cols-7 gap-px rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
           {/* Day headers */}
           {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-            <div key={d} className="py-2 text-center text-[10px] font-semibold uppercase tracking-wider" style={{background:'#1e293b',color:'#64748b'}}>{d}</div>
+            <div key={d} className="py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider" style={{background:'#1e293b',color:'#64748b'}}>{d}</div>
           ))}
           {/* Day cells */}
           {calDays.map((day, i) => {
@@ -198,23 +200,25 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
             const dd = !isWeekend && day.inMonth ? getDayData(day.date, dateStr, isoKey) : null;
 
             return (
-              <div key={i} style={{background: isToday ? 'rgba(16,185,129,0.08)' : '#0f172a', minHeight: 72, opacity: day.inMonth ? 1 : 0.3, padding: '4px 5px', borderTop: '1px solid #1e293b'}}>
-                <div className="text-[11px] font-semibold mb-1" style={{color: isToday ? '#10b981' : isWeekend ? '#334155' : '#94a3b8'}}>{day.dayNum}</div>
+              <div key={i} style={{background: isToday ? 'rgba(16,185,129,0.08)' : '#0f172a', minHeight: 96, opacity: day.inMonth ? 1 : 0.3, padding: '6px 8px', borderTop: '1px solid #1e293b'}}>
+                <div className="text-xs font-semibold mb-2" style={{color: isToday ? '#10b981' : isWeekend ? '#334155' : '#94a3b8'}}>{day.dayNum}</div>
                 {isWeekend ? null : dd?.isBH ? (
-                  <div className="text-[9px] font-medium text-amber-500">Bank hol</div>
+                  <div className="text-[10px] font-medium text-amber-500">Bank hol</div>
                 ) : dd?.absence && !dd?.amIn && !dd?.pmIn ? (
-                  <div className="text-[9px] font-medium text-amber-400">{dd.absence}</div>
+                  <div className="text-[10px] font-medium text-amber-400">{dd.absence}</div>
                 ) : dd ? (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      <LocSquare loc={dd.amIn ? dd.amLoc : null} size={20} />
-                      <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={20} />
-                      {(dd.amDuty || dd.pmDuty) && <svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <LocSquare loc={dd.amIn ? dd.amLoc : null} size={30} duty={dd.amDuty} />
+                      <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={30} duty={dd.pmDuty} />
                     </div>
                     {dd.covers.length > 0 && (
-                      <div className="flex gap-0.5 flex-wrap">
-                        {dd.covers.slice(0, 3).map((c, j) => <div key={j} className="w-4 h-4 rounded-full flex items-center justify-center text-[6px] font-bold" style={{background:'#1e293b',border:'1px solid #475569',color:'#f87171'}} title={c.name}>{c.initials}</div>)}
-                        {dd.covers.length > 3 && <span className="text-[8px] text-slate-600">+{dd.covers.length - 3}</span>}
+                      <div className="flex gap-1 flex-wrap">
+                        {dd.covers.slice(0, 4).map((c, j) => {
+                          const isFA = c.coverType === 'fileAction';
+                          return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold" style={{background:'#1e293b',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>;
+                        })}
+                        {dd.covers.length > 4 && <span className="text-[8px] text-slate-600 self-center">+{dd.covers.length - 4}</span>}
                       </div>
                     )}
                   </div>
@@ -257,12 +261,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
               const isToday = day.isoKey === todayIso;
               const isOff = dd && !dd.amIn && !dd.pmIn && !dd.isBH;
               const noData = !dd;
-              const alloc = data.allocationHistory?.[day.isoKey];
-              const covers = [];
-              if (alloc && selected) {
-                Object.entries(alloc.allocations || {}).forEach(([aid, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(aid)); if (c) covers.push(c); } });
-                Object.entries(alloc.dayOffAllocations || {}).forEach(([did, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(did)); if (c) covers.push(c); } });
-              }
+              const covers = dd?.covers || [];
               return (
                 <div key={di} style={{borderBottom: di < 4 ? '1px solid #334155' : 'none', background:'#0f172a'}}>
                   <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr'}}>
@@ -275,20 +274,18 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
                     ) : (isOff || noData) ? (
                       <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-xs text-slate-600">{dd?.absence || 'Not in'}</span></div>
                     ) : dd ? (<>
-                      <div className="p-1.5 flex items-center justify-center gap-1">
-                        <LocSquare loc={dd.amIn ? dd.amLoc : null} size={32} />
-                        {dd.amDuty && <svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
+                      <div className="p-1.5 flex items-center justify-center">
+                        <LocSquare loc={dd.amIn ? dd.amLoc : null} size={32} duty={dd.amDuty} />
                       </div>
-                      <div className="p-1.5 flex items-center justify-center gap-1">
-                        <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={32} />
-                        {dd.pmDuty && <svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
+                      <div className="p-1.5 flex items-center justify-center">
+                        <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={32} duty={dd.pmDuty} />
                       </div>
                     </>) : null}
                   </div>
                   {covers.length > 0 && (
                     <div className="flex items-center gap-1.5 px-3 pb-2" style={{marginLeft:80}}>
                       <span className="text-[9px] text-slate-600">Covering:</span>
-                      {covers.map((c, j) => <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:'1px solid #334155',color:'#f87171'}} title={c.name}>{c.initials}</div>)}
+                      {covers.map((c, j) => { const isFA = c.coverType === 'fileAction'; return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>; })}
                     </div>
                   )}
                 </div>
