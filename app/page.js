@@ -6,7 +6,6 @@ import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LoginScreen from '@/components/LoginScreen';
 import BuddyDaily from '@/components/buddy/BuddyDaily';
-import BuddyWeek from '@/components/buddy/BuddyWeek';
 import TeamMembers from '@/components/buddy/TeamMembers';
 import TeamRota from '@/components/buddy/TeamRota';
 import BuddySettings from '@/components/buddy/BuddySettings';
@@ -286,8 +285,7 @@ function AppContent() {
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <main className="flex-1 min-h-screen min-w-0">
         <div className="max-w-6xl mx-auto p-4 lg:p-6 animate-in">
-          {activeSection === 'buddy-daily' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} />}
-          {activeSection === 'buddy-week' && <BuddyWeek data={data} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} toast={toast} helpers={helpers} />}
+          {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-rota' && <MyRota data={data} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}

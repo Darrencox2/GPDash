@@ -5,15 +5,27 @@ import { APP_VERSION } from '@/lib/version';
 
 const NAV_SECTIONS = [
   {
-    id: 'huddle',
+    id: 'today',
     iconPath: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
-    label: 'Dashboard',
+    label: 'Today',
     colour: 'teal',
+    items: [],
+  },
+  {
+    id: 'buddy',
+    iconPath: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+    label: 'Buddy Cover',
+    colour: 'purple',
+    items: [],
+  },
+  {
+    id: 'capacity',
+    iconPath: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z',
+    label: 'Capacity',
+    colour: 'indigo',
     items: [
-      { id: 'huddle-today', label: 'Today' },
-      { id: 'huddle-forward', label: 'Capacity Planning' },
+      { id: 'huddle-forward', label: 'Forward Planning' },
       { id: 'workload-audit', label: 'Workload Audit' },
-      { id: 'room-dashboard', label: 'Room Allocation', badge: 'Testing' },
     ],
   },
   {
@@ -24,25 +36,24 @@ const NAV_SECTIONS = [
     items: [],
   },
   {
-    id: 'buddy',
-    iconPath: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
-    label: 'Buddy Cover',
-    colour: 'purple',
+    id: 'team',
+    iconPath: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
+    label: 'Team',
+    colour: 'amber',
     items: [
-      { id: 'buddy-daily', label: 'Daily' },
-      { id: 'buddy-week', label: 'Week View' },
+      { id: 'team-members', label: 'Team Members' },
+      { id: 'team-rota', label: 'Working Patterns' },
+      { id: 'settings', label: 'Buddy Settings' },
     ],
   },
   {
-    id: 'settings',
-    iconPath: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
-    label: 'Settings',
+    id: 'rooms',
+    iconPath: 'M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z',
+    label: 'Rooms',
     colour: 'slate',
     items: [
-      { id: 'settings', label: 'General' },
-      { id: 'team-members', label: 'Team Members' },
-      { id: 'team-rota', label: 'Rota' },
-      { id: 'room-settings', label: 'Room Allocation' },
+      { id: 'room-dashboard', label: 'Allocation', badge: 'Testing' },
+      { id: 'room-settings', label: 'Room Settings' },
     ],
   },
 ];
@@ -50,20 +61,24 @@ const NAV_SECTIONS = [
 const ACCENT_COLOURS = {
   teal: { active: 'bg-teal-500/20 text-teal-200', hover: 'hover:bg-teal-500/10', dot: 'bg-teal-400' },
   purple: { active: 'bg-purple-500/20 text-purple-200', hover: 'hover:bg-purple-500/10', dot: 'bg-purple-400' },
+  indigo: { active: 'bg-indigo-500/20 text-indigo-200', hover: 'hover:bg-indigo-500/10', dot: 'bg-indigo-400' },
   blue: { active: 'bg-blue-500/20 text-blue-200', hover: 'hover:bg-blue-500/10', dot: 'bg-blue-400' },
+  amber: { active: 'bg-amber-500/20 text-amber-200', hover: 'hover:bg-amber-500/10', dot: 'bg-amber-400' },
   slate: { active: 'bg-white/10 text-white', hover: 'hover:bg-white/5', dot: 'bg-slate-400' },
 };
 
 export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen }) {
-  const [expandedMenus, setExpandedMenus] = useState({ huddle: true, buddy: false, settings: false });
+  const [expandedMenus, setExpandedMenus] = useState({ capacity: false, team: false, rooms: false });
 
   const toggleMenu = (menu) => setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
 
+  // Map standalone section IDs to activeSection values
+  const SECTION_MAP = { today: 'huddle-today', buddy: 'buddy-cover', 'rota-section': 'huddle-rota' };
+
   const isSectionActive = (sectionId) => {
-    if (sectionId === 'rota-section') return activeSection === 'huddle-rota';
+    if (SECTION_MAP[sectionId]) return activeSection === SECTION_MAP[sectionId];
     const section = NAV_SECTIONS.find(s => s.id === sectionId);
     if (!section) return false;
-    if (section.items.length === 0) return activeSection === sectionId;
     return section.items.some(item => item.id === activeSection);
   };
 
@@ -106,7 +121,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
               if (section.items.length === 0) {
                 return (
-                  <button key={section.id} onClick={() => setActiveSection(section.id === 'rota-section' ? 'huddle-rota' : section.id)}
+                  <button key={section.id} onClick={() => setActiveSection(SECTION_MAP[section.id] || section.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive ? accent.active : `text-slate-400 ${accent.hover}`
                     }`}>
