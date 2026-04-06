@@ -118,6 +118,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     setCardOverrides(prev => { const n = { ...prev }; delete n[cardId]; return n; });
   };
 
+  const siteColourMap = useMemo(() => {
+    const sites = data?.roomAllocation?.sites || [];
+    const map = {};
+    sites.forEach(s => { if (s.name && s.colour) map[s.name] = s.colour; });
+    return map;
+  }, [data?.roomAllocation?.sites]);
+  const getSiteColour = (siteName) => siteColourMap[siteName] || '#64748b';
   const teamClinicians = useMemo(() => {
     if (!data?.clinicians) return [];
     return Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
@@ -488,7 +495,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="text-sm text-slate-500 mb-1">Clinicians today</div>
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono-data text-5xl font-bold text-white leading-none">{inCount}</span>
-                      {offCount > 0 && <span className="text-lg text-red-400 font-medium">{offCount} off</span>}
+                      
                     </div>
                     <div className="text-sm text-slate-600 mt-1">of {visibleClinicians.length} active</div>
                   </div>
@@ -608,7 +615,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               return (
                 <div className="flex-1 p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="font-mono-data text-4xl font-bold leading-none" style={{ color: band.colour }}>{slots}</span>
+                    <span className="font-mono-data text-6xl font-bold leading-none" style={{ color: band.colour }}>{slots}</span>
                     <div className="flex-1">
                       <div className="h-2.5 rounded-full relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                         <div className="absolute left-0 top-0 bottom-0" style={{ width: `${Math.min(bar.fillPct, 100)}%`, display:'flex', borderRadius: '5px' }}>
@@ -652,8 +659,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   )}
                   <div className="flex flex-col gap-2">
                     {clinicians.map((c, i) => {
-                      const LOC_PILL = { 'Winscombe': '#0ea5e9', 'Banwell': '#f97316', 'Locking': '#a855f7' };
-                      const locPill = c.location ? LOC_PILL[c.location] : null;
+                      const locPill = c.location ? getSiteColour(c.location) : null;
                       return (
                         <div key={i} className="glass-inner rounded-lg px-3 py-2 flex items-center justify-between">
                           <div className="flex items-center gap-2.5 min-w-0">
@@ -793,9 +799,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <div className="grid grid-cols-4 divide-x divide-white/10 border-b border-white/10">
                   {periodGauges.map(g => (
                     <div key={g.label} className="flex flex-col items-center py-4 px-2">
-                      <MiniGauge value={g.avail} max={g.total} size={80} strokeWidth={7} colour={g.colour}>
-                        <text x="40" y="35" textAnchor="middle" fill="#e2e8f0" style={{ fontSize: '18px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
-                        <text x="40" y="48" textAnchor="middle" fill="#64748b" style={{ fontSize: '9px' }}>available</text>
+                      <MiniGauge value={g.avail} max={g.total} size={120} strokeWidth={9} colour={g.colour}>
+                        <text x="60" y="52" textAnchor="middle" fill="#e2e8f0" style={{ fontSize: '26px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
+                        <text x="60" y="70" textAnchor="middle" fill="#64748b" style={{ fontSize: '11px' }}>available</text>
                       </MiniGauge>
                       <div className="text-[13px] font-semibold text-slate-300 mt-1">{g.label}</div>
                       <div className="text-[13px] text-slate-500">{g.avail} avail · {g.booked} bkd</div>
