@@ -110,10 +110,18 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
     channelRef.current?.postMessage({ type: 'navigate', direction: dir });
   };
 
+  const openingScreen2Ref = useRef(false);
+
   const openScreen2 = () => {
-    const w = window.open(window.location.origin + '/?huddle=2', 'gpdash-screen2', 'popup=yes');
-    screen2WindowRef.current = w;
-    setDualMode(true);
+    openingScreen2Ref.current = true;
+    // Exit native fullscreen first (it will break when we open a window)
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    setTimeout(() => {
+      const w = window.open(window.location.origin + '/?huddle=2', 'gpdash-screen2', 'popup=yes');
+      screen2WindowRef.current = w;
+      setDualMode(true);
+      openingScreen2Ref.current = false;
+    }, 100);
   };
 
   const exitDual = () => {
@@ -132,18 +140,24 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const hs = data?.huddleSettings || {};
   const messages = ensureArray(data?.huddleMessages || []);
 
-  // Fullscreen API — use ref for onExit to avoid effect re-running on every render
+  // Fullscreen API — skip in dual mode (use CSS overlay instead)
   const onExitRef = useRef(onExit);
   onExitRef.current = onExit;
   useEffect(() => {
     const el = containerRef.current;
-    if (el?.requestFullscreen) el.requestFullscreen().catch(() => {});
-    const onFs = () => { if (!document.fullscreenElement) onExitRef.current(); };
+    if (!dualMode && !screen) {
+      if (el?.requestFullscreen) el.requestFullscreen().catch(() => {});
+    }
+    const onFs = () => {
+      if (!document.fullscreenElement && !openingScreen2Ref.current && !dualMode) {
+        onExitRef.current();
+      }
+    };
     document.addEventListener('fullscreenchange', onFs);
-    const onKey = (e) => { if (e.key === 'Escape') onExitRef.current(); };
+    const onKey = (e) => { if (e.key === 'Escape') { if (dualMode || screen) exitDual(); else onExitRef.current(); } };
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('fullscreenchange', onFs); document.removeEventListener('keydown', onKey); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
-  }, []);
+  }, [dualMode, screen]);
 
   // Demand + weather
   useEffect(() => {
@@ -391,10 +405,13 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 <svg style={{width:'clamp(12px,1.5vh,18px)',height:'clamp(12px,1.5vh,18px)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="8" height="18" rx="1"/><rect x="14" y="3" width="8" height="18" rx="1"/></svg>
                 2 Screen
               </button>}
-              {dualMode && screen !== 2 && <span className="text-emerald-400 flex items-center gap-1.5" style={{fontSize:'clamp(9px,1.2vh,14px)'}}>
-                <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="8" height="18" rx="1"/><rect x="14" y="3" width="8" height="18" rx="1"/></svg>
-                Screen 1
-              </span>}
+              {dualMode && screen !== 2 && <>
+                <span className="text-emerald-400 flex items-center gap-1.5" style={{fontSize:'clamp(9px,1.2vh,14px)'}}>
+                  <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="8" height="18" rx="1"/><rect x="14" y="3" width="8" height="18" rx="1"/></svg>
+                  Screen 1
+                </span>
+                <button onClick={() => containerRef.current?.requestFullscreen?.().catch(()=>{})} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10" style={{border:'1px solid rgba(255,255,255,0.08)',padding:'clamp(4px, 0.8vh, 14px) clamp(8px,1.2vw,20px)',fontSize:'clamp(10px,1.3vh,16px)'}}>Fullscreen</button>
+              </>}
               {screen === 2 && <span className="text-emerald-400 flex items-center gap-1.5" style={{fontSize:'clamp(9px,1.2vh,14px)'}}>
                 <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="8" height="18" rx="1"/><rect x="14" y="3" width="8" height="18" rx="1"/></svg>
                 Screen 2
