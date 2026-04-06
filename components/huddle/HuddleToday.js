@@ -45,6 +45,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       if (params.get('huddle') === '2') {
         setHuddleScreen(2);
         setIsFullscreen(true);
+        const dateParam = params.get('date');
+        if (dateParam) {
+          const d = new Date(dateParam + 'T00:00:00');
+          if (!isNaN(d.getTime())) setViewingDate(d);
+        }
       }
     }
   }, []);

@@ -90,8 +90,9 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const chartInstance = useRef(null);
   const [demandData, setDemandData] = useState(null);
   const [showFsChart, setShowFsChart] = useState(false);
-  const [dualMode, setDualMode] = useState(!!screenProp);
-  const screen = screenProp || null; // null = single, 1 = primary, 2 = secondary
+  const [effectiveScreen, setEffectiveScreen] = useState(screenProp || null);
+  const screen = effectiveScreen; // null = single, 1 = primary, 2 = secondary
+  const dualMode = screen === 1 || screen === 2;
   const screen2WindowRef = useRef(null);
 
   // BroadcastChannel for dual-screen date sync
@@ -100,10 +101,10 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
     channelRef.current = new BroadcastChannel('gpdash-huddle-sync');
     channelRef.current.onmessage = (e) => {
       if (e.data.type === 'navigate' && onNavigateDay) onNavigateDay(e.data.direction);
-      if (e.data.type === 'exit' && screen === 2) onExit?.();
+      if (e.data.type === 'exit') onExit?.();
     };
     return () => channelRef.current?.close();
-  }, [screen, onNavigateDay, onExit]);
+  }, [onNavigateDay, onExit]);
 
   const syncNavigate = (dir) => {
     onNavigateDay?.(dir);
@@ -114,12 +115,13 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
 
   const openScreen2 = () => {
     openingScreen2Ref.current = true;
-    // Exit native fullscreen first (it will break when we open a window)
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    // Pass current viewing date to screen 2
+    const dateParam = viewingDateProp ? `&date=${toLocalIso(viewingDateProp)}` : '';
     setTimeout(() => {
-      const w = window.open(window.location.origin + '/?huddle=2', 'gpdash-screen2', 'popup=yes');
+      const w = window.open(window.location.origin + `/?huddle=2${dateParam}`, 'gpdash-screen2', 'popup=yes');
       screen2WindowRef.current = w;
-      setDualMode(true);
+      setEffectiveScreen(1); // This screen becomes screen 1
       openingScreen2Ref.current = false;
     }, 100);
   };
