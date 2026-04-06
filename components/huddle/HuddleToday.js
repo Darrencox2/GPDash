@@ -403,9 +403,21 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           inCount = scheduledToday.filter(c => !absentIds.has(c.id)).length;
           offCount = visibleClinicians.length - inCount;
         }
-        // Gauge
-        const gaugeR = 72, gaugeC = Math.PI * 2 * gaugeR;
-        const gaugeFill = targetTotal > 0 ? Math.min(coveragePct / 100, 1.0) : 0;
+        // Gauge — half-arc speedometer (50% left, 100% top, 150% right)
+        const gaugeStops = [{pos:0,col:[239,68,68]},{pos:0.25,col:[245,158,11]},{pos:0.5,col:[16,185,129]},{pos:0.75,col:[16,185,129]},{pos:1.0,col:[59,130,246]}];
+        const gaugeColor = (t) => { t = Math.max(0,Math.min(1,t)); for(let i=0;i<gaugeStops.length-1;i++){if(t>=gaugeStops[i].pos&&t<=gaugeStops[i+1].pos){const l=(t-gaugeStops[i].pos)/(gaugeStops[i+1].pos-gaugeStops[i].pos);const a=gaugeStops[i].col,b=gaugeStops[i+1].col;return `rgb(${Math.round(a[0]+(b[0]-a[0])*l)},${Math.round(a[1]+(b[1]-a[1])*l)},${Math.round(a[2]+(b[2]-a[2])*l)})`;}} return 'rgb(59,130,246)'; };
+        const gaugeBands = [{min:0,max:0.2,label:'Short'},{min:0.2,max:0.3,label:'Tight'},{min:0.3,max:0.7,label:'Good'},{min:0.7,max:1,label:'Over'}];
+        const fillFrac = Math.max(0, Math.min(1, (coveragePct - 50) / 100));
+        const gaugeBand = gaugeBands.find(z => fillFrac >= z.min && fillFrac < z.max) || gaugeBands[gaugeBands.length-1];
+        const endCol = gaugeColor(fillFrac);
+        const gcx=150, gcy=125, gr=85, gSegs=80;
+        const gArcPt = (f) => ({x: gcx + gr * Math.cos(Math.PI + f * Math.PI), y: gcy + gr * Math.sin(Math.PI + f * Math.PI)});
+        const gNeedlePt = gArcPt(fillFrac);
+        const gNeedleStub = {x: gcx + gr*0.35*Math.cos(Math.PI+fillFrac*Math.PI), y: gcy + gr*0.35*Math.sin(Math.PI+fillFrac*Math.PI)};
+        const gSegCount = Math.round(fillFrac * gSegs);
+        const gTrackStart = gArcPt(0), gTrackEnd = gArcPt(1);
+        const gaugeArcs = [];
+        for(let i=0;i<gSegCount;i++){const t0=i/gSegs;const t1=Math.min((i+1.2)/gSegs,fillFrac);const a0=Math.PI+t0*Math.PI;const a1=Math.PI+t1*Math.PI;if(a1<=a0)continue;const p0=gArcPt(t0),p1={x:gcx+gr*Math.cos(a1),y:gcy+gr*Math.sin(a1)};const large=(a1-a0)>Math.PI?1:0;gaugeArcs.push(<path key={i} d={`M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${gr} ${gr} 0 ${large} 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`} fill="none" stroke={gaugeColor(t0)} strokeWidth="14" strokeLinecap="round"/>);}
         return (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* NOTICEBOARD — right column */}
@@ -444,15 +456,16 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             <div className="glass rounded-xl p-5 md:col-span-3 md:order-1">
               <div className="flex gap-5 items-stretch">
                 <div className="flex-shrink-0 flex items-center">
-                  <svg width="190" height="190" viewBox="0 0 190 190">
-                    <circle cx="95" cy="95" r={gaugeR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9" />
-                    <circle cx="95" cy="95" r={gaugeR} fill="none" stroke={band.colour} strokeWidth="9"
-                      strokeDasharray={`${gaugeFill * gaugeC} ${gaugeC}`} strokeDashoffset="0"
-                      transform="rotate(-90 95 95)" strokeLinecap="round"
-                      style={{filter:`drop-shadow(0 0 8px ${band.colour}40)`}} />
-                    <text x="95" y="80" textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:40,fontWeight:700}}>{coveragePct}%</text>
-                    <text x="95" y="104" textAnchor="middle" fill={band.colour} style={{fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:500}}>{band.label}</text>
-                    <text x="95" y="124" textAnchor="middle" fill="#475569" style={{fontSize:13}}>{urgTotal} / {targetTotal} target</text>
+                  <svg width="300" height="165" viewBox="0 0 300 145">
+                    <path d={`M ${gTrackStart.x.toFixed(1)} ${gTrackStart.y.toFixed(1)} A ${gr} ${gr} 0 1 1 ${gTrackEnd.x.toFixed(1)} ${gTrackEnd.y.toFixed(1)}`} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" strokeLinecap="round"/>
+                    {gaugeArcs}
+                    <line x1={gcx} y1={gcy} x2={gNeedleStub.x.toFixed(1)} y2={gNeedleStub.y.toFixed(1)} stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round"/>
+                    <circle cx={gNeedlePt.x.toFixed(1)} cy={gNeedlePt.y.toFixed(1)} r="6" fill={endCol} stroke="#0f172a" strokeWidth="3" style={{filter:`drop-shadow(0 0 8px ${endCol})`}}/>
+                    <circle cx={gcx} cy={gcy} r="4" fill="#1e293b" stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>
+                    <rect x={gcx-55} y={gcy-55} width="110" height="52" rx="12" fill="rgba(15,23,42,0.9)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
+                    <text x={gcx} y={gcy-26} textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:32,fontWeight:700}}>{coveragePct}%</text>
+                    <text x={gcx} y={gcy-8} textAnchor="middle" fill={endCol} style={{fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:500}}>{gaugeBand.label}</text>
+                    <text x={gcx} y={gcy+18} textAnchor="middle" fill="#475569" style={{fontSize:13}}>{urgTotal} / {targetTotal} target</text>
                   </svg>
                 </div>
                 <div className="flex-1 grid grid-cols-2 gap-3">
