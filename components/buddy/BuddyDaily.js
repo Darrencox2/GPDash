@@ -100,7 +100,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     let s = '';
     s += 'BUDDY COVER\n';
     s += `${date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
-    s += 'gpdash.net/buddy\n';
+    s += 'www.gpdash.net/buddy\n';
     s += '='.repeat(C1 + C2 + C3 + 6) + '\n\n';
 
     const rows = ensureArray(currentAlloc.presentIds).map(id => {
@@ -136,7 +136,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     s += 'BUDDY COVER\n';
     const wcDate = new Date(getDateKeyForDay('Monday') + 'T12:00:00');
     s += `Week commencing ${wcDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
-    s += 'gpdash.net/buddy\n';
+    s += 'www.gpdash.net/buddy\n';
     s += '='.repeat(C1 + C2 + C3 + 6) + '\n';
 
     DAYS.forEach(d => {
