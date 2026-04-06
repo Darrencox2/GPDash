@@ -247,7 +247,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   }, [viewingDate]);
 
   return (
-    <div className="space-y-6 animate-in" onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
+    <div className="-m-4 lg:-m-6 min-h-screen animate-in" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)'}}
+      onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
+    <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-4">
       {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} viewingDate={viewingDate} onExit={() => setIsFullscreen(false)} onNavigateDay={navigateDay} />}
       {isDragging && (
         <div className="fixed inset-0 z-40 bg-teal-500/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
@@ -280,7 +282,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             )}
           </div>
           <div>
-            <h1 className="font-heading text-xl font-medium text-slate-900">
+            <h1 className="font-heading text-xl font-medium text-white">
               {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'long' })}
             </h1>
             <span className="text-xs text-slate-400">
@@ -325,14 +327,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (
-        <div className="glass-dark rounded-xl p-12 text-center">
+        <div className="glass rounded-xl p-12 text-center">
           <div className="text-5xl mb-4">📊</div>
-          <h2 className="font-heading text-lg font-medium text-slate-300 mb-2">Upload Appointment Report</h2>
+          <h2 className="font-heading text-lg font-medium text-slate-200 mb-2">Upload Appointment Report</h2>
           <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload or drag-and-drop your EMIS CSV to see urgent capacity.</p>
           <Button onClick={() => fileRef.current?.click()}>Select CSV File</Button>
         </div>
       ) : isPracticeClosed ? (
-        <div className="glass-dark rounded-xl overflow-hidden">
+        <div className="glass rounded-xl overflow-hidden">
           <div className="py-16 px-6 text-center">
             <div className="mx-auto mb-4" style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -638,9 +640,31 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <p className="text-sm text-slate-400 max-w-sm mx-auto">Open the filter above to choose which slot types to include as urgent on the day.</p>
                   </div>
                 ) : (<>
-                <div className="glass-body flex flex-col md:flex-row md:divide-x divide-slate-200/50">
-                  <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
-                  <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                  <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
+                    <div className="glass-header px-3 py-2 flex items-center justify-between rounded-t-xl">
+                      <span className="font-heading text-sm font-medium text-slate-400">AM</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono-data text-lg font-bold" style={{color:amBand.colour}}>{urgentAm}</span>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-medium" style={{background:`${amBand.colour}20`,color:amBand.colour}}>{amBand.label}</span>
+                      </div>
+                    </div>
+                    <div className="glass-body rounded-b-xl">
+                      <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
+                    </div>
+                  </div>
+                  <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
+                    <div className="glass-header px-3 py-2 flex items-center justify-between rounded-t-xl">
+                      <span className="font-heading text-sm font-medium text-slate-400">PM</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono-data text-lg font-bold" style={{color:pmBand.colour}}>{urgentPm}</span>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-medium" style={{background:`${pmBand.colour}20`,color:pmBand.colour}}>{pmBand.label}</span>
+                      </div>
+                    </div>
+                    <div className="glass-body rounded-b-xl">
+                      <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Slot type breakdown */}
@@ -854,6 +878,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </>
       )}
       </div>
+    </div>
     </div>
   );
 }
