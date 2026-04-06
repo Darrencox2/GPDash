@@ -15,6 +15,28 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const isRotaOnly = searchParams.get('rota') === '1';
 
+  // Read-only buddy cover — no password needed
+  if (searchParams.get('buddy') === '1') {
+    try {
+      const redis = getRedis();
+      let data = await redis.get(DATA_KEY);
+      if (!data) data = getDefaultData();
+      return NextResponse.json({
+        clinicians: data.clinicians,
+        plannedAbsences: data.plannedAbsences || [],
+        allocationHistory: data.allocationHistory || {},
+        weeklyRota: data.weeklyRota || {},
+        settings: data.settings,
+        dailyOverrides: data.dailyOverrides || {},
+        closedDays: data.closedDays || {},
+        _readOnly: true,
+      });
+    } catch (error) {
+      const d = getDefaultData();
+      return NextResponse.json({ clinicians: d.clinicians, _readOnly: true });
+    }
+  }
+
   // Read-only rota access — no password needed, returns filtered data
   if (isRotaOnly) {
     try {
