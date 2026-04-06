@@ -112,14 +112,8 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
           <div className="p-2.5 border-t border-white/5">
             {sidebarOpen ? (
               <>
-                <div className="rounded-xl p-3 flex items-center gap-3" style={{background:'#1e293b'}}>
-                  <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-                    <img src="/logo.png" alt="Practice" className="h-7 w-auto object-contain" onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML='<span style="font-size:10px;font-weight:700;color:#0f172a;line-height:1">W&B</span>'; }} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs text-slate-300 truncate">Winscombe & Banwell</div>
-                    <div className="text-[11px] text-slate-500">Family Practice</div>
-                  </div>
+                <div className="rounded-xl overflow-hidden flex items-center justify-center" style={{background:'#1e293b',padding:'12px 16px'}}>
+                  <img src="/logo.png" alt="Practice" style={{maxWidth:'100%',maxHeight:48,objectFit:'contain'}} onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML='<div style="text-align:center"><div style="font-size:14px;font-weight:600;color:#e2e8f0">Winscombe & Banwell</div><div style="font-size:11px;color:#64748b;margin-top:2px">Family Practice</div></div>'; }} />
                 </div>
                 <div className="text-center mt-2 pb-1" style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:'#334155'}}>{APP_VERSION}</div>
               </>
