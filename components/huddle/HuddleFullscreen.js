@@ -390,7 +390,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 const tS=gPt(0),tE=gPt(1);
                 const arcs=[];
                 for(let i=0;i<Math.round(fillF*gSegs);i++){const t0=i/gSegs;const t1=Math.min((i+1.2)/gSegs,fillF);const a0=Math.PI+t0*Math.PI;const a1=Math.PI+t1*Math.PI;if(a1<=a0)continue;const p0=gPt(t0),p1={x:gcx+gr*Math.cos(a1),y:gcy+gr*Math.sin(a1)};arcs.push(<path key={i} d={`M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${gr} ${gr} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`} fill="none" stroke={gColor(t0)} strokeWidth="9" strokeLinecap="round"/>);}
-                return <svg viewBox="0 0 200 100" style={{width:'clamp(140px,18vw,280px)',height:'clamp(70px,9vh,140px)'}}>
+                return <svg viewBox="0 0 200 100" style={{width:'clamp(200px,25vw,400px)',height:'clamp(100px,12.5vh,200px)'}}>
                   <path d={`M ${tS.x.toFixed(1)} ${tS.y.toFixed(1)} A ${gr} ${gr} 0 1 1 ${tE.x.toFixed(1)} ${tE.y.toFixed(1)}`} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="9" strokeLinecap="round"/>
                   {arcs}
                   <line x1={gcx} y1={gcy} x2={nStub.x.toFixed(1)} y2={nStub.y.toFixed(1)} stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round"/>
