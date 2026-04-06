@@ -94,14 +94,17 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     if (!currentAlloc) return;
     const grouped = groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, currentAlloc.presentIds || []);
 
-    const pad = (str, w) => { const s = str || ''; return s.length >= w ? s.slice(0, w) : s + ' '.repeat(w - s.length); };
-    const C1 = 24, C2 = 14, C3 = 14;
+    const DOT_W = 44;
+    const dotPad = (name, label) => {
+      const text = `  ${name} `;
+      const suffix = ` ${label}`;
+      const dotsNeeded = Math.max(3, DOT_W - text.length - suffix.length);
+      return text + '.'.repeat(dotsNeeded) + suffix;
+    };
 
-    let s = '';
-    s += 'BUDDY COVER\n';
+    let s = 'BUDDY COVER\n';
     s += `${date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
-    s += 'www.gpdash.net/buddy\n';
-    s += '='.repeat(C1 + C2 + C3 + 6) + '\n\n';
+    s += 'www.gpdash.net/buddy\n\n';
 
     const rows = ensureArray(currentAlloc.presentIds).map(id => {
       const c = getClinicianById(id); const t = grouped[id] || { absent: [], dayOff: [] };
@@ -109,13 +112,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     }).filter(Boolean).filter(r => r.hasAllocs);
 
     if (rows.length > 0) {
-      s += `  ${pad('Covering', C1)} | ${pad('File', C2)} | ${pad('View', C3)}\n`;
-      s += `  ${'-'.repeat(C1)} | ${'-'.repeat(C2)} | ${'-'.repeat(C3)}\n`;
       rows.forEach(({ clinician, tasks }) => {
         const name = clinician.title ? `${clinician.title} ${clinician.name}` : clinician.name;
-        const file = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join('  ') : '-';
-        const view = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join('  ') : '-';
-        s += `  ${pad(name, C1)} | ${pad(file, C2)} | ${pad(view, C3)}\n`;
+        const parts = [];
+        if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        s += dotPad(name, parts.join(', ')) + '\n';
       });
     } else {
       s += '  No cover needed\n';
@@ -129,29 +131,31 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const missing = DAYS.filter(d => { const dk = getDateKeyForDay(d); return !isClosedDay(dk) && !data?.allocationHistory?.[dk]; });
     if (missing.length > 0) { alert(`Missing allocations for: ${missing.join(', ')}`); return; }
 
-    const pad = (str, w) => { const s = str || ''; return s.length >= w ? s.slice(0, w) : s + ' '.repeat(w - s.length); };
-    const C1 = 24, C2 = 14, C3 = 14;
+    const DOT_W = 44;
+    const dotPad = (name, label) => {
+      const text = `  ${name} `;
+      const suffix = ` ${label}`;
+      const dotsNeeded = Math.max(3, DOT_W - text.length - suffix.length);
+      return text + '.'.repeat(dotsNeeded) + suffix;
+    };
 
-    let s = '';
-    s += 'BUDDY COVER\n';
+    let s = 'BUDDY COVER\n';
     const wcDate = new Date(getDateKeyForDay('Monday') + 'T12:00:00');
     s += `Week commencing ${wcDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
-    s += 'www.gpdash.net/buddy\n';
-    s += '='.repeat(C1 + C2 + C3 + 6) + '\n';
+    s += 'www.gpdash.net/buddy\n\n';
 
     DAYS.forEach(d => {
       const dk = getDateKeyForDay(d);
       const dt = new Date(dk + 'T12:00:00');
-      const ds = dt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-      s += '\n';
+      const ds = dt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase();
 
       if (isClosedDay(dk)) {
-        s += `${ds}\nPRACTICE CLOSED - ${getClosedReason(dk)}\n`;
+        s += `${ds}\n  PRACTICE CLOSED - ${getClosedReason(dk)}\n\n`;
         return;
       }
 
       const e = data?.allocationHistory?.[dk];
-      if (!e) { s += `${ds}\nNo allocation generated\n`; return; }
+      if (!e) { s += `${ds}\n  No allocation generated\n\n`; return; }
 
       const g = groupAllocationsByCovering(e.allocations || {}, e.dayOffAllocations || {}, e.presentIds || []);
       const rows = (e.presentIds || []).map(id => {
@@ -168,18 +172,17 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       });
 
       const activeRows = rows.filter(r => r.hasAllocs);
-      if (activeRows.length === 0) { s += `${ds}\nNo cover needed\n`; return; }
+      if (activeRows.length === 0) { s += `${ds}\n  No cover needed\n\n`; return; }
 
-      s += `${ds}\n\n`;
-      s += `  ${pad('Covering', C1)} | ${pad('File', C2)} | ${pad('View', C3)}\n`;
-      s += `  ${'-'.repeat(C1)} | ${'-'.repeat(C2)} | ${'-'.repeat(C3)}\n`;
-
+      s += `${ds}\n`;
       activeRows.forEach(({ clinician, tasks }) => {
         const name = clinician.title ? `${clinician.title} ${clinician.name}` : clinician.name;
-        const file = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join('  ') : '-';
-        const view = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join('  ') : '-';
-        s += `  ${pad(name, C1)} | ${pad(file, C2)} | ${pad(view, C3)}\n`;
+        const parts = [];
+        if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        s += dotPad(name, parts.join(', ')) + '\n';
       });
+      s += '\n';
     });
 
     navigator.clipboard.writeText(s.trim());
