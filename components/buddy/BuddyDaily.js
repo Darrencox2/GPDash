@@ -94,10 +94,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     if (!currentAlloc) return;
     const grouped = groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, currentAlloc.presentIds || []);
 
-    const tabAlign = (name, label) => {
-      const padded = name.length < 28 ? name + ' '.repeat(28 - name.length) : name;
-      return `  ${padded}\t${label}`;
-    };
+
 
     let s = 'BUDDY COVER\n';
     s += `${date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
@@ -114,7 +111,9 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
         if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        s += tabAlign(name, parts.join('  |  ')) + '\n';
+        const assign = parts.join(' | ');
+        const padded = assign.length < 20 ? assign + ' '.repeat(20 - assign.length) : assign;
+        s += `  ${padded}\t${name}\n`;
       });
     } else {
       s += '  No cover needed\n';
@@ -128,11 +127,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const missing = DAYS.filter(d => { const dk = getDateKeyForDay(d); return !isClosedDay(dk) && !data?.allocationHistory?.[dk]; });
     if (missing.length > 0) { alert(`Missing allocations for: ${missing.join(', ')}`); return; }
 
-    // Tab-align: pad name to 28 chars then add tab to snap to consistent stop
-    const tabAlign = (name, label) => {
-      const padded = name.length < 28 ? name + ' '.repeat(28 - name.length) : name;
-      return `  ${padded}\t${label}`;
-    };
+
 
     let s = 'BUDDY COVER\n';
     const wcDate = new Date(getDateKeyForDay('Monday') + 'T12:00:00');
@@ -175,7 +170,9 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
         if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        s += tabAlign(name, parts.join('  |  ')) + '\n';
+        const assign = parts.join(' | ');
+        const padded = assign.length < 20 ? assign + ' '.repeat(20 - assign.length) : assign;
+        s += `  ${padded}\t${name}\n`;
       });
       s += '\n';
     });
