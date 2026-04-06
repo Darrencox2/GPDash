@@ -632,14 +632,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         </div>
                         {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '50%', transform: 'translate(-50%, -50%)' }}><div style={{width:14,height:14,borderRadius:'50%',border:`2.5px solid ${band.colour}`,background:'#0f172a',boxShadow:`0 0 8px ${band.colour}`}} /></div>}
                       </div>
-                      <div className="flex justify-between mt-1.5">
-                        <span className="text-sm text-slate-400">{avail} avail · {booked} booked{added > 0 ? <span style={{color:'#818cf8'}}> · +{added} since 8am</span> : ''}</span>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{background:`${band.colour}20`,color:band.colour}}>{band.label} · {Math.round(band.pct)}%</span>
+                          <span className="text-sm text-slate-400">{avail} available{booked > 0 ? <span> · {booked} booked</span> : ''}{added > 0 ? <span style={{color:'#818cf8'}}> · +{added} since 8am</span> : ''}</span>
+                        </div>
                         {target > 0 && <span className="text-sm text-slate-500">target {target}</span>}
                       </div>
                     </div>
-                  </div>
-                  <div className="mb-3">
-                    <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{background:`${band.colour}20`,color:band.colour}}>{band.label} · {Math.round(band.pct)}%</span>
                   </div>
                   {dutyDocDisplay && (
                     <div className="rounded-lg overflow-hidden mb-2" style={{ background: '#dc2626', boxShadow: '0 2px 8px rgba(220,38,38,0.2)' }}>
@@ -812,7 +812,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         <text x="60" y="70" textAnchor="middle" fill="#64748b" style={{ fontSize: '11px' }}>available</text>
                       </MiniGauge>
                       <div className="text-[13px] font-semibold text-slate-300 mt-1">{g.label}</div>
-                      <div className="text-[13px] text-slate-500">{g.avail} avail · {g.booked} bkd</div>
+                      <div className="text-[13px] text-slate-500">{g.avail} available · {g.booked} booked</div>
                     </div>
                   ))}
                 </div>

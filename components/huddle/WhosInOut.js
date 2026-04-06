@@ -24,48 +24,44 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
   const displayName = person.title ? `${person.title} ${person.name}` : person.name;
   const roleColMap = { gp: '#3b82f6', nursing: '#10b981', allied: '#a855f7' };
   const roleCol = roleColMap[person.group] || '#64748b';
-  const statusColour = isAbsent ? '#ef4444' : isDayOff ? '#f59e0b' : roleCol;
-  const statusBg = isAbsent ? 'rgba(239,68,68,0.1)' : isDayOff ? 'rgba(251,191,36,0.06)' : `${roleCol}15`;
-  const statusBorder = isAbsent ? 'rgba(239,68,68,0.2)' : isDayOff ? 'rgba(251,191,36,0.12)' : `${roleCol}25`;
+  const badgeCol = isAbsent ? '#ef4444' : isDayOff ? '#f59e0b' : roleCol;
 
-  // Location markers
+  // Location
   const amLoc = sessionLoc?.am;
   const pmLoc = sessionLoc?.pm;
-  // Site colours from room settings via prop
   const fallbackLoc = location;
+  const aLoc = amLoc || fallbackLoc;
+  const pLoc = pmLoc || fallbackLoc;
+  const aC = getSiteCol ? getSiteCol(aLoc) : '#64748b';
+  const pC = getSiteCol ? getSiteCol(pLoc) : '#64748b';
+  const hasLoc = !isAbsent && !isDayOff && (aLoc || pLoc);
+  const isSplit = hasLoc && aLoc && pLoc && aLoc !== pLoc;
 
   return (
     <div draggable onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
-      className="rounded-lg transition-all cursor-grab active:cursor-grabbing group relative"
-      style={{ background: statusBg, border: `1px solid ${statusBorder}`, boxShadow: `inset 0 1px 0 ${statusBg}` }}>
+      className="glass-inner rounded-lg transition-all cursor-grab active:cursor-grabbing group relative px-3 py-2 flex items-center justify-between">
       {onHide && (
         <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
           className="opacity-0 group-hover:opacity-100 text-xs text-slate-500 hover:text-red-400 transition-opacity absolute top-1 right-1 z-10">✕</button>
       )}
-      <div className="flex items-center gap-2.5 px-3 py-2.5">
-        <div className="rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0"
-          style={{ width: 28, height: 28, background: statusColour, color: 'white', fontFamily: "'Space Mono', monospace", boxShadow: `0 0 8px ${statusColour}30` }}>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+          style={{ fontFamily: "'Outfit',sans-serif", background: badgeCol, boxShadow: `0 0 6px ${badgeCol}30` }}>
           {person.initials || '?'}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           <div className={`text-sm font-medium leading-tight truncate ${isAbsent ? 'line-through text-slate-500' : 'text-slate-200'}`}>{displayName}</div>
           <div className="text-xs leading-tight mt-0.5" style={{ color: isAbsent ? '#f87171' : isDayOff ? '#fbbf24' : '#64748b' }}>
             {reason || person.role || 'Staff'}
           </div>
         </div>
-        {!isAbsent && !isDayOff && (amLoc || pmLoc || fallbackLoc) && (() => {
-          const aLoc = amLoc || fallbackLoc;
-          const pLoc = pmLoc || fallbackLoc;
-          const aC = getSiteCol ? getSiteCol(aLoc) : '#64748b';
-          const pC = getSiteCol ? getSiteCol(pLoc) : '#64748b';
-          return (
-            <div className="flex gap-px flex-shrink-0">
-              <div className="rounded-l flex items-center justify-center text-[8px] font-bold text-white" style={{ width: 18, height: 20, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
-              <div className="rounded-r flex items-center justify-center text-[8px] font-bold text-white" style={{ width: 18, height: 20, background: pC }}>{pLoc?.charAt(0) || '?'}</div>
-            </div>
-          );
-        })()}
       </div>
+      {hasLoc && (
+        <div className="flex flex-col gap-px flex-shrink-0">
+          <div className="rounded-t-sm flex items-center justify-center text-[9px] font-bold text-white" style={{ width: 22, height: 13, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
+          <div className="rounded-b-sm flex items-center justify-center text-[9px] font-bold text-white" style={{ width: 22, height: 13, background: isSplit ? pC : aC }}>{pLoc?.charAt(0) || aLoc?.charAt(0) || '?'}</div>
+        </div>
+      )}
     </div>
   );
 }
