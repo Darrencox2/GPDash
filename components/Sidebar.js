@@ -11,11 +11,11 @@ const NAV_ITEMS = [
 
   { id: '_planning', section: 'PLANNING' },
   { id: 'huddle-forward', section: 'PLANNING', label: 'Capacity planning', colour: '#818cf8',
-    icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z' },
+    icon: 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5zm2 4h5v5H7v-5z' },
   { id: 'workload-audit', section: 'PLANNING', label: 'Workload audit', colour: '#a78bfa',
-    icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-5h2v5zm4 0h-2V7h2v10zm4 0h-2v-3h2v3z' },
+    icon: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' },
   { id: 'qof-tracker', section: 'PLANNING', label: 'QOF tracker', colour: '#c084fc', badge: 'New',
-    icon: 'M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z' },
+    icon: 'M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z' },
   { id: 'room-dashboard', section: 'PLANNING', label: 'Rooms', colour: '#67e8f9',
     icon: 'M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z' },
 
@@ -46,7 +46,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
       `}>
         <div className="h-full flex flex-col w-60 lg:w-auto">
           {/* Logo */}
-          <div className="px-3 pt-3 pb-1">
+          <div className="px-3 pt-4 pb-2">
             {sidebarOpen ? (
               <GPDashLogo size="sidebar" />
             ) : (
@@ -109,25 +109,30 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
           </nav>
 
           {/* Practice logo + version */}
-          <div className="p-2 border-t border-white/5">
+          <div className="p-2.5 border-t border-white/5">
             {sidebarOpen ? (
-              <div className="rounded-lg p-2.5 flex items-center gap-2.5" style={{background:'#1e293b'}}>
-                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-                  <img src="/logo.png" alt="Practice" className="h-5 w-auto object-contain" onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML='<span style="font-size:8px;font-weight:700;color:#0f172a;line-height:1">W&B</span>'; }} />
+              <>
+                <div className="rounded-xl p-3 flex items-center gap-3" style={{background:'#1e293b'}}>
+                  <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
+                    <img src="/logo.png" alt="Practice" className="h-7 w-auto object-contain" onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML='<span style="font-size:10px;font-weight:700;color:#0f172a;line-height:1">W&B</span>'; }} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs text-slate-300 truncate">Winscombe & Banwell</div>
+                    <div className="text-[11px] text-slate-500">Family Practice</div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] text-slate-300 truncate">Winscombe & Banwell</div>
-                  <div className="text-[10px] text-slate-600">Family Practice</div>
-                </div>
-              </div>
+                <div className="text-center mt-2 pb-1" style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:'#334155'}}>{APP_VERSION}</div>
+              </>
             ) : (
-              <div className="flex justify-center">
-                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-                  <img src="/logo.png" alt="Practice" className="h-5 w-auto object-contain" onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML='<span style="font-size:8px;font-weight:700;color:#0f172a;line-height:1">W&B</span>'; }} />
+              <>
+                <div className="flex justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+                    <img src="/logo.png" alt="Practice" className="h-7 w-auto object-contain" onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML='<span style="font-size:10px;font-weight:700;color:#0f172a;line-height:1">W&B</span>'; }} />
+                  </div>
                 </div>
-              </div>
+                <div className="text-center mt-1.5" style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:'#334155'}}>{APP_VERSION}</div>
+              </>
             )}
-            {sidebarOpen && <div className="text-center mt-1.5 pb-0.5" style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:'#1e293b'}}>{APP_VERSION}</div>}
           </div>
 
           {/* Collapse toggle */}

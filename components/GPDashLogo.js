@@ -24,17 +24,17 @@ function GridIcon({ size = 32 }) {
 }
 
 export default function GPDashLogo({ size = 'sidebar', className = '' }) {
-  if (size === 'sidebar-collapsed') return <GridIcon size={32} />;
-  const iconSize = size === 'large' ? 48 : 32;
-  const fontSize = size === 'large' ? 22 : 14;
+  if (size === 'sidebar-collapsed') return <GridIcon size={36} />;
+  const iconSize = size === 'large' ? 56 : 44;
+  const fontSize = size === 'large' ? 26 : 20;
   return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
+    <div className={`flex items-center gap-3 ${className}`}>
       <GridIcon size={iconSize} />
       <div className="flex items-baseline" style={{lineHeight:1}}>
         <span style={{fontFamily:"'Space Mono',monospace",fontSize,fontWeight:400,color:'#10b981',opacity:0.4}}>{'['}</span>
         <span style={{fontFamily:"'Space Mono',monospace",fontSize,fontWeight:700,color:'white'}}>GP</span>
         <span style={{fontFamily:"'Space Mono',monospace",fontSize,fontWeight:400,color:'#10b981',opacity:0.4}}>{']'}</span>
-        <span style={{fontFamily:"'Outfit',sans-serif",fontSize:fontSize+1,fontWeight:200,color:'#10b981',letterSpacing:'2px',marginLeft:1}}>DASH</span>
+        <span style={{fontFamily:"'Outfit',sans-serif",fontSize:fontSize+1,fontWeight:200,color:'#10b981',letterSpacing:'3px',marginLeft:2}}>DASH</span>
       </div>
     </div>
   );
