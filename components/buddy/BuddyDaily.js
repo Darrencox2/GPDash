@@ -94,12 +94,9 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     if (!currentAlloc) return;
     const grouped = groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, currentAlloc.presentIds || []);
 
-    const DOT_W = 44;
-    const dotPad = (name, label) => {
-      const text = `  ${name} `;
-      const suffix = ` ${label}`;
-      const dotsNeeded = Math.max(3, DOT_W - text.length - suffix.length);
-      return text + '.'.repeat(dotsNeeded) + suffix;
+    const tabAlign = (name, label) => {
+      const padded = name.length < 24 ? name + ' '.repeat(24 - name.length) : name;
+      return `  ${padded}\t${label}`;
     };
 
     let s = 'BUDDY COVER\n';
@@ -117,7 +114,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
         if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        s += dotPad(name, parts.join(', ')) + '\n';
+        s += tabAlign(name, parts.join(', ')) + '\n';
       });
     } else {
       s += '  No cover needed\n';
@@ -131,12 +128,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const missing = DAYS.filter(d => { const dk = getDateKeyForDay(d); return !isClosedDay(dk) && !data?.allocationHistory?.[dk]; });
     if (missing.length > 0) { alert(`Missing allocations for: ${missing.join(', ')}`); return; }
 
-    const DOT_W = 44;
-    const dotPad = (name, label) => {
-      const text = `  ${name} `;
-      const suffix = ` ${label}`;
-      const dotsNeeded = Math.max(3, DOT_W - text.length - suffix.length);
-      return text + '.'.repeat(dotsNeeded) + suffix;
+    // Tab-align: pad name to 24 chars then add tab to snap to consistent stop
+    const tabAlign = (name, label) => {
+      const padded = name.length < 24 ? name + ' '.repeat(24 - name.length) : name;
+      return `  ${padded}\t${label}`;
     };
 
     let s = 'BUDDY COVER\n';
@@ -180,7 +175,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
         if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        s += dotPad(name, parts.join(', ')) + '\n';
+        s += tabAlign(name, parts.join(', ')) + '\n';
       });
       s += '\n';
     });
