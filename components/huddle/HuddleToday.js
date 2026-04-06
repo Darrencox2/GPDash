@@ -408,8 +408,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         const gaugeFill = targetTotal > 0 ? Math.min(coveragePct / 100, 1.0) : 0;
         return (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* NOTICEBOARD */}
-            <div className="glass rounded-xl overflow-hidden flex flex-col">
+            {/* NOTICEBOARD — right column */}
+            <div className="glass rounded-xl overflow-hidden flex flex-col md:order-2">
               <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
@@ -440,8 +440,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <Button onClick={addMessage} size="sm">+</Button>
               </div>
             </div>
-            {/* SUMMARY */}
-            <div className="glass rounded-xl p-5 md:col-span-3">
+            {/* SUMMARY — spans first 3 cols */}
+            <div className="glass rounded-xl p-5 md:col-span-3 md:order-1">
               <div className="flex gap-5 items-stretch">
                 <div className="flex-shrink-0 flex items-center">
                   <svg width="190" height="190" viewBox="0 0 190 190">
