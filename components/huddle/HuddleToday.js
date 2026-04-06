@@ -1,10 +1,9 @@
 'use client';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Button, Card } from '@/components/ui';
-import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
+import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand, getCliniciansForDate } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
-import DemandCapacityConnector from './DemandCapacityConnector';
 import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
@@ -385,58 +384,103 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         const routine28 = routineDays28.filter(d => d.available !== null && !d.isWeekend);
         const routineAvail = routine28.reduce((s, d) => s + (d.available || 0), 0);
         const routineEmb = routine28.reduce((s, d) => s + (d.embargoed || 0), 0);
-        // Clinicians: check CSV first, then working pattern, minus planned absences
+        // Clinicians: use CSV data when available, else working patterns
         const dateKey = toLocalIso(viewingDate);
+        const viewingDateStr2 = toHuddleDateStr(viewingDate);
+        const csvClinicians = huddleData?.dates?.includes(viewingDateStr2) ? getCliniciansForDate(huddleData, viewingDateStr2) : [];
         const plannedAbsences = (Array.isArray(data.plannedAbsences) ? data.plannedAbsences : []).filter(a => dateKey >= a.startDate && dateKey <= a.endDate);
         const absentIds = new Set(plannedAbsences.map(a => a.clinicianId));
         const visibleClinicians = teamClinicians.filter(c => c.status !== 'left' && c.status !== 'administrative' && c.showWhosIn !== false && !c.longTermAbsent);
-        const scheduledToday = visibleClinicians.filter(c => c.workingPattern?.[todayDayName]);
-        const inToday = scheduledToday.filter(c => !absentIds.has(c.id));
-        const offToday = visibleClinicians.length - inToday.length;
+        let inCount, offCount;
+        if (csvClinicians.length > 0) {
+          // Count unique clinicians in CSV that match our staff register
+          const matchedIds = new Set();
+          visibleClinicians.forEach(c => { if (csvClinicians.some(csvName => matchesStaffMember(csvName, c))) matchedIds.add(c.id); });
+          inCount = matchedIds.size;
+          offCount = visibleClinicians.length - inCount;
+        } else {
+          const scheduledToday = visibleClinicians.filter(c => c.workingPattern?.[todayDayName]);
+          inCount = scheduledToday.filter(c => !absentIds.has(c.id)).length;
+          offCount = visibleClinicians.length - inCount;
+        }
         // Gauge
         const gaugeR = 72, gaugeC = Math.PI * 2 * gaugeR;
         const gaugeFill = targetTotal > 0 ? Math.min(coveragePct / 100, 1.0) : 0;
         return (
-          <div className="glass rounded-xl p-5">
-            <div className="flex gap-5 items-stretch">
-              <div className="flex-shrink-0 flex items-center">
-                <svg width="190" height="190" viewBox="0 0 190 190">
-                  <circle cx="95" cy="95" r={gaugeR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9" />
-                  <circle cx="95" cy="95" r={gaugeR} fill="none" stroke={band.colour} strokeWidth="9"
-                    strokeDasharray={`${gaugeFill * gaugeC} ${gaugeC}`} strokeDashoffset="0"
-                    transform="rotate(-90 95 95)" strokeLinecap="round"
-                    style={{filter:`drop-shadow(0 0 8px ${band.colour}40)`}} />
-                  <text x="95" y="80" textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:40,fontWeight:700}}>{coveragePct}%</text>
-                  <text x="95" y="104" textAnchor="middle" fill={band.colour} style={{fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:500}}>{band.label}</text>
-                  <text x="95" y="124" textAnchor="middle" fill="#475569" style={{fontSize:13}}>{urgTotal} / {targetTotal} target</text>
-                </svg>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* NOTICEBOARD */}
+            <div className="glass rounded-xl overflow-hidden flex flex-col">
+              <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
+                {huddleMessages.length > 0 && <span className="text-xs text-slate-600 ml-auto">{huddleMessages.length}</span>}
               </div>
-              <div className="flex-1 grid grid-cols-2 gap-3">
-                <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                  <div className="text-sm text-slate-500 mb-1">Predicted demand</div>
-                  <div className="font-mono-data text-5xl font-bold text-amber-400 leading-none">{predTotal || '—'}</div>
-                  <div className="text-sm text-slate-600 mt-1">requests today</div>
-                </div>
-                <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                  <div className="text-sm text-slate-500 mb-1">Urgent available</div>
-                  <div className="font-mono-data text-5xl font-bold leading-none" style={{color:band.colour}}>{urgAvail}</div>
-                  <div className="text-sm text-slate-600 mt-1">appointments today</div>
-                </div>
-                <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                  <div className="text-sm text-slate-500 mb-1">Routine 28 days</div>
-                  <div className="font-mono-data text-5xl font-bold text-emerald-400 leading-none">{routineAvail + routineEmb}</div>
-                  <div className="text-sm text-slate-600 mt-1">{routineEmb > 0 ? `${routineAvail} avail · ${routineEmb} emb` : 'available'}</div>
-                </div>
-                <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                  <div className="text-sm text-slate-500 mb-1">Clinicians today</div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-mono-data text-5xl font-bold text-white leading-none">{inToday.length}</span>
-                    {offToday > 0 && <span className="text-lg text-red-400 font-medium">{offToday} off</span>}
-                  </div>
-                  <div className="text-sm text-slate-600 mt-1">of {visibleClinicians.length} active</div>
-                </div>
+              <div className="p-3 space-y-1.5 flex-1">
+                {huddleMessages.length === 0 && <p className="text-sm text-slate-500 text-center py-3">No messages yet.</p>}
+                {huddleMessages.map((msg, i) => {
+                  const colours = ['#f59e0b','#3b82f6','#ec4899','#10b981','#8b5cf6'];
+                  const c = colours[i % colours.length];
+                  const initials = msg.author ? msg.author.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
+                  const time = msg.addedAt ? new Date(msg.addedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+                  return (
+                    <div key={msg.id || i} className="flex items-start gap-2 px-2.5 py-2 rounded-lg group" style={{ borderLeft: `3px solid ${c}`, background: `${c}10` }}>
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0 mt-0.5" style={{ background: `${c}30`, color: c }}>{initials}</div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs text-slate-300 leading-tight block">{msg.text}</span>
+                        {time && <span className="text-[10px] text-slate-600">{time}</span>}
+                      </div>
+                      <button onClick={() => removeMessage(i)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs mt-0.5">✕</button>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-1.5 p-3 pt-0">
+                <input type="text" value={newAuthor} onChange={e => setNewAuthor(e.target.value)} placeholder="Name" className="w-16 px-2 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}} />
+                <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMessage(); }} placeholder="Message..." className="flex-1 px-2 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}} />
+                <Button onClick={addMessage} size="sm">+</Button>
               </div>
             </div>
+            {/* SUMMARY */}
+            <div className="glass rounded-xl p-5 md:col-span-3">
+              <div className="flex gap-5 items-stretch">
+                <div className="flex-shrink-0 flex items-center">
+                  <svg width="190" height="190" viewBox="0 0 190 190">
+                    <circle cx="95" cy="95" r={gaugeR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9" />
+                    <circle cx="95" cy="95" r={gaugeR} fill="none" stroke={band.colour} strokeWidth="9"
+                      strokeDasharray={`${gaugeFill * gaugeC} ${gaugeC}`} strokeDashoffset="0"
+                      transform="rotate(-90 95 95)" strokeLinecap="round"
+                      style={{filter:`drop-shadow(0 0 8px ${band.colour}40)`}} />
+                    <text x="95" y="80" textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:40,fontWeight:700}}>{coveragePct}%</text>
+                    <text x="95" y="104" textAnchor="middle" fill={band.colour} style={{fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:500}}>{band.label}</text>
+                    <text x="95" y="124" textAnchor="middle" fill="#475569" style={{fontSize:13}}>{urgTotal} / {targetTotal} target</text>
+                  </svg>
+                </div>
+                <div className="flex-1 grid grid-cols-2 gap-3">
+                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
+                    <div className="text-sm text-slate-500 mb-1">Predicted demand</div>
+                    <div className="font-mono-data text-5xl font-bold text-amber-400 leading-none">{predTotal || '—'}</div>
+                    <div className="text-sm text-slate-600 mt-1">requests today</div>
+                  </div>
+                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
+                    <div className="text-sm text-slate-500 mb-1">Urgent available</div>
+                    <div className="font-mono-data text-5xl font-bold leading-none" style={{color:band.colour}}>{urgAvail}</div>
+                    <div className="text-sm text-slate-600 mt-1">appointments today</div>
+                  </div>
+                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
+                    <div className="text-sm text-slate-500 mb-1">Routine 28 days</div>
+                    <div className="font-mono-data text-5xl font-bold text-emerald-400 leading-none">{routineAvail + routineEmb}</div>
+                    <div className="text-sm text-slate-600 mt-1">{routineEmb > 0 ? `${routineAvail} avail · ${routineEmb} emb` : 'available'}</div>
+                  </div>
+                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
+                    <div className="text-sm text-slate-500 mb-1">Clinicians today</div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono-data text-5xl font-bold text-white leading-none">{inCount}</span>
+                      {offCount > 0 && <span className="text-lg text-red-400 font-medium">{offCount} off</span>}
+                    </div>
+                    <div className="text-sm text-slate-600 mt-1">of {visibleClinicians.length} active</div>
+                  </div>
+                </div>
+              </div>
             {predTotal > 0 && (
               <div className="glass-inner rounded-xl p-4 mt-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -468,6 +512,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 </details>
               </div>
             )}
+            </div>
           </div>
         );
       })()}
@@ -550,20 +595,23 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               return (
                 <div className="flex-1 p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="font-mono-data text-5xl font-bold leading-none" style={{ color: band.colour }}>{slots}</span>
+                    <span className="font-mono-data text-4xl font-bold leading-none" style={{ color: band.colour }}>{slots}</span>
                     <div className="flex-1">
-                      <div className="h-2.5 rounded-full relative overflow-hidden" style={{ background: '#f1f5f9' }}>
+                      <div className="h-2.5 rounded-full relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                         <div className="absolute left-0 top-0 bottom-0" style={{ width: `${Math.min(bar.fillPct, 100)}%`, display:'flex', borderRadius: '5px' }}>
                           {avail > 0 && <div style={{flex: avail, background: band.colour}} />}
                           {booked > 0 && <div style={{flex: booked, background: '#f59e0b'}} />}
                         </div>
-                        {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-4px', bottom: '-4px', width: '2px', background: '#0f172a', borderRadius: '1px', marginLeft: '-1px' }} />}
+                        {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-5px', marginLeft: '-6px' }}><div style={{width:12,height:12,borderRadius:'50%',border:`2px solid ${band.colour}`,background:'rgba(15,23,42,0.9)'}} /></div>}
                       </div>
                       <div className="flex justify-between mt-1.5">
-                        <span className="text-sm text-slate-500">{avail} avail · {booked} booked{added > 0 ? <span style={{color:'#818cf8'}}> · +{added} since 8am</span> : ''}</span>
+                        <span className="text-sm text-slate-400">{avail} avail · {booked} booked{added > 0 ? <span style={{color:'#818cf8'}}> · +{added} since 8am</span> : ''}</span>
                         {target > 0 && <span className="text-sm text-slate-500">target {target}</span>}
                       </div>
                     </div>
+                  </div>
+                  <div className="mb-3">
+                    <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{background:`${band.colour}20`,color:band.colour}}>{band.label} · {Math.round(band.pct)}%</span>
                   </div>
                   {dutyDocDisplay && (
                     <div className="rounded-lg overflow-hidden mb-2" style={{ background: '#dc2626', boxShadow: '0 2px 8px rgba(220,38,38,0.2)' }}>
@@ -594,11 +642,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       const LOC_PILL = { 'Winscombe': '#0ea5e9', 'Banwell': '#f97316', 'Locking': '#a855f7' };
                       const locPill = c.location ? LOC_PILL[c.location] : null;
                       return (
-                        <div key={i} className="glass-light rounded-lg px-3 py-2 flex items-center justify-between">
+                        <div key={i} className="glass-inner rounded-lg px-3 py-2 flex items-center justify-between">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0 font-mono-data" style={{background: band.colour}}>{c.initials}</div>
+                            <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0 font-mono-data" style={{background: band.colour, boxShadow:`0 0 6px ${band.colour}30`}}>{c.initials}</div>
                             <div className="min-w-0">
-                              <div className="text-sm text-slate-800 truncate">{c.displayName}</div>
+                              <span className="text-sm text-slate-200 truncate">{c.displayName}</span>
                               {c.role && <div className="text-xs text-slate-400">{c.role}</div>}
                             </div>
                           </div>
@@ -635,26 +683,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 ) : (<>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
                   <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
-                    <div className="glass-header px-4 py-3 flex items-center justify-between rounded-t-xl">
-                      <span className="font-heading text-base font-medium text-slate-300">Morning</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono-data text-xl font-bold" style={{color:amBand.colour}}>{urgentAm}</span>
-                        <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{background:`${amBand.colour}20`,color:amBand.colour}}>{amBand.label}</span>
-                      </div>
+                    <div className="glass-header px-4 py-2.5 rounded-t-xl">
+                      <span className="font-heading text-sm font-medium text-slate-400">Morning</span>
                     </div>
-                    <div className="glass-body rounded-b-xl">
+                    <div style={{background:'rgba(15,23,42,0.4)'}}>
                       <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
                     </div>
                   </div>
                   <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
-                    <div className="glass-header px-4 py-3 flex items-center justify-between rounded-t-xl">
-                      <span className="font-heading text-base font-medium text-slate-300">Afternoon</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono-data text-xl font-bold" style={{color:pmBand.colour}}>{urgentPm}</span>
-                        <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{background:`${pmBand.colour}20`,color:pmBand.colour}}>{pmBand.label}</span>
-                      </div>
+                    <div className="glass-header px-4 py-2.5 rounded-t-xl">
+                      <span className="font-heading text-sm font-medium text-slate-400">Afternoon</span>
                     </div>
-                    <div className="glass-body rounded-b-xl">
+                    <div style={{background:'rgba(15,23,42,0.4)'}}>
                       <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
                     </div>
                   </div>
@@ -697,48 +737,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
       {/* WHO'S IN / OUT */}
       <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />
-
-      {/* DEMAND + NOTICEBOARD side by side */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
-          <DemandCapacityConnector viewingDate={viewingDate} huddleData={huddleData} capacity={capacity} hs={hs} data={data} saveData={saveData} urgentOverrides={urgentOverrides} />
-        </div>
-        <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
-          <div className="glass-header px-4 py-2.5 flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            <span className="font-heading text-base font-medium text-slate-200">Noticeboard</span>
-            {huddleMessages.length > 0 && <span className="text-xs text-slate-600 ml-auto">{huddleMessages.length}</span>}
-          </div>
-          <div className="glass-body p-3 space-y-1.5">
-            {huddleMessages.length === 0 && <p className="text-sm text-slate-400 text-center py-3">No messages yet.</p>}
-            {huddleMessages.map((msg, i) => {
-              const colours = [
-                { border: '#f59e0b', bg: 'rgba(245,158,11,0.06)', badge: '#fef3c7', badgeText: '#92400e', init: '#fde68a' },
-                { border: '#3b82f6', bg: 'rgba(59,130,246,0.06)', badge: '#dbeafe', badgeText: '#1e40af', init: '#bfdbfe' },
-                { border: '#ec4899', bg: 'rgba(236,72,153,0.06)', badge: '#fce7f3', badgeText: '#9d174d', init: '#fbcfe8' },
-                { border: '#10b981', bg: 'rgba(16,185,129,0.06)', badge: '#d1fae5', badgeText: '#065f46', init: '#a7f3d0' },
-                { border: '#8b5cf6', bg: 'rgba(139,92,246,0.06)', badge: '#ede9fe', badgeText: '#5b21b6', init: '#ddd6fe' },
-              ];
-              const c = colours[i % colours.length];
-              const initials = msg.author ? msg.author.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
-              const time = msg.addedAt ? new Date(msg.addedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-              return (
-                <div key={msg.id || i} className="flex items-center gap-2 px-2.5 py-2 rounded-lg group" style={{ borderLeft: `3px solid ${c.border}`, background: c.bg }}>
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0" style={{ background: c.init, color: c.badgeText }}>{initials}</div>
-                  <span className="text-xs text-slate-800 flex-1 leading-tight">{msg.text}</span>
-                  {time && <span className="text-xs text-slate-400 flex-shrink-0">{time}</span>}
-                  <button onClick={() => removeMessage(i)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs">✕</button>
-                </div>
-              );
-            })}
-            <div className="flex gap-2 pt-1">
-              <input type="text" value={newAuthor} onChange={e => setNewAuthor(e.target.value)} placeholder="Name" className="w-20 px-2 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900" />
-              <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMessage(); }} placeholder="Message..." className="flex-1 px-2 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900" />
-              <Button onClick={addMessage} size="sm">Add</Button>
-            </div>
-          </div>
-        </div>
-      </div>
 
           {/* ─── ROUTINE CAPACITY (30 days) ─── */}
           {(() => {

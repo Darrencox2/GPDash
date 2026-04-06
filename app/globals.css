@@ -20,7 +20,7 @@
   .card { @apply bg-white rounded-xl shadow-sm border border-slate-200/80; }
   .glass { background: rgba(15,23,42,0.7); border: 1px solid rgba(255,255,255,0.06); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
   .glass-header { background: rgba(15,23,42,0.85); border-bottom: 1px solid rgba(255,255,255,0.04); }
-  .glass-body { background: rgba(255,255,255,0.88); box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.04); }
+  .glass-body { background: rgba(15,23,42,0.5); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
   .glass-inner { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); }
   .glass-light { background: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.5); box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.04); }
   .btn-primary { @apply bg-slate-900 text-white font-medium py-2 px-4 rounded-lg text-sm hover:bg-slate-800 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed; }
@@ -71,7 +71,7 @@
   .glass-panel { background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.06); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
   .glass-inner { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); }
   .glass-header { background: rgba(15,23,42,0.85); border-bottom: 1px solid rgba(255,255,255,0.04); }
-  .glass-body { background: rgba(255,255,255,0.85); border-top: 1px solid rgba(255,255,255,0.3); box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.04); }
+
   .glass-light { background: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.5); box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.04); }
   .glass-cog { @apply cursor-pointer opacity-40 hover:opacity-80 transition-opacity; }
   .font-mono-data { font-family: 'Space Mono', monospace; }
