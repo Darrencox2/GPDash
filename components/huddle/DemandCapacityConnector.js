@@ -107,7 +107,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   }, [forecast, showChart]);
 
   const active = forecast || prevData;
-  if (!active?.today) return <div className="rounded-xl" style={{background:'#0f172a'}}><div className="flex items-center justify-center gap-3 py-12"><div className="w-4 h-4 border-2 border-slate-700 border-t-amber-400 rounded-full animate-spin"/><span className="text-sm text-slate-400">Loading forecast...</span></div></div>;
+  if (!active?.today) return <div className="glass rounded-xl"><div className="flex items-center justify-center gap-3 py-12"><div className="w-4 h-4 border-2 border-slate-700 border-t-amber-400 rounded-full animate-spin"/><span className="text-sm text-slate-400">Loading forecast...</span></div></div>;
 
   const t = active.today;
   const demandCol = DEMAND_COLOURS[t.demandLevel] || DEMAND_COLOURS.normal;
@@ -162,7 +162,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const pmDutyCol = pmTarget > 0 ? getBand(pmSlots, pmTarget).colour : '#34d399';
 
   return (
-    <div className="rounded-xl overflow-hidden transition-opacity duration-300" style={{ background:'#0f172a', opacity: loading ? 0.7 : 1 }}>
+    <div className="glass rounded-xl overflow-hidden transition-opacity duration-300" style={{ opacity: loading ? 0.7 : 1 }}>
       {/* Header */}
       <div style={{padding:'16px 24px 14px'}}>
         <div className="flex items-center justify-between" style={{marginBottom:14}}>

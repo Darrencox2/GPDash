@@ -41,7 +41,7 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
           className="opacity-0 group-hover:opacity-100 text-xs text-slate-500 hover:text-red-400 transition-opacity absolute top-1 right-1 z-10">✕</button>
       )}
       <div className="flex items-center gap-2.5 px-3 py-2.5">
-        <div className="rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+        <div className="rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0"
           style={{ width: 28, height: 28, background: statusColour, color: 'white', fontFamily: "'Space Mono', monospace", boxShadow: `0 0 8px ${statusColour}30` }}>
           {person.initials || '?'}
         </div>
@@ -58,8 +58,8 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
           const pC = LOC_COLOURS[pLoc] || '#64748b';
           return (
             <div className="flex gap-px flex-shrink-0">
-              <div className="rounded-l flex items-center justify-center text-[7px] font-bold text-white" style={{ width: 18, height: 20, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
-              <div className="rounded-r flex items-center justify-center text-[7px] font-bold text-white" style={{ width: 18, height: 20, background: pC }}>{pLoc?.charAt(0) || '?'}</div>
+              <div className="rounded-l flex items-center justify-center text-[8px] font-bold text-white" style={{ width: 18, height: 20, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
+              <div className="rounded-r flex items-center justify-center text-[8px] font-bold text-white" style={{ width: 18, height: 20, background: pC }}>{pLoc?.charAt(0) || '?'}</div>
             </div>
           );
         })()}
@@ -278,8 +278,8 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
       <div className="glass-header px-4 py-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-heading text-sm font-medium text-slate-300">{isViewingToday ? "Who's in today" : `Who's in — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</span>
-            <span className="text-[10px] text-slate-600">{categories.inPractice.length} in · {categories.leaveAbsent.length + categories.dayOff.length} off</span>
+            <span className="font-heading text-base font-medium text-slate-200">{isViewingToday ? "Who's in today" : `Who's in — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</span>
+            <span className="text-xs text-slate-600">{categories.inPractice.length} in · {categories.leaveAbsent.length + categories.dayOff.length} off</span>
           </div>
           <button onClick={() => setShowSettings(true)}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors">
@@ -322,7 +322,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           <div>
             <button onClick={() => setShowAbsent(!showAbsent)}
               className="flex items-center gap-2 w-full text-left py-1 group">
-              <span className={`text-[10px] text-slate-500 transition-transform ${showAbsent ? 'rotate-90' : ''}`}>▶</span>
+              <span className={`text-xs text-slate-500 transition-transform ${showAbsent ? 'rotate-90' : ''}`}>▶</span>
               <div className="flex items-center gap-3 text-xs text-slate-500">
                 {categories.leaveAbsent.length > 0 && <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" />{categories.leaveAbsent.length} absent</span>}
                 {categories.dayOff.length > 0 && <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f59e0b'}} />{categories.dayOff.length} day off</span>}
@@ -340,7 +340,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         {/* Location legend */}
         <div className="flex items-center justify-center gap-3 pt-2 text-xs">
           {[{l:'Winscombe',c:'#a855f7'},{l:'Banwell',c:'#10b981'},{l:'Locking',c:'#f97316'}].map(s => (
-            <span key={s.l} className="flex items-center gap-1"><span className="rounded-sm flex items-center justify-center text-[7px] font-bold text-white" style={{width:14,height:14,background:s.c}}>{s.l.charAt(0)}</span><span className="text-slate-500">{s.l}</span></span>
+            <span key={s.l} className="flex items-center gap-1"><span className="rounded-sm flex items-center justify-center text-[8px] font-bold text-white" style={{width:14,height:14,background:s.c}}>{s.l.charAt(0)}</span><span className="text-slate-500">{s.l}</span></span>
           ))}
           <span className="text-slate-600">|</span>
           <span className="text-slate-500">Left=AM Right=PM</span>
@@ -360,12 +360,12 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
               {hiddenPeople.length > 0 && (
                 <div className="px-4 py-3 border-b border-slate-100">
                   <div className="text-xs font-semibold text-slate-600 mb-2">Hidden People</div>
-                  <p className="text-[11px] text-slate-400 mb-2">Click to restore.</p>
+                  <p className="text-[13px] text-slate-400 mb-2">Click to restore.</p>
                   <div className="space-y-1">
                     {hiddenPeople.map(c => (
                       <button key={c.id} onClick={() => showPerson(c.id)}
                         className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-colors flex items-center justify-between">
-                        <span>{c.name}</span><span className="text-[10px] text-slate-400">restore</span>
+                        <span>{c.name}</span><span className="text-xs text-slate-400">restore</span>
                       </button>
                     ))}
                   </div>
@@ -381,7 +381,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
                       {groupPeople.map(c => (
                         <button key={c.id} onClick={() => c.showWhosIn !== false ? hidePerson(c.id) : showPerson(c.id)}
                           className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between ${c.showWhosIn !== false ? 'bg-slate-900 text-white' : 'bg-slate-50 border border-slate-200 text-slate-500'}`}>
-                          <span>{c.name}</span><span className="text-[10px] opacity-60">{c.role}</span>
+                          <span>{c.name}</span><span className="text-xs opacity-60">{c.role}</span>
                         </button>
                       ))}
                     </div>
