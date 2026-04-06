@@ -307,7 +307,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
       <div className="flex items-center" style={{padding:'clamp(3px,0.5vh,8px) clamp(4px,0.6vw,8px)',gap:'clamp(4px,0.5vw,8px)'}}>
         <div className="rounded-md flex items-center justify-center font-bold flex-shrink-0" style={{width:'clamp(24px,3vh,40px)',height:'clamp(24px,3vh,40px)',fontSize:'clamp(8px,1.1vh,13px)',background:badgeCol,color:'white',fontFamily:"'Outfit',sans-serif",boxShadow:`0 0 6px ${badgeCol}30`}}>{person.initials}</div>
         <div className="flex-1 min-w-0">
-          <div className={`font-medium leading-tight truncate ${isAbsent ? 'line-through text-slate-500' : 'text-slate-200'}`} style={{fontSize:'clamp(9px, 1.1vh, 14px)'}}>{displayName}</div>
+          <div className={`font-medium leading-tight truncate ${isAbsent ? 'text-slate-500' : 'text-slate-200'}`} style={{fontSize:'clamp(9px, 1.1vh, 14px)'}}>{displayName}</div>
           <div style={{fontSize:'clamp(7px, 0.9vh, 11px)',marginTop:'1px',color:isAbsent?'#f87171':'#64748b'}}>{reason || person.role || 'Staff'}</div>
         </div>
         {locColour && !isAbsent && <div className="rounded flex items-center justify-center font-bold text-white flex-shrink-0" style={{width:'clamp(14px,1.8vh,22px)',height:'clamp(14px,1.8vh,22px)',fontSize:'clamp(7px,0.9vh,11px)',background:locColour}}>{location?.charAt(0)}</div>}
@@ -368,11 +368,12 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
         {/* LEFT COLUMN: Summary → Demand chart → Who's In */}
         <div className="flex-1 flex flex-col min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)' }}>
 
-        {/* Summary card (merged — bigger) */}
-        <div className="rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 border border-slate-800">
+        {/* Summary card — matches Today page */}
+        <div className="rounded-xl overflow-hidden flex-shrink-0" style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)'}}>
           <div style={{padding:'clamp(10px,1.5vh,20px) clamp(12px,1.5vw,24px)'}}>
-            <div className="text-slate-500 uppercase tracking-wider" style={{fontSize:'clamp(8px, 1.1vh, 14px)',letterSpacing:'1px',marginBottom:'clamp(6px,0.8vh,10px)'}}>Today&apos;s summary</div>
-            <div className="flex items-center" style={{gap:'clamp(12px,1.5vw,24px)'}}>
+            <div className="flex items-stretch" style={{gap:'clamp(10px,1.5vw,20px)'}}>
+              {/* Gauge */}
+              <div className="flex-shrink-0 flex items-center">
               {(() => {
                 const gStops=[{pos:0,col:[239,68,68]},{pos:0.25,col:[245,158,11]},{pos:0.5,col:[16,185,129]},{pos:0.75,col:[16,185,129]},{pos:1.0,col:[59,130,246]}];
                 const gColor=(t)=>{t=Math.max(0,Math.min(1,t));for(let i=0;i<gStops.length-1;i++){if(t>=gStops[i].pos&&t<=gStops[i+1].pos){const l=(t-gStops[i].pos)/(gStops[i+1].pos-gStops[i].pos);const a=gStops[i].col,b=gStops[i+1].col;return `rgb(${Math.round(a[0]+(b[0]-a[0])*l)},${Math.round(a[1]+(b[1]-a[1])*l)},${Math.round(a[2]+(b[2]-a[2])*l)})`;}}return 'rgb(59,130,246)';};
@@ -382,50 +383,60 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 const fillF=Math.max(0,Math.min(1,(cPct-50)/100));
                 const gBand=gBands.find(z=>fillF>=z.min&&fillF<z.max)||gBands[gBands.length-1];
                 const endC=gColor(fillF);
-                const gcx=75,gcy=60,gr=45,gSegs=40;
+                const gcx=100,gcy=80,gr=60,gSegs=50;
                 const gPt=(f)=>({x:gcx+gr*Math.cos(Math.PI+f*Math.PI),y:gcy+gr*Math.sin(Math.PI+f*Math.PI)});
                 const nPt=gPt(fillF);
                 const nStub={x:gcx+gr*0.35*Math.cos(Math.PI+fillF*Math.PI),y:gcy+gr*0.35*Math.sin(Math.PI+fillF*Math.PI)};
                 const tS=gPt(0),tE=gPt(1);
                 const arcs=[];
-                for(let i=0;i<Math.round(fillF*gSegs);i++){const t0=i/gSegs;const t1=Math.min((i+1.2)/gSegs,fillF);const a0=Math.PI+t0*Math.PI;const a1=Math.PI+t1*Math.PI;if(a1<=a0)continue;const p0=gPt(t0),p1={x:gcx+gr*Math.cos(a1),y:gcy+gr*Math.sin(a1)};arcs.push(<path key={i} d={`M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${gr} ${gr} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`} fill="none" stroke={gColor(t0)} strokeWidth="7" strokeLinecap="round"/>);}
-                return <svg viewBox="0 0 150 75" style={{width:'clamp(100px,14vw,200px)',height:'clamp(50px,7vh,100px)',flexShrink:0}}>
-                  <path d={`M ${tS.x.toFixed(1)} ${tS.y.toFixed(1)} A ${gr} ${gr} 0 1 1 ${tE.x.toFixed(1)} ${tE.y.toFixed(1)}`} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="7" strokeLinecap="round"/>
+                for(let i=0;i<Math.round(fillF*gSegs);i++){const t0=i/gSegs;const t1=Math.min((i+1.2)/gSegs,fillF);const a0=Math.PI+t0*Math.PI;const a1=Math.PI+t1*Math.PI;if(a1<=a0)continue;const p0=gPt(t0),p1={x:gcx+gr*Math.cos(a1),y:gcy+gr*Math.sin(a1)};arcs.push(<path key={i} d={`M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${gr} ${gr} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`} fill="none" stroke={gColor(t0)} strokeWidth="9" strokeLinecap="round"/>);}
+                return <svg viewBox="0 0 200 100" style={{width:'clamp(140px,18vw,280px)',height:'clamp(70px,9vh,140px)'}}>
+                  <path d={`M ${tS.x.toFixed(1)} ${tS.y.toFixed(1)} A ${gr} ${gr} 0 1 1 ${tE.x.toFixed(1)} ${tE.y.toFixed(1)}`} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="9" strokeLinecap="round"/>
                   {arcs}
-                  <line x1={gcx} y1={gcy} x2={nStub.x.toFixed(1)} y2={nStub.y.toFixed(1)} stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeLinecap="round"/>
-                  <circle cx={nPt.x.toFixed(1)} cy={nPt.y.toFixed(1)} r="4" fill={endC} stroke="#0f172a" strokeWidth="2" style={{filter:`drop-shadow(0 0 4px ${endC})`}}/>
-                  <circle cx={gcx} cy={gcy} r="2.5" fill="#1e293b" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5"/>
-                  <rect x={gcx-30} y={gcy-30} width="60" height="28" rx="6" fill="rgba(15,23,42,0.9)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
-                  <text x={gcx} y={gcy-14} textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:16,fontWeight:700}}>{cPct}%</text>
-                  <text x={gcx} y={gcy-3} textAnchor="middle" fill={endC} style={{fontFamily:"'Outfit',sans-serif",fontSize:8,fontWeight:500}}>{gBand.label}</text>
-                  <text x={gcx} y={gcy+10} textAnchor="middle" fill="#475569" style={{fontSize:7}}>{urgentTotal} / {totalTarget}</text>
+                  <line x1={gcx} y1={gcy} x2={nStub.x.toFixed(1)} y2={nStub.y.toFixed(1)} stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round"/>
+                  <circle cx={nPt.x.toFixed(1)} cy={nPt.y.toFixed(1)} r="5" fill={endC} stroke="#0f172a" strokeWidth="2.5" style={{filter:`drop-shadow(0 0 6px ${endC})`}}/>
+                  <circle cx={gcx} cy={gcy} r="3" fill="#1e293b" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5"/>
+                  <rect x={gcx-38} y={gcy-38} width="76" height="36" rx="8" fill="rgba(15,23,42,0.9)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
+                  <text x={gcx} y={gcy-16} textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:22,fontWeight:700}}>{cPct}%</text>
+                  <text x={gcx} y={gcy-2} textAnchor="middle" fill={endC} style={{fontFamily:"'Outfit',sans-serif",fontSize:11,fontWeight:500}}>{gBand.label}</text>
+                  <text x={gcx} y={gcy+14} textAnchor="middle" fill="#475569" style={{fontSize:9}}>{urgentTotal} / {totalTarget} target</text>
                 </svg>;
               })()}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <svg style={{width:'clamp(14px,1.8vh,20px)',height:'clamp(14px,1.8vh,20px)',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke={verdictText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={coverage>=greenPct?'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z':coverage>=amberPct?'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01':'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}/></svg>
-                  <span className="font-extrabold" style={{fontSize:'clamp(18px, 3.5vh, 44px)',color:verdictText}}>{verdict}</span>
-                </div>
-                <div className="text-slate-500" style={{fontSize:'clamp(9px, 1.3vh, 16px)',marginTop:'clamp(2px,0.3vh,4px)'}}>{shortfall > 0 ? `${shortfall} slots short` : `${urgentTotal - needed} above need`}</div>
               </div>
-              <div className="flex" style={{gap:'clamp(6px,0.8vw,12px)',flexShrink:0}}>
-                <div className="rounded-lg text-center" style={{background:'#1e293b',padding:'clamp(4px,0.6vh,10px) clamp(8px,1vw,16px)'}}>
-                  <div className="text-slate-500" style={{fontSize:'clamp(7px, 1vh, 13px)'}}>Prediction</div>
-                  <div className="font-extrabold" style={{color:dc.text,fontSize:'clamp(16px, 2.8vh, 36px)'}}>{predicted}</div>
+              {/* 4 stat squares */}
+              <div className="flex-1" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'clamp(4px,0.6vh,10px)'}}>
+                <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'clamp(6px,0.8vh,12px)',padding:'clamp(6px,0.8vh,14px) clamp(8px,1vw,14px)'}}>
+                  <div className="text-slate-500" style={{fontSize:'clamp(8px,1vh,13px)'}}>Predicted demand</div>
+                  <div style={{fontFamily:"'Space Mono',monospace",fontWeight:700,color:'#fbbf24',fontSize:'clamp(20px,3.5vh,44px)',lineHeight:1}}>{predicted || '—'}</div>
+                  <div className="text-slate-600" style={{fontSize:'clamp(7px,0.9vh,11px)'}}>requests today</div>
                 </div>
-                <div className="rounded-lg text-center" style={{background:'#1e293b',padding:'clamp(4px,0.6vh,10px) clamp(8px,1vw,16px)'}}>
-                  <div className="text-slate-500" style={{fontSize:'clamp(7px, 1vh, 13px)'}}>Need</div>
-                  <div className="font-extrabold" style={{color:'#a78bfa',fontSize:'clamp(16px, 2.8vh, 36px)'}}>{needed}</div>
+                <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'clamp(6px,0.8vh,12px)',padding:'clamp(6px,0.8vh,14px) clamp(8px,1vw,14px)'}}>
+                  <div className="text-slate-500" style={{fontSize:'clamp(8px,1vh,13px)'}}>Urgent available</div>
+                  <div style={{fontFamily:"'Space Mono',monospace",fontWeight:700,color:arcColour,fontSize:'clamp(20px,3.5vh,44px)',lineHeight:1}}>{availAm + availPm}</div>
+                  <div className="text-slate-600" style={{fontSize:'clamp(7px,0.9vh,11px)'}}>appointments today</div>
                 </div>
-                <div className="rounded-lg text-center" style={{background:'#1e293b',padding:'clamp(4px,0.6vh,10px) clamp(8px,1vw,16px)'}}>
-                  <div className="text-slate-500" style={{fontSize:'clamp(7px, 1vh, 13px)'}}>Have</div>
-                  <div className="font-extrabold" style={{color:'#34d399',fontSize:'clamp(16px, 2.8vh, 36px)'}}>{urgentTotal}</div>
+                <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'clamp(6px,0.8vh,12px)',padding:'clamp(6px,0.8vh,14px) clamp(8px,1vw,14px)'}}>
+                  <div className="text-slate-500" style={{fontSize:'clamp(8px,1vh,13px)'}}>Routine 28 days</div>
+                  <div style={{fontFamily:"'Space Mono',monospace",fontWeight:700,color:'#34d399',fontSize:'clamp(20px,3.5vh,44px)',lineHeight:1}}>{routineDays.filter(d=>d.available!==null&&!d.isWeekend).reduce((s,d)=>s+(d.available||0)+(d.embargoed||0),0)}</div>
+                  <div className="text-slate-600" style={{fontSize:'clamp(7px,0.9vh,11px)'}}>available</div>
+                </div>
+                <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'clamp(6px,0.8vh,12px)',padding:'clamp(6px,0.8vh,14px) clamp(8px,1vw,14px)'}}>
+                  <div className="text-slate-500" style={{fontSize:'clamp(8px,1vh,13px)'}}>Clinicians today</div>
+                  <div style={{fontFamily:"'Space Mono',monospace",fontWeight:700,color:'white',fontSize:'clamp(20px,3.5vh,44px)',lineHeight:1}}>{categories.inPractice.length}</div>
+                  <div className="text-slate-600" style={{fontSize:'clamp(7px,0.9vh,11px)'}}>of {visibleStaff.length} active</div>
                 </div>
               </div>
             </div>
           </div>
-          {topFactors.length > 0 && <div className="flex gap-1 flex-wrap border-t border-slate-800" style={{padding:'clamp(4px,0.6vh,8px) clamp(12px,1.5vw,24px)'}}>
-            {topFactors.map((f,i) => <span key={i} style={{fontSize:'clamp(8px, 1.1vh, 14px)',fontWeight:600,padding:'2px 6px',borderRadius:3,background:'#1e293b',color:f.effect>=0?'#60a5fa':'#34d399'}}>{f.effect>=0?'↑':'↓'} {f.label} {f.effect>0?'+':''}{Math.round(f.effect)}</span>)}
+          {/* Demand prediction insight */}
+          {t && <div style={{borderTop:'1px solid rgba(255,255,255,0.04)',padding:'clamp(6px,0.8vh,12px) clamp(12px,1.5vw,24px)'}}>
+            <div className="flex items-center" style={{gap:'clamp(4px,0.5vw,8px)'}}>
+              <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke={vsPct>3?'#f59e0b':vsPct<-3?'#10b981':'#94a3b8'} strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span style={{fontSize:'clamp(9px,1.2vh,15px)',fontWeight:500,color:vsPct>3?'#f59e0b':vsPct<-3?'#10b981':'#94a3b8'}}>{vsPct>3?'Higher than normal':vsPct<-3?'Lower than normal':'Typical'} for a {dayName}</span>
+            </div>
+            {topFactors.length > 0 && <div className="flex gap-1 flex-wrap" style={{marginTop:'clamp(3px,0.4vh,6px)'}}>
+              {topFactors.map((f,i) => <span key={i} style={{fontSize:'clamp(7px,0.9vh,12px)',fontWeight:500,padding:'1px 5px',borderRadius:10,background:f.effect>=0?'rgba(239,68,68,0.1)':'rgba(16,185,129,0.1)',color:f.effect>=0?'#f87171':'#34d399'}}>{f.effect>=0?'↑':'↓'} {f.label} {f.effect>0?'+':''}{Math.round(f.effect)}</span>)}
+            </div>}
           </div>}
         </div>
 
@@ -449,7 +460,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           <div className="flex-1 overflow-auto" style={{padding:'clamp(4px,0.7vh,16px)'}}>
             <div className="grid grid-cols-3 h-full" style={{gap:'clamp(4px,0.6vw,12px)'}}>
               <div className="overflow-hidden"><div className="text-slate-500 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px, 1.2vh, 16px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-blue-500"/> Clinicians <span className="text-slate-400">{gpTeam.length}</span></div><div style={{display:'flex',flexDirection:'column',gap:'clamp(2px, 0.5vh, 6px)'}}>{gpTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.1+i*0.05} location={personLocationMap[e.person.id]}/>)}</div></div>
-              <div className="overflow-hidden"><div className="text-slate-500 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px, 1.2vh, 16px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-emerald-500"/> Nursing <span className="text-slate-300">{nursingTeam.length}</span></div><div style={{display:'flex',flexDirection:'column',gap:'clamp(2px, 0.5vh, 6px)'}}>{nursingTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.15+i*0.05} location={personLocationMap[e.person.id]}/>)}</div>{othersTeam.length>0 && <><div className="text-slate-500 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px, 1.2vh, 16px)',marginTop:'clamp(4px,0.6vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-purple-500"/> Others <span className="text-slate-300">{othersTeam.length}</span></div><div className="grid grid-cols-2" style={{gap:'clamp(2px, 0.5vh, 8px)'}}>{othersTeam.map((e,i)=><PersonCard key={e.person.id} person={e.person} delay={0.3+i*0.05} location={personLocationMap[e.person.id]}/>)}</div></>}</div>
+              <div className="overflow-hidden"><div className="text-slate-500 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px, 1.2vh, 16px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-emerald-500"/> Nursing <span className="text-slate-300">{nursingTeam.length}</span></div><div style={{display:'flex',flexDirection:'column',gap:'clamp(2px, 0.5vh, 6px)'}}>{nursingTeam.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.15+i*0.05} location={personLocationMap[e.person.id]}/>)}</div>{othersTeam.length>0 && <><div className="text-slate-500 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px, 1.2vh, 16px)',marginTop:'clamp(4px,0.6vh,12px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-purple-500"/> Others <span className="text-slate-300">{othersTeam.length}</span></div><div style={{display:'flex',flexDirection:'column',gap:'clamp(2px, 0.5vh, 6px)'}}>{othersTeam.map((e,i)=><PersonCard key={e.person.id} person={e.person} delay={0.3+i*0.05} location={personLocationMap[e.person.id]}/>)}</div></>}</div>
               <div className="overflow-hidden"><div className="text-slate-500 uppercase tracking-wider flex items-center gap-1.5" style={{fontSize:'clamp(8px, 1.2vh, 16px)',marginBottom:'clamp(2px,0.5vh,8px)'}}><span className="w-2 h-2 rounded-full bg-red-500"/> Absent <span className="text-slate-400">{categories.leaveAbsent.length}</span></div><div style={{display:'flex',flexDirection:'column',gap:'clamp(2px, 0.5vh, 6px)'}}>{categories.leaveAbsent.map((e,i) => <PersonCard key={e.person.id} person={e.person} delay={0.2+i*0.05} reason={e.reason}/>)}</div>{categories.leaveAbsent.length===0 && <div className="text-slate-300" style={{fontSize:'clamp(10px, 1.4vh, 20px)',padding:'0 8px'}}>None</div>}{categories.dayOff.length>0 && <div className="text-slate-300" style={{fontSize:'clamp(8px, 1.2vh, 16px)',marginTop:'clamp(4px,0.8vh,16px)'}}>+ {categories.dayOff.length} day off</div>}</div>
             </div>
           </div>

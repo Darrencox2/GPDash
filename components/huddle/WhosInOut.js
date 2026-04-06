@@ -50,7 +50,7 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
           {person.initials || '?'}
         </div>
         <div className="min-w-0">
-          <div className={`text-sm font-medium leading-tight truncate ${isAbsent ? 'line-through text-slate-500' : 'text-slate-200'}`}>{displayName}</div>
+          <div className={`text-sm font-medium leading-tight truncate ${isAbsent ? 'text-slate-500' : 'text-slate-200'}`}>{displayName}</div>
           <div className="text-xs leading-tight mt-0.5" style={{ color: isAbsent ? '#f87171' : isDayOff ? '#fbbf24' : '#64748b' }}>
             {reason || person.role || 'Staff'}
           </div>
