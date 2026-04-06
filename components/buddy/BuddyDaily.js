@@ -107,13 +107,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 
     if (rows.length > 0) {
       rows.forEach(({ clinician, tasks }) => {
-        const name = clinician.title ? `${clinician.title} ${clinician.name}` : clinician.name;
+        const initials = clinician.initials || '??';
+        const padded = initials.length < 4 ? initials + ' '.repeat(4 - initials.length) : initials;
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
         if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        const assign = parts.join(' | ');
-        const padded = assign.length < 20 ? assign + ' '.repeat(20 - assign.length) : assign;
-        s += `  ${padded}\t${name}\n`;
+        s += `  ${padded}\t${parts.join('  |  ')}\n`;
       });
     } else {
       s += '  No cover needed\n';
@@ -166,13 +165,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 
       s += `${ds}\n`;
       activeRows.forEach(({ clinician, tasks }) => {
-        const name = clinician.title ? `${clinician.title} ${clinician.name}` : clinician.name;
+        const initials = clinician.initials || '??';
+        const padded = initials.length < 4 ? initials + ' '.repeat(4 - initials.length) : initials;
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
         if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        const assign = parts.join(' | ');
-        const padded = assign.length < 20 ? assign + ' '.repeat(20 - assign.length) : assign;
-        s += `  ${padded}\t${name}\n`;
+        s += `  ${padded}\t${parts.join('  |  ')}\n`;
       });
       s += '\n';
     });
