@@ -84,12 +84,43 @@ const GaugeSVG = memo(function GaugeSVG({ pct, colour, label, delay }) {
 });
 
 // ── Main component ──────────────────────────────────────────────
-export default function HuddleFullscreen({ data, huddleData, viewingDate: viewingDateProp, onExit, onNavigateDay }) {
+export default function HuddleFullscreen({ data, huddleData, viewingDate: viewingDateProp, onExit, onNavigateDay, screen: screenProp }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
   const [demandData, setDemandData] = useState(null);
   const [showFsChart, setShowFsChart] = useState(false);
+  const [dualMode, setDualMode] = useState(!!screenProp);
+  const screen = screenProp || null; // null = single, 1 = primary, 2 = secondary
+  const screen2WindowRef = useRef(null);
+
+  // BroadcastChannel for dual-screen date sync
+  const channelRef = useRef(null);
+  useEffect(() => {
+    channelRef.current = new BroadcastChannel('gpdash-huddle-sync');
+    channelRef.current.onmessage = (e) => {
+      if (e.data.type === 'navigate' && onNavigateDay) onNavigateDay(e.data.direction);
+      if (e.data.type === 'exit' && screen === 2) onExit?.();
+    };
+    return () => channelRef.current?.close();
+  }, [screen, onNavigateDay, onExit]);
+
+  const syncNavigate = (dir) => {
+    onNavigateDay?.(dir);
+    channelRef.current?.postMessage({ type: 'navigate', direction: dir });
+  };
+
+  const openScreen2 = () => {
+    const w = window.open(window.location.origin + '/?huddle=2', 'gpdash-screen2', 'popup=yes');
+    screen2WindowRef.current = w;
+    setDualMode(true);
+  };
+
+  const exitDual = () => {
+    channelRef.current?.postMessage({ type: 'exit' });
+    screen2WindowRef.current?.close();
+    onExit?.();
+  };
 
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
@@ -344,31 +375,44 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
             <div className="text-slate-500 uppercase" style={{ fontSize: 'clamp(8px, 1.2vh, 14px)' }}>{MONTH_SHORT[today.getMonth()]}</div>
           </div>
           <div className="flex items-center" style={{ gap: 'clamp(6px, 1vw, 16px)' }}>
-            {onNavigateDay && <button onClick={() => onNavigateDay(-1)} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10 flex-shrink-0" style={{border:"1px solid rgba(255,255,255,0.08)"}} style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px, 2vh, 28px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>‹</button>}
+            {(onNavigateDay || screen === 2) && <button onClick={() => syncNavigate(-1)} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10 flex-shrink-0" style={{border:"1px solid rgba(255,255,255,0.08)"}} style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px, 2vh, 28px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>‹</button>}
             <div style={{ width: 'clamp(160px, 22vw, 300px)' }}>
               <div className="font-bold text-white" style={{ fontSize: 'clamp(16px, 3.5vh, 48px)' }}>{dayName}</div>
               <div className="text-slate-500" style={{ fontSize: 'clamp(10px, 1.5vh, 18px)' }}>{today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
             </div>
-            {onNavigateDay && <button onClick={() => onNavigateDay(1)} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10 flex-shrink-0" style={{border:"1px solid rgba(255,255,255,0.08)"}} style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px, 2vh, 28px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>›</button>}
+            {(onNavigateDay || screen === 2) && <button onClick={() => syncNavigate(1)} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10 flex-shrink-0" style={{border:"1px solid rgba(255,255,255,0.08)"}} style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px, 2vh, 28px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>›</button>}
           </div>
         </div>
         <div className="flex items-center" style={{ gap: 'clamp(10px, 2vw, 32px)' }}>
           <div className="flex items-center gap-1.5"><span className="rounded-full bg-emerald-500 fs-live-dot" style={{width:'clamp(6px,1vh,12px)',height:'clamp(6px,1vh,12px)'}}/><span className="text-slate-500" style={{fontSize:'clamp(10px, 1.5vh, 22px)'}}>Live</span></div>
           {tw && <span className="text-slate-500" style={{fontSize:'clamp(10px, 1.5vh, 22px)'}}>{Math.round(tw.temp)}°C · Feels {Math.round(tw.feelsLike)}°C{tw.precipMm>0?` · ${Math.round(tw.precipMm)}mm`:''}</span>}
           <LiveClock />
-          <button onClick={onExit} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10" style={{border:"1px solid rgba(255,255,255,0.08)"}} style={{padding:'clamp(4px, 0.8vh, 14px) clamp(8px,1.2vw,20px)',fontSize:'clamp(10px,1.3vh,16px)'}}>Exit fullscreen</button>
+          {!screen && !dualMode && <button onClick={openScreen2} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10 flex items-center gap-1.5" style={{border:'1px solid rgba(255,255,255,0.08)',padding:'clamp(4px, 0.8vh, 14px) clamp(8px,1.2vw,20px)',fontSize:'clamp(10px,1.3vh,16px)'}}>
+                <svg style={{width:'clamp(12px,1.5vh,18px)',height:'clamp(12px,1.5vh,18px)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="8" height="18" rx="1"/><rect x="14" y="3" width="8" height="18" rx="1"/></svg>
+                2 Screen
+              </button>}
+              {dualMode && screen !== 2 && <span className="text-emerald-400 flex items-center gap-1.5" style={{fontSize:'clamp(9px,1.2vh,14px)'}}>
+                <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="8" height="18" rx="1"/><rect x="14" y="3" width="8" height="18" rx="1"/></svg>
+                Screen 1
+              </span>}
+              {screen === 2 && <span className="text-emerald-400 flex items-center gap-1.5" style={{fontSize:'clamp(9px,1.2vh,14px)'}}>
+                <svg style={{width:'clamp(10px,1.3vh,16px)',height:'clamp(10px,1.3vh,16px)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="8" height="18" rx="1"/><rect x="14" y="3" width="8" height="18" rx="1"/></svg>
+                Screen 2
+              </span>}
+              <button onClick={screen === 2 ? onExit : exitDual} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10" style={{border:'1px solid rgba(255,255,255,0.08)',padding:'clamp(4px, 0.8vh, 14px) clamp(8px,1.2vw,20px)',fontSize:'clamp(10px,1.3vh,16px)'}}>Exit</button>
         </div>
       </div>
 
       <NoticeTicker messages={messages} />
 
-      {/* Option C layout — summary + demand left, urgent + who's in right */}
+      {/* Main content — splits based on screen mode */}
       <div className="flex flex-1 min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)', padding: 'clamp(4px, 0.5vh, 10px)' }}>
 
         {/* LEFT COLUMN: Summary → Demand chart → Who's In */}
         <div className="flex-1 flex flex-col min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)' }}>
 
         {/* Summary card — matches Today page */}
+        {screen !== 2 && (<>
         <div className="rounded-xl overflow-hidden flex-shrink-0" style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)'}}>
           <div style={{padding:'clamp(10px,1.5vh,20px) clamp(12px,1.5vw,24px)'}}>
             <div className="flex items-stretch" style={{gap:'clamp(10px,1.5vw,20px)'}}>
@@ -440,7 +484,9 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           </div>}
         </div>
 
+        </>)}
         {/* Demand chart — collapsible dark card */}
+        {screen !== 1 && (<>
         <div className="rounded-xl bg-slate-900 overflow-hidden border border-slate-800 flex-shrink-0">
           <button onClick={() => setShowFsChart(p => !p)} className="w-full flex items-center justify-between" style={{padding:'clamp(4px, 0.8vh, 14px) clamp(8px, 1.2vw, 24px)',background:'none',border:'none',cursor:'pointer'}}>
             <div className="flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span className="font-semibold text-slate-200" style={{fontSize:'clamp(10px, 1.5vh, 20px)'}}>14-day demand forecast</span></div>
@@ -451,7 +497,9 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           </div>}
         </div>
 
+        </>)}
         {/* Who's In — left column */}
+        {screen !== 1 && (<>
         <div className="rounded-xl overflow-hidden flex flex-col flex-1" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
           <div className="flex items-center justify-between flex-shrink-0" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)",padding:'clamp(4px, 0.8vh, 14px) clamp(8px, 1.2vw, 24px)'}}>
             <span className="font-semibold text-white" style={{fontSize:'clamp(10px, 1.5vh, 20px)'}}>Who&apos;s in today</span>
@@ -466,12 +514,14 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           </div>
         </div>
 
+        </>)}
         </div>{/* end left column */}
 
         {/* RIGHT COLUMN: Urgent → Routine */}
         <div className="flex-1 flex flex-col min-h-0" style={{ gap: 'clamp(4px, 0.5vh, 10px)' }}>
 
         {/* TR: Urgent — AM/PM side by side with proportional bars */}
+        {screen !== 2 && (<>
         <div className="rounded-xl overflow-hidden flex flex-col" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
           <div className="flex items-center justify-between flex-shrink-0" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)",padding:'clamp(4px, 0.8vh, 14px) clamp(8px, 1.2vw, 24px)'}}>
             <span className="font-semibold text-white" style={{fontSize:'clamp(10px, 1.5vh, 20px)'}}>Urgent on the day</span>
@@ -591,7 +641,9 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           </div>
         </div>
 
+        </>)}
         {/* Routine capacity — right column */}
+        {screen !== 1 && (<>
         <div className="rounded-xl overflow-hidden flex flex-col" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', border:'1px solid #334155'}}>
           <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 flex items-center justify-between flex-shrink-0" style={{padding:'clamp(4px, 0.8vh, 14px) clamp(8px, 1.2vw, 24px)'}}>
             <span className="font-semibold text-white" style={{fontSize:'clamp(10px, 1.5vh, 20px)'}}>Routine capacity</span>
@@ -637,6 +689,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
           </div>
         </div>
 
+        </>)}
         </div>{/* end right column */}
 
       </div>

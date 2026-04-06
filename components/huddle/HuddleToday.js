@@ -36,6 +36,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const [viewingDate, setViewingDate] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d; });
   const [showCalendar, setShowCalendar] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [huddleScreen, setHuddleScreen] = useState(null);
+
+  // Auto-open screen 2 if ?huddle=2 in URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('huddle') === '2') {
+        setHuddleScreen(2);
+        setIsFullscreen(true);
+      }
+    }
+  }, []);
   const fileRef = useRef(null);
   const hs = data?.huddleSettings || {};
   const knownSlotTypes = hs?.knownSlotTypes || [];
@@ -262,7 +274,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     <div className="-m-4 lg:-m-6 min-h-screen animate-in" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)'}}
       onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
     <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-4">
-      {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} viewingDate={viewingDate} onExit={() => setIsFullscreen(false)} onNavigateDay={navigateDay} />}
+      {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} viewingDate={viewingDate} onExit={() => { setIsFullscreen(false); setHuddleScreen(null); if (huddleScreen === 2) window.close(); }} onNavigateDay={navigateDay} screen={huddleScreen} />}
       {isDragging && (
         <div className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none" style={{background:'rgba(15,23,42,0.7)'}}>
           <div className="glass rounded-2xl p-8 text-center" style={{border:'2px dashed rgba(16,185,129,0.4)'}}>
