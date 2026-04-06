@@ -22,9 +22,11 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
   const isAbsent = status === 'absent';
   const isDayOff = status === 'dayoff';
   const displayName = person.title ? `${person.title} ${person.name}` : person.name;
-  const statusColour = isAbsent ? '#ef4444' : isDayOff ? '#f59e0b' : '#10b981';
-  const statusBg = isAbsent ? 'rgba(239,68,68,0.1)' : isDayOff ? 'rgba(251,191,36,0.06)' : 'rgba(16,185,129,0.08)';
-  const statusBorder = isAbsent ? 'rgba(239,68,68,0.2)' : isDayOff ? 'rgba(251,191,36,0.12)' : 'rgba(16,185,129,0.15)';
+  const roleColMap = { gp: '#3b82f6', nursing: '#10b981', allied: '#a855f7' };
+  const roleCol = roleColMap[person.group] || '#64748b';
+  const statusColour = isAbsent ? '#ef4444' : isDayOff ? '#f59e0b' : roleCol;
+  const statusBg = isAbsent ? 'rgba(239,68,68,0.1)' : isDayOff ? 'rgba(251,191,36,0.06)' : `${roleCol}15`;
+  const statusBorder = isAbsent ? 'rgba(239,68,68,0.2)' : isDayOff ? 'rgba(251,191,36,0.12)' : `${roleCol}25`;
 
   // Location markers
   const amLoc = sessionLoc?.am;
@@ -83,7 +85,15 @@ function DropZone({ onDrop, children, isEmpty }) {
 }
 
 export default function WhosInOut({ data, saveData, huddleData, onNavigate, viewingDate: viewingDateProp }) {
-  const getSiteCol = (name) => { const sites = data?.roomAllocation?.sites || []; const s = sites.find(x => x.name === name); return s?.colour || '#64748b'; };
+  const getSiteCol = (name) => {
+    if (!name) return '#64748b';
+    const sites = data?.roomAllocation?.sites || [];
+    const exact = sites.find(x => x.name === name);
+    if (exact) return exact.colour || '#64748b';
+    const lower = name.toLowerCase();
+    const fuzzy = sites.find(x => x.name.toLowerCase().startsWith(lower) || lower.startsWith(x.name.toLowerCase()));
+    return fuzzy?.colour || '#64748b';
+  };
   const [showSettings, setShowSettings] = useState(false);
   const [showAbsent, setShowAbsent] = useState(false);
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };

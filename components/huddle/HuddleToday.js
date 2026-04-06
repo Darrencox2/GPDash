@@ -124,7 +124,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     sites.forEach(s => { if (s.name && s.colour) map[s.name] = s.colour; });
     return map;
   }, [data?.roomAllocation?.sites]);
-  const getSiteColour = (siteName) => siteColourMap[siteName] || '#64748b';
+  const getSiteColour = (siteName) => {
+    if (!siteName) return '#64748b';
+    if (siteColourMap[siteName]) return siteColourMap[siteName];
+    const lower = siteName.toLowerCase();
+    const match = Object.entries(siteColourMap).find(([k]) => k.toLowerCase().startsWith(lower) || lower.startsWith(k.toLowerCase()));
+    return match ? match[1] : '#64748b';
+  };
   const teamClinicians = useMemo(() => {
     if (!data?.clinicians) return [];
     return Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
@@ -617,12 +623,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="flex items-center gap-3 mb-3">
                     <span className="font-mono-data text-6xl font-bold leading-none" style={{ color: band.colour }}>{slots}</span>
                     <div className="flex-1">
-                      <div className="h-2.5 rounded-full relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                        <div className="absolute left-0 top-0 bottom-0" style={{ width: `${Math.min(bar.fillPct, 100)}%`, display:'flex', borderRadius: '5px' }}>
-                          {avail > 0 && <div style={{flex: avail, background: band.colour}} />}
-                          {booked > 0 && <div style={{flex: booked, background: '#f59e0b'}} />}
+                      <div className="relative">
+                        <div className="h-2.5 rounded-full relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                          <div className="absolute left-0 top-0 bottom-0" style={{ width: `${Math.min(bar.fillPct, 100)}%`, display:'flex', borderRadius: '5px' }}>
+                            {avail > 0 && <div style={{flex: avail, background: band.colour}} />}
+                            {booked > 0 && <div style={{flex: booked, background: '#f59e0b'}} />}
+                          </div>
                         </div>
-                        {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-5px', marginLeft: '-6px' }}><div style={{width:12,height:12,borderRadius:'50%',border:`2px solid ${band.colour}`,background:'rgba(15,23,42,0.9)'}} /></div>}
+                        {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '50%', transform: 'translate(-50%, -50%)' }}><div style={{width:14,height:14,borderRadius:'50%',border:`2.5px solid ${band.colour}`,background:'#0f172a',boxShadow:`0 0 8px ${band.colour}`}} /></div>}
                       </div>
                       <div className="flex justify-between mt-1.5">
                         <span className="text-sm text-slate-400">{avail} avail · {booked} booked{added > 0 ? <span style={{color:'#818cf8'}}> · +{added} since 8am</span> : ''}</span>
@@ -636,7 +644,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   {dutyDocDisplay && (
                     <div className="rounded-lg overflow-hidden mb-2" style={{ background: '#dc2626', boxShadow: '0 2px 8px rgba(220,38,38,0.2)' }}>
                       <div className="flex items-center gap-2.5 px-3 py-2.5">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="white" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
                           <div className="text-xs text-white/60">Duty · {dutyDocDisplay.location || '?'}</div>
@@ -648,7 +656,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   {dutySupportDisplay && (
                     <div className="rounded-lg overflow-hidden mb-3" style={{ background: '#2563eb', boxShadow: '0 2px 8px rgba(37,99,235,0.2)' }}>
                       <div className="flex items-center gap-2.5 px-3 py-2.5">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" className="flex-shrink-0"><circle cx="8" cy="7" r="3.5" fill="none" stroke="white" strokeWidth="1.5"/><circle cx="16" cy="7" r="3.5" fill="none" stroke="white" strokeWidth="1.5"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="flex-shrink-0"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-white truncate">{dutySupportDisplay.displayName}</div>
                           <div className="text-xs text-white/60">Support · {dutySupportDisplay.location || '?'}</div>
@@ -663,7 +671,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       return (
                         <div key={i} className="glass-inner rounded-lg px-3 py-2 flex items-center justify-between">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0 font-mono-data" style={{background: band.colour, boxShadow:`0 0 6px ${band.colour}30`}}>{c.initials}</div>
+                            <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{fontFamily:"'Outfit',sans-serif",background: band.colour, boxShadow:`0 0 6px ${band.colour}30`}}>{c.initials}</div>
                             <div className="min-w-0">
                               <span className="text-sm text-slate-200 truncate">{c.displayName}</span>
                               {c.role && <div className="text-xs text-slate-400">{c.role}</div>}
