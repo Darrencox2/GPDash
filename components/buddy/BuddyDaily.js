@@ -91,41 +91,112 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const handleCopyDay = () => {
     const dateKey = getDateKey();
     const date = new Date(dateKey + 'T12:00:00');
-    const dateStr = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     if (!currentAlloc) return;
     const grouped = groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, currentAlloc.presentIds || []);
-    let text = `BUDDY ALLOCATION\n${dateStr}\n\n`;
+
+    const pad = (str, w) => { const s = str || ''; return s.length >= w ? s.slice(0, w) : s + ' '.repeat(w - s.length); };
+    const C1 = 24, C2 = 14, C3 = 14;
+    const W = C1 + C2 + C3 + 4;
+
+    let s = '';
+    s += '═'.repeat(W + 2) + '\n';
+    s += '  BUDDY COVER\n';
+    s += `  ${date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
+    s += '  gpdash.net/buddy\n';
+    s += '═'.repeat(W + 2) + '\n\n';
+
     const rows = ensureArray(currentAlloc.presentIds).map(id => {
       const c = getClinicianById(id); const t = grouped[id] || { absent: [], dayOff: [] };
-      return c ? { clinician: c, tasks: t, canCover: c.canProvideCover !== false, hasAllocs: t.absent.length > 0 || t.dayOff.length > 0 } : null;
-    }).filter(Boolean);
-    rows.sort((a, b) => { if (a.canCover && !b.canCover) return -1; if (!a.canCover && b.canCover) return 1; if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; } return 0; });
-    rows.forEach(({ clinician, tasks }) => {
-      const f = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-';
-      const v = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-';
-      text += `${clinician.initials}: File ${f} / View ${v}\n`;
-    });
-    navigator.clipboard.writeText(text.trim());
+      return c ? { clinician: c, tasks: t, hasAllocs: t.absent.length > 0 || t.dayOff.length > 0 } : null;
+    }).filter(Boolean).filter(r => r.hasAllocs);
+    rows.sort((a, b) => { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; return 0; });
+
+    if (rows.length > 0) {
+      s += `  ┌${'─'.repeat(C1)}┬${'─'.repeat(C2)}┬${'─'.repeat(C3)}┐\n`;
+      s += `  │${pad(' Covering', C1)}│${pad(' File', C2)}│${pad(' View', C3)}│\n`;
+      s += `  ├${'─'.repeat(C1)}┼${'─'.repeat(C2)}┼${'─'.repeat(C3)}┤\n`;
+      rows.forEach(({ clinician, tasks }) => {
+        const name = clinician.title ? `${clinician.title} ${clinician.name}` : clinician.name;
+        const file = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join('  ') : '—';
+        const view = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join('  ') : '—';
+        s += `  │ ${pad(name, C1 - 1)}│ ${pad(file, C2 - 1)}│ ${pad(view, C3 - 1)}│\n`;
+      });
+      s += `  └${'─'.repeat(C1)}┴${'─'.repeat(C2)}┴${'─'.repeat(C3)}┘\n`;
+    } else {
+      s += '  No cover needed\n';
+    }
+
+    navigator.clipboard.writeText(s.trim());
     toast('Copied to clipboard', 'success', 2000);
   };
 
   const handleCopyWeek = () => {
     const missing = DAYS.filter(d => { const dk = getDateKeyForDay(d); return !isClosedDay(dk) && !data?.allocationHistory?.[dk]; });
     if (missing.length > 0) { alert(`Missing allocations for: ${missing.join(', ')}`); return; }
-    let s = `BUDDY ALLOCATIONS — ${formatWeekRange(selectedWeek)}\n${'='.repeat(50)}\n\n`;
+
+    const pad = (str, w) => { const s = str || ''; return s.length >= w ? s.slice(0, w) : s + ' '.repeat(w - s.length); };
+    const C1 = 24, C2 = 14, C3 = 14;
+    const W = C1 + C2 + C3 + 4; // total inner width
+
+    let s = '';
+    s += '═'.repeat(W + 2) + '\n';
+    s += '  BUDDY COVER\n';
+    const wcDate = new Date(getDateKeyForDay('Monday') + 'T12:00:00');
+    s += `  Week commencing ${wcDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
+    s += '  gpdash.net/buddy\n';
+    s += '═'.repeat(W + 2) + '\n';
+
     DAYS.forEach(d => {
       const dk = getDateKeyForDay(d);
       const dt = new Date(dk + 'T12:00:00');
-      const ds = dt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
-      if (isClosedDay(dk)) { s += `${ds}\nPRACTICE CLOSED — ${getClosedReason(dk)}\n\n`; return; }
-      const e = data?.allocationHistory?.[dk]; if (!e) { s += `${ds}\nNo allocation generated\n\n`; return; }
-      s += `${ds}\n`;
-      const g = groupAllocationsByCovering(e.allocations || {}, e.dayOffAllocations || {}, e.presentIds || []);
-      const rows = (e.presentIds || []).map(id => { const c = getClinicianById(id); const t = g[id] || { absent: [], dayOff: [] }; return c ? { clinician: c, tasks: t, canCover: c.canProvideCover !== false, hasAllocs: t.absent.length > 0 || t.dayOff.length > 0 } : null; }).filter(Boolean);
-      rows.sort((a, b) => { if (a.canCover && !b.canCover) return -1; if (!a.canCover && b.canCover) return 1; if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; } return 0; });
-      rows.forEach(({ clinician, tasks }) => { const f = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-'; const v = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(', ') : '-'; s += `${clinician.initials}: File ${f} / View ${v}\n`; });
+      const ds = dt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
       s += '\n';
+
+      if (isClosedDay(dk)) {
+        s += `  ${ds}\n`;
+        s += `  PRACTICE CLOSED — ${getClosedReason(dk)}\n`;
+        return;
+      }
+
+      const e = data?.allocationHistory?.[dk];
+      if (!e) { s += `  ${ds}\n  No allocation generated\n`; return; }
+
+      const g = groupAllocationsByCovering(e.allocations || {}, e.dayOffAllocations || {}, e.presentIds || []);
+      const rows = (e.presentIds || []).map(id => {
+        const c = getClinicianById(id);
+        const t = g[id] || { absent: [], dayOff: [] };
+        return c ? { clinician: c, tasks: t, canCover: c.canProvideCover !== false, hasAllocs: t.absent.length > 0 || t.dayOff.length > 0 } : null;
+      }).filter(Boolean);
+      rows.sort((a, b) => {
+        if (a.canCover && !b.canCover) return -1;
+        if (!a.canCover && b.canCover) return 1;
+        if (a.hasAllocs && !b.hasAllocs) return -1;
+        if (!a.hasAllocs && b.hasAllocs) return 1;
+        return 0;
+      });
+
+      // Only show clinicians who have allocations
+      const activeRows = rows.filter(r => r.hasAllocs);
+      if (activeRows.length === 0) {
+        s += `  ${ds}\n  No cover needed\n`;
+        return;
+      }
+
+      s += `  ${ds}\n`;
+      s += `  ┌${'─'.repeat(C1)}┬${'─'.repeat(C2)}┬${'─'.repeat(C3)}┐\n`;
+      s += `  │${pad(' Covering', C1)}│${pad(' File', C2)}│${pad(' View', C3)}│\n`;
+      s += `  ├${'─'.repeat(C1)}┼${'─'.repeat(C2)}┼${'─'.repeat(C3)}┤\n`;
+
+      activeRows.forEach(({ clinician, tasks }) => {
+        const name = clinician.title ? `${clinician.title} ${clinician.name}` : clinician.name;
+        const file = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join('  ') : '—';
+        const view = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join('  ') : '—';
+        s += `  │ ${pad(name, C1 - 1)}│ ${pad(file, C2 - 1)}│ ${pad(view, C3 - 1)}│\n`;
+      });
+
+      s += `  └${'─'.repeat(C1)}┴${'─'.repeat(C2)}┴${'─'.repeat(C3)}┘\n`;
     });
+
     navigator.clipboard.writeText(s.trim());
     toast('Week copied to clipboard', 'success', 2000);
   };
