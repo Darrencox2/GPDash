@@ -95,7 +95,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const grouped = groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, currentAlloc.presentIds || []);
 
     const tabAlign = (name, label) => {
-      const padded = name.length < 24 ? name + ' '.repeat(24 - name.length) : name;
+      const padded = name.length < 28 ? name + ' '.repeat(28 - name.length) : name;
       return `  ${padded}\t${label}`;
     };
 
@@ -114,7 +114,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
         if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        s += `  ${name} -- ${parts.join(', ')}\n`;
+        s += tabAlign(name, parts.join('  |  ')) + '\n';
       });
     } else {
       s += '  No cover needed\n';
@@ -128,9 +128,9 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const missing = DAYS.filter(d => { const dk = getDateKeyForDay(d); return !isClosedDay(dk) && !data?.allocationHistory?.[dk]; });
     if (missing.length > 0) { alert(`Missing allocations for: ${missing.join(', ')}`); return; }
 
-    // Tab-align: pad name to 24 chars then add tab to snap to consistent stop
+    // Tab-align: pad name to 28 chars then add tab to snap to consistent stop
     const tabAlign = (name, label) => {
-      const padded = name.length < 24 ? name + ' '.repeat(24 - name.length) : name;
+      const padded = name.length < 28 ? name + ' '.repeat(28 - name.length) : name;
       return `  ${padded}\t${label}`;
     };
 
@@ -175,7 +175,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
         if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        s += `  ${name} -- ${parts.join(', ')}\n`;
+        s += tabAlign(name, parts.join('  |  ')) + '\n';
       });
       s += '\n';
     });
