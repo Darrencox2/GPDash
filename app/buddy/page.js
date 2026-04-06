@@ -38,17 +38,21 @@ export default function PublicBuddyCover() {
 function BuddyCoverView({ data, lastRefresh, onRefresh }) {
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
 
-  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
-  const dateKey = toLocalIso(today);
-  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
-  const dateDisplay = today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const realToday = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const [viewDate, setViewDate] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d; });
+  const navigateDay = (dir) => { const d = new Date(viewDate); d.setDate(d.getDate() + dir); setViewDate(d); };
+  const isViewingToday = viewDate.getTime() === realToday.getTime();
+
+  const dateKey = toLocalIso(viewDate);
+  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][viewDate.getDay()];
+  const dateDisplay = viewDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   const cliniciansList = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
   const getClinicianById = (id) => ensureArray(data.clinicians).find(c => c.id === id);
 
   // Check if practice is closed
   const isClosed = data.closedDays?.[dateKey];
-  const isWeekend = today.getDay() === 0 || today.getDay() === 6;
+  const isWeekend = viewDate.getDay() === 0 || viewDate.getDay() === 6;
 
   // Compute today's status
   const status = useMemo(() => {
@@ -97,8 +101,11 @@ function BuddyCoverView({ data, lastRefresh, onRefresh }) {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white" style={{fontFamily:"'Outfit',sans-serif"}}>Buddy Cover</h1>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-2 mt-1">
+              <button onClick={() => navigateDay(-1)} className="rounded text-slate-600 hover:text-white hover:bg-white/10 transition-colors" style={{border:'1px solid rgba(255,255,255,0.06)',padding:'2px 6px',fontSize:12,lineHeight:1}}>‹</button>
               <span className="text-slate-400 text-sm">{dateDisplay}</span>
+              <button onClick={() => navigateDay(1)} className="rounded text-slate-600 hover:text-white hover:bg-white/10 transition-colors" style={{border:'1px solid rgba(255,255,255,0.06)',padding:'2px 6px',fontSize:12,lineHeight:1}}>›</button>
+              {!isViewingToday && <button onClick={() => setViewDate(new Date(realToday))} className="text-xs text-purple-400 hover:text-purple-300 ml-1">Today</button>}
             </div>
           </div>
           <div className="flex items-center gap-3">
