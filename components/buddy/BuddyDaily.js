@@ -109,12 +109,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     }).filter(Boolean).filter(r => r.hasAllocs);
 
     if (rows.length > 0) {
-      s += fmtRow('', 'File', 'View') + '\n';
       rows.forEach(({ clinician, tasks }) => {
         const name = clinician.title ? `${clinician.title} ${clinician.name}` : clinician.name;
-        const fileStr = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' ') : '-';
-        const viewStr = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' ') : '-';
-        s += fmtRow(name, fileStr, viewStr) + '\n';
+        const parts = [];
+        if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        s += `  ${name} -- ${parts.join(', ')}\n`;
       });
     } else {
       s += '  No cover needed\n';
@@ -170,12 +170,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       if (activeRows.length === 0) { s += `${ds}\n  No cover needed\n\n`; return; }
 
       s += `${ds}\n`;
-      s += fmtRow('', 'File', 'View') + '\n';
       activeRows.forEach(({ clinician, tasks }) => {
         const name = clinician.title ? `${clinician.title} ${clinician.name}` : clinician.name;
-        const fileStr = tasks.absent.length > 0 ? tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' ') : '-';
-        const viewStr = tasks.dayOff.length > 0 ? tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' ') : '-';
-        s += fmtRow(name, fileStr, viewStr) + '\n';
+        const parts = [];
+        if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        s += `  ${name} -- ${parts.join(', ')}\n`;
       });
       s += '\n';
     });
