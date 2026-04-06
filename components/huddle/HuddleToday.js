@@ -259,75 +259,63 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       )}
 
       {/* Date header with navigation */}
-      <div className="card overflow-visible relative z-10">
-        <div className="flex">
-          <div className={`${isViewingToday ? 'bg-emerald-500' : 'bg-slate-600'} px-4 py-3 flex flex-col items-center justify-center min-w-[90px] transition-colors relative`}>
-            <div className="text-3xl font-extrabold text-white leading-none">{viewingDate.getDate()}</div>
-            <div className="text-xs font-semibold text-white/80 uppercase mt-0.5">{viewingDate.toLocaleDateString('en-GB', { month: 'short' })}</div>
-            <div className="flex items-center gap-1 mt-1.5">
-              <button onClick={() => setShowCalendar(!showCalendar)} className="w-6 h-6 rounded flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors">
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              </button>
-              {!isViewingToday && <button onClick={goToToday} className="px-2 py-0.5 rounded bg-white/20 text-white text-[10px] font-semibold hover:bg-white/30 transition-colors">Today</button>}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="glass-dark rounded-lg px-2.5 py-1 flex items-center gap-1.5 cursor-pointer relative" onClick={() => setShowCalendar(!showCalendar)}>
+            <button onClick={(e) => { e.stopPropagation(); navigateDay(-1); }} className="w-6 h-6 rounded flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div className="text-center px-1">
+              <div className="font-mono-data text-lg font-bold text-white leading-none">{viewingDate.getDate()}</div>
+              <div className="text-[8px] text-slate-500 uppercase tracking-wider">{viewingDate.toLocaleDateString('en-GB', { month: 'short' })}</div>
             </div>
+            <button onClick={(e) => { e.stopPropagation(); navigateDay(1); }} className="w-6 h-6 rounded flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
             {showCalendar && (
-              <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-xl shadow-2xl border border-slate-200 p-3">
-                <input type="date"
-                  value={toLocalIso(viewingDate)}
-                  min={toLocalIso(minDate)}
-                  max={toLocalIso(maxDate)}
-                  onChange={(e) => goToDate(e.target.value)}
+              <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-xl shadow-2xl border border-slate-200 p-3" onClick={e => e.stopPropagation()}>
+                <input type="date" value={toLocalIso(viewingDate)} min={toLocalIso(minDate)} max={toLocalIso(maxDate)} onChange={(e) => goToDate(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900" />
               </div>
             )}
           </div>
-          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 flex-1 px-5 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={() => navigateDay(-1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
-              </button>
-              <div style={{ width: '200px' }}>
-                <h1 className="text-2xl font-extrabold text-white tracking-tight">
-                  {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'long' })}
-                </h1>
-                <span className="text-sm text-slate-300">
-                  {isViewingToday
-                    ? viewingDate.toLocaleDateString('en-GB', { weekday: 'long' })
-                    : viewingDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
-              </div>
-              <button onClick={() => navigateDay(1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setIsFullscreen(true)} className="h-9 px-3 rounded-lg flex items-center gap-2 text-white/50 hover:text-white hover:bg-white/10 transition-colors" title="Fullscreen huddle board">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
-                <span className="text-xs font-medium">Huddle board</span>
-              </button>
-              <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
-              <div className="flex flex-col items-end">
-                <Button variant={isUploadedToday ? 'upload_fresh' : 'upload_stale'} onClick={() => fileRef.current?.click()}>
-                  {isUploadedToday ? '✓ Upload Report' : '⚠ Upload Report'}
-                </Button>
-                {data?.huddleCsvUploadedAt && (
-                  <span className="text-[10px] text-slate-400 mt-1">Uploaded {new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
-                )}
-              </div>
-            </div>
+          <div>
+            <h1 className="font-heading text-xl font-medium text-slate-900">
+              {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'long' })}
+            </h1>
+            <span className="text-xs text-slate-400">
+              {isViewingToday
+                ? viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                : viewingDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </span>
           </div>
+          {!isViewingToday && <button onClick={goToToday} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium ml-2 underline">Back to today</button>}
+        </div>
+        <div className="flex items-center gap-2">
+          <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
+          <button onClick={() => fileRef.current?.click()}
+            className="h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium text-white transition-colors"
+            style={{ background: isUploadedToday ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.6)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)' }}
+            title={data?.huddleCsvUploadedAt ? `Uploaded ${new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : 'No CSV uploaded'}>
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            {isUploadedToday ? 'CSV uploaded' : 'Upload CSV'}
+          </button>
+          <button onClick={() => setIsFullscreen(true)} className="h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium text-white transition-colors"
+            style={{ background: 'rgba(124,58,237,0.7)', border: '1px solid rgba(124,58,237,0.3)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)' }}>
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+            Huddle board
+          </button>
         </div>
       </div>
 
       {/* Not-today banner */}
       {!isViewingToday && (
-        <div className="card p-3 bg-slate-50 border-slate-200 flex items-center gap-2">
-          <svg className="w-4 h-4 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span className="text-xs text-slate-500">
+        <div className="glass-dark rounded-lg p-3 flex items-center gap-2 mb-2">
+          <svg className="w-4 h-4 text-slate-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span className="text-xs text-slate-400">
             Viewing {viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
             {!hasDataForDate && huddleData && ' — no CSV data available for this date'}
           </span>
-          <button onClick={goToToday} className="ml-auto text-xs font-medium text-emerald-600 hover:text-emerald-800 underline">Back to today</button>
         </div>
       )}
 
@@ -337,78 +325,130 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (
-        <div className="card p-12 text-center">
+        <div className="glass-dark rounded-xl p-12 text-center">
           <div className="text-5xl mb-4">📊</div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Upload Appointment Report</h2>
+          <h2 className="font-heading text-lg font-medium text-slate-300 mb-2">Upload Appointment Report</h2>
           <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload or drag-and-drop your EMIS CSV to see urgent capacity.</p>
           <Button onClick={() => fileRef.current?.click()}>Select CSV File</Button>
         </div>
       ) : isPracticeClosed ? (
-        <div className="card overflow-hidden">
+        <div className="glass-dark rounded-xl overflow-hidden">
           <div className="py-16 px-6 text-center">
-            <div className="mx-auto mb-4" style={{ width: 72, height: 72, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="mx-auto mb-4" style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 <path d="M9 22V12h6v10" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-slate-700 mb-2">Practice closed</h2>
-            <p className="text-sm text-slate-400">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-            {viewingPrediction?.isBankHoliday && <p className="text-xs text-amber-500 mt-2 font-medium">Bank Holiday</p>}
+            <h2 className="font-heading text-xl font-medium text-slate-300 mb-2">Practice closed</h2>
+            <p className="text-sm text-slate-500">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            {viewingPrediction?.isBankHoliday && <span className="inline-block mt-3 text-xs font-medium px-3 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.1)' }}>Bank Holiday</span>}
           </div>
         </div>
       ) : (
         <>
-      {/* NOTICEBOARD */}
-      <div className="card overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          <span className="text-sm font-semibold text-amber-400">Noticeboard</span>
-          {huddleMessages.length > 0 && <span className="text-xs text-white/40 ml-auto">{huddleMessages.length} message{huddleMessages.length !== 1 ? 's' : ''}</span>}
-        </div>
-        <div className="p-3 space-y-1">
-          {huddleMessages.length === 0 && <p className="text-sm text-slate-400 text-center py-3">No messages yet.</p>}
-          {huddleMessages.map((msg, i) => {
-            const colours = [
-              { border: '#f59e0b', bg: 'rgba(245,158,11,0.06)', badge: '#fef3c7', badgeText: '#92400e', init: '#fde68a' },
-              { border: '#3b82f6', bg: 'rgba(59,130,246,0.06)', badge: '#dbeafe', badgeText: '#1e40af', init: '#bfdbfe' },
-              { border: '#ec4899', bg: 'rgba(236,72,153,0.06)', badge: '#fce7f3', badgeText: '#9d174d', init: '#fbcfe8' },
-              { border: '#10b981', bg: 'rgba(16,185,129,0.06)', badge: '#d1fae5', badgeText: '#065f46', init: '#a7f3d0' },
-              { border: '#8b5cf6', bg: 'rgba(139,92,246,0.06)', badge: '#ede9fe', badgeText: '#5b21b6', init: '#ddd6fe' },
-            ];
-            const c = colours[i % colours.length];
-            const initials = msg.author ? msg.author.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
-            const time = msg.addedAt ? new Date(msg.addedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-            return (
-              <div key={msg.id || i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg group" style={{ borderLeft: `3px solid ${c.border}`, background: c.bg }}>
-                <div className="relative flex-shrink-0">
-                  <div className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 cursor-default" style={{ background: c.badge }}>
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: c.init, color: c.badgeText }}>{initials}</div>
+      {/* ═══ SUMMARY GAUGE BAR ═══ */}
+      {capacity && (() => {
+        const urgTotal = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0) + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0);
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const todayDayName = dayNames[viewingDate.getDay()];
+        const targetTotal = (hs.expectedCapacity?.[todayDayName]?.am || 0) + (hs.expectedCapacity?.[todayDayName]?.pm || 0);
+        const coveragePct = targetTotal > 0 ? Math.round((urgTotal / targetTotal) * 100) : 0;
+        const band = getBand(urgTotal, targetTotal);
+        const pred = viewingPrediction;
+        const predTotal = pred?.predicted || 0;
+        const predBaseline = pred?.factors?.baseline || 0;
+        const predDowEffect = pred?.factors?.dayOfWeek?.effect || 0;
+        const predAvgDay = Math.round(predBaseline + predDowEffect);
+        const predDiff = predTotal - predAvgDay;
+        const predLabel = predDiff > 3 ? 'Higher than a normal ' + todayDayName : predDiff < -3 ? 'Lower than a normal ' + todayDayName : 'Typical for a ' + todayDayName;
+        const predColour = predDiff > 3 ? '#f59e0b' : predDiff < -3 ? '#10b981' : '#94a3b8';
+        // Build display factors
+        const displayFactors = [];
+        if (pred?.factors) {
+          const f = pred.factors;
+          if (f.schoolHoliday) displayFactors.push({ label: 'School holiday', impact: f.schoolHoliday });
+          if (f.firstWeekBack) displayFactors.push({ label: 'First week back', impact: f.firstWeekBack });
+          if (f.firstDayBack) displayFactors.push({ label: 'First day back', impact: f.firstDayBack });
+          if (f.secondDayBack) displayFactors.push({ label: 'Second day back', impact: f.secondDayBack });
+          if (f.nearBankHoliday) displayFactors.push({ label: `Near bank holiday (${f.nearBankHoliday.daysAway}d)`, impact: f.nearBankHoliday.effect });
+          if (f.christmasPeriod) displayFactors.push({ label: 'Christmas period', impact: f.christmasPeriod });
+          if (f.endOfMonth) displayFactors.push({ label: 'End of month', impact: f.endOfMonth });
+          if (f.shortWeek) displayFactors.push({ label: `Short week (${f.shortWeek.workingDays}d)`, impact: f.shortWeek.effect });
+          if (f.month) displayFactors.push({ label: `Month effect`, impact: f.month.effect });
+          if (f.trend && Math.abs(f.trend.effect) >= 0.5) displayFactors.push({ label: 'Long-term trend', impact: Math.round(f.trend.effect) });
+        }
+        // Gauge arc calculation
+        const gaugeR = 42, gaugeC = Math.PI * 2 * gaugeR;
+        const gaugeFill = targetTotal > 0 ? Math.min(coveragePct / 100, 1.15) : 0;
+        return (
+          <div className="glass rounded-xl p-4 flex gap-4 items-center">
+            <div className="flex-shrink-0">
+              <svg width="100" height="100" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r={gaugeR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                <circle cx="50" cy="50" r={gaugeR} fill="none" stroke={band.colour} strokeWidth="6"
+                  strokeDasharray={`${gaugeFill * gaugeC} ${gaugeC}`} strokeDashoffset="0"
+                  transform="rotate(-90 50 50)" strokeLinecap="round"
+                  style={{filter:`drop-shadow(0 0 6px ${band.colour}40)`}} />
+                <text x="50" y="42" textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:24,fontWeight:700}}>{coveragePct}%</text>
+                <text x="50" y="56" textAnchor="middle" fill={band.colour} style={{fontSize:11,fontWeight:500}}>{band.label}</text>
+                <text x="50" y="68" textAnchor="middle" fill="#475569" style={{fontSize:9}}>{urgTotal} / {targetTotal} target</text>
+              </svg>
+            </div>
+            <div className="flex-1 flex flex-col gap-2">
+              <div className="flex gap-2">
+                <div className="glass-inner rounded-lg p-2.5 flex-1">
+                  <div className="text-[10px] text-slate-500">Predicted demand</div>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-2xl font-bold text-amber-400" style={{fontFamily:"'Space Mono',monospace"}}>{predTotal || '—'}</span>
+                    <span className="text-[10px] text-slate-600">requests</span>
                   </div>
-                  {msg.author && (
-                    <div className="hidden group-hover:block absolute left-0 top-full mt-1 z-20 bg-slate-800 text-white text-xs px-2.5 py-1 rounded-lg whitespace-nowrap shadow-lg">{msg.author}</div>
-                  )}
                 </div>
-                <span className="text-sm text-slate-800 flex-1">{msg.text}</span>
-                {time && <span className="text-xs text-slate-400 flex-shrink-0">{time}</span>}
-                <button onClick={() => removeMessage(i)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs">✕</button>
+                <div className="glass-inner rounded-lg p-2.5 flex-1">
+                  <div className="text-[10px] text-slate-500">Clinicians</div>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-2xl font-bold text-white" style={{fontFamily:"'Space Mono',monospace"}}>{teamClinicians.filter(c => c.status !== 'left' && c.status !== 'administrative').length}</span>
+                    {(() => { const absCount = teamClinicians.filter(c => { const s = c.status; return s === 'left' || s === 'administrative' ? false : !c.workingPattern?.[todayDayName]; }).length; return absCount > 0 ? <span className="text-[10px] text-red-400">{absCount} off</span> : null; })()}
+                  </div>
+                </div>
               </div>
-            );
-          })}
-          <div className="flex gap-2 pt-2">
-            <input type="text" value={newAuthor} onChange={e => setNewAuthor(e.target.value)} placeholder="Your name" className="w-32 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
-            <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMessage(); }} placeholder="Add a message..." className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
-            <Button onClick={addMessage} size="sm">Add</Button>
+              {predTotal > 0 && (
+                <div className="glass-inner rounded-lg p-2.5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={predColour} strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    <span className="text-xs font-medium" style={{color:predColour}}>{predLabel}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 leading-relaxed">
+                    Average {todayDayName} sees {predAvgDay} requests.
+                    {displayFactors.filter(f => f.impact !== 0).slice(0, 2).map((f, i) => ` ${f.label} ${f.impact > 0 ? '+' : ''}${f.impact}.`).join('') || ''}
+                  </div>
+                  <details className="mt-1.5">
+                    <summary className="text-[10px] text-slate-500 cursor-pointer hover:text-slate-300 flex items-center gap-1">
+                      Demand factors
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+                    </summary>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-[11px]"><span className="text-slate-500">Base {todayDayName} avg</span><span className="font-bold text-slate-300" style={{fontFamily:"'Space Mono',monospace"}}>{predAvgDay}</span></div>
+                      {displayFactors.filter(f => f.impact !== 0).map((f, i) => (
+                        <div key={i} className="flex justify-between text-[11px]">
+                          <span className="text-slate-500">{f.label}</span>
+                          <span className="font-bold" style={{fontFamily:"'Space Mono',monospace", color: f.impact > 0 ? '#ef4444' : f.impact < 0 ? '#10b981' : '#475569'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-[11px] pt-1 mt-1" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                        <span className="text-slate-300 font-medium">Predicted total</span>
+                        <span className="font-bold text-amber-400" style={{fontFamily:"'Space Mono',monospace"}}>{predTotal}</span>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
-      {/* DEMAND vs CAPACITY CONNECTOR */}
-      <DemandCapacityConnector viewingDate={viewingDate} huddleData={huddleData} capacity={capacity} hs={hs} data={data} saveData={saveData} urgentOverrides={urgentOverrides} />
-
-      {/* WHO'S IN / OUT */}
-      <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />
-          {/* ─── URGENT ON THE DAY ─── */}
+      {/* ═══ URGENT ON THE DAY ═══ */}
           {(() => {
             const urgentAm = capacity.am.total + (capacity.am.embargoed || 0) + (capacity.am.booked || 0);
             const availAm = (capacity.am.total || 0) + (capacity.am.embargoed || 0);
@@ -575,12 +615,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             };
 
             return (
-              <div className="card overflow-hidden">
-                <div className="bg-gradient-to-r from-red-600 to-rose-600 px-5 py-3">
+              <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
+                <div className="glass-header px-4 py-2.5">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-base font-semibold text-white">Urgent on the Day</div>
-                      <div className="text-[11px] text-white/70">Available urgent capacity{displayDate && displayDate !== viewingDateStr ? ` (${displayDate})` : ''}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="font-heading text-sm font-medium text-slate-300">Urgent on the Day</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-medium" style={{background:`${amBand.colour}20`,color:amBand.colour,border:`1px solid ${amBand.colour}15`}}>AM {amBand.label}</span>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-medium" style={{background:`${pmBand.colour}20`,color:pmBand.colour,border:`1px solid ${pmBand.colour}15`}}>PM {pmBand.label}</span>
+                      </div>
                     </div>
                     <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} />
                   </div>
@@ -595,15 +638,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <p className="text-sm text-slate-400 max-w-sm mx-auto">Open the filter above to choose which slot types to include as urgent on the day.</p>
                   </div>
                 ) : (<>
-                <div className="flex flex-col md:flex-row md:divide-x divide-slate-200">
+                <div className="glass-body flex flex-col md:flex-row md:divide-x divide-slate-200/50">
                   <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
                   <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
                 </div>
 
                 {/* Slot type breakdown */}
                 {capacity.bySlotType.length > 0 && (
-                  <div className="border-t border-slate-200">
-                    <div className="bg-slate-50 px-5 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                  <div className="border-t" style={{borderColor:'rgba(255,255,255,0.04)'}}>
+                    <div className="glass-inner px-5 py-2.5 flex items-center justify-between" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                       <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">By Slot Type</div>
                       <div className="flex items-center gap-3">
                         {['Winscombe','Banwell','Locking'].map(loc => {
@@ -643,6 +686,51 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             );
           })()}
 
+      {/* WHO'S IN / OUT */}
+      <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />
+
+      {/* DEMAND + NOTICEBOARD side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2">
+          <DemandCapacityConnector viewingDate={viewingDate} huddleData={huddleData} capacity={capacity} hs={hs} data={data} saveData={saveData} urgentOverrides={urgentOverrides} />
+        </div>
+        <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
+          <div className="glass-header px-4 py-2.5 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span className="font-heading text-sm font-medium text-slate-400">Noticeboard</span>
+            {huddleMessages.length > 0 && <span className="text-xs text-slate-600 ml-auto">{huddleMessages.length}</span>}
+          </div>
+          <div className="glass-body p-3 space-y-1.5">
+            {huddleMessages.length === 0 && <p className="text-sm text-slate-400 text-center py-3">No messages yet.</p>}
+            {huddleMessages.map((msg, i) => {
+              const colours = [
+                { border: '#f59e0b', bg: 'rgba(245,158,11,0.06)', badge: '#fef3c7', badgeText: '#92400e', init: '#fde68a' },
+                { border: '#3b82f6', bg: 'rgba(59,130,246,0.06)', badge: '#dbeafe', badgeText: '#1e40af', init: '#bfdbfe' },
+                { border: '#ec4899', bg: 'rgba(236,72,153,0.06)', badge: '#fce7f3', badgeText: '#9d174d', init: '#fbcfe8' },
+                { border: '#10b981', bg: 'rgba(16,185,129,0.06)', badge: '#d1fae5', badgeText: '#065f46', init: '#a7f3d0' },
+                { border: '#8b5cf6', bg: 'rgba(139,92,246,0.06)', badge: '#ede9fe', badgeText: '#5b21b6', init: '#ddd6fe' },
+              ];
+              const c = colours[i % colours.length];
+              const initials = msg.author ? msg.author.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
+              const time = msg.addedAt ? new Date(msg.addedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+              return (
+                <div key={msg.id || i} className="flex items-center gap-2 px-2.5 py-2 rounded-lg group" style={{ borderLeft: `3px solid ${c.border}`, background: c.bg }}>
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0" style={{ background: c.init, color: c.badgeText }}>{initials}</div>
+                  <span className="text-xs text-slate-800 flex-1 leading-tight">{msg.text}</span>
+                  {time && <span className="text-[10px] text-slate-400 flex-shrink-0">{time}</span>}
+                  <button onClick={() => removeMessage(i)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs">✕</button>
+                </div>
+              );
+            })}
+            <div className="flex gap-2 pt-1">
+              <input type="text" value={newAuthor} onChange={e => setNewAuthor(e.target.value)} placeholder="Name" className="w-20 px-2 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900" />
+              <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMessage(); }} placeholder="Message..." className="flex-1 px-2 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900" />
+              <Button onClick={addMessage} size="sm">Add</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
           {/* ─── ROUTINE CAPACITY (30 days) ─── */}
           {(() => {
             const routineDays = getNDayAvailability(huddleData, hs, 30, effectiveRoutineOverrides);
@@ -663,12 +751,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             });
 
             return (
-              <div className="rounded-xl overflow-hidden" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', border:'1px solid #334155'}}>
-                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3">
+              <div className="rounded-xl overflow-hidden glass-dark">
+                <div className="glass-header px-4 py-2.5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-base font-semibold text-white">Routine Capacity</div>
-                      <div className="text-[11px] text-white/70">30-day availability overview</div>
+                      <div className="font-heading text-sm font-medium text-slate-300">Routine Capacity</div>
+                      <div className="text-[11px] text-slate-600">30-day availability overview</div>
                     </div>
                     <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" />
                   </div>
@@ -695,7 +783,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   ))}
                 </div>
 
-                <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={effectiveRoutineOverrides} teamClinicians={teamClinicians} />
+                <details className="border-t border-white/10">
+                  <summary className="px-4 py-2 text-[10px] text-slate-500 cursor-pointer hover:text-slate-300 flex items-center justify-center gap-1">
+                    28-day chart
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+                  </summary>
+                  <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={effectiveRoutineOverrides} teamClinicians={teamClinicians} />
+                </details>
                 </>)}
               </div>
             );
@@ -708,12 +802,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               const overrides = cardOverrides[card.id] || null;
               const effective = overrides || allSlotsOverrides;
               return (
-                <div key={card.id} className="rounded-xl overflow-visible group relative" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', border:'1px solid #334155'}}>
-                  <div className={`bg-gradient-to-r ${gradient} px-4 py-2.5 rounded-t-xl`}>
+                <div key={card.id} className="rounded-xl overflow-visible group relative glass-dark">
+                  <div className="glass-header px-4 py-2.5 rounded-t-xl">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm font-semibold text-white">{card.title}</div>
-                        <div className="text-[10px] text-white/70">Next 14 days</div>
+                        <div className="font-heading text-sm font-medium text-slate-300">{card.title}</div>
+                        <div className="text-[10px] text-slate-600">Next 14 days</div>
                       </div>
                       <div className="flex items-center gap-1">
                         <SlotFilter overrides={overrides} setOverrides={(v) => setCardOverride(card.id, v)} knownSlotTypes={knownSlotTypes} title={`${card.title} Slots`} />
@@ -730,45 +824,28 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             {/* Add card button */}
             {!showAddCard ? (
               <button onClick={() => setShowAddCard(true)}
-                className="card border-2 border-dashed border-slate-300 hover:border-slate-400 flex items-center justify-center min-h-[160px] text-slate-400 hover:text-slate-600 transition-colors rounded-xl">
+                className="glass-inner rounded-xl flex items-center justify-center border-2 border-dashed transition-colors hover:border-slate-500"
+                style={{borderColor:'rgba(255,255,255,0.08)', minHeight:80}}>
                 <div className="text-center">
-                  <div className="text-2xl mb-1">+</div>
-                  <div className="text-sm font-medium">Add Capacity Card</div>
+                  <div className="text-lg text-slate-600 leading-none">+</div>
+                  <div className="text-[10px] text-slate-500 mt-1">Add card</div>
                 </div>
               </button>
             ) : (
-              <div className="card overflow-hidden">
-                <div className="bg-slate-100 px-4 py-3 border-b border-slate-200">
-                  <div className="text-sm font-semibold text-slate-700">New Capacity Card</div>
+              <div className="glass rounded-xl p-3">
+                <div className="flex gap-2 mb-2">
+                  <input type="text" value={newCardTitle} onChange={e => setNewCardTitle(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addCapacityCard(); }}
+                    placeholder="Card title..."
+                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500" autoFocus />
+                  <Button onClick={addCapacityCard} size="sm" disabled={!newCardTitle.trim()}>Add</Button>
+                  <button onClick={() => { setShowAddCard(false); setNewCardTitle(''); }} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
                 </div>
-                <div className="p-4 space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Title</label>
-                    <input type="text" value={newCardTitle} onChange={e => setNewCardTitle(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') addCapacityCard(); }}
-                      placeholder="e.g. Mental Health, Diabetes..."
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" autoFocus />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Colour</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {CARD_COLOURS.map(c => (
-                        <button key={c.key} onClick={() => setNewCardColour(c.key)} title={c.label}
-                          className={`w-7 h-7 rounded-lg bg-gradient-to-r ${c.gradient} transition-all ${newCardColour === c.key ? 'ring-2 ring-slate-900 ring-offset-1 scale-110' : 'hover:scale-105 opacity-70 hover:opacity-100'}`} />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Preview */}
-                  {newCardTitle.trim() && (
-                    <div className={`rounded-lg bg-gradient-to-r ${GRADIENT_MAP[newCardColour]} px-3 py-2`}>
-                      <div className="text-sm font-semibold text-white">{newCardTitle.trim()}</div>
-                      <div className="text-[10px] text-white/70">Next 7 days</div>
-                    </div>
-                  )}
-                  <div className="flex gap-2 pt-1">
-                    <Button onClick={addCapacityCard} size="sm" disabled={!newCardTitle.trim()}>Add</Button>
-                    <button onClick={() => { setShowAddCard(false); setNewCardTitle(''); }} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
-                  </div>
+                <div className="flex flex-wrap gap-1">
+                  {CARD_COLOURS.map(c => (
+                    <button key={c.key} onClick={() => setNewCardColour(c.key)} title={c.label}
+                      className={`w-5 h-5 rounded bg-gradient-to-r ${c.gradient} transition-all ${newCardColour === c.key ? 'ring-2 ring-white/40 ring-offset-1 ring-offset-slate-900 scale-110' : 'opacity-50 hover:opacity-100'}`} />
+                  ))}
                 </div>
               </div>
             )}

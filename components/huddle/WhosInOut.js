@@ -19,48 +19,51 @@ const ROLE_COLOURS = {
 };
 
 function PersonCard({ person, status, reason, onDragStart, onHide, location, sessionLoc }) {
-  const gc = {gp:{init:'#dbeafe',text:'#1d4ed8'},nursing:{init:'#d1fae5',text:'#047857'},allied:{init:'#ede9fe',text:'#6d28d9'},admin:{init:'#f1f5f9',text:'#64748b'}}[person.group]||{init:'#f1f5f9',text:'#64748b'};
-  const colourClass = ROLE_COLOURS[person.role] || 'bg-slate-50 border-slate-200 text-slate-700';
   const isAbsent = status === 'absent';
+  const isDayOff = status === 'dayoff';
   const displayName = person.title ? `${person.title} ${person.name}` : person.name;
-  const locCol = location ? LOCATION_COLOURS[location] : null;
+  const statusColour = isAbsent ? '#ef4444' : isDayOff ? '#f59e0b' : '#10b981';
+  const statusBg = isAbsent ? 'rgba(239,68,68,0.1)' : isDayOff ? 'rgba(251,191,36,0.06)' : 'rgba(16,185,129,0.08)';
+  const statusBorder = isAbsent ? 'rgba(239,68,68,0.2)' : isDayOff ? 'rgba(251,191,36,0.12)' : 'rgba(16,185,129,0.15)';
+
+  // Location markers
+  const amLoc = sessionLoc?.am;
+  const pmLoc = sessionLoc?.pm;
+  const LOC_COLOURS = { 'Winscombe': '#0ea5e9', 'Banwell': '#f97316', 'Locking': '#a855f7' };
+  const fallbackLoc = location;
+
   return (
     <div draggable onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
-      className={`relative text-center rounded-lg border overflow-hidden transition-all cursor-grab active:cursor-grabbing group ${colourClass} ${isAbsent ? 'opacity-60' : ''}`}>
+      className="rounded-lg transition-all cursor-grab active:cursor-grabbing group relative"
+      style={{ background: statusBg, border: `1px solid ${statusBorder}`, boxShadow: `inset 0 1px 0 ${statusBg}` }}>
       {onHide && (
         <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
-          className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 hover:text-red-500 transition-opacity absolute top-1 right-1 z-10" title="Hide">✕</button>
+          className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-red-400 transition-opacity absolute top-1 right-1 z-10">✕</button>
       )}
-      <div style={{ padding: '8px 6px 6px' }}>
-        <div className="flex items-center justify-center mb-1">
-          <div className="rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-            style={{ width: 28, height: 28, background: isAbsent ? '#fee2e2' : gc.init, color: isAbsent ? '#991b1b' : gc.text }}>
-            {person.initials || '?'}
+      <div className="flex items-center gap-2 px-2.5 py-2">
+        <div className="rounded-md flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+          style={{ width: 26, height: 26, background: statusColour, color: 'white', fontFamily: "'Space Mono', monospace", boxShadow: `0 0 8px ${statusColour}30` }}>
+          {person.initials || '?'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className={`text-[11px] font-medium leading-tight truncate ${isAbsent ? 'line-through text-slate-500' : 'text-slate-200'}`}>{displayName}</div>
+          <div className="text-[9px] leading-tight mt-0.5" style={{ color: isAbsent ? '#f87171' : isDayOff ? '#fbbf24' : '#64748b' }}>
+            {reason || person.role || 'Staff'}
           </div>
         </div>
-        <div className={`text-xs font-semibold leading-tight ${isAbsent ? 'line-through text-slate-400' : 'text-slate-900'}`}>{displayName}</div>
-        <div className="text-[10px] text-slate-400 leading-tight mt-0.5">{person.role || 'Staff'}{reason ? ` · ${reason}` : ''}</div>
-      </div>
-      {!isAbsent && sessionLoc && (sessionLoc.am || sessionLoc.pm) ? (() => {
-        const amLoc = sessionLoc.am;
-        const pmLoc = sessionLoc.pm;
-        const amC = amLoc ? LOCATION_COLOURS[amLoc] : null;
-        const pmC = pmLoc ? LOCATION_COLOURS[pmLoc] : null;
-        const isSplit = amLoc && pmLoc && amLoc !== pmLoc;
-        const isHalfDay = (amLoc && !pmLoc) || (!amLoc && pmLoc);
-        if (isSplit || isHalfDay) {
+        {!isAbsent && !isDayOff && (amLoc || pmLoc || fallbackLoc) && (() => {
+          const aLoc = amLoc || fallbackLoc;
+          const pLoc = pmLoc || fallbackLoc;
+          const aC = LOC_COLOURS[aLoc] || '#64748b';
+          const pC = LOC_COLOURS[pLoc] || '#64748b';
           return (
-            <div className="flex">
-              <div className="flex-1 text-center text-[10px] font-semibold py-0.5" style={{ background: amC?.bg || '#e2e8f0', color: amC?.text || '#94a3b8' }}>{amLoc ? amLoc.charAt(0) : '—'}</div>
-              <div className="flex-1 text-center text-[10px] font-semibold py-0.5" style={{ background: pmC?.bg || '#e2e8f0', color: pmC?.text || '#94a3b8' }}>{pmLoc ? pmLoc.charAt(0) : '—'}</div>
+            <div className="flex flex-col gap-px flex-shrink-0">
+              <div className="rounded-t-sm flex items-center justify-center text-[6px] font-bold text-white" style={{ width: 16, height: 10, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
+              <div className="rounded-b-sm flex items-center justify-center text-[6px] font-bold text-white" style={{ width: 16, height: 10, background: pC }}>{pLoc?.charAt(0) || '?'}</div>
             </div>
           );
-        }
-        if (amC) return <div className="text-center text-[11px] font-semibold py-0.5" style={{ background: amC.bg, color: amC.text }}>{amLoc}</div>;
-        return null;
-      })() : locCol && !isAbsent ? (
-        <div className="text-center text-[11px] font-semibold py-0.5" style={{ background: locCol.bg, color: locCol.text }}>{location}</div>
-      ) : null}
+        })()}
+      </div>
     </div>
   );
 }
@@ -71,8 +74,9 @@ function DropZone({ onDrop, children, isEmpty }) {
     <div onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
       onDragLeave={(e) => { e.stopPropagation(); setDragOver(false); }}
       onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); onDrop?.(e); }}
-      className={`min-h-[40px] rounded-xl border-2 border-dashed p-1.5 transition-all ${dragOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-slate-200'}`}>
-      {isEmpty && !dragOver && <div className="flex items-center justify-center py-2 text-xs text-slate-400">None</div>}
+      className={`min-h-[40px] rounded-xl border-2 border-dashed p-1.5 transition-all ${dragOver ? 'border-indigo-400' : 'border-transparent'}`}
+      style={{ background: dragOver ? 'rgba(99,102,241,0.05)' : 'transparent' }}>
+      {isEmpty && !dragOver && <div className="flex items-center justify-center py-2 text-xs text-slate-600">None</div>}
       <div className="grid grid-cols-2 gap-1.5">{children}</div>
     </div>
   );
@@ -270,104 +274,77 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   const hiddenPeople = allClinicians.filter(c => c.showWhosIn === false && c.status !== 'left' && c.status !== 'administrative');
 
   return (
-    <div className="card overflow-hidden" onDragOver={(e) => e.stopPropagation()} onDrop={(e) => e.stopPropagation()}>
-      <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3">
+    <div className="rounded-xl overflow-hidden glass" onDragOver={(e) => e.stopPropagation()} onDrop={(e) => e.stopPropagation()}>
+      <div className="glass-header px-4 py-2.5">
         <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-semibold text-white">{isViewingToday ? "Who's In Today" : `Who's In — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</div>
-            <div className="text-[10px] text-white/60">{hasCSV ? 'Based on report data' : 'Based on rota'} · Drag to move</div>
+          <div className="flex items-center gap-2">
+            <span className="font-heading text-sm font-medium text-slate-300">{isViewingToday ? "Who's in today" : `Who's in — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</span>
+            <span className="text-[10px] text-slate-600">{categories.inPractice.length} in · {categories.leaveAbsent.length + categories.dayOff.length} off</span>
           </div>
           <button onClick={() => setShowSettings(true)}
-            className="px-2.5 py-1 rounded text-[11px] font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">⚙ Settings</button>
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z"/></svg>
+          </button>
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-3 space-y-3" style={{background:'rgba(15,23,42,0.5)'}}>
         {/* Unconfirmed staff banner */}
         {unconfirmedCount > 0 && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.15)'}}>
             <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
-            <span className="text-xs text-amber-800">{unconfirmedCount} unconfirmed staff member{unconfirmedCount > 1 ? 's' : ''} from CSV</span>
+            <span className="text-xs text-amber-400">{unconfirmedCount} unconfirmed from CSV</span>
             {onNavigate && (
-              <button onClick={() => onNavigate('team-members')} className="ml-auto text-xs font-medium text-amber-700 hover:text-amber-900 underline">Review in Staff Register</button>
+              <button onClick={() => onNavigate('team-members')} className="ml-auto text-xs font-medium text-amber-300 hover:text-amber-100 underline">Review</button>
             )}
           </div>
         )}
 
-        {/* IN PRACTICE — 3 columns by staff group */}
-        <div>
-          <div className="flex items-center gap-1.5 mb-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-xs font-semibold text-slate-700">In Practice ({categories.inPractice.length})</span>
+        {/* ROLE SECTIONS */}
+        {[
+          { label: 'GPs', team: gpTeam, colour: '#3b82f6' },
+          { label: 'Nurses & HCAs', team: nursingTeam, colour: '#10b981' },
+          { label: 'Other practitioners', team: othersTeam, colour: '#a855f7' },
+        ].filter(s => s.team.length > 0).map(section => (
+          <div key={section.label}>
+            <div className="flex items-center gap-2 mb-1.5 px-1">
+              <div className="w-1 h-3 rounded-full" style={{background:section.colour}} />
+              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{section.label} ({section.team.length})</span>
+            </div>
+            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={section.team.length === 0}>
+              {section.team.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} />)}
+            </DropZone>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Clinicians ({gpTeam.length})</div>
-              <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={gpTeam.length === 0}>
-                {gpTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} />)}
-              </DropZone>
-            </div>
-            <div>
-              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Nursing ({nursingTeam.length})</div>
-              <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={nursingTeam.length === 0}>
-                {nursingTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} />)}
-              </DropZone>
-            </div>
-            <div>
-              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Others ({othersTeam.length})</div>
-              <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={othersTeam.length === 0}>
-                {othersTeam.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} />)}
-              </DropZone>
-            </div>
-          </div>
-        </div>
+        ))}
 
         {/* LEAVE / ABSENT + DAY OFF — collapsible */}
         {(categories.leaveAbsent.length > 0 || categories.dayOff.length > 0) && (
           <div>
             <button onClick={() => setShowAbsent(!showAbsent)}
-              className="flex items-center gap-2 w-full text-left py-1.5 group">
-              <span className={`text-[10px] text-slate-400 transition-transform ${showAbsent ? 'rotate-90' : ''}`}>▶</span>
+              className="flex items-center gap-2 w-full text-left py-1 group">
+              <span className={`text-[10px] text-slate-500 transition-transform ${showAbsent ? 'rotate-90' : ''}`}>▶</span>
               <div className="flex items-center gap-3 text-xs text-slate-500">
-                {categories.leaveAbsent.length > 0 && (
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                    {categories.leaveAbsent.length} absent
-                  </span>
-                )}
-                {categories.dayOff.length > 0 && (
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                    {categories.dayOff.length} day off
-                  </span>
-                )}
+                {categories.leaveAbsent.length > 0 && <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" />{categories.leaveAbsent.length} absent</span>}
+                {categories.dayOff.length > 0 && <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f59e0b'}} />{categories.dayOff.length} day off</span>}
               </div>
-              <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">{showAbsent ? 'hide' : 'show'}</span>
             </button>
             {showAbsent && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                <div>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <div className="w-2 h-2 rounded-full bg-red-400" />
-                    <span className="text-xs font-semibold text-slate-700">Leave / Absent ({categories.leaveAbsent.length})</span>
-                  </div>
-                  <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'absent')} isEmpty={categories.leaveAbsent.length === 0}>
-                    {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} />)}
-                  </DropZone>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <div className="w-2 h-2 rounded-full bg-slate-300" />
-                    <span className="text-xs font-semibold text-slate-700">Day Off ({categories.dayOff.length})</span>
-                  </div>
-                  <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'dayoff')} isEmpty={categories.dayOff.length === 0}>
-                    {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} />)}
-                  </DropZone>
-                </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} />)}
+                {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} />)}
               </div>
             )}
           </div>
         )}
+
+        {/* Location legend */}
+        <div className="flex items-center justify-center gap-3 pt-1 text-[9px]">
+          {[{l:'Winscombe',c:'#0ea5e9'},{l:'Banwell',c:'#f97316'},{l:'Locking',c:'#a855f7'}].map(s => (
+            <span key={s.l} className="flex items-center gap-1"><span className="rounded-sm flex items-center justify-center text-[7px] font-bold text-white" style={{width:12,height:12,background:s.c}}>{s.l.charAt(0)}</span><span className="text-slate-500">{s.l}</span></span>
+          ))}
+          <span className="text-slate-600">|</span>
+          <span className="text-slate-500">Top=AM Bottom=PM</span>
+        </div>
       </div>
 
       {/* Right-side settings panel */}
