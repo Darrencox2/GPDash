@@ -29,7 +29,7 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
   // Location markers
   const amLoc = sessionLoc?.am;
   const pmLoc = sessionLoc?.pm;
-  const LOC_COLOURS = { 'Winscombe': '#0ea5e9', 'Banwell': '#f97316', 'Locking': '#a855f7' };
+  const LOC_COLOURS = { 'Winscombe': '#a855f7', 'Banwell': '#10b981', 'Locking': '#f97316' };
   const fallbackLoc = location;
 
   return (
@@ -38,16 +38,16 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
       style={{ background: statusBg, border: `1px solid ${statusBorder}`, boxShadow: `inset 0 1px 0 ${statusBg}` }}>
       {onHide && (
         <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
-          className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-red-400 transition-opacity absolute top-1 right-1 z-10">✕</button>
+          className="opacity-0 group-hover:opacity-100 text-xs text-slate-500 hover:text-red-400 transition-opacity absolute top-1 right-1 z-10">✕</button>
       )}
-      <div className="flex items-center gap-2 px-2.5 py-2">
-        <div className="rounded-md flex items-center justify-center text-[9px] font-bold flex-shrink-0"
-          style={{ width: 26, height: 26, background: statusColour, color: 'white', fontFamily: "'Space Mono', monospace", boxShadow: `0 0 8px ${statusColour}30` }}>
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
+        <div className="rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+          style={{ width: 28, height: 28, background: statusColour, color: 'white', fontFamily: "'Space Mono', monospace", boxShadow: `0 0 8px ${statusColour}30` }}>
           {person.initials || '?'}
         </div>
         <div className="flex-1 min-w-0">
-          <div className={`text-[11px] font-medium leading-tight truncate ${isAbsent ? 'line-through text-slate-500' : 'text-slate-200'}`}>{displayName}</div>
-          <div className="text-[9px] leading-tight mt-0.5" style={{ color: isAbsent ? '#f87171' : isDayOff ? '#fbbf24' : '#64748b' }}>
+          <div className={`text-sm font-medium leading-tight truncate ${isAbsent ? 'line-through text-slate-500' : 'text-slate-200'}`}>{displayName}</div>
+          <div className="text-xs leading-tight mt-0.5" style={{ color: isAbsent ? '#f87171' : isDayOff ? '#fbbf24' : '#64748b' }}>
             {reason || person.role || 'Staff'}
           </div>
         </div>
@@ -57,9 +57,9 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
           const aC = LOC_COLOURS[aLoc] || '#64748b';
           const pC = LOC_COLOURS[pLoc] || '#64748b';
           return (
-            <div className="flex flex-col gap-px flex-shrink-0">
-              <div className="rounded-t-sm flex items-center justify-center text-[6px] font-bold text-white" style={{ width: 16, height: 10, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
-              <div className="rounded-b-sm flex items-center justify-center text-[6px] font-bold text-white" style={{ width: 16, height: 10, background: pC }}>{pLoc?.charAt(0) || '?'}</div>
+            <div className="flex gap-px flex-shrink-0">
+              <div className="rounded-l flex items-center justify-center text-[7px] font-bold text-white" style={{ width: 18, height: 20, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
+              <div className="rounded-r flex items-center justify-center text-[7px] font-bold text-white" style={{ width: 18, height: 20, background: pC }}>{pLoc?.charAt(0) || '?'}</div>
             </div>
           );
         })()}
@@ -307,9 +307,9 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           { label: 'Other practitioners', team: othersTeam, colour: '#a855f7' },
         ].filter(s => s.team.length > 0).map(section => (
           <div key={section.label}>
-            <div className="flex items-center gap-2 mb-1.5 px-1">
-              <div className="w-1 h-3 rounded-full" style={{background:section.colour}} />
-              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{section.label} ({section.team.length})</span>
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <div className="w-1 h-3.5 rounded-full" style={{background:section.colour}} />
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">{section.label} ({section.team.length})</span>
             </div>
             <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={section.team.length === 0}>
               {section.team.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} />)}
@@ -338,12 +338,12 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         )}
 
         {/* Location legend */}
-        <div className="flex items-center justify-center gap-3 pt-1 text-[9px]">
-          {[{l:'Winscombe',c:'#0ea5e9'},{l:'Banwell',c:'#f97316'},{l:'Locking',c:'#a855f7'}].map(s => (
-            <span key={s.l} className="flex items-center gap-1"><span className="rounded-sm flex items-center justify-center text-[7px] font-bold text-white" style={{width:12,height:12,background:s.c}}>{s.l.charAt(0)}</span><span className="text-slate-500">{s.l}</span></span>
+        <div className="flex items-center justify-center gap-3 pt-2 text-xs">
+          {[{l:'Winscombe',c:'#a855f7'},{l:'Banwell',c:'#10b981'},{l:'Locking',c:'#f97316'}].map(s => (
+            <span key={s.l} className="flex items-center gap-1"><span className="rounded-sm flex items-center justify-center text-[7px] font-bold text-white" style={{width:14,height:14,background:s.c}}>{s.l.charAt(0)}</span><span className="text-slate-500">{s.l}</span></span>
           ))}
           <span className="text-slate-600">|</span>
-          <span className="text-slate-500">Top=AM Bottom=PM</span>
+          <span className="text-slate-500">Left=AM Right=PM</span>
         </div>
       </div>
 

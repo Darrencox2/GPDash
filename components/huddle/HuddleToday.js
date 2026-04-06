@@ -380,59 +380,60 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           if (f.month) displayFactors.push({ label: `Month effect`, impact: f.month.effect });
           if (f.trend && Math.abs(f.trend.effect) >= 0.5) displayFactors.push({ label: 'Long-term trend', impact: Math.round(f.trend.effect) });
         }
-        // Gauge arc calculation
+        // Gauge arc calculation — cap visual at 100% but show real number
         const gaugeR = 42, gaugeC = Math.PI * 2 * gaugeR;
-        const gaugeFill = targetTotal > 0 ? Math.min(coveragePct / 100, 1.15) : 0;
+        const gaugeFill = targetTotal > 0 ? Math.min(coveragePct / 100, 1.0) : 0;
+        const displayPct = targetTotal > 0 ? coveragePct : 0;
         return (
-          <div className="glass rounded-xl p-4 flex gap-4 items-center">
+          <div className="glass rounded-xl p-5 flex gap-5 items-center">
             <div className="flex-shrink-0">
-              <svg width="100" height="100" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r={gaugeR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-                <circle cx="50" cy="50" r={gaugeR} fill="none" stroke={band.colour} strokeWidth="6"
+              <svg width="110" height="110" viewBox="0 0 110 110">
+                <circle cx="55" cy="55" r={gaugeR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                <circle cx="55" cy="55" r={gaugeR} fill="none" stroke={band.colour} strokeWidth="6"
                   strokeDasharray={`${gaugeFill * gaugeC} ${gaugeC}`} strokeDashoffset="0"
-                  transform="rotate(-90 50 50)" strokeLinecap="round"
+                  transform="rotate(-90 55 55)" strokeLinecap="round"
                   style={{filter:`drop-shadow(0 0 6px ${band.colour}40)`}} />
-                <text x="50" y="42" textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:24,fontWeight:700}}>{coveragePct}%</text>
-                <text x="50" y="56" textAnchor="middle" fill={band.colour} style={{fontSize:11,fontWeight:500}}>{band.label}</text>
-                <text x="50" y="68" textAnchor="middle" fill="#475569" style={{fontSize:9}}>{urgTotal} / {targetTotal} target</text>
+                <text x="55" y="48" textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:26,fontWeight:700}}>{displayPct}%</text>
+                <text x="55" y="63" textAnchor="middle" fill={band.colour} style={{fontSize:12,fontWeight:500}}>{band.label}</text>
+                <text x="55" y="77" textAnchor="middle" fill="#475569" style={{fontSize:10}}>{urgTotal} / {targetTotal} target</text>
               </svg>
             </div>
-            <div className="flex-1 flex flex-col gap-2">
+            <div className="flex-1 flex flex-col gap-2.5">
               <div className="flex gap-2">
-                <div className="glass-inner rounded-lg p-2.5 flex-1">
-                  <div className="text-[10px] text-slate-500">Predicted demand</div>
-                  <div className="flex items-baseline gap-1 mt-0.5">
+                <div className="glass-inner rounded-lg p-3 flex-1">
+                  <div className="text-xs text-slate-500">Predicted demand</div>
+                  <div className="flex items-baseline gap-1.5 mt-1">
                     <span className="text-2xl font-bold text-amber-400" style={{fontFamily:"'Space Mono',monospace"}}>{predTotal || '—'}</span>
-                    <span className="text-[10px] text-slate-600">requests</span>
+                    <span className="text-xs text-slate-600">requests</span>
                   </div>
                 </div>
-                <div className="glass-inner rounded-lg p-2.5 flex-1">
-                  <div className="text-[10px] text-slate-500">Clinicians</div>
-                  <div className="flex items-baseline gap-1 mt-0.5">
+                <div className="glass-inner rounded-lg p-3 flex-1">
+                  <div className="text-xs text-slate-500">Clinicians</div>
+                  <div className="flex items-baseline gap-1.5 mt-1">
                     <span className="text-2xl font-bold text-white" style={{fontFamily:"'Space Mono',monospace"}}>{teamClinicians.filter(c => c.status !== 'left' && c.status !== 'administrative').length}</span>
                     {(() => { const absCount = teamClinicians.filter(c => { const s = c.status; return s === 'left' || s === 'administrative' ? false : !c.workingPattern?.[todayDayName]; }).length; return absCount > 0 ? <span className="text-[10px] text-red-400">{absCount} off</span> : null; })()}
                   </div>
                 </div>
               </div>
               {predTotal > 0 && (
-                <div className="glass-inner rounded-lg p-2.5">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={predColour} strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                    <span className="text-xs font-medium" style={{color:predColour}}>{predLabel}</span>
+                <div className="glass-inner rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={predColour} strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    <span className="text-sm font-medium" style={{color:predColour}}>{predLabel}</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 leading-relaxed">
+                  <div className="text-xs text-slate-500 leading-relaxed">
                     Average {todayDayName} sees {predAvgDay} requests.
                     {displayFactors.filter(f => f.impact !== 0).slice(0, 2).map((f, i) => ` ${f.label} ${f.impact > 0 ? '+' : ''}${f.impact}.`).join('') || ''}
                   </div>
-                  <details className="mt-1.5">
-                    <summary className="text-[10px] text-slate-500 cursor-pointer hover:text-slate-300 flex items-center gap-1">
+                  <details className="mt-2">
+                    <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300 flex items-center gap-1">
                       Demand factors
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
                     </summary>
                     <div className="mt-2 space-y-1">
-                      <div className="flex justify-between text-[11px]"><span className="text-slate-500">Base {todayDayName} avg</span><span className="font-bold text-slate-300" style={{fontFamily:"'Space Mono',monospace"}}>{predAvgDay}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-slate-500">Base {todayDayName} avg</span><span className="font-bold text-slate-300" style={{fontFamily:"'Space Mono',monospace"}}>{predAvgDay}</span></div>
                       {displayFactors.filter(f => f.impact !== 0).map((f, i) => (
-                        <div key={i} className="flex justify-between text-[11px]">
+                        <div key={i} className="flex justify-between text-xs">
                           <span className="text-slate-500">{f.label}</span>
                           <span className="font-bold" style={{fontFamily:"'Space Mono',monospace", color: f.impact > 0 ? '#ef4444' : f.impact < 0 ? '#10b981' : '#475569'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
                         </div>
@@ -530,61 +531,64 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="flex items-center gap-3 mb-3">
                     <span className="font-mono-data text-4xl font-bold leading-none" style={{ color: band.colour }}>{slots}</span>
                     <div className="flex-1">
-                      <div className="h-2 rounded-full relative overflow-hidden" style={{ background: '#f1f5f9' }}>
-                        <div className="absolute left-0 top-0 bottom-0" style={{ width: `${Math.min(bar.fillPct, 100)}%`, display:'flex', borderRadius: '4px' }}>
+                      <div className="h-2.5 rounded-full relative overflow-hidden" style={{ background: '#f1f5f9' }}>
+                        <div className="absolute left-0 top-0 bottom-0" style={{ width: `${Math.min(bar.fillPct, 100)}%`, display:'flex', borderRadius: '5px' }}>
                           {avail > 0 && <div style={{flex: avail, background: band.colour}} />}
                           {booked > 0 && <div style={{flex: booked, background: '#f59e0b'}} />}
                         </div>
                         {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '-4px', bottom: '-4px', width: '2px', background: '#0f172a', borderRadius: '1px', marginLeft: '-1px' }} />}
                       </div>
                       <div className="flex justify-between mt-1.5">
-                        <span className="text-[10px] text-slate-500">{avail} avail · {booked} booked{added > 0 ? <span style={{color:'#818cf8'}}> · +{added} since 8am</span> : ''}</span>
-                        {target > 0 && <span className="text-[10px] text-slate-500">target {target}</span>}
+                        <span className="text-xs text-slate-500">{avail} avail · {booked} booked{added > 0 ? <span style={{color:'#818cf8'}}> · +{added} since 8am</span> : ''}</span>
+                        {target > 0 && <span className="text-xs text-slate-500">target {target}</span>}
                       </div>
                     </div>
                   </div>
                   {dutyDocDisplay && (
-                    <div className="rounded-lg overflow-hidden mb-1.5" style={{ background: '#dc2626', boxShadow: '0 2px 8px rgba(220,38,38,0.2)' }}>
-                      <div className="flex items-center gap-2 px-3 py-2">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                    <div className="rounded-lg overflow-hidden mb-2" style={{ background: '#dc2626', boxShadow: '0 2px 8px rgba(220,38,38,0.2)' }}>
+                      <div className="flex items-center gap-2.5 px-3 py-2.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-medium text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
-                          <div className="text-[9px] text-white/60">Duty · {dutyDocDisplay.location || '?'}</div>
+                          <div className="text-sm font-medium text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
+                          <div className="text-xs text-white/60">Duty · {dutyDocDisplay.location || '?'}</div>
                         </div>
-                        <span className="font-mono-data text-sm font-bold text-white flex-shrink-0">{dutyDocDisplay.total}</span>
+                        <span className="font-mono-data text-base font-bold text-white flex-shrink-0">{dutyDocDisplay.total}</span>
                       </div>
                     </div>
                   )}
                   {dutySupportDisplay && (
-                    <div className="rounded-lg overflow-hidden mb-2" style={{ background: '#2563eb', boxShadow: '0 2px 8px rgba(37,99,235,0.2)' }}>
-                      <div className="flex items-center gap-2 px-3 py-2">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white" className="flex-shrink-0"><circle cx="8" cy="7" r="3.5" fill="none" stroke="white" strokeWidth="1.5"/><circle cx="16" cy="7" r="3.5" fill="none" stroke="white" strokeWidth="1.5"/></svg>
+                    <div className="rounded-lg overflow-hidden mb-3" style={{ background: '#2563eb', boxShadow: '0 2px 8px rgba(37,99,235,0.2)' }}>
+                      <div className="flex items-center gap-2.5 px-3 py-2.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" className="flex-shrink-0"><circle cx="8" cy="7" r="3.5" fill="none" stroke="white" strokeWidth="1.5"/><circle cx="16" cy="7" r="3.5" fill="none" stroke="white" strokeWidth="1.5"/></svg>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-medium text-white truncate">{dutySupportDisplay.displayName}</div>
-                          <div className="text-[9px] text-white/60">Support · {dutySupportDisplay.location || '?'}</div>
+                          <div className="text-sm font-medium text-white truncate">{dutySupportDisplay.displayName}</div>
+                          <div className="text-xs text-white/60">Support · {dutySupportDisplay.location || '?'}</div>
                         </div>
-                        <span className="font-mono-data text-sm font-bold text-white flex-shrink-0">{dutySupportDisplay.total}</span>
+                        <span className="font-mono-data text-base font-bold text-white flex-shrink-0">{dutySupportDisplay.total}</span>
                       </div>
                     </div>
                   )}
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-2">
                     {clinicians.map((c, i) => {
-                      const LOC_PILL = { 'Winscombe': '#0ea5e9', 'Banwell': '#f97316', 'Locking': '#a855f7' };
+                      const LOC_PILL = { 'Winscombe': '#a855f7', 'Banwell': '#10b981', 'Locking': '#f97316' };
                       const locPill = c.location ? LOC_PILL[c.location] : null;
                       return (
-                        <div key={i} className="glass-light rounded-lg px-2.5 py-1.5 flex items-center justify-between">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 font-mono-data" style={{background: band.colour}}>{c.initials}</div>
-                            <span className="text-[11px] text-slate-800 truncate">{c.displayName}</span>
+                        <div key={i} className="glass-light rounded-lg px-3 py-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 font-mono-data" style={{background: band.colour}}>{c.initials}</div>
+                            <div className="min-w-0">
+                              <div className="text-sm text-slate-800 truncate">{c.displayName}</div>
+                              {c.role && <div className="text-[10px] text-slate-400">{c.role}</div>}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="font-mono-data text-xs font-bold" style={{color: band.colour}}>{c.total}</span>
-                            {locPill && <div className="w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[6px] font-bold text-white" style={{background:locPill}}>{c.location.charAt(0)}</div>}
+                            <span className="font-mono-data text-sm font-bold" style={{color: band.colour}}>{c.total}</span>
+                            {locPill && <div className="w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold text-white" style={{background:locPill}}>{c.location.charAt(0)}</div>}
                           </div>
                         </div>
                       );
                     })}
-                    {clinicians.length === 0 && <div className="text-center text-slate-400 text-xs py-2">No capacity</div>}
+                    {clinicians.length === 0 && <div className="text-center text-slate-400 text-sm py-3">No capacity</div>}
                   </div>
                 </div>
               );
@@ -597,8 +601,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="flex items-center gap-3">
                       <div className="font-heading text-sm font-medium text-slate-300">Urgent on the Day</div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] px-2 py-0.5 rounded-full font-medium" style={{background:`${amBand.colour}20`,color:amBand.colour,border:`1px solid ${amBand.colour}15`}}>AM {amBand.label}</span>
-                        <span className="text-[9px] px-2 py-0.5 rounded-full font-medium" style={{background:`${pmBand.colour}20`,color:pmBand.colour,border:`1px solid ${pmBand.colour}15`}}>PM {pmBand.label}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{background:`${amBand.colour}20`,color:amBand.colour}}>Morning {amBand.label}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{background:`${pmBand.colour}20`,color:pmBand.colour}}>Afternoon {pmBand.label}</span>
                       </div>
                     </div>
                     <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} />
@@ -617,7 +621,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
                   <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
                     <div className="glass-header px-3 py-2 flex items-center justify-between rounded-t-xl">
-                      <span className="font-heading text-sm font-medium text-slate-400">AM</span>
+                      <span className="font-heading text-sm font-medium text-slate-400">Morning</span>
                       <div className="flex items-center gap-2">
                         <span className="font-mono-data text-lg font-bold" style={{color:amBand.colour}}>{urgentAm}</span>
                         <span className="text-[9px] px-2 py-0.5 rounded-full font-medium" style={{background:`${amBand.colour}20`,color:amBand.colour}}>{amBand.label}</span>
@@ -629,7 +633,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                   <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
                     <div className="glass-header px-3 py-2 flex items-center justify-between rounded-t-xl">
-                      <span className="font-heading text-sm font-medium text-slate-400">PM</span>
+                      <span className="font-heading text-sm font-medium text-slate-400">Afternoon</span>
                       <div className="flex items-center gap-2">
                         <span className="font-mono-data text-lg font-bold" style={{color:pmBand.colour}}>{urgentPm}</span>
                         <span className="text-[9px] px-2 py-0.5 rounded-full font-medium" style={{background:`${pmBand.colour}20`,color:pmBand.colour}}>{pmBand.label}</span>
@@ -655,7 +659,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         const slotTotal = allAvail + allBooked;
                         if (slotTotal === 0) return null;
                         const locs = s.byLocation || {};
-                        const LOC_C = { 'Winscombe': '#0ea5e9', 'Banwell': '#f97316', 'Locking': '#a855f7' };
+                        const LOC_C = { 'Winscombe': '#a855f7', 'Banwell': '#10b981', 'Locking': '#f97316' };
                         const locEntries = ['Winscombe','Banwell','Locking'].map(loc => ({ loc, count: locs[loc] || 0, col: LOC_C[loc] })).filter(l => l.count > 0);
                         const locTotal = locEntries.reduce((sum, l) => sum + l.count, 0) || 1;
                         return (
