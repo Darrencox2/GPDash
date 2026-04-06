@@ -225,7 +225,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 background: isSel ? 'rgba(124,58,237,0.15)' : 'rgba(15,23,42,0.4)',
                 borderBottom: isSel ? '4px solid #7c3aed' : todayDate ? '4px solid #6d28d9' : '4px solid transparent',
                 boxShadow: isSel ? 'inset 0 0 0 1px rgba(124,58,237,0.3)' : 'none',
-                height: 260,
+                height: 320,
               }}>
                 {/* Day header */}
                 <div className="px-3 py-2 flex items-center justify-between flex-shrink-0">
@@ -242,7 +242,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                   )}
                 </div>
 
-                {/* Mini allocations — two columns */}
+                {/* Mini allocations — single column, aligned grid */}
                 {!closed && has && (() => {
                   const rows = (e.presentIds || []).map(bid => {
                     const b = getClinicianById(bid);
@@ -251,16 +251,18 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                     return { bid, b, t };
                   }).filter(Boolean);
                   return rows.length > 0 ? (
-                    <div className="px-2 flex-1 overflow-hidden" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'3px 6px', alignContent:'start'}}>
-                      {rows.slice(0, 8).map(({ bid, b, t }) => (
-                        <div key={bid} className="flex items-center gap-1.5 text-sm truncate">
-                          <span className="font-bold text-slate-200 flex-shrink-0">{b.initials}</span>
-                          <div className="flex gap-px flex-shrink-0">
-                            {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="px-1 py-px rounded text-xs font-medium" style={{background:'rgba(239,68,68,0.2)',color:'#f87171'}}>{x.initials}</span> : null; })}
-                            {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="px-1 py-px rounded text-xs font-medium" style={{background:'rgba(245,158,11,0.15)',color:'#fbbf24'}}>{x.initials}</span> : null; })}
+                    <div className="px-2.5 flex-1 overflow-hidden flex flex-col" style={{gap:3}}>
+                      {rows.slice(0, 10).map(({ bid, b, t }) => (
+                        <div key={bid} className="flex items-center" style={{gap:6}}>
+                          <span className="font-bold text-slate-200 flex-shrink-0 text-right" style={{fontFamily:"'Outfit',sans-serif",fontSize:'clamp(11px,1.2vw,14px)',width:28}}>{b.initials}</span>
+                          <svg width="6" height="6" viewBox="0 0 6 6" style={{flexShrink:0,opacity:0.3}}><path d="M1 3h4M3 1l2 2-2 2" stroke="#64748b" strokeWidth="1" fill="none"/></svg>
+                          <div className="flex gap-1 flex-wrap flex-1 min-w-0">
+                            {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="rounded font-bold text-white flex-shrink-0" style={{background:'#ef4444',fontSize:'clamp(10px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
+                            {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="rounded font-bold text-white flex-shrink-0" style={{background:'#f59e0b',fontSize:'clamp(10px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
                           </div>
                         </div>
                       ))}
+                      {rows.length > 10 && <div className="text-xs text-slate-600">+{rows.length - 10} more</div>}
                     </div>
                   ) : null;
                 })()}
@@ -268,8 +270,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 {/* Leave badges — separated */}
                 {dayAbs.length > 0 && !closed && (
                   <div className="px-2 pb-2 mt-auto flex-shrink-0">
-                    <div className="pt-1.5 flex gap-0.5 flex-wrap" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-                      <span className="text-xs text-slate-500 mr-1" style={{lineHeight:'20px'}}>Leave:</span>
+                    <div className="pt-2 flex gap-1.5 flex-wrap" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                      <span className="text-xs text-slate-500 mr-1" style={{lineHeight:'24px'}}>Leave:</span>
                       {dayAbs.slice(0, 4).map((a, i) => {
                         const ccStyle = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? {background:'rgba(59,130,246,0.15)',color:'#60a5fa'} : a.reason === 'Training' || a.reason === 'Study' ? {background:'rgba(245,158,11,0.15)',color:'#fbbf24'} : a.reason === 'Sick' ? {background:'rgba(239,68,68,0.15)',color:'#f87171'} : {background:'rgba(100,116,139,0.15)',color:'#94a3b8'};
                         return <span key={i} className="text-xs font-medium px-1.5 py-0.5 rounded" style={ccStyle} title={`${a.clinician.name} — ${a.reason}`}>{a.clinician.initials}</span>;
