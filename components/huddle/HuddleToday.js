@@ -75,8 +75,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   // Date navigation helpers
   const realToday = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
   const isViewingToday = viewingDate.getTime() === realToday.getTime();
-  const maxDate = useMemo(() => { const d = new Date(realToday); d.setDate(d.getDate() + 30); return d; }, [realToday]);
-  const minDate = useMemo(() => { const d = new Date(realToday); d.setDate(d.getDate() - 30); return d; }, [realToday]);
+  const maxDate = useMemo(() => { const d = new Date(realToday); d.setDate(d.getDate() + 60); return d; }, [realToday]);
+  const minDate = useMemo(() => { const d = new Date(realToday); d.setDate(d.getDate() - 60); return d; }, [realToday]);
 
   const navigateDay = (direction) => {
     const d = new Date(viewingDate);
