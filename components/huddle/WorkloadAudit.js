@@ -256,6 +256,8 @@ export default function WorkloadAudit({ data, huddleData }) {
           </div>
         </div>
 
+
+
         <div className="p-5 border-t border-slate-100">
           <div className="flex items-center gap-2 mb-1">
             <div className="text-sm font-semibold text-slate-700">Duty support ratio</div>
@@ -275,6 +277,83 @@ export default function WorkloadAudit({ data, huddleData }) {
               <RatioRow key={c.id} c={c} ratio={c.supportRatio} avg={audit.avgSupportRatio} max={maxSupportRatio} colour="#3b82f6" count={c.supportSessions} dates={c.supportDates} expanded={expandedSupport === c.id} onToggle={() => setExpandedSupport(expandedSupport === c.id ? null : c.id)} ratioKey="supportRatio" />
             ))}
           </div>
+
+        <div className="p-5 border-t border-slate-100">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="text-sm font-semibold text-slate-700">Combined duty burden</div>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">avg {((audit.avgDutyRatio || 0) + (audit.avgSupportRatio || 0)).toFixed(2)}</span>
+          </div>
+          <div className="text-xs text-slate-400 mb-4">Total duty + support sessions ÷ total sessions worked. Shows overall on-call burden per clinician.</div>
+          <div className="flex items-center gap-3 mb-1 px-1">
+            <div className="w-32 text-[9px] text-slate-400 text-right">Clinician</div>
+            <div className="flex-1 text-[9px] text-slate-400">Combined ratio</div>
+            <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
+            <div className="w-14 text-[9px] text-slate-400 text-right">duty</div>
+            <div className="w-14 text-[9px] text-slate-400 text-right">support</div>
+            <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>
+          </div>
+          <div className="space-y-2">
+            {(() => {
+              const combined = audit.clinicians
+                .filter(c => c.dutySessions > 0 || c.supportSessions > 0)
+                .map(c => ({
+                  ...c,
+                  combinedRatio: c.dutyRatio + c.supportRatio,
+                  combinedSessions: c.dutySessions + c.supportSessions,
+                }))
+                .sort((a, b) => b.combinedRatio - a.combinedRatio);
+              const avgCombined = (audit.avgDutyRatio || 0) + (audit.avgSupportRatio || 0);
+              const maxCombined = Math.max(...combined.map(c => c.combinedRatio), 0.01);
+
+              return combined.map(c => {
+                const delta = c.combinedRatio - avgCombined;
+                const absDelta = Math.abs(delta);
+                const isHigh = delta > 0.03;
+                const isLow = delta < -0.03;
+                const dutyPct = c.combinedRatio > 0 ? (c.dutyRatio / c.combinedRatio) * 100 : 0;
+                const supportPct = c.combinedRatio > 0 ? (c.supportRatio / c.combinedRatio) * 100 : 0;
+                const proj = audit.projected[c.id];
+                const projCombined = proj ? (proj.dutyRatio || 0) + (proj.supportRatio || 0) : null;
+                const projDelta = projCombined !== null ? projCombined - c.combinedRatio : null;
+                return (
+                  <div key={c.id} className="flex items-center gap-3 px-1 py-0.5">
+                    <div className="w-32 text-xs font-medium text-slate-700 truncate text-right">{c.name}</div>
+                    <div className="flex-1 relative h-7 rounded-lg bg-slate-100 overflow-hidden">
+                      <div className="absolute left-0 top-0 bottom-0 rounded-lg flex overflow-hidden" style={{ width: `${(c.combinedRatio / maxCombined) * 100}%` }}>
+                        {c.dutyRatio > 0 && <div style={{ width: `${dutyPct}%`, background: '#ef4444', opacity: 0.75 }} />}
+                        {c.supportRatio > 0 && <div style={{ width: `${supportPct}%`, background: '#3b82f6', opacity: 0.75 }} />}
+                      </div>
+                      <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(avgCombined / maxCombined) * 100}%`, background: '#1e293b', zIndex: 1 }} />
+                      <div className="absolute inset-0 flex items-center px-2">
+                        <span className="text-[10px] font-bold text-white drop-shadow-sm" style={{marginLeft: `${Math.min((c.combinedRatio / maxCombined) * 100 - 8, 92)}%`}}>{c.combinedRatio.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div className="w-16 text-right">
+                      {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 font-medium">Fair</span>
+                        : isHigh ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
+                        : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
+                    </div>
+                    <div className="w-14 text-[11px] text-right"><span className="text-red-500 font-medium">{c.dutySessions}</span></div>
+                    <div className="w-14 text-[11px] text-right"><span className="text-blue-500 font-medium">{c.supportSessions}</span></div>
+                    <div className="w-20 text-right">
+                      {projCombined !== null ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{
+                          background: projDelta > 0.02 ? '#fef2f2' : projDelta < -0.02 ? '#eff6ff' : '#f0fdf4',
+                          color: projDelta > 0.02 ? '#dc2626' : projDelta < -0.02 ? '#2563eb' : '#16a34a'
+                        }}>→ {projCombined.toFixed(2)}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+          <div className="flex items-center gap-4 mt-4 pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#ef4444'}} /><span className="text-xs text-slate-500">Duty doctor</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#3b82f6'}} /><span className="text-xs text-slate-500">Duty support</span></div>
+            <div className="flex items-center gap-1"><div className="w-6 h-0.5 bg-slate-800" /><span className="text-xs text-slate-500">Average</span></div>
+          </div>
+        </div>
         </div>
       </div>
 
