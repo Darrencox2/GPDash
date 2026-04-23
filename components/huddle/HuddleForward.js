@@ -94,7 +94,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         const rA=rTots?.available||0,rE=rTots?.embargoed||0,rB=rTots?.booked||0;
         const isPast = date < today;
         let amDuty=null,pmDuty=null;
-        if(hasDuty&&hasData&&!isBH){amDuty=getDutyDoctor(huddleData,dateStr,'am',dutySlots);pmDuty=getDutyDoctor(huddleData,dateStr,'pm',dutySlots);}
+        if(hasDuty&&hasData&&!isBH){amDuty=getDutyDoctor(huddleData,dateStr,'am',dutySlots,teamClin);pmDuty=getDutyDoctor(huddleData,dateStr,'pm',dutySlots,teamClin);}
         if(!isBH){wU+=amS+pmS;wRA+=rA;wRE+=rE;wRB+=rB;wT+=amT+pmT;}
         days.push({date,dateStr,isoKey,dayName,dayShort:DAY_SHORT[date.getDay()],dayNum:date.getDate(),
           monthStr:date.toLocaleString('en-GB',{month:'short'}),hasData,isToday,isBH,isPast,

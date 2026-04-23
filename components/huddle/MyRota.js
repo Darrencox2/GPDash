@@ -76,8 +76,8 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     const pm = cap.pm?.byClinician?.find(c => matchesStaffMember(c.name, selected));
     const amIn = am && (am.available > 0 || am.embargoed > 0 || am.booked > 0);
     const pmIn = pm && (pm.available > 0 || pm.embargoed > 0 || pm.booked > 0);
-    const amDuty = hasDuty ? getDutyDoctor(huddleData, dateStr, 'am', dutySlots) : null;
-    const pmDuty = hasDuty ? getDutyDoctor(huddleData, dateStr, 'pm', dutySlots) : null;
+    const amDuty = hasDuty ? getDutyDoctor(huddleData, dateStr, 'am', dutySlots, clinicians) : null;
+    const pmDuty = hasDuty ? getDutyDoctor(huddleData, dateStr, 'pm', dutySlots, clinicians) : null;
     const absence = (data.plannedAbsences || []).find(a => a.clinicianId === selected.id && isoKey >= a.startDate && isoKey <= a.endDate);
     const alloc = data.allocationHistory?.[isoKey];
     const covers = [];

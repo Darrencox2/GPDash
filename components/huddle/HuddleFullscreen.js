@@ -559,7 +559,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
               }).filter(c => c.total > 0).sort((a,b) => ({'Winscombe':0,'Banwell':1,'Locking':2}[a.location]??9) - ({'Winscombe':0,'Banwell':1,'Locking':2}[b.location]??9) || b.total - a.total);
               const dutySlots = hs?.dutyDoctorSlot;
               const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
-              const dutyDoc = hasDuty ? getDutyDoctor(huddleData, todayDateStr, s.session, dutySlots) : null;
+              const dutyDoc = hasDuty ? getDutyDoctor(huddleData, todayDateStr, s.session, dutySlots, allClinicians) : null;
               const dutyDisplay = dutyDoc ? (() => {
                 const m = allClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
                 const dutyInList = allCliniciansList.find(c => matchesStaffMember(c.name, m || { name: dutyDoc.name }));

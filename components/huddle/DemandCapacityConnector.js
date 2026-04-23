@@ -152,7 +152,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
   const vds = toHuddleDateStr(targetDate);
   const dds = huddleData?.dates?.includes(vds) ? vds : null;
-  const resolveDuty = (sess) => { if(!hasDuty||!dds) return null; const doc=getDutyDoctor(huddleData,dds,sess,dutySlots); if(!doc) return null; const m=teamClinicians.find(tc=>matchesStaffMember(doc.name,tc)); return {name:m?.name||doc.name,title:m?.title}; };
+  const resolveDuty = (sess) => { if(!hasDuty||!dds) return null; const doc=getDutyDoctor(huddleData,dds,sess,dutySlots,teamClinicians); if(!doc) return null; const m=teamClinicians.find(tc=>matchesStaffMember(doc.name,tc)); return {name:m?.name||doc.name,title:m?.title}; };
   const dutyAm = resolveDuty('am'), dutyPm = resolveDuty('pm');
   const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const todayDayName = dayNames[targetDate.getDay()];

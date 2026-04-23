@@ -61,7 +61,7 @@ export default function WorkloadAudit({ data, huddleData }) {
             clinMap[c.matched.id].sessions++;
           });
 
-          const dutyDoc = getDutyDoctor(huddleData, dateStr, session, dutySlots);
+          const dutyDoc = getDutyDoctor(huddleData, dateStr, session, dutySlots, allClinicians);
           if (dutyDoc) {
             const matched = allClinicians.find(tc => matchesStaffMember(dutyDoc.name, tc));
             if (matched) {

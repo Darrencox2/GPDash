@@ -237,8 +237,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     if (existing) return;
     const dutySlots = hs?.dutyDoctorSlot;
     const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
-    const dutyAm = hasDuty ? getDutyDoctor(huddleData, displayDate, 'am', dutySlots) : null;
-    const dutyPm = hasDuty ? getDutyDoctor(huddleData, displayDate, 'pm', dutySlots) : null;
+    const dutyAm = hasDuty ? getDutyDoctor(huddleData, displayDate, 'am', dutySlots, teamClinicians) : null;
+    const dutyPm = hasDuty ? getDutyDoctor(huddleData, displayDate, 'pm', dutySlots, teamClinicians) : null;
     // Routine capacity (unfiltered for simplicity)
     const routineOv = hs?.savedSlotFilters?.routine;
     let routineTotal = 0;
@@ -731,7 +731,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <span className="font-heading text-sm font-medium text-slate-400">Morning</span>
                     </div>
                     <div style={{background:'rgba(15,23,42,0.4)'}}>
-                      <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot) : null} />
+                      <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} />
                     </div>
                   </div>
                   <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
@@ -739,7 +739,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <span className="font-heading text-sm font-medium text-slate-400">Afternoon</span>
                     </div>
                     <div style={{background:'rgba(15,23,42,0.4)'}}>
-                      <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot) : null} />
+                      <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} />
                     </div>
                   </div>
                 </div>
