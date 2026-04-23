@@ -277,6 +277,7 @@ export default function WorkloadAudit({ data, huddleData }) {
               <RatioRow key={c.id} c={c} ratio={c.supportRatio} avg={audit.avgSupportRatio} max={maxSupportRatio} colour="#3b82f6" count={c.supportSessions} dates={c.supportDates} expanded={expandedSupport === c.id} onToggle={() => setExpandedSupport(expandedSupport === c.id ? null : c.id)} ratioKey="supportRatio" />
             ))}
           </div>
+        </div>
 
         <div className="p-5 border-t border-slate-100">
           <div className="flex items-center gap-2 mb-1">
@@ -353,7 +354,6 @@ export default function WorkloadAudit({ data, huddleData }) {
             <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#3b82f6'}} /><span className="text-xs text-slate-500">Duty support</span></div>
             <div className="flex items-center gap-1"><div className="w-6 h-0.5 bg-slate-800" /><span className="text-xs text-slate-500">Average</span></div>
           </div>
-        </div>
         </div>
       </div>
 
