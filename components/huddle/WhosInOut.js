@@ -75,7 +75,7 @@ function DropZone({ onDrop, children, isEmpty }) {
       className={`min-h-[40px] rounded-xl border-2 border-dashed p-1.5 transition-all ${dragOver ? 'border-indigo-400' : 'border-transparent'}`}
       style={{ background: dragOver ? 'rgba(99,102,241,0.05)' : 'transparent' }}>
       {isEmpty && !dragOver && <div className="flex items-center justify-center py-2 text-xs text-slate-600">None</div>}
-      <div className="grid grid-cols-2 gap-1.5">{children}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">{children}</div>
     </div>
   );
 }
@@ -336,7 +336,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
               </div>
             </button>
             {showAbsent && (
-              <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                 {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={getSiteCol} />)}
                 {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={getSiteCol} />)}
               </div>

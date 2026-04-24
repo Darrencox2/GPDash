@@ -196,7 +196,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     <div className="-m-4 lg:-m-6 min-h-screen" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)'}}>
     <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-4">
       {/* ═══ HEADER ═══ */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-white" style={{fontFamily:"'Outfit',sans-serif"}}>Buddy Cover</h1>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -257,7 +257,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid rgba(255,255,255,0.2)'}}>▶</button>
           </div>
         </div>
-        <div className="grid grid-cols-5 divide-x divide-white/5">
+        <div className="overflow-x-auto"><div className="grid grid-cols-5 divide-x divide-white/5 min-w-[600px]">
           {DAYS.map(day => {
             const dk = getDateKeyForDay(day);
             const dt = new Date(dk + 'T12:00:00');
@@ -332,7 +332,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               </button>
             );
           })}
-        </div>
+        </div></div>
       </div>
 
       {/* ═══ DAILY DETAIL ═══ */}
@@ -457,8 +457,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="overflow-x-auto"><table className="w-full min-w-[500px]">
                     <thead>
                       <tr style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
                         <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide">Covering</th>
@@ -482,8 +481,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         ));
                       })()}
                     </tbody>
-                  </table>
-                </div>
+                  </table></div>
                 <div className="mt-4 pt-4 flex gap-6 text-xs text-slate-500" style={{borderTop:"1px solid rgba(255,255,255,0.06)"}}>
                   <span><strong className="text-emerald-600">{presentClinicians.length}</strong> present</span>
                   <span><strong className="text-red-600">{absentClinicians.length}</strong> absent</span>

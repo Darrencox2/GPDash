@@ -95,12 +95,12 @@ function BuddyCoverView({ data, lastRefresh, onRefresh }) {
 
   return (
     <div className="min-h-screen" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)',fontFamily:"'DM Sans', system-ui, sans-serif"}}>
-      <div className="max-w-3xl mx-auto p-4 lg:p-8 space-y-5">
+      <div className="max-w-3xl mx-auto px-3 py-4 sm:p-4 lg:p-8 space-y-4 sm:space-y-5">
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white" style={{fontFamily:"'Outfit',sans-serif"}}>Buddy Cover</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white" style={{fontFamily:"'Outfit',sans-serif"}}>Buddy Cover</h1>
             <div className="flex items-center gap-2 mt-1">
               <button onClick={() => navigateDay(-1)} className="rounded text-slate-600 hover:text-white hover:bg-white/10 transition-colors" style={{border:'1px solid rgba(255,255,255,0.06)',padding:'2px 6px',fontSize:12,lineHeight:1}}>‹</button>
               <span className="text-slate-400 text-sm">{dateDisplay}</span>
@@ -134,18 +134,18 @@ function BuddyCoverView({ data, lastRefresh, onRefresh }) {
 
         {/* Today's summary */}
         {!isClosed && !isWeekend && status && (
-          <div className="flex gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="flex-1 rounded-xl p-4" style={{background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.15)'}}>
               <div className="text-sm text-slate-500">Present</div>
-              <div className="text-3xl font-bold text-emerald-400" style={{fontFamily:"'Space Mono',monospace"}}>{presentCount}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-emerald-400" style={{fontFamily:"'Space Mono',monospace"}}>{presentCount}</div>
             </div>
             <div className="flex-1 rounded-xl p-4" style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.15)'}}>
               <div className="text-sm text-slate-500">Absent</div>
-              <div className="text-3xl font-bold text-red-400" style={{fontFamily:"'Space Mono',monospace"}}>{absentClinicians.length}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-red-400" style={{fontFamily:"'Space Mono',monospace"}}>{absentClinicians.length}</div>
             </div>
             <div className="flex-1 rounded-xl p-4" style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.15)'}}>
               <div className="text-sm text-slate-500">Day Off</div>
-              <div className="text-3xl font-bold text-amber-400" style={{fontFamily:"'Space Mono',monospace"}}>{dayOffClinicians.length}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-amber-400" style={{fontFamily:"'Space Mono',monospace"}}>{dayOffClinicians.length}</div>
             </div>
           </div>
         )}
@@ -182,7 +182,7 @@ function BuddyCoverView({ data, lastRefresh, onRefresh }) {
               </div>
             </div>
             <div className="p-5">
-              <table className="w-full">
+              <div className="overflow-x-auto"><table className="w-full min-w-[480px]">
                 <thead>
                   <tr style={{borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
                     <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide">Covering</th>
@@ -221,7 +221,7 @@ function BuddyCoverView({ data, lastRefresh, onRefresh }) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
 
               {/* Key */}
               <div className="mt-5 pt-4 flex gap-5 text-xs text-slate-500 flex-wrap" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>

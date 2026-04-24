@@ -278,7 +278,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   return (
     <div className="-m-4 lg:-m-6 min-h-screen animate-in" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)'}}
       onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
-    <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-4">
+    <div className="max-w-6xl mx-auto px-3 py-4 sm:p-4 lg:p-6 space-y-4">
       {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} viewingDate={viewingDate} onExit={() => { setIsFullscreen(false); setHuddleScreen(null); if (huddleScreen === 2) window.close(); }} onNavigateDay={navigateDay} screen={huddleScreen} />}
       {isDragging && (
         <div className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none" style={{background:'rgba(15,23,42,0.7)'}}>
@@ -322,7 +322,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           </div>
           {!isViewingToday && <button onClick={goToToday} className="text-xs text-emerald-400 hover:text-emerald-300 font-medium ml-2 underline">Back to today</button>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
           <button onClick={() => fileRef.current?.click()}
             className="h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium text-white transition-colors"
@@ -484,9 +484,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             </div>
             {/* SUMMARY — spans first 3 cols */}
             <div className="glass rounded-xl p-5 md:col-span-3 md:order-1">
-              <div className="flex gap-5 items-stretch">
-                <div className="flex-shrink-0 flex items-center">
-                  <svg width="300" height="165" viewBox="0 0 300 145">
+              <div className="flex flex-col md:flex-row gap-5 items-stretch">
+                <div className="flex-shrink-0 flex items-center justify-center">
+                  <svg className="w-full max-w-[300px]" viewBox="0 0 300 145">
                     <path d={`M ${gTrackStart.x.toFixed(1)} ${gTrackStart.y.toFixed(1)} A ${gr} ${gr} 0 1 1 ${gTrackEnd.x.toFixed(1)} ${gTrackEnd.y.toFixed(1)}`} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" strokeLinecap="round"/>
                     {gaugeArcs}
                     <line x1={gcx} y1={gcy} x2={gNeedleStub.x.toFixed(1)} y2={gNeedleStub.y.toFixed(1)} stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round"/>
@@ -501,23 +501,23 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <div className="flex-1 grid grid-cols-2 gap-3">
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-500 mb-1">Predicted demand</div>
-                    <div className="font-mono-data text-5xl font-bold text-amber-400 leading-none">{predTotal || '—'}</div>
+                    <div className="font-mono-data text-3xl md:text-5xl font-bold text-amber-400 leading-none">{predTotal || '—'}</div>
                     <div className="text-sm text-slate-600 mt-1">requests today</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-500 mb-1">Urgent available</div>
-                    <div className="font-mono-data text-5xl font-bold leading-none" style={{color:band.colour}}>{urgAvail}</div>
+                    <div className="font-mono-data text-3xl md:text-5xl font-bold leading-none" style={{color:band.colour}}>{urgAvail}</div>
                     <div className="text-sm text-slate-600 mt-1">appointments today</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-500 mb-1">Routine 28 days</div>
-                    <div className="font-mono-data text-5xl font-bold text-emerald-400 leading-none">{routineAvail + routineEmb}</div>
+                    <div className="font-mono-data text-3xl md:text-5xl font-bold text-emerald-400 leading-none">{routineAvail + routineEmb}</div>
                     <div className="text-sm text-slate-600 mt-1">{routineEmb > 0 ? `${routineAvail} avail · ${routineEmb} emb` : 'available'}</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-500 mb-1">Clinicians today</div>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-mono-data text-5xl font-bold text-white leading-none">{inCount}</span>
+                      <span className="font-mono-data text-3xl md:text-5xl font-bold text-white leading-none">{inCount}</span>
                       
                     </div>
                     <div className="text-sm text-slate-600 mt-1">of {visibleClinicians.length} active</div>
@@ -638,7 +638,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               return (
                 <div className="flex-1 p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="font-mono-data text-6xl font-bold leading-none" style={{ color: band.colour }}>{slots}</span>
+                    <span className="font-mono-data text-4xl md:text-6xl font-bold leading-none" style={{ color: band.colour }}>{slots}</span>
                     <div className="flex-1">
                       <div className="relative">
                         <div className="h-2.5 rounded-full relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
@@ -710,7 +710,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             return (
               <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
                 <div className="glass-header px-4 py-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span className="font-heading text-base font-medium text-slate-200">Urgent on the day</span>
                     <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} />
                   </div>
@@ -821,12 +821,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 ) : (<>
                 {/* Booking gauges — non-overlapping weekly ranges */}
-                <div className="grid grid-cols-4 divide-x divide-white/10 border-b border-white/10">
+                <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10 border-b border-white/10">
                   {periodGauges.map(g => (
                     <div key={g.label} className="flex flex-col items-center py-4 px-2">
-                      <MiniGauge value={g.avail} max={g.total} size={120} strokeWidth={9} colour={g.colour}>
-                        <text x="60" y="52" textAnchor="middle" fill="#e2e8f0" style={{ fontSize: '26px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
-                        <text x="60" y="70" textAnchor="middle" fill="#64748b" style={{ fontSize: '11px' }}>available</text>
+                      <MiniGauge value={g.avail} max={g.total} size={100} strokeWidth={8} colour={g.colour}>
+                        <text x="50" y="44" textAnchor="middle" fill="#e2e8f0" style={{ fontSize: '22px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
+                        <text x="50" y="58" textAnchor="middle" fill="#64748b" style={{ fontSize: '10px' }}>available</text>
                       </MiniGauge>
                       <div className="text-[13px] font-semibold text-slate-300 mt-1">{g.label}</div>
                       <div className="text-[13px] text-slate-500">{g.avail} available · {g.booked} booked</div>
@@ -847,7 +847,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           })()}
 
           {/* ─── CUSTOM CAPACITY CARDS (14 days each) ─── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {capacityCards.map(card => {
               const gradient = GRADIENT_MAP[card.colour] || GRADIENT_MAP.violet;
               const overrides = cardOverrides[card.id] || null;
