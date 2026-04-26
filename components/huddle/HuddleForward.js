@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { getHuddleCapacity, getDateTotals, getDutyDoctor, getSiteColour } from '@/lib/huddle';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS } from '@/lib/demandPredictor';
+import ClinicianCapacity from './ClinicianCapacity';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -398,6 +399,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           </div>
         </div>
       </div>
+
+      {/* Clinician capacity detail */}
+      <ClinicianCapacity data={data} huddleData={huddleData} routineOverrides={routOv} />
     </div>
   );
 }

@@ -773,7 +773,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <div className="font-heading text-base font-medium text-slate-200">Routine Capacity</div>
                       <div className="text-[13px] text-slate-600">30-day availability overview</div>
                     </div>
-                    <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" />
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setActiveSection('huddle-forward')} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">Clinician detail →</button>
+                      <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" />
+                    </div>
                   </div>
                 </div>
 
