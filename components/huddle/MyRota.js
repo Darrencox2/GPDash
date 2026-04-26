@@ -210,7 +210,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   const twoWeeks = useMemo(() => {
     const ws = getWeekStart(new Date());
     const weeks = [];
-    for (let w = 0; w < 2; w++) {
+    for (let w = 0; w < 4; w++) {
       const weekDays = [];
       for (let d = 0; d < 5; d++) {
         const dt = new Date(ws); dt.setDate(dt.getDate() + w * 7 + d);
@@ -465,7 +465,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
       {/* 2-week grid */}
       {twoWeeks.map((week, wi) => (
         <div key={wi} className="px-4 pb-4">
-          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{wi === 0 ? 'This week' : 'Next week'}</div>
+          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{wi === 0 ? 'This week' : wi === 1 ? 'Next week' : `In ${wi} weeks`}</div>
           <div className="rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
             <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr',background:'#1e293b',borderBottom:'1px solid #334155'}}>
               <div className="py-2 px-3"/>
