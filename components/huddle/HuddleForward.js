@@ -130,12 +130,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
   const updateTarget=v=>saveData({...data,huddleSettings:{...hs,routineWeeklyTarget:parseInt(v)||0}},false);
 
-  if(!huddleData)return<div className="card p-12 text-center"><h2 className="text-lg font-semibold text-slate-900 mb-2">Upload appointment report</h2><p className="text-sm text-slate-500">Upload a CSV on the Today page first.</p></div>;
+  if(!huddleData)return<div className="rounded-xl p-12 text-center" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}><h2 className="text-lg font-semibold text-white mb-2" style={{fontFamily:"'Outfit',sans-serif"}}>Upload appointment report</h2><p className="text-sm text-slate-500">Upload a CSV on the Today page first.</p></div>;
 
   const DutyPill = ({doc,colour,bgTint,borderCol}) => {
     if(!doc) return null;
     const m = teamClin.find(tc=>matchesStaffMember(doc.name,tc));
-    return <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg mb-3" style={{background:bgTint,border:`1px solid ${borderCol}`}}>
+    return <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg mb-3" style={{background:`${colour}15`,border:`1px solid ${colour}30`}}>
       <svg width="11" height="11" viewBox="0 0 24 24" fill={colour} stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
       <span className="text-[11px] font-semibold" style={{color:colour}}>{m?.name||doc.name} (duty)</span>
     </div>;
@@ -278,13 +278,13 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
       {/* Detail popup — light */}
       {detailDay&&(
-        <div className="card overflow-hidden">
-          <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-3 flex items-center justify-between">
+        <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+          <div className="px-5 py-3 flex items-center justify-between" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
             <span className="text-sm font-semibold text-white">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr} — who and where</span>
             <button onClick={()=>setSelectedDay(null)} className="text-white/60 hover:text-white text-sm font-bold" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
           </div>
           <div className="grid grid-cols-3 gap-0">
-            <div className="p-5 border-r border-slate-100">
+            <div className="p-5" style={{borderRight:"1px solid rgba(255,255,255,0.06)"}}>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-xs font-bold uppercase text-red-500">AM urgent</span>
                 <span className="text-sm font-extrabold text-red-500">{detailDay.amS}</span>
@@ -292,11 +292,11 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               </div>
               <DutyPill doc={detailDay.amDuty} colour="#dc2626" bgTint="#fef2f2" borderCol="#fecaca"/>
               <div className="space-y-1.5">
-                {detailClin.am.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return<div key={j} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">{lc&&<div className="w-1.5 h-4 rounded-sm" style={{background:lc}}/>}<span className="text-xs text-slate-700 flex-1 truncate">{c.name}</span><span className="text-xs font-bold text-slate-800">{c.slots+c.bkd}</span></div>;})}
+                {detailClin.am.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return<div key={j} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.04)"}}>{lc&&<div className="w-1.5 h-4 rounded-sm" style={{background:lc}}/>}<span className="text-xs text-slate-300 flex-1 truncate">{c.name}</span><span className="text-xs font-bold text-slate-300">{c.slots+c.bkd}</span></div>;})}
                 {detailClin.am.length===0&&<div className="text-xs text-slate-300 py-3 text-center">No slots</div>}
               </div>
             </div>
-            <div className="p-5 border-r border-slate-100">
+            <div className="p-5" style={{borderRight:"1px solid rgba(255,255,255,0.06)"}}>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-xs font-bold uppercase text-blue-500">PM urgent</span>
                 <span className="text-sm font-extrabold text-blue-500">{detailDay.pmS}</span>
@@ -304,7 +304,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               </div>
               <DutyPill doc={detailDay.pmDuty} colour="#2563eb" bgTint="#eff6ff" borderCol="#bfdbfe"/>
               <div className="space-y-1.5">
-                {detailClin.pm.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return<div key={j} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">{lc&&<div className="w-1.5 h-4 rounded-sm" style={{background:lc}}/>}<span className="text-xs text-slate-700 flex-1 truncate">{c.name}</span><span className="text-xs font-bold text-slate-800">{c.slots+c.bkd}</span></div>;})}
+                {detailClin.pm.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return<div key={j} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.04)"}}>{lc&&<div className="w-1.5 h-4 rounded-sm" style={{background:lc}}/>}<span className="text-xs text-slate-300 flex-1 truncate">{c.name}</span><span className="text-xs font-bold text-slate-300">{c.slots+c.bkd}</span></div>;})}
                 {detailClin.pm.length===0&&<div className="text-xs text-slate-300 py-3 text-center">No slots</div>}
               </div>
             </div>
@@ -315,7 +315,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               </div>
               <div className="mb-4"><DonutGauge avail={detailDay.rA} emb={detailDay.rE} booked={detailDay.rB}/></div>
               <div className="space-y-1.5">
-                {detailClin.rout.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return<div key={j} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">{lc&&<div className="w-1.5 h-4 rounded-sm" style={{background:lc}}/>}<span className="text-xs text-slate-700 flex-1 truncate">{c.name}</span><span className="text-xs font-bold text-slate-800">{c.slots+c.bkd}</span></div>;})}
+                {detailClin.rout.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return<div key={j} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.04)"}}>{lc&&<div className="w-1.5 h-4 rounded-sm" style={{background:lc}}/>}<span className="text-xs text-slate-300 flex-1 truncate">{c.name}</span><span className="text-xs font-bold text-slate-300">{c.slots+c.bkd}</span></div>;})}
                 {detailClin.rout.length===0&&<div className="text-xs text-slate-300 py-3 text-center">No slots</div>}
               </div>
             </div>
@@ -325,25 +325,25 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
       {/* Summaries */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="card overflow-hidden">
-          <div className="bg-gradient-to-r from-red-600 to-red-500 px-5 py-3 flex items-center gap-2">
+        <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+          <div className="px-5 py-3" className="flex items-center gap-2" style={{background:"rgba(239,68,68,0.15)",borderBottom:"1px solid rgba(239,68,68,0.1)"}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
             <span className="text-xs font-semibold text-white">Urgent capacity below target</span>
             <span className="text-xs text-white/60 ml-auto">{shortDays.length}</span>
           </div>
           <div className="p-4 space-y-2">
             {shortDays.length===0&&<p className="text-sm text-slate-400 text-center py-3">All days meeting target</p>}
-            {shortDays.slice(0,8).map((d,i)=>{const u=d.amS+d.pmS,t=d.amT+d.pmT;return<div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer" onClick={()=>setSelectedDay(d.isoKey)}>
-              <span className="text-xs font-semibold text-slate-700 w-20">{d.dayShort} {d.dayNum} {d.monthStr}</span>
-              <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden"><div className="h-full rounded-full" style={{width:`${Math.min((u/t)*100,100)}%`,background:u<t*0.8?'#ef4444':'#f59e0b'}}/></div>
-              <span className="text-xs font-bold text-red-600">{u}</span>
+            {shortDays.slice(0,8).map((d,i)=>{const u=d.amS+d.pmS,t=d.amT+d.pmT;return<div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-pointer" style={{background:"rgba(255,255,255,0.04)"}} onClick={()=>setSelectedDay(d.isoKey)}>
+              <span className="text-xs font-semibold text-slate-300 w-20">{d.dayShort} {d.dayNum} {d.monthStr}</span>
+              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:"rgba(255,255,255,0.08)"}}><div className="h-full rounded-full" style={{width:`${Math.min((u/t)*100,100)}%`,background:u<t*0.8?'#ef4444':'#f59e0b'}}/></div>
+              <span className="text-xs font-bold text-red-400">{u}</span>
               <span className="text-[10px] text-slate-400">/ {t}</span>
             </div>;})}
           </div>
         </div>
 
-        <div className="card overflow-hidden">
-          <div className="bg-gradient-to-r from-amber-600 to-amber-500 px-5 py-3 flex items-center gap-2">
+        <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+          <div className="px-5 py-3" className="flex items-center gap-2" style={{background:"rgba(245,158,11,0.15)",borderBottom:"1px solid rgba(245,158,11,0.1)"}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             <span className="text-xs font-semibold text-white">Highest demand days</span>
           </div>
@@ -352,10 +352,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               const u=d.amS+d.pmS;const cov=d.needed>0?Math.round((u/d.needed)*100):100;
               const ap=Math.min(cov,120)/120;const col=cov>=90?'#10b981':cov>=80?'#f59e0b':'#ef4444';
               const v=cov>=90?'OK':cov>=80?'Tight':'Short';
-              return<div key={i} className="flex items-center gap-4 px-3 py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer" onClick={()=>setSelectedDay(d.isoKey)}>
-                <span className="text-xs font-semibold text-slate-700 w-20">{d.dayShort} {d.dayNum} {d.monthStr}</span>
+              return<div key={i} className="flex items-center gap-4 px-3 py-2.5 rounded-lg transition-colors cursor-pointer" style={{background:"rgba(255,255,255,0.04)"}} onClick={()=>setSelectedDay(d.isoKey)}>
+                <span className="text-xs font-semibold text-slate-300 w-20">{d.dayShort} {d.dayNum} {d.monthStr}</span>
                 <svg viewBox="0 0 60 34" style={{width:48,height:28,flexShrink:0}}>
-                  <path d="M 6 30 A 24 24 0 0 1 54 30" fill="none" stroke="#e2e8f0" strokeWidth="5" strokeLinecap="round"/>
+                  <path d="M 6 30 A 24 24 0 0 1 54 30" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="5" strokeLinecap="round"/>
                   <path d="M 6 30 A 24 24 0 0 1 54 30" fill="none" stroke={col} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${ap*75} 75`}/>
                   <text x="30" y="28" textAnchor="middle" fill={col} style={{fontSize:9,fontWeight:800}}>{cov}%</text>
                 </svg>
@@ -368,30 +368,30 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           </div>
         </div>
 
-        {rTarget>0&&<div className="card overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-5 py-3 flex items-center gap-2">
+        {rTarget>0&&<div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+          <div className="px-5 py-3" className="flex items-center gap-2" style={{background:"rgba(124,58,237,0.15)",borderBottom:"1px solid rgba(124,58,237,0.1)"}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
             <span className="text-xs font-semibold text-white">Weekly routine capacity</span>
           </div>
           <div className="p-4 space-y-2">
-            {weeks.filter(w=>w.wR>0).map((w,i)=>{const vb=vBand(w.wR,rTarget);return<div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50">
-              <span className="text-xs font-semibold text-slate-700 w-12">Wk {weeks.indexOf(w)+1}</span>
-              <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden"><div className="h-full rounded-full" style={{width:`${Math.min((w.wR/rTarget)*100,100)}%`,background:vb.bg}}/></div>
+            {weeks.filter(w=>w.wR>0).map((w,i)=>{const vb=vBand(w.wR,rTarget);return<div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:"rgba(255,255,255,0.04)"}}>
+              <span className="text-xs font-semibold text-slate-300 w-12">Wk {weeks.indexOf(w)+1}</span>
+              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:"rgba(255,255,255,0.08)"}}><div className="h-full rounded-full" style={{width:`${Math.min((w.wR/rTarget)*100,100)}%`,background:vb.bg}}/></div>
               <span className="text-xs font-bold" style={{color:vb.bg}}>{w.wR}</span>
               <span className="text-[10px] text-slate-400">/ {rTarget}</span>
             </div>;})}
           </div>
         </div>}
 
-        <div className="card overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-3 flex items-center gap-2">
+        <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+          <div className="px-5 py-3" className="flex items-center gap-2" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
             <span className="text-xs font-semibold text-white">Week-on-week</span>
           </div>
           <div className="p-4 space-y-2">
-            {weeks.filter(w=>w.wU>0).map((w,i,arr)=>{const delta=i>0?w.wU-arr[i-1].wU:0;return<div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50">
-              <span className="text-xs font-semibold text-slate-700 w-12">Wk {weeks.indexOf(w)+1}</span>
-              <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-800">{w.wU}</span><span className="text-[10px] text-slate-400">urg</span></div>
+            {weeks.filter(w=>w.wU>0).map((w,i,arr)=>{const delta=i>0?w.wU-arr[i-1].wU:0;return<div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:"rgba(255,255,255,0.04)"}}>
+              <span className="text-xs font-semibold text-slate-300 w-12">Wk {weeks.indexOf(w)+1}</span>
+              <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[10px] text-slate-400">urg</span></div>
               <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'#10b981'}}>{w.wR}</span><span className="text-[10px] text-slate-400">rout</span></div>
               {delta!==0&&<span className={`text-xs font-bold ml-auto ${delta>0?'text-emerald-500':'text-red-500'}`}>{delta>0?'↑':'↓'}{Math.abs(delta)} urg</span>}
             </div>;})}

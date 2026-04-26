@@ -127,11 +127,11 @@ export default function WorkloadAudit({ data, huddleData }) {
   }, [huddleData, hs, dutySlots, hasDuty, allClinicians, urgentOverrides]);
 
   if (!huddleData) return (
-    <div className="card p-12 text-center"><div className="text-2xl mb-2">📊</div><h3 className="text-sm font-semibold text-slate-600 mb-1">No CSV data</h3><p className="text-xs text-slate-400">Upload a huddle CSV on the Today page to see workload audit.</p></div>
+    <div className="rounded-xl p-12 text-center" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}><div className="text-2xl mb-2">📊</div><h3 className="text-sm font-semibold text-slate-300 mb-1">No CSV data</h3><p className="text-xs text-slate-400">Upload a huddle CSV on the Today page to see workload audit.</p></div>
   );
 
   if (!hasDuty) return (
-    <div className="card p-12 text-center"><div className="text-2xl mb-2">⭐</div><h3 className="text-sm font-semibold text-slate-600 mb-1">Duty doctor slot not configured</h3><p className="text-xs text-slate-400">Set a duty doctor slot type in the Today page filter to enable workload tracking.</p></div>
+    <div className="rounded-xl p-12 text-center" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}><div className="text-2xl mb-2">⭐</div><h3 className="text-sm font-semibold text-slate-300 mb-1">Duty doctor slot not configured</h3><p className="text-xs text-slate-400">Set a duty doctor slot type in the Today page filter to enable workload tracking.</p></div>
   );
 
   if (!audit) return null;
@@ -149,9 +149,9 @@ export default function WorkloadAudit({ data, huddleData }) {
     const projDelta = projRatio !== null && projRatio !== undefined ? projRatio - ratio : null;
     return (
       <div>
-        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg px-1 py-0.5 -mx-1 transition-colors" onClick={onToggle}>
+        <div className="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded-lg px-1 py-0.5 -mx-1 transition-colors" onClick={onToggle}>
           <div className="w-32 text-xs font-medium text-slate-700 truncate text-right">{c.name}</div>
-          <div className="flex-1 relative h-7 rounded-lg bg-slate-100 overflow-hidden">
+          <div className="flex-1 relative h-7 rounded-lg overflow-hidden" style={{background:"rgba(255,255,255,0.08)"}}>
             <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${(ratio / max) * 100}%`, background: isHigh ? '#ef4444' : isLow ? '#3b82f6' : colour, opacity: 0.75 }} />
             <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(avg / max) * 100}%`, background: '#1e293b', zIndex: 1 }} title={`Average: ${avg.toFixed(2)}`} />
             <div className="absolute inset-0 flex items-center px-2">
@@ -159,7 +159,7 @@ export default function WorkloadAudit({ data, huddleData }) {
             </div>
           </div>
           <div className="w-16 text-right">
-            {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 font-medium">Fair</span>
+            {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>Fair</span>
               : isHigh ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
               : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
           </div>
@@ -177,7 +177,7 @@ export default function WorkloadAudit({ data, huddleData }) {
         {expanded && dates && dates.length > 0 && (
           <div className="ml-36 mt-1 mb-2 flex flex-wrap gap-1">
             {dates.map((d, i) => (
-              <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600">{d.date} <span className="text-slate-400">{d.session.toUpperCase()}</span></span>
+              <span key={i} className="text-[10px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#94a3b8"}}>{d.date} <span className="text-slate-400">{d.session.toUpperCase()}</span></span>
             ))}
           </div>
         )}
@@ -229,7 +229,7 @@ export default function WorkloadAudit({ data, huddleData }) {
 
   return (
     <div className="space-y-6">
-      <div className="card overflow-hidden">
+      <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3">
           <div className="text-base font-semibold text-white">Workload Audit</div>
           <div className="text-[11px] text-white/60">{audit.earliestDate} — {audit.latestDate}</div>
@@ -237,8 +237,8 @@ export default function WorkloadAudit({ data, huddleData }) {
 
         <div className="p-5">
           <div className="flex items-center gap-2 mb-1">
-            <div className="text-sm font-semibold text-slate-700">Duty doctor ratio</div>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">avg {audit.avgDutyRatio.toFixed(2)}</span>
+            <div className="text-sm font-semibold text-slate-300">Duty doctor ratio</div>
+            <span className="text-[10px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>avg {audit.avgDutyRatio.toFixed(2)}</span>
           </div>
           <div className="text-xs text-slate-400 mb-4">Duty sessions ÷ total sessions worked. Black line = average. Everyone should be similar.</div>
           <div className="flex items-center gap-3 mb-1 px-1">
@@ -258,10 +258,10 @@ export default function WorkloadAudit({ data, huddleData }) {
 
 
 
-        <div className="p-5 border-t border-slate-100">
+        <div className="p-5 border-t" style={{borderColor:"rgba(255,255,255,0.06)"}}>
           <div className="flex items-center gap-2 mb-1">
-            <div className="text-sm font-semibold text-slate-700">Duty support ratio</div>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">avg {audit.avgSupportRatio.toFixed(2)}</span>
+            <div className="text-sm font-semibold text-slate-300">Duty support ratio</div>
+            <span className="text-[10px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>avg {audit.avgSupportRatio.toFixed(2)}</span>
           </div>
           <div className="text-xs text-slate-400 mb-4">Support sessions ÷ total sessions worked. Clinician with most urgent slots (excl. duty doctor).</div>
           <div className="flex items-center gap-3 mb-1 px-1">
@@ -279,10 +279,10 @@ export default function WorkloadAudit({ data, huddleData }) {
           </div>
         </div>
 
-        <div className="p-5 border-t border-slate-100">
+        <div className="p-5 border-t" style={{borderColor:"rgba(255,255,255,0.06)"}}>
           <div className="flex items-center gap-2 mb-1">
-            <div className="text-sm font-semibold text-slate-700">Combined duty burden</div>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">avg {((audit.avgDutyRatio || 0) + (audit.avgSupportRatio || 0)).toFixed(2)}</span>
+            <div className="text-sm font-semibold text-slate-300">Combined duty burden</div>
+            <span className="text-[10px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>avg {((audit.avgDutyRatio || 0) + (audit.avgSupportRatio || 0)).toFixed(2)}</span>
           </div>
           <div className="text-xs text-slate-400 mb-4">Total duty + support sessions ÷ total sessions worked. Shows overall on-call burden per clinician.</div>
           <div className="flex items-center gap-3 mb-1 px-1">
@@ -319,7 +319,7 @@ export default function WorkloadAudit({ data, huddleData }) {
                 return (
                   <div key={c.id} className="flex items-center gap-3 px-1 py-0.5">
                     <div className="w-32 text-xs font-medium text-slate-700 truncate text-right">{c.name}</div>
-                    <div className="flex-1 relative h-7 rounded-lg bg-slate-100 overflow-hidden">
+                    <div className="flex-1 relative h-7 rounded-lg overflow-hidden" style={{background:"rgba(255,255,255,0.08)"}}>
                       <div className="absolute left-0 top-0 bottom-0 rounded-lg flex overflow-hidden" style={{ width: `${(c.combinedRatio / maxCombined) * 100}%` }}>
                         {c.dutyRatio > 0 && <div style={{ width: `${dutyPct}%`, background: '#ef4444', opacity: 0.75 }} />}
                         {c.supportRatio > 0 && <div style={{ width: `${supportPct}%`, background: '#3b82f6', opacity: 0.75 }} />}
@@ -330,7 +330,7 @@ export default function WorkloadAudit({ data, huddleData }) {
                       </div>
                     </div>
                     <div className="w-16 text-right">
-                      {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 font-medium">Fair</span>
+                      {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>Fair</span>
                         : isHigh ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
                         : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
                     </div>
@@ -349,7 +349,7 @@ export default function WorkloadAudit({ data, huddleData }) {
               });
             })()}
           </div>
-          <div className="flex items-center gap-4 mt-4 pt-2 border-t border-slate-100">
+          <div className="flex items-center gap-4 mt-4 pt-2 border-t" style={{borderColor:"rgba(255,255,255,0.06)"}}>
             <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#ef4444'}} /><span className="text-xs text-slate-500">Duty doctor</span></div>
             <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#3b82f6'}} /><span className="text-xs text-slate-500">Duty support</span></div>
             <div className="flex items-center gap-1"><div className="w-6 h-0.5 bg-slate-800" /><span className="text-xs text-slate-500">Average</span></div>
@@ -359,7 +359,7 @@ export default function WorkloadAudit({ data, huddleData }) {
 
       {/* Weekly urgent vs routine trend */}
       {weeklyTrend.length > 0 && (
-        <div className="card overflow-hidden">
+        <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
           <div className="bg-gradient-to-r from-indigo-700 to-violet-600 px-5 py-3">
             <div className="text-base font-semibold text-white">Weekly capacity trend</div>
             <div className="text-[11px] text-white/60">Urgent vs routine slots offered per week (available + embargoed + booked)</div>
@@ -393,7 +393,7 @@ export default function WorkloadAudit({ data, huddleData }) {
                 );
               })}
             </div>
-            <div className="flex items-center gap-4 mt-3 pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-4 mt-3 pt-2 border-t" style={{borderColor:"rgba(255,255,255,0.06)"}}>
               <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#ef4444'}} /><span className="text-xs text-slate-500">Urgent</span></div>
               <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}} /><span className="text-xs text-slate-500">Routine</span></div>
             </div>
@@ -417,9 +417,9 @@ export default function WorkloadAudit({ data, huddleData }) {
             const gridLines = [20, 40, 60].filter(v => v <= maxPct);
 
             return (
-              <div className="p-5 border-t border-slate-200">
+              <div className="p-5 border-t" style={{borderColor:"rgba(255,255,255,0.06)"}}>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="text-sm font-semibold text-slate-700">Urgent capacity %</div>
+                  <div className="text-sm font-semibold text-slate-300">Urgent capacity %</div>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-red-50 text-red-600">avg {avgPct}%</span>
                 </div>
                 <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full">
