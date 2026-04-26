@@ -32,8 +32,8 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
   const fallbackLoc = location;
   const aLoc = amLoc || fallbackLoc;
   const pLoc = pmLoc || fallbackLoc;
-  const aC = getSiteCol ? siteCol(aLoc) : '#64748b';
-  const pC = getSiteCol ? siteCol(pLoc) : '#64748b';
+  const aC = getSiteCol ? getSiteCol(aLoc) : '#64748b';
+  const pC = getSiteCol ? getSiteCol(pLoc) : '#64748b';
   const hasLoc = !isAbsent && !isDayOff && (aLoc || pLoc);
   const isSplit = hasLoc && aLoc && pLoc && aLoc !== pLoc;
 
