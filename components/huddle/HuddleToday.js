@@ -279,7 +279,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       )}
 
       {/* Date header with navigation */}
-      <div className="flex items-center justify-between gap-2 mb-4">
+      <div className="flex items-center justify-between gap-2 mb-4 pl-12 lg:pl-0">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <div className="glass-dark rounded-xl px-2 sm:px-4 py-2 sm:py-3 flex items-center gap-1 sm:gap-3 cursor-pointer relative flex-shrink-0" onClick={() => setShowCalendar(!showCalendar)}>
             <button onClick={(e) => { e.stopPropagation(); navigateDay(-1); }} className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
