@@ -15,6 +15,7 @@ import WorkloadAudit from '@/components/huddle/WorkloadAudit';
 import MyRota from '@/components/huddle/MyRota';
 import RoomSettings from '@/components/room/RoomSettings';
 import RoomDashboard from '@/components/room/RoomDashboard';
+import Changelog from '@/components/Changelog';
 
 export default function Home() {
   return (
@@ -308,6 +309,7 @@ function AppContent() {
           {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} />}
           {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} />}
           {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} huddleData={huddleData} />}
+          {activeSection === 'changelog' && <Changelog />}
           {activeSection === 'room-settings' && <RoomSettings data={data} saveData={saveData} toast={toast} huddleData={huddleData} />}
           {activeSection === 'room-dashboard' && <RoomDashboard data={data} saveData={saveData} huddleData={huddleData} toast={toast} />}
         </div>
