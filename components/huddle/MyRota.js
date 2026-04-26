@@ -10,12 +10,11 @@ const GROUP_META = {
   allied: { label: 'Allied Health', bg: 'rgba(168,85,247,0.15)', tx: '#c4b5fd', dot: '#8b5cf6' },
 };
 
-function LocSquare({ loc, size = 24, duty }) {
-  const lc = loc ? siteCol(loc) : null;
+function LocSquare({ loc, size = 24, duty, colour }) {
   if (!loc) return <div style={{width:size,height:size,borderRadius:4,background:'#1e293b'}} />;
   return (
-    <div style={{width:size,height:size,borderRadius:4,background:lc?.bg||'#475569',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-      <span style={{fontSize:size*0.45,fontWeight:700,color:lc?.text||'#fff'}}>{loc.charAt(0)}</span>
+    <div style={{width:size,height:size,borderRadius:4,background:colour||'#475569',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+      <span style={{fontSize:size*0.45,fontWeight:700,color:'#fff'}}>{loc.charAt(0)}</span>
       {duty && <svg style={{position:'absolute',top:-2,right:-2,width:size*0.4,height:size*0.4}} viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
     </div>
   );
@@ -194,7 +193,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
 
       {/* Key */}
       <div className="px-6 pb-4 flex gap-4 flex-wrap">
-        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1.5"><LocSquare loc={s.name} size={18} /><span className="text-[11px] text-slate-500">{s.name}</span></div>)}
+        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1.5"><LocSquare loc={s.name} size={18} colour={siteCol(s.name)} /><span className="text-[11px] text-slate-500">{s.name}</span></div>)}
         {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[11px] text-slate-500">Duty</span></div>}
         <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:'1px solid #f87171',color:'#f87171'}}>AB</div><span className="text-[11px] text-slate-500">File & action</span></div>
         <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:'1px solid #60a5fa',color:'#60a5fa'}}>AB</div><span className="text-[11px] text-slate-500">View only</span></div>
@@ -225,8 +224,8 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
                 ) : dd ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-1.5">
-                      <LocSquare loc={dd.amIn ? dd.amLoc : null} size={30} duty={dd.amDuty} />
-                      <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={30} duty={dd.pmDuty} />
+                      <LocSquare loc={dd.amIn ? dd.amLoc : null} size={30} duty={dd.amDuty} colour={dd.amLoc ? siteCol(dd.amLoc) : null} />
+                      <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={30} duty={dd.pmDuty} colour={dd.pmLoc ? siteCol(dd.pmLoc) : null} />
                     </div>
                     {dd.covers.length > 0 && (
                       <div className="flex gap-1 flex-wrap">
@@ -258,7 +257,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
 
       {/* Key */}
       <div className="px-4 pb-3 flex gap-3 flex-wrap">
-        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1"><LocSquare loc={s.name} size={14} /><span className="text-[9px] text-slate-500">{s.name}</span></div>)}
+        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1"><LocSquare loc={s.name} size={14} colour={siteCol(s.name)} /><span className="text-[9px] text-slate-500">{s.name}</span></div>)}
         {hasDuty && <div className="flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[9px] text-slate-500">Duty</span></div>}
       </div>
 
@@ -291,10 +290,10 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
                       <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-xs text-slate-600">{dd?.absence || 'Not in'}</span></div>
                     ) : dd ? (<>
                       <div className="p-1.5 flex items-center justify-center">
-                        <LocSquare loc={dd.amIn ? dd.amLoc : null} size={32} duty={dd.amDuty} />
+                        <LocSquare loc={dd.amIn ? dd.amLoc : null} size={32} duty={dd.amDuty} colour={dd.amLoc ? siteCol(dd.amLoc) : null} />
                       </div>
                       <div className="p-1.5 flex items-center justify-center">
-                        <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={32} duty={dd.pmDuty} />
+                        <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={32} duty={dd.pmDuty} colour={dd.pmLoc ? siteCol(dd.pmLoc) : null} />
                       </div>
                     </>) : null}
                   </div>

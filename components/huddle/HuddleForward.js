@@ -48,6 +48,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   const [selectedDay, setSelectedDay] = useState(null);
   const [weather, setWeather] = useState(null);
   const hs = data?.huddleSettings || {};
+  const sites = data?.roomAllocation?.sites || [];
+  const siteCol = (name) => getSiteColour(name, sites);
   const saved = hs?.savedSlotFilters || {};
   const urgOv = saved.urgent || null;
   const routOv = saved.routine || null;
