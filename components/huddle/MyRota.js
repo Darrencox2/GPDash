@@ -89,6 +89,52 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     return { amIn, pmIn, amLoc: am?.location, pmLoc: pm?.location, amDuty: amDuty && matchesStaffMember(amDuty.name, selected), pmDuty: pmDuty && matchesStaffMember(pmDuty.name, selected), absence: absence?.reason, covers };
   };
 
+  // ═══ TODAY CARD DATA ═══
+  // Resolves where the selected clinician is today, plus who's duty doctor/support each session
+  const todayCardData = useMemo(() => {
+    if (!selected || !huddleData) return null;
+    const today = new Date();
+    const dateStr = toHuddleDateStr(today);
+    if (!huddleData.dates?.includes(dateStr)) return { noData: true };
+    const cap = getHuddleCapacity(huddleData, dateStr, hs);
+    if (!cap) return { noData: true };
+
+    const compute = (session) => {
+      const sessionCap = cap[session];
+      const me = sessionCap?.byClinician?.find(c => matchesStaffMember(c.name, selected));
+      const myIn = me && (me.available > 0 || me.embargoed > 0 || me.booked > 0);
+      const myLoc = me?.location;
+
+      // Duty doctor
+      const dd = hasDuty ? getDutyDoctor(huddleData, dateStr, session, dutySlots, clinicians) : null;
+      let dutyDoc = null;
+      if (dd) {
+        const matchedDD = clinicians.find(c => matchesStaffMember(dd.name, c));
+        if (matchedDD) {
+          const ddSession = sessionCap?.byClinician?.find(c => c.name === dd.name);
+          dutyDoc = { name: matchedDD.name, initials: matchedDD.initials, title: matchedDD.title, group: matchedDD.group, location: ddSession?.location || dd.location };
+        }
+      }
+
+      // Duty support — same logic as Today page
+      const allClin = (sessionCap?.byClinician || []).filter(c => (c.available + c.embargoed + c.booked) > 0);
+      const afterDuty = dutyDoc ? allClin.filter(c => !matchesStaffMember(c.name, { name: dutyDoc.name, aliases: [] })) : allClin;
+      const supportCands = afterDuty.filter(c => !c.name?.toLowerCase().includes('balson'));
+      const sortedSupp = [...supportCands].map(c => ({ ...c, total: (c.available || 0) + (c.embargoed || 0) + (c.booked || 0) })).sort((a, b) => b.total - a.total);
+      const top = sortedSupp[0];
+      const runner = sortedSupp[1];
+      let support = null;
+      if (top && top.total >= 5 && top.total >= ((runner?.total || 0) + 2)) {
+        const matchedS = clinicians.find(c => matchesStaffMember(top.name, c));
+        if (matchedS) support = { name: matchedS.name, initials: matchedS.initials, title: matchedS.title, group: matchedS.group, location: top.location };
+      }
+
+      return { myIn, myLoc, dutyDoc, support };
+    };
+
+    return { am: compute('am'), pm: compute('pm'), date: today };
+  }, [selected, huddleData, hs, dutySlots, hasDuty, clinicians]);
+
   // ═══ CALENDAR (Desktop) ═══
   const calDays = useMemo(() => {
     const year = calMonth.getFullYear(), month = calMonth.getMonth();
@@ -135,6 +181,72 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     return weeks;
   }, []);
 
+  // ═══ Today card JSX ═══
+  const todayCardJsx = (() => {
+    if (!selected || !todayCardData) return null;
+    if (todayCardData.noData) {
+      return (
+        <div className="rounded-xl p-4 text-center" style={{background:'rgba(15,23,42,0.6)',border:'1px solid rgba(255,255,255,0.06)'}}>
+          <div className="text-xs text-slate-500">No CSV data for today</div>
+        </div>
+      );
+    }
+    const { am, pm, date } = todayCardData;
+    const dateStr = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    const groupBg = (group) => group === 'gp' ? '#3b82f6' : group === 'nursing' ? '#10b981' : '#a855f7';
+
+    const PersonRow = ({ icon, label, person }) => {
+      if (!person) return null;
+      const locCol = person.location ? siteCol(person.location) : null;
+      return (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="w-6 flex-shrink-0 text-slate-600 text-[10px] font-semibold uppercase tracking-wider">{label}</span>
+          <span className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{fontFamily:"'Outfit',sans-serif",background:groupBg(person.group)}}>{person.initials}</span>
+          <span className="text-slate-300 flex-1 truncate">{person.title ? `${person.title} ${person.name.split(',')[0]}` : person.name.split(',')[0]}</span>
+          {locCol && <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0" style={{background:locCol}}>{person.location.charAt(0)}</span>}
+        </div>
+      );
+    };
+
+    const Session = ({ label, sess }) => {
+      const inSession = sess.myIn;
+      const myLocCol = sess.myLoc ? siteCol(sess.myLoc) : null;
+      return (
+        <div className="rounded-lg p-3 flex-1 min-w-0" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)'}}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+            {inSession && myLocCol ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{background:myLocCol}}>{sess.myLoc}</span>
+            ) : (
+              <span className="text-[10px] text-slate-600">Not in</span>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <PersonRow label="Duty" person={sess.dutyDoc} />
+            <PersonRow label="Sup" person={sess.support} />
+            {!sess.dutyDoc && !sess.support && <div className="text-[10px] text-slate-600">No duty info</div>}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="rounded-xl overflow-hidden" style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)'}}>
+        <div className="px-4 py-2.5 flex items-center justify-between" style={{background:'rgba(15,23,42,0.85)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+          <div>
+            <div className="font-heading text-sm font-medium text-slate-200">Today</div>
+            <div className="text-[11px] text-slate-600">{dateStr}</div>
+          </div>
+        </div>
+        <div className="p-3 flex flex-col sm:flex-row gap-2">
+          <Session label="Morning" sess={am} />
+          <Session label="Afternoon" sess={pm} />
+        </div>
+      </div>
+    );
+  })();
+
   // ═══ Search bar JSX (not a component — avoids remount on every keystroke) ═══
   const searchJsx = (
     <div className="relative">
@@ -180,6 +292,9 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
         {searchJsx}
         {selected && <div className="text-sm text-slate-400 mt-3">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>}
       </div>
+
+      {/* Today card */}
+      {todayCardJsx && <div className="px-6 pb-4">{todayCardJsx}</div>}
 
       {/* Month nav */}
       <div className="px-6 pb-4 flex items-center gap-3">
@@ -254,6 +369,9 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
         {searchJsx}
         {selected && <div className="text-xs text-slate-400 mt-2">{selected.role}</div>}
       </div>
+
+      {/* Today card */}
+      {todayCardJsx && <div className="px-4 pb-3">{todayCardJsx}</div>}
 
       {/* Key */}
       <div className="px-4 pb-3 flex gap-3 flex-wrap">
