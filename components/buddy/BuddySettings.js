@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { calculateHistoricalTargets } from '@/lib/huddle';
 import { getDefaultData } from '@/lib/data';
 import { Button } from '@/components/ui';
+import AuditLog from '@/components/AuditLog';
 
 export default function BuddySettings({ data, saveData, password, syncStatus, setSyncStatus, helpers, huddleData }) {
   const { ensureArray, getTodayKey, syncTeamNet } = helpers;
@@ -132,6 +133,8 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
       </div>
 
       {/* Danger Zone */}
+      <AuditLog data={data} saveData={saveData} />
+
       <div className="card p-5 border-red-200">
         <h2 className="text-base font-semibold text-red-700 mb-4">Danger Zone</h2>
         <p className="text-sm text-slate-500 mb-4">Reset all data to defaults. This will clear ALL clinicians, rotas, and history.</p>

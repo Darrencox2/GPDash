@@ -5,7 +5,7 @@ import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import HuddleFullscreen from './HuddleFullscreen';
-import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
+import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr, logEvent } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge } from './HuddleShared';
 import RoutineWaitTime from './RoutineWaitTime';
@@ -184,7 +184,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         }
       });
 
-      saveData({ ...data, clinicians: updatedClinicians, huddleCsvData: merged, huddleCsvUploadedAt: uploadTime, huddleSettings: newHs }, false);
+      const updated = { ...data, clinicians: updatedClinicians, huddleCsvData: merged, huddleCsvUploadedAt: uploadTime, huddleSettings: newHs };
+      const desc = newCount > 0 ? `CSV uploaded — ${newCount} new staff discovered` : 'CSV uploaded';
+      saveData(logEvent(updated, 'csv', desc, { newStaffCount: newCount }), false);
       const msg = newCount > 0 ? `Report uploaded — ${newCount} new staff discovered` : 'Report uploaded successfully';
       toast(msg, newCount > 0 ? 'warning' : 'success');
       setError('');
