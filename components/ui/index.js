@@ -38,13 +38,13 @@ export function useToast() {
 
 // ─── Button ──────────────────────────────────────────────────────
 export function Button({ children, variant = 'primary', size = 'md', className = '', disabled, ...props }) {
-  const base = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
+  const base = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed';
   const variants = {
-    primary: 'bg-slate-900 text-white hover:bg-slate-800 focus:ring-slate-500 shadow-sm',
-    secondary: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-400',
+    primary: 'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-sm',
+    secondary: 'text-slate-300 border border-white/10 hover:bg-white/10 focus:ring-slate-400',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-400 shadow-sm',
     success: 'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-400 shadow-sm',
-    ghost: 'text-slate-600 hover:bg-slate-100 focus:ring-slate-400',
+    ghost: 'text-slate-400 hover:bg-white/10 focus:ring-slate-400',
     upload_fresh: 'bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-400 shadow-sm',
     upload_stale: 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-400 shadow-sm',
   };
@@ -60,7 +60,7 @@ export function Button({ children, variant = 'primary', size = 'md', className =
 // ─── Card ────────────────────────────────────────────────────────
 export function Card({ children, className = '', padding = true, ...props }) {
   return (
-    <div className={`bg-white rounded-xl border border-slate-200/80 shadow-sm ${padding ? 'p-5' : ''} ${className}`} {...props}>
+    <div className={`rounded-xl ${padding ? 'p-5' : ''} ${className}`} style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)'}} {...props}>
       {children}
     </div>
   );
@@ -71,10 +71,10 @@ export function CardHeader({ children, className = '', accent }) {
     amber: 'bg-gradient-to-r from-amber-400 to-orange-400',
     blue: 'bg-gradient-to-r from-blue-400 to-indigo-500',
     purple: 'bg-gradient-to-r from-purple-500 to-indigo-500',
-    slate: 'bg-slate-50 border-b border-slate-100',
-    info: 'bg-blue-50 border-b border-blue-100',
+    slate: '',
+    info: '',
   };
-  return <div className={`px-5 py-3 ${accents[accent] || accents.slate} ${accent && accent !== 'slate' && accent !== 'info' ? 'text-white' : ''} ${className}`}>{children}</div>;
+  return <div className={`px-5 py-3 ${accents[accent] || ''} ${accent && accent !== 'slate' && accent !== 'info' ? 'text-white' : ''} ${className}`} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>{children}</div>;
 }
 
 // ─── Section Heading ─────────────────────────────────────────────
@@ -82,7 +82,7 @@ export function SectionHeading({ title, subtitle, children }) {
   return (
     <div className="flex items-start justify-between gap-4 flex-wrap">
       <div>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h1>
+        <h1 className="text-xl font-bold text-white tracking-tight">{title}</h1>
         {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
       </div>
       {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
@@ -99,7 +99,7 @@ export function Skeleton({ className = '', variant = 'text' }) {
     circle: 'h-10 w-10 rounded-full',
     button: 'h-9 w-24 rounded-lg',
   };
-  return <div className={`bg-slate-200 animate-pulse ${variants[variant]} ${className}`} />;
+  return <div className={`animate-pulse ${variants[variant]} ${className}`} />;
 }
 
 export function PageSkeleton() {
@@ -123,7 +123,7 @@ export function EmptyState({ icon, title, description, action, onAction }) {
   return (
     <Card className="py-12 text-center">
       <div className="text-5xl mb-4">{icon}</div>
-      <h2 className="text-lg font-semibold text-slate-900 mb-2">{title}</h2>
+      <h2 className="text-lg font-semibold text-white mb-2">{title}</h2>
       {description && <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">{description}</p>}
       {action && <Button onClick={onAction}>{action}</Button>}
     </Card>
@@ -139,7 +139,7 @@ export function PillToggle({ options, selected, onChange, size = 'sm' }) {
         return (
           <button key={opt.value} onClick={() => onChange(opt.value)} className={`rounded-full font-medium transition-all ${
             size === 'xs' ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
-          } ${isActive ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+          } ${isActive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-white/10'}`}>
             {opt.icon && <span className="mr-1">{opt.icon}</span>}{opt.label}
           </button>
         );

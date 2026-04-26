@@ -27,17 +27,17 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="flex-1 bg-black/20" onClick={() => setShow(false)} />
-      <div className="w-80 bg-white shadow-2xl border-l border-slate-200 flex flex-col h-full animate-slide-in-right">
+      <div className="w-80 shadow-2xl flex flex-col h-full animate-slide-in-right" style={{background:'#0f172a',borderLeft:'1px solid rgba(255,255,255,0.08)'}}>
         {/* Header */}
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
-          <div className="text-sm font-semibold text-slate-900">{title || 'Slot Filter'}</div>
-          <button onClick={() => setShow(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">✕</button>
+        <div className="px-4 py-3 flex items-center justify-between flex-shrink-0" style={{borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+          <div className="text-sm font-semibold text-slate-200">{title || 'Slot Filter'}</div>
+          <button onClick={() => setShow(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors">✕</button>
         </div>
 
         {/* Duty doctor slot selector */}
         {setDutyDoctorSlot && (
-          <div className="px-4 py-3 border-b border-slate-200 bg-amber-50">
-            <label className="block text-xs font-semibold text-amber-800 mb-1.5">Duty doctor slot(s)</label>
+          <div className="px-4 py-3" style={{borderBottom:'1px solid rgba(255,255,255,0.06)',background:'rgba(245,158,11,0.08)'}}>
+            <label className="block text-xs font-semibold text-amber-400 mb-1.5">Duty doctor slot(s)</label>
             <div className="max-h-32 overflow-y-auto space-y-0.5">
               {(knownSlotTypes || []).sort().map(s => {
                 const selected = Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot.includes(s) : dutyDoctorSlot === s;
@@ -57,12 +57,12 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
         )}
 
         {/* Actions at top */}
-        <div className="px-4 py-2 border-b border-slate-100 flex items-center gap-3 flex-shrink-0">
+        <div className="px-4 py-2 flex items-center gap-3 flex-shrink-0" style={{borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
           <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = false; }); setOverrides(o); }}
-            className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors">Deselect all</button>
-          <span className="text-slate-200">|</span>
+            className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">Deselect all</button>
+          <span className="text-slate-700">|</span>
           <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o); }}
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors">Select all</button>
+            className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors">Select all</button>
         </div>
 
         {/* Scrollable list */}
@@ -78,9 +78,9 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-slate-200 flex-shrink-0">
+        <div className="px-4 py-3 flex-shrink-0" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
           <button onClick={() => { setOverrides(null); setShow(false); }}
-            className="text-xs text-slate-500 hover:text-slate-700 hover:underline transition-colors">Reset to defaults</button>
+            className="text-xs text-slate-500 hover:text-slate-300 hover:underline transition-colors">Reset to defaults</button>
         </div>
       </div>
     </div>

@@ -90,3 +90,24 @@
   nav, aside, [class*="Sidebar"] { display: none !important; }
   main { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
 }
+
+  /* ═══ Global dark overrides ═══ */
+  /* These ensure common Tailwind patterns work on the dark background */
+  .bg-white { background: rgba(15,23,42,0.5) !important; }
+  .bg-slate-50 { background: rgba(255,255,255,0.03) !important; }
+  .bg-slate-100 { background: rgba(255,255,255,0.05) !important; }
+  .bg-slate-200 { background: rgba(255,255,255,0.08) !important; }
+  .border-slate-200 { border-color: rgba(255,255,255,0.06) !important; }
+  .border-slate-100 { border-color: rgba(255,255,255,0.04) !important; }
+  .border-slate-200\/80 { border-color: rgba(255,255,255,0.05) !important; }
+  .text-slate-900 { color: #e2e8f0 !important; }
+  .text-slate-800 { color: #cbd5e1 !important; }
+  .text-slate-700 { color: #94a3b8 !important; }
+  .hover\:bg-slate-50:hover { background: rgba(255,255,255,0.05) !important; }
+  .hover\:bg-slate-100:hover { background: rgba(255,255,255,0.08) !important; }
+  .hover\:bg-slate-200:hover { background: rgba(255,255,255,0.1) !important; }
+  .divide-slate-100 > * + * { border-color: rgba(255,255,255,0.04) !important; }
+  .divide-slate-200 > * + * { border-color: rgba(255,255,255,0.06) !important; }
+  input, select, textarea { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.08) !important; color: #e2e8f0 !important; }
+  input::placeholder, textarea::placeholder { color: #475569 !important; }
+
