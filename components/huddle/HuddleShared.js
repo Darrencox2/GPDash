@@ -365,3 +365,46 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
     </div>
   );
 }
+
+// Shared speedometer gauge — half-arc with smooth gradient
+export function SpeedometerGauge({ percentage, width = 300, height = 165, viewBox = "0 0 300 145", slots, target, className = "" }) {
+  const stops = [{pos:0,col:[239,68,68]},{pos:0.25,col:[245,158,11]},{pos:0.5,col:[16,185,129]},{pos:0.75,col:[16,185,129]},{pos:1.0,col:[59,130,246]}];
+  const interpColor = (t) => { t = Math.max(0,Math.min(1,t)); for(let i=0;i<stops.length-1;i++){if(t>=stops[i].pos&&t<=stops[i+1].pos){const l=(t-stops[i].pos)/(stops[i+1].pos-stops[i].pos);const a=stops[i].col,b=stops[i+1].col;return `rgb(${Math.round(a[0]+(b[0]-a[0])*l)},${Math.round(a[1]+(b[1]-a[1])*l)},${Math.round(a[2]+(b[2]-a[2])*l)})`;}} return 'rgb(59,130,246)'; };
+  const bands = [{min:0,max:0.2,label:'Short'},{min:0.2,max:0.3,label:'Tight'},{min:0.3,max:0.7,label:'Good'},{min:0.7,max:1,label:'Over'}];
+  const fillFrac = Math.max(0, Math.min(1, (percentage - 50) / 100));
+  const band = bands.find(z => fillFrac >= z.min && fillFrac < z.max) || bands[bands.length-1];
+  const endCol = interpColor(fillFrac);
+
+  // Parse viewBox to get dimensions
+  const vb = viewBox.split(' ').map(Number);
+  const vbW = vb[2], vbH = vb[3];
+  const cx = vbW / 2, cy = vbH * 0.86, r = vbW * 0.283;
+  const strokeW = Math.max(7, r * 0.16);
+  const segs = Math.max(30, Math.round(r * 0.9));
+
+  const arcPt = (f) => ({x: cx + r * Math.cos(Math.PI + f * Math.PI), y: cy + r * Math.sin(Math.PI + f * Math.PI)});
+  const needlePt = arcPt(fillFrac);
+  const needleStub = {x: cx + r*0.35*Math.cos(Math.PI+fillFrac*Math.PI), y: cy + r*0.35*Math.sin(Math.PI+fillFrac*Math.PI)};
+  const trackStart = arcPt(0), trackEnd = arcPt(1);
+
+  const arcs = [];
+  const segCount = Math.round(fillFrac * segs);
+  for(let i=0;i<segCount;i++){const t0=i/segs;const t1=Math.min((i+1.2)/segs,fillFrac);const a0=Math.PI+t0*Math.PI;const a1=Math.PI+t1*Math.PI;if(a1<=a0)continue;const p0=arcPt(t0),p1={x:cx+r*Math.cos(a1),y:cy+r*Math.sin(a1)};arcs.push(<path key={i} d={`M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${r} ${r} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`} fill="none" stroke={interpColor(t0)} strokeWidth={strokeW} strokeLinecap="round"/>);}
+
+  const pillW = vbW * 0.37, pillH = vbH * 0.36, pillR = pillH * 0.23;
+  const pctSize = vbH * 0.22, labelSize = vbH * 0.1, subSize = vbH * 0.09;
+
+  return (
+    <svg className={className} viewBox={viewBox} style={width ? {width, height} : undefined}>
+      <path d={`M ${trackStart.x.toFixed(1)} ${trackStart.y.toFixed(1)} A ${r} ${r} 0 1 1 ${trackEnd.x.toFixed(1)} ${trackEnd.y.toFixed(1)}`} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={strokeW} strokeLinecap="round"/>
+      {arcs}
+      <line x1={cx} y1={cy} x2={needleStub.x.toFixed(1)} y2={needleStub.y.toFixed(1)} stroke="rgba(255,255,255,0.2)" strokeWidth={strokeW*0.12} strokeLinecap="round"/>
+      <circle cx={needlePt.x.toFixed(1)} cy={needlePt.y.toFixed(1)} r={strokeW*0.45} fill={endCol} stroke="#0f172a" strokeWidth={strokeW*0.22} style={{filter:`drop-shadow(0 0 ${strokeW*0.6}px ${endCol})`}}/>
+      <circle cx={cx} cy={cy} r={strokeW*0.3} fill="#1e293b" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeW*0.08}/>
+      <rect x={cx-pillW/2} y={cy-pillH-strokeW*0.1} width={pillW} height={pillH} rx={pillR} fill="rgba(15,23,42,0.9)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
+      <text x={cx} y={cy-pillH*0.45} textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:pctSize,fontWeight:700}}>{percentage}%</text>
+      <text x={cx} y={cy-pillH*0.08} textAnchor="middle" fill={endCol} style={{fontFamily:"'Outfit',sans-serif",fontSize:labelSize,fontWeight:500}}>{band.label}</text>
+      {slots !== undefined && target !== undefined && <text x={cx} y={cy+subSize*1.4} textAnchor="middle" fill="#475569" style={{fontSize:subSize}}>{slots} / {target} target</text>}
+    </svg>
+  );
+}

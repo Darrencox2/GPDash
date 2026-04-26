@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
-import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations } from '@/lib/huddle';
+import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations, getSiteColour } from '@/lib/huddle';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -32,8 +32,8 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
   const fallbackLoc = location;
   const aLoc = amLoc || fallbackLoc;
   const pLoc = pmLoc || fallbackLoc;
-  const aC = getSiteCol ? getSiteCol(aLoc) : '#64748b';
-  const pC = getSiteCol ? getSiteCol(pLoc) : '#64748b';
+  const aC = getSiteCol ? siteCol(aLoc) : '#64748b';
+  const pC = getSiteCol ? siteCol(pLoc) : '#64748b';
   const hasLoc = !isAbsent && !isDayOff && (aLoc || pLoc);
   const isSplit = hasLoc && aLoc && pLoc && aLoc !== pLoc;
 
@@ -81,15 +81,8 @@ function DropZone({ onDrop, children, isEmpty }) {
 }
 
 export default function WhosInOut({ data, saveData, huddleData, onNavigate, viewingDate: viewingDateProp }) {
-  const getSiteCol = (name) => {
-    if (!name) return '#64748b';
-    const sites = data?.roomAllocation?.sites || [];
-    const exact = sites.find(x => x.name === name);
-    if (exact) return exact.colour || '#64748b';
-    const lower = name.toLowerCase();
-    const fuzzy = sites.find(x => x.name.toLowerCase().startsWith(lower) || lower.startsWith(x.name.toLowerCase()));
-    return fuzzy?.colour || '#64748b';
-  };
+  const sites = data?.roomAllocation?.sites || [];
+  const siteCol = (name) => getSiteColour(name, sites);
   const [showSettings, setShowSettings] = useState(false);
   const [showAbsent, setShowAbsent] = useState(false);
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
@@ -319,7 +312,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
               <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">{section.label} ({section.team.length})</span>
             </div>
             <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={section.team.length === 0}>
-              {section.team.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={getSiteCol} />)}
+              {section.team.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
             </DropZone>
           </div>
         ))}
@@ -337,8 +330,8 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
             </button>
             {showAbsent && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={getSiteCol} />)}
-                {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={getSiteCol} />)}
+                {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
+                {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
               </div>
             )}
           </div>

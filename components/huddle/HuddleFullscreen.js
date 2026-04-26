@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
-import { getHuddleCapacity, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, getDutyDoctor, getBand } from '@/lib/huddle';
+import { getHuddleCapacity, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, getDutyDoctor, getBand, getSiteColour } from '@/lib/huddle';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -342,14 +342,15 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
 
   // ── Components ────────────────────────────────────────────────
   const ROLE_BG = {'GP Partner':'bg-blue-50 border-blue-200','Associate Partner':'bg-blue-50 border-blue-200','Salaried GP':'bg-indigo-50 border-indigo-200','Locum':'bg-purple-50 border-purple-200','GP Registrar':'bg-rose-50 border-rose-200','Medical Student':'bg-rose-50 border-rose-200','ANP':'bg-emerald-50 border-emerald-200','Paramedic Practitioner':'bg-amber-50 border-amber-200','Pharmacist':'bg-cyan-50 border-cyan-200','Physiotherapist':'bg-cyan-50 border-cyan-200','Practice Nurse':'bg-teal-50 border-teal-200','Nurse Associate':'bg-teal-50 border-teal-200','HCA':'bg-lime-50 border-lime-200'};
-  const getSiteCol = (name) => { const sites = data?.roomAllocation?.sites || []; const exact = sites.find(x => x.name === name); if (exact) return exact.colour || '#64748b'; if (!name) return '#64748b'; const lower = name.toLowerCase(); const fuzzy = sites.find(x => x.name.toLowerCase().startsWith(lower) || lower.startsWith(x.name.toLowerCase())); return fuzzy?.colour || '#64748b'; };
+  const sites = data?.roomAllocation?.sites || [];
+  const siteCol = (name) => getSiteColour(name, sites);
   const roleColMap = { gp: '#3b82f6', nursing: '#10b981', allied: '#a855f7' };
   const PersonCard = ({ person, delay, reason, location }) => {
     const isAbsent = !!reason;
     const roleCol = roleColMap[person.group] || '#64748b';
     const badgeCol = isAbsent ? '#ef4444' : roleCol;
     const displayName = person.title ? `${person.title} ${person.name}` : person.name;
-    const locColour = location ? getSiteCol(location) : null;
+    const locColour = location ? siteCol(location) : null;
     return (<div className="rounded-lg overflow-hidden fs-slidein" style={{animationDelay:`${delay}s`,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)'}}>
       <div className="flex items-center" style={{padding:'clamp(3px,0.5vh,8px) clamp(4px,0.6vw,8px)',gap:'clamp(4px,0.5vw,8px)'}}>
         <div className="rounded-md flex items-center justify-center font-bold flex-shrink-0" style={{width:'clamp(24px,3vh,40px)',height:'clamp(24px,3vh,40px)',fontSize:'clamp(8px,1.1vh,13px)',background:badgeCol,color:'white',fontFamily:"'Outfit',sans-serif",boxShadow:`0 0 6px ${badgeCol}30`}}>{person.initials}</div>
@@ -581,9 +582,9 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 ? cliniciansAfterDuty.filter(c => c.name !== dutySupportDisplay.name)
                 : cliniciansAfterDuty;
 
-              const dutyLocCol = dutyDisplay?.location ? getSiteCol(dutyDisplay.location) : null;
+              const dutyLocCol = dutyDisplay?.location ? siteCol(dutyDisplay.location) : null;
               const dutyLocLetter = dutyDisplay?.location ? dutyDisplay.location.charAt(0) : '';
-              const supportLocCol = dutySupportDisplay?.location ? getSiteCol(dutySupportDisplay.location) : null;
+              const supportLocCol = dutySupportDisplay?.location ? siteCol(dutySupportDisplay.location) : null;
               const supportLocLetter = dutySupportDisplay?.location ? dutySupportDisplay.location.charAt(0) : '';
               return (
                 <div key={si} className="flex-1 flex flex-col overflow-auto" style={{borderLeft:si===1?'1px solid rgba(255,255,255,0.04)':undefined}}>
@@ -638,7 +639,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                     )}
                     <div className="flex flex-col flex-1 overflow-auto" style={{gap:'clamp(2px,0.3vh,4px)'}}>
                       {clinicians.map((c,i) => {
-                        const locCol = c.location ? getSiteCol(c.location) : null;
+                        const locCol = c.location ? siteCol(c.location) : null;
                         return (
                         <div key={i} className="rounded-md flex items-center justify-between fs-slidein" style={{animationDelay:`${0.3+i*0.06}s`,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',padding:'clamp(2px,0.4vh,6px) clamp(4px,0.6vw,8px)'}}>
                           <div className="flex items-center min-w-0" style={{gap:'clamp(4px,0.5vw,8px)'}}>

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { getHuddleCapacity, getDutyDoctor } from '@/lib/huddle';
+import { getHuddleCapacity, getDutyDoctor, getSiteColour } from '@/lib/huddle';
 import { matchesStaffMember, DAYS, getWeekStart, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 
@@ -11,7 +11,7 @@ const GROUP_META = {
 };
 
 function LocSquare({ loc, size = 24, duty }) {
-  const lc = loc ? getSiteCol(loc) : null;
+  const lc = loc ? siteCol(loc) : null;
   if (!loc) return <div style={{width:size,height:size,borderRadius:4,background:'#1e293b'}} />;
   return (
     <div style={{width:size,height:size,borderRadius:4,background:lc?.bg||'#475569',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
@@ -22,15 +22,8 @@ function LocSquare({ loc, size = 24, duty }) {
 }
 
 export default function MyRota({ data, huddleData, standalone, setActiveSection }) {
-  const getSiteCol = (name) => {
-    if (!name) return '#64748b';
-    const sites = data?.roomAllocation?.sites || [];
-    const exact = sites.find(x => x.name === name);
-    if (exact) return exact.colour || '#64748b';
-    const lower = name.toLowerCase();
-    const fuzzy = sites.find(x => x.name.toLowerCase().startsWith(lower) || lower.startsWith(x.name.toLowerCase()));
-    return fuzzy?.colour || '#64748b';
-  };
+  const sites = data?.roomAllocation?.sites || [];
+  const siteCol = (name) => getSiteColour(name, sites);
   const clinicians = useMemo(() => {
     if (!data?.clinicians) return [];
     const list = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);

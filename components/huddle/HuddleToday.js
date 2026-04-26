@@ -1,13 +1,13 @@
 'use client';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Button, Card } from '@/components/ui';
-import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getDutyDoctor, getBand, getCliniciansForDate } from '@/lib/huddle';
+import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getDutyDoctor, getBand, getCliniciansForDate, getSiteColour } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
-import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS } from './HuddleShared';
+import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge } from './HuddleShared';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -135,19 +135,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     setCardOverrides(prev => { const n = { ...prev }; delete n[cardId]; return n; });
   };
 
-  const siteColourMap = useMemo(() => {
-    const sites = data?.roomAllocation?.sites || [];
-    const map = {};
-    sites.forEach(s => { if (s.name && s.colour) map[s.name] = s.colour; });
-    return map;
-  }, [data?.roomAllocation?.sites]);
-  const getSiteColour = (siteName) => {
-    if (!siteName) return '#64748b';
-    if (siteColourMap[siteName]) return siteColourMap[siteName];
-    const lower = siteName.toLowerCase();
-    const match = Object.entries(siteColourMap).find(([k]) => k.toLowerCase().startsWith(lower) || lower.startsWith(k.toLowerCase()));
-    return match ? match[1] : '#64748b';
-  };
+  const sites = data?.roomAllocation?.sites || [];
+  const siteCol = (name) => getSiteColour(name, sites);
   const teamClinicians = useMemo(() => {
     if (!data?.clinicians) return [];
     return Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
@@ -433,21 +422,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           inCount = scheduledToday.filter(c => !absentIds.has(c.id)).length;
           offCount = visibleClinicians.length - inCount;
         }
-        // Gauge — half-arc speedometer (50% left, 100% top, 150% right)
-        const gaugeStops = [{pos:0,col:[239,68,68]},{pos:0.25,col:[245,158,11]},{pos:0.5,col:[16,185,129]},{pos:0.75,col:[16,185,129]},{pos:1.0,col:[59,130,246]}];
-        const gaugeColor = (t) => { t = Math.max(0,Math.min(1,t)); for(let i=0;i<gaugeStops.length-1;i++){if(t>=gaugeStops[i].pos&&t<=gaugeStops[i+1].pos){const l=(t-gaugeStops[i].pos)/(gaugeStops[i+1].pos-gaugeStops[i].pos);const a=gaugeStops[i].col,b=gaugeStops[i+1].col;return `rgb(${Math.round(a[0]+(b[0]-a[0])*l)},${Math.round(a[1]+(b[1]-a[1])*l)},${Math.round(a[2]+(b[2]-a[2])*l)})`;}} return 'rgb(59,130,246)'; };
-        const gaugeBands = [{min:0,max:0.2,label:'Short'},{min:0.2,max:0.3,label:'Tight'},{min:0.3,max:0.7,label:'Good'},{min:0.7,max:1,label:'Over'}];
-        const fillFrac = Math.max(0, Math.min(1, (coveragePct - 50) / 100));
-        const gaugeBand = gaugeBands.find(z => fillFrac >= z.min && fillFrac < z.max) || gaugeBands[gaugeBands.length-1];
-        const endCol = gaugeColor(fillFrac);
-        const gcx=150, gcy=125, gr=85, gSegs=80;
-        const gArcPt = (f) => ({x: gcx + gr * Math.cos(Math.PI + f * Math.PI), y: gcy + gr * Math.sin(Math.PI + f * Math.PI)});
-        const gNeedlePt = gArcPt(fillFrac);
-        const gNeedleStub = {x: gcx + gr*0.35*Math.cos(Math.PI+fillFrac*Math.PI), y: gcy + gr*0.35*Math.sin(Math.PI+fillFrac*Math.PI)};
-        const gSegCount = Math.round(fillFrac * gSegs);
-        const gTrackStart = gArcPt(0), gTrackEnd = gArcPt(1);
-        const gaugeArcs = [];
-        for(let i=0;i<gSegCount;i++){const t0=i/gSegs;const t1=Math.min((i+1.2)/gSegs,fillFrac);const a0=Math.PI+t0*Math.PI;const a1=Math.PI+t1*Math.PI;if(a1<=a0)continue;const p0=gArcPt(t0),p1={x:gcx+gr*Math.cos(a1),y:gcy+gr*Math.sin(a1)};const large=(a1-a0)>Math.PI?1:0;gaugeArcs.push(<path key={i} d={`M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${gr} ${gr} 0 ${large} 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`} fill="none" stroke={gaugeColor(t0)} strokeWidth="14" strokeLinecap="round"/>);}
         return (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* NOTICEBOARD — right column */}
@@ -486,17 +460,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             <div className="glass rounded-xl p-5 md:col-span-3 md:order-1">
               <div className="flex flex-col md:flex-row gap-5 items-stretch">
                 <div className="flex-shrink-0 flex items-center justify-center">
-                  <svg className="w-full max-w-[300px]" viewBox="0 0 300 145">
-                    <path d={`M ${gTrackStart.x.toFixed(1)} ${gTrackStart.y.toFixed(1)} A ${gr} ${gr} 0 1 1 ${gTrackEnd.x.toFixed(1)} ${gTrackEnd.y.toFixed(1)}`} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" strokeLinecap="round"/>
-                    {gaugeArcs}
-                    <line x1={gcx} y1={gcy} x2={gNeedleStub.x.toFixed(1)} y2={gNeedleStub.y.toFixed(1)} stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round"/>
-                    <circle cx={gNeedlePt.x.toFixed(1)} cy={gNeedlePt.y.toFixed(1)} r="6" fill={endCol} stroke="#0f172a" strokeWidth="3" style={{filter:`drop-shadow(0 0 8px ${endCol})`}}/>
-                    <circle cx={gcx} cy={gcy} r="4" fill="#1e293b" stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>
-                    <rect x={gcx-55} y={gcy-55} width="110" height="52" rx="12" fill="rgba(15,23,42,0.9)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
-                    <text x={gcx} y={gcy-26} textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:32,fontWeight:700}}>{coveragePct}%</text>
-                    <text x={gcx} y={gcy-8} textAnchor="middle" fill={endCol} style={{fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:500}}>{gaugeBand.label}</text>
-                    <text x={gcx} y={gcy+18} textAnchor="middle" fill="#475569" style={{fontSize:13}}>{urgTotal} / {targetTotal} target</text>
-                  </svg>
+                  <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[300px]" width={null} viewBox="0 0 300 145" slots={urgTotal} target={targetTotal} />
                 </div>
                 <div className="flex-1 grid grid-cols-2 gap-3">
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
@@ -630,9 +594,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 ? cliniciansAfterDuty.filter(c => c.name !== dutySupportDisplay.name)
                 : cliniciansAfterDuty;
 
-              const dutyLocCol = dutyDocDisplay?.location ? getSiteColour(dutyDocDisplay.location) : null;
+              const dutyLocCol = dutyDocDisplay?.location ? siteCol(dutyDocDisplay.location) : null;
               const dutyLocLetter = dutyDocDisplay?.location ? dutyDocDisplay.location.charAt(0) : '';
-              const supportLocCol = dutySupportDisplay?.location ? getSiteColour(dutySupportDisplay.location) : null;
+              const supportLocCol = dutySupportDisplay?.location ? siteCol(dutySupportDisplay.location) : null;
               const supportLocLetter = dutySupportDisplay?.location ? dutySupportDisplay.location.charAt(0) : '';
 
               return (
@@ -684,7 +648,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   )}
                   <div className="flex flex-col gap-2">
                     {clinicians.map((c, i) => {
-                      const locPill = c.location ? getSiteColour(c.location) : null;
+                      const locPill = c.location ? siteCol(c.location) : null;
                       return (
                         <div key={i} className="glass-inner rounded-lg px-3 py-2 flex items-center justify-between">
                           <div className="flex items-center gap-2.5 min-w-0">
