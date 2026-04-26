@@ -103,10 +103,10 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
     return { entries, avg, max };
   }, [clinicians, clinicianData]);
 
-  const filtered = search.length > 0 ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.initials?.toLowerCase().includes(search.toLowerCase())) : [];
-  const showList = search.length > 0 && !selected;
+  const filtered = search.length > 0 ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || (c.initials && c.initials.toLowerCase().includes(search.toLowerCase()))) : [];
+  const showList = search.length > 0 && !selected && filtered.length > 0;
 
-  const selectClinician = (c) => { setSelectedId(c.id); setSearch(c.name); };
+  const selectClinician = (c) => { setSelectedId(c.id); setSearch(''); };
   const clearSelection = () => { setSelectedId(null); setSearch(''); };
 
   const cd = selected ? clinicianData[selected.id] : null;
@@ -147,8 +147,8 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
   if (!huddleData) return null;
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="flex items-center justify-between" style={{ background: 'rgba(15,23,42,0.85)', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+    <div className="rounded-xl" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center justify-between" style={{ background: 'rgba(15,23,42,0.85)', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px 12px 0 0' }}>
         <div>
           <div className="font-heading text-base font-medium text-slate-200">Clinician capacity</div>
           <div className="text-xs text-slate-600">Routine slots · 28-day forward view</div>
@@ -156,18 +156,17 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
       </div>
 
       {/* Search */}
-      <div className="relative px-4 pt-3 pb-2">
+      <div className="relative px-4 pt-3 pb-2" style={{zIndex:20}}>
         <input
           type="text" value={search}
-          onChange={e => { setSearch(e.target.value); if (selectedId) setSelectedId(null); }}
+          onChange={e => { setSearch(e.target.value); setSelectedId(null); }}
           placeholder="Search clinician..."
           className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#e2e8f0' }}
         />
-        {selected && <button onClick={clearSelection} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs">✕</button>}
 
-        {showList && filtered.length > 0 && (
-          <div className="absolute left-4 right-4 top-full mt-1 rounded-lg overflow-hidden z-30 max-h-48 overflow-y-auto" style={{ background: '#1e293b', border: '1px solid #334155', boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>
+        {showList && (
+          <div className="absolute left-4 right-4 top-full mt-1 rounded-lg overflow-hidden max-h-48 overflow-y-auto" style={{ background: '#1e293b', border: '1px solid #334155', boxShadow: '0 10px 30px rgba(0,0,0,0.4)', zIndex: 50 }}>
             {filtered.map(c => {
               const d = clinicianData[c.id];
               return (
@@ -189,15 +188,16 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
       </div>
 
       {/* Detail panel */}
-      {selected && cd && (
+      {selected && (
         <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
           {/* Clinician header */}
           <div className="flex items-center gap-3 pt-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", background: selected.group === 'gp' ? '#3b82f6' : selected.group === 'nursing' ? '#10b981' : '#a855f7' }}>{selected.initials}</div>
-            <div>
+            <div className="flex-1">
               <div className="text-sm font-medium text-slate-200">{selected.title ? `${selected.title} ${selected.name}` : selected.name}</div>
               <div className="text-xs text-slate-500">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>
             </div>
+            <button onClick={clearSelection} className="text-xs text-slate-600 hover:text-slate-300 transition-colors">✕</button>
           </div>
 
           {/* 28-day summary */}
