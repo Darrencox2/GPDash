@@ -117,7 +117,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                 <div className="rounded-xl overflow-hidden flex items-center justify-center" style={{background:'#1e293b',padding:'12px 16px'}}>
                   <img src="/logo.png" alt="Practice" style={{maxWidth:'100%',maxHeight:48,objectFit:'contain'}} onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML='<div style="text-align:center"><div style="font-size:14px;font-weight:600;color:#e2e8f0">Winscombe & Banwell</div><div style="font-size:11px;color:#64748b;margin-top:2px">Family Practice</div></div>'; }} />
                 </div>
-                <div className="text-center mt-2 pb-1" style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:'#334155'}}>{APP_VERSION}</div>
+                <button onClick={() => setActiveSection('changelog')} className="block w-full text-center mt-2 pb-1 hover:text-slate-400 transition-colors" style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:'#334155'}}>{APP_VERSION}</button>
               </>
             ) : (
               <>
@@ -126,7 +126,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                     <img src="/logo.png" alt="Practice" className="h-7 w-auto object-contain" onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML='<span style="font-size:10px;font-weight:700;color:#0f172a;line-height:1">W&B</span>'; }} />
                   </div>
                 </div>
-                <div className="text-center mt-1.5" style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:'#334155'}}>{APP_VERSION}</div>
+                <button onClick={() => setActiveSection('changelog')} className="block w-full text-center mt-1.5 hover:text-slate-400 transition-colors" style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:'#334155'}}>{APP_VERSION}</button>
               </>
             )}
           </div>
