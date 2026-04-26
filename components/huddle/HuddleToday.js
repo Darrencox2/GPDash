@@ -279,18 +279,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       )}
 
       {/* Date header with navigation */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <div className="glass-dark rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer relative" onClick={() => setShowCalendar(!showCalendar)}>
-            <button onClick={(e) => { e.stopPropagation(); navigateDay(-1); }} className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <div className="glass-dark rounded-xl px-2 sm:px-4 py-2 sm:py-3 flex items-center gap-1 sm:gap-3 cursor-pointer relative flex-shrink-0" onClick={() => setShowCalendar(!showCalendar)}>
+            <button onClick={(e) => { e.stopPropagation(); navigateDay(-1); }} className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
-            <div className="text-center px-2">
-              <div className="font-mono-data text-3xl font-bold text-white leading-none">{viewingDate.getDate()}</div>
-              <div className="text-sm text-slate-500 uppercase tracking-wider mt-0.5">{viewingDate.toLocaleDateString('en-GB', { month: 'short' })}</div>
+            <div className="text-center px-1">
+              <div className="font-mono-data text-2xl sm:text-3xl font-bold text-white leading-none">{viewingDate.getDate()}</div>
+              <div className="text-[10px] sm:text-sm text-slate-500 uppercase tracking-wider">{viewingDate.toLocaleDateString('en-GB', { month: 'short' })}</div>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); navigateDay(1); }} className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+            <button onClick={(e) => { e.stopPropagation(); navigateDay(1); }} className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
             </button>
             {showCalendar && (
               <div className="absolute top-full left-0 mt-2 z-50 rounded-xl shadow-2xl p-3" style={{background:"#1e293b",border:"1px solid rgba(255,255,255,0.1)"}} onClick={e => e.stopPropagation()}>
@@ -299,31 +299,31 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               </div>
             )}
           </div>
-          <div>
-            <h1 className="font-heading text-2xl font-medium text-white">
-              {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'long' })}
-            </h1>
-            <span className="text-xs text-slate-400">
-              {isViewingToday
-                ? viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                : viewingDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="font-heading text-lg sm:text-2xl font-medium text-white truncate">
+                {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'short' })}
+              </h1>
+              {!isViewingToday && <button onClick={goToToday} className="text-[10px] text-emerald-400 hover:text-emerald-300 font-medium underline flex-shrink-0">today</button>}
+            </div>
+            <span className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">
+              {viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
           </div>
-          {!isViewingToday && <button onClick={goToToday} className="text-xs text-emerald-400 hover:text-emerald-300 font-medium ml-2 underline">Back to today</button>}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
           <button onClick={() => fileRef.current?.click()}
-            className="h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium text-white transition-colors"
-            style={{ background: isUploadedToday ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.6)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)' }}
+            className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
+            style={{ background: isUploadedToday ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.6)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}
             title={data?.huddleCsvUploadedAt ? `Uploaded ${new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : 'No CSV uploaded'}>
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            {isUploadedToday ? 'CSV uploaded' : 'Upload CSV'}
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <span className="hidden sm:inline">{isUploadedToday ? 'CSV uploaded' : 'Upload CSV'}</span>
           </button>
-          <button onClick={() => setIsFullscreen(true)} className="h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium text-white transition-colors"
-            style={{ background: 'rgba(124,58,237,0.7)', border: '1px solid rgba(124,58,237,0.3)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)' }}>
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
-            Huddle board
+          <button onClick={() => setIsFullscreen(true)} className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
+            style={{ background: 'rgba(124,58,237,0.7)', border: '1px solid rgba(124,58,237,0.3)' }}>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+            <span className="hidden sm:inline">Huddle board</span>
           </button>
         </div>
       </div>
