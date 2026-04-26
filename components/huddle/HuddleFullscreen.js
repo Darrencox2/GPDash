@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
-import { getHuddleCapacity, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand } from '@/lib/huddle';
+import { getHuddleCapacity, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, getDutyDoctor, getBand } from '@/lib/huddle';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -391,12 +391,12 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
             <div className="text-slate-500 uppercase" style={{ fontSize: 'clamp(8px, 1.2vh, 14px)' }}>{MONTH_SHORT[today.getMonth()]}</div>
           </div>
           <div className="flex items-center" style={{ gap: 'clamp(6px, 1vw, 16px)' }}>
-            {(onNavigateDay || screen === 2) && <button onClick={() => syncNavigate(-1)} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10 flex-shrink-0" style={{border:"1px solid rgba(255,255,255,0.08)"}} style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px, 2vh, 28px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>‹</button>}
+            {(onNavigateDay || screen === 2) && <button onClick={() => syncNavigate(-1)} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10 flex-shrink-0" style={{border:"1px solid rgba(255,255,255,0.08)",padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px, 2vh, 28px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>‹</button>}
             <div style={{ width: 'clamp(160px, 22vw, 300px)' }}>
               <div className="font-bold text-white" style={{ fontSize: 'clamp(16px, 3.5vh, 48px)' }}>{dayName}</div>
               <div className="text-slate-500" style={{ fontSize: 'clamp(10px, 1.5vh, 18px)' }}>{today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
             </div>
-            {(onNavigateDay || screen === 2) && <button onClick={() => syncNavigate(1)} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10 flex-shrink-0" style={{border:"1px solid rgba(255,255,255,0.08)"}} style={{padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px, 2vh, 28px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>›</button>}
+            {(onNavigateDay || screen === 2) && <button onClick={() => syncNavigate(1)} className="rounded-lg text-slate-500 hover:text-white hover:bg-white/10 flex-shrink-0" style={{border:"1px solid rgba(255,255,255,0.08)",padding:'clamp(4px,0.6vh,8px) clamp(6px,0.8vw,12px)',fontSize:'clamp(12px, 2vh, 28px)',lineHeight:1,width:'clamp(28px,3.5vw,44px)',textAlign:'center'}}>›</button>}
           </div>
         </div>
         <div className="flex items-center" style={{ gap: 'clamp(10px, 2vw, 32px)' }}>
@@ -678,9 +678,9 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 <div className="font-semibold" style={{fontSize:'clamp(10px, 1.4vh, 20px)',color:'#e2e8f0'}}>{c.title}</div>
                 <div style={{fontSize:'clamp(7px,0.8vh,10px)',color:cc.text,opacity:0.6,marginBottom:'clamp(2px,0.3vh,6px)'}}>14 days</div>
                 <div className="flex justify-center" style={{gap:'clamp(2px,0.3vw,8px)'}}>
-                  <div className="text-center"><div className="bg-emerald-100 text-emerald-800 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.avail}</div><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>available</div></div>
-                  <div className="text-center"><div className="bg-amber-100 text-amber-800 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.emb}</div><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>embargoed</div></div>
-                  <div className="text-center"><div className="bg-slate-100 text-slate-600 rounded-lg font-bold" style={{padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.booked}</div><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>booked</div></div>
+                  <div className="text-center"><div className="rounded-lg font-bold" style={{background:'rgba(16,185,129,0.15)',color:'#34d399',padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.avail}</div><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>available</div></div>
+                  <div className="text-center"><div className="rounded-lg font-bold" style={{background:'rgba(245,158,11,0.15)',color:'#fbbf24',padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.emb}</div><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>embargoed</div></div>
+                  <div className="text-center"><div className="rounded-lg font-bold" style={{background:'rgba(255,255,255,0.08)',color:'#94a3b8',padding:'clamp(1px,0.2vh,4px) clamp(4px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.booked}</div><div className="text-slate-500" style={{fontSize:'clamp(7px,0.8vh,10px)',marginTop:'1px'}}>booked</div></div>
                 </div>
               </div>
             );})}</div>}

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
-import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations, LOCATION_COLOURS } from '@/lib/huddle';
+import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations } from '@/lib/huddle';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -358,10 +358,10 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
       {showSettings && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="flex-1 bg-black/20" onClick={() => setShowSettings(false)} />
-          <div className="w-80 bg-white shadow-2xl border-l border-slate-200 flex flex-col h-full animate-slide-in-right">
-            <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
-              <div className="text-sm font-semibold text-slate-900">Who's In Settings</div>
-              <button onClick={() => setShowSettings(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100">✕</button>
+          <div className="w-80 shadow-2xl flex flex-col h-full animate-slide-in-right" style={{background:"#0f172a",borderLeft:"1px solid rgba(255,255,255,0.08)"}}>
+            <div className="px-4 py-3 flex items-center justify-between flex-shrink-0" style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+              <div className="text-sm font-semibold text-slate-200">Who's In Settings</div>
+              <button onClick={() => setShowSettings(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10">✕</button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {hiddenPeople.length > 0 && (
@@ -371,7 +371,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
                   <div className="space-y-1">
                     {hiddenPeople.map(c => (
                       <button key={c.id} onClick={() => showPerson(c.id)}
-                        className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-colors flex items-center justify-between">
+                        className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-emerald-400 transition-colors flex items-center justify-between" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)"}}>
                         <span>{c.name}</span><span className="text-xs text-slate-400">restore</span>
                       </button>
                     ))}
@@ -387,7 +387,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
                     <div className="space-y-1">
                       {groupPeople.map(c => (
                         <button key={c.id} onClick={() => c.showWhosIn !== false ? hidePerson(c.id) : showPerson(c.id)}
-                          className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between ${c.showWhosIn !== false ? 'bg-slate-900 text-white' : 'bg-slate-50 border border-slate-200 text-slate-500'}`}>
+                          className="w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between" style={{background: c.showWhosIn !== false ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: c.showWhosIn !== false ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.06)', color: c.showWhosIn !== false ? '#34d399' : '#64748b'}}>
                           <span>{c.name}</span><span className="text-xs opacity-60">{c.role}</span>
                         </button>
                       ))}

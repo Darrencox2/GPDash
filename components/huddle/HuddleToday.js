@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Button, Card } from '@/components/ui';
-import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, LOCATION_COLOURS, getDutyDoctor, getBand, getCliniciansForDate } from '@/lib/huddle';
+import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getDutyDoctor, getBand, getCliniciansForDate } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import HuddleFullscreen from './HuddleFullscreen';
@@ -304,9 +304,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
             </button>
             {showCalendar && (
-              <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-xl shadow-2xl border border-slate-200 p-3" onClick={e => e.stopPropagation()}>
+              <div className="absolute top-full left-0 mt-2 z-50 rounded-xl shadow-2xl p-3" style={{background:"#1e293b",border:"1px solid rgba(255,255,255,0.1)"}} onClick={e => e.stopPropagation()}>
                 <input type="date" value={toLocalIso(viewingDate)} min={toLocalIso(minDate)} max={toLocalIso(maxDate)} onChange={(e) => goToDate(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+                  className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",color:"#e2e8f0"}} />
               </div>
             )}
           </div>
@@ -630,9 +630,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 ? cliniciansAfterDuty.filter(c => c.name !== dutySupportDisplay.name)
                 : cliniciansAfterDuty;
 
-              const dutyLocCol = dutyDocDisplay?.location ? LOCATION_COLOURS[dutyDocDisplay.location] : null;
+              const dutyLocCol = dutyDocDisplay?.location ? getSiteColour(dutyDocDisplay.location) : null;
               const dutyLocLetter = dutyDocDisplay?.location ? dutyDocDisplay.location.charAt(0) : '';
-              const supportLocCol = dutySupportDisplay?.location ? LOCATION_COLOURS[dutySupportDisplay.location] : null;
+              const supportLocCol = dutySupportDisplay?.location ? getSiteColour(dutySupportDisplay.location) : null;
               const supportLocLetter = dutySupportDisplay?.location ? dutySupportDisplay.location.charAt(0) : '';
 
               return (

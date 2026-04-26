@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { getHuddleCapacity, getDutyDoctor, LOCATION_COLOURS } from '@/lib/huddle';
+import { getHuddleCapacity, getDutyDoctor } from '@/lib/huddle';
 import { matchesStaffMember, DAYS, getWeekStart, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 
@@ -11,7 +11,7 @@ const GROUP_META = {
 };
 
 function LocSquare({ loc, size = 24, duty }) {
-  const lc = loc ? LOCATION_COLOURS[loc] : null;
+  const lc = loc ? getSiteCol(loc) : null;
   if (!loc) return <div style={{width:size,height:size,borderRadius:4,background:'#1e293b'}} />;
   return (
     <div style={{width:size,height:size,borderRadius:4,background:lc?.bg||'#475569',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
@@ -22,6 +22,15 @@ function LocSquare({ loc, size = 24, duty }) {
 }
 
 export default function MyRota({ data, huddleData, standalone, setActiveSection }) {
+  const getSiteCol = (name) => {
+    if (!name) return '#64748b';
+    const sites = data?.roomAllocation?.sites || [];
+    const exact = sites.find(x => x.name === name);
+    if (exact) return exact.colour || '#64748b';
+    const lower = name.toLowerCase();
+    const fuzzy = sites.find(x => x.name.toLowerCase().startsWith(lower) || lower.startsWith(x.name.toLowerCase()));
+    return fuzzy?.colour || '#64748b';
+  };
   const clinicians = useMemo(() => {
     if (!data?.clinicians) return [];
     const list = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
@@ -192,7 +201,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
 
       {/* Key */}
       <div className="px-6 pb-4 flex gap-4 flex-wrap">
-        {Object.entries(LOCATION_COLOURS).map(([name, lc]) => <div key={name} className="flex items-center gap-1.5"><LocSquare loc={name} size={18} /><span className="text-[11px] text-slate-500">{name}</span></div>)}
+        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1.5"><LocSquare loc={s.name} size={18} /><span className="text-[11px] text-slate-500">{s.name}</span></div>)}
         {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[11px] text-slate-500">Duty</span></div>}
         <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:'1px solid #f87171',color:'#f87171'}}>AB</div><span className="text-[11px] text-slate-500">File & action</span></div>
         <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:'1px solid #60a5fa',color:'#60a5fa'}}>AB</div><span className="text-[11px] text-slate-500">View only</span></div>
@@ -256,7 +265,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
 
       {/* Key */}
       <div className="px-4 pb-3 flex gap-3 flex-wrap">
-        {Object.entries(LOCATION_COLOURS).map(([name, lc]) => <div key={name} className="flex items-center gap-1"><LocSquare loc={name} size={14} /><span className="text-[9px] text-slate-500">{name}</span></div>)}
+        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1"><LocSquare loc={s.name} size={14} /><span className="text-[9px] text-slate-500">{s.name}</span></div>)}
         {hasDuty && <div className="flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[9px] text-slate-500">Duty</span></div>}
       </div>
 
