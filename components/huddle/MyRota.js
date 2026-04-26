@@ -243,7 +243,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
           <span className="w-6 flex-shrink-0 text-slate-600 text-[10px] font-semibold uppercase tracking-wider">{label}</span>
           <span className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{fontFamily:"'Outfit',sans-serif",background:groupBg(person.group)}}>{person.initials}</span>
           <span className="text-slate-300 flex-1 truncate">{person.title ? `${person.title} ${person.name.split(',')[0]}` : person.name.split(',')[0]}</span>
-          {locCol && <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0" style={{background:locCol}}>{person.location.charAt(0)}</span>}
+          {locCol && <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white flex-shrink-0" style={{background:locCol}}>{person.location}</span>}
         </div>
       );
     };
