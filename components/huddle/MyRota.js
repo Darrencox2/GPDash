@@ -89,15 +89,35 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     return { amIn, pmIn, amLoc: am?.location, pmLoc: pm?.location, amDuty: amDuty && matchesStaffMember(amDuty.name, selected), pmDuty: pmDuty && matchesStaffMember(pmDuty.name, selected), absence: absence?.reason, covers };
   };
 
-  // ═══ TODAY CARD DATA ═══
-  // Resolves where the selected clinician is today, plus who's duty doctor/support each session
+  // ═══ NEXT WORKING DAY CARD DATA ═══
+  // Finds the clinician's next working day (today if working, or scans up to 14 days ahead)
   const todayCardData = useMemo(() => {
     if (!selected || !huddleData) return null;
-    const today = new Date();
-    const dateStr = toHuddleDateStr(today);
-    if (!huddleData.dates?.includes(dateStr)) return { noData: true };
+
+    const isWorkingDay = (dateStr) => {
+      if (!huddleData.dates?.includes(dateStr)) return false;
+      const cap = getHuddleCapacity(huddleData, dateStr, hs);
+      if (!cap) return false;
+      const am = cap.am?.byClinician?.find(c => matchesStaffMember(c.name, selected));
+      const pm = cap.pm?.byClinician?.find(c => matchesStaffMember(c.name, selected));
+      const inAm = am && (am.available > 0 || am.embargoed > 0 || am.booked > 0);
+      const inPm = pm && (pm.available > 0 || pm.embargoed > 0 || pm.booked > 0);
+      return inAm || inPm;
+    };
+
+    // Scan up to 14 days forward from today
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let targetDate = null;
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(today); d.setDate(d.getDate() + i);
+      if (d.getDay() === 0 || d.getDay() === 6) continue;
+      const ds = toHuddleDateStr(d);
+      if (isWorkingDay(ds)) { targetDate = d; break; }
+    }
+    if (!targetDate) return { noWorkingDay: true };
+
+    const dateStr = toHuddleDateStr(targetDate);
     const cap = getHuddleCapacity(huddleData, dateStr, hs);
-    if (!cap) return { noData: true };
 
     const compute = (session) => {
       const sessionCap = cap[session];
@@ -132,7 +152,11 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
       return { myIn, myLoc, dutyDoc, support };
     };
 
-    return { am: compute('am'), pm: compute('pm'), date: today };
+    const isToday = targetDate.toDateString() === today.toDateString();
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow = targetDate.toDateString() === tomorrow.toDateString();
+
+    return { am: compute('am'), pm: compute('pm'), date: targetDate, isToday, isTomorrow };
   }, [selected, huddleData, hs, dutySlots, hasDuty, clinicians]);
 
   // ═══ CALENDAR (Desktop) ═══
@@ -184,14 +208,15 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   // ═══ Today card JSX ═══
   const todayCardJsx = (() => {
     if (!selected || !todayCardData) return null;
-    if (todayCardData.noData) {
+    if (todayCardData.noWorkingDay) {
       return (
         <div className="rounded-xl p-4 text-center" style={{background:'rgba(15,23,42,0.6)',border:'1px solid rgba(255,255,255,0.06)'}}>
-          <div className="text-xs text-slate-500">No CSV data for today</div>
+          <div className="text-xs text-slate-500">No working days found in the next 14 days</div>
         </div>
       );
     }
-    const { am, pm, date } = todayCardData;
+    const { am, pm, date, isToday, isTomorrow } = todayCardData;
+    const dayLabel = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : `Next: ${date.toLocaleDateString('en-GB', { weekday: 'long' })}`;
     const dateStr = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
     const groupBg = (group) => group === 'gp' ? '#3b82f6' : group === 'nursing' ? '#10b981' : '#a855f7';
@@ -235,7 +260,7 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
       <div className="rounded-xl overflow-hidden" style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)'}}>
         <div className="px-4 py-2.5 flex items-center justify-between" style={{background:'rgba(15,23,42,0.85)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
           <div>
-            <div className="font-heading text-sm font-medium text-slate-200">Today</div>
+            <div className="font-heading text-sm font-medium text-slate-200">{dayLabel}</div>
             <div className="text-[11px] text-slate-600">{dateStr}</div>
           </div>
         </div>
