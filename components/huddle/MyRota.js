@@ -163,7 +163,10 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
         support = { name: dutySupportClin.displayName, initials: dutySupportClin.initials, title: dutySupportClin.title, group: dutySupportClin.group, location: dutySupportClin.location };
       }
 
-      return { myIn, myLoc, dutyDoc, support };
+      const isMeDuty = !!(dutyDoc && matchesStaffMember(dutyDoc.name, selected));
+      const isMeSupport = !!(support && matchesStaffMember(support.name, selected));
+
+      return { myIn, myLoc, dutyDoc, support, isMeDuty, isMeSupport };
     };
 
     const isToday = targetDate.toDateString() === today.toDateString();
@@ -247,22 +250,65 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     };
 
     const Session = ({ label, sess }) => {
-      const inSession = sess.myIn;
       const myLocCol = sess.myLoc ? siteCol(sess.myLoc) : null;
+      const isMeDuty = sess.isMeDuty;
+      const isMeSupport = sess.isMeSupport;
+
+      // Card background — red gradient if user is duty, blue if support, otherwise glass
+      const cardStyle = isMeDuty
+        ? { background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', border: '1px solid rgba(255,255,255,0.1)' }
+        : isMeSupport
+        ? { background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)', border: '1px solid rgba(255,255,255,0.1)' }
+        : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' };
+
+      const labelColour = (isMeDuty || isMeSupport) ? 'rgba(255,255,255,0.7)' : '#64748b';
+      const initialsBg = (isMeDuty || isMeSupport) ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)';
+
       return (
-        <div className="rounded-lg p-3 flex-1 min-w-0" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)'}}>
+        <div className="rounded-lg p-3 flex-1 min-w-0 relative overflow-hidden" style={cardStyle}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
-            {inSession && myLocCol ? (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{background:myLocCol}}>{sess.myLoc}</span>
-            ) : (
-              <span className="text-[10px] text-slate-600">Not in</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{color: labelColour}}>{label}</span>
+            {isMeDuty && (
+              <div className="flex items-center gap-1">
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Duty</span>
+              </div>
+            )}
+            {isMeSupport && !isMeDuty && (
+              <span className="text-[10px] font-bold text-white uppercase tracking-wider">Support</span>
             )}
           </div>
-          <div className="space-y-1.5">
-            <PersonRow label="Duty" person={sess.dutyDoc} />
-            <PersonRow label="Sup" person={sess.support} />
-            {!sess.dutyDoc && !sess.support && <div className="text-[10px] text-slate-600">No duty info</div>}
+
+          <div className="flex items-end justify-between gap-3">
+            {/* Location — predominant */}
+            <div className="flex-1 min-w-0">
+              {sess.myIn ? (
+                <div className="font-heading font-semibold leading-tight truncate" style={{
+                  fontSize: 24,
+                  color: (isMeDuty || isMeSupport) ? 'white' : (myLocCol || '#e2e8f0')
+                }}>{sess.myLoc}</div>
+              ) : (
+                <div className="text-sm" style={{color: (isMeDuty || isMeSupport) ? 'rgba(255,255,255,0.7)' : '#64748b'}}>Not in</div>
+              )}
+            </div>
+
+            {/* Duty/support — compact, on the right (only show if it's NOT me) */}
+            {(sess.dutyDoc || sess.support) && (
+              <div className="flex flex-col gap-1 flex-shrink-0 items-end">
+                {sess.dutyDoc && !isMeDuty && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider" style={{color: labelColour}}>Duty</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : '#e2e8f0'}}>{sess.dutyDoc.initials}</span>
+                  </div>
+                )}
+                {sess.support && !isMeSupport && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider" style={{color: labelColour}}>Sup</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : '#e2e8f0'}}>{sess.support.initials}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       );
