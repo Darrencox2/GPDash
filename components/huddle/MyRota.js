@@ -90,9 +90,10 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   };
 
   // ═══ NEXT WORKING DAY CARD DATA ═══
-  // Finds the clinician's next working day (today if working, or scans up to 14 days ahead)
+  // Mirrors the Today page exactly: uses urgent slot filter for duty support detection
   const todayCardData = useMemo(() => {
     if (!selected || !huddleData) return null;
+    const urgOv = hs?.savedSlotFilters?.urgent || null;
 
     const isWorkingDay = (dateStr) => {
       if (!huddleData.dates?.includes(dateStr)) return false;
@@ -117,36 +118,49 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     if (!targetDate) return { noWorkingDay: true };
 
     const dateStr = toHuddleDateStr(targetDate);
-    const cap = getHuddleCapacity(huddleData, dateStr, hs);
+    // Full capacity (for clinician location lookup)
+    const fullCap = getHuddleCapacity(huddleData, dateStr, hs);
+    // Urgent capacity (for duty doctor/support detection — same as Today page)
+    const urgentCap = getHuddleCapacity(huddleData, dateStr, hs, urgOv);
 
     const compute = (session) => {
-      const sessionCap = cap[session];
-      const me = sessionCap?.byClinician?.find(c => matchesStaffMember(c.name, selected));
+      // Use full capacity for selected clinician's location/presence
+      const fullSession = fullCap[session];
+      const me = fullSession?.byClinician?.find(c => matchesStaffMember(c.name, selected));
       const myIn = me && (me.available > 0 || me.embargoed > 0 || me.booked > 0);
       const myLoc = me?.location;
 
-      // Duty doctor
+      // Duty detection from URGENT capacity (mirrors Today page)
+      const urgentSession = urgentCap[session];
+      const allClinicians = (urgentSession?.byClinician || [])
+        .map(c => {
+          const matched = clinicians.find(tc => matchesStaffMember(c.name, tc));
+          return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', initials: matched?.initials, title: matched?.title, group: matched?.group, total: (c.available || 0) + (c.embargoed || 0) + (c.booked || 0) };
+        })
+        .filter(c => c.total > 0);
+
+      // Duty doctor — same call as Today page (uses dutySlots, not urgOv)
       const dd = hasDuty ? getDutyDoctor(huddleData, dateStr, session, dutySlots, clinicians) : null;
       let dutyDoc = null;
       if (dd) {
         const matchedDD = clinicians.find(c => matchesStaffMember(dd.name, c));
+        const dutyInList = allClinicians.find(c => matchesStaffMember(c.name, matchedDD || { name: dd.name }));
         if (matchedDD) {
-          const ddSession = sessionCap?.byClinician?.find(c => c.name === dd.name);
-          dutyDoc = { name: matchedDD.name, initials: matchedDD.initials, title: matchedDD.title, group: matchedDD.group, location: ddSession?.location || dd.location };
+          dutyDoc = { name: matchedDD.name, initials: matchedDD.initials, title: matchedDD.title, group: matchedDD.group, location: dd.location };
         }
       }
 
-      // Duty support — same logic as Today page
-      const allClin = (sessionCap?.byClinician || []).filter(c => (c.available + c.embargoed + c.booked) > 0);
-      const afterDuty = dutyDoc ? allClin.filter(c => !matchesStaffMember(c.name, { name: dutyDoc.name, aliases: [] })) : allClin;
-      const supportCands = afterDuty.filter(c => !c.name?.toLowerCase().includes('balson'));
-      const sortedSupp = [...supportCands].map(c => ({ ...c, total: (c.available || 0) + (c.embargoed || 0) + (c.booked || 0) })).sort((a, b) => b.total - a.total);
-      const top = sortedSupp[0];
-      const runner = sortedSupp[1];
+      // Filter duty doctor out, then find duty support — exact same logic as Today page
+      const cliniciansAfterDuty = dutyDoc ? allClinicians.filter(c => !matchesStaffMember(c.name, { name: dutyDoc.name, aliases: [] })) : allClinicians;
+      const supportCandidates = cliniciansAfterDuty.filter(c => !c.displayName?.toLowerCase().includes('balson'));
+      const sortedSupport = [...supportCandidates].sort((a, b) => b.total - a.total);
+      const topSupport = sortedSupport[0] || null;
+      const runnerUp = sortedSupport[1] || null;
+      const dutySupportClin = topSupport && topSupport.total >= 5 && topSupport.total >= ((runnerUp?.total || 0) + 2) ? topSupport : null;
+
       let support = null;
-      if (top && top.total >= 5 && top.total >= ((runner?.total || 0) + 2)) {
-        const matchedS = clinicians.find(c => matchesStaffMember(top.name, c));
-        if (matchedS) support = { name: matchedS.name, initials: matchedS.initials, title: matchedS.title, group: matchedS.group, location: top.location };
+      if (dutySupportClin) {
+        support = { name: dutySupportClin.displayName, initials: dutySupportClin.initials, title: dutySupportClin.title, group: dutySupportClin.group, location: dutySupportClin.location };
       }
 
       return { myIn, myLoc, dutyDoc, support };
