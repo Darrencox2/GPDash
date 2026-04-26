@@ -8,6 +8,7 @@ import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge } from './HuddleShared';
+import RoutineWaitTime from './RoutineWaitTime';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -745,6 +746,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
       {/* WHO'S IN / OUT */}
       <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />
+
+          {/* ─── ROUTINE WAIT TIMES ─── */}
+          <RoutineWaitTime data={data} huddleData={huddleData} routineOverrides={effectiveRoutineOverrides} />
 
           {/* ─── ROUTINE CAPACITY (30 days) ─── */}
           {(() => {
