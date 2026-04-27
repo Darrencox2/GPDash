@@ -48,6 +48,7 @@ function DonutGauge({ avail, emb, booked }) {
 export default function HuddleForward({ data, saveData, huddleData, setActiveSection }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [weather, setWeather] = useState(null);
+  const [mobileTab, setMobileTab] = useState('short');
   const hs = data?.huddleSettings || {};
   const sites = data?.roomAllocation?.sites || [];
   const siteCol = (name) => getSiteColour(name, sites);
@@ -144,8 +145,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
   return (
     <div className="space-y-6">
-      {/* Main calendar — dark */}
-      <div className="rounded-2xl overflow-hidden" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
+      {/* Main calendar — desktop only */}
+      <div className="rounded-2xl overflow-hidden hidden lg:block" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
         <div className="px-5 py-4 flex items-center gap-2 border-b border-white/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
           <span className="text-sm font-semibold text-white">Capacity planning</span>
@@ -277,9 +278,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         </div>
       </div>
 
-      {/* Detail popup — light */}
+      {/* Detail popup — desktop only (mobile uses inline expansion in strip) */}
       {detailDay&&(
-        <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+        <div className="hidden lg:block rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
           <div className="px-5 py-3 flex items-center justify-between" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
             <span className="text-sm font-semibold text-white">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr} — who and where</span>
             <button onClick={()=>setSelectedDay(null)} className="text-white/60 hover:text-white text-sm font-bold" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
@@ -324,8 +325,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         </div>
       )}
 
-      {/* Summaries */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {/* Summaries — desktop grid */}
+      <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
           <div className="px-5 py-3" className="flex items-center gap-2" style={{background:"rgba(239,68,68,0.15)",borderBottom:"1px solid rgba(239,68,68,0.1)"}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
@@ -398,6 +399,240 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             </div>;})}
           </div>
         </div>
+      </div>
+
+      {/* ═══ MOBILE LAYOUT ═══ */}
+      <div className="lg:hidden space-y-4">
+        {/* 6-week strip — horizontally scrollable */}
+        <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+          <div className="px-4 py-2.5 flex items-center justify-between" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+            <div>
+              <div className="font-heading text-sm font-medium text-slate-200">Capacity planning</div>
+              <div className="text-[11px] text-slate-600">Tap any day · 6-week forward view</div>
+            </div>
+          </div>
+
+          {weeks.map((wk, wi) => {
+            const wkLabel = wi === 0 ? 'This week' : wi === 1 ? 'Next week' : `In ${wi} weeks`;
+            const ws = wk.ws;
+            const wcStr = `wc ${ws.getDate()} ${ws.toLocaleString('en-GB',{month:'short'})}`;
+            return (
+              <div key={wi} style={{borderTop: wi > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
+                <div className="flex items-baseline justify-between px-4 py-2">
+                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{wkLabel}</div>
+                  <div className="text-[9px] text-slate-700">{wcStr}</div>
+                </div>
+                <div className="grid grid-cols-5 gap-1 px-3 pb-3">
+                  {wk.days.map((d, di) => {
+                    const sel = selectedDay === d.isoKey;
+                    const u = d.amS + d.pmS;
+                    const t = d.amT + d.pmT;
+                    const fillPct = t > 0 ? Math.min(100, (u/t)*100) : 0;
+                    const fillCol = u >= t ? '#10b981' : u >= t * 0.8 ? '#f59e0b' : '#ef4444';
+                    const predCol = d.predicted ? d.dc.text : '#475569';
+                    return (
+                      <button key={di}
+                        onClick={() => d.hasData && !d.isBH && setSelectedDay(sel ? null : d.isoKey)}
+                        disabled={!d.hasData || d.isBH}
+                        className="rounded-md p-1.5 flex flex-col items-center gap-1 transition-all"
+                        style={{
+                          background: sel ? 'rgba(99,102,241,0.18)' : (d.isPast ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)'),
+                          border: sel ? '1px solid rgba(99,102,241,0.5)' : (d.isToday ? '1px solid rgba(16,185,129,0.4)' : '1px solid transparent'),
+                          opacity: d.isPast ? 0.5 : 1,
+                          cursor: (d.hasData && !d.isBH) ? 'pointer' : 'default'
+                        }}>
+                        <div className="text-[10px] font-bold text-slate-400">{d.dayShort}</div>
+                        <div className="text-[10px] text-slate-600 leading-none -mt-1">{d.dayNum}</div>
+                        {d.isBH ? (
+                          <div className="text-[8px] font-bold text-amber-400 mt-1">BH</div>
+                        ) : !d.hasData ? (
+                          <div className="text-[8px] text-slate-700 mt-1">—</div>
+                        ) : (<>
+                          <div className="font-mono-data text-base font-bold leading-none" style={{color: fillCol}}>{u}</div>
+                          <div className="w-full h-1 rounded-sm overflow-hidden" style={{background: 'rgba(255,255,255,0.06)'}}>
+                            <div className="h-full" style={{width: `${fillPct}%`, background: fillCol}}/>
+                          </div>
+                          <div className="font-mono-data text-[10px] font-bold leading-none" style={{color: predCol}}>{d.predicted || '—'}</div>
+                        </>)}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Inline expansion: if selectedDay is in this week */}
+                {wk.days.some(d => d.isoKey === selectedDay) && detailDay && (
+                  <div className="px-4 pb-3 -mt-1">
+                    <div className="rounded-lg overflow-hidden" style={{background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)'}}>
+                      <div className="px-3 py-2 flex items-center justify-between" style={{borderBottom: '1px solid rgba(99,102,241,0.15)'}}>
+                        <div>
+                          <div className="text-xs font-semibold text-slate-200">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</div>
+                          {detailDay.predicted && <div className="text-[10px] text-slate-500">Predicted demand: <span style={{color: detailDay.dc.text, fontWeight: 600}}>{detailDay.predicted}</span></div>}
+                        </div>
+                        <button onClick={() => setSelectedDay(null)} className="text-slate-500 hover:text-white text-xs" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
+                      </div>
+                      <div className="p-3 space-y-2">
+                        {/* AM urgent */}
+                        <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">AM urgent</span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="font-mono-data text-base font-bold text-red-400">{detailDay.amS}</span>
+                              {detailDay.amT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.amT}</span>}
+                            </div>
+                          </div>
+                          {detailDay.amDuty && <div className="text-[10px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.amDuty.name?.split(',')[0]}</span></div>}
+                        </div>
+                        {/* PM urgent */}
+                        <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">PM urgent</span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="font-mono-data text-base font-bold text-blue-400">{detailDay.pmS}</span>
+                              {detailDay.pmT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.pmT}</span>}
+                            </div>
+                          </div>
+                          {detailDay.pmDuty && <div className="text-[10px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.pmDuty.name?.split(',')[0]}</span></div>}
+                        </div>
+                        {/* Routine total */}
+                        <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Routine</span>
+                            <span className="font-mono-data text-base font-bold text-emerald-400">{detailDay.rTotal}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[10px]">
+                            <span className="text-slate-400">Avail <span className="text-emerald-400 font-bold">{detailDay.rA}</span></span>
+                            <span className="text-slate-400">Emb <span className="text-amber-400 font-bold">{detailDay.rE}</span></span>
+                            <span className="text-slate-400">Booked <span className="text-slate-300 font-bold">{detailDay.rB}</span></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Strip key */}
+          <div className="px-4 py-3 flex items-center gap-3 flex-wrap" style={{borderTop: '1px solid rgba(255,255,255,0.04)'}}>
+            <span className="text-[9px] text-slate-600">Top: urgent slots</span>
+            <span className="text-[9px] text-slate-600">·</span>
+            <span className="text-[9px] text-slate-600">Bottom: predicted demand</span>
+          </div>
+        </div>
+
+        {/* Tabbed sections */}
+        <div className="grid grid-cols-2 gap-1.5">
+          {[
+            {id: 'short', label: 'Short', count: shortDays.length, icon: 'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01', col: '#f87171'},
+            {id: 'demand', label: 'High demand', count: topDemand.length, icon: 'M22 12h-4l-3 9L9 3l-3 9H2', col: '#fbbf24'},
+            ...(rTarget > 0 ? [{id: 'routine', label: 'Routine', count: weeks.filter(w => w.wR > 0).length, icon: 'M3 3h18v18H3zM3 9h18M9 21V9', col: '#a78bfa'}] : []),
+            {id: 'trend', label: 'Trend', count: weeks.filter(w => w.wU > 0).length, icon: 'M18 20V10M12 20V4M6 20v-6', col: '#94a3b8'},
+          ].map(t => {
+            const active = mobileTab === t.id;
+            return (
+              <button key={t.id} onClick={() => setMobileTab(t.id)}
+                className="rounded-lg px-3 py-2 flex items-center gap-2 transition-all"
+                style={{
+                  background: active ? `${t.col}22` : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${active ? `${t.col}55` : 'rgba(255,255,255,0.06)'}`,
+                }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={active ? t.col : '#64748b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={t.icon}/></svg>
+                <span className="text-xs font-semibold" style={{color: active ? t.col : '#94a3b8'}}>{t.label}</span>
+                <span className="text-[10px] ml-auto" style={{color: active ? t.col : '#475569'}}>{t.count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab content */}
+        {mobileTab === 'short' && (
+          <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+            <div className="px-4 py-2.5" style={{background:"rgba(239,68,68,0.15)",borderBottom:"1px solid rgba(239,68,68,0.1)"}}>
+              <span className="text-xs font-semibold text-white">Urgent capacity below target</span>
+            </div>
+            <div className="p-3 space-y-1.5">
+              {shortDays.length === 0 && <p className="text-sm text-slate-400 text-center py-3">All days meeting target</p>}
+              {shortDays.slice(0, 10).map((d, i) => {
+                const u = d.amS + d.pmS, t = d.amT + d.pmT;
+                return (
+                  <button key={i} onClick={() => setSelectedDay(d.isoKey)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left" style={{background: 'rgba(255,255,255,0.04)'}}>
+                    <span className="text-xs font-semibold text-slate-300 w-16">{d.dayShort} {d.dayNum} {d.monthStr}</span>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background: 'rgba(255,255,255,0.08)'}}>
+                      <div className="h-full rounded-full" style={{width: `${Math.min((u/t)*100, 100)}%`, background: u < t * 0.8 ? '#ef4444' : '#f59e0b'}}/>
+                    </div>
+                    <span className="text-xs font-bold text-red-400">{u}</span>
+                    <span className="text-[10px] text-slate-400">/ {t}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {mobileTab === 'demand' && (
+          <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+            <div className="px-4 py-2.5" style={{background:"rgba(245,158,11,0.15)",borderBottom:"1px solid rgba(245,158,11,0.1)"}}>
+              <span className="text-xs font-semibold text-white">Highest demand days</span>
+            </div>
+            <div className="p-3 space-y-1.5">
+              {topDemand.length === 0 && <p className="text-sm text-slate-400 text-center py-3">No demand data</p>}
+              {topDemand.map((d, i) => {
+                const u = d.amS + d.pmS;
+                return (
+                  <button key={i} onClick={() => setSelectedDay(d.isoKey)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left" style={{background: 'rgba(255,255,255,0.04)'}}>
+                    <span className="text-xs font-semibold text-slate-300 w-16">{d.dayShort} {d.dayNum} {d.monthStr}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{background: d.dc.bg, color: d.dc.text}}>{d.predicted}</span>
+                    <span className="text-[10px] text-slate-500 ml-auto">urg {u}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {mobileTab === 'routine' && rTarget > 0 && (
+          <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+            <div className="px-4 py-2.5" style={{background:"rgba(124,58,237,0.15)",borderBottom:"1px solid rgba(124,58,237,0.1)"}}>
+              <span className="text-xs font-semibold text-white">Weekly routine capacity</span>
+            </div>
+            <div className="p-3 space-y-1.5">
+              {weeks.filter(w => w.wR > 0).map((w, i) => {
+                const vb = vBand(w.wR, rTarget);
+                return (
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: 'rgba(255,255,255,0.04)'}}>
+                    <span className="text-xs font-semibold text-slate-300 w-12">Wk {weeks.indexOf(w)+1}</span>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background: 'rgba(255,255,255,0.08)'}}>
+                      <div className="h-full rounded-full" style={{width: `${Math.min((w.wR/rTarget)*100, 100)}%`, background: vb.bg}}/>
+                    </div>
+                    <span className="text-xs font-bold" style={{color: vb.bg}}>{w.wR}</span>
+                    <span className="text-[10px] text-slate-400">/ {rTarget}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {mobileTab === 'trend' && (
+          <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+            <div className="px-4 py-2.5" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+              <span className="text-xs font-semibold text-white">Week-on-week</span>
+            </div>
+            <div className="p-3 space-y-1.5">
+              {weeks.filter(w => w.wU > 0).map((w, i, arr) => {
+                const delta = i > 0 ? w.wU - arr[i-1].wU : 0;
+                return (
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: 'rgba(255,255,255,0.04)'}}>
+                    <span className="text-xs font-semibold text-slate-300 w-12">Wk {weeks.indexOf(w)+1}</span>
+                    <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[9px] text-slate-500">urg</span></div>
+                    <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-emerald-400">{w.wR}</span><span className="text-[9px] text-slate-500">rout</span></div>
+                    {delta !== 0 && <span className={`text-xs font-bold ml-auto ${delta > 0 ? 'text-emerald-500' : 'text-red-500'}`}>{delta > 0 ? '↑' : '↓'}{Math.abs(delta)} urg</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Clinician capacity detail */}
