@@ -471,27 +471,37 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       </div>
                       <div className="p-3 space-y-2">
                         {/* AM urgent */}
-                        <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">AM urgent</span>
-                            <div className="flex items-baseline gap-1">
-                              <span className="font-mono-data text-base font-bold text-red-400">{detailDay.amS}</span>
-                              {detailDay.amT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.amT}</span>}
+                        {(() => {
+                          const amCol = detailDay.amT > 0 ? (detailDay.amS >= detailDay.amT ? '#34d399' : detailDay.amS >= detailDay.amT * 0.8 ? '#fbbf24' : '#f87171') : '#94a3b8';
+                          return (
+                            <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">AM urgent</span>
+                                <div className="flex items-baseline gap-1">
+                                  <span className="font-mono-data text-base font-bold" style={{color: amCol}}>{detailDay.amS}</span>
+                                  {detailDay.amT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.amT}</span>}
+                                </div>
+                              </div>
+                              {detailDay.amDuty && <div className="text-[10px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.amDuty.name?.split(',')[0]}</span></div>}
                             </div>
-                          </div>
-                          {detailDay.amDuty && <div className="text-[10px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.amDuty.name?.split(',')[0]}</span></div>}
-                        </div>
+                          );
+                        })()}
                         {/* PM urgent */}
-                        <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">PM urgent</span>
-                            <div className="flex items-baseline gap-1">
-                              <span className="font-mono-data text-base font-bold text-blue-400">{detailDay.pmS}</span>
-                              {detailDay.pmT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.pmT}</span>}
+                        {(() => {
+                          const pmCol = detailDay.pmT > 0 ? (detailDay.pmS >= detailDay.pmT ? '#34d399' : detailDay.pmS >= detailDay.pmT * 0.8 ? '#fbbf24' : '#f87171') : '#94a3b8';
+                          return (
+                            <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">PM urgent</span>
+                                <div className="flex items-baseline gap-1">
+                                  <span className="font-mono-data text-base font-bold" style={{color: pmCol}}>{detailDay.pmS}</span>
+                                  {detailDay.pmT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.pmT}</span>}
+                                </div>
+                              </div>
+                              {detailDay.pmDuty && <div className="text-[10px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.pmDuty.name?.split(',')[0]}</span></div>}
                             </div>
-                          </div>
-                          {detailDay.pmDuty && <div className="text-[10px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.pmDuty.name?.split(',')[0]}</span></div>}
-                        </div>
+                          );
+                        })()}
                         {/* Routine total */}
                         <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
                           <div className="flex items-center justify-between mb-1">
