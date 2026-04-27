@@ -569,9 +569,10 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                   const note = getNote(day.isoKey);
                   const isWorking = dd && (dd.amIn || dd.pmIn);
 
-                  // Site colour stripe (use AM location, fallback PM)
-                  const stripeLoc = dd?.amLoc || dd?.pmLoc;
-                  const stripeCol = stripeLoc ? siteCol(stripeLoc) : null;
+                  // Site colour stripe (AM on top half, PM on bottom half if different)
+                  const amStripe = dd?.amLoc ? siteCol(dd.amLoc) : null;
+                  const pmStripe = dd?.pmLoc ? siteCol(dd.pmLoc) : null;
+                  const sameSite = amStripe === pmStripe;
 
                   return (
                     <div key={di} style={{borderBottom: di < 4 ? '1px solid #334155' : 'none', background: isExpanded ? 'rgba(16,185,129,0.04)' : (isWorking ? '#0f172a' : 'rgba(15,23,42,0.5)')}}>
@@ -581,12 +582,18 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                         style={{gridTemplateColumns:'80px 1fr 1fr', cursor: isWorking ? 'pointer' : 'default'}}
                         disabled={!isWorking}
                       >
-                        <div className="py-2.5 px-3 flex flex-col justify-center relative" style={{borderRight:'1px solid #1e293b', borderLeft: stripeCol && isWorking ? `3px solid ${stripeCol}` : '3px solid transparent'}}>
+                        <div className="py-2.5 px-3 flex flex-col justify-center relative" style={{borderRight:'1px solid #1e293b', position:'relative'}}>
+                          {isWorking && (amStripe || pmStripe) && (
+                            <div style={{position:'absolute', left:0, top:0, bottom:0, width:3, display:'flex', flexDirection:'column'}}>
+                              <div style={{flex:1, background: amStripe || 'transparent'}} />
+                              <div style={{flex:1, background: pmStripe || 'transparent'}} />
+                            </div>
+                          )}
                           <div className="flex items-center gap-1.5">
-                            <div className="text-sm font-semibold" style={{color: (isOff || noData || dd?.isBH) ? '#334155' : (isWorking ? '#e2e8f0' : '#475569')}}>{day.dayShort}</div>
-                            {isToday && <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{background:'rgba(16,185,129,0.2)',color:'#34d399'}}>NOW</span>}
+                            <div className="text-sm font-semibold leading-tight" style={{color: (isOff || noData || dd?.isBH) ? '#334155' : (isWorking ? '#e2e8f0' : '#475569')}}>{day.dayShort}</div>
+                            <div className="text-[10px] text-slate-600 leading-tight">{day.dayNum} {day.monthStr}</div>
                           </div>
-                          <div className="text-[10px] text-slate-600">{day.dayNum} {day.monthStr}</div>
+                          {isToday && <span className="text-[7px] font-bold mt-0.5 self-start px-1.5 py-0.5 rounded-full" style={{background:'rgba(16,185,129,0.2)',color:'#34d399',letterSpacing:'0.5px'}}>TODAY</span>}
                         </div>
                         {dd?.isBH ? (
                           <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-xs font-medium text-amber-400">Bank holiday</span></div>
