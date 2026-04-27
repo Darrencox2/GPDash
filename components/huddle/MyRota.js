@@ -20,7 +20,7 @@ function LocSquare({ loc, size = 24, duty, colour }) {
   );
 }
 
-export default function MyRota({ data, huddleData, standalone, setActiveSection }) {
+export default function MyRota({ data, saveData, huddleData, standalone, setActiveSection }) {
   const sites = data?.roomAllocation?.sites || [];
   const siteCol = (name) => getSiteColour(name, sites);
   const clinicians = useMemo(() => {
@@ -36,6 +36,9 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
   const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [expandedDay, setExpandedDay] = useState(null); // isoKey of expanded day
+  const [editingNote, setEditingNote] = useState(null); // isoKey being edited
+  const [noteDraft, setNoteDraft] = useState('');
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -221,6 +224,70 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
     }
     return weeks;
   }, []);
+
+  // ═══ Per-day detail computation (used by tap-to-expand) ═══
+  // Mirrors todayCardData logic but for any specific date
+  const computeDayDetail = (date) => {
+    if (!selected || !huddleData) return null;
+    const urgOv = hs?.savedSlotFilters?.urgent || null;
+    const dateStr = toHuddleDateStr(date);
+    if (!huddleData.dates?.includes(dateStr)) return null;
+    const fullCap = getHuddleCapacity(huddleData, dateStr, hs);
+    const urgentCap = getHuddleCapacity(huddleData, dateStr, hs, urgOv);
+    if (!fullCap || !urgentCap) return null;
+
+    const compute = (session) => {
+      const fullSession = fullCap[session];
+      const me = fullSession?.byClinician?.find(c => matchesStaffMember(c.name, selected));
+      const myIn = me && (me.available > 0 || me.embargoed > 0 || me.booked > 0);
+      const myLoc = me?.location;
+
+      const urgentSession = urgentCap[session];
+      const allClinicians = (urgentSession?.byClinician || [])
+        .map(c => {
+          const matched = clinicians.find(tc => matchesStaffMember(c.name, tc));
+          return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', initials: matched?.initials, title: matched?.title, group: matched?.group, total: (c.available || 0) + (c.embargoed || 0) + (c.booked || 0) };
+        })
+        .filter(c => c.total > 0);
+
+      const dd = hasDuty ? getDutyDoctor(huddleData, dateStr, session, dutySlots, clinicians) : null;
+      let dutyDoc = null;
+      if (dd) {
+        const matchedDD = clinicians.find(c => matchesStaffMember(dd.name, c));
+        if (matchedDD) dutyDoc = { name: matchedDD.name, initials: matchedDD.initials, title: matchedDD.title, group: matchedDD.group, location: dd.location };
+      }
+      const cliniciansAfterDuty = dutyDoc ? allClinicians.filter(c => !matchesStaffMember(c.name, { name: dutyDoc.name, aliases: [] })) : allClinicians;
+      const supportCandidates = cliniciansAfterDuty.filter(c => !c.displayName?.toLowerCase().includes('balson'));
+      const sortedSupport = [...supportCandidates].sort((a, b) => b.total - a.total);
+      const topSupport = sortedSupport[0] || null;
+      const runnerUp = sortedSupport[1] || null;
+      const dutySupportClin = topSupport && topSupport.total >= 5 && topSupport.total >= ((runnerUp?.total || 0) + 2) ? topSupport : null;
+      let support = null;
+      if (dutySupportClin) support = { name: dutySupportClin.displayName, initials: dutySupportClin.initials, title: dutySupportClin.title, group: dutySupportClin.group };
+
+      const isMeDuty = !!(dutyDoc && matchesStaffMember(dutyDoc.name, selected));
+      const isMeSupport = !!(support && matchesStaffMember(support.name, selected));
+      return { myIn, myLoc, dutyDoc, support, isMeDuty, isMeSupport };
+    };
+
+    return { am: compute('am'), pm: compute('pm') };
+  };
+
+  // ═══ Note helpers ═══
+  const getNote = (isoKey) => {
+    if (!selected) return '';
+    return data?.rotaNotes?.[selected.id]?.[isoKey] || '';
+  };
+  const saveNote = (isoKey, text) => {
+    if (!selected || !saveData) return;
+    const allNotes = data?.rotaNotes || {};
+    const myNotes = { ...(allNotes[selected.id] || {}) };
+    if (text.trim()) myNotes[isoKey] = text.trim();
+    else delete myNotes[isoKey];
+    saveData({ ...data, rotaNotes: { ...allNotes, [selected.id]: myNotes } });
+    setEditingNote(null);
+    setNoteDraft('');
+  };
 
   // ═══ Today card JSX ═══
   const todayCardJsx = (() => {
@@ -462,54 +529,192 @@ export default function MyRota({ data, huddleData, standalone, setActiveSection 
         {hasDuty && <div className="flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-[9px] text-slate-500">Duty</span></div>}
       </div>
 
-      {/* 2-week grid */}
-      {twoWeeks.map((week, wi) => (
-        <div key={wi} className="px-4 pb-4">
-          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{wi === 0 ? 'This week' : wi === 1 ? 'Next week' : `In ${wi} weeks`}</div>
-          <div className="rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
-            <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr',background:'#1e293b',borderBottom:'1px solid #334155'}}>
-              <div className="py-2 px-3"/>
-              <div className="py-2 text-center text-[10px] font-semibold text-slate-500 uppercase">AM</div>
-              <div className="py-2 text-center text-[10px] font-semibold text-slate-500 uppercase">PM</div>
+      {/* 4-week grid */}
+      {twoWeeks.map((week, wi) => {
+        // Check if entire week is off (no working days at all)
+        const weekData = week.map(d => getDayData(d.date, d.dateStr, d.isoKey));
+        const allOff = weekData.every(dd => !dd || (!dd.amIn && !dd.pmIn));
+        const wcDate = week[0].date;
+        const weekLabel = wi === 0 ? 'This week' : wi === 1 ? 'Next week' : `In ${wi} weeks`;
+        const wcStr = `wc ${wcDate.getDate()} ${wcDate.toLocaleString('en-GB',{month:'short'})}`;
+
+        return (
+          <div key={wi} className="px-4 pb-3">
+            <div className="flex items-baseline justify-between mb-1.5">
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{weekLabel}</div>
+              <div className="text-[9px] text-slate-700">{wcStr}</div>
             </div>
-            {week.map((day, di) => {
-              const dd = getDayData(day.date, day.dateStr, day.isoKey);
-              const isToday = day.isoKey === todayIso;
-              const isOff = dd && !dd.amIn && !dd.pmIn && !dd.isBH;
-              const noData = !dd;
-              const covers = dd?.covers || [];
-              return (
-                <div key={di} style={{borderBottom: di < 4 ? '1px solid #334155' : 'none', background:'#0f172a'}}>
-                  <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr'}}>
-                    <div className="py-2.5 px-3 flex flex-col justify-center" style={{borderRight:'1px solid #1e293b', borderLeft: isToday ? '3px solid #10b981' : '3px solid transparent'}}>
-                      <div className="text-sm font-semibold" style={{color: (isOff || noData || dd?.isBH) ? '#334155' : '#e2e8f0'}}>{day.dayShort}</div>
-                      <div className="text-[10px] text-slate-600">{day.dayNum} {day.monthStr}</div>
-                    </div>
-                    {dd?.isBH ? (
-                      <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-xs font-medium text-amber-400">Bank holiday</span></div>
-                    ) : (isOff || noData) ? (
-                      <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-xs text-slate-600">{dd?.absence || 'Not in'}</span></div>
-                    ) : dd ? (<>
-                      <div className="p-1.5 flex items-center justify-center">
-                        <LocSquare loc={dd.amIn ? dd.amLoc : null} size={32} duty={dd.amDuty} colour={dd.amLoc ? siteCol(dd.amLoc) : null} />
-                      </div>
-                      <div className="p-1.5 flex items-center justify-center">
-                        <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={32} duty={dd.pmDuty} colour={dd.pmLoc ? siteCol(dd.pmLoc) : null} />
-                      </div>
-                    </>) : null}
-                  </div>
-                  {covers.length > 0 && (
-                    <div className="flex items-center gap-1.5 px-3 pb-2" style={{marginLeft:80}}>
-                      <span className="text-[9px] text-slate-600">Covering:</span>
-                      {covers.map((c, j) => { const isFA = c.coverType === 'fileAction'; return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>; })}
-                    </div>
-                  )}
+
+            {/* Compact off-all-week */}
+            {allOff ? (
+              <div className="rounded-xl px-4 py-3 flex items-center gap-2" style={{background:'rgba(15,23,42,0.5)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2"><path d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span className="text-xs text-slate-500">Off all week</span>
+              </div>
+            ) : (
+              <div className="rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
+                <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr',background:'#1e293b',borderBottom:'1px solid #334155'}}>
+                  <div className="py-2 px-3"/>
+                  <div className="py-2 text-center text-[10px] font-semibold text-slate-500 uppercase">AM</div>
+                  <div className="py-2 text-center text-[10px] font-semibold text-slate-500 uppercase">PM</div>
                 </div>
-              );
-            })}
+                {week.map((day, di) => {
+                  const dd = weekData[di];
+                  const isToday = day.isoKey === todayIso;
+                  const isOff = dd && !dd.amIn && !dd.pmIn && !dd.isBH;
+                  const noData = !dd;
+                  const covers = dd?.covers || [];
+                  const isExpanded = expandedDay === day.isoKey;
+                  const detail = isExpanded ? computeDayDetail(day.date) : null;
+                  const note = getNote(day.isoKey);
+                  const isWorking = dd && (dd.amIn || dd.pmIn);
+
+                  // Site colour stripe (use AM location, fallback PM)
+                  const stripeLoc = dd?.amLoc || dd?.pmLoc;
+                  const stripeCol = stripeLoc ? siteCol(stripeLoc) : null;
+
+                  return (
+                    <div key={di} style={{borderBottom: di < 4 ? '1px solid #334155' : 'none', background: isExpanded ? 'rgba(16,185,129,0.04)' : (isWorking ? '#0f172a' : 'rgba(15,23,42,0.5)')}}>
+                      <button
+                        onClick={() => setExpandedDay(isExpanded ? null : day.isoKey)}
+                        className="w-full text-left grid hover:bg-white/5 transition-colors"
+                        style={{gridTemplateColumns:'80px 1fr 1fr', cursor: isWorking ? 'pointer' : 'default'}}
+                        disabled={!isWorking}
+                      >
+                        <div className="py-2.5 px-3 flex flex-col justify-center relative" style={{borderRight:'1px solid #1e293b', borderLeft: stripeCol && isWorking ? `3px solid ${stripeCol}` : '3px solid transparent'}}>
+                          <div className="flex items-center gap-1.5">
+                            <div className="text-sm font-semibold" style={{color: (isOff || noData || dd?.isBH) ? '#334155' : (isWorking ? '#e2e8f0' : '#475569')}}>{day.dayShort}</div>
+                            {isToday && <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{background:'rgba(16,185,129,0.2)',color:'#34d399'}}>NOW</span>}
+                          </div>
+                          <div className="text-[10px] text-slate-600">{day.dayNum} {day.monthStr}</div>
+                        </div>
+                        {dd?.isBH ? (
+                          <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-xs font-medium text-amber-400">Bank holiday</span></div>
+                        ) : (isOff || noData) ? (
+                          <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-xs text-slate-600">{dd?.absence || 'Off'}</span></div>
+                        ) : dd ? (<>
+                          <div className="p-1.5 flex items-center justify-center">
+                            <LocSquare loc={dd.amIn ? dd.amLoc : null} size={32} duty={dd.amDuty} colour={dd.amLoc ? siteCol(dd.amLoc) : null} />
+                          </div>
+                          <div className="p-1.5 flex items-center justify-center">
+                            <LocSquare loc={dd.pmIn ? dd.pmLoc : null} size={32} duty={dd.pmDuty} colour={dd.pmLoc ? siteCol(dd.pmLoc) : null} />
+                          </div>
+                        </>) : null}
+                      </button>
+
+                      {/* Covers */}
+                      {covers.length > 0 && (
+                        <div className="flex items-center gap-1.5 px-3 pb-2" style={{marginLeft:80}}>
+                          <span className="text-[9px] text-slate-600">Covering:</span>
+                          {covers.map((c, j) => { const isFA = c.coverType === 'fileAction'; return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{background:'#1e293b',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>; })}
+                        </div>
+                      )}
+
+                      {/* Note indicator (when collapsed) */}
+                      {note && !isExpanded && (
+                        <div className="flex items-start gap-1.5 px-3 pb-2 text-[10px] text-slate-500" style={{marginLeft:80}}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          <span className="truncate italic">{note}</span>
+                        </div>
+                      )}
+
+                      {/* Expanded day detail */}
+                      {isExpanded && detail && (
+                        <div className="px-3 pb-3 space-y-2" style={{marginLeft:80}}>
+                          {['am', 'pm'].map(s => {
+                            const sess = detail[s];
+                            if (!sess.myIn) return null;
+                            const myLocCol = sess.myLoc ? siteCol(sess.myLoc) : null;
+                            const cardStyle = sess.isMeDuty
+                              ? { background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)' }
+                              : sess.isMeSupport
+                              ? { background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' }
+                              : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' };
+                            const labelColour = (sess.isMeDuty || sess.isMeSupport) ? 'rgba(255,255,255,0.7)' : '#64748b';
+                            const initialsBg = (sess.isMeDuty || sess.isMeSupport) ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)';
+                            const initialsColour = (sess.isMeDuty || sess.isMeSupport) ? 'white' : '#e2e8f0';
+                            return (
+                              <div key={s} className="rounded-lg p-2.5 relative overflow-hidden" style={cardStyle}>
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-[9px] font-semibold uppercase tracking-wider" style={{color: labelColour}}>{s === 'am' ? 'Morning' : 'Afternoon'}</span>
+                                  {sess.isMeDuty && (
+                                    <div className="flex items-center gap-1">
+                                      <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                                      <span className="text-[9px] font-bold text-white uppercase tracking-wider">Duty</span>
+                                    </div>
+                                  )}
+                                  {sess.isMeSupport && !sess.isMeDuty && <span className="text-[9px] font-bold text-white uppercase tracking-wider">Support</span>}
+                                </div>
+                                <div className="flex items-end justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-heading font-semibold leading-tight truncate" style={{
+                                      fontSize: 18,
+                                      color: (sess.isMeDuty || sess.isMeSupport) ? 'white' : (myLocCol || '#e2e8f0')
+                                    }}>{sess.myLoc}</div>
+                                  </div>
+                                  {(sess.dutyDoc || sess.support) && (
+                                    <div className="flex flex-col gap-0.5 flex-shrink-0 items-end">
+                                      {sess.dutyDoc && !sess.isMeDuty && (
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[8px] font-semibold uppercase tracking-wider" style={{color: labelColour}}>Duty</span>
+                                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: initialsColour}}>{sess.dutyDoc.initials}</span>
+                                        </div>
+                                      )}
+                                      {sess.support && !sess.isMeSupport && (
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[8px] font-semibold uppercase tracking-wider" style={{color: labelColour}}>Sup</span>
+                                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: initialsColour}}>{sess.support.initials}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {/* Note edit/display */}
+                          <div className="rounded-lg" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)'}}>
+                            {editingNote === day.isoKey ? (
+                              <div className="p-2">
+                                <textarea
+                                  value={noteDraft}
+                                  onChange={e => setNoteDraft(e.target.value)}
+                                  placeholder="Note for this day..."
+                                  className="w-full rounded-md p-2 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                                  style={{background:'rgba(0,0,0,0.2)',border:'1px solid rgba(255,255,255,0.06)',color:'#e2e8f0',minHeight:50}}
+                                  autoFocus
+                                />
+                                <div className="flex gap-1.5 mt-1.5">
+                                  <button onClick={() => saveNote(day.isoKey, noteDraft)} className="px-2.5 py-1 rounded text-[10px] font-semibold text-white" style={{background:'#10b981'}}>Save</button>
+                                  <button onClick={() => { setEditingNote(null); setNoteDraft(''); }} className="px-2.5 py-1 rounded text-[10px] text-slate-400">Cancel</button>
+                                  {note && <button onClick={() => saveNote(day.isoKey, '')} className="px-2.5 py-1 rounded text-[10px] text-red-400 ml-auto">Delete</button>}
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingNote(day.isoKey); setNoteDraft(note); }}
+                                className="w-full text-left p-2 flex items-start gap-2 hover:bg-white/5 transition-colors rounded-lg"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" className="flex-shrink-0 mt-0.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                {note ? (
+                                  <span className="text-xs text-slate-400 italic">{note}</span>
+                                ) : (
+                                  <span className="text-xs text-slate-600">Add a note...</span>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 
