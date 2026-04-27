@@ -476,7 +476,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           return (
                             <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">AM urgent</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider" style={{color: amCol}}>AM urgent</span>
                                 <div className="flex items-baseline gap-1">
                                   <span className="font-mono-data text-base font-bold" style={{color: amCol}}>{detailDay.amS}</span>
                                   {detailDay.amT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.amT}</span>}
@@ -492,7 +492,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           return (
                             <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">PM urgent</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider" style={{color: pmCol}}>PM urgent</span>
                                 <div className="flex items-baseline gap-1">
                                   <span className="font-mono-data text-base font-bold" style={{color: pmCol}}>{detailDay.pmS}</span>
                                   {detailDay.pmT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.pmT}</span>}
