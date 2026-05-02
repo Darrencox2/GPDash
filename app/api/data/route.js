@@ -29,6 +29,7 @@ export async function GET(request) {
         settings: data.settings,
         dailyOverrides: data.dailyOverrides || {},
         closedDays: data.closedDays || {},
+        roomAllocation: data.roomAllocation || {},
         _readOnly: true,
       });
     } catch (error) {
@@ -49,10 +50,16 @@ export async function GET(request) {
         plannedAbsences: data.plannedAbsences || [],
         allocationHistory: data.allocationHistory || {},
         weeklyRota: data.weeklyRota || {},
-        huddleSettings: { dutyDoctorSlot: data.huddleSettings?.dutyDoctorSlot },
+        huddleSettings: {
+          dutyDoctorSlot: data.huddleSettings?.dutyDoctorSlot,
+          savedSlotFilters: data.huddleSettings?.savedSlotFilters,
+          expectedCapacity: data.huddleSettings?.expectedCapacity,
+        },
         huddleCsvData: data.huddleCsvData || null,
         settings: data.settings,
         dailyOverrides: data.dailyOverrides || {},
+        roomAllocation: data.roomAllocation || {},
+        rotaNotes: data.rotaNotes || {},
         _readOnly: true,
       });
     } catch (error) {
