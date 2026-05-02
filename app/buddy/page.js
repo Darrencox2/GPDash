@@ -43,6 +43,13 @@ function BuddyCoverView({ data, lastRefresh, onRefresh }) {
   const navigateDay = (dir) => { const d = new Date(viewDate); d.setDate(d.getDate() + dir); setViewDate(d); };
   const isViewingToday = viewDate.getTime() === realToday.getTime();
 
+  // Day is "past" if before today, OR if it is today and the time is after 5pm
+  const isPast = useMemo(() => {
+    if (viewDate.getTime() < realToday.getTime()) return true;
+    if (viewDate.getTime() === realToday.getTime() && new Date().getHours() >= 17) return true;
+    return false;
+  }, [viewDate, realToday]);
+
   const dateKey = toLocalIso(viewDate);
   const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][viewDate.getDay()];
   const dateDisplay = viewDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -113,6 +120,16 @@ function BuddyCoverView({ data, lastRefresh, onRefresh }) {
             <button onClick={onRefresh} className="rounded-lg text-xs text-slate-500 hover:text-white hover:bg-white/10 transition-colors" style={{border:'1px solid rgba(255,255,255,0.08)',padding:'6px 12px'}}>Refresh</button>
           </div>
         </div>
+
+        {/* Past indicator banner */}
+        {isPast && (
+          <div className="rounded-lg px-3 py-2 flex items-center gap-2" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)'}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round"><path d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span className="text-xs text-slate-500">This day has passed</span>
+          </div>
+        )}
+
+        <div style={{opacity: isPast ? 0.5 : 1, transition: 'opacity 0.2s'}}>
 
         {/* Closed / Weekend */}
         {(isClosed || isWeekend) && (
@@ -232,6 +249,8 @@ function BuddyCoverView({ data, lastRefresh, onRefresh }) {
             </div>
           </div>
         )}
+
+        </div>
 
         {/* Footer */}
         <div className="text-center text-xs text-slate-700 pt-4">
