@@ -65,6 +65,14 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
   const gm = selected ? GROUP_META[selected.group] || GROUP_META.allied : GROUP_META.allied;
   const todayIso = toLocalIso(new Date());
+  // A date is "past" if before today, or if it's today and time is 5pm or later
+  const isPastDay = (date) => {
+    const d = new Date(date); d.setHours(0,0,0,0);
+    const t = new Date(); t.setHours(0,0,0,0);
+    if (d.getTime() < t.getTime()) return true;
+    if (d.getTime() === t.getTime() && new Date().getHours() >= 17) return true;
+    return false;
+  };
 
   const filtered = search ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.initials.toLowerCase().includes(search.toLowerCase())) : [];
 
@@ -478,9 +486,10 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
             const isToday = isoKey === todayIso;
             const dateStr = toHuddleDateStr(day.date);
             const dd = !isWeekend && day.inMonth ? getDayData(day.date, dateStr, isoKey) : null;
+            const isPast = day.inMonth && isPastDay(day.date);
 
             return (
-              <div key={i} style={{background: isToday ? 'rgba(16,185,129,0.08)' : '#0f172a', minHeight: 96, opacity: day.inMonth ? 1 : 0.3, padding: '6px 8px', borderTop: '1px solid #1e293b'}}>
+              <div key={i} style={{background: isToday ? 'rgba(16,185,129,0.08)' : '#0f172a', minHeight: 96, opacity: !day.inMonth ? 0.3 : (isPast ? 0.4 : 1), padding: '6px 8px', borderTop: '1px solid #1e293b'}}>
                 <div className="text-xs font-semibold mb-2" style={{color: isToday ? '#10b981' : isWeekend ? '#334155' : '#94a3b8'}}>{day.dayNum}</div>
                 {isWeekend ? null : dd?.isBH ? (
                   <div className="text-[10px] font-medium text-amber-500">Bank hol</div>
@@ -568,6 +577,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                   const detail = isExpanded ? computeDayDetail(day.date) : null;
                   const note = getNote(day.isoKey);
                   const isWorking = dd && (dd.amIn || dd.pmIn);
+                  const isPast = isPastDay(day.date);
 
                   // Site colour stripe (AM on top half, PM on bottom half if different)
                   const amStripe = dd?.amLoc ? siteCol(dd.amLoc) : null;
@@ -575,7 +585,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                   const sameSite = amStripe === pmStripe;
 
                   return (
-                    <div key={di} style={{borderBottom: di < 4 ? '1px solid #334155' : 'none', background: isExpanded ? 'rgba(16,185,129,0.04)' : (isWorking ? '#0f172a' : 'rgba(15,23,42,0.5)')}}>
+                    <div key={di} style={{borderBottom: di < 4 ? '1px solid #334155' : 'none', background: isExpanded ? 'rgba(16,185,129,0.04)' : (isWorking ? '#0f172a' : 'rgba(15,23,42,0.5)'), opacity: isPast ? 0.4 : 1}}>
                       <button
                         onClick={() => setExpandedDay(isExpanded ? null : day.isoKey)}
                         className="w-full text-left grid hover:bg-white/5 transition-colors"
