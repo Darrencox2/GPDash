@@ -221,6 +221,27 @@ async function runImport(request, { dryRun }) {
     }
   }
 
+  // Diagnostic: report what's actually in weeklyRota
+  const weeklyRotaSample = {};
+  for (const dayName of dayNames) {
+    const arr = Array.isArray(weeklyRota[dayName]) ? weeklyRota[dayName] : [];
+    weeklyRotaSample[dayName] = {
+      count: arr.length,
+      ids: arr.slice(0, 50).map(String),
+    };
+  }
+  const uniqueIds = new Set();
+  for (const dayName of dayNames) {
+    for (const id of weeklyRota[dayName] || []) uniqueIds.add(String(id));
+  }
+  report.diagnostic = {
+    weeklyRota_keys: Object.keys(weeklyRota),
+    weeklyRota_unique_clinician_count: uniqueIds.size,
+    weeklyRota_per_day: weeklyRotaSample,
+    clinicians_total: clinicians.length,
+    clinicians_with_status_active: clinicians.filter(c => c.status !== 'left' && c.status !== 'administrative').length,
+  };
+
   // 5c. Absences — top-level data.plannedAbsences = [{ clinicianId, startDate, endDate, reason }]
   const plannedAbsences = Array.isArray(v3Data.plannedAbsences) ? v3Data.plannedAbsences : [];
   for (const ab of plannedAbsences) {

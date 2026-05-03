@@ -175,6 +175,23 @@ export default function V4ImportPage() {
             </>
           )}
 
+          {report.diagnostic && (
+            <>
+              <h3 style={{ fontSize: 11, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 1, marginTop: 16, marginBottom: 8 }}>Diagnostic — weeklyRota</h3>
+              <div style={{ fontSize: 11, color: '#cbd5e1', padding: '4px 0' }}>
+                <div>Total clinicians: <strong>{report.diagnostic.clinicians_total}</strong></div>
+                <div>Active clinicians (not left/admin): <strong>{report.diagnostic.clinicians_with_status_active}</strong></div>
+                <div>Unique clinicians in weeklyRota: <strong>{report.diagnostic.weeklyRota_unique_clinician_count}</strong></div>
+                <div style={{ marginTop: 8 }}>Per day:</div>
+                {Object.entries(report.diagnostic.weeklyRota_per_day).map(([day, info]) => (
+                  <div key={day} style={{ marginLeft: 12 }}>
+                    {day}: {info.count} clinicians
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           {report.actions.length > 0 && (
             <>
               <h3 style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginTop: 16, marginBottom: 8 }}>Sample actions ({report.actions.length} total)</h3>
