@@ -40,19 +40,14 @@ export default async function DashboardPage() {
     .order('joined_at', { ascending: false });
 
   // Fetch any pending invites addressed to this user's email.
-  // Wrapped to be tolerant of missing migration 003 — if the table doesn't
-  // exist we just show no pending invites rather than crashing.
+  // Wrapped to be tolerant of missing migration 003/004 — if the function or
+  // table doesn't exist we just show no pending invites rather than crashing.
   let pendingInvites = null;
   try {
-    const { data, error: invErr } = await supabase
-      .from('practice_invites')
-      .select('id, role, invited_at, expires_at, practices ( id, name )')
-      .is('accepted_at', null)
-      .is('revoked_at', null)
-      .gt('expires_at', new Date().toISOString());
+    const { data, error: invErr } = await supabase.rpc('get_my_pending_invites');
     if (!invErr) pendingInvites = data;
   } catch {
-    // Silent fallback — practice_invites table not migrated yet
+    // Silent fallback — get_my_pending_invites function not yet migrated
   }
 
   return (
@@ -76,21 +71,24 @@ export default async function DashboardPage() {
         <Card>
           <SectionTitle>Pending invites</SectionTitle>
           {pendingInvites.map((inv) => (
-            <div key={inv.id} style={{
-              padding: '12px 14px',
+            <div key={inv.invite_id} style={{
+              padding: '14px 16px',
               background: 'rgba(245,158,11,0.08)',
               border: '1px solid rgba(245,158,11,0.2)',
               borderRadius: 8,
               marginBottom: 8,
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>{inv.practices.name}</div>
-                  <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 2 }}>
-                    Invited as {inv.role}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>{inv.practice_name}</div>
+                  <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
+                    Invited by <strong>{inv.inviter_name}</strong> as <span style={{ color: '#fbbf24', fontWeight: 600 }}>{inv.role}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Sent to: {inv.invitee_email}
                   </div>
                 </div>
-                <AcceptInviteButton inviteId={inv.id} />
+                <AcceptInviteButton inviteId={inv.invite_id} />
               </div>
             </div>
           ))}
