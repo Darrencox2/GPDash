@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import InviteForm from './InviteForm';
+import ClaimClinicianForm from './ClaimClinicianForm';
 import ClinicianLinker from './ClinicianLinker';
 
 export const dynamic = 'force-dynamic';
@@ -48,21 +49,15 @@ export default async function PracticeAdminPage({ params }) {
     .is('accepted_at', null)
     .order('created_at', { ascending: false });
 
-  // Find the clinician (if any) currently linked to me
-  const { data: myClinician } = await supabase
+  // All active clinicians (used for both the self-link form and finding current self-link)
+  const { data: clinicians } = await supabase
     .from('clinicians')
-    .select('id, name, initials, role')
-    .eq('practice_id', practiceId)
-    .eq('linked_user_id', user.id)
-    .maybeSingle();
-
-  // All active clinicians for the linker dropdown
-  const { data: allClinicians } = await supabase
-    .from('clinicians')
-    .select('id, name, initials, role, linked_user_id')
+    .select('id, name, initials, role, status, linked_user_id')
     .eq('practice_id', practiceId)
     .eq('status', 'active')
     .order('name');
+
+  const myClinician = (clinicians || []).find(c => c.linked_user_id === user.id);
 
   const canManage = myMembership.role === 'owner' || myMembership.role === 'admin';
 
@@ -89,6 +84,27 @@ export default async function PracticeAdminPage({ params }) {
             color: '#34d399', borderRadius: 999, fontWeight: 600, fontSize: 11,
           }}>You: {myMembership.role}</span>
         </div>
+
+        <Card title="Your clinician record">
+          {myClinician ? (
+            <div>
+              <div style={{ fontSize: 13, color: '#e2e8f0' }}>
+                Linked to: <strong>{myClinician.name}</strong> ({myClinician.initials})
+              </div>
+              <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                Your MyRota and personal notes will use this clinician.
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>
+                You're not linked to any clinician yet. Link yourself to one of the
+                clinicians below so MyRota and personal notes know who you are.
+              </p>
+              <ClaimClinicianForm clinicians={(clinicians || []).filter(c => !c.linked_user_id)} />
+            </div>
+          )}
+        </Card>
 
         <Card title="Team members">
           {!members || members.length === 0 ? (
