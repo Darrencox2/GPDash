@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { DAYS, matchesStaffMember, toLocalIso } from '@/lib/data';
-import { getHuddleCapacity } from '@/lib/huddle';
+import { getHuddleCapacity, parseHuddleDateStr } from '@/lib/huddle';
 
 export default function TeamRota({ data, saveData, helpers, huddleData }) {
   const { ensureArray, toggleRotaDay } = helpers;
@@ -9,9 +9,15 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
   const [genReport, setGenReport] = useState(null);
 
   // Auto-generate weekly pattern from CSV history.
-  // For each buddy-cover clinician, look at the last 12 weeks of CSV data:
-  // - Count, per weekday, how many of those weeks they appeared with at least one slot
-  // - If they appeared ≥ 50% of weeks for a given weekday → mark as working that day
+  //
+  // CSV dates come in 'DD-Mon-YYYY' format (e.g. '03-May-2026') and the array
+  // can contain future planning dates (CSV exports cover months ahead). We
+  // need to:
+  //   1. Parse them properly via parseHuddleDateStr (string compare doesn't
+  //      give chronological order — '20-Sep-2033' sorts higher than '03-May-2026')
+  //   2. Filter to PAST dates only (real history, not future plans)
+  //   3. Take the most recent 12 weeks (~60 weekdays)
+  //   4. Bucket by weekday and check appearances
   const autoGenerateFromCSV = () => {
     if (!huddleData?.dates?.length) {
       setGenReport({ error: 'No CSV data loaded — upload a CSV on the Today page first.' });
@@ -22,38 +28,27 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
     const eligibleClinicians = ensureArray(data.clinicians)
       .filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
 
-    // Take the most recent 12 weeks of CSV dates
-    const today = toLocalIso(new Date());
-    const sortedDates = [...huddleData.dates]
-      .filter(d => d <= today)              // ignore future-only dates
-      .sort();                               // ascending
-    const recentDates = sortedDates.slice(-60);  // ~12 weeks of weekdays
+    // Parse + filter + sort dates chronologically (oldest → newest)
+    const todayMs = new Date().setHours(0, 0, 0, 0);
+    const datesWithObjs = huddleData.dates
+      .map(ds => ({ ds, d: parseHuddleDateStr(ds) }))
+      .filter(({ d }) => !isNaN(d) && d.getTime() <= todayMs)  // valid + past-or-today
+      .sort((a, b) => a.d - b.d);                              // chronological
 
-    // Bucket dates by weekday: { Monday: [date, date, ...], Tuesday: [...] }
+    // Take the most recent 12 weeks (~60 weekdays — but may include weekends)
+    const recent = datesWithObjs.slice(-84);  // up to 12 weeks of daily data
+    const recentDates = recent.map(r => r.ds);
+
+    // Bucket dates by weekday
     const datesByDay = { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] };
-    for (const dateStr of recentDates) {
-      const d = new Date(dateStr + 'T12:00:00');
+    for (const { ds, d } of recent) {
       const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
-      if (datesByDay[dayName]) datesByDay[dayName].push(dateStr);
+      if (datesByDay[dayName]) datesByDay[dayName].push(ds);
     }
 
     // For each clinician × weekday, count appearances
     const newRota = { ...data.weeklyRota };
     const summary = []; // { name, days: 'Mon/Tue/Thu', changed: bool }
-
-    // Diagnostic — log first time only, helps debug "no match" issues
-    console.log('[auto-gen] huddleData.clinicians sample:', huddleData.clinicians?.slice(0, 5));
-    console.log('[auto-gen] huddleData.dates count:', huddleData.dates?.length, 'recent count:', recentDates.length);
-    console.log('[auto-gen] datesByDay counts:', Object.fromEntries(Object.entries(datesByDay).map(([k, v]) => [k, v.length])));
-    if (recentDates.length > 0) {
-      const sampleDate = recentDates[recentDates.length - 1];
-      const sampleCap = getHuddleCapacity(huddleData, sampleDate, hs);
-      console.log('[auto-gen] sample cap for', sampleDate, ':', {
-        amCount: sampleCap?.am?.byClinician?.length,
-        amSample: sampleCap?.am?.byClinician?.slice(0, 3).map(b => ({ name: b.name, available: b.available, booked: b.booked })),
-      });
-    }
-    console.log('[auto-gen] eligibleClinicians:', eligibleClinicians.map(c => ({ name: c.name, initials: c.initials })));
 
     // Helper: compute initials from a CSV name like "COX, Darren (Dr)" → "DC"
     // Used as a fallback when matchesStaffMember() fails (name format mismatch)
