@@ -11,7 +11,7 @@ import AcceptInviteButton from './AcceptInviteButton';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const supabase = createClient(cookieStore);
 
   if (!supabase) {
@@ -39,13 +39,21 @@ export default async function DashboardPage() {
     .select('role, joined_at, practices ( id, name, ods_code )')
     .order('joined_at', { ascending: false });
 
-  // Fetch any pending invites addressed to this user's email
-  const { data: pendingInvites } = await supabase
-    .from('practice_invites')
-    .select('id, role, invited_at, expires_at, practices ( id, name )')
-    .is('accepted_at', null)
-    .is('revoked_at', null)
-    .gt('expires_at', new Date().toISOString());
+  // Fetch any pending invites addressed to this user's email.
+  // Wrapped to be tolerant of missing migration 003 — if the table doesn't
+  // exist we just show no pending invites rather than crashing.
+  let pendingInvites = null;
+  try {
+    const { data, error: invErr } = await supabase
+      .from('practice_invites')
+      .select('id, role, invited_at, expires_at, practices ( id, name )')
+      .is('accepted_at', null)
+      .is('revoked_at', null)
+      .gt('expires_at', new Date().toISOString());
+    if (!invErr) pendingInvites = data;
+  } catch {
+    // Silent fallback — practice_invites table not migrated yet
+  }
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: 32 }}>

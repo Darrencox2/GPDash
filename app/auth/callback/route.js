@@ -12,7 +12,7 @@ export async function GET(request) {
   const next = searchParams.get('next') || '/v4/dashboard';
 
   if (code) {
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const supabase = createClient(cookieStore);
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {

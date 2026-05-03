@@ -27,7 +27,7 @@ export default async function V4Test() {
   } else {
     envStatus = 'ok';
     try {
-      const cookieStore = await cookies();
+      const cookieStore = cookies();
       const supabase = createClient(cookieStore);
       if (!supabase) {
         connectionStatus = 'failed';

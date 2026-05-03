@@ -10,9 +10,9 @@ import InviteForm from './InviteForm';
 export const dynamic = 'force-dynamic';
 
 export default async function PracticeDetailPage({ params }) {
-  const { id: practiceId } = await params;
+  const { id: practiceId } = params;
 
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 
