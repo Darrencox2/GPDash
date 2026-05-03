@@ -11,6 +11,8 @@ export default async function V4Test() {
   let connectionStatus = 'unknown';
   let authStatus = 'unknown';
   let envStatus = 'unknown';
+  let dbStatus = 'unknown';
+  let dbDetail = '';
   let detail = '';
   let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '(not set)';
 
@@ -31,6 +33,26 @@ export default async function V4Test() {
       const { data: { user } } = await supabase.auth.getUser();
       authStatus = user ? `signed in as ${user.email}` : 'no user signed in (expected)';
       connectionStatus = 'ok';
+
+      // Try reading the practices table — confirms schema migration ran
+      const { data: practices, error: dbErr } = await supabase
+        .from('practices')
+        .select('id, name')
+        .limit(5);
+
+      if (dbErr) {
+        if (dbErr.code === '42P01') {
+          // relation does not exist
+          dbStatus = 'no schema';
+          dbDetail = 'Tables not created yet. Run migration 001_practices_users_membership.sql in Supabase SQL editor.';
+        } else {
+          dbStatus = 'error';
+          dbDetail = `${dbErr.code || 'unknown'}: ${dbErr.message}`;
+        }
+      } else {
+        dbStatus = 'ok';
+        dbDetail = `Read ${practices.length} practice row(s) — RLS working (anonymous user sees 0 rows).`;
+      }
     } catch (err) {
       connectionStatus = 'failed';
       detail = err.message;
@@ -95,6 +117,26 @@ export default async function V4Test() {
           <Row label="Auth state" status={authStatus.includes('signed in') ? 'ok' : 'unknown'}>
             <span style={{ fontSize: 13, color: '#cbd5e1' }}>{authStatus}</span>
           </Row>
+
+          <Row label="Database (practices table)" status={dbStatus}>
+            <Pill status={dbStatus}>
+              {dbStatus === 'ok' ? 'reading' : dbStatus === 'no schema' ? 'no schema' : dbStatus === 'error' ? 'error' : 'not tested'}
+            </Pill>
+          </Row>
+
+          {dbDetail && (
+            <div style={{
+              marginTop: 8,
+              padding: 10,
+              background: dbStatus === 'ok' ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.08)',
+              border: `1px solid ${dbStatus === 'ok' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.25)'}`,
+              borderRadius: 8,
+              fontSize: 12,
+              color: '#cbd5e1',
+            }}>
+              {dbDetail}
+            </div>
+          )}
 
           {detail && (
             <div style={{
