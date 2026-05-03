@@ -53,6 +53,7 @@ function DashboardContent() {
 
   const [authChecked, setAuthChecked] = useState(false);
   const [data, setData] = useState(null);
+  const [allPractices, setAllPractices] = useState([]);
   const [dataVersion, setDataVersion] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(() => getWeekStart(new Date()));
@@ -81,6 +82,20 @@ function DashboardContent() {
         router.replace('/v4/dashboard');
         return;
       }
+
+      // Fetch all practices the user is a member of
+      const { data: memberships } = await supabase
+        .from('practice_users')
+        .select('role, practices(id, name)')
+        .eq('user_id', user.id);
+      if (!cancelled && memberships) {
+        setAllPractices(memberships.map(m => ({
+          id: m.practices?.id,
+          name: m.practices?.name,
+          role: m.role,
+        })).filter(p => p.id));
+      }
+
       setAuthChecked(true);
     }
     checkAuth();
@@ -361,7 +376,29 @@ function DashboardContent() {
             {' · '}
             <a href={`/v4/practice/${practiceId}`} style={{ color: '#94a3b8', textDecoration: 'underline' }}>Manage practice</a>
             {' · '}
-            <a href="/v4/dashboard" style={{ color: '#94a3b8', textDecoration: 'underline' }}>Switch practice</a>
+            {allPractices.length > 1 ? (
+              <select
+                value={practiceId}
+                onChange={(e) => router.push(`/dashboard?practice=${e.target.value}`)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(148,163,184,0.3)',
+                  color: '#94a3b8',
+                  fontSize: 11,
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                }}
+              >
+                {allPractices.map(p => (
+                  <option key={p.id} value={p.id} style={{ background: '#0f172a', color: '#e2e8f0' }}>
+                    {p.name} ({p.role})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <a href="/v4/dashboard" style={{ color: '#94a3b8', textDecoration: 'underline' }}>Switch practice</a>
+            )}
             {' · '}
             <button
               onClick={async () => { await supabase.auth.signOut(); router.push('/v4/login'); }}
