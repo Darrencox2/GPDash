@@ -1,0 +1,55 @@
+name: Apply Supabase migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to apply migrations from'
+        required: true
+        default: 'v4-rebuild'
+
+jobs:
+  apply-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to Supabase project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref dvmfgxqqvyoifybwlnky --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Bootstrap — mark migrations 001-011 as already applied
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          for ts in 20260501120001 20260501120002 20260501120003 20260501120004 \
+                    20260501120005 20260501120006 20260501120007 20260501120008 \
+                    20260501120009 20260501120010 20260501120011; do
+            supabase migration repair --status applied "$ts" --password "$SUPABASE_DB_PASSWORD" || true
+          done
+
+      - name: Apply pending migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase db push --include-all --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Summary
+        run: |
+          echo "Migrations applied to project dvmfgxqqvyoifybwlnky" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Files in supabase/migrations/:" >> $GITHUB_STEP_SUMMARY
+          ls supabase/migrations/ | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
