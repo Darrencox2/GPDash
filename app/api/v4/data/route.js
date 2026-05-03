@@ -213,6 +213,160 @@ export async function POST(request) {
     }
   }
 
+  // ─── Mutation 5: huddleCsvData → huddle_csv_data ─────────────────────
+  // CSV uploads + auto-detected staff. The component sends the full
+  // merged CSV data structure. We just upsert the row.
+  if (newData.huddleCsvData) {
+    const csvChanged = JSON.stringify(newData.huddleCsvData) !== JSON.stringify(oldData.huddleCsvData);
+    if (csvChanged) {
+      // Audit trail: insert csv_uploads row
+      ops.push(
+        supabase.from('csv_uploads').insert({
+          practice_id: practiceId,
+          uploaded_by: user.id,
+          uploaded_at: new Date().toISOString(),
+          filename: 'browser-upload',
+          notes: 'Uploaded via Today page',
+        }).select('id').single().then(({ data: upload, error: upErr }) => {
+          if (upErr) return { error: upErr };
+          // Then upsert the parsed data
+          return supabase.from('huddle_csv_data').upsert({
+            practice_id: practiceId,
+            data: newData.huddleCsvData,
+            upload_id: upload?.id || null,
+          });
+        })
+      );
+    }
+  }
+
+  // ─── Mutation 6: clinicians → clinicians table ───────────────────────
+  // CSV upload sometimes adds new clinicians (source='csv'). Also field
+  // edits (toggleBuddyCover, status changes, etc.) come through here.
+  if (Array.isArray(newData.clinicians)) {
+    const oldClins = oldData.clinicians || [];
+    const newClins = newData.clinicians;
+    const oldById = {};
+    for (const c of oldClins) oldById[c.id] = c;
+
+    for (const c of newClins) {
+      const old = oldById[c.id];
+      if (!old) {
+        // New clinician (probably from CSV)
+        // Skip auto-generated string IDs that look like 'csv-' or numeric — these
+        // are v3-style IDs. We need a real UUID. For now, generate one and
+        // store the v3 id as an alias. (Better: refactor v3 components to use
+        // server-generated IDs.) For tonight, only persist clinicians that
+        // already have a UUID-shaped id.
+        if (typeof c.id === 'string' && c.id.length === 36 && c.id.includes('-')) {
+          ops.push(supabase.from('clinicians').insert({
+            id: c.id,
+            practice_id: practiceId,
+            name: c.name,
+            title: c.title || null,
+            initials: c.initials || null,
+            role: c.role || null,
+            group_id: c.group || 'admin',
+            status: c.status || 'active',
+            sessions: c.sessions || 0,
+            buddy_cover: !!c.buddyCover,
+            can_provide_cover: c.canProvideCover !== false,
+            aliases: c.aliases || [],
+          }));
+        } else {
+          // Skip — v3 client generated a non-UUID id; component needs updating
+          errors.push(`Skipped new clinician '${c.name}' — non-UUID id (${c.id}). Add via Team Members instead.`);
+        }
+        continue;
+      }
+      // Existing clinician — diff fields and update if any changed
+      const fieldsChanged = (
+        c.name !== old.name ||
+        c.title !== old.title ||
+        c.initials !== old.initials ||
+        c.role !== old.role ||
+        c.group !== old.group ||
+        c.status !== old.status ||
+        (c.sessions || 0) !== (old.sessions || 0) ||
+        !!c.buddyCover !== !!old.buddyCover ||
+        (c.canProvideCover !== false) !== (old.canProvideCover !== false) ||
+        JSON.stringify(c.aliases || []) !== JSON.stringify(old.aliases || [])
+      );
+      if (fieldsChanged) {
+        ops.push(supabase.from('clinicians').update({
+          name: c.name,
+          title: c.title || null,
+          initials: c.initials || null,
+          role: c.role || null,
+          group_id: c.group || 'admin',
+          status: c.status || 'active',
+          sessions: c.sessions || 0,
+          buddy_cover: !!c.buddyCover,
+          can_provide_cover: c.canProvideCover !== false,
+          aliases: c.aliases || [],
+        }).eq('id', c.id));
+      }
+    }
+
+    // Detect deletions
+    const newIds = new Set(newClins.map(c => c.id));
+    for (const old of oldClins) {
+      if (!newIds.has(old.id)) {
+        ops.push(supabase.from('clinicians').delete().eq('id', old.id));
+      }
+    }
+  }
+
+  // ─── Mutation 7: plannedAbsences → absences ──────────────────────────
+  // v3 stores absences as a flat array; v4 stores them as rows. Diff by
+  // (clinicianId, startDate) since v3 doesn't carry stable absence IDs.
+  if (Array.isArray(newData.plannedAbsences)) {
+    const oldAbs = oldData.plannedAbsences || [];
+    const newAbs = newData.plannedAbsences;
+    const keyOf = a => `${a.clinicianId}|${a.startDate}`;
+    const oldByKey = {};
+    for (const a of oldAbs) oldByKey[keyOf(a)] = a;
+    const newByKey = {};
+    for (const a of newAbs) newByKey[keyOf(a)] = a;
+
+    // Insertions and updates
+    for (const k of Object.keys(newByKey)) {
+      const newA = newByKey[k];
+      const oldA = oldByKey[k];
+      if (!oldA) {
+        // Insert
+        ops.push(supabase.from('absences').insert({
+          clinician_id: newA.clinicianId,
+          start_date: newA.startDate,
+          end_date: newA.endDate,
+          reason: 'other',
+          notes: newA.reason || null,
+        }));
+      } else if (oldA.endDate !== newA.endDate || (oldA.reason || '') !== (newA.reason || '')) {
+        // Match by clinician+startDate; update via the matching v4 row
+        // Need to fetch existing absence row id
+        ops.push(
+          supabase.from('absences')
+            .update({ end_date: newA.endDate, notes: newA.reason || null })
+            .eq('clinician_id', newA.clinicianId)
+            .eq('start_date', newA.startDate)
+        );
+      }
+    }
+    // Deletions
+    for (const k of Object.keys(oldByKey)) {
+      if (!newByKey[k]) {
+        const a = oldByKey[k];
+        ops.push(
+          supabase.from('absences')
+            .delete()
+            .eq('clinician_id', a.clinicianId)
+            .eq('start_date', a.startDate)
+        );
+      }
+    }
+  }
+
   // Run all ops in parallel
   if (ops.length > 0) {
     const results = await Promise.all(ops.map(p => p.then ? p : Promise.resolve(p)));

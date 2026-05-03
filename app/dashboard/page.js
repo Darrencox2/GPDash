@@ -160,6 +160,41 @@ function DashboardContent() {
 
   // ─── saveData → POSTs to /api/v4/data ─────────────────────────────
   const saveData = async (newData, showIndicator = true) => {
+    // Pre-process: any clinician with a non-UUID id gets a fresh UUID,
+    // and we update all references in weeklyRota / dailyOverrides /
+    // plannedAbsences to point at the new id. v3 components used
+    // numeric IDs (Date.now()); v4 needs UUIDs.
+    const isUuid = (v) => typeof v === 'string' && v.length === 36 && v.split('-').length === 5;
+    const idMap = {};
+    if (Array.isArray(newData.clinicians)) {
+      newData.clinicians = newData.clinicians.map(c => {
+        if (isUuid(c.id)) return c;
+        const newId = crypto.randomUUID();
+        idMap[c.id] = newId;
+        return { ...c, id: newId };
+      });
+    }
+    if (Object.keys(idMap).length > 0) {
+      // Patch references
+      if (newData.weeklyRota) {
+        for (const day of Object.keys(newData.weeklyRota)) {
+          newData.weeklyRota[day] = (newData.weeklyRota[day] || []).map(id => idMap[id] || id);
+        }
+      }
+      if (Array.isArray(newData.plannedAbsences)) {
+        newData.plannedAbsences = newData.plannedAbsences.map(a =>
+          idMap[a.clinicianId] ? { ...a, clinicianId: idMap[a.clinicianId] } : a
+        );
+      }
+      if (newData.dailyOverrides) {
+        for (const k of Object.keys(newData.dailyOverrides)) {
+          const o = newData.dailyOverrides[k];
+          if (o?.present) o.present = o.present.map(id => idMap[id] || id);
+          if (o?.scheduled) o.scheduled = o.scheduled.map(id => idMap[id] || id);
+        }
+      }
+    }
+
     setData(newData);
     setDataVersion(v => v + 1);
     try {
@@ -289,7 +324,18 @@ function DashboardContent() {
           {activeSection === 'room-settings' && <RoomSettings data={data} saveData={saveData} toast={toast} huddleData={huddleData} />}
           {activeSection === 'room-dashboard' && <RoomDashboard data={data} saveData={saveData} huddleData={huddleData} toast={toast} />}
         </div>
-        <footer className="mt-8 pb-6"><div className="text-center text-xs text-slate-400">GPDash — {data._v4?.practiceName || 'Practice'} · v4 Postgres</div></footer>
+        <footer className="mt-8 pb-6">
+          <div className="text-center text-xs text-slate-400">
+            GPDash — {data._v4?.practiceName || 'Practice'} · v4 Postgres
+            {' · '}
+            <a href="/v4/dashboard" style={{ color: '#94a3b8', textDecoration: 'underline' }}>Switch practice</a>
+            {' · '}
+            <button
+              onClick={async () => { await supabase.auth.signOut(); router.push('/v4/login'); }}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}
+            >Sign out</button>
+          </div>
+        </footer>
       </main>
     </div>
   );
