@@ -40,8 +40,35 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
     // For each clinician × weekday, count appearances
     const newRota = { ...data.weeklyRota };
     const summary = []; // { name, days: 'Mon/Tue/Thu', changed: bool }
+
+    // Helper: compute initials from a CSV name like "COX, Darren (Dr)" → "DC"
+    // Used as a fallback when matchesStaffMember() fails (name format mismatch)
+    const csvNameInitials = (csvName) => {
+      if (!csvName) return '';
+      const cleaned = csvName.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').trim();
+      // "SURNAME, Firstname" → reorder to "Firstname Surname"
+      let parts;
+      if (cleaned.includes(',')) {
+        const [surname, first] = cleaned.split(',').map(s => s.trim());
+        parts = [first, surname].filter(Boolean);
+      } else {
+        parts = cleaned.split(/\s+/);
+      }
+      // Take first letter of first part + first letter of last part (handles "Anna Mary Smith" → AS)
+      if (parts.length === 0) return '';
+      if (parts.length === 1) return parts[0][0]?.toUpperCase() || '';
+      return ((parts[0][0] || '') + (parts[parts.length - 1][0] || '')).toUpperCase();
+    };
+
+    // Build a "any byClinician name that matches this clinician" lookup so we
+    // can debug which CSV names matched (or didn't) for diagnostic output
+    const debugMatches = {}; // clinician.id -> Set of CSV names matched
+
     for (const c of eligibleClinicians) {
       const daysWorking = [];
+      const matchedCsvNames = new Set();
+      const cInitials = (c.initials || '').toUpperCase();
+
       for (const day of DAYS) {
         const dates = datesByDay[day] || [];
         if (dates.length === 0) continue;
@@ -49,9 +76,23 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
         for (const dateStr of dates) {
           const cap = getHuddleCapacity(huddleData, dateStr, hs);
           if (!cap) continue;
-          // Did they have any slots that day (AM or PM)?
-          const inAm = cap.am?.byClinician?.find(bc => matchesStaffMember(bc.name, c));
-          const inPm = cap.pm?.byClinician?.find(bc => matchesStaffMember(bc.name, c));
+
+          // Try name-based match first (the proper way)
+          let inAm = cap.am?.byClinician?.find(bc => matchesStaffMember(bc.name, c));
+          let inPm = cap.pm?.byClinician?.find(bc => matchesStaffMember(bc.name, c));
+
+          // Fallback: initials match. Only fires if name match failed AND
+          // the clinician has initials AND the CSV name's derived initials match
+          if (!inAm && cInitials) {
+            inAm = cap.am?.byClinician?.find(bc => csvNameInitials(bc.name) === cInitials);
+          }
+          if (!inPm && cInitials) {
+            inPm = cap.pm?.byClinician?.find(bc => csvNameInitials(bc.name) === cInitials);
+          }
+
+          if (inAm) matchedCsvNames.add(inAm.name);
+          if (inPm) matchedCsvNames.add(inPm.name);
+
           const hasAny = (inAm && (inAm.available > 0 || inAm.booked > 0 || inAm.embargoed > 0))
                       || (inPm && (inPm.available > 0 || inPm.booked > 0 || inPm.embargoed > 0));
           if (hasAny) appeared++;
@@ -60,8 +101,9 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
           daysWorking.push(day);
         }
       }
+      debugMatches[c.id] = matchedCsvNames;
+
       // Apply: ensure this clinician is in newRota[day] for each day in daysWorking
-      // (and removed from days NOT in daysWorking)
       for (const day of DAYS) {
         const arr = ensureArray(newRota[day]);
         const isWorking = daysWorking.includes(day);
@@ -72,7 +114,12 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
           newRota[day] = arr.filter(x => x !== c.id);
         }
       }
-      summary.push({ name: c.name, initials: c.initials, days: daysWorking.map(d => d.slice(0,3)).join(' ') || '—' });
+      summary.push({
+        name: c.name,
+        initials: c.initials,
+        days: daysWorking.map(d => d.slice(0,3)).join(' ') || '—',
+        matchedAs: matchedCsvNames.size > 0 ? [...matchedCsvNames][0] : null,
+      });
     }
 
     saveData({ ...data, weeklyRota: newRota });
@@ -105,15 +152,17 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
       {genReport?.summary && (
         <div className="card p-4 bg-purple-50 border border-purple-200">
           <div className="text-sm font-medium text-purple-900 mb-2">Auto-generated pattern from {genReport.weeksAnalysed} weeks of CSV data</div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-slate-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-slate-700">
             {genReport.summary.map(s => (
-              <div key={s.initials || s.name} className="flex items-center gap-2">
-                <span className="font-mono font-semibold w-10">{s.initials}</span>
-                <span className="text-slate-500">{s.days}</span>
+              <div key={s.initials || s.name} className="flex items-center gap-2 py-0.5">
+                <span className="font-mono font-semibold w-10 flex-shrink-0">{s.initials}</span>
+                <span className="text-slate-700 flex-shrink-0">{s.days}</span>
+                {!s.matchedAs && <span className="text-amber-600 text-[10px] italic ml-auto">no CSV match</span>}
+                {s.matchedAs && <span className="text-slate-400 text-[10px] truncate ml-auto" title={s.matchedAs}>= {s.matchedAs}</span>}
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500 mt-3">A clinician is marked as working a day if they appeared in CSV data for that weekday at least 50% of recent weeks. You can still tweak individual cells below.</p>
+          <p className="text-xs text-slate-500 mt-3">A clinician is marked as working a day if they appeared in CSV data for that weekday at least 50% of recent weeks. Clinicians showing 'no CSV match' couldn't be found in the CSV — usually because the name in the CSV doesn't match their record. Edit cells manually below for those.</p>
         </div>
       )}
 
