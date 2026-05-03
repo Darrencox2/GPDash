@@ -41,6 +41,20 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
     const newRota = { ...data.weeklyRota };
     const summary = []; // { name, days: 'Mon/Tue/Thu', changed: bool }
 
+    // Diagnostic — log first time only, helps debug "no match" issues
+    console.log('[auto-gen] huddleData.clinicians sample:', huddleData.clinicians?.slice(0, 5));
+    console.log('[auto-gen] huddleData.dates count:', huddleData.dates?.length, 'recent count:', recentDates.length);
+    console.log('[auto-gen] datesByDay counts:', Object.fromEntries(Object.entries(datesByDay).map(([k, v]) => [k, v.length])));
+    if (recentDates.length > 0) {
+      const sampleDate = recentDates[recentDates.length - 1];
+      const sampleCap = getHuddleCapacity(huddleData, sampleDate, hs);
+      console.log('[auto-gen] sample cap for', sampleDate, ':', {
+        amCount: sampleCap?.am?.byClinician?.length,
+        amSample: sampleCap?.am?.byClinician?.slice(0, 3).map(b => ({ name: b.name, available: b.available, booked: b.booked })),
+      });
+    }
+    console.log('[auto-gen] eligibleClinicians:', eligibleClinicians.map(c => ({ name: c.name, initials: c.initials })));
+
     // Helper: compute initials from a CSV name like "COX, Darren (Dr)" → "DC"
     // Used as a fallback when matchesStaffMember() fails (name format mismatch)
     const csvNameInitials = (csvName) => {
