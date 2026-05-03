@@ -46,6 +46,24 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
       if (datesByDay[dayName]) datesByDay[dayName].push(ds);
     }
 
+    // Build a quick lookup: clinicianId → array of {start, end} absences (in ms)
+    const absencesByClinician = {};
+    for (const a of ensureArray(data.plannedAbsences)) {
+      if (!a.clinicianId || !a.startDate || !a.endDate) continue;
+      const start = new Date(a.startDate + 'T00:00:00').getTime();
+      const end = new Date(a.endDate + 'T23:59:59').getTime();
+      if (!absencesByClinician[a.clinicianId]) absencesByClinician[a.clinicianId] = [];
+      absencesByClinician[a.clinicianId].push({ start, end });
+    }
+    const wasOnLeave = (clinicianId, dateMs) => {
+      const list = absencesByClinician[clinicianId];
+      if (!list) return false;
+      for (const a of list) {
+        if (dateMs >= a.start && dateMs <= a.end) return true;
+      }
+      return false;
+    };
+
     // For each clinician × weekday, count appearances
     const newRota = { ...data.weeklyRota };
     const summary = []; // { name, days: 'Mon/Tue/Thu', changed: bool }
@@ -82,7 +100,12 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
         const dates = datesByDay[day] || [];
         if (dates.length === 0) continue;
         let appeared = 0;
+        let availableWeeks = 0;  // weeks where the clinician was NOT on leave for this weekday
         for (const dateStr of dates) {
+          const dateMs = parseHuddleDateStr(dateStr).getTime();
+          const onLeave = wasOnLeave(c.id, dateMs);
+          if (!onLeave) availableWeeks++;
+
           const cap = getHuddleCapacity(huddleData, dateStr, hs);
           if (!cap) continue;
 
@@ -106,7 +129,16 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
                       || (inPm && (inPm.available > 0 || inPm.booked > 0 || inPm.embargoed > 0));
           if (hasAny) appeared++;
         }
-        if (appeared >= dates.length / 2) {
+
+        // Decision: did they work this weekday?
+        // - Standard rule: appeared in at least 50% of NON-LEAVE weeks
+        // - Sparse-history fallback: if leave covers most weeks but they
+        //   appeared at least once on a non-leave week, count it as theirs
+        //   (handles clinicians returning from extended absence)
+        const denominator = availableWeeks > 0 ? availableWeeks : dates.length;
+        const ratio = appeared / denominator;
+        const heavilyOnLeave = (dates.length - availableWeeks) > dates.length / 2;
+        if (ratio >= 0.5 || (heavilyOnLeave && appeared >= 1)) {
           daysWorking.push(day);
         }
       }
@@ -171,7 +203,9 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500 mt-3">A clinician is marked as working a day if they appeared in CSV data for that weekday at least 50% of recent weeks. Clinicians showing 'no CSV match' couldn't be found in the CSV — usually because the name in the CSV doesn't match their record. Edit cells manually below for those.</p>
+          <p className="text-xs text-slate-500 mt-3">
+            A clinician is marked as working a day if they appeared in CSV data on that weekday in at least 50% of weeks they weren't on planned leave. Clinicians returning from extended absence are detected even from a single appearance. Anyone showing 'no CSV match' couldn't be found in the CSV at all — edit those manually below.
+          </p>
         </div>
       )}
 
