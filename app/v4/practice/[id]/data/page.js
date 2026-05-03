@@ -29,12 +29,10 @@ export default async function PracticeDataPage({ params }) {
   const v3Shape = adaptToV3Shape(v4Data);
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: 32 }}>
-      <Link href={`/v4/practice/${practiceId}`} style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none' }}>
-        ← {v4Data.practice.name}
-      </Link>
-      <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600, color: 'white', marginTop: 8, marginBottom: 24 }}>
-        Practice data preview
+    <div style={{ padding: 24 }}>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600, color: 'white', marginBottom: 24 }}>
+        Diagnostics
       </h1>
 
       <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 24, lineHeight: 1.6 }}>
@@ -113,6 +111,7 @@ export default async function PracticeDataPage({ params }) {
       <p style={{ color: '#64748b', fontSize: 11, marginTop: 32, textAlign: 'center' }}>
         v4-rebuild branch · live Postgres data
       </p>
+      </div>
     </div>
   );
 }

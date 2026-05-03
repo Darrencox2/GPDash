@@ -35,18 +35,15 @@ export default async function TeamRotaPage({ params }) {
   const canEdit = membership?.role === 'owner' || membership?.role === 'admin';
 
   return (
-    <div style={{ minHeight: '100vh', padding: 16 }}>
+    <div style={{ padding: 24 }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <Link href={`/v4/practice/${practiceId}`} style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none' }}>
-          ← {v4Data.practice.name}
-        </Link>
         <h1 style={{
           fontFamily: "'Outfit', sans-serif",
           fontSize: 22, fontWeight: 600, color: 'white',
-          marginTop: 8, marginBottom: 6,
-        }}>Team rota</h1>
+          marginBottom: 6,
+        }}>Working patterns</h1>
         <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
-          v4 preview — fully wired, changes persist to Postgres
+          Click any cell to toggle. Changes persist immediately.
         </p>
 
         {!canEdit && (
@@ -59,7 +56,7 @@ export default async function TeamRotaPage({ params }) {
             color: '#fcd34d',
             marginBottom: 16,
           }}>
-            ⚠ You're not an admin/owner of this practice — clicks won't persist (RLS will reject the update).
+            ⚠ You're not an admin/owner of this practice — clicks won't persist.
           </div>
         )}
 

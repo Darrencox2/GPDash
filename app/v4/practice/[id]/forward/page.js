@@ -21,12 +21,9 @@ export default async function ForwardPage({ params }) {
   const v3Data = adaptToV3Shape(v4Data);
 
   return (
-    <div style={{ minHeight: '100vh', padding: 16 }}>
+    <div style={{ padding: 24 }}>
       <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-        <Link href={`/v4/practice/${practiceId}`} style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none' }}>
-          ← {v4Data.practice.name}
-        </Link>
-        <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginTop: 8, marginBottom: 16 }}>Capacity planning</h1>
+        <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 16 }}>Capacity planning</h1>
         <ForwardWrapper data={v3Data} huddleData={v4Data.huddleCsvData} />
       </div>
     </div>
