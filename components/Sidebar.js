@@ -22,6 +22,8 @@ const NAV_ITEMS = [
   { id: '_personal', section: 'PERSONAL' },
   { id: 'huddle-rota', section: 'PERSONAL', label: 'My rota', colour: '#60a5fa',
     icon: 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5zm2 4h5v5H7v-5z' },
+  { id: 'account', section: 'PERSONAL', label: 'Account', colour: '#22d3ee',
+    icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' },
 
   { id: '_admin', section: 'ADMIN' },
   { id: 'team-members', section: 'ADMIN', label: 'Team', colour: '#fbbf24',

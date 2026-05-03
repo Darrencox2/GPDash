@@ -33,6 +33,7 @@ import MyRota from '@/components/huddle/MyRota';
 import RoomSettings from '@/components/room/RoomSettings';
 import RoomDashboard from '@/components/room/RoomDashboard';
 import Changelog from '@/components/Changelog';
+import AccountSettings from '@/components/AccountSettings';
 import { createClient } from '@/utils/supabase/client';
 
 export default function DashboardRoot() {
@@ -386,6 +387,7 @@ function DashboardContent() {
           {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'changelog' && <Changelog />}
+          {activeSection === 'account' && <AccountSettings data={data} />}
           {activeSection === 'room-settings' && <RoomSettings data={data} saveData={saveData} toast={toast} huddleData={huddleData} />}
           {activeSection === 'room-dashboard' && <RoomDashboard data={data} saveData={saveData} huddleData={huddleData} toast={toast} />}
         </div>

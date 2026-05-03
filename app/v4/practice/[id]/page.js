@@ -6,7 +6,6 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import InviteForm from './InviteForm';
-import ClaimClinicianForm from './ClaimClinicianForm';
 import ClinicianLinker from './ClinicianLinker';
 
 export const dynamic = 'force-dynamic';
@@ -86,24 +85,12 @@ export default async function PracticeAdminPage({ params }) {
         </div>
 
         <Card title="Your clinician record">
-          {myClinician ? (
-            <div>
-              <div style={{ fontSize: 13, color: '#e2e8f0' }}>
-                Linked to: <strong>{myClinician.name}</strong> ({myClinician.initials})
-              </div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                Your MyRota and personal notes will use this clinician.
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>
-                You're not linked to any clinician yet. Link yourself to one of the
-                clinicians below so MyRota and personal notes know who you are.
-              </p>
-              <ClaimClinicianForm clinicians={(clinicians || []).filter(c => !c.linked_user_id)} />
-            </div>
-          )}
+          <ClinicianLinker
+            practiceId={practiceId}
+            currentLinkedClinicianId={myClinician?.id || null}
+            allClinicians={clinicians || []}
+            currentUserId={user.id}
+          />
         </Card>
 
         <Card title="Team members">
@@ -147,22 +134,6 @@ export default async function PracticeAdminPage({ params }) {
             ))}
           </Card>
         )}
-
-        <Card title="Your clinician record">
-          {myClinician ? (
-            <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>
-              You're linked to <strong style={{ color: 'white' }}>{myClinician.name}</strong>
-              {myClinician.initials && <span style={{ color: '#64748b' }}> ({myClinician.initials})</span>}
-              {myClinician.role && <span style={{ color: '#64748b' }}> · {myClinician.role}</span>}.
-            </p>
-          ) : null}
-          <ClinicianLinker
-            practiceId={practiceId}
-            currentLinkedClinicianId={myClinician?.id || null}
-            allClinicians={allClinicians || []}
-            currentUserId={user.id}
-          />
-        </Card>
 
         {canManage && (
           <Card title="Invite a member">
