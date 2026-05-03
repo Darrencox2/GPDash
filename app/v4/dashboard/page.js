@@ -3,8 +3,10 @@
 
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import SignOutButton from './SignOutButton';
+import AcceptInviteButton from './AcceptInviteButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +39,14 @@ export default async function DashboardPage() {
     .select('role, joined_at, practices ( id, name, ods_code )')
     .order('joined_at', { ascending: false });
 
+  // Fetch any pending invites addressed to this user's email
+  const { data: pendingInvites } = await supabase
+    .from('practice_invites')
+    .select('id, role, invited_at, expires_at, practices ( id, name )')
+    .is('accepted_at', null)
+    .is('revoked_at', null)
+    .gt('expires_at', new Date().toISOString());
+
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: 32 }}>
 
@@ -53,6 +63,32 @@ export default async function DashboardPage() {
         <SignOutButton />
       </div>
 
+      {/* Pending invites */}
+      {pendingInvites && pendingInvites.length > 0 && (
+        <Card>
+          <SectionTitle>Pending invites</SectionTitle>
+          {pendingInvites.map((inv) => (
+            <div key={inv.id} style={{
+              padding: '12px 14px',
+              background: 'rgba(245,158,11,0.08)',
+              border: '1px solid rgba(245,158,11,0.2)',
+              borderRadius: 8,
+              marginBottom: 8,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>{inv.practices.name}</div>
+                  <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 2 }}>
+                    Invited as {inv.role}
+                  </div>
+                </div>
+                <AcceptInviteButton inviteId={inv.id} />
+              </div>
+            </div>
+          ))}
+        </Card>
+      )}
+
       {/* Profile card */}
       <Card>
         <SectionTitle>Your account</SectionTitle>
@@ -64,27 +100,46 @@ export default async function DashboardPage() {
 
       {/* Practices card */}
       <Card>
-        <SectionTitle>Your practices</SectionTitle>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <SectionTitle>Your practices</SectionTitle>
+          {memberships && memberships.length > 0 && (
+            <Link href="/v4/onboarding/create-practice" style={{ fontSize: 12, color: '#34d399', textDecoration: 'none' }}>
+              + New practice
+            </Link>
+          )}
+        </div>
         {!memberships || memberships.length === 0 ? (
           <div style={{ padding: 16, textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>
               You're not a member of any practice yet.
             </p>
-            <p style={{ fontSize: 12, color: '#64748b' }}>
-              Practice creation flow coming next.
-            </p>
+            <Link href="/v4/onboarding/create-practice" style={{
+              display: 'inline-block',
+              padding: '10px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'white',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              borderRadius: 8,
+              textDecoration: 'none',
+            }}>Set up your practice</Link>
           </div>
         ) : (
           memberships.map((m) => (
-            <div key={m.practices.id} style={{
-              padding: '12px 14px',
-              background: 'rgba(255,255,255,0.04)',
-              borderRadius: 8,
-              marginBottom: 8,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
+            <Link
+              key={m.practices.id}
+              href={`/v4/practice/${m.practices.id}`}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 14px',
+                background: 'rgba(255,255,255,0.04)',
+                borderRadius: 8,
+                marginBottom: 8,
+                textDecoration: 'none',
+              }}
+            >
               <div>
                 <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>{m.practices.name}</div>
                 {m.practices.ods_code && (
@@ -99,7 +154,7 @@ export default async function DashboardPage() {
                 borderRadius: 999,
                 fontWeight: 600,
               }}>{m.role}</span>
-            </div>
+            </Link>
           ))
         )}
       </Card>
