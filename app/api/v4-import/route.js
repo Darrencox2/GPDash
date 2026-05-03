@@ -179,24 +179,34 @@ async function runImport(request, { dryRun }) {
     // — handled in step 6 after this loop.
   }
 
-  // 5b. Working patterns — derived from data.weeklyRota (which is keyed by day name).
-  // Build a per-clinician pattern object: { Mon: { am: 'in' }, Tue: ..., ... }
-  // (v3 didn't track AM/PM separately for working patterns — a clinician was either
-  // working that day or not. We default to 'in' for both AM and PM in v4.)
+  // 5b. Working patterns — derived from data.weeklyRota (keyed by day name).
+  // Clinician IDs in weeklyRota may be stored as numbers OR strings — match both
+  // by normalising to strings when looking up the v3→v4 ID map.
   const weeklyRota = v3Data.weeklyRota || {};
   const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const patternsByClinician = {}; // v3ClinId → pattern object
+
+  // Build a string-keyed lookup of clinicianIdMap
+  const clinicianIdMapByStr = {};
+  for (const [k, v] of Object.entries(clinicianIdMap)) {
+    clinicianIdMapByStr[String(k)] = v;
+  }
+
+  const patternsByClinician = {}; // v3ClinId (string) → pattern object
   for (const dayName of dayNames) {
     const cliniciansOnThisDay = Array.isArray(weeklyRota[dayName]) ? weeklyRota[dayName] : [];
     for (const v3ClinId of cliniciansOnThisDay) {
-      if (!patternsByClinician[v3ClinId]) patternsByClinician[v3ClinId] = {};
-      patternsByClinician[v3ClinId][dayName] = { am: 'in', pm: 'in' };
+      const key = String(v3ClinId);
+      if (!patternsByClinician[key]) patternsByClinician[key] = {};
+      patternsByClinician[key][dayName] = { am: 'in', pm: 'in' };
     }
   }
 
-  for (const [v3ClinId, pattern] of Object.entries(patternsByClinician)) {
-    const newClinId = clinicianIdMap[v3ClinId];
-    if (!newClinId) continue;
+  for (const [v3ClinIdStr, pattern] of Object.entries(patternsByClinician)) {
+    const newClinId = clinicianIdMapByStr[v3ClinIdStr];
+    if (!newClinId) {
+      report.warnings.push(`weeklyRota references unknown clinician id ${v3ClinIdStr} — pattern dropped`);
+      continue;
+    }
     report.counts.working_patterns_to_import += 1;
     if (!dryRun && !newClinId.startsWith('dryrun-')) {
       const { error } = await admin.from('working_patterns').insert({
@@ -207,7 +217,7 @@ async function runImport(request, { dryRun }) {
         notes: 'Imported from v3 weeklyRota',
         created_by: user.id,
       });
-      if (error) report.errors.push(`Working pattern for v3 ${v3ClinId}: ${error.message}`);
+      if (error) report.errors.push(`Working pattern for v3 ${v3ClinIdStr}: ${error.message}`);
     }
   }
 
@@ -215,8 +225,11 @@ async function runImport(request, { dryRun }) {
   const plannedAbsences = Array.isArray(v3Data.plannedAbsences) ? v3Data.plannedAbsences : [];
   for (const ab of plannedAbsences) {
     if (!ab.clinicianId || !ab.startDate || !ab.endDate) continue;
-    const newClinId = clinicianIdMap[ab.clinicianId];
-    if (!newClinId) continue;
+    const newClinId = clinicianIdMapByStr[String(ab.clinicianId)];
+    if (!newClinId) {
+      report.warnings.push(`Absence references unknown clinician id ${ab.clinicianId} — skipped`);
+      continue;
+    }
     report.counts.absences_to_import += 1;
     if (!dryRun && !newClinId.startsWith('dryrun-')) {
       const { error } = await admin.from('absences').insert({
@@ -326,8 +339,11 @@ async function runImport(request, { dryRun }) {
   // 10. Rota notes (nested: { v3ClinId: { 'YYYY-MM-DD': 'note text' } })
   const rotaNotes = v3Data.rotaNotes || {};
   for (const [v3ClinId, dateNotes] of Object.entries(rotaNotes)) {
-    const newClinId = clinicianIdMap[v3ClinId];
-    if (!newClinId) continue;
+    const newClinId = clinicianIdMapByStr[String(v3ClinId)];
+    if (!newClinId) {
+      report.warnings.push(`Rota notes reference unknown clinician id ${v3ClinId} — skipped`);
+      continue;
+    }
     if (typeof dateNotes !== 'object') continue;
     for (const [date, noteText] of Object.entries(dateNotes)) {
       if (!noteText) continue;
