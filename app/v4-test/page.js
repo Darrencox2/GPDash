@@ -29,29 +29,34 @@ export default async function V4Test() {
     try {
       const cookieStore = await cookies();
       const supabase = createClient(cookieStore);
-      // Check auth (no user yet — that's expected, we just want it to not crash)
-      const { data: { user } } = await supabase.auth.getUser();
-      authStatus = user ? `signed in as ${user.email}` : 'no user signed in (expected)';
-      connectionStatus = 'ok';
-
-      // Try reading the practices table — confirms schema migration ran
-      const { data: practices, error: dbErr } = await supabase
-        .from('practices')
-        .select('id, name')
-        .limit(5);
-
-      if (dbErr) {
-        if (dbErr.code === '42P01') {
-          // relation does not exist
-          dbStatus = 'no schema';
-          dbDetail = 'Tables not created yet. Run migration 001_practices_users_membership.sql in Supabase SQL editor.';
-        } else {
-          dbStatus = 'error';
-          dbDetail = `${dbErr.code || 'unknown'}: ${dbErr.message}`;
-        }
+      if (!supabase) {
+        connectionStatus = 'failed';
+        detail = 'createClient returned null';
       } else {
-        dbStatus = 'ok';
-        dbDetail = `Read ${practices.length} practice row(s) — RLS working (anonymous user sees 0 rows).`;
+        // Check auth (no user yet — that's expected, we just want it to not crash)
+        const { data: { user } } = await supabase.auth.getUser();
+        authStatus = user ? `signed in as ${user.email}` : 'no user signed in (expected)';
+        connectionStatus = 'ok';
+
+        // Try reading the practices table — confirms schema migration ran
+        const { data: practices, error: dbErr } = await supabase
+          .from('practices')
+          .select('id, name')
+          .limit(5);
+
+        if (dbErr) {
+          if (dbErr.code === '42P01') {
+            // relation does not exist
+            dbStatus = 'no schema';
+            dbDetail = 'Tables not created yet. Run migration 001_practices_users_membership.sql in Supabase SQL editor.';
+          } else {
+            dbStatus = 'error';
+            dbDetail = `${dbErr.code || 'unknown'}: ${dbErr.message}`;
+          }
+        } else {
+          dbStatus = 'ok';
+          dbDetail = `Read ${practices.length} practice row(s) — RLS working (anonymous user sees 0 rows).`;
+        }
       }
     } catch (err) {
       connectionStatus = 'failed';
