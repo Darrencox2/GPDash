@@ -96,15 +96,17 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
       const matchedCsvNames = new Set();
       const cInitials = (c.initials || '').toUpperCase();
 
+      // Collect per-day appearances, recording which dates they appeared on.
+      // We need the dates (not just counts) for the fallback strategy below.
+      const appearancesByDay = { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] };
+      const availableWeeksByDay = { Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0 };
+
       for (const day of DAYS) {
         const dates = datesByDay[day] || [];
-        if (dates.length === 0) continue;
-        let appeared = 0;
-        let availableWeeks = 0;  // weeks where the clinician was NOT on leave for this weekday
         for (const dateStr of dates) {
           const dateMs = parseHuddleDateStr(dateStr).getTime();
           const onLeave = wasOnLeave(c.id, dateMs);
-          if (!onLeave) availableWeeks++;
+          if (!onLeave) availableWeeksByDay[day]++;
 
           const cap = getHuddleCapacity(huddleData, dateStr, hs);
           if (!cap) continue;
@@ -127,19 +129,56 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
 
           const hasAny = (inAm && (inAm.available > 0 || inAm.booked > 0 || inAm.embargoed > 0))
                       || (inPm && (inPm.available > 0 || inPm.booked > 0 || inPm.embargoed > 0));
-          if (hasAny) appeared++;
+          if (hasAny) appearancesByDay[day].push({ dateStr, dateMs });
         }
+      }
 
-        // Decision: did they work this weekday?
-        // - Standard rule: appeared in at least 50% of NON-LEAVE weeks
-        // - Sparse-history fallback: if leave covers most weeks but they
-        //   appeared at least once on a non-leave week, count it as theirs
-        //   (handles clinicians returning from extended absence)
+      // ─── PRIMARY DECISION: standard ≥50% threshold against leave-adjusted denominator ───
+      for (const day of DAYS) {
+        const dates = datesByDay[day] || [];
+        if (dates.length === 0) continue;
+        const appeared = appearancesByDay[day].length;
+        const availableWeeks = availableWeeksByDay[day];
         const denominator = availableWeeks > 0 ? availableWeeks : dates.length;
         const ratio = appeared / denominator;
         const heavilyOnLeave = (dates.length - availableWeeks) > dates.length / 2;
         if (ratio >= 0.5 || (heavilyOnLeave && appeared >= 1)) {
           daysWorking.push(day);
+        }
+      }
+
+      // ─── FALLBACK: primary returned nothing → look at most recent activity ───
+      // Useful when a clinician's history is sparse (long absence, recent return,
+      // schedule change, parental leave etc) and the strict ratio fails.
+      // Strategy: gather all dates this clinician appeared (any weekday, in
+      // chronological order), take the most recent ~10 dates that span at most
+      // 4 weeks, and consider those weekdays their pattern.
+      let isFallback = false;
+      if (daysWorking.length === 0 && matchedCsvNames.size > 0) {
+        // They were matched in CSV but no weekday hit the threshold.
+        // Gather all appearance entries flattened
+        const allAppearances = [];
+        for (const day of DAYS) {
+          for (const a of appearancesByDay[day]) {
+            allAppearances.push({ ...a, day });
+          }
+        }
+        // Sort newest first
+        allAppearances.sort((a, b) => b.dateMs - a.dateMs);
+        if (allAppearances.length > 0) {
+          // Take appearances from the most recent 4-week window
+          const cutoff = allAppearances[0].dateMs - (4 * 7 * 86400_000);
+          const recentSet = new Set();
+          for (const a of allAppearances) {
+            if (a.dateMs < cutoff) break;
+            recentSet.add(a.day);
+          }
+          if (recentSet.size > 0) {
+            for (const day of DAYS) {
+              if (recentSet.has(day)) daysWorking.push(day);
+            }
+            isFallback = true;
+          }
         }
       }
       debugMatches[c.id] = matchedCsvNames;
@@ -160,6 +199,10 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
         initials: c.initials,
         days: daysWorking.map(d => d.slice(0,3)).join(' ') || '—',
         matchedAs: matchedCsvNames.size > 0 ? [...matchedCsvNames][0] : null,
+        isFallback,
+        // "Data incomplete" = no days could be inferred at all (neither primary
+        // nor fallback). User needs to set this manually.
+        incomplete: daysWorking.length === 0,
       });
     }
 
@@ -190,36 +233,57 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
       {genReport?.error && (
         <div className="card p-3 bg-red-50 border border-red-200 text-sm text-red-800">{genReport.error}</div>
       )}
-      {genReport?.summary && (
-        <div className="card p-4 bg-purple-50 border border-purple-200">
-          <div className="text-sm font-medium text-purple-900 mb-2">Auto-generated pattern from {genReport.weeksAnalysed} weeks of CSV data</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-slate-700">
-            {genReport.summary.map(s => (
-              <div key={s.initials || s.name} className="flex items-center gap-2 py-0.5">
-                <span className="font-mono font-semibold w-10 flex-shrink-0">{s.initials}</span>
-                <span className="text-slate-700 flex-shrink-0">{s.days}</span>
-                {!s.matchedAs && <span className="text-amber-600 text-[10px] italic ml-auto">no CSV match</span>}
-                {s.matchedAs && <span className="text-slate-400 text-[10px] truncate ml-auto" title={s.matchedAs}>= {s.matchedAs}</span>}
-              </div>
-            ))}
+      {genReport?.summary && (() => {
+        const incompleteSet = new Set(genReport.summary.filter(s => s.incomplete).map(s => s.initials || s.name));
+        const incompleteCount = incompleteSet.size;
+        const fallbackCount = genReport.summary.filter(s => s.isFallback).length;
+        return (
+          <div className="card p-4 bg-purple-50 border border-purple-200">
+            <div className="text-sm font-medium text-purple-900 mb-2">Auto-generated pattern from {genReport.weeksAnalysed} weeks of CSV data</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-slate-700">
+              {genReport.summary.map(s => (
+                <div key={s.initials || s.name} className={`flex items-center gap-2 py-0.5 px-2 -mx-2 rounded ${s.incomplete ? 'bg-red-50' : s.isFallback ? 'bg-amber-50' : ''}`}>
+                  <span className="font-mono font-semibold w-10 flex-shrink-0">{s.initials}</span>
+                  <span className={`flex-shrink-0 ${s.incomplete ? 'text-red-700 font-medium' : 'text-slate-700'}`}>{s.days}</span>
+                  {s.incomplete && <span className="text-red-600 text-[10px] font-semibold uppercase ml-auto">data incomplete</span>}
+                  {!s.incomplete && s.isFallback && <span className="text-amber-700 text-[10px] italic ml-auto" title="Inferred from recent activity rather than the full window">recent activity only</span>}
+                  {!s.incomplete && !s.isFallback && s.matchedAs && <span className="text-slate-400 text-[10px] truncate ml-auto" title={s.matchedAs}>= {s.matchedAs}</span>}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 space-y-1 text-xs text-slate-500">
+              <p>
+                <span className="font-medium text-slate-700">Standard rule:</span> a clinician is marked working a day if they appeared in CSV data for that weekday in at least 50% of weeks they weren't on planned leave.
+              </p>
+              {fallbackCount > 0 && (
+                <p>
+                  <span className="font-medium text-amber-700">Recent activity only ({fallbackCount}):</span> the standard rule found no days, so we inferred their pattern from the most recent 4 weeks of activity instead. Useful for clinicians returning from extended leave.
+                </p>
+              )}
+              {incompleteCount > 0 && (
+                <p>
+                  <span className="font-medium text-red-700">Data incomplete ({incompleteCount}):</span> couldn't infer any working days at all (no CSV history, or name and initials don't match anything in the CSV). Set manually using the cells below.
+                </p>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mt-3">
-            A clinician is marked as working a day if they appeared in CSV data on that weekday in at least 50% of weeks they weren't on planned leave. Clinicians returning from extended absence are detected even from a single appearance. Anyone showing 'no CSV match' couldn't be found in the CSV at all — edit those manually below.
-          </p>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="card p-5">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead><tr className="border-b border-slate-200"><th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide">Clinician</th>{DAYS.map(d => <th key={d} className="text-center py-2.5 px-3 text-xs font-medium text-slate-500 uppercase tracking-wide w-20">{d.slice(0, 3)}</th>)}</tr></thead>
             <tbody>
-              {buddyCoverClinicians.map(c => (
-                <tr key={c.id} className="border-b border-slate-100 last:border-0">
-                  <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="initials-badge neutral">{c.initials}</div><div><div className="text-sm font-medium text-slate-900">{c.name}</div><div className="text-xs text-slate-500">{c.role}</div></div></div></td>
-                  {DAYS.map(d => { const w = ensureArray(data.weeklyRota[d]).includes(c.id); return <td key={d} className="text-center py-3 px-3"><button onClick={() => toggleRotaDay(c.id, d)} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors mx-auto text-sm ${w ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{w ? '✓' : '—'}</button></td>; })}
-                </tr>
-              ))}
+              {buddyCoverClinicians.map(c => {
+                const isIncomplete = genReport?.summary?.some(s => (s.initials === c.initials || s.name === c.name) && s.incomplete);
+                return (
+                  <tr key={c.id} className={`border-b border-slate-100 last:border-0 ${isIncomplete ? 'bg-red-50' : ''}`}>
+                    <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="initials-badge neutral">{c.initials}</div><div><div className="text-sm font-medium text-slate-900 flex items-center gap-2">{c.name} {isIncomplete && <span className="text-[10px] font-semibold uppercase text-red-600 px-1.5 py-0.5 bg-red-100 rounded">Set manually</span>}</div><div className="text-xs text-slate-500">{c.role}</div></div></div></td>
+                    {DAYS.map(d => { const w = ensureArray(data.weeklyRota[d]).includes(c.id); return <td key={d} className="text-center py-3 px-3"><button onClick={() => toggleRotaDay(c.id, d)} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors mx-auto text-sm ${w ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{w ? '✓' : '—'}</button></td>; })}
+                  </tr>
+                );
+              })}
               {buddyCoverClinicians.length === 0 && (
                 <tr><td colSpan={DAYS.length + 1} className="text-center py-8 text-sm text-slate-500">
                   No clinicians marked for buddy cover. Go to Team → toggle 'Buddy cover' for the people you want included.
