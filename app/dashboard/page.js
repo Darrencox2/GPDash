@@ -19,6 +19,7 @@ import { Suspense } from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DAYS, getWeekStart, getCurrentDay, generateBuddyAllocations, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
+import { predictDemand } from '@/lib/demandPredictor';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import BuddyDaily from '@/components/buddy/BuddyDaily';
@@ -250,8 +251,26 @@ function DashboardContent() {
   const getTodayKey = () => toLocalIso(new Date());
   const isPastDate = (dateKey) => dateKey < getTodayKey();
   const isToday = (dateKey) => dateKey === getTodayKey();
-  const isClosedDay = (dateKey) => data?.closedDays?.[dateKey] !== undefined;
-  const getClosedReason = (dateKey) => data?.closedDays?.[dateKey] || '';
+  const isClosedDay = (dateKey) => {
+    // Manual entry in data.closedDays still wins
+    if (data?.closedDays?.[dateKey] !== undefined) return true;
+    // Auto-detect bank holidays from the demand predictor
+    try {
+      const d = new Date(dateKey + 'T12:00:00');
+      const pred = predictDemand(d, null);
+      if (pred?.isBankHoliday) return true;
+    } catch {}
+    return false;
+  };
+  const getClosedReason = (dateKey) => {
+    if (data?.closedDays?.[dateKey] !== undefined) return data.closedDays[dateKey];
+    try {
+      const d = new Date(dateKey + 'T12:00:00');
+      const pred = predictDemand(d, null);
+      if (pred?.isBankHoliday) return 'Bank Holiday';
+    } catch {}
+    return '';
+  };
   const toggleClosedDay = (dateKey, reason = 'Bank Holiday') => { if (isPastDate(dateKey)) return; const newClosedDays = { ...data.closedDays }; if (newClosedDays[dateKey]) delete newClosedDays[dateKey]; else newClosedDays[dateKey] = reason; saveData({ ...data, closedDays: newClosedDays }); };
   const hasPlannedAbsence = (clinicianId, dateKey) => ensureArray(data?.plannedAbsences).some(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate);
   const getPlannedAbsenceReason = (clinicianId, dateKey) => { const absence = ensureArray(data?.plannedAbsences).find(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate); return absence?.reason || 'Leave'; };
