@@ -104,8 +104,18 @@ function DashboardContent() {
         }
         const json = await res.json();
         if (cancelled) return;
-        setData(normalizeData(json));
+        const normalised = normalizeData(json);
+        setData(normalised);
         if (json.huddleCsvData) setHuddleData(json.huddleCsvData);
+
+        // If the user is linked to a clinician AND no rota hash is set, set
+        // it now so MyRota will default to "me"
+        if (normalised._v4?.linkedClinicianId && typeof window !== 'undefined') {
+          const me = normalised.clinicians?.find(c => c.id === normalised._v4.linkedClinicianId);
+          if (me?.initials && !window.location.hash.startsWith('#rota-')) {
+            window.location.hash = `rota-${me.initials}`;
+          }
+        }
       } catch (err) {
         if (!cancelled) toast('Failed to load data', 'error');
       } finally {

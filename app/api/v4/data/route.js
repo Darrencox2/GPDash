@@ -63,8 +63,18 @@ export async function GET(request) {
   }
   v3Shape.rotaNotes = rotaNotesMap;
 
+  // Find which clinician (if any) is linked to the calling user
+  const myClinician = (v4Data.clinicians || []).find(c => c.linked_user_id === user.id);
+
   // Add a v4 marker so the client knows it's running in v4 mode
-  v3Shape._v4 = { practiceId, practiceName: v4Data.practice.name, userId: user.id };
+  v3Shape._v4 = {
+    practiceId,
+    practiceName: v4Data.practice.name,
+    userId: user.id,
+    userEmail: user.email,
+    linkedClinicianId: myClinician?.id || null,
+    linkedClinicianName: myClinician?.name || null,
+  };
 
   return NextResponse.json(v3Shape);
 }

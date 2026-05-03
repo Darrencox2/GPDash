@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import InviteForm from './InviteForm';
+import ClinicianLinker from './ClinicianLinker';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +47,22 @@ export default async function PracticeAdminPage({ params }) {
     .eq('practice_id', practiceId)
     .is('accepted_at', null)
     .order('created_at', { ascending: false });
+
+  // Find the clinician (if any) currently linked to me
+  const { data: myClinician } = await supabase
+    .from('clinicians')
+    .select('id, name, initials, role')
+    .eq('practice_id', practiceId)
+    .eq('linked_user_id', user.id)
+    .maybeSingle();
+
+  // All active clinicians for the linker dropdown
+  const { data: allClinicians } = await supabase
+    .from('clinicians')
+    .select('id, name, initials, role, linked_user_id')
+    .eq('practice_id', practiceId)
+    .eq('status', 'active')
+    .order('name');
 
   const canManage = myMembership.role === 'owner' || myMembership.role === 'admin';
 
@@ -114,6 +131,22 @@ export default async function PracticeAdminPage({ params }) {
             ))}
           </Card>
         )}
+
+        <Card title="Your clinician record">
+          {myClinician ? (
+            <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>
+              You're linked to <strong style={{ color: 'white' }}>{myClinician.name}</strong>
+              {myClinician.initials && <span style={{ color: '#64748b' }}> ({myClinician.initials})</span>}
+              {myClinician.role && <span style={{ color: '#64748b' }}> · {myClinician.role}</span>}.
+            </p>
+          ) : null}
+          <ClinicianLinker
+            practiceId={practiceId}
+            currentLinkedClinicianId={myClinician?.id || null}
+            allClinicians={allClinicians || []}
+            currentUserId={user.id}
+          />
+        </Card>
 
         {canManage && (
           <Card title="Invite a member">
