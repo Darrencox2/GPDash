@@ -94,8 +94,10 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
     const alloc = data.allocationHistory?.[isoKey];
     const covers = [];
     if (alloc) {
-      Object.entries(alloc.allocations || {}).forEach(([aid, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(aid)); if (c) covers.push({ ...c, coverType: 'fileAction' }); } });
-      Object.entries(alloc.dayOffAllocations || {}).forEach(([did, bid]) => { if (parseInt(bid) === selected.id) { const c = clinicians.find(cl => cl.id === parseInt(did)); if (c) covers.push({ ...c, coverType: 'viewOnly' }); } });
+      // Coerce IDs: numeric → number (v3 legacy), UUID → string (v4)
+      const coerceId = (id) => /^\d+$/.test(String(id)) ? parseInt(id) : String(id);
+      Object.entries(alloc.allocations || {}).forEach(([aid, bid]) => { if (coerceId(bid) === selected.id) { const c = clinicians.find(cl => coerceId(cl.id) === coerceId(aid)); if (c) covers.push({ ...c, coverType: 'fileAction' }); } });
+      Object.entries(alloc.dayOffAllocations || {}).forEach(([did, bid]) => { if (coerceId(bid) === selected.id) { const c = clinicians.find(cl => coerceId(cl.id) === coerceId(did)); if (c) covers.push({ ...c, coverType: 'viewOnly' }); } });
     }
     return { amIn, pmIn, amLoc: am?.location, pmLoc: pm?.location, amDuty: amDuty && matchesStaffMember(amDuty.name, selected), pmDuty: pmDuty && matchesStaffMember(pmDuty.name, selected), absence: absence?.reason, covers };
   };
