@@ -117,8 +117,11 @@ export async function POST(request) {
   const newData = await request.json();
   if (!newData) return NextResponse.json({ error: 'Body required' }, { status: 400 });
 
-  // Load current state from DB to diff against
-  const v4Data = await loadPracticeData(supabase, practiceId);
+  // Only load CSV data when the incoming save actually contains CSV changes —
+  // otherwise we're loading hundreds of KB just to throw it away. The presence
+  // of `huddleCsvData` on the incoming body indicates a CSV upload happened.
+  const needsCsv = newData.huddleCsvData != null;
+  const v4Data = await loadPracticeData(supabase, practiceId, { skipCsv: !needsCsv });
   const oldData = adaptToV3Shape(v4Data);
 
   const errors = [];

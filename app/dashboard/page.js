@@ -67,6 +67,7 @@ function DashboardContent() {
   const [huddleData, setHuddleData] = useState(null);
   const [huddleMessages, setHuddleMessages] = useState([]);
   const huddleLoadedRef = useRef(false);
+  const lastSentCsvRef = useRef(null);  // tracks the last CSV reference we sent to the server, for save-time bandwidth optimisation
 
   // 1. Auth check + practice selection check
   useEffect(() => {
@@ -123,7 +124,10 @@ function DashboardContent() {
         if (cancelled) return;
         const normalised = normalizeData(json);
         setData(normalised);
-        if (json.huddleCsvData) setHuddleData(json.huddleCsvData);
+        if (json.huddleCsvData) {
+          setHuddleData(json.huddleCsvData);
+          lastSentCsvRef.current = json.huddleCsvData;  // baseline for diff
+        }
 
         // If the user is linked to a clinician AND no rota hash is set, set
         // it now so MyRota will default to "me"
@@ -256,11 +260,25 @@ function DashboardContent() {
 
     setData(newData);
     setDataVersion(v => v + 1);
+
+    // Strip huddleCsvData from the wire body unless it actually changed.
+    // CSV data can be hundreds of KB; sending it on every save (including
+    // routine In/Out toggles) thrashes bandwidth. We compare reference
+    // identity against the last-known data — if the user uploaded a new CSV,
+    // setData() will have replaced the reference; otherwise it's the same
+    // object and we can omit it from the wire payload.
+    const currentCsvRef = lastSentCsvRef.current;
+    const csvChanged = newData.huddleCsvData && newData.huddleCsvData !== currentCsvRef;
+    const bodyToSend = csvChanged ? newData : { ...newData, huddleCsvData: undefined };
+    if (csvChanged) {
+      lastSentCsvRef.current = newData.huddleCsvData;
+    }
+
     try {
       const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newData),
+        body: JSON.stringify(bodyToSend),
       });
       const result = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -308,13 +326,23 @@ function DashboardContent() {
   const hasPlannedAbsence = (clinicianId, dateKey) => ensureArray(data?.plannedAbsences).some(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate);
   const getPlannedAbsenceReason = (clinicianId, dateKey) => { const absence = ensureArray(data?.plannedAbsences).find(a => a.clinicianId === clinicianId && dateKey >= a.startDate && dateKey <= a.endDate); return absence?.reason || 'Leave'; };
   const getScheduledForDay = (day) => { const dateKey = getDateKeyForDay(day); const dayKey = `${dateKey}-${day}`; if (data?.dailyOverrides?.[dayKey]?.scheduled) return ensureArray(data.dailyOverrides[dayKey].scheduled); const rota = ensureArray(data?.weeklyRota?.[day]); return rota.filter(id => { const c = data?.clinicians?.find(c => c.id === id); return c && !c.longTermAbsent; }); };
-  const dayStatusCache = useRef({});
+  // Cache day-status computations keyed by (dateKey, day, dataVersion).
+  // The previous implementation reset the entire cache on every miss,
+  // making it useless. Now we accumulate but evict stale entries (those
+  // from a previous dataVersion) to bound memory.
+  const dayStatusCache = useRef({ version: 0, entries: {} });
   const getCachedDayStatus = (dateKey, day) => {
-    const cacheKey = `${dateKey}-${day}-${dataVersion}`;
-    if (!dayStatusCache.current[cacheKey]) {
-      dayStatusCache.current = { [cacheKey]: computeDayStatus(data, dateKey, day) };
+    const cache = dayStatusCache.current;
+    if (cache.version !== dataVersion) {
+      // dataVersion bumped — drop stale entries
+      cache.version = dataVersion;
+      cache.entries = {};
     }
-    return dayStatusCache.current[cacheKey] || computeDayStatus(data, dateKey, day);
+    const cacheKey = `${dateKey}-${day}`;
+    if (cache.entries[cacheKey] === undefined) {
+      cache.entries[cacheKey] = computeDayStatus(data, dateKey, day);
+    }
+    return cache.entries[cacheKey];
   };
   const getPresentClinicians = (day) => getCachedDayStatus(getDateKeyForDay(day), day).present;
   const getAbsentClinicians = (day) => getCachedDayStatus(getDateKeyForDay(day), day).absent;
