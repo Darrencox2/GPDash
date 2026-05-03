@@ -33,10 +33,12 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single();
 
-  // Fetch practices the user belongs to (RLS handles isolation)
+  // Fetch practices the user belongs to (RLS allows seeing other members of
+  // the same practice, so we explicitly filter to only the current user's rows)
   const { data: memberships } = await supabase
     .from('practice_users')
     .select('role, joined_at, practices ( id, name, ods_code )')
+    .eq('user_id', user.id)
     .order('joined_at', { ascending: false });
 
   // Fetch any pending invites addressed to this user's email.
