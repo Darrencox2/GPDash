@@ -74,8 +74,14 @@ export default async function PracticeDetailPage({ params }) {
             fontWeight: 600,
             fontSize: 11,
           }}>You: {myRole}</span>
-          <Link href={`/v4/practice/${practiceId}/data`} style={{
+          <Link href={`/v4/practice/${practiceId}/whos-in`} style={{
             marginLeft: 'auto',
+            color: '#34d399',
+            textDecoration: 'none',
+            fontSize: 12,
+            fontWeight: 500,
+          }}>Who's in →</Link>
+          <Link href={`/v4/practice/${practiceId}/data`} style={{
             color: '#a78bfa',
             textDecoration: 'none',
             fontSize: 12,
