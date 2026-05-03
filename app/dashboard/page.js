@@ -375,17 +375,6 @@ function DashboardContent() {
     <div className={`min-h-screen flex ${'bg-[#0f172a]'}`}>
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <main className={`flex-1 min-h-screen min-w-0 ${'bg-[#0f172a]'}`}>
-        {/* Temporary diagnostic strip — remove once buddy cover is verified */}
-        {data._v4 && (
-          <div style={{ padding: '6px 16px', fontSize: 11, color: '#64748b', borderBottom: '1px solid rgba(255,255,255,0.04)', fontFamily: 'monospace' }}>
-            v4 diag: closedDays={Object.keys(data.closedDays || {}).length} ·
-            allocations={Object.keys(data.allocationHistory || {}).length} ·
-            rota={Object.values(data.weeklyRota || {}).reduce((s, a) => s + (a?.length || 0), 0)} ·
-            clinicians={data.clinicians?.length || 0} ·
-            buddyCover={data.clinicians?.filter(c => c.buddyCover && c.status === 'active').length || 0} ·
-            absences={data.plannedAbsences?.length || 0}
-          </div>
-        )}
         <div className="max-w-6xl mx-auto p-4 lg:p-6 animate-in">
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
@@ -394,7 +383,7 @@ function DashboardContent() {
           {activeSection === 'workload-audit' && <WorkloadAudit data={data} huddleData={huddleData} />}
           {activeSection === 'qof-tracker' && <div className="card p-12 text-center"><div className="text-3xl mb-3">📋</div><h2 className="text-lg font-semibold text-slate-900">QOF Tracker</h2><p className="text-sm text-slate-500 mt-2">Coming soon — track QOF indicators and achievement rates.</p></div>}
           {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} />}
-          {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} />}
+          {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'changelog' && <Changelog />}
           {activeSection === 'room-settings' && <RoomSettings data={data} saveData={saveData} toast={toast} huddleData={huddleData} />}
