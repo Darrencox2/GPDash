@@ -117,6 +117,21 @@ export async function POST(request) {
   const newData = await request.json();
   if (!newData) return NextResponse.json({ error: 'Body required' }, { status: 400 });
 
+  // FAST PATH: detect saves that only contain "delta" fields (overrides,
+  // allocations, notes, settings, lastSyncTime). These are the high-frequency
+  // saves — In/Out toggles, note edits, buddy generation, sync timestamp.
+  // For these, we skip loading all practice data (no diff needed) and just
+  // do targeted upserts.
+  //
+  // Slow path (load + diff) is only taken when the incoming body contains
+  // structural changes: clinicians, weeklyRota, plannedAbsences, closedDays,
+  // huddleCsvData, etc.
+  const SLOW_PATH_KEYS = ['clinicians', 'weeklyRota', 'plannedAbsences', 'closedDays', 'huddleCsvData', 'huddleSettings', 'settings', 'roomAllocation', 'teamnetUrl', 'savedSlotFilters', 'expectedCapacity'];
+  const hasSlowPathData = SLOW_PATH_KEYS.some(k => newData[k] !== undefined);
+  if (!hasSlowPathData) {
+    return await handleFastPath(supabase, practiceId, user, newData);
+  }
+
   // Only load CSV data when the incoming save actually contains CSV changes —
   // otherwise we're loading hundreds of KB just to throw it away. The presence
   // of `huddleCsvData` on the incoming body indicates a CSV upload happened.
@@ -418,4 +433,79 @@ export async function POST(request) {
     return NextResponse.json({ ok: false, errors, op_count: ops.length }, { status: 207 });
   }
   return NextResponse.json({ ok: true, op_count: ops.length });
+}
+
+
+// Fast path: handles "delta" saves (no diff needed). Used when the
+// incoming body only contains: dailyOverrides, allocationHistory,
+// rotaNotes, lastSyncTime, savedSlotFilters, expectedCapacity.
+//
+// We don't need to read the full practice data to compute these —
+// they're either upserts (allocations, notes) or whole-blob writes
+// (overrides into extras JSONB).
+async function handleFastPath(supabase, practiceId, user, newData) {
+  const ops = [];
+  const errors = [];
+
+  // ─── allocationHistory → buddy_allocations ─────────────────────────
+  if (newData.allocationHistory) {
+    for (const date of Object.keys(newData.allocationHistory)) {
+      const entry = newData.allocationHistory[date];
+      if (!entry) continue;
+      ops.push(supabase.from('buddy_allocations').upsert({
+        practice_id: practiceId,
+        date,
+        allocations: entry,
+      }));
+    }
+  }
+
+  // ─── rotaNotes → rota_notes table ─────────────────────────────────
+  if (newData.rotaNotes) {
+    for (const cid of Object.keys(newData.rotaNotes)) {
+      const dates = newData.rotaNotes[cid] || {};
+      for (const date of Object.keys(dates)) {
+        const note = (dates[date] || '').trim();
+        if (note === '') {
+          ops.push(supabase.from('rota_notes').delete().eq('clinician_id', cid).eq('date', date));
+        } else {
+          ops.push(supabase.from('rota_notes').upsert({ clinician_id: cid, date, note }));
+        }
+      }
+    }
+  }
+
+  // ─── dailyOverrides + lastSyncTime → practice_settings.extras ─────
+  // For these we need to read current extras (so we don't clobber sibling
+  // keys), but only the extras column — much lighter than loadPracticeData.
+  const needsExtrasRead = newData.dailyOverrides !== undefined ||
+                          newData.lastSyncTime !== undefined ||
+                          newData.savedSlotFilters !== undefined ||
+                          newData.expectedCapacity !== undefined;
+  if (needsExtrasRead) {
+    const { data: settingsRow } = await supabase.from('practice_settings')
+      .select('extras')
+      .eq('practice_id', practiceId)
+      .maybeSingle();
+    const oldExtras = settingsRow?.extras || {};
+    let changed = false;
+    const newExtras = { ...oldExtras };
+    if (newData.dailyOverrides !== undefined) { newExtras.dailyOverrides = newData.dailyOverrides; changed = true; }
+    if (newData.lastSyncTime !== undefined) { newExtras.lastTeamnetSync = newData.lastSyncTime; changed = true; }
+    if (newData.savedSlotFilters !== undefined) { newExtras.savedSlotFilters = newData.savedSlotFilters; changed = true; }
+    if (newData.expectedCapacity !== undefined) { newExtras.expectedCapacity = newData.expectedCapacity; changed = true; }
+    if (changed) {
+      ops.push(supabase.from('practice_settings').update({ extras: newExtras }).eq('practice_id', practiceId));
+    }
+  }
+
+  if (ops.length > 0) {
+    const results = await Promise.all(ops.map(p => p.then ? p : Promise.resolve(p)));
+    for (const r of results) if (r?.error) errors.push(r.error.message);
+  }
+
+  if (errors.length > 0) {
+    return NextResponse.json({ ok: false, errors, op_count: ops.length }, { status: 207 });
+  }
+  return NextResponse.json({ ok: true, op_count: ops.length, fastPath: true });
 }

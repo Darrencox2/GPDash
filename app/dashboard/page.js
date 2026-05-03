@@ -15,26 +15,30 @@
 // Sidebar, same activeSection switching, same components. Components
 // don't know they're talking to Postgres.
 
-import { Suspense } from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, lazy } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DAYS, getWeekStart, getCurrentDay, generateBuddyAllocations, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
-import BuddyDaily from '@/components/buddy/BuddyDaily';
-import TeamMembers from '@/components/buddy/TeamMembers';
-import TeamRota from '@/components/buddy/TeamRota';
-import BuddySettings from '@/components/buddy/BuddySettings';
-import HuddleToday from '@/components/huddle/HuddleToday';
-import HuddleForward from '@/components/huddle/HuddleForward';
-import WorkloadAudit from '@/components/huddle/WorkloadAudit';
-import MyRota from '@/components/huddle/MyRota';
-import RoomSettings from '@/components/room/RoomSettings';
-import RoomDashboard from '@/components/room/RoomDashboard';
-import Changelog from '@/components/Changelog';
-import AccountSettings from '@/components/AccountSettings';
 import { createClient } from '@/utils/supabase/client';
+
+// Lazy-load section components — they're each 50–200KB with heavy
+// dependencies. Loading them on demand cuts initial bundle dramatically
+// and means the user doesn't pay for sections they never visit.
+const BuddyDaily = lazy(() => import('@/components/buddy/BuddyDaily'));
+const TeamMembers = lazy(() => import('@/components/buddy/TeamMembers'));
+const TeamRota = lazy(() => import('@/components/buddy/TeamRota'));
+const BuddySettings = lazy(() => import('@/components/buddy/BuddySettings'));
+const HuddleToday = lazy(() => import('@/components/huddle/HuddleToday'));
+const HuddleForward = lazy(() => import('@/components/huddle/HuddleForward'));
+const WorkloadAudit = lazy(() => import('@/components/huddle/WorkloadAudit'));
+const MyRota = lazy(() => import('@/components/huddle/MyRota'));
+const RoomSettings = lazy(() => import('@/components/room/RoomSettings'));
+const RoomDashboard = lazy(() => import('@/components/room/RoomDashboard'));
+const Changelog = lazy(() => import('@/components/Changelog'));
+const AccountSettings = lazy(() => import('@/components/AccountSettings'));
 
 export default function DashboardRoot() {
   return (
@@ -221,12 +225,59 @@ function DashboardContent() {
     return d;
   };
 
-  // ─── saveData → POSTs to /api/v4/data ─────────────────────────────
-  const saveData = async (newData, showIndicator = true) => {
-    // Pre-process: any clinician with a non-UUID id gets a fresh UUID,
-    // and we update all references in weeklyRota / dailyOverrides /
-    // plannedAbsences to point at the new id. v3 components used
-    // numeric IDs (Date.now()); v4 needs UUIDs.
+  // ─── saveData — debounced, optimistic ──────────────────────────────
+  // Rapid In/Out toggles, note edits etc. used to fire one fetch per
+  // click. With network latency that meant 500ms+ per action. Now:
+  //
+  //   1. setData() updates UI immediately (already optimistic)
+  //   2. The actual POST is debounced 250ms — multiple saves coalesce
+  //   3. The "latest" data wins because we save state.dataRef.current
+  //      at flush time, so we always POST the freshest data
+  //
+  // This means clicking In/Out 5 times rapidly = 1 network round-trip
+  // instead of 5. Save still happens within ~300ms of the last click.
+  const pendingSaveRef = useRef({ timer: null, latestData: null, showIndicator: false, pendingResolves: [] });
+
+  const flushSave = useCallback(async () => {
+    const pending = pendingSaveRef.current;
+    if (!pending.latestData) return;
+    const dataToSend = pending.latestData;
+    const showIndicator = pending.showIndicator;
+    const resolves = pending.pendingResolves;
+    pending.latestData = null;
+    pending.showIndicator = false;
+    pending.pendingResolves = [];
+    pending.timer = null;
+
+    // Strip huddleCsvData from the wire body unless it actually changed
+    const csvChanged = dataToSend.huddleCsvData && dataToSend.huddleCsvData !== lastSentCsvRef.current;
+    const bodyToSend = csvChanged ? dataToSend : { ...dataToSend, huddleCsvData: undefined };
+    if (csvChanged) lastSentCsvRef.current = dataToSend.huddleCsvData;
+
+    try {
+      const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyToSend),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(result.error || 'Save failed', 'error');
+      } else if (result.errors?.length) {
+        toast(`Partial save: ${result.errors.length} errors`, 'error');
+      } else if (showIndicator) {
+        toast('Saved', 'success', 1500);
+      }
+      resolves.forEach(r => r(result));
+    } catch (err) {
+      console.error('Save failed:', err);
+      toast('Save failed', 'error');
+      resolves.forEach(r => r({ error: err.message }));
+    }
+  }, [practiceId, toast]);
+
+  const saveData = useCallback((newData, showIndicator = true) => {
+    // Pre-process: assign UUIDs to any new clinicians (v3 components use Date.now())
     const isUuid = (v) => typeof v === 'string' && v.length === 36 && v.split('-').length === 5;
     const idMap = {};
     if (Array.isArray(newData.clinicians)) {
@@ -238,7 +289,6 @@ function DashboardContent() {
       });
     }
     if (Object.keys(idMap).length > 0) {
-      // Patch references
       if (newData.weeklyRota) {
         for (const day of Object.keys(newData.weeklyRota)) {
           newData.weeklyRota[day] = (newData.weeklyRota[day] || []).map(id => idMap[id] || id);
@@ -258,41 +308,51 @@ function DashboardContent() {
       }
     }
 
+    // Optimistic local update
     setData(newData);
     setDataVersion(v => v + 1);
 
-    // Strip huddleCsvData from the wire body unless it actually changed.
-    // CSV data can be hundreds of KB; sending it on every save (including
-    // routine In/Out toggles) thrashes bandwidth. We compare reference
-    // identity against the last-known data — if the user uploaded a new CSV,
-    // setData() will have replaced the reference; otherwise it's the same
-    // object and we can omit it from the wire payload.
-    const currentCsvRef = lastSentCsvRef.current;
-    const csvChanged = newData.huddleCsvData && newData.huddleCsvData !== currentCsvRef;
-    const bodyToSend = csvChanged ? newData : { ...newData, huddleCsvData: undefined };
-    if (csvChanged) {
-      lastSentCsvRef.current = newData.huddleCsvData;
-    }
+    // Schedule debounced flush
+    const pending = pendingSaveRef.current;
+    pending.latestData = newData;
+    pending.showIndicator = pending.showIndicator || showIndicator;
+    if (pending.timer) clearTimeout(pending.timer);
+    pending.timer = setTimeout(() => { flushSave(); }, 250);
 
-    try {
-      const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyToSend),
-      });
-      const result = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast(result.error || 'Save failed', 'error');
-      } else if (result.errors?.length) {
-        toast(`Partial save: ${result.errors.length} errors`, 'error');
-      } else if (showIndicator) {
-        toast('Saved', 'success', 1500);
+    // Return a promise in case caller wants to await; resolves when flush completes
+    return new Promise((resolve) => { pending.pendingResolves.push(resolve); });
+  }, [flushSave]);
+
+  // Flush any pending save when the user navigates away (or component unmounts)
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      const pending = pendingSaveRef.current;
+      if (pending.timer) {
+        clearTimeout(pending.timer);
+        // We can't await the fetch on beforeunload reliably, so use sendBeacon
+        // (fire-and-forget, browser keeps it alive after page unload).
+        try {
+          const dataToSend = pending.latestData;
+          if (dataToSend) {
+            const csvChanged = dataToSend.huddleCsvData && dataToSend.huddleCsvData !== lastSentCsvRef.current;
+            const bodyToSend = csvChanged ? dataToSend : { ...dataToSend, huddleCsvData: undefined };
+            const blob = new Blob([JSON.stringify(bodyToSend)], { type: 'application/json' });
+            navigator.sendBeacon(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, blob);
+          }
+        } catch {}
       }
-    } catch (err) {
-      console.error('Save failed:', err);
-      toast('Save failed', 'error');
-    }
-  };
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      // Component unmounting — flush immediately
+      const pending = pendingSaveRef.current;
+      if (pending.timer) {
+        clearTimeout(pending.timer);
+        flushSave();
+      }
+    };
+  }, [practiceId, flushSave]);
 
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
 
@@ -437,6 +497,7 @@ function DashboardContent() {
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <main className={`flex-1 min-h-screen min-w-0 ${'bg-[#0f172a]'}`}>
         <div className="max-w-6xl mx-auto p-4 lg:p-6 animate-in">
+          <Suspense fallback={<div className="text-sm text-slate-500 py-12 text-center">Loading…</div>}>
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-rota' && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
@@ -450,6 +511,7 @@ function DashboardContent() {
           {activeSection === 'account' && <AccountSettings data={data} />}
           {activeSection === 'room-settings' && <RoomSettings data={data} saveData={saveData} toast={toast} huddleData={huddleData} />}
           {activeSection === 'room-dashboard' && <RoomDashboard data={data} saveData={saveData} huddleData={huddleData} toast={toast} />}
+          </Suspense>
         </div>
         <footer className="mt-8 pb-6">
           <div className="text-center text-xs text-slate-400">
