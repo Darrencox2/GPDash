@@ -30,10 +30,10 @@ export const maxDuration = 60;
 // ─── helpers ────────────────────────────────────────────────────────────
 
 function readRedisData() {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) {
-    throw new Error('Upstash Redis not configured (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN missing)');
+    throw new Error('Redis not configured (none of UPSTASH_REDIS_REST_URL/KV_REST_API_URL or matching tokens are set)');
   }
   const redis = new Redis({ url, token });
   return redis.get('gpdash:data');
