@@ -273,10 +273,31 @@ function DashboardContent() {
   const getCurrentAllocations = () => data?.allocationHistory?.[getDateKey()] || null;
   const getClinicianById = (id) => ensureArray(data?.clinicians).find(c => c.id === id);
 
-  // syncTeamNet is v3-only (uses password header). Stub it for now — we'll
-  // wire to a v4-friendly version later.
   const syncTeamNet = async (silent = false) => {
-    if (!silent) { setSyncStatus('TeamNet sync not yet wired in v4'); setTimeout(() => setSyncStatus(''), 4000); }
+    if (!data?.teamnetUrl) {
+      if (!silent) { setSyncStatus('Set TeamNet URL in Settings first'); setTimeout(() => setSyncStatus(''), 4000); }
+      return;
+    }
+    if (!silent) setSyncStatus('Syncing...');
+    try {
+      const res = await fetch(`/api/v4/sync-teamnet?practice=${encodeURIComponent(practiceId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: data.teamnetUrl, clinicians: ensureArray(data.clinicians) }),
+      });
+      const result = await res.json();
+      if (result.error) {
+        if (!silent) setSyncStatus(`Error: ${result.error}`);
+      } else {
+        const newAbsences = result.absences || [];
+        // Merge — replace plannedAbsences with synced ones (matches v3 behaviour)
+        saveData({ ...data, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }, false);
+        if (!silent) setSyncStatus(`Synced — ${newAbsences.length} absences`);
+      }
+    } catch (err) {
+      if (!silent) setSyncStatus('Sync failed');
+    }
+    if (!silent) setTimeout(() => setSyncStatus(''), 4000);
   };
 
   const getWeekAbsences = () => {
@@ -327,6 +348,8 @@ function DashboardContent() {
         <footer className="mt-8 pb-6">
           <div className="text-center text-xs text-slate-400">
             GPDash — {data._v4?.practiceName || 'Practice'} · v4 Postgres
+            {' · '}
+            <a href={`/v4/practice/${practiceId}`} style={{ color: '#94a3b8', textDecoration: 'underline' }}>Manage practice</a>
             {' · '}
             <a href="/v4/dashboard" style={{ color: '#94a3b8', textDecoration: 'underline' }}>Switch practice</a>
             {' · '}
