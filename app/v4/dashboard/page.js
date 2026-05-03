@@ -52,6 +52,13 @@ export default async function DashboardPage() {
     // Silent fallback — get_my_pending_invites function not yet migrated
   }
 
+  // Quality of life: if the user has exactly one practice and no pending
+  // invites, skip the picker and go straight to the dashboard. They can
+  // still get back here via the 'Switch practice' link in the dashboard footer.
+  if (memberships?.length === 1 && (!pendingInvites || pendingInvites.length === 0)) {
+    redirect(`/dashboard?practice=${memberships[0].practices.id}`);
+  }
+
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: 32 }}>
 
