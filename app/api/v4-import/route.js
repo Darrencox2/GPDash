@@ -175,65 +175,76 @@ async function runImport(request, { dryRun }) {
       report.actions.push(`Imported clinician: ${newRow.name} → ${inserted.id}`);
     }
 
-    // Working pattern (one row per clinician — current pattern)
-    if (c.workingPattern) {
-      report.counts.working_patterns_to_import += 1;
-      if (!dryRun && clinicianIdMap[c.id] && !clinicianIdMap[c.id].startsWith('dryrun-')) {
-        const wpRow = {
-          clinician_id: clinicianIdMap[c.id],
-          effective_from: c.workingPatternEffectiveFrom || '1970-01-01',
-          effective_to: null,
-          pattern: normaliseWorkingPattern(c.workingPattern),
-          created_by: user.id,
-        };
-        const { error } = await admin.from('working_patterns').insert(wpRow);
-        if (error) report.errors.push(`Working pattern for ${c.name}: ${error.message}`);
-      }
-    }
+    // Absences are stored at top level (data.plannedAbsences), not on the clinician
+    // — handled in step 6 after this loop.
+  }
 
-    // Absences
-    if (Array.isArray(c.absences)) {
-      for (const ab of c.absences) {
-        if (!ab.startDate || !ab.endDate) continue;
-        report.counts.absences_to_import += 1;
-        if (!dryRun && clinicianIdMap[c.id] && !clinicianIdMap[c.id].startsWith('dryrun-')) {
-          const absRow = {
-            clinician_id: clinicianIdMap[c.id],
-            start_date: ab.startDate,
-            end_date: ab.endDate,
-            reason: 'other', // v3 stored free-text reasons; safer to default to 'other'
-            notes: ab.reason || null,
-            created_by: user.id,
-            updated_by: user.id,
-          };
-          const { error } = await admin.from('absences').insert(absRow);
-          if (error) report.errors.push(`Absence for ${c.name} (${ab.startDate}): ${error.message}`);
-        }
-      }
+  // 5b. Working patterns — derived from data.weeklyRota (which is keyed by day name).
+  // Build a per-clinician pattern object: { Mon: { am: 'in' }, Tue: ..., ... }
+  // (v3 didn't track AM/PM separately for working patterns — a clinician was either
+  // working that day or not. We default to 'in' for both AM and PM in v4.)
+  const weeklyRota = v3Data.weeklyRota || {};
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const patternsByClinician = {}; // v3ClinId → pattern object
+  for (const dayName of dayNames) {
+    const cliniciansOnThisDay = Array.isArray(weeklyRota[dayName]) ? weeklyRota[dayName] : [];
+    for (const v3ClinId of cliniciansOnThisDay) {
+      if (!patternsByClinician[v3ClinId]) patternsByClinician[v3ClinId] = {};
+      patternsByClinician[v3ClinId][dayName] = { am: 'in', pm: 'in' };
     }
   }
 
-  // 6. Daily overrides (stored as flat object: { 'clinId__YYYY-MM-DD': { am, pm } })
-  const dailyOverrides = v3Data.dailyOverrides || {};
-  for (const [key, value] of Object.entries(dailyOverrides)) {
-    const [v3ClinId, date] = key.split('__');
-    if (!v3ClinId || !date) continue;
+  for (const [v3ClinId, pattern] of Object.entries(patternsByClinician)) {
     const newClinId = clinicianIdMap[v3ClinId];
     if (!newClinId) continue;
-    report.counts.daily_overrides_to_import += 1;
+    report.counts.working_patterns_to_import += 1;
     if (!dryRun && !newClinId.startsWith('dryrun-')) {
-      const ovRow = {
+      const { error } = await admin.from('working_patterns').insert({
         clinician_id: newClinId,
-        date,
-        am: value.am === 'in' ? 'in' : value.am === 'off' ? 'off' : null,
-        pm: value.pm === 'in' ? 'in' : value.pm === 'off' ? 'off' : null,
-        notes: value.notes || null,
+        effective_from: '1970-01-01',
+        effective_to: null,
+        pattern,
+        notes: 'Imported from v3 weeklyRota',
+        created_by: user.id,
+      });
+      if (error) report.errors.push(`Working pattern for v3 ${v3ClinId}: ${error.message}`);
+    }
+  }
+
+  // 5c. Absences — top-level data.plannedAbsences = [{ clinicianId, startDate, endDate, reason }]
+  const plannedAbsences = Array.isArray(v3Data.plannedAbsences) ? v3Data.plannedAbsences : [];
+  for (const ab of plannedAbsences) {
+    if (!ab.clinicianId || !ab.startDate || !ab.endDate) continue;
+    const newClinId = clinicianIdMap[ab.clinicianId];
+    if (!newClinId) continue;
+    report.counts.absences_to_import += 1;
+    if (!dryRun && !newClinId.startsWith('dryrun-')) {
+      const { error } = await admin.from('absences').insert({
+        clinician_id: newClinId,
+        start_date: ab.startDate,
+        end_date: ab.endDate,
+        reason: 'other',                  // controlled vocab; v3 reason text moved to notes
+        notes: ab.reason || null,
         created_by: user.id,
         updated_by: user.id,
-      };
-      const { error } = await admin.from('daily_overrides').upsert(ovRow);
-      if (error) report.errors.push(`Daily override ${key}: ${error.message}`);
+      });
+      if (error) report.errors.push(`Absence ${ab.clinicianId}/${ab.startDate}: ${error.message}`);
     }
+  }
+
+  // 6. Daily overrides
+  // v3 shape: data.dailyOverrides[YYYY-MM-DD] = { present: [clinIds], scheduled: [clinIds] }
+  // v4 shape: per (clinician, date) row with am/pm/notes — different model.
+  // We store v3 daily overrides in practice_settings.extras for now; the v4 schema
+  // can be extended later if we want to migrate this fully. The data is preserved.
+  const dailyOverrides = v3Data.dailyOverrides || {};
+  const dailyOverridesCount = Object.keys(dailyOverrides).length;
+  if (dailyOverridesCount > 0) {
+    report.counts.daily_overrides_to_import = dailyOverridesCount;
+    report.warnings.push(
+      `${dailyOverridesCount} daily overrides preserved in practice_settings.extras.legacyDailyOverrides ` +
+      '(v3 shape differs from v4 schema; needs follow-up migration to fully populate daily_overrides table)'
+    );
   }
 
   // 7. Practice settings (single row)
@@ -248,6 +259,7 @@ async function runImport(request, { dryRun }) {
       extras: {
         savedSlotFilters: v3Data.savedSlotFilters || null,
         expectedCapacity: v3Data.expectedCapacity || null,
+        legacyDailyOverrides: v3Data.dailyOverrides || null,
       },
       updated_by: user.id,
     };
