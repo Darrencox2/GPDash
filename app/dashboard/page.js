@@ -133,6 +133,38 @@ function DashboardContent() {
             window.location.hash = `rota-${me.initials}`;
           }
         }
+
+        // Background TeamNet sync — fires if a calendar URL is set and the
+        // last sync was more than 6 hours ago (or never). Doesn't block the UI.
+        if (normalised.teamnetUrl) {
+          const last = normalised.lastSyncTime ? new Date(normalised.lastSyncTime).getTime() : 0;
+          const hours = (Date.now() - last) / 3_600_000;
+          if (hours > 6) {
+            // Fire and forget — sync runs in the background and updates state when done
+            (async () => {
+              try {
+                const r = await fetch(`/api/v4/sync-teamnet?practice=${encodeURIComponent(practiceId)}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url: normalised.teamnetUrl, clinicians: normalised.clinicians }),
+                });
+                const result = await r.json().catch(() => ({}));
+                if (!r.ok || result.error) return;  // silent on error
+                const newAbsences = result.absences || [];
+                // Update state + persist new absences via saveData (writes to DB)
+                setData(prev => prev ? { ...prev, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() } : prev);
+                // Persist quietly without a toast
+                fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...normalised, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }),
+                }).catch(() => {});
+              } catch {
+                // background sync errors are silent
+              }
+            })();
+          }
+        }
       } catch (err) {
         if (!cancelled) toast('Failed to load data', 'error');
       } finally {

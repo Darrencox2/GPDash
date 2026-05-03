@@ -219,6 +219,10 @@ export async function POST(request) {
     newExtras.expectedCapacity = newData.expectedCapacity;
     extrasChanged = true;
   }
+  if (newData.lastSyncTime && newData.lastSyncTime !== oldExtras.lastTeamnetSync) {
+    newExtras.lastTeamnetSync = newData.lastSyncTime;
+    extrasChanged = true;
+  }
   if (extrasChanged) {
     settingsUpdate.extras = newExtras;
   }
