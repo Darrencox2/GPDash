@@ -109,6 +109,23 @@ async function runImport(request, { dryRun }) {
     return NextResponse.json({ error: 'Redis blob is empty or invalid' }, { status: 500 });
   }
 
+  // Safety check: if this practice already has clinicians, refuse to re-run.
+  // The import is not fully idempotent (would create duplicates of left/admin
+  // clinicians and absences). Better to refuse and force the operator to think
+  // about what they're doing.
+  if (!dryRun) {
+    const { count: existingCount } = await admin
+      .from('clinicians')
+      .select('id', { count: 'exact', head: true })
+      .eq('practice_id', practiceId);
+    if (existingCount && existingCount > 0) {
+      return NextResponse.json({
+        error: `Practice ${practiceId} already has ${existingCount} clinicians. The import is not idempotent — re-running would create duplicates. ` +
+               'If you really want to start over, manually delete all clinicians for this practice first (cascade will clean up linked rows).',
+      }, { status: 409 });
+    }
+  }
+
   // 4. Build the import plan
   const report = {
     dryRun,
