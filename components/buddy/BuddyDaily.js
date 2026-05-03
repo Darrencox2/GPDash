@@ -234,8 +234,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               }
               if (generated > 0) {
                 const nd = { ...currentData, allocationHistory: newHistory };
-                setData(nd);
-                try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(nd) }); } catch (err) { console.error(err); }
+                await saveData(nd, false);
                 setDataVersion(v => v + 1);
               }
               setIsGenerating(false);
