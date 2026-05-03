@@ -136,7 +136,7 @@ export default async function DashboardPage() {
           memberships.map((m) => (
             <Link
               key={m.practices.id}
-              href={`/v4/practice/${m.practices.id}`}
+              href={`/dashboard?practice=${m.practices.id}`}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
