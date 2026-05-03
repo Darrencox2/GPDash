@@ -201,6 +201,28 @@ export async function POST(request) {
   if (newData.teamnetUrl !== oldData.teamnetUrl) {
     settingsUpdate.teamnet_url = newData.teamnetUrl || null;
   }
+
+  // dailyOverrides + savedSlotFilters + expectedCapacity live in `extras` JSONB.
+  // Read the current row so we don't clobber sibling keys.
+  const oldExtras = v4Data.settings?.extras || {};
+  let extrasChanged = false;
+  const newExtras = { ...oldExtras };
+  if (newData.dailyOverrides && JSON.stringify(newData.dailyOverrides) !== JSON.stringify(oldExtras.dailyOverrides || {})) {
+    newExtras.dailyOverrides = newData.dailyOverrides;
+    extrasChanged = true;
+  }
+  if (newData.savedSlotFilters !== undefined && JSON.stringify(newData.savedSlotFilters) !== JSON.stringify(oldExtras.savedSlotFilters || null)) {
+    newExtras.savedSlotFilters = newData.savedSlotFilters;
+    extrasChanged = true;
+  }
+  if (newData.expectedCapacity !== undefined && JSON.stringify(newData.expectedCapacity) !== JSON.stringify(oldExtras.expectedCapacity || null)) {
+    newExtras.expectedCapacity = newData.expectedCapacity;
+    extrasChanged = true;
+  }
+  if (extrasChanged) {
+    settingsUpdate.extras = newExtras;
+  }
+
   if (Object.keys(settingsUpdate).length > 0) {
     ops.push(supabase.from('practice_settings').update(settingsUpdate).eq('practice_id', practiceId));
   }
