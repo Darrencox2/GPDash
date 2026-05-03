@@ -101,9 +101,9 @@ export default function TeamRotaV4({ data: initialData, practiceId }) {
   );
 
   return (
-    <div style={{ background: 'rgba(255,255,255,0.96)', borderRadius: 12, padding: 20, color: '#1e293b' }}>
+    <div className="card" style={{ padding: 20 }}>
       <div style={{ marginBottom: 16 }}>
-        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: '#1e293b' }}>
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: '#1e293b', margin: 0 }}>
           Clinician Rota
         </h2>
         <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>

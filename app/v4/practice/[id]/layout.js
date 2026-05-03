@@ -29,11 +29,13 @@ export default async function PracticeLayout({ children, params }) {
     <div style={{
       display: 'flex',
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
+      background: '#0f172a',
     }}>
       <V4Sidebar practiceId={practiceId} practiceName={practice.name} />
-      <main style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
-        {children}
+      <main style={{ flex: 1, minWidth: 0, overflow: 'auto', background: '#0f172a' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
+          {children}
+        </div>
       </main>
     </div>
   );

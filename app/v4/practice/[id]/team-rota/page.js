@@ -35,33 +35,31 @@ export default async function TeamRotaPage({ params }) {
   const canEdit = membership?.role === 'owner' || membership?.role === 'admin';
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <h1 style={{
-          fontFamily: "'Outfit', sans-serif",
-          fontSize: 22, fontWeight: 600, color: 'white',
-          marginBottom: 6,
-        }}>Working patterns</h1>
-        <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
-          Click any cell to toggle. Changes persist immediately.
-        </p>
+    <div>
+      <h1 style={{
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: 22, fontWeight: 600, color: 'white',
+        marginBottom: 6,
+      }}>Working patterns</h1>
+      <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
+        Click any cell to toggle. Changes persist immediately.
+      </p>
 
-        {!canEdit && (
-          <div style={{
-            background: 'rgba(245,158,11,0.1)',
-            border: '1px solid rgba(245,158,11,0.3)',
-            borderRadius: 8,
-            padding: 12,
-            fontSize: 12,
-            color: '#fcd34d',
-            marginBottom: 16,
-          }}>
-            ⚠ You're not an admin/owner of this practice — clicks won't persist.
-          </div>
-        )}
+      {!canEdit && (
+        <div style={{
+          background: 'rgba(245,158,11,0.1)',
+          border: '1px solid rgba(245,158,11,0.3)',
+          borderRadius: 8,
+          padding: 12,
+          fontSize: 12,
+          color: '#fcd34d',
+          marginBottom: 16,
+        }}>
+          ⚠ You're not an admin/owner of this practice — clicks won't persist.
+        </div>
+      )}
 
-        <TeamRotaV4 data={v3Data} practiceId={practiceId} />
-      </div>
+      <TeamRotaV4 data={v3Data} practiceId={practiceId} />
     </div>
   );
 }

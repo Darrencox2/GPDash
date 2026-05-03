@@ -37,20 +37,17 @@ export default async function WhosInPage({ params }) {
   const huddleData = v4Data.huddleCsvData || null;
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-        <h1 style={{
-          fontFamily: "'Outfit', sans-serif",
-          fontSize: 22,
-          fontWeight: 600,
-          color: 'white',
-          marginBottom: 16,
-        }}>
-          Who's in / out
-        </h1>
-
-        <WhosInOutWrapper data={v3Data} huddleData={huddleData} />
-      </div>
+    <div>
+      <h1 style={{
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: 22,
+        fontWeight: 600,
+        color: 'white',
+        marginBottom: 16,
+      }}>
+        Who's in / out
+      </h1>
+      <WhosInOutWrapper data={v3Data} huddleData={huddleData} />
     </div>
   );
 }

@@ -53,12 +53,7 @@ export default function WhosInOutWrapper({ data: initialData, huddleData }) {
         {isWeekend && <button onClick={goNextWorking} style={linkBtnStyle}>Skip to next weekday →</button>}
       </div>
 
-      <div style={{
-        background: 'rgba(255,255,255,0.96)',
-        borderRadius: 12,
-        padding: 16,
-        color: '#1e293b',
-      }}>
+      <div>
         {warned && (
           <div style={{
             background: '#fef3c7',
@@ -74,12 +69,12 @@ export default function WhosInOutWrapper({ data: initialData, huddleData }) {
         )}
         {isWeekend && (
           <div style={{
-            background: '#dbeafe',
-            border: '1px solid #93c5fd',
+            background: 'rgba(59,130,246,0.1)',
+            border: '1px solid rgba(59,130,246,0.3)',
             borderRadius: 8,
             padding: 12,
             fontSize: 13,
-            color: '#1e40af',
+            color: '#93c5fd',
             textAlign: 'center',
           }}>
             🏠 Practice closed ({dayName}). Use 'Skip to next weekday' above to find a working day.
