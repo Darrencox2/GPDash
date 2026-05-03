@@ -36,7 +36,7 @@ function readRedisData() {
     throw new Error('Redis not configured (none of UPSTASH_REDIS_REST_URL/KV_REST_API_URL or matching tokens are set)');
   }
   const redis = new Redis({ url, token });
-  return redis.get('gpdash:data');
+  return redis.get('buddy_system_data');
 }
 
 // Map v3 group string → v4 enum
