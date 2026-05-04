@@ -84,8 +84,14 @@ export async function POST(request) {
 
     await Promise.all(chunk.map(async (ods) => {
       try {
+        // OpenPrescribing org_details endpoint returns list size by month.
+        // The org_code endpoint we previously used was just a name/code
+        // lookup and never carried list_size — that's why every fetch
+        // came back as 'skipped'.
+        // Response shape: [{ row_id, row_name, date, total_list_size }, ...]
+        // We take the most recent month's value.
         const r = await fetch(
-          `https://openprescribing.net/api/1.0/org_code/?q=${encodeURIComponent(ods)}&format=json&exact=true&org_type=practice`,
+          `https://openprescribing.net/api/1.0/org_details/?org_type=practice&org=${encodeURIComponent(ods)}&keys=total_list_size&format=json`,
           { headers: { 'User-Agent': 'GPDash-backfill/1.0 (admin@gpdash.net)' } }
         );
         results.fetched++;
@@ -97,8 +103,18 @@ export async function POST(request) {
         }
 
         const arr = await r.json();
-        const match = Array.isArray(arr) ? arr.find(p => p.code === ods) : null;
-        const listSize = match?.total_list_size;
+        // Pick the latest month with a non-null list size
+        let listSize = null;
+        if (Array.isArray(arr) && arr.length > 0) {
+          // Sort by date desc and take first non-null
+          const sorted = [...arr].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+          for (const row of sorted) {
+            if (typeof row.total_list_size === 'number' && row.total_list_size > 0) {
+              listSize = row.total_list_size;
+              break;
+            }
+          }
+        }
 
         if (typeof listSize !== 'number' || listSize <= 0) {
           results.skipped++;
