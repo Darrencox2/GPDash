@@ -227,7 +227,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   // Build per-practice prediction options once. demandSettings comes from
   // the practice's NHS auto-seed or AskMyGP CSV calibration; school holidays
   // come from postcodes.io → LEA at setup time. Falls back gracefully if
-  // either is missing (predictor uses Winscombe defaults).
+  // either is missing (predictor falls back to list-size-scaled defaults
+  // and flags the result with usingFallback so the UI shows a banner).
   const predictionOptions = useMemo(() => {
     const opts = {};
     if (data?._v4?.demandSettings) opts.demandSettings = data._v4.demandSettings;

@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { getHuddleCapacity, getDateTotals, getDutyDoctor, getSiteColour } from '@/lib/huddle';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
-import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS } from '@/lib/demandPredictor';
+import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import ClinicianCapacity from './ClinicianCapacity';
 import { canEditPracticeData } from '@/lib/permissions';
@@ -12,10 +12,12 @@ const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const VB = { over:{bg:'#3b82f6',text:'#fff'}, good:{bg:'#10b981',text:'#fff'}, tight:{bg:'#f59e0b',text:'#fff'}, short:{bg:'#ef4444',text:'#fff'}, none:{bg:'#475569',text:'#94a3b8'} };
 function vBand(s,t) { if(t<=0)return VB.none; const p=(s/t)*100; return p>=120?VB.over:p>=90?VB.good:p>=80?VB.tight:VB.short; }
 
-// DOW-relative demand colouring
-function dowDemandColour(predicted, dayOfWeek) {
-  if (!predicted || dayOfWeek < 0 || dayOfWeek > 4) return { bg: '#475569', text: '#fff', label: '–' };
-  const dowBaseline = BASELINE + DOW_EFFECTS[dayOfWeek];
+// DOW-relative demand colouring. Caller passes the per-practice dow-specific
+// baseline (computed from the practice's own demand_settings if calibrated,
+// or the list-size-scaled fallback if not). Earlier this used the raw
+// Winscombe-shaped BASELINE + DOW_EFFECTS constants for every practice.
+function dowDemandColour(predicted, dowBaseline) {
+  if (!predicted || !dowBaseline || dowBaseline <= 0) return { bg: '#475569', text: '#fff', label: '–' };
   const ratio = predicted / dowBaseline;
   if (ratio <= 0.9) return { bg: '#0ea5e9', text: '#fff', label: 'Low' };
   if (ratio <= 1.1) return { bg: '#10b981', text: '#fff', label: 'Normal' };
@@ -108,8 +110,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         const pred = predictDemand(date, weather?.[isoKey]||null, predictionOptions);
         const isBH = pred?.isBankHoliday||false;
         const predicted = pred?.predicted?Math.round(pred.predicted):null;
-        const dowIdx = date.getDay() - 1; // 0=Mon, 4=Fri
-        const dc = dowDemandColour(predicted, dowIdx);
+        // dow-specific baseline = practice's own baseline + this dow's effect.
+        // Read from pred.factors so it tracks per-practice calibration.
+        const dowBaseline = (pred?.factors?.baseline || 0) + (pred?.factors?.dayOfWeek?.effect || 0);
+        const dc = dowDemandColour(predicted, dowBaseline);
         const uCap = hasData&&!isBH?getHuddleCapacity(huddleData,dateStr,hs,urgOv):null;
         const amS=uCap?(uCap.am.total||0)+(uCap.am.embargoed||0)+(uCap.am.booked||0):0;
         const pmS=uCap?(uCap.pm.total||0)+(uCap.pm.embargoed||0)+(uCap.pm.booked||0):0;

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getHuddleCapacity, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, getDutyDoctor, getBand, getSiteColour } from '@/lib/huddle';
-import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
+import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -343,7 +343,19 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const dc = t ? (DEMAND_COLOURS[t.demandLevel]||DEMAND_COLOURS.normal) : DEMAND_COLOURS.normal;
   const dowIdx = today.getDay()>0&&today.getDay()<6?(today.getDay()+6)%7:0;
   const monthIdx = today.getMonth();
-  const typicalDayMonth = dowIdx<5?Math.round(BASELINE+DOW_EFFECTS[dowIdx]+MONTH_EFFECTS[monthIdx]):0;
+  // "Typical day this month" = baseline + dow effect + month effect, derived
+  // from the same per-practice prediction shown above. Earlier this used the
+  // raw module-level BASELINE/DOW_EFFECTS/MONTH_EFFECTS constants which are
+  // Winscombe-shaped and ignore the practice's own demand_settings — every
+  // practice was seeing Winscombe's "typical Monday" no matter what their
+  // own data said.
+  const typicalDayMonth = (() => {
+    if (dowIdx >= 5 || !t?.factors) return 0;
+    const b = t.factors.baseline || 0;
+    const d = t.factors.dayOfWeek?.effect || 0;
+    const m = t.factors.month?.effect || 0;
+    return Math.round(b + d + m);
+  })();
   const vsPct = t&&typicalDayMonth>0?Math.round(((t.predicted-typicalDayMonth)/typicalDayMonth)*100):0;
   const rangePct = t?(t.confidence.high>t.confidence.low?((t.predicted-t.confidence.low)/(t.confidence.high-t.confidence.low))*100:50):50;
   const tw = demandData?.today?.weather;

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
+import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor, getBand } from '@/lib/huddle';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
@@ -47,7 +47,6 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
 
   const targetDate = useMemo(() => { const d = new Date(viewingDate || new Date()); d.setHours(0,0,0,0); return d; }, [viewingDate]);
   const teamClinicians = useMemo(() => { if (!data?.clinicians) return []; return Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians); }, [data?.clinicians]);
-  const typicalDemand = useMemo(() => { const dow=(targetDate.getDay()+6)%7; if(dow>=5) return null; return Math.round(BASELINE+DOW_EFFECTS[dow]+MONTH_EFFECTS[targetDate.getMonth()]); }, [targetDate]);
   const typicalCapacity = useMemo(() => {
     if (!huddleData?.dates || !urgentOverrides) return null;
     const dow = targetDate.getDay(); let tot=0, cnt=0;
@@ -122,6 +121,13 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   if (!active?.today) return <div className="glass rounded-xl"><div className="flex items-center justify-center gap-3 py-12"><div className="w-4 h-4 border-2 border-slate-700 border-t-amber-400 rounded-full animate-spin"/><span className="text-sm text-slate-400">Loading forecast...</span></div></div>;
 
   const t = active.today;
+  // Typical demand for this date — baseline + dow + month effects from the
+  // active per-practice prediction. Earlier this used raw BASELINE/DOW/MONTH
+  // module constants which gave every practice Winscombe's number.
+  const typicalDayDow = (targetDate.getDay()+6)%7;
+  const typicalDemand = (typicalDayDow < 5 && t?.factors)
+    ? Math.round((t.factors.baseline || 0) + (t.factors.dayOfWeek?.effect || 0) + (t.factors.month?.effect || 0))
+    : null;
   const demandCol = DEMAND_COLOURS[t.demandLevel] || DEMAND_COLOURS.normal;
   const predicted = Math.round(t.predicted);
   const urgentTotal = capacity ? (capacity.am.total||0)+(capacity.pm.total||0)+(capacity.am.embargoed||0)+(capacity.pm.embargoed||0)+(capacity.am.booked||0)+(capacity.pm.booked||0) : 0;
