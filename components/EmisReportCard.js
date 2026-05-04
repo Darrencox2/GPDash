@@ -83,16 +83,19 @@ export default function EmisReportCard({ variant = 'card' }) {
             <div style={{ fontWeight: 600, marginBottom: 8, color: '#67e8f9' }}>One-time setup (about 2 minutes)</div>
             <ol style={{ paddingLeft: 20, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <li>Click <strong>Download XML</strong> above and save the file somewhere you can find it.</li>
-              <li>In EMIS, open <strong>Population Reporting</strong> from the main menu.</li>
+              <li>In EMIS, open <strong>Appointment Reporting</strong> from the main menu.</li>
               <li>Right-click in the folder where you'd like the report to live, then choose <strong>Import</strong>.</li>
               <li>Browse to the XML file you downloaded and open it.</li>
-              <li>The report appears as <em>"GpDash appointment data"</em>. You're done with the import.</li>
+              <li>The report appears as <em>"GpDash appointment data"</em>.</li>
+              <li><strong>Tip:</strong> right-click the imported report → <strong>Properties</strong> → <strong>Schedule</strong> and set it to run automatically every morning.
+                That way the data is fresh each day and you only need to export the result.
+              </li>
             </ol>
 
             <div style={{ fontWeight: 600, marginTop: 14, marginBottom: 8, color: '#67e8f9' }}>Each morning (about 30 seconds)</div>
             <ol style={{ paddingLeft: 20, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <li>Find the <em>"GpDash appointment data"</em> report in Population Reporting.</li>
-              <li>Right-click → <strong>Run</strong>. Wait for it to finish (a few seconds).</li>
+              <li>Open <strong>Appointment Reporting</strong> and find <em>"GpDash appointment data"</em>.</li>
+              <li>If you scheduled it: just open the latest result. Otherwise right-click → <strong>Run</strong> and wait a few seconds.</li>
               <li>Double-click the result to open it.</li>
               <li>Click <strong>Export</strong> → choose <strong>CSV</strong> → save to your computer.</li>
               <li>Open GPDash, go to the <strong>Today</strong> page, and drop the CSV onto the upload area.</li>

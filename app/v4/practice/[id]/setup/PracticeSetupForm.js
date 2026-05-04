@@ -25,14 +25,17 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   const router = useRouter();
   const supabase = createClient();
 
+  const [name, setName] = useState(initial.name);
+  const [odsCode, setOdsCode] = useState(initial.odsCode);
   const [postcode, setPostcode] = useState(initial.postcode);
   const [listSize, setListSize] = useState(initial.listSize);
   const [tool, setTool] = useState(initial.onlineConsultTool);
   const [region, setRegion] = useState(initial.region);
-  const [lookup, setLookup] = useState(null); // { admin_district, region, country, ... }
+  const [lookup, setLookup] = useState(null); // postcodes.io result
   const [lookupBusy, setLookupBusy] = useState(false);
-  const [practiceMatch, setPracticeMatch] = useState(null); // NHS practice match { name, odsCode, listSize, listSizeAsOf }
+  const [practiceCandidates, setPracticeCandidates] = useState([]); // all GP practices at postcode
   const [practiceMatchBusy, setPracticeMatchBusy] = useState(false);
+  const [practiceMatchReason, setPracticeMatchReason] = useState(null);
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
   const [error, setError] = useState('');
@@ -45,15 +48,14 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
     if (lookupTimer.current) clearTimeout(lookupTimer.current);
     if (!postcode || !isValidPostcodeFormat(postcode)) {
       setLookup(null);
-      setPracticeMatch(null);
+      setPracticeCandidates([]);
+      setPracticeMatchReason(null);
       return;
     }
     lookupTimer.current = setTimeout(async () => {
       setLookupBusy(true);
       setPracticeMatchBusy(true);
 
-      // Run in parallel: postcodes.io for region, and our own
-      // /api/practice-lookup for practice + list size from NHS data.
       const [postcodeResult, practiceRes] = await Promise.all([
         lookupPostcode(postcode),
         fetch(`/api/practice-lookup?postcode=${encodeURIComponent(postcode)}`)
@@ -66,10 +68,9 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
       setLookup(postcodeResult);
       if (postcodeResult?.region && !region) setRegion(postcodeResult.region);
 
-      // Pick the first practice match with a list size, or just the first one
-      const matches = practiceRes?.practices || [];
-      const best = matches.find(p => p.listSize != null) || matches[0] || null;
-      setPracticeMatch(best);
+      const candidates = practiceRes?.practices || [];
+      setPracticeCandidates(candidates);
+      setPracticeMatchReason(practiceRes?.reason || null);
     }, 400);
     return () => clearTimeout(lookupTimer.current);
   }, [postcode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -108,9 +109,46 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
     await saveField('list size', 'list_size', n);
   }
 
+  async function saveName(value) {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return;
+    setName(trimmed);
+    await saveField('practice name', 'name', trimmed);
+  }
+
   async function saveTool(value) {
     setTool(value);
     await saveField('online consultation tool', 'online_consult_tool', value || null);
+  }
+
+  // Apply NHS practice details to the form fields. One click = name + ODS +
+  // list size (if available) all at once. User can still edit any of them
+  // afterwards.
+  async function selectPractice(p) {
+    setSavingField('practice');
+    setError('');
+    const updates = {
+      name: p.name,
+      ods_code: p.odsCode,
+    };
+    if (p.listSize != null) updates.list_size = p.listSize;
+    const { error: err } = await supabase
+      .from('practices')
+      .update(updates)
+      .eq('id', practiceId);
+    setSavingField(null);
+    if (err) {
+      setError(`Couldn't apply practice details: ${err.message}`);
+      return;
+    }
+    setName(p.name);
+    setOdsCode(p.odsCode);
+    if (p.listSize != null) setListSize(p.listSize);
+    setSavedField('practice');
+    setTimeout(() => setSavedField(null), 1500);
+    // Force a router refresh so the page header (which shows practice.name)
+    // updates without the user having to navigate away
+    router.refresh();
   }
 
   async function markComplete() {
@@ -130,7 +168,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   }
 
   // ─── Render ───────────────────────────────────────────────────────
-  const allRequired = postcode && listSize && tool;
+  const allRequired = name && postcode && listSize && tool;
   const holidays = lookup?.admin_district ? getSchoolHolidaysForLEA(lookup.admin_district) : null;
 
   return (
@@ -184,6 +222,106 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
         )}
       </Card>
 
+      {/* Practices found at this postcode (NHS Digital lookup) */}
+      {(practiceMatchBusy || practiceCandidates.length > 0 || (lookup && !practiceMatchBusy && practiceCandidates.length === 0)) && (
+        <Card title={`GP practices at this postcode${practiceCandidates.length > 1 ? ` (${practiceCandidates.length} found)` : ''}`} status={fieldStatus('practice', savingField, savedField)}>
+          {practiceMatchBusy && <div style={{ color: '#94a3b8', fontSize: 12 }}>Looking up NHS Digital…</div>}
+          {!practiceMatchBusy && practiceCandidates.length === 0 && lookup && (
+            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+              No active GP practice found at this postcode. Enter your practice name and list size manually below.
+            </p>
+          )}
+          {!practiceMatchBusy && practiceCandidates.length > 0 && (
+            <>
+              <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
+                Click your practice to apply its official name, ODS code, and list size.
+                You can edit any of these afterwards.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {practiceCandidates.map(p => {
+                  const isSelected = odsCode && p.odsCode === odsCode;
+                  return (
+                    <button
+                      key={p.odsCode}
+                      type="button"
+                      onClick={() => !isSelected && selectPractice(p)}
+                      disabled={isSelected || savingField === 'practice'}
+                      style={{
+                        textAlign: 'left',
+                        padding: 12,
+                        background: isSelected ? 'rgba(16,185,129,0.08)' : 'rgba(0,0,0,0.2)',
+                        border: `1px solid ${isSelected ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        borderRadius: 8,
+                        cursor: isSelected ? 'default' : 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500, marginBottom: 2 }}>
+                            {p.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#64748b', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                            <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{p.odsCode}</span>
+                            {p.listSize != null ? (
+                              <span>
+                                {p.listSize.toLocaleString()} patients
+                                {p.listSizeAsOf && <span style={{ marginLeft: 4 }}>· NHS Digital, {formatMonthYear(p.listSizeAsOf)}</span>}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#94a3b8' }}>No list size data</span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ flexShrink: 0, fontSize: 11, color: isSelected ? '#34d399' : '#22d3ee', fontWeight: 500, alignSelf: 'center' }}>
+                          {isSelected ? '✓ Selected' : 'Select →'}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </Card>
+      )}
+
+      {/* Practice name */}
+      <Card title="Practice name" status={fieldStatus('practice name', savingField, savedField)}>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={(e) => saveName(e.target.value)}
+          placeholder="e.g. Winscombe & Banwell Family Practice"
+          style={input}
+        />
+        {odsCode && (
+          <p style={{ ...hint, color: '#64748b' }}>
+            ODS code: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', color: '#94a3b8' }}>{odsCode}</span>
+            {practiceCandidates.find(p => p.odsCode === odsCode && p.name !== name) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const official = practiceCandidates.find(p => p.odsCode === odsCode);
+                  if (official) saveName(official.name);
+                }}
+                style={{
+                  marginLeft: 10,
+                  background: 'none',
+                  border: 'none',
+                  color: '#22d3ee',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline',
+                }}
+              >Use NHS official name</button>
+            )}
+          </p>
+        )}
+      </Card>
+
       {/* List size */}
       <Card title="Patient list size" status={fieldStatus('list size', savingField, savedField)}>
         <input
@@ -200,73 +338,18 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           Approximate registered list size. Used to scale demand predictions while we
           collect enough of your own data to calibrate.
         </p>
-
-        {/* NHS suggestion box — shown when postcode lookup found a practice */}
-        {practiceMatchBusy && (
-          <div style={{ ...lookupBox, color: '#94a3b8', marginTop: 10 }}>Looking up practice on NHS Digital…</div>
-        )}
-        {practiceMatch && !practiceMatchBusy && (
-          <div style={{
-            marginTop: 10,
-            padding: 12,
-            background: 'rgba(16,185,129,0.06)',
-            border: '1px solid rgba(16,185,129,0.2)',
-            borderRadius: 8,
-          }}>
-            <div style={{ fontSize: 12, color: '#34d399', fontWeight: 600, marginBottom: 4 }}>
-              {practiceMatch.listSize ? '✓ Found on NHS Digital' : '⚠ Practice found, but no list size data'}
+        {odsCode && practiceCandidates.find(p => p.odsCode === odsCode && p.listSize != null) && (() => {
+          const matched = practiceCandidates.find(p => p.odsCode === odsCode);
+          const isUsing = String(listSize) === String(matched.listSize);
+          return (
+            <div style={{ marginTop: 8, fontSize: 11, color: isUsing ? '#34d399' : '#94a3b8' }}>
+              {isUsing
+                ? <>✓ Using NHS Digital figure ({matched.listSize.toLocaleString()}, {formatMonthYear(matched.listSizeAsOf)})</>
+                : <>NHS Digital published {matched.listSize.toLocaleString()} ({formatMonthYear(matched.listSizeAsOf)}). <button type="button" onClick={() => { setListSize(matched.listSize); saveField('list size', 'list_size', matched.listSize); }} style={{ background: 'none', border: 'none', color: '#22d3ee', fontSize: 11, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>Use this</button></>
+              }
             </div>
-            <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}>
-              <strong>{practiceMatch.name}</strong>
-              {practiceMatch.odsCode && (
-                <span style={{ color: '#64748b', fontFamily: 'ui-monospace, Menlo, monospace', marginLeft: 8 }}>{practiceMatch.odsCode}</span>
-              )}
-            </div>
-            {practiceMatch.listSize ? (
-              <div style={{ fontSize: 12, color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <span>
-                  Estimated list size: <strong style={{ color: '#e2e8f0' }}>{practiceMatch.listSize.toLocaleString()}</strong>
-                  {practiceMatch.listSizeAsOf && (
-                    <span style={{ color: '#64748b' }}> (NHS Digital, {formatMonthYear(practiceMatch.listSizeAsOf)})</span>
-                  )}
-                </span>
-                {String(listSize) !== String(practiceMatch.listSize) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setListSize(practiceMatch.listSize);
-                      saveField('list size', 'list_size', practiceMatch.listSize);
-                    }}
-                    style={{
-                      padding: '4px 10px',
-                      background: 'rgba(34,211,238,0.15)',
-                      border: '1px solid rgba(34,211,238,0.3)',
-                      color: '#67e8f9',
-                      borderRadius: 6,
-                      fontSize: 11,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                  >Use this →</button>
-                )}
-                {String(listSize) === String(practiceMatch.listSize) && (
-                  <span style={{ color: '#34d399', fontSize: 11 }}>✓ Using this</span>
-                )}
-              </div>
-            ) : (
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                {practiceMatch.listSizeError === 'no_data_in_openprescribing'
-                  ? 'No published list size yet — enter your own above.'
-                  : 'Couldn\'t reach OpenPrescribing. Enter your own above.'}
-              </div>
-            )}
-          </div>
-        )}
-        {!practiceMatchBusy && lookup && !practiceMatch && (
-          <div style={{ marginTop: 10, fontSize: 11, color: '#64748b' }}>
-            No GP practice found at this postcode on NHS Digital — enter your list size manually.
-          </div>
-        )}
+          );
+        })()}
       </Card>
 
       {/* Online consult tool */}
@@ -322,7 +405,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
         </button>
         {!allRequired && (
           <span style={{ alignSelf: 'center', fontSize: 11, color: '#64748b' }}>
-            Fill in postcode, list size and tool to mark complete
+            Fill in name, postcode, list size and tool to mark complete
           </span>
         )}
       </div>

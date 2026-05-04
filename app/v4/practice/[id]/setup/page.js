@@ -42,7 +42,7 @@ export default async function PracticeSetupPage({ params }) {
     { data: myMembership },
     { data: myProfile },
   ] = await Promise.all([
-    supabase.from('practices').select('id, name, slug, postcode, list_size, online_consult_tool, region, setup_completed_at').eq('id', practiceId).maybeSingle(),
+    supabase.from('practices').select('id, name, slug, ods_code, postcode, list_size, online_consult_tool, region, setup_completed_at').eq('id', practiceId).maybeSingle(),
     supabase.from('practice_users').select('role').eq('practice_id', practiceId).eq('user_id', user.id).maybeSingle(),
     supabase.from('profiles').select('is_platform_admin').eq('id', user.id).maybeSingle(),
   ]);
@@ -82,6 +82,8 @@ export default async function PracticeSetupPage({ params }) {
           practiceId={practiceId}
           practiceSlug={practice.slug}
           initial={{
+            name: fullPractice?.name || '',
+            odsCode: fullPractice?.ods_code || '',
             postcode: fullPractice?.postcode || '',
             listSize: fullPractice?.list_size || '',
             onlineConsultTool: fullPractice?.online_consult_tool || '',
