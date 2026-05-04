@@ -15,7 +15,11 @@ import { loadPracticeData, loadBuddyAllocations, adaptToV3Shape } from '@/lib/v4
 
 export const dynamic = 'force-dynamic';
 
-// ─── GET: read everything ──────────────────────────────────────────────
+// ─── GET: read everything in a single round-trip ──────────────────────
+//
+// All Supabase queries fire in parallel. The client makes ONE fetch and
+// gets everything: practice data, allocations, notes, memberships, user
+// info. No serial chain on the server.
 export async function GET(request) {
   const url = new URL(request.url);
   const practiceId = url.searchParams.get('practice');
@@ -30,53 +34,125 @@ export async function GET(request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
 
-  const v4Data = await loadPracticeData(supabase, practiceId);
-  if (!v4Data?.practice) return NextResponse.json({ error: 'Practice not found or access denied' }, { status: 404 });
-
-  // Adapt to v3 shape — covers clinicians, weeklyRota, plannedAbsences,
-  // huddleSettings, settings, roomAllocation, closedDays, huddleCsvData, etc.
-  const v3Shape = adaptToV3Shape(v4Data);
-
-  // Load buddy allocations (v3's data.allocationHistory) — covers last 12 months
+  // Compute allocation cutoff
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - 12);
   const cutoffStr = cutoff.toISOString().slice(0, 10);
-  const allocations = await loadBuddyAllocations(supabase, practiceId, cutoffStr, null);
+
+  // Get clinician IDs for this practice (needed for FK queries)
+  const { data: clinicianRows } = await supabase.from('clinicians')
+    .select('id')
+    .eq('practice_id', practiceId);
+  const clinicianIds = (clinicianRows || []).map(r => r.id);
+
+  // ALL the queries we need, fired in true parallel
+  const [
+    { data: practice },
+    { data: clinicians },
+    { data: workingPatterns },
+    { data: absences },
+    { data: settings },
+    { data: huddleCsv },
+    { data: allocations },
+    { data: notes },
+    { data: memberships },
+  ] = await Promise.all([
+    supabase.from('practices')
+      .select('id, name, ods_code, region')
+      .eq('id', practiceId)
+      .maybeSingle(),
+    supabase.from('clinicians')
+      .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, aliases, linked_user_id')
+      .eq('practice_id', practiceId)
+      .order('name'),
+    clinicianIds.length > 0
+      ? supabase.from('working_patterns')
+          .select('id, clinician_id, effective_from, effective_to, pattern')
+          .in('clinician_id', clinicianIds)
+          .is('effective_to', null)
+      : Promise.resolve({ data: [] }),
+    clinicianIds.length > 0
+      ? supabase.from('absences')
+          .select('id, clinician_id, start_date, end_date, reason, notes')
+          .in('clinician_id', clinicianIds)
+      : Promise.resolve({ data: [] }),
+    supabase.from('practice_settings')
+      .select('huddle_settings, buddy_settings, room_allocation, closed_days, teamnet_url, extras')
+      .eq('practice_id', practiceId)
+      .maybeSingle(),
+    supabase.from('huddle_csv_data')
+      .select('data, updated_at')
+      .eq('practice_id', practiceId)
+      .maybeSingle(),
+    supabase.from('buddy_allocations')
+      .select('date, allocations')
+      .eq('practice_id', practiceId)
+      .gte('date', cutoffStr),
+    clinicianIds.length > 0
+      ? supabase.from('rota_notes')
+          .select('clinician_id, date, note')
+          .in('clinician_id', clinicianIds)
+      : Promise.resolve({ data: [] }),
+    supabase.from('practice_users')
+      .select('role, practices(id, name)')
+      .eq('user_id', user.id),
+  ]);
+
+  if (!practice) return NextResponse.json({ error: 'Practice not found or access denied' }, { status: 404 });
+
+  // Adapt — passes through the same shape as before
+  const v4Data = {
+    practice,
+    clinicians: clinicians || [],
+    workingPatterns: workingPatterns || [],
+    absences: absences || [],
+    settings: settings || null,
+    huddleCsvData: huddleCsv?.data || null,
+    huddleCsvUpdatedAt: huddleCsv?.updated_at || null,
+    members: [],
+  };
+  const v3Shape = adaptToV3Shape(v4Data);
+
+  // Inline allocations
   const allocationHistory = {};
-  for (const a of allocations) {
+  for (const a of (allocations || [])) {
     allocationHistory[a.date] = a.allocations;
   }
   v3Shape.allocationHistory = allocationHistory;
 
-  // Load all rota notes for clinicians of this practice
-  const clinicianIds = (v4Data.clinicians || []).map(c => c.id);
-  let rotaNotesMap = {};
-  if (clinicianIds.length > 0) {
-    const { data: notes } = await supabase
-      .from('rota_notes')
-      .select('clinician_id, date, note')
-      .in('clinician_id', clinicianIds);
-    for (const n of (notes || [])) {
-      if (!rotaNotesMap[n.clinician_id]) rotaNotesMap[n.clinician_id] = {};
-      rotaNotesMap[n.clinician_id][n.date] = n.note;
-    }
+  // Inline notes
+  const rotaNotesMap = {};
+  for (const n of (notes || [])) {
+    if (!rotaNotesMap[n.clinician_id]) rotaNotesMap[n.clinician_id] = {};
+    rotaNotesMap[n.clinician_id][n.date] = n.note;
   }
   v3Shape.rotaNotes = rotaNotesMap;
 
-  // Find which clinician (if any) is linked to the calling user
-  const myClinician = (v4Data.clinicians || []).find(c => c.linked_user_id === user.id);
+  const myClinician = (clinicians || []).find(c => c.linked_user_id === user.id);
 
-  // Add a v4 marker so the client knows it's running in v4 mode
   v3Shape._v4 = {
     practiceId,
-    practiceName: v4Data.practice.name,
+    practiceName: practice.name,
     userId: user.id,
     userEmail: user.email,
     linkedClinicianId: myClinician?.id || null,
     linkedClinicianName: myClinician?.name || null,
+    // Inline practices list — saves an extra round-trip from the client
+    practices: (memberships || []).map(m => ({
+      id: m.practices?.id,
+      name: m.practices?.name,
+      role: m.role,
+    })).filter(p => p.id),
   };
 
-  return NextResponse.json(v3Shape);
+  // Cache hint — let the browser cache the response for a few seconds
+  // so navigation back/forward and rapid page reloads don't re-fetch
+  return new NextResponse(JSON.stringify(v3Shape), {
+    headers: {
+      'content-type': 'application/json',
+      'cache-control': 'private, max-age=10, stale-while-revalidate=60',
+    },
+  });
 }
 
 

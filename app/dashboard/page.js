@@ -73,61 +73,41 @@ function DashboardContent() {
   const huddleLoadedRef = useRef(false);
   const lastSentCsvRef = useRef(null);  // tracks the last CSV reference we sent to the server, for save-time bandwidth optimisation
 
-  // 1. Auth check + practice selection check
+  // Single load effect: fetch data immediately. The API endpoint handles
+  // auth and returns 401 if not signed in; we redirect on that.
+  // No client-side auth round-trip — saves ~300-500ms on cold loads.
   useEffect(() => {
-    let cancelled = false;
-    async function checkAuth() {
-      if (!supabase) return;
-      const { data: { user } } = await supabase.auth.getUser();
-      if (cancelled) return;
-
-      if (!user) {
-        router.replace('/v4/login');
-        return;
-      }
-      if (!practiceId) {
-        router.replace('/v4/dashboard');
-        return;
-      }
-
-      // Fetch all practices the user is a member of
-      const { data: memberships } = await supabase
-        .from('practice_users')
-        .select('role, practices(id, name)')
-        .eq('user_id', user.id);
-      if (!cancelled && memberships) {
-        setAllPractices(memberships.map(m => ({
-          id: m.practices?.id,
-          name: m.practices?.name,
-          role: m.role,
-        })).filter(p => p.id));
-      }
-
-      setAuthChecked(true);
+    if (!practiceId) {
+      router.replace('/v4/dashboard');
+      return;
     }
-    checkAuth();
-    return () => { cancelled = true; };
-  }, [practiceId, router, supabase]);
-
-  // 2. Once auth checked, load practice data
-  useEffect(() => {
-    if (!authChecked || !practiceId) return;
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       try {
         const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`);
+        if (cancelled) return;
+
+        if (res.status === 401) {
+          router.replace('/v4/login');
+          return;
+        }
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           toast(err.error || `Failed to load data (${res.status})`, 'error', 4000);
           setLoading(false);
           return;
         }
+
         const json = await res.json();
         if (cancelled) return;
         const normalised = normalizeData(json);
         setData(normalised);
+        setAuthChecked(true);
+        if (json._v4?.practices) {
+          setAllPractices(json._v4.practices);
+        }
         if (json.huddleCsvData) {
           setHuddleData(json.huddleCsvData);
           lastSentCsvRef.current = json.huddleCsvData;  // baseline for diff
@@ -165,7 +145,7 @@ function DashboardContent() {
                 fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ ...normalised, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }),
+                  body: JSON.stringify({ plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }),
                 }).catch(() => {});
               } catch {
                 // background sync errors are silent
@@ -182,7 +162,7 @@ function DashboardContent() {
 
     load();
     return () => { cancelled = true; };
-  }, [authChecked, practiceId, toast]);
+  }, [practiceId, router, toast]);
 
   // ─── Same normalization logic as v3 ──────────────────────────────
   const normalizeData = (d) => {
@@ -480,7 +460,7 @@ function DashboardContent() {
   const updateClinicianField = (id, field, value) => { const newClinicians = ensureArray(data.clinicians).map(c => { if (c.id !== id) return c; let pv = value; if (field === 'sessions') pv = parseInt(value) || 6; if (field === 'primaryBuddy' || field === 'secondaryBuddy') pv = value ? (/^\d+$/.test(String(value)) ? parseInt(value) : value) : null; return { ...c, [field]: pv }; }); saveData({ ...data, clinicians: newClinicians }); };
 
   // Loading state
-  if (!authChecked || (loading && !data)) {
+  if (loading && !data) {
     return <div className="min-h-screen flex items-center justify-center" style={{ background: '#f1f5f9' }}><PageSkeleton /></div>;
   }
   if (!data) {
