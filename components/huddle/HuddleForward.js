@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { getHuddleCapacity, getDateTotals, getDutyDoctor, getSiteColour } from '@/lib/huddle';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS } from '@/lib/demandPredictor';
+import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import ClinicianCapacity from './ClinicianCapacity';
 import { canEditPracticeData } from '@/lib/permissions';
 
@@ -66,7 +67,22 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
     return (Array.isArray(data.clinicians)?data.clinicians:Object.values(data.clinicians)).filter(c=>c.status!=='left');
   }, [data?.clinicians]);
 
-  useEffect(() => { getWeatherForecast(16).then(w=>setWeather(w)).catch(()=>{}); }, []);
+  useEffect(() => {
+    const lat = data?._v4?.practiceLatitude;
+    const lon = data?._v4?.practiceLongitude;
+    getWeatherForecast(16, lat, lon).then(w=>setWeather(w)).catch(()=>{});
+  }, [data?._v4?.practiceLatitude, data?._v4?.practiceLongitude]);
+
+  // Per-practice prediction context (calibrated baseline + LEA holidays)
+  const predictionOptions = useMemo(() => {
+    const opts = {};
+    if (data?._v4?.demandSettings) opts.demandSettings = data._v4.demandSettings;
+    if (data?._v4?.practiceAdminDistrict) {
+      const cal = getSchoolHolidaysForLEA(data._v4.practiceAdminDistrict);
+      if (cal?.ranges) opts.schoolHolidayRanges = cal.ranges;
+    }
+    return opts;
+  }, [data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict]);
 
   const COLS = '60px repeat(5, 1fr) 56px 56px';
 
@@ -86,7 +102,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         const dayName = DAY_NAMES[date.getDay()];
         const hasData = huddleData.dates?.includes(dateStr);
         const isToday = isoKey===toLocalIso(today);
-        const pred = predictDemand(date, weather?.[isoKey]||null);
+        const pred = predictDemand(date, weather?.[isoKey]||null, predictionOptions);
         const isBH = pred?.isBankHoliday||false;
         const predicted = pred?.predicted?Math.round(pred.predicted):null;
         const dowIdx = date.getDay() - 1; // 0=Mon, 4=Fri
@@ -112,7 +128,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       res.push({days,ws,label:`${ws.getDate()} ${ws.toLocaleString('en-GB',{month:'short'})}`,wU,wT,wR:wRA+wRE+wRB,wRA,wRE,wRB});
     }
     return res;
-  }, [huddleData,hs,urgOv,routOv,weather,convRate,dutySlots,hasDuty]);
+  }, [huddleData,hs,urgOv,routOv,weather,convRate,dutySlots,hasDuty,predictionOptions]);
 
   const shortDays = useMemo(()=>weeks.flatMap(w=>w.days).filter(d=>d.hasData&&!d.isBH&&(d.amT+d.pmT)>0&&(d.amS+d.pmS)<(d.amT+d.pmT)*0.8).sort((a,b)=>a.date-b.date),[weeks]);
   const topDemand = useMemo(()=>weeks.flatMap(w=>w.days).filter(d=>!d.isBH&&d.predicted).sort((a,b)=>b.predicted-a.predicted).slice(0,5),[weeks]);

@@ -7,6 +7,7 @@ import WhosInOut from './WhosInOut';
 import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr, logEvent } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
+import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge } from './HuddleShared';
 import { canEditPracticeData } from '@/lib/permissions';
 import NhsBenchmarkRibbon from './NhsBenchmarkRibbon';
@@ -221,7 +222,23 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   // Check ALL slots (unfiltered) to determine if practice is open
   const allCapacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, {}) : null;
   const hasSlots = allCapacity && ((allCapacity.am.total||0) + (allCapacity.pm.total||0) + (allCapacity.am.embargoed||0) + (allCapacity.pm.embargoed||0) + (allCapacity.am.booked||0) + (allCapacity.pm.booked||0)) > 0;
-  const viewingPrediction = useMemo(() => predictDemand(viewingDate, null), [viewingDate]);
+  // Build per-practice prediction options once. demandSettings comes from
+  // the practice's NHS auto-seed or AskMyGP CSV calibration; school holidays
+  // come from postcodes.io → LEA at setup time. Falls back gracefully if
+  // either is missing (predictor uses Winscombe defaults).
+  const predictionOptions = useMemo(() => {
+    const opts = {};
+    if (data?._v4?.demandSettings) opts.demandSettings = data._v4.demandSettings;
+    if (data?._v4?.practiceAdminDistrict) {
+      const cal = getSchoolHolidaysForLEA(data._v4.practiceAdminDistrict);
+      if (cal?.ranges) opts.schoolHolidayRanges = cal.ranges;
+    }
+    return opts;
+  }, [data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict]);
+  const viewingPrediction = useMemo(
+    () => predictDemand(viewingDate, null, predictionOptions),
+    [viewingDate, predictionOptions]
+  );
   const isPracticeClosed = !hasSlots || viewingPrediction?.isBankHoliday || viewingDate.getDay() === 0 || viewingDate.getDay() === 6;
 
   const hasUrgentFilter = !!urgentOverrides;

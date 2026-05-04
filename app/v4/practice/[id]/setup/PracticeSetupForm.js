@@ -139,6 +139,22 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
       setRegion(lookup.region);
       await saveField('region', 'region', lookup.region);
     }
+    // Also persist the geographic context derived from the postcode lookup —
+    // these are needed by the demand predictor (weather location) and the
+    // school holiday lookup. Saved once during setup so the dashboard
+    // doesn't need to re-fetch postcodes.io on every load.
+    if (lookup) {
+      const updates = {};
+      if (lookup.latitude != null) updates.latitude = lookup.latitude;
+      if (lookup.longitude != null) updates.longitude = lookup.longitude;
+      if (lookup.admin_district) updates.admin_district = lookup.admin_district;
+      if (Object.keys(updates).length > 0) {
+        await supabase
+          .from('practices')
+          .update(updates)
+          .eq('id', practiceId);
+      }
+    }
   }
 
   async function saveListSize() {

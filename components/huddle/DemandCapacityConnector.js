@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
+import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor, getBand } from '@/lib/huddle';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 
@@ -60,19 +61,27 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
     async function load() {
       setLoading(true);
       try {
-        const weather = await getWeatherForecast(16);
+        const lat = data?._v4?.practiceLatitude;
+        const lon = data?._v4?.practiceLongitude;
+        const weather = await getWeatherForecast(16, lat, lon);
+        const opts = {};
+        if (data?._v4?.demandSettings) opts.demandSettings = data._v4.demandSettings;
+        if (data?._v4?.practiceAdminDistrict) {
+          const cal = getSchoolHolidaysForLEA(data._v4.practiceAdminDistrict);
+          if (cal?.ranges) opts.schoolHolidayRanges = cal.ranges;
+        }
         const days = [];
-        for (let i=14;i>=1;i--) { const d=new Date(targetDate);d.setDate(d.getDate()-i);const dk=toLocalIso(d);const p=predictDemand(d,weather?.[dk]||null);days.push({date:d,dateKey:dk,dayOfWeek:d.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],dayNum:d.getDate(),isPast:true,isToday:false,isWeekend:d.getDay()===0||d.getDay()===6,...p}); }
-        const tdk=toLocalIso(targetDate);const tw=weather?.[tdk]||null;const tp=predictDemand(targetDate,tw);
+        for (let i=14;i>=1;i--) { const d=new Date(targetDate);d.setDate(d.getDate()-i);const dk=toLocalIso(d);const p=predictDemand(d,weather?.[dk]||null,opts);days.push({date:d,dateKey:dk,dayOfWeek:d.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],dayNum:d.getDate(),isPast:true,isToday:false,isWeekend:d.getDay()===0||d.getDay()===6,...p}); }
+        const tdk=toLocalIso(targetDate);const tw=weather?.[tdk]||null;const tp=predictDemand(targetDate,tw,opts);
         days.push({date:targetDate,dateKey:tdk,dayOfWeek:targetDate.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][targetDate.getDay()],dayNum:targetDate.getDate(),isPast:false,isToday:true,isWeekend:targetDate.getDay()===0||targetDate.getDay()===6,weather:tw,...tp});
-        for (let i=1;i<=14;i++) { const d=new Date(targetDate);d.setDate(d.getDate()+i);const dk=toLocalIso(d);const p=predictDemand(d,weather?.[dk]||null);days.push({date:d,dateKey:dk,dayOfWeek:d.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],dayNum:d.getDate(),isPast:false,isToday:false,isWeekend:d.getDay()===0||d.getDay()===6,...p}); }
+        for (let i=1;i<=14;i++) { const d=new Date(targetDate);d.setDate(d.getDate()+i);const dk=toLocalIso(d);const p=predictDemand(d,weather?.[dk]||null,opts);days.push({date:d,dateKey:dk,dayOfWeek:d.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],dayNum:d.getDate(),isPast:false,isToday:false,isWeekend:d.getDay()===0||d.getDay()===6,...p}); }
         if (!cancelled) { const r={days,today:days.find(d=>d.isToday),todayWeather:tw}; setForecast(r); setPrevData(r); }
       } catch(e) { console.error('Forecast error:',e); }
       if (!cancelled) setLoading(false);
     }
     load();
     return () => { cancelled = true; };
-  }, [targetDate]);
+  }, [targetDate, data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict, data?._v4?.practiceLatitude, data?._v4?.practiceLongitude]);
 
   // Chart
   useEffect(() => {

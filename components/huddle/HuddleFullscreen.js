@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getHuddleCapacity, getCliniciansForDate, getClinicianLocationsForDate, getNDayAvailability, getDutyDoctor, getBand, getSiteColour } from '@/lib/huddle';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS, MONTH_EFFECTS } from '@/lib/demandPredictor';
+import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DEFAULT_CAPACITY_CARDS = [
@@ -161,19 +162,27 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
     return () => { document.removeEventListener('fullscreenchange', onFs); document.removeEventListener('keydown', onKey); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
   }, [dualMode, screen]);
 
-  // Demand + weather
+  // Demand + weather (practice-specific lat/lon + LEA holidays + calibration)
   useEffect(() => {
     async function load() {
-      const w = await getWeatherForecast(16);
+      const lat = data?._v4?.practiceLatitude;
+      const lon = data?._v4?.practiceLongitude;
+      const w = await getWeatherForecast(16, lat, lon);
+      const opts = {};
+      if (data?._v4?.demandSettings) opts.demandSettings = data._v4.demandSettings;
+      if (data?._v4?.practiceAdminDistrict) {
+        const cal = getSchoolHolidaysForLEA(data._v4.practiceAdminDistrict);
+        if (cal?.ranges) opts.schoolHolidayRanges = cal.ranges;
+      }
       const todayDk = toLocalIso(today);
       const todayW = w?.[todayDk] || null;
-      const todayPred = predictDemand(today, todayW);
+      const todayPred = predictDemand(today, todayW, opts);
       const chartDays = [];
       for (let i = 14; i >= 1; i--) {
         const d = new Date(today); d.setDate(d.getDate() - i);
         const isWE = d.getDay() === 0 || d.getDay() === 6;
         const dk = toLocalIso(d);
-        const pred = isWE ? null : predictDemand(d, w?.[dk] || null);
+        const pred = isWE ? null : predictDemand(d, w?.[dk] || null, opts);
         chartDays.push({ predicted: pred?.predicted||null, date: d, dk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: true, isToday: false, isBH: pred?.isBankHoliday||false, isWE, confidence: pred?.confidence||{low:null,high:null} });
       }
       chartDays.push({ ...todayPred, date: today, dk: todayDk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()], dayNum: today.getDate(), isPast: false, isToday: true, isBH: false, isWE: false, weather: todayW });
@@ -181,13 +190,13 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
         const d = new Date(today); d.setDate(d.getDate() + i);
         const isWE = d.getDay() === 0 || d.getDay() === 6;
         const dk = toLocalIso(d);
-        const pred = isWE ? null : predictDemand(d, w?.[dk] || null);
+        const pred = isWE ? null : predictDemand(d, w?.[dk] || null, opts);
         chartDays.push({ predicted: pred?.predicted||null, date: d, dk, dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], dayNum: d.getDate(), isPast: false, isToday: false, isBH: pred?.isBankHoliday||false, isWE, confidence: pred?.confidence||{low:null,high:null} });
       }
       setDemandData({ today: { ...todayPred, weather: todayW }, chartDays });
     }
     load();
-  }, [today]);
+  }, [today, data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict, data?._v4?.practiceLatitude, data?._v4?.practiceLongitude]);
 
   // Chart.js
   useEffect(() => {
