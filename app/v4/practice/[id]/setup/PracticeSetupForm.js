@@ -58,7 +58,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
 
       const [postcodeResult, practiceRes] = await Promise.all([
         lookupPostcode(postcode),
-        fetch(`/api/practice-lookup?postcode=${encodeURIComponent(postcode)}`)
+        fetch(`/api/practice-lookup?postcode=${encodeURIComponent(postcode)}&currentPracticeId=${encodeURIComponent(practiceId)}`)
           .then(r => r.ok ? r.json() : null)
           .catch(() => null),
       ]);
@@ -240,19 +240,31 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {practiceCandidates.map(p => {
                   const isSelected = odsCode && p.odsCode === odsCode;
+                  const unavailable = p.unavailable && !isSelected;
                   return (
                     <button
                       key={p.odsCode}
                       type="button"
-                      onClick={() => !isSelected && selectPractice(p)}
-                      disabled={isSelected || savingField === 'practice'}
+                      onClick={() => !isSelected && !unavailable && selectPractice(p)}
+                      disabled={isSelected || unavailable || savingField === 'practice'}
                       style={{
                         textAlign: 'left',
                         padding: 12,
-                        background: isSelected ? 'rgba(16,185,129,0.08)' : 'rgba(0,0,0,0.2)',
-                        border: `1px solid ${isSelected ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        background: isSelected
+                          ? 'rgba(16,185,129,0.08)'
+                          : unavailable
+                          ? 'rgba(255,255,255,0.02)'
+                          : 'rgba(0,0,0,0.2)',
+                        border: `1px solid ${
+                          isSelected
+                            ? 'rgba(16,185,129,0.3)'
+                            : unavailable
+                            ? 'rgba(255,255,255,0.04)'
+                            : 'rgba(255,255,255,0.08)'
+                        }`,
                         borderRadius: 8,
-                        cursor: isSelected ? 'default' : 'pointer',
+                        cursor: isSelected || unavailable ? 'not-allowed' : 'pointer',
+                        opacity: unavailable ? 0.5 : 1,
                         transition: 'background 0.15s',
                       }}
                     >
@@ -273,8 +285,8 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                             )}
                           </div>
                         </div>
-                        <div style={{ flexShrink: 0, fontSize: 11, color: isSelected ? '#34d399' : '#22d3ee', fontWeight: 500, alignSelf: 'center' }}>
-                          {isSelected ? '✓ Selected' : 'Select →'}
+                        <div style={{ flexShrink: 0, fontSize: 11, fontWeight: 500, alignSelf: 'center', color: isSelected ? '#34d399' : unavailable ? '#fcd34d' : '#22d3ee' }}>
+                          {isSelected ? '✓ Selected' : unavailable ? 'Already on GPDash' : 'Select →'}
                         </div>
                       </div>
                     </button>

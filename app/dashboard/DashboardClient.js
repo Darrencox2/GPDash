@@ -111,7 +111,16 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
   const [loading, setLoading] = useState(!initialData);
   const [selectedWeek, setSelectedWeek] = useState(() => getWeekStart(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => getCurrentDay());
-  const [activeSection, setActiveSection] = useState('huddle-today');
+  const [activeSection, setActiveSection] = useState(() => {
+    // Allow initial section from URL (?section=...) for cross-page sidebar
+    // navigation (e.g. coming from /v4/practice/[slug]).
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      const section = url.searchParams.get('section');
+      if (section) return section;
+    }
+    return 'huddle-today';
+  });
   const [syncStatus, setSyncStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);

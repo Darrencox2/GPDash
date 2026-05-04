@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import { resolvePracticeIdentifier } from '@/lib/v4-data';
+import DashboardShell from '@/components/DashboardShell';
 import InviteForm from './InviteForm';
 import ClinicianLinker from './ClinicianLinker';
 import SlugEditor from './SlugEditor';
@@ -94,20 +95,22 @@ export default async function PracticeAdminPage({ params }) {
 
   const canManage = isAdminOrOwner || isPlatformAdmin;
 
+  // Build minimal data shape for the shell (sidebar role gating + footer)
+  const shellData = {
+    _v4: {
+      practiceSlug: practice.slug,
+      practiceName: practice.name,
+      myRole: isPlatformAdmin ? 'owner' : (myMembership?.role || null),
+      isPlatformAdmin,
+    },
+  };
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-      color: '#e2e8f0',
-      padding: 32,
-    }}>
+    <DashboardShell shellData={shellData} activeSection="practice-settings">
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        <Link href={`/p/${practice.slug || practiceId}`} style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none' }}>
-          ← Back to dashboard
-        </Link>
         <h1 style={{
           fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600,
-          color: 'white', marginTop: 8, marginBottom: 6,
+          color: 'white', marginBottom: 6,
         }}>{practice.name}</h1>
         <div style={{ display: 'flex', gap: 12, marginBottom: 32, fontSize: 12, color: '#94a3b8' }}>
           {practice.ods_code && <span>ODS: {practice.ods_code}</span>}
@@ -270,7 +273,7 @@ export default async function PracticeAdminPage({ params }) {
           </div>
         )}
       </div>
-    </div>
+    </DashboardShell>
   );
 }
 
