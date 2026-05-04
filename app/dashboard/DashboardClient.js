@@ -529,14 +529,19 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
           {/* Practice setup banner — shown to admins/owners when setup_completed_at is null */}
           {!data._v4?.setupCompletedAt && canEditPracticeData(data) && (
             <div style={{
-              marginBottom: 16, padding: '10px 14px',
+              marginBottom: 20,
+              padding: '14px 16px',
               background: 'rgba(34,211,238,0.08)',
               border: '1px solid rgba(34,211,238,0.2)',
               borderRadius: 10,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 12, flexWrap: 'wrap',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexWrap: 'wrap',
+              lineHeight: 1.5,
             }}>
-              <div style={{ fontSize: 13, color: '#cbd5e1' }}>
+              <div style={{ fontSize: 13, color: '#cbd5e1', flex: '1 1 280px', minWidth: 0 }}>
                 <strong style={{ color: '#67e8f9' }}>Finish practice setup</strong>
                 {' · '}Add your postcode, list size and consultation tool so demand
                 predictions calibrate to your practice.
@@ -544,10 +549,15 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
               <a
                 href={`/v4/practice/${data._v4?.practiceSlug || practiceId}/setup`}
                 style={{
-                  fontSize: 12, fontWeight: 500,
-                  color: 'white', background: '#0891b2',
-                  padding: '6px 12px', borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: 'white',
+                  background: '#0891b2',
+                  padding: '8px 14px',
+                  borderRadius: 6,
                   textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >Open setup →</a>
             </div>

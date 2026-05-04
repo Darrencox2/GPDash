@@ -10,6 +10,8 @@ import InviteForm from './InviteForm';
 import ClinicianLinker from './ClinicianLinker';
 import SlugEditor from './SlugEditor';
 import EmisReportCard from '@/components/EmisReportCard';
+import DeletePracticeButton from './DeletePracticeButton';
+import DemandUpload from './DemandUpload';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +84,13 @@ export default async function PracticeAdminPage({ params }) {
     .order('name');
 
   const myClinician = (clinicians || []).find(c => c.linked_user_id === user.id);
+
+  // Demand settings + history summary for the upload card
+  const [{ data: settingsRow }, { data: historySummary }] = await Promise.all([
+    supabase.from('practice_settings').select('demand_settings').eq('practice_id', practiceId).maybeSingle(),
+    supabase.from('demand_history_summary').select('source, row_count, earliest_date, latest_date, last_uploaded_at').eq('practice_id', practiceId),
+  ]);
+  const demandSettings = settingsRow?.demand_settings || null;
 
   const canManage = isAdminOrOwner || isPlatformAdmin;
 
@@ -159,6 +168,31 @@ export default async function PracticeAdminPage({ params }) {
           <EmisReportCard variant="inline" />
         </Card>
 
+        {canManage && (
+          <Card title="Demand history">
+            <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, marginBottom: 14 }}>
+              Upload your historical demand data to calibrate the prediction model to your
+              practice. We accept the AskMyGP <em>"Crosstab — Demand data"</em> CSV export.
+              Re-upload anytime to recalibrate.
+            </p>
+            <DemandUpload
+              practiceId={practiceId}
+              onlineConsultTool={practice.online_consult_tool}
+              demandSettings={demandSettings}
+              history={historySummary || []}
+            />
+            {demandSettings?.lastCalibratedAt && (
+              <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10 }}>
+                Last calibrated{' '}
+                {new Date(demandSettings.lastCalibratedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {' · '}
+                {demandSettings.sampleSize} weekday data points
+                {demandSettings.spanDays && <>, {demandSettings.spanDays} days span</>}
+              </div>
+            )}
+          </Card>
+        )}
+
         <Card title="Your clinician record">
           <ClinicianLinker
             practiceId={practiceId}
@@ -214,6 +248,26 @@ export default async function PracticeAdminPage({ params }) {
           <Card title="Invite a member">
             <InviteForm practiceId={practiceId} canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin} />
           </Card>
+        )}
+
+        {/* Danger zone — platform admin only */}
+        {isPlatformAdmin && (
+          <div style={{
+            background: 'rgba(127,29,29,0.15)',
+            border: '1px solid rgba(239,68,68,0.3)',
+            borderRadius: 12,
+            padding: 20,
+            marginTop: 8,
+          }}>
+            <h3 style={{ color: '#fca5a5', fontSize: 13, fontWeight: 600, marginBottom: 4, fontFamily: "'Outfit', sans-serif" }}>
+              Danger zone
+            </h3>
+            <p style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
+              Permanently delete this practice and all of its data. Only visible to
+              platform admins. There is no undo.
+            </p>
+            <DeletePracticeButton practiceId={practiceId} practiceName={practice.name} />
+          </div>
         )}
       </div>
     </div>
