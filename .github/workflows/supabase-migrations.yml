@@ -1,6 +1,14 @@
 name: Apply Supabase migrations
 
 on:
+  # Auto-apply on push to v4-rebuild when migration files change.
+  # Path filter means we don't waste runs on unrelated commits.
+  push:
+    branches:
+      - v4-rebuild
+    paths:
+      - 'supabase/migrations/**'
+  # Manual trigger still available for re-runs or other branches.
   workflow_dispatch:
     inputs:
       branch:
@@ -15,7 +23,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          # On push: github.ref_name is the branch (e.g. "v4-rebuild")
+          # On workflow_dispatch: use the input, fall back to ref_name
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
