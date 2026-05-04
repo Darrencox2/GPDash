@@ -39,6 +39,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   const [practiceMatchBusy, setPracticeMatchBusy] = useState(false);
   const [practiceMatchReason, setPracticeMatchReason] = useState(null);
   const [practiceMatchDebug, setPracticeMatchDebug] = useState(null);
+  const [nhsSeedResult, setNhsSeedResult] = useState(null);
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
   const [error, setError] = useState('');
@@ -155,8 +156,26 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
     if (p.listSize != null) setListSize(p.listSize);
     setSavedField('practice');
     setTimeout(() => setSavedField(null), 1500);
-    // Force a router refresh so the page header (which shows practice.name)
-    // updates without the user having to navigate away
+
+    // Try to pre-seed demand predictions from NHS data (fire-and-forget —
+    // no need to block the UI; result shows up in the demand banner below)
+    fetch('/api/v4/seed-demand-from-nhs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ practiceId }),
+    })
+      .then(r => r.json())
+      .then(result => {
+        if (result.seeded) {
+          setNhsSeedResult(result);
+        } else if (result.reason && result.reason !== 'existing_settings_not_overwritten') {
+          // Don't show as an error — just log. The NHS lookup is best-effort.
+          console.log('NHS seed:', result.reason, result.message);
+          setNhsSeedResult({ seeded: false, reason: result.reason, message: result.message });
+        }
+      })
+      .catch(e => console.warn('NHS seed call failed:', e));
+
     router.refresh();
   }
 
@@ -329,6 +348,28 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           </div>
         )}
       </Card>
+
+      {/* NHS seed result banner — shown after a practice has been picked */}
+      {nhsSeedResult?.seeded && (
+        <div style={{
+          padding: '12px 14px',
+          background: 'rgba(34, 211, 238, 0.07)',
+          border: '1px solid rgba(34, 211, 238, 0.25)',
+          borderRadius: 10,
+          fontSize: 12,
+          color: '#a5f3fc',
+          lineHeight: 1.5,
+        }}>
+          <div style={{ fontWeight: 500, marginBottom: 4 }}>
+            ✨ Demand predictions pre-seeded from NHS data
+          </div>
+          <div>
+            Your practice's submission patterns from {nhsSeedResult.sourceMonth?.slice(0, 7)} have been used
+            to bootstrap your demand model: baseline {Math.round(nhsSeedResult.summary?.baseline)} submissions per weekday,
+            with day-of-week effects calibrated to your real data. Upload your AskMyGP history later to refine it further.
+          </div>
+        </div>
+      )}
 
       {/* Practice name */}
       <Card title="Practice name" status={fieldStatus('practice name', savingField, savedField)}>
