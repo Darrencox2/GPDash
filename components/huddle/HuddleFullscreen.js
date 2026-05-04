@@ -276,8 +276,21 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
     });
     return { inPractice: inP, leaveAbsent: leave, dayOff: off };
   }, [visibleStaff, csvPresentIds, absenceMap, manualPresent, manualOverride, hasCSV, data.weeklyRota, dayName]);
-  const FS_LOC_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
-  const fsSortByLoc = (arr) => arr.sort((a, b) => (FS_LOC_SORT[personLocationMap[a.person.id]] ?? 9) - (FS_LOC_SORT[personLocationMap[b.person.id]] ?? 9));
+  // Sort by configured site order from data.roomAllocation.sites. Unknown
+  // CSV-only locations sort to the end alphabetically.
+  const fsSiteOrder = useMemo(() => {
+    const map = {};
+    sites.forEach((s, i) => { map[s.name] = i; });
+    return map;
+  }, [sites]);
+  const fsSortByLoc = (arr) => arr.sort((a, b) => {
+    const locA = personLocationMap[a.person.id];
+    const locB = personLocationMap[b.person.id];
+    const la = fsSiteOrder[locA] ?? (locA ? 100 : 999);
+    const lb = fsSiteOrder[locB] ?? (locB ? 100 : 999);
+    if (la !== lb) return la - lb;
+    return (locA || '').localeCompare(locB || '');
+  });
   const gpTeam = fsSortByLoc(categories.inPractice.filter(e => e.person.group === 'gp'));
   const nursingTeam = fsSortByLoc(categories.inPractice.filter(e => e.person.group === 'nursing'));
   const othersTeam = fsSortByLoc(categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing'));

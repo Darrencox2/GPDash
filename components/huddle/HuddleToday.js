@@ -804,8 +804,16 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         const slotTotal = allAvail + allBooked;
                         if (slotTotal === 0) return null;
                         const locs = s.byLocation || {};
-                        const LOC_C = { 'Winscombe': '#a855f7', 'Banwell': '#10b981', 'Locking': '#f97316' };
-                        const locEntries = ['Winscombe','Banwell','Locking'].map(loc => ({ loc, count: locs[loc] || 0, col: LOC_C[loc] })).filter(l => l.count > 0);
+                        // Build per-location entries dynamically. Order +
+                        // colours come from the practice's configured sites
+                        // (data.roomAllocation.sites). Any locations the CSV
+                        // mentions but that aren't yet configured fall back
+                        // to grey, sorted alphabetically at the end.
+                        const configuredSiteNames = sites.map(x => x.name);
+                        const csvLocations = Object.keys(locs).filter(l => !configuredSiteNames.includes(l)).sort();
+                        const locEntries = [...configuredSiteNames, ...csvLocations]
+                          .map(loc => ({ loc, count: locs[loc] || 0, col: siteCol(loc) }))
+                          .filter(l => l.count > 0);
                         const locTotal = locEntries.reduce((sum, l) => sum + l.count, 0) || 1;
                         return (
                           <div key={i} className="flex items-center gap-2">

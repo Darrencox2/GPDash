@@ -217,12 +217,22 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
     return map;
   }, [allClinicians, csvSessionLocMap]);
 
-  // Group in-practice by staff group, sorted by location
-  const LOCATION_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
+  // Group in-practice by staff group, sorted by location. Site order
+  // comes from data.roomAllocation.sites (the order admins set in Room
+  // Settings). CSV-only locations sort to the end alphabetically so
+  // unfamiliar names group together rather than appearing scattered.
+  const siteOrder = useMemo(() => {
+    const map = {};
+    sites.forEach((s, i) => { map[s.name] = i; });
+    return map;
+  }, [sites]);
   const sortByLocation = (arr) => arr.sort((a, b) => {
-    const la = LOCATION_SORT[personLocationMap[a.person.id]] ?? 9;
-    const lb = LOCATION_SORT[personLocationMap[b.person.id]] ?? 9;
-    return la - lb;
+    const locA = personLocationMap[a.person.id];
+    const locB = personLocationMap[b.person.id];
+    const la = siteOrder[locA] ?? (locA ? 100 : 999); // unknown but present, then absent
+    const lb = siteOrder[locB] ?? (locB ? 100 : 999);
+    if (la !== lb) return la - lb;
+    return (locA || '').localeCompare(locB || '');
   });
   const gpTeam = sortByLocation(categories.inPractice.filter(e => e.person.group === 'gp'));
   const nursingTeam = sortByLocation(categories.inPractice.filter(e => e.person.group === 'nursing'));
@@ -342,14 +352,19 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           </div>
         )}
 
-        {/* Location legend */}
-        <div className="flex items-center justify-center gap-3 pt-2 text-xs">
-          {[{l:'Winscombe',c:'#a855f7'},{l:'Banwell',c:'#10b981'},{l:'Locking',c:'#f97316'}].map(s => (
-            <span key={s.l} className="flex items-center gap-1"><span className="rounded-sm flex items-center justify-center text-[8px] font-bold text-white" style={{width:14,height:14,background:s.c}}>{s.l.charAt(0)}</span><span className="text-slate-500">{s.l}</span></span>
-          ))}
-          <span className="text-slate-600">|</span>
-          <span className="text-slate-500">Left=AM Right=PM</span>
-        </div>
+        {/* Location legend — built from configured sites */}
+        {sites.length > 0 && (
+          <div className="flex items-center justify-center flex-wrap gap-x-3 gap-y-1 pt-2 text-xs">
+            {sites.map(s => (
+              <span key={s.name} className="flex items-center gap-1">
+                <span className="rounded-sm flex items-center justify-center text-[8px] font-bold text-white" style={{width:14,height:14,background:s.colour||'#64748b'}}>{(s.name || '?').charAt(0).toUpperCase()}</span>
+                <span className="text-slate-500">{s.name}</span>
+              </span>
+            ))}
+            <span className="text-slate-600">|</span>
+            <span className="text-slate-500">Left=AM Right=PM</span>
+          </div>
+        )}
       </div>
 
       {/* Right-side settings panel */}
