@@ -66,6 +66,8 @@ export default async function PracticePage({ params }) {
     { data: allocations },
     { data: notes },
     { data: memberships },
+    { data: myProfile },
+    { data: myMembership },
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from('clinicians').select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, aliases, linked_user_id').eq('practice_id', practiceId).order('name'),
@@ -76,6 +78,10 @@ export default async function PracticePage({ params }) {
     supabase.from('buddy_allocations').select('date, allocations').eq('practice_id', practiceId).gte('date', cutoffStr),
     supabase.from('rota_notes').select('clinician_id, date, note, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId),
     supabase.from('practice_users').select('role, practices(id, name, slug)'),
+    // Platform admin flag — single profile row for the current user
+    supabase.from('profiles').select('is_platform_admin').maybeSingle(),
+    // Role for THIS practice specifically (not all memberships)
+    supabase.from('practice_users').select('role').eq('practice_id', practiceId).maybeSingle(),
   ]);
   const tQueries = Date.now();
 
@@ -105,12 +111,19 @@ export default async function PracticePage({ params }) {
   v3Shape.rotaNotes = rotaNotesMap;
 
   const myClinician = (clinicians || []).find(c => c.linked_user_id === user.id);
+  const isPlatformAdmin = !!myProfile?.is_platform_admin;
+  // Platform admin acts as 'owner' on every practice for UI gating purposes.
+  // Otherwise their actual membership role (or null if they have none).
+  const myRole = isPlatformAdmin ? 'owner' : (myMembership?.role || null);
+
   v3Shape._v4 = {
     practiceId,
     practiceSlug: practice.slug,
     practiceName: practice.name,
     userId: user.id,
     userEmail: user.email,
+    myRole,
+    isPlatformAdmin,
     linkedClinicianId: myClinician?.id || null,
     linkedClinicianName: myClinician?.name || null,
     practices: (memberships || []).map(m => ({
