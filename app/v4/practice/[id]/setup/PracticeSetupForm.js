@@ -33,49 +33,54 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   const [region, setRegion] = useState(initial.region);
   const [lookup, setLookup] = useState(null); // postcodes.io result
   const [lookupBusy, setLookupBusy] = useState(false);
-  const [practiceCandidates, setPracticeCandidates] = useState([]); // all GP practices at postcode
+  // Practice name-search (separate from postcode lookup)
+  const [practiceQuery, setPracticeQuery] = useState('');
+  const [practiceCandidates, setPracticeCandidates] = useState([]);
   const [practiceMatchBusy, setPracticeMatchBusy] = useState(false);
   const [practiceMatchReason, setPracticeMatchReason] = useState(null);
-  const [practiceMatchDebug, setPracticeMatchDebug] = useState(null);
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
   const [error, setError] = useState('');
   const [completed, setCompleted] = useState(!!initial.setupCompletedAt);
 
-  // ─── Postcode lookup ──────────────────────────────────────────────
-  // Trigger lookup when postcode is a valid format.
+  // ─── Postcode lookup (only postcodes.io for region/LEA) ──────────
   const lookupTimer = useRef(null);
   useEffect(() => {
     if (lookupTimer.current) clearTimeout(lookupTimer.current);
     if (!postcode || !isValidPostcodeFormat(postcode)) {
       setLookup(null);
-      setPracticeCandidates([]);
-      setPracticeMatchReason(null);
       return;
     }
     lookupTimer.current = setTimeout(async () => {
       setLookupBusy(true);
-      setPracticeMatchBusy(true);
-
-      const [postcodeResult, practiceRes] = await Promise.all([
-        lookupPostcode(postcode),
-        fetch(`/api/practice-lookup?postcode=${encodeURIComponent(postcode)}&currentPracticeId=${encodeURIComponent(practiceId)}`)
-          .then(r => r.ok ? r.json() : null)
-          .catch(() => null),
-      ]);
-
+      const result = await lookupPostcode(postcode);
       setLookupBusy(false);
-      setPracticeMatchBusy(false);
-      setLookup(postcodeResult);
-      if (postcodeResult?.region && !region) setRegion(postcodeResult.region);
-
-      const candidates = practiceRes?.practices || [];
-      setPracticeCandidates(candidates);
-      setPracticeMatchReason(practiceRes?.reason || null);
-      setPracticeMatchDebug(practiceRes?.debug || null);
+      setLookup(result);
+      if (result?.region && !region) setRegion(result.region);
     }, 400);
     return () => clearTimeout(lookupTimer.current);
   }, [postcode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Practice name search via OpenPrescribing ────────────────────
+  const practiceSearchTimer = useRef(null);
+  useEffect(() => {
+    if (practiceSearchTimer.current) clearTimeout(practiceSearchTimer.current);
+    if (!practiceQuery || practiceQuery.trim().length < 2) {
+      setPracticeCandidates([]);
+      setPracticeMatchReason(null);
+      return;
+    }
+    practiceSearchTimer.current = setTimeout(async () => {
+      setPracticeMatchBusy(true);
+      const res = await fetch(
+        `/api/practice-lookup?q=${encodeURIComponent(practiceQuery.trim())}&currentPracticeId=${encodeURIComponent(practiceId)}`
+      ).then(r => r.ok ? r.json() : null).catch(() => null);
+      setPracticeMatchBusy(false);
+      setPracticeCandidates(res?.practices || []);
+      setPracticeMatchReason(res?.reason || null);
+    }, 350);
+    return () => clearTimeout(practiceSearchTimer.current);
+  }, [practiceQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Save helpers ─────────────────────────────────────────────────
   async function saveField(fieldKey, dbColumn, value) {
@@ -224,93 +229,84 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
         )}
       </Card>
 
-      {/* Practices found at this postcode (NHS Digital lookup) */}
-      {(practiceMatchBusy || practiceCandidates.length > 0 || (lookup && !practiceMatchBusy && practiceCandidates.length === 0)) && (
-        <Card title={`GP practices at this postcode${practiceCandidates.length > 1 ? ` (${practiceCandidates.length} found)` : ''}`} status={fieldStatus('practice', savingField, savedField)}>
-          {practiceMatchBusy && <div style={{ color: '#94a3b8', fontSize: 12 }}>Looking up NHS Digital…</div>}
-          {!practiceMatchBusy && practiceCandidates.length === 0 && lookup && (
-            <>
-              <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
-                No active GP practice found at this postcode. Enter your practice name and list size manually below.
-              </p>
-              {practiceMatchDebug?.steps?.length > 0 && (
-                <details style={{ marginTop: 8, fontSize: 11, color: '#64748b' }}>
-                  <summary style={{ cursor: 'pointer' }}>Show what was searched</summary>
-                  <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontFamily: 'ui-monospace, Menlo, monospace', whiteSpace: 'pre-wrap' }}>
-                    {practiceMatchDebug.steps.map((s, i) => (
-                      <div key={i}>{JSON.stringify(s)}</div>
-                    ))}
-                  </div>
-                </details>
-              )}
-            </>
-          )}
-          {!practiceMatchBusy && practiceCandidates.length > 0 && (
-            <>
-              <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
-                Click your practice to apply its official name, ODS code, and list size.
-                You can edit any of these afterwards.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {practiceCandidates.map(p => {
-                  const isSelected = odsCode && p.odsCode === odsCode;
-                  const unavailable = p.unavailable && !isSelected;
-                  return (
-                    <button
-                      key={p.odsCode}
-                      type="button"
-                      onClick={() => !isSelected && !unavailable && selectPractice(p)}
-                      disabled={isSelected || unavailable || savingField === 'practice'}
-                      style={{
-                        textAlign: 'left',
-                        padding: 12,
-                        background: isSelected
-                          ? 'rgba(16,185,129,0.08)'
-                          : unavailable
-                          ? 'rgba(255,255,255,0.02)'
-                          : 'rgba(0,0,0,0.2)',
-                        border: `1px solid ${
-                          isSelected
-                            ? 'rgba(16,185,129,0.3)'
-                            : unavailable
-                            ? 'rgba(255,255,255,0.04)'
-                            : 'rgba(255,255,255,0.08)'
-                        }`,
-                        borderRadius: 8,
-                        cursor: isSelected || unavailable ? 'not-allowed' : 'pointer',
-                        opacity: unavailable ? 0.5 : 1,
-                        transition: 'background 0.15s',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500, marginBottom: 2 }}>
-                            {p.name}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#64748b', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                            <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{p.odsCode}</span>
-                            {p.listSize != null ? (
-                              <span>
-                                {p.listSize.toLocaleString()} patients
-                                {p.listSizeAsOf && <span style={{ marginLeft: 4 }}>· NHS Digital, {formatMonthYear(p.listSizeAsOf)}</span>}
-                              </span>
-                            ) : (
-                              <span style={{ color: '#94a3b8' }}>No list size data</span>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ flexShrink: 0, fontSize: 11, fontWeight: 500, alignSelf: 'center', color: isSelected ? '#34d399' : unavailable ? '#fcd34d' : '#22d3ee' }}>
-                          {isSelected ? '✓ Selected' : unavailable ? 'Already on GPDash' : 'Select →'}
-                        </div>
+      {/* Find your practice on NHS Digital — name-search via OpenPrescribing */}
+      <Card title="Find your practice" status={fieldStatus('practice', savingField, savedField)}>
+        <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, lineHeight: 1.5 }}>
+          Type your practice name to search NHS Digital and pre-fill its official
+          name, ODS code, and list size in one click.
+        </p>
+        <input
+          type="text"
+          value={practiceQuery}
+          onChange={(e) => setPracticeQuery(e.target.value)}
+          placeholder="e.g. Winscombe, Banwell, or any partial name"
+          style={input}
+        />
+        {practiceMatchBusy && <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 10 }}>Searching…</div>}
+        {!practiceMatchBusy && practiceQuery.trim().length >= 2 && practiceCandidates.length === 0 && (
+          <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
+            No matches. Try a different word — names are matched in order, so "Banwell" might find practices that "Winscombe" doesn't.
+          </p>
+        )}
+        {!practiceMatchBusy && practiceCandidates.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+            {practiceCandidates.map(p => {
+              const isSelected = odsCode && p.odsCode === odsCode;
+              const unavailable = p.unavailable && !isSelected;
+              return (
+                <button
+                  key={p.odsCode}
+                  type="button"
+                  onClick={() => !isSelected && !unavailable && selectPractice(p)}
+                  disabled={isSelected || unavailable || savingField === 'practice'}
+                  style={{
+                    textAlign: 'left',
+                    padding: 12,
+                    background: isSelected
+                      ? 'rgba(16,185,129,0.08)'
+                      : unavailable
+                      ? 'rgba(255,255,255,0.02)'
+                      : 'rgba(0,0,0,0.2)',
+                    border: `1px solid ${
+                      isSelected
+                        ? 'rgba(16,185,129,0.3)'
+                        : unavailable
+                        ? 'rgba(255,255,255,0.04)'
+                        : 'rgba(255,255,255,0.08)'
+                    }`,
+                    borderRadius: 8,
+                    cursor: isSelected || unavailable ? 'not-allowed' : 'pointer',
+                    opacity: unavailable ? 0.5 : 1,
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500, marginBottom: 2 }}>
+                        {p.name}
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </Card>
-      )}
+                      <div style={{ fontSize: 11, color: '#64748b', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{p.odsCode}</span>
+                        {p.listSize != null ? (
+                          <span>
+                            {p.listSize.toLocaleString()} patients
+                            {p.listSizeAsOf && <span style={{ marginLeft: 4 }}>· NHS Digital, {formatMonthYear(p.listSizeAsOf)}</span>}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>No list size data</span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, fontSize: 11, fontWeight: 500, alignSelf: 'center', color: isSelected ? '#34d399' : unavailable ? '#fcd34d' : '#22d3ee' }}>
+                      {isSelected ? '✓ Selected' : unavailable ? 'Already on GPDash' : 'Select →'}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       {/* Practice name */}
       <Card title="Practice name" status={fieldStatus('practice name', savingField, savedField)}>
