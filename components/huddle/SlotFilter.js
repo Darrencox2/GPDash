@@ -1,104 +1,294 @@
 'use client';
 import { useState } from 'react';
 
-// ── Slot Filter Button ──────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// SlotFilter — gear icon + slide-out panel for selecting which appointment
+// slot types count as urgent on the Today page. Also lets admins designate
+// duty-doctor slot types so the duty clinician is highlighted in the
+// session breakdown.
+//
+// Redesigned to match GPDash's dark glass aesthetic. Previously had
+// light-mode residue (amber-900 text on dark, light hover backgrounds)
+// which produced unreadable contrast.
+// ─────────────────────────────────────────────────────────────────────────
+
+// ── Gear icon button ─────────────────────────────────────────────────────
 export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show, setShow, variant = 'dark', initialOverrides }) {
   const selectedCount = overrides ? Object.values(overrides).filter(Boolean).length : 0;
+  const hasFilter = selectedCount > 0;
   return (
-    <button onClick={() => {
-      if (!show && !overrides) {
-        if (initialOverrides) {
-          setOverrides(initialOverrides);
-        } else {
-          const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = false; }); setOverrides(o);
+    <button
+      onClick={() => {
+        if (!show && !overrides) {
+          if (initialOverrides) {
+            setOverrides(initialOverrides);
+          } else {
+            const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = false; }); setOverrides(o);
+          }
         }
-      }
-      setShow(!show);
-    }} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${show ? 'bg-white/20 text-white' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
-      title={`Filter slots${selectedCount > 0 ? ` (${selectedCount} selected)` : ''}`}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z"/></svg>
+        setShow(!show);
+      }}
+      className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${show ? 'bg-white/15 text-white' : hasFilter ? 'text-cyan-400 hover:text-cyan-300 hover:bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+      title={`Filter slots${selectedCount > 0 ? ` (${selectedCount} selected)` : ''}`}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z" />
+      </svg>
+      {hasFilter && !show && (
+        <span
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+          style={{ background: '#06b6d4', color: '#0f172a' }}
+        >
+          {selectedCount}
+        </span>
+      )}
     </button>
   );
 }
 
-// ── Right-side Slot Filter Panel ────────────────────────────────
+// ── Slide-out panel ──────────────────────────────────────────────────────
 export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show, setShow, title, dutyDoctorSlot, setDutyDoctorSlot }) {
+  const [search, setSearch] = useState('');
   if (!show || !overrides) return null;
+
+  const slots = (knownSlotTypes || []).slice().sort();
+  const filteredSlots = search ? slots.filter(s => s.toLowerCase().includes(search.toLowerCase())) : slots;
+  const selectedCount = Object.values(overrides).filter(Boolean).length;
+  const totalCount = slots.length;
+
+  const dutySelectedSet = new Set(
+    Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="flex-1 bg-black/20" onClick={() => setShow(false)} />
-      <div className="w-80 shadow-2xl flex flex-col h-full animate-slide-in-right" style={{background:'#0f172a',borderLeft:'1px solid rgba(255,255,255,0.08)'}}>
+    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={title || 'Slot filter'}>
+      {/* Backdrop */}
+      <div
+        className="flex-1 transition-opacity"
+        style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)' }}
+        onClick={() => setShow(false)}
+      />
+
+      {/* Panel */}
+      <div
+        className="w-96 max-w-full shadow-2xl flex flex-col h-full animate-slide-in-right"
+        style={{
+          background: 'linear-gradient(180deg, #111c33 0%, #0b1224 100%)',
+          borderLeft: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
         {/* Header */}
-        <div className="px-4 py-3 flex items-center justify-between flex-shrink-0" style={{borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-          <div className="text-sm font-semibold text-slate-200">{title || 'Slot Filter'}</div>
-          <button onClick={() => setShow(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors">✕</button>
+        <div className="px-5 pt-4 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-start justify-between mb-2">
+            <div>
+              <div className="text-base font-medium text-slate-100">{title || 'Slot filter'}</div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                Choose which slot types count toward urgent capacity
+              </div>
+            </div>
+            <button
+              onClick={() => setShow(false)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/8 transition-colors flex-shrink-0"
+              aria-label="Close"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Selection summary */}
+          <div className="flex items-center gap-2 mt-2">
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs"
+              style={{ background: 'rgba(34,211,238,0.12)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.2)' }}
+            >
+              <span style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>{selectedCount}</span>
+              <span style={{ color: '#67e8f988' }}>of</span>
+              <span style={{ fontFamily: "'Space Mono', monospace" }}>{totalCount}</span>
+              <span>selected</span>
+            </div>
+            <button
+              onClick={() => { const o = {}; slots.forEach(s => { o[s] = true; }); setOverrides(o); }}
+              className="text-xs text-slate-400 hover:text-cyan-300 transition-colors px-2 py-1 rounded hover:bg-white/5"
+            >
+              All
+            </button>
+            <button
+              onClick={() => { const o = {}; slots.forEach(s => { o[s] = false; }); setOverrides(o); }}
+              className="text-xs text-slate-400 hover:text-slate-200 transition-colors px-2 py-1 rounded hover:bg-white/5"
+            >
+              None
+            </button>
+          </div>
         </div>
 
-        {/* Duty doctor slot selector */}
+        {/* Duty doctor block */}
         {setDutyDoctorSlot && (
-          <div className="px-4 py-3" style={{borderBottom:'1px solid rgba(255,255,255,0.06)',background:'rgba(245,158,11,0.08)'}}>
-            <label className="block text-xs font-semibold text-amber-400 mb-1.5">Duty doctor slot(s)</label>
-            <div className="max-h-32 overflow-y-auto space-y-0.5">
-              {(knownSlotTypes || []).sort().map(s => {
-                const selected = Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot.includes(s) : dutyDoctorSlot === s;
+          <div
+            className="px-5 py-3 flex-shrink-0"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(245,158,11,0.04)' }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2">
+                <path d="M12 2l2.39 7.36H22l-6.19 4.5L18.2 21 12 16.5 5.8 21l2.39-7.14L2 9.36h7.61L12 2z" />
+              </svg>
+              <span className="text-xs font-medium text-amber-300 uppercase tracking-wider">
+                Duty doctor slot{dutySelectedSet.size > 1 ? 's' : ''}
+              </span>
+              {dutySelectedSet.size > 0 && (
+                <span className="text-xs text-amber-400/70" style={{ fontFamily: "'Space Mono', monospace" }}>
+                  {dutySelectedSet.size}
+                </span>
+              )}
+            </div>
+            <div className="space-y-0.5 max-h-32 overflow-y-auto pr-1 -mr-1" style={{ scrollbarWidth: 'thin' }}>
+              {slots.map(s => {
+                const selected = dutySelectedSet.has(s);
                 return (
-                  <label key={s} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-amber-100/50 rounded px-1.5 py-1">
-                    <input type="checkbox" checked={selected} onChange={e => {
-                      const current = Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : dutyDoctorSlot ? [dutyDoctorSlot] : [];
-                      setDutyDoctorSlot(e.target.checked ? [...current, s] : current.filter(x => x !== s));
-                    }} className="rounded border-amber-300 flex-shrink-0 w-3.5 h-3.5" />
-                    <span className="truncate text-amber-900" title={s}>{s}</span>
+                  <label
+                    key={s}
+                    className="flex items-center gap-2 text-xs cursor-pointer rounded-md px-2 py-1.5 transition-colors"
+                    style={{
+                      background: selected ? 'rgba(245,158,11,0.12)' : 'transparent',
+                      color: selected ? '#fde68a' : '#94a3b8',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={e => {
+                        const current = Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : []);
+                        setDutyDoctorSlot(e.target.checked ? [...current, s] : current.filter(x => x !== s));
+                      }}
+                      className="flex-shrink-0 w-3.5 h-3.5 cursor-pointer"
+                      style={{ accentColor: '#f59e0b' }}
+                    />
+                    <span className="truncate" title={s}>{s}</span>
                   </label>
                 );
               })}
             </div>
-            <div className="text-[10px] text-amber-600 mt-1">Select slot type(s) that identify the duty doctor</div>
+            <div className="text-[11px] text-amber-500/70 mt-2 leading-relaxed">
+              Slot types that identify the duty doctor — used in the session breakdown
+            </div>
           </div>
         )}
 
-        {/* Actions at top */}
-        <div className="px-4 py-2 flex items-center gap-3 flex-shrink-0" style={{borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-          <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = false; }); setOverrides(o); }}
-            className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">Deselect all</button>
-          <span className="text-slate-700">|</span>
-          <button onClick={() => { const o = {}; (knownSlotTypes || []).forEach(s => { o[s] = true; }); setOverrides(o); }}
-            className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors">Select all</button>
-        </div>
+        {/* Search box (only when many slots) */}
+        {slots.length > 8 && (
+          <div className="px-5 py-2.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="relative">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search slot types"
+                className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: '#e2e8f0' }}
+              />
+            </div>
+          </div>
+        )}
 
-        {/* Scrollable list */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-0.5">
-          {(knownSlotTypes || []).sort().map(slot => (
-            <label key={slot} className="flex items-center gap-2.5 text-sm cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-2 transition-colors">
-              <input type="checkbox" checked={!!overrides[slot]}
-                onChange={e => setOverrides({ ...overrides, [slot]: e.target.checked })}
-                className="rounded border-slate-300 flex-shrink-0 w-4 h-4" />
-              <span className="truncate" title={slot}>{slot}</span>
-            </label>
-          ))}
+        {/* Slot list */}
+        <div className="flex-1 overflow-y-auto px-3 py-2" style={{ scrollbarWidth: 'thin' }}>
+          {filteredSlots.length === 0 && (
+            <div className="text-center py-8 text-xs text-slate-500">
+              No slot types match {search ? `"${search}"` : 'the filter'}.
+            </div>
+          )}
+          <div className="space-y-0.5">
+            {filteredSlots.map(slot => {
+              const checked = !!overrides[slot];
+              return (
+                <label
+                  key={slot}
+                  className="flex items-center gap-2.5 text-sm cursor-pointer rounded-lg px-2.5 py-2 transition-colors"
+                  style={{
+                    background: checked ? 'rgba(34,211,238,0.08)' : 'transparent',
+                    color: checked ? '#e0f2fe' : '#cbd5e1',
+                  }}
+                  onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                  onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={e => setOverrides({ ...overrides, [slot]: e.target.checked })}
+                    className="flex-shrink-0 w-4 h-4 cursor-pointer"
+                    style={{ accentColor: '#06b6d4' }}
+                  />
+                  <span className="truncate flex-1" title={slot}>{slot}</span>
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 flex-shrink-0" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-          <button onClick={() => { setOverrides(null); setShow(false); }}
-            className="text-xs text-slate-500 hover:text-slate-300 hover:underline transition-colors">Reset to defaults</button>
+        <div
+          className="px-5 py-3 flex-shrink-0 flex items-center justify-between"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <button
+            onClick={() => { setOverrides(null); setShow(false); }}
+            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            Reset to defaults
+          </button>
+          <button
+            onClick={() => setShow(false)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={{ background: 'rgba(34,211,238,0.15)', border: '1px solid rgba(34,211,238,0.3)', color: '#67e8f9' }}
+          >
+            Done
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Combined component (convenience) ─────────────────────────────
+// ── Convenience export combining button + panel ──────────────────────────
 export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, title, variant = 'dark', initialOverrides, dutyDoctorSlot, setDutyDoctorSlot, readOnly }) {
   const [show, setShow] = useState(false);
-  // In readOnly mode, callbacks become no-ops so checkboxes don't appear to
-  // toggle (and never persist). Cleaner than letting the click do nothing.
   const noop = () => {};
   const setOverridesGated = readOnly ? noop : setOverrides;
   const setDutyDoctorSlotGated = readOnly ? noop : setDutyDoctorSlot;
   return (
     <>
-      <SlotFilterButton overrides={overrides} setOverrides={setOverridesGated} knownSlotTypes={knownSlotTypes} show={show} setShow={setShow} variant={variant} initialOverrides={initialOverrides} />
-      <SlotFilterPanel overrides={overrides} setOverrides={setOverridesGated} knownSlotTypes={knownSlotTypes} show={show} setShow={setShow} title={title} dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlotGated} />
+      <SlotFilterButton
+        overrides={overrides}
+        setOverrides={setOverridesGated}
+        knownSlotTypes={knownSlotTypes}
+        show={show}
+        setShow={setShow}
+        variant={variant}
+        initialOverrides={initialOverrides}
+      />
+      <SlotFilterPanel
+        overrides={overrides}
+        setOverrides={setOverridesGated}
+        knownSlotTypes={knownSlotTypes}
+        show={show}
+        setShow={setShow}
+        title={title}
+        dutyDoctorSlot={dutyDoctorSlot}
+        setDutyDoctorSlot={setDutyDoctorSlotGated}
+      />
     </>
   );
 }
