@@ -43,10 +43,34 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   // Show the search input only when no practice is currently selected, or
   // when the user clicks "Change practice"
   const [showSearch, setShowSearch] = useState(!initial.odsCode);
+  // Extra context fetched from nhs_oc_baseline once we have an ODS code:
+  // PCN/ICB/region/supplier — used in the rich "Your practice" display
+  const [nhsDetails, setNhsDetails] = useState(null);
+  // Manual-override mode: when true, postcode + list size become inline-editable
+  // inside the "Your practice" card. Otherwise they're shown as read-only text.
+  const [editingDetails, setEditingDetails] = useState(false);
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
   const [error, setError] = useState('');
   const [completed, setCompleted] = useState(!!initial.setupCompletedAt);
+
+  // ─── Fetch NHS context (PCN/ICB/supplier) when ODS code is set ──
+  useEffect(() => {
+    if (!odsCode) {
+      setNhsDetails(null);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from('nhs_oc_baseline')
+        .select('practice_name, supplier, pcn_name, icb_name, region_name, total, days_with_data, month')
+        .eq('ods_code', odsCode)
+        .order('month', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setNhsDetails(data || null);
+    })();
+  }, [odsCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Postcode lookup (only postcodes.io for region/LEA) ──────────
   const lookupTimer = useRef(null);
@@ -274,16 +298,18 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
       {/* ── 1. Selected practice OR search ───────────────────────────── */}
       {odsCode && !showSearch ? (
         <Card title="Your practice" status={fieldStatus('practice', savingField, savedField)}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, color: '#e2e8f0', fontWeight: 500, marginBottom: 6 }}>
-                {name || '(no name)'}
-              </div>
-              <div style={{ fontSize: 12, color: '#64748b', display: 'flex', flexWrap: 'wrap', gap: 14 }}>
-                <span>ODS code: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', color: '#94a3b8' }}>{odsCode}</span></span>
-                {listSize && <span>{Number(listSize).toLocaleString()} patients</span>}
-              </div>
-            </div>
+          {/* Header: name + action buttons */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+            <h2 style={{
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: 18,
+              fontWeight: 600,
+              color: 'white',
+              margin: 0,
+              lineHeight: 1.3,
+              flex: 1,
+              minWidth: 0,
+            }}>{name || '(no name)'}</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
               <button
                 type="button"
@@ -314,6 +340,116 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               >Clear details</button>
             </div>
           </div>
+
+          {/* Big stats row: ODS · List size · Postcode */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 14,
+            marginBottom: 18,
+          }}>
+            <Stat label="ODS code" value={odsCode} mono />
+            <Stat
+              label="Patient list"
+              value={listSize ? Number(listSize).toLocaleString() : '—'}
+              editable={editingDetails}
+              inputType="number"
+              inputValue={listSize}
+              onInputChange={setListSize}
+              onInputBlur={() => saveListSize(listSize)}
+            />
+            <Stat
+              label="Postcode"
+              value={postcode || '—'}
+              editable={editingDetails}
+              inputValue={postcode}
+              onInputChange={(v) => setPostcode(v.toUpperCase())}
+              onInputBlur={savePostcode}
+            />
+          </div>
+
+          {/* Location context (from postcodes.io lookup) */}
+          {(lookup || lookupBusy) && (
+            <div style={{
+              fontSize: 12,
+              color: '#cbd5e1',
+              padding: 10,
+              background: 'rgba(0,0,0,0.2)',
+              borderRadius: 6,
+              marginBottom: 12,
+              lineHeight: 1.6,
+            }}>
+              {lookupBusy && <span style={{ color: '#94a3b8' }}>Looking up location…</span>}
+              {lookup && (
+                <>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Local authority:</span>{' '}
+                    <span>{lookup.admin_district || '—'}</span>
+                    {lookup.region && <>
+                      {' · '}
+                      <span style={{ color: '#64748b' }}>NHS region:</span>{' '}
+                      <span>{lookup.region}</span>
+                    </>}
+                  </div>
+                  {holidays && (
+                    <div>
+                      <span style={{ color: '#64748b' }}>Holiday calendar:</span>{' '}
+                      <span style={{ color: holidays.isFallback ? '#fcd34d' : '#cbd5e1' }}>
+                        {holidays.name}{holidays.isFallback && ' (fallback — no specific data for your LEA)'}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* NHS organisational context (from nhs_oc_baseline) */}
+          {nhsDetails && (
+            <div style={{
+              fontSize: 12,
+              color: '#cbd5e1',
+              padding: 10,
+              background: 'rgba(34, 211, 238, 0.04)',
+              border: '1px solid rgba(34, 211, 238, 0.12)',
+              borderRadius: 6,
+              marginBottom: 12,
+              lineHeight: 1.6,
+            }}>
+              <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                NHS England — {formatMonthYear(nhsDetails.month)}
+              </div>
+              {nhsDetails.pcn_name && (
+                <div><span style={{ color: '#64748b' }}>PCN:</span> {nhsDetails.pcn_name}</div>
+              )}
+              {nhsDetails.icb_name && (
+                <div><span style={{ color: '#64748b' }}>ICB:</span> {nhsDetails.icb_name}</div>
+              )}
+              {nhsDetails.supplier && (
+                <div><span style={{ color: '#64748b' }}>OC supplier:</span> {nhsDetails.supplier}</div>
+              )}
+              {nhsDetails.total != null && (
+                <div><span style={{ color: '#64748b' }}>Submissions that month:</span> {nhsDetails.total.toLocaleString()} across {nhsDetails.days_with_data} days</div>
+              )}
+            </div>
+          )}
+
+          {/* Edit details toggle (postcode / list size override) */}
+          <button
+            type="button"
+            onClick={() => setEditingDetails(!editingDetails)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94a3b8',
+              fontSize: 11,
+              cursor: 'pointer',
+              padding: 0,
+              textDecoration: 'underline',
+            }}
+          >
+            {editingDetails ? '✓ Done editing' : 'Edit postcode or list size manually'}
+          </button>
         </Card>
       ) : (
         <Card title="Find your practice" status={fieldStatus('practice', savingField, savedField)}>
@@ -445,78 +581,72 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
         </div>
       )}
 
-      {/* ── 2. Postcode ───────────────────────────────────────────────── */}
-      <Card title="Postcode" status={fieldStatus('postcode', savingField, savedField)}>
-        <input
-          type="text"
-          value={postcode}
-          onChange={(e) => setPostcode(e.target.value.toUpperCase())}
-          onBlur={savePostcode}
-          placeholder="e.g. BS25 1HZ"
-          style={input}
-          maxLength={10}
-        />
-        <p style={hint}>
-          Auto-filled from your selected practice when possible. Used for
-          school holiday calendars in the demand model — edit if it's wrong.
-        </p>
-        {lookupBusy && <div style={{ ...lookupBox, color: '#94a3b8' }}>Looking up…</div>}
-        {lookup && !lookupBusy && (
-          <div style={lookupBox}>
-            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 6, fontSize: 12 }}>
-              <span style={{ color: '#64748b' }}>Local authority</span>
-              <span style={{ color: '#cbd5e1' }}>{lookup.admin_district || '—'}</span>
-              <span style={{ color: '#64748b' }}>Region</span>
-              <span style={{ color: '#cbd5e1' }}>{lookup.region || '—'}</span>
-              <span style={{ color: '#64748b' }}>Country</span>
-              <span style={{ color: '#cbd5e1' }}>{lookup.country || '—'}</span>
-              {holidays && (
-                <>
-                  <span style={{ color: '#64748b' }}>Holiday calendar</span>
-                  <span style={{ color: holidays.isFallback ? '#fcd34d' : '#cbd5e1' }}>
-                    {holidays.name}{holidays.isFallback && ' (fallback — no specific data for your LEA)'}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-        {postcode && !isValidPostcodeFormat(postcode) && !lookupBusy && (
-          <div style={{ ...lookupBox, color: '#fcd34d', borderColor: 'rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)' }}>
-            That doesn't look like a valid UK postcode.
-          </div>
-        )}
-      </Card>
+      {/* Standalone Postcode + List size cards — only shown as fallback
+          when no practice is selected. When a practice IS selected, these
+          fields live inside the rich "Your practice" card above (inline
+          edit via the "Edit details manually" toggle). */}
+      {!odsCode && (
+        <>
+          <Card title="Postcode" status={fieldStatus('postcode', savingField, savedField)}>
+            <input
+              type="text"
+              value={postcode}
+              onChange={(e) => setPostcode(e.target.value.toUpperCase())}
+              onBlur={savePostcode}
+              placeholder="e.g. BS25 1HZ"
+              style={input}
+              maxLength={10}
+            />
+            <p style={hint}>
+              Auto-filled when you pick a practice above. Used for school holiday
+              calendars in the demand model — edit if it's wrong.
+            </p>
+            {lookupBusy && <div style={{ ...lookupBox, color: '#94a3b8' }}>Looking up…</div>}
+            {lookup && !lookupBusy && (
+              <div style={lookupBox}>
+                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 6, fontSize: 12 }}>
+                  <span style={{ color: '#64748b' }}>Local authority</span>
+                  <span style={{ color: '#cbd5e1' }}>{lookup.admin_district || '—'}</span>
+                  <span style={{ color: '#64748b' }}>Region</span>
+                  <span style={{ color: '#cbd5e1' }}>{lookup.region || '—'}</span>
+                  <span style={{ color: '#64748b' }}>Country</span>
+                  <span style={{ color: '#cbd5e1' }}>{lookup.country || '—'}</span>
+                  {holidays && (
+                    <>
+                      <span style={{ color: '#64748b' }}>Holiday calendar</span>
+                      <span style={{ color: holidays.isFallback ? '#fcd34d' : '#cbd5e1' }}>
+                        {holidays.name}{holidays.isFallback && ' (fallback — no specific data for your LEA)'}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            {postcode && !isValidPostcodeFormat(postcode) && !lookupBusy && (
+              <div style={{ ...lookupBox, color: '#fcd34d', borderColor: 'rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)' }}>
+                That doesn't look like a valid UK postcode.
+              </div>
+            )}
+          </Card>
 
-      {/* List size */}
-      <Card title="Patient list size" status={fieldStatus('list size', savingField, savedField)}>
-        <input
-          type="number"
-          value={listSize}
-          onChange={(e) => setListSize(e.target.value)}
-          onBlur={saveListSize}
-          placeholder="e.g. 11000"
-          style={input}
-          min={1}
-          max={199999}
-        />
-        <p style={hint}>
-          Approximate registered list size. Used to scale demand predictions while we
-          collect enough of your own data to calibrate.
-        </p>
-        {odsCode && practiceCandidates.find(p => p.odsCode === odsCode && p.listSize != null) && (() => {
-          const matched = practiceCandidates.find(p => p.odsCode === odsCode);
-          const isUsing = String(listSize) === String(matched.listSize);
-          return (
-            <div style={{ marginTop: 8, fontSize: 11, color: isUsing ? '#34d399' : '#94a3b8' }}>
-              {isUsing
-                ? <>✓ Using NHS Digital figure ({matched.listSize.toLocaleString()}, {formatMonthYear(matched.listSizeAsOf)})</>
-                : <>NHS Digital published {matched.listSize.toLocaleString()} ({formatMonthYear(matched.listSizeAsOf)}). <button type="button" onClick={() => { setListSize(matched.listSize); saveField('list size', 'list_size', matched.listSize); }} style={{ background: 'none', border: 'none', color: '#22d3ee', fontSize: 11, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>Use this</button></>
-              }
-            </div>
-          );
-        })()}
-      </Card>
+          <Card title="Patient list size" status={fieldStatus('list size', savingField, savedField)}>
+            <input
+              type="number"
+              value={listSize}
+              onChange={(e) => setListSize(e.target.value)}
+              onBlur={saveListSize}
+              placeholder="e.g. 11000"
+              style={input}
+              min={1}
+              max={199999}
+            />
+            <p style={hint}>
+              Approximate registered list size. Used to scale demand predictions while we
+              collect enough of your own data to calibrate.
+            </p>
+          </Card>
+        </>
+      )}
 
       {/* Online consult tool */}
       <Card title="Online consultation tool" status={fieldStatus('online consultation tool', savingField, savedField)}>
@@ -607,6 +737,51 @@ function Card({ title, status, children }) {
         {status === 'saved' && <span style={{ fontSize: 11, color: '#34d399' }}>✓ Saved</span>}
       </div>
       {children}
+    </div>
+  );
+}
+
+/**
+ * Stat — labelled big-number display, optionally inline-editable.
+ * Used in the "Your practice" card to show ODS code, list size, postcode.
+ */
+function Stat({ label, value, mono, editable, inputType, inputValue, onInputChange, onInputBlur }) {
+  return (
+    <div>
+      <div style={{
+        fontSize: 10,
+        color: '#64748b',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 4,
+      }}>{label}</div>
+      {editable && onInputChange ? (
+        <input
+          type={inputType || 'text'}
+          value={inputValue ?? ''}
+          onChange={(e) => onInputChange(e.target.value)}
+          onBlur={onInputBlur}
+          style={{
+            width: '100%',
+            padding: '4px 8px',
+            background: 'rgba(0,0,0,0.3)',
+            border: '1px solid rgba(34,211,238,0.3)',
+            borderRadius: 6,
+            color: '#e2e8f0',
+            fontSize: 18,
+            fontWeight: 600,
+            fontFamily: mono ? 'ui-monospace, Menlo, monospace' : "'Outfit', sans-serif",
+            outline: 'none',
+          }}
+        />
+      ) : (
+        <div style={{
+          fontSize: 18,
+          fontWeight: 600,
+          color: '#e2e8f0',
+          fontFamily: mono ? 'ui-monospace, Menlo, monospace' : "'Outfit', sans-serif",
+        }}>{value}</div>
+      )}
     </div>
   );
 }
