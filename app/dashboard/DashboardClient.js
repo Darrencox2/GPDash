@@ -550,7 +550,10 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
             {allPractices.length > 1 ? (
               <select
                 value={practiceId}
-                onChange={(e) => router.push(`/dashboard?practice=${e.target.value}`)}
+                onChange={(e) => {
+                  const p = allPractices.find(x => x.id === e.target.value);
+                  router.push(`/p/${p?.slug || e.target.value}`);
+                }}
                 style={{
                   background: 'transparent',
                   border: '1px solid rgba(148,163,184,0.3)',

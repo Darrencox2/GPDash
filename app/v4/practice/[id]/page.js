@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import InviteForm from './InviteForm';
 import ClinicianLinker from './ClinicianLinker';
+import SlugEditor from './SlugEditor';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export default async function PracticeAdminPage({ params }) {
 
   const { data: practice } = await supabase
     .from('practices')
-    .select('id, name, ods_code, region, created_at')
+    .select('id, name, slug, ods_code, region, created_at')
     .eq('id', practiceId)
     .maybeSingle();
   if (!practice) notFound();
@@ -68,7 +69,7 @@ export default async function PracticeAdminPage({ params }) {
       padding: 32,
     }}>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        <Link href={`/dashboard?practice=${practiceId}`} style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none' }}>
+        <Link href={`/p/${practice.slug || practiceId}`} style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none' }}>
           ← Back to dashboard
         </Link>
         <h1 style={{
@@ -83,6 +84,14 @@ export default async function PracticeAdminPage({ params }) {
             color: '#34d399', borderRadius: 999, fontWeight: 600, fontSize: 11,
           }}>You: {myMembership.role}</span>
         </div>
+
+        <Card title="Practice URL">
+          <SlugEditor
+            practiceId={practiceId}
+            currentSlug={practice.slug}
+            canEdit={canManage}
+          />
+        </Card>
 
         <Card title="Your clinician record">
           <ClinicianLinker

@@ -37,7 +37,7 @@ export default async function DashboardPage() {
   // the same practice, so we explicitly filter to only the current user's rows)
   const { data: memberships } = await supabase
     .from('practice_users')
-    .select('role, joined_at, practices ( id, name, ods_code )')
+    .select('role, joined_at, practices ( id, name, slug, ods_code )')
     .eq('user_id', user.id)
     .order('joined_at', { ascending: false });
 
@@ -56,7 +56,7 @@ export default async function DashboardPage() {
   // invites, skip the picker and go straight to the dashboard. They can
   // still get back here via the 'Switch practice' link in the dashboard footer.
   if (memberships?.length === 1 && (!pendingInvites || pendingInvites.length === 0)) {
-    redirect(`/dashboard?practice=${memberships[0].practices.id}`);
+    redirect(`/p/${memberships[0].practices.slug || memberships[0].practices.id}`);
   }
 
   return (
@@ -143,7 +143,7 @@ export default async function DashboardPage() {
           memberships.map((m) => (
             <Link
               key={m.practices.id}
-              href={`/dashboard?practice=${m.practices.id}`}
+              href={`/p/${m.practices.slug || m.practices.id}`}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
