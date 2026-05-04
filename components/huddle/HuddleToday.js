@@ -9,6 +9,7 @@ import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr, lo
 import { predictDemand } from '@/lib/demandPredictor';
 import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge } from './HuddleShared';
 import { canEditPracticeData } from '@/lib/permissions';
+import NhsBenchmarkRibbon from './NhsBenchmarkRibbon';
 import RoutineWaitTime from './RoutineWaitTime';
 
 // ── Colour palette for capacity cards ─────────────────────────────
@@ -341,6 +342,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           </button>
         </div>
       </div>
+
+      {/* NHS demand benchmarks ribbon — only renders if practice has ODS in
+          the latest NHS England OC submissions data. Stays quiet if not. */}
+      <NhsBenchmarkRibbon odsCode={data?._v4?.practiceOds} />
 
       {/* Not-today banner */}
       {!isViewingToday && (

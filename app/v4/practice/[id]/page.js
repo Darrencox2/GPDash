@@ -22,6 +22,8 @@ import DemandUpload from './DemandUpload';
 import BuddyCoverSettings from './BuddyCoverSettings';
 import TeamNetUrlEditor from './TeamNetUrlEditor';
 import DataCleanupActions from './DataCleanupActions';
+import CapacityTargetsEditor from './CapacityTargetsEditor';
+import AuditLogView from './AuditLogView';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +93,7 @@ export default async function PracticeAdminPage({ params }) {
   const [{ data: settingsRow }, { data: historySummary }] = await Promise.all([
     supabase
       .from('practice_settings')
-      .select('demand_settings, buddy_settings, teamnet_url, extras')
+      .select('demand_settings, buddy_settings, huddle_settings, teamnet_url, extras')
       .eq('practice_id', practiceId)
       .maybeSingle(),
     supabase
@@ -101,6 +103,7 @@ export default async function PracticeAdminPage({ params }) {
   ]);
   const demandSettings = settingsRow?.demand_settings || null;
   const buddySettings = settingsRow?.buddy_settings || {};
+  const huddleSettings = settingsRow?.huddle_settings || {};
   const teamnetUrl = settingsRow?.teamnet_url || '';
   const lastSyncTime = settingsRow?.extras?.lastTeamnetSync || null;
 
@@ -146,6 +149,7 @@ export default async function PracticeAdminPage({ params }) {
         practiceId={practiceId}
         onlineConsultTool={fullPractice?.online_consult_tool}
         demandSettings={demandSettings}
+        huddleSettings={huddleSettings}
         history={historySummary || []}
         canManage={canManage}
       />
@@ -157,6 +161,16 @@ export default async function PracticeAdminPage({ params }) {
         lastSyncTime={lastSyncTime}
       />
     ),
+    activity: canManage ? (
+      <Card title="Audit log">
+        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+          Recent activity in this practice — clinician edits, CSV uploads,
+          settings changes, user invites, and so on. Filter by category, click
+          "show details" on any row for the full payload.
+        </p>
+        <AuditLogView practiceId={practiceId} />
+      </Card>
+    ) : null,
     danger: isPlatformAdmin ? (
       <DangerTab
         practiceId={practiceId}
@@ -279,7 +293,7 @@ function UsersTab({ members, invites, practiceId, canManage, myMembership, isPla
   );
 }
 
-function DemandTab({ practiceId, onlineConsultTool, demandSettings, history, canManage }) {
+function DemandTab({ practiceId, onlineConsultTool, demandSettings, huddleSettings, history, canManage }) {
   if (!canManage) {
     return <Card title="Demand model"><p style={{ fontSize: 14, color: '#64748b' }}>Admin-only.</p></Card>;
   }
@@ -313,6 +327,11 @@ function DemandTab({ practiceId, onlineConsultTool, demandSettings, history, can
           </div>
         )}
       </Card>
+
+      <CapacityTargetsEditor
+        practiceId={practiceId}
+        initialHuddleSettings={huddleSettings}
+      />
     </div>
   );
 }

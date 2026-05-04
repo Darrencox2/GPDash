@@ -125,6 +125,7 @@ export default async function PracticePage({ params }) {
     practiceName: practice.name,
     practicePostcode: practice.postcode,
     practiceListSize: practice.list_size,
+    practiceOds: practice.ods_code,
     practiceOnlineConsultTool: practice.online_consult_tool,
     setupCompletedAt: practice.setup_completed_at,
     demandSettings: settings?.demand_settings || null,
