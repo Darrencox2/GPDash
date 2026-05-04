@@ -14,7 +14,17 @@ import DashboardClient from './DashboardClient';
 
 export const dynamic = 'force-dynamic';
 
+// Cold-start detection. The Vercel function reuses a single Node process
+// across invocations until idle ~15min, so on the first hit this module
+// has just loaded → coldStart=true. Subsequent requests on the same
+// instance see false. Approximate but useful.
+let __warmAt = null;
+
 export default async function DashboardPage({ searchParams }) {
+  const t0 = Date.now();
+  const isCold = __warmAt === null;
+  if (isCold) __warmAt = Date.now();
+
   const practiceId = searchParams?.practice;
   if (!practiceId) {
     redirect('/v4/dashboard');
@@ -31,6 +41,7 @@ export default async function DashboardPage({ searchParams }) {
   cutoff.setMonth(cutoff.getMonth() - 12);
   const cutoffStr = cutoff.toISOString().slice(0, 10);
 
+  const tSetup = Date.now();
   // Auth + all data queries in ONE Promise.all
   const [
     { data: { user } },
@@ -55,6 +66,7 @@ export default async function DashboardPage({ searchParams }) {
     supabase.from('rota_notes').select('clinician_id, date, note, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId),
     supabase.from('practice_users').select('role, practices(id, name)'),
   ]);
+  const tQueries = Date.now();
 
   if (!user) redirect('/v4/login');
   if (!practice) {
@@ -101,5 +113,15 @@ export default async function DashboardPage({ searchParams }) {
     })).filter(p => p.id),
   };
 
-  return <DashboardClient initialData={v3Shape} initialPracticeId={practiceId} />;
+  const tEnd = Date.now();
+  const serverTimings = {
+    setup: tSetup - t0,
+    queries: tQueries - tSetup,
+    shape: tEnd - tQueries,
+    total: tEnd - t0,
+    coldStart: isCold,
+    region: process.env.VERCEL_REGION || 'local',
+  };
+
+  return <DashboardClient initialData={v3Shape} initialPracticeId={practiceId} serverTimings={serverTimings} />;
 }

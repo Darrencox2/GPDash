@@ -39,6 +39,7 @@ const RoomSettings = lazy(() => import('@/components/room/RoomSettings'));
 const RoomDashboard = lazy(() => import('@/components/room/RoomDashboard'));
 const Changelog = lazy(() => import('@/components/Changelog'));
 const AccountSettings = lazy(() => import('@/components/AccountSettings'));
+const PerfOverlay = lazy(() => import('@/components/PerfOverlay'));
 
 // Static normalizer — same logic as the in-component one, but pulled to
 // module scope so it can run at state-init time (before the component
@@ -83,17 +84,17 @@ function normalizeDataStatic(d) {
   return d;
 }
 
-export default function DashboardRoot({ initialData = null, initialPracticeId = null }) {
+export default function DashboardRoot({ initialData = null, initialPracticeId = null, serverTimings = null }) {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: '#f1f5f9' }}>Loading...</div>}>
       <ToastProvider>
-        <DashboardContent initialData={initialData} initialPracticeId={initialPracticeId} />
+        <DashboardContent initialData={initialData} initialPracticeId={initialPracticeId} serverTimings={serverTimings} />
       </ToastProvider>
     </Suspense>
   );
 }
 
-function DashboardContent({ initialData, initialPracticeId }) {
+function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -577,6 +578,11 @@ function DashboardContent({ initialData, initialPracticeId }) {
           </div>
         </footer>
       </main>
+      {searchParams.get('debug') === 'perf' && (
+        <Suspense fallback={null}>
+          <PerfOverlay serverTimings={serverTimings} />
+        </Suspense>
+      )}
     </div>
   );
 }
