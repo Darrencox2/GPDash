@@ -35,14 +35,9 @@ update public.profiles
 set is_platform_admin = true
 where id = 'a8a191fe-e94c-49cf-bf9b-0faab74db87e';
 
--- Allow 'user' as a third role on practice_users.
--- The existing constraint (from migration 001) limits roles to owner/admin.
-alter table public.practice_users
-  drop constraint if exists practice_users_role_check;
-
-alter table public.practice_users
-  add constraint practice_users_role_check
-  check (role in ('owner', 'admin', 'user'));
+-- The 'user' role is added to the practice_role enum in migration 015
+-- (ALTER TYPE ... ADD VALUE is the correct way — practice_role is an enum,
+-- not a free-text column with a check constraint).
 
 
 -- ─── 2. Helper: is the current user a platform admin? ─────────────────────
