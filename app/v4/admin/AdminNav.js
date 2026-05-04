@@ -9,6 +9,7 @@ export default function AdminNav({ active }) {
   const tabs = [
     { id: 'practices', label: 'Practices', href: '/v4/admin' },
     { id: 'users', label: 'Users', href: '/v4/admin/users' },
+    { id: 'nhs-data', label: 'NHS data', href: '/v4/admin/nhs-data' },
   ];
 
   return (

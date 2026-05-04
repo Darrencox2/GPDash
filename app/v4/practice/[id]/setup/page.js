@@ -1,18 +1,15 @@
 // /v4/practice/[id]/setup — Practice setup wizard.
 //
-// Captures postcode, list size, and online consultation tool. Skippable but
-// recommended (a banner appears on the Today page until setup_completed_at
-// is set). Owner/admin only.
-//
-// Postcode triggers a client-side lookup against postcodes.io which returns
-// the LEA (admin_district). We use that to pick the right school holiday
-// calendar from lib/school-holidays-by-lea.js.
+// Practice search drives the entire flow now: pick the practice from
+// OpenPrescribing → name, ODS code, list size auto-fill. Postcode is
+// entered separately (after practice selection) for school holiday LEA
+// lookup. Will be auto-filled in a future round once we ingest EPRACCUR.
 
 import { redirect, notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
-import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import { resolvePracticeIdentifier } from '@/lib/v4-data';
+import DashboardShell from '@/components/DashboardShell';
 import PracticeSetupForm from './PracticeSetupForm';
 
 export const dynamic = 'force-dynamic';
@@ -53,18 +50,18 @@ export default async function PracticeSetupPage({ params }) {
     redirect(`/p/${practice.slug}`);
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-      color: '#e2e8f0',
-      padding: 32,
-    }}>
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        <Link href={`/v4/practice/${practice.slug}`} style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none', display: 'inline-block', marginBottom: 16 }}>
-          ← Back to practice management
-        </Link>
+  const shellData = {
+    _v4: {
+      practiceSlug: practice.slug,
+      practiceName: practice.name,
+      myRole: isPlatformAdmin ? 'owner' : (myMembership?.role || null),
+      isPlatformAdmin,
+    },
+  };
 
+  return (
+    <DashboardShell shellData={shellData} activeSection="practice-settings">
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 11, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 500, marginBottom: 4 }}>
             Practice setup
@@ -92,6 +89,6 @@ export default async function PracticeSetupPage({ params }) {
           }}
         />
       </div>
-    </div>
+    </DashboardShell>
   );
 }
