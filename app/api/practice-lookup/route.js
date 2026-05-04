@@ -40,14 +40,16 @@ export async function GET(request) {
   try {
     // Try multiple URL variants in case org_type=practice doesn't filter
     // properly on this endpoint. The org_code endpoint behaves slightly
-    // differently than documented.
+    // differently than documented. ALL must include format=json — without
+    // it Django REST framework serves HTML (its browsable API page) by
+    // default, regardless of the Accept header we send.
     const queries = [
-      // 1. Simplest: just query, no filters
-      `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}`,
+      // 1. Simplest: just query
+      `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&format=json`,
       // 2. With exact=false
-      `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&exact=false`,
+      `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&exact=false&format=json`,
       // 3. With org_type filter
-      `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&exact=false&org_type=practice`,
+      `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&exact=false&org_type=practice&format=json`,
     ];
 
     let candidates = [];
