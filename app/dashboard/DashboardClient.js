@@ -22,7 +22,7 @@ import { DAYS, getWeekStart, getCurrentDay, generateBuddyAllocations, getDefault
 import { predictDemand } from '@/lib/demandPredictor';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
-import { canEditPracticeData } from '@/lib/permissions';
+import { canEditPracticeData, isPlatformAdmin } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 
 // Lazy-load section components — they're each 50–200KB with heavy
@@ -549,6 +549,12 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
               <>
                 {' · '}
                 <a href={`/v4/practice/${data._v4?.practiceSlug || practiceId}`} style={{ color: '#94a3b8', textDecoration: 'underline' }}>Manage practice</a>
+              </>
+            )}
+            {isPlatformAdmin(data) && (
+              <>
+                {' · '}
+                <a href="/v4/admin" style={{ color: '#22d3ee', textDecoration: 'underline' }}>Platform admin</a>
               </>
             )}
             {' · '}
