@@ -123,7 +123,10 @@ export default async function PracticeAdminPage({ params }) {
               {practice.setup_completed_at ? (
                 <>
                   <span style={{ color: '#34d399' }}>✓ Complete</span>
-                  {' · '}Postcode, list size, and consultation tool configured.
+                  {' · '}Last updated{' '}
+                  <span style={{ color: '#94a3b8' }}>
+                    {new Date(practice.setup_completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
                 </>
               ) : (
                 <>
@@ -134,10 +137,14 @@ export default async function PracticeAdminPage({ params }) {
               )}
             </div>
             <Link href={`/v4/practice/${practice.slug}/setup`} style={{
-              fontSize: 12, color: '#22d3ee', textDecoration: 'none',
-              padding: '6px 12px', border: '1px solid rgba(34,211,238,0.3)',
-              borderRadius: 6,
-            }}>{practice.setup_completed_at ? 'Edit setup' : 'Open setup →'}</Link>
+              fontSize: 12, fontWeight: 500,
+              color: 'white', background: '#0891b2',
+              padding: '6px 14px', borderRadius: 6,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}>
+              {practice.setup_completed_at ? 'Re-run setup' : 'Open setup →'}
+            </Link>
           </div>
           {practice.postcode && (
             <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 12, color: '#94a3b8', display: 'grid', gridTemplateColumns: '120px 1fr', gap: 4 }}>

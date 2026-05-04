@@ -31,6 +31,8 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   const [region, setRegion] = useState(initial.region);
   const [lookup, setLookup] = useState(null); // { admin_district, region, country, ... }
   const [lookupBusy, setLookupBusy] = useState(false);
+  const [practiceMatch, setPracticeMatch] = useState(null); // NHS practice match { name, odsCode, listSize, listSizeAsOf }
+  const [practiceMatchBusy, setPracticeMatchBusy] = useState(false);
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
   const [error, setError] = useState('');
@@ -43,15 +45,31 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
     if (lookupTimer.current) clearTimeout(lookupTimer.current);
     if (!postcode || !isValidPostcodeFormat(postcode)) {
       setLookup(null);
+      setPracticeMatch(null);
       return;
     }
     lookupTimer.current = setTimeout(async () => {
       setLookupBusy(true);
-      const result = await lookupPostcode(postcode);
+      setPracticeMatchBusy(true);
+
+      // Run in parallel: postcodes.io for region, and our own
+      // /api/practice-lookup for practice + list size from NHS data.
+      const [postcodeResult, practiceRes] = await Promise.all([
+        lookupPostcode(postcode),
+        fetch(`/api/practice-lookup?postcode=${encodeURIComponent(postcode)}`)
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null),
+      ]);
+
       setLookupBusy(false);
-      setLookup(result);
-      // Auto-fill region if it came back and we don't have one
-      if (result?.region && !region) setRegion(result.region);
+      setPracticeMatchBusy(false);
+      setLookup(postcodeResult);
+      if (postcodeResult?.region && !region) setRegion(postcodeResult.region);
+
+      // Pick the first practice match with a list size, or just the first one
+      const matches = practiceRes?.practices || [];
+      const best = matches.find(p => p.listSize != null) || matches[0] || null;
+      setPracticeMatch(best);
     }, 400);
     return () => clearTimeout(lookupTimer.current);
   }, [postcode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -182,6 +200,73 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           Approximate registered list size. Used to scale demand predictions while we
           collect enough of your own data to calibrate.
         </p>
+
+        {/* NHS suggestion box — shown when postcode lookup found a practice */}
+        {practiceMatchBusy && (
+          <div style={{ ...lookupBox, color: '#94a3b8', marginTop: 10 }}>Looking up practice on NHS Digital…</div>
+        )}
+        {practiceMatch && !practiceMatchBusy && (
+          <div style={{
+            marginTop: 10,
+            padding: 12,
+            background: 'rgba(16,185,129,0.06)',
+            border: '1px solid rgba(16,185,129,0.2)',
+            borderRadius: 8,
+          }}>
+            <div style={{ fontSize: 12, color: '#34d399', fontWeight: 600, marginBottom: 4 }}>
+              {practiceMatch.listSize ? '✓ Found on NHS Digital' : '⚠ Practice found, but no list size data'}
+            </div>
+            <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}>
+              <strong>{practiceMatch.name}</strong>
+              {practiceMatch.odsCode && (
+                <span style={{ color: '#64748b', fontFamily: 'ui-monospace, Menlo, monospace', marginLeft: 8 }}>{practiceMatch.odsCode}</span>
+              )}
+            </div>
+            {practiceMatch.listSize ? (
+              <div style={{ fontSize: 12, color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <span>
+                  Estimated list size: <strong style={{ color: '#e2e8f0' }}>{practiceMatch.listSize.toLocaleString()}</strong>
+                  {practiceMatch.listSizeAsOf && (
+                    <span style={{ color: '#64748b' }}> (NHS Digital, {formatMonthYear(practiceMatch.listSizeAsOf)})</span>
+                  )}
+                </span>
+                {String(listSize) !== String(practiceMatch.listSize) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setListSize(practiceMatch.listSize);
+                      saveField('list size', 'list_size', practiceMatch.listSize);
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      background: 'rgba(34,211,238,0.15)',
+                      border: '1px solid rgba(34,211,238,0.3)',
+                      color: '#67e8f9',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >Use this →</button>
+                )}
+                {String(listSize) === String(practiceMatch.listSize) && (
+                  <span style={{ color: '#34d399', fontSize: 11 }}>✓ Using this</span>
+                )}
+              </div>
+            ) : (
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                {practiceMatch.listSizeError === 'no_data_in_openprescribing'
+                  ? 'No published list size yet — enter your own above.'
+                  : 'Couldn\'t reach OpenPrescribing. Enter your own above.'}
+              </div>
+            )}
+          </div>
+        )}
+        {!practiceMatchBusy && lookup && !practiceMatch && (
+          <div style={{ marginTop: 10, fontSize: 11, color: '#64748b' }}>
+            No GP practice found at this postcode on NHS Digital — enter your list size manually.
+          </div>
+        )}
       </Card>
 
       {/* Online consult tool */}
@@ -250,6 +335,18 @@ function fieldStatus(field, savingField, savedField) {
   if (savingField === field) return 'saving';
   if (savedField === field) return 'saved';
   return null;
+}
+
+// "2025-03-01" → "March 2025"
+function formatMonthYear(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
 }
 
 function Card({ title, status, children }) {
