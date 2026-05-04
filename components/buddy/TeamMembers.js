@@ -241,9 +241,29 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
               })}
             </div>
           )}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {c.buddyCover && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">Buddy</span>}
-            {c.showWhosIn && <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 font-medium">Who's In</span>}
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+            {!compact && (
+              <>
+                <span
+                  title={c.buddyCover ? 'Provides buddy cover' : 'Not part of buddy cover'}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                    c.buddyCover
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-slate-50 text-slate-300 border border-slate-200'
+                  }`}>
+                  B
+                </span>
+                <span
+                  title={c.showWhosIn ? "Shown in the Who's In widget" : "Hidden from the Who's In widget"}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                    c.showWhosIn
+                      ? 'bg-teal-100 text-teal-700'
+                      : 'bg-slate-50 text-slate-300 border border-slate-200'
+                  }`}>
+                  W
+                </span>
+              </>
+            )}
           </div>
           {showRestore && (
             <div className="flex gap-1.5 flex-shrink-0">
