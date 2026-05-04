@@ -127,7 +127,9 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [huddleData, setHuddleData] = useState(() => initialData?.huddleCsvData || null);
-  const [huddleMessages, setHuddleMessages] = useState([]);
+  const [huddleMessages, setHuddleMessages] = useState(() =>
+    Array.isArray(initialData?.huddleMessages) ? initialData.huddleMessages : []
+  );
   const huddleLoadedRef = useRef(false);
   const lastSentCsvRef = useRef(initialData?.huddleCsvData || null);  // tracks the last CSV reference we sent to the server, for save-time bandwidth optimisation
 
@@ -171,6 +173,12 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
         if (json.huddleCsvData) {
           setHuddleData(json.huddleCsvData);
           lastSentCsvRef.current = json.huddleCsvData;  // baseline for diff
+        }
+        // Hydrate noticeboard messages — stored server-side under
+        // practice_settings.extras.huddleMessages and surfaced on the v3
+        // shape by the adapter. Falls back to [] when none.
+        if (Array.isArray(json.huddleMessages)) {
+          setHuddleMessages(json.huddleMessages);
         }
 
         // If the user is linked to a clinician AND no rota hash is set, set

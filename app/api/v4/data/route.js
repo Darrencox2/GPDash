@@ -197,7 +197,7 @@ export async function POST(request) {
   // Slow path (load + diff) is only taken when the incoming body contains
   // structural changes: clinicians, weeklyRota, plannedAbsences, closedDays,
   // huddleCsvData, etc.
-  const SLOW_PATH_KEYS = ['clinicians', 'weeklyRota', 'plannedAbsences', 'closedDays', 'huddleCsvData', 'huddleSettings', 'settings', 'roomAllocation', 'teamnetUrl', 'savedSlotFilters', 'expectedCapacity'];
+  const SLOW_PATH_KEYS = ['clinicians', 'weeklyRota', 'plannedAbsences', 'closedDays', 'huddleCsvData', 'huddleSettings', 'settings', 'roomAllocation', 'teamnetUrl', 'savedSlotFilters', 'expectedCapacity', 'huddleMessages'];
   const hasSlowPathData = SLOW_PATH_KEYS.some(k => newData[k] !== undefined);
   if (!hasSlowPathData) {
     return await handleFastPath(supabase, practiceId, user, newData);
@@ -310,6 +310,14 @@ export async function POST(request) {
   }
   if (newData.lastSyncTime && newData.lastSyncTime !== oldExtras.lastTeamnetSync) {
     newExtras.lastTeamnetSync = newData.lastSyncTime;
+    extrasChanged = true;
+  }
+  // Noticeboard messages — short-lived, per-practice, fits in extras.
+  // We treat undefined as "no change", so a save that doesn't include
+  // huddleMessages won't wipe them. An empty array means "all cleared".
+  if (newData.huddleMessages !== undefined &&
+      JSON.stringify(newData.huddleMessages) !== JSON.stringify(oldExtras.huddleMessages || [])) {
+    newExtras.huddleMessages = newData.huddleMessages;
     extrasChanged = true;
   }
   if (extrasChanged) {
