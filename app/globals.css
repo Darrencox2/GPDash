@@ -110,4 +110,10 @@
   .divide-slate-200 > * + * { border-color: rgba(255,255,255,0.06) !important; }
   input, select, textarea { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.08) !important; color: #e2e8f0 !important; }
   input::placeholder, textarea::placeholder { color: #475569 !important; }
+  /* Dark dropdown menus — color-scheme tells the browser to render OS-controlled
+     widgets (the popped-open option list) in dark theme. Per-option styling
+     also forces the dropdown items themselves to use our palette. */
+  select { color-scheme: dark; }
+  select option { background: #1e293b !important; color: #e2e8f0 !important; padding: 8px !important; }
+  select option:checked, select option:hover { background: #334155 !important; }
 
