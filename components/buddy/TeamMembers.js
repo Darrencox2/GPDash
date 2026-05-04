@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { STAFF_GROUPS, guessGroupFromRole } from '@/lib/data';
+import { STAFF_GROUPS, guessGroupFromRole, DAYS } from '@/lib/data';
 
 const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof'];
 const ROLE_OPTIONS = ['GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'ANP', 'Paramedic Practitioner', 'Pharmacist', 'Physiotherapist', 'Practice Nurse', 'Nurse Associate', 'HCA', 'Medical Student', 'Admin'];
@@ -30,7 +30,7 @@ function DebouncedInput({ value, onChange, uppercase, ...rest }) {
   return <input {...rest} value={local} onChange={handleChange} onBlur={handleBlur} />;
 }
 
-export default function TeamMembers({ data, saveData, toast }) {
+export default function TeamMembers({ data, saveData, toast, setActiveSection }) {
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const clinicians = ensureArray(data?.clinicians);
 
@@ -177,6 +177,19 @@ export default function TeamMembers({ data, saveData, toast }) {
 
   const buddyCoverPeople = clinicians.filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
 
+  // Toggle a single day in a clinician's working pattern. Same logic as the
+  // grid editor on the Working Patterns page, just inline per-card here.
+  const toggleRotaDay = (clinicianId, day) => {
+    const ensureArr = (v) => Array.isArray(v) ? v : v ? Object.values(v) : [];
+    const currentRota = ensureArr(data.weeklyRota?.[day]);
+    const has = currentRota.includes(clinicianId);
+    const newDay = has ? currentRota.filter(id => id !== clinicianId) : [...currentRota, clinicianId];
+    saveData({ ...data, weeklyRota: { ...(data.weeklyRota || {}), [day]: newDay } });
+  };
+
+  // Map full day name → single letter for the pills
+  const DAY_LABELS = { Monday: 'M', Tuesday: 'T', Wednesday: 'W', Thursday: 'T', Friday: 'F' };
+
   const removeAllUnconfirmed = () => {
     const unconfirmed = clinicians.filter(c => !c.confirmed);
     const count = unconfirmed.length;
@@ -206,6 +219,27 @@ export default function TeamMembers({ data, saveData, toast }) {
               {c.status === 'longTermAbsent' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">LTA</span>}
             </div>
             <div className="text-xs text-slate-500">{c.role}{c.source === 'csv' ? ' · from CSV' : ''}</div>
+            {!compact && (
+              <div className="flex gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
+                {DAYS.map(day => {
+                  const ensureArr = (v) => Array.isArray(v) ? v : v ? Object.values(v) : [];
+                  const works = ensureArr(data.weeklyRota?.[day]).includes(c.id);
+                  return (
+                    <button
+                      key={day}
+                      onClick={(e) => { e.stopPropagation(); toggleRotaDay(c.id, day); }}
+                      title={`${day} — click to toggle`}
+                      className={`w-6 h-6 rounded text-[10px] font-semibold transition-colors ${
+                        works
+                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                          : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                      }`}>
+                      {DAY_LABELS[day]}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {c.buddyCover && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">Buddy</span>}
@@ -403,9 +437,25 @@ export default function TeamMembers({ data, saveData, toast }) {
         </div>
       )}
 
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center flex-wrap">
         <input type="text" placeholder="Search by name or role..." value={search} onChange={e => setSearch(e.target.value)}
           className="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
+        {setActiveSection && (
+          <>
+            <button
+              onClick={() => setActiveSection('team-rota')}
+              className="px-3 py-2 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 border border-amber-200 whitespace-nowrap"
+              title="Open the full working-patterns grid">
+              Weekly grid →
+            </button>
+            <button
+              onClick={() => setActiveSection('buddy-cover')}
+              className="px-3 py-2 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium hover:bg-purple-100 border border-purple-200 whitespace-nowrap"
+              title="See buddy cover allocations for this week">
+              Buddy cover →
+            </button>
+          </>
+        )}
       </div>
 
       {/* Active staff grouped by role */}
