@@ -239,7 +239,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                   <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontFamily: 'ui-monospace, Menlo, monospace' }}>
                     {practiceMatchDebug.triedVariants.map((t, i) => (
                       <div key={i}>
-                        "{t.variant}" → {t.count} result{t.count === 1 ? '' : 's'}
+                        [{t.source || 'nhs_ord'}] "{t.variant}" → {t.count} result{t.count === 1 ? '' : 's'}
                         {t.error && <span style={{ color: '#fca5a5' }}> · error: {t.error}</span>}
                       </div>
                     ))}

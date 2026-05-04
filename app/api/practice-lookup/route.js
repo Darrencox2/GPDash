@@ -44,14 +44,41 @@ export async function GET(request) {
   try {
     let orgs = [];
     let searchedBy = null;
+    let source = null;
+
+    // First: try NHS ORD with each variant
     for (const v of variants) {
       const { orgs: result, error } = await fetchOrgsByPostcode(v);
-      debug.triedVariants.push({ variant: v, count: result.length, error });
-      if (error) debug.errorsByVariant[v] = error;
+      debug.triedVariants.push({ variant: v, source: 'nhs_ord', count: result.length, error });
+      if (error) debug.errorsByVariant[`ord:${v}`] = error;
       if (result.length > 0) {
         orgs = result;
         searchedBy = v;
+        source = 'nhs_ord';
         break;
+      }
+    }
+
+    // Fallback: if NHS ORD didn't return anything, try OpenPrescribing.
+    // It searches by code/name/postcode area and is more lenient.
+    if (orgs.length === 0) {
+      const noSpace = postcodeRaw.replace(/\s+/g, '');
+      const opQueries = [];
+      // Try outward code first (broadest, most likely to hit)
+      if (noSpace.length > 3) opQueries.push(noSpace.slice(0, -3));
+      // Then full no-space form
+      opQueries.push(noSpace);
+
+      for (const q of opQueries) {
+        const { orgs: result, error } = await fetchOrgsViaOpenPrescribing(q);
+        debug.triedVariants.push({ variant: q, source: 'openprescribing', count: result.length, error });
+        if (error) debug.errorsByVariant[`op:${q}`] = error;
+        if (result.length > 0) {
+          orgs = result;
+          searchedBy = q;
+          source = 'openprescribing';
+          break;
+        }
       }
     }
 
@@ -127,7 +154,7 @@ export async function GET(request) {
       return result;
     }));
 
-    return NextResponse.json({ practices: enriched, searchedBy, debug });
+    return NextResponse.json({ practices: enriched, searchedBy, source, debug });
   } catch (e) {
     return NextResponse.json({ error: e?.message || 'lookup failed', practices: [], debug }, { status: 500 });
   }
@@ -164,9 +191,10 @@ function buildPostcodeVariants(postcodeRaw) {
 async function fetchOrgsByPostcode(postcode) {
   try {
     const url = `${NHS_ORD_BASE}/organisations?Postcode=${encodeURIComponent(postcode)}&PrimaryRoleId=${GP_PRACTICE_ROLE_ID}`;
+    // No Accept header — NHS ORD returns 406 if we set one (they pick the
+    // format themselves and serve JSON by default).
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
-      headers: { 'Accept': 'application/json' },
     });
     if (!res.ok) {
       return { orgs: [], error: `HTTP ${res.status}` };
@@ -176,6 +204,41 @@ async function fetchOrgsByPostcode(postcode) {
     // Filter to active practices only (NHS ORD can include closed ones)
     const active = all.filter(o => !o.Status || o.Status === 'Active');
     return { orgs: active, error: null };
+  } catch (e) {
+    return { orgs: [], error: e?.message || 'fetch_failed' };
+  }
+}
+
+/**
+ * OpenPrescribing fallback: searches by partial code/name/postcode. Less
+ * authoritative than NHS ORD (only includes practices that have published
+ * prescribing data) but more reliable as a lookup mechanism.
+ *
+ * Endpoint: /api/1.0/org_code/?q=BS25&exact=false
+ * Returns: [{ code, name, ods_name, ... }, ...]
+ */
+async function fetchOrgsViaOpenPrescribing(query) {
+  try {
+    const url = `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&exact=false&format=json`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      return { orgs: [], error: `HTTP ${res.status}` };
+    }
+    const json = await res.json();
+    if (!Array.isArray(json)) return { orgs: [], error: null };
+    // Filter to GP practices (some entries are CCGs/PCNs)
+    // OpenPrescribing has no explicit type field but practice codes are
+    // typically 6 chars. We filter loosely and convert to ORD shape.
+    const practices = json
+      .filter(o => o.code && o.code.length <= 7 && o.name)
+      .map(o => ({
+        OrgId: o.code,
+        Name: o.name,
+        Status: 'Active', // OpenPrescribing only lists currently-prescribing practices
+      }));
+    return { orgs: practices, error: null };
   } catch (e) {
     return { orgs: [], error: e?.message || 'fetch_failed' };
   }
