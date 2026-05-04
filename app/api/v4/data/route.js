@@ -55,7 +55,7 @@ export async function GET(request) {
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from('practices')
-      .select('id, name, ods_code, region')
+      .select('id, name, slug, ods_code, region, postcode, list_size, online_consult_tool, latitude, longitude, admin_district')
       .eq('id', practiceId)
       .maybeSingle(),
     supabase.from('clinicians')
@@ -70,7 +70,7 @@ export async function GET(request) {
       .select('id, clinician_id, start_date, end_date, reason, notes, clinicians!inner(practice_id)')
       .eq('clinicians.practice_id', practiceId),
     supabase.from('practice_settings')
-      .select('huddle_settings, buddy_settings, room_allocation, closed_days, teamnet_url, extras')
+      .select('huddle_settings, buddy_settings, room_allocation, closed_days, teamnet_url, extras, demand_settings')
       .eq('practice_id', practiceId)
       .maybeSingle(),
     supabase.from('huddle_csv_data')
@@ -125,6 +125,15 @@ export async function GET(request) {
   v3Shape._v4 = {
     practiceId,
     practiceName: practice.name,
+    practiceSlug: practice.slug,
+    practiceListSize: practice.list_size,
+    practiceOds: practice.ods_code,
+    practicePostcode: practice.postcode,
+    practiceLatitude: practice.latitude,
+    practiceLongitude: practice.longitude,
+    practiceAdminDistrict: practice.admin_district,
+    practiceOnlineConsultTool: practice.online_consult_tool,
+    demandSettings: settings?.demand_settings || null,
     userId: user.id,
     userEmail: user.email,
     linkedClinicianId: myClinician?.id || null,

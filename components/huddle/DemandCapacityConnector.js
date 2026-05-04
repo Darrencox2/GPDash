@@ -70,6 +70,9 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
           const cal = getSchoolHolidaysForLEA(data._v4.practiceAdminDistrict);
           if (cal?.ranges) opts.schoolHolidayRanges = cal.ranges;
         }
+        if (typeof data?._v4?.practiceListSize === 'number') {
+          opts.listSize = data._v4.practiceListSize;
+        }
         const days = [];
         for (let i=14;i>=1;i--) { const d=new Date(targetDate);d.setDate(d.getDate()-i);const dk=toLocalIso(d);const p=predictDemand(d,weather?.[dk]||null,opts);days.push({date:d,dateKey:dk,dayOfWeek:d.getDay(),dayName:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],dayNum:d.getDate(),isPast:true,isToday:false,isWeekend:d.getDay()===0||d.getDay()===6,...p}); }
         const tdk=toLocalIso(targetDate);const tw=weather?.[tdk]||null;const tp=predictDemand(targetDate,tw,opts);

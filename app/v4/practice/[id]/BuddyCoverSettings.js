@@ -21,7 +21,11 @@ export default function BuddyCoverSettings({ practiceId, initialSettings }) {
   async function saveSetting(field, value) {
     const newSettings = { ...settings, [field]: value };
     setSettings(newSettings);
-    setSavingField(field);
+    // Both sliders share the same status row on the parent Card (it's a
+    // "Workload weights" group, not per-slider). Use the group's id as
+    // the saving/saved key so the tick shows up regardless of which one
+    // the user dragged.
+    setSavingField('weights');
     setError('');
     const { error: err } = await supabase
       .from('practice_settings')
@@ -32,7 +36,7 @@ export default function BuddyCoverSettings({ practiceId, initialSettings }) {
       setError(`Couldn't save: ${err.message}`);
       return;
     }
-    setSavedField(field);
+    setSavedField('weights');
     setTimeout(() => setSavedField(null), 1500);
   }
 

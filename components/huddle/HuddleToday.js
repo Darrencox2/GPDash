@@ -235,8 +235,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       const cal = getSchoolHolidaysForLEA(data._v4.practiceAdminDistrict);
       if (cal?.ranges) opts.schoolHolidayRanges = cal.ranges;
     }
+    // List size is used by the fallback path to scale the generic
+    // baseline proportionally. When the practice has no demand_settings
+    // yet, this gives a much better first-time estimate than returning
+    // an 11k-list-size practice's numbers verbatim.
+    if (typeof data?._v4?.practiceListSize === 'number') {
+      opts.listSize = data._v4.practiceListSize;
+    }
     return opts;
-  }, [data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict]);
+  }, [data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict, data?._v4?.practiceListSize]);
   const viewingPrediction = useMemo(
     () => predictDemand(viewingDate, null, predictionOptions),
     [viewingDate, predictionOptions]
@@ -563,8 +570,19 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[300px]" width={null} viewBox="0 0 300 145" slots={urgTotal} target={targetTotal} />
                 </div>
                 <div className="flex-1 grid grid-cols-2 gap-3">
-                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                    <div className="text-sm text-slate-500 mb-1">Predicted demand</div>
+                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center relative">
+                    <div className="text-sm text-slate-500 mb-1 flex items-center gap-1.5">
+                      Predicted demand
+                      {pred?.usingFallback && (
+                        <span
+                          title="Estimated from list size — calibrate by uploading an AskMyGP CSV in Practice → Demand model"
+                          className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                          style={{ background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}
+                        >
+                          est
+                        </span>
+                      )}
+                    </div>
                     <div className="font-mono-data text-3xl md:text-5xl font-bold text-amber-400 leading-none">{predTotal || '—'}</div>
                     <div className="text-sm text-slate-600 mt-1">requests today</div>
                   </div>
@@ -588,6 +606,39 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 </div>
               </div>
+            {/* Fallback warning banner — shown when no per-practice
+                demand_settings is in place. The prediction is being
+                derived from list-size-scaled generic baselines rather
+                than the practice's own data. Hides automatically once
+                an NHS auto-seed or CSV calibration has been run. */}
+            {pred?.usingFallback && data?._v4?.practiceSlug && (
+              <div
+                className="rounded-lg p-3 mt-3 flex items-start gap-2.5"
+                style={{
+                  background: 'rgba(245,158,11,0.08)',
+                  border: '1px solid rgba(245,158,11,0.25)',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" strokeWidth="2" className="flex-shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-amber-300 mb-0.5">Demand prediction is an estimate</div>
+                  <div className="text-xs text-amber-200/80 leading-relaxed">
+                    Today's prediction uses national-average submission rates scaled to your list size of {(data._v4.practiceListSize || 0).toLocaleString()}.
+                    For a tailored prediction reflecting your practice's actual demand pattern, upload an AskMyGP CSV (12+ weeks recommended) in{' '}
+                    <a
+                      href={`/v4/practice/${data._v4.practiceSlug}?tab=demand`}
+                      className="underline hover:text-amber-100 transition-colors"
+                    >
+                      Practice → Demand model
+                    </a>.
+                  </div>
+                </div>
+              </div>
+            )}
             {predTotal > 0 && (
               <div className="glass-inner rounded-xl p-4 mt-4">
                 <div className="flex items-center gap-2 mb-2">

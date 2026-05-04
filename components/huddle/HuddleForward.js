@@ -81,8 +81,11 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       const cal = getSchoolHolidaysForLEA(data._v4.practiceAdminDistrict);
       if (cal?.ranges) opts.schoolHolidayRanges = cal.ranges;
     }
+    if (typeof data?._v4?.practiceListSize === 'number') {
+      opts.listSize = data._v4.practiceListSize;
+    }
     return opts;
-  }, [data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict]);
+  }, [data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict, data?._v4?.practiceListSize]);
 
   const COLS = '60px repeat(5, 1fr) 56px 56px';
 

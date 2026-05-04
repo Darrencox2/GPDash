@@ -174,6 +174,9 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
         const cal = getSchoolHolidaysForLEA(data._v4.practiceAdminDistrict);
         if (cal?.ranges) opts.schoolHolidayRanges = cal.ranges;
       }
+      if (typeof data?._v4?.practiceListSize === 'number') {
+        opts.listSize = data._v4.practiceListSize;
+      }
       const todayDk = toLocalIso(today);
       const todayW = w?.[todayDk] || null;
       const todayPred = predictDemand(today, todayW, opts);
