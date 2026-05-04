@@ -1,27 +1,28 @@
 // /v4/practice/[id] — Practice management. Single page with tabs:
-//   - Details      (the practice setup wizard: name, ODS, postcode, list size, OC tool)
-//   - Users        (members, pending invites, invite form, your clinician record)
-//   - Buddy cover  (link to dashboard buddy settings — full migration coming later)
+//   - Details      (practice setup form + practice URL/slug editor)
+//   - Users        (members, pending invites, invite form)
+//   - Buddy cover  (workload weights + algorithm explanation)
 //   - Demand model (CSV upload + recalibration)
-//   - Integrations (EMIS report XML, practice URL)
-//   - Danger zone  (delete practice — platform admin only)
+//   - Resources    (TeamNet calendar sync + EMIS report)
+//   - Danger zone  (data cleanup + delete practice)
 //
 // Tab state held in URL ?tab=X for refresh + bookmark safety.
 
 import { redirect, notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
-import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import { resolvePracticeIdentifier } from '@/lib/v4-data';
 import DashboardShell from '@/components/DashboardShell';
 import PracticeTabs from './PracticeTabs';
 import PracticeSetupForm from './setup/PracticeSetupForm';
 import InviteForm from './InviteForm';
-import ClinicianLinker from './ClinicianLinker';
 import SlugEditor from './SlugEditor';
 import EmisReportCard from '@/components/EmisReportCard';
 import DeletePracticeButton from './DeletePracticeButton';
 import DemandUpload from './DemandUpload';
+import BuddyCoverSettings from './BuddyCoverSettings';
+import TeamNetUrlEditor from './TeamNetUrlEditor';
+import DataCleanupActions from './DataCleanupActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,22 +87,23 @@ export default async function PracticeAdminPage({ params }) {
     .is('accepted_at', null)
     .order('created_at', { ascending: false });
 
-  // Active clinicians (for the self-link form)
-  const { data: clinicians } = await supabase
-    .from('clinicians')
-    .select('id, name, initials, role, status, linked_user_id')
-    .eq('practice_id', practiceId)
-    .eq('status', 'active')
-    .order('name');
-
-  const myClinician = (clinicians || []).find(c => c.linked_user_id === user.id);
-
-  // Demand settings + history summary
+  // Practice settings — pull all the JSONB fields for the various tabs
+  // in one query rather than three.
   const [{ data: settingsRow }, { data: historySummary }] = await Promise.all([
-    supabase.from('practice_settings').select('demand_settings').eq('practice_id', practiceId).maybeSingle(),
-    supabase.from('demand_history_summary').select('source, row_count, earliest_date, latest_date, last_uploaded_at').eq('practice_id', practiceId),
+    supabase
+      .from('practice_settings')
+      .select('demand_settings, buddy_settings, teamnet_url, extras')
+      .eq('practice_id', practiceId)
+      .maybeSingle(),
+    supabase
+      .from('demand_history_summary')
+      .select('source, row_count, earliest_date, latest_date, last_uploaded_at')
+      .eq('practice_id', practiceId),
   ]);
   const demandSettings = settingsRow?.demand_settings || null;
+  const buddySettings = settingsRow?.buddy_settings || {};
+  const teamnetUrl = settingsRow?.teamnet_url || '';
+  const lastSyncTime = settingsRow?.extras?.lastTeamnetSync || null;
 
   const canManage = isAdminOrOwner || isPlatformAdmin;
 
@@ -117,27 +119,17 @@ export default async function PracticeAdminPage({ params }) {
   // Build tab content as a map; PracticeTabs picks the active one.
   const tabContent = {
     details: (
-      <PracticeSetupForm
+      <DetailsTab
         practiceId={practiceId}
         practiceSlug={practice.slug}
-        initial={{
-          name: fullPractice?.name || '',
-          odsCode: fullPractice?.ods_code || '',
-          postcode: fullPractice?.postcode || '',
-          listSize: fullPractice?.list_size || '',
-          onlineConsultTool: fullPractice?.online_consult_tool || '',
-          region: fullPractice?.region || '',
-          setupCompletedAt: fullPractice?.setup_completed_at,
-        }}
+        fullPractice={fullPractice}
+        canManage={canManage}
       />
     ),
     users: (
       <UsersTab
         members={members || []}
         invites={invites || []}
-        clinicians={clinicians || []}
-        myClinician={myClinician}
-        myUserId={user.id}
         practiceId={practiceId}
         canManage={canManage}
         myMembership={myMembership}
@@ -145,7 +137,10 @@ export default async function PracticeAdminPage({ params }) {
       />
     ),
     'buddy-cover': (
-      <BuddyCoverTab practiceSlug={practice.slug} />
+      <BuddyCoverSettings
+        practiceId={practiceId}
+        initialSettings={buddySettings}
+      />
     ),
     demand: (
       <DemandTab
@@ -156,11 +151,18 @@ export default async function PracticeAdminPage({ params }) {
         canManage={canManage}
       />
     ),
-    integrations: (
-      <IntegrationsTab practiceId={practiceId} currentSlug={practice.slug} canManage={canManage} />
+    resources: (
+      <ResourcesTab
+        practiceId={practiceId}
+        teamnetUrl={teamnetUrl}
+        lastSyncTime={lastSyncTime}
+      />
     ),
     danger: isPlatformAdmin ? (
-      <DangerTab practiceId={practiceId} practiceName={practice.name} />
+      <DangerTab
+        practiceId={practiceId}
+        practiceName={practice.name}
+      />
     ) : null,
   };
 
@@ -193,18 +195,40 @@ export default async function PracticeAdminPage({ params }) {
 
 // ─── Tab content components ───────────────────────────────────────
 
-function UsersTab({ members, invites, clinicians, myClinician, myUserId, practiceId, canManage, myMembership, isPlatformAdmin }) {
+function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Card title="Your clinician record">
-        <ClinicianLinker
+      <PracticeSetupForm
+        practiceId={practiceId}
+        practiceSlug={practiceSlug}
+        initial={{
+          name: fullPractice?.name || '',
+          odsCode: fullPractice?.ods_code || '',
+          postcode: fullPractice?.postcode || '',
+          listSize: fullPractice?.list_size || '',
+          onlineConsultTool: fullPractice?.online_consult_tool || '',
+          region: fullPractice?.region || '',
+          setupCompletedAt: fullPractice?.setup_completed_at,
+        }}
+      />
+      <Card title="Practice URL">
+        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 12 }}>
+          The short URL for the public dashboard view. Changing this breaks any
+          existing links your team has bookmarked.
+        </p>
+        <SlugEditor
           practiceId={practiceId}
-          currentLinkedClinicianId={myClinician?.id || null}
-          allClinicians={clinicians}
-          currentUserId={myUserId}
+          currentSlug={practiceSlug}
+          canEdit={canManage}
         />
       </Card>
+    </div>
+  );
+}
 
+function UsersTab({ members, invites, practiceId, canManage, myMembership, isPlatformAdmin }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Card title="Team members">
         {members.length === 0 ? (
           <p style={{ fontSize: 14, color: '#64748b' }}>No members yet.</p>
@@ -252,38 +276,20 @@ function UsersTab({ members, invites, clinicians, myClinician, myUserId, practic
           <InviteForm practiceId={practiceId} canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin} />
         </Card>
       )}
-    </div>
-  );
-}
 
-function BuddyCoverTab({ practiceSlug }) {
-  return (
-    <Card title="Buddy cover settings">
-      <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, marginBottom: 16 }}>
-        Configure default buddy assignments, exclusion rules, and TeamNet calendar
-        sync for this practice.
-      </p>
-      <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 16 }}>
-        Buddy cover settings currently live in the dashboard. We're working on
-        moving them in here properly — for now, follow the link below.
-      </p>
-      <Link
-        href={`/v4/dashboard?section=settings`}
-        style={{
-          display: 'inline-block',
-          padding: '10px 16px',
-          background: 'rgba(34, 211, 238, 0.15)',
-          border: '1px solid rgba(34, 211, 238, 0.4)',
-          color: '#22d3ee',
-          borderRadius: 8,
-          fontSize: 14,
-          fontWeight: 500,
-          textDecoration: 'none',
-        }}
-      >
-        Open buddy cover settings →
-      </Link>
-    </Card>
+      <div style={{
+        padding: 12,
+        background: 'rgba(34, 211, 238, 0.05)',
+        border: '1px solid rgba(34, 211, 238, 0.15)',
+        borderRadius: 8,
+        fontSize: 13,
+        color: '#94a3b8',
+        lineHeight: 1.5,
+      }}>
+        Looking to link your account to a clinician record? That lives in
+        Sidebar → My account.
+      </div>
+    </div>
   );
 }
 
@@ -325,14 +331,14 @@ function DemandTab({ practiceId, onlineConsultTool, demandSettings, history, can
   );
 }
 
-function IntegrationsTab({ practiceId, currentSlug, canManage }) {
+function ResourcesTab({ practiceId, teamnetUrl, lastSyncTime }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Card title="Practice URL">
-        <SlugEditor
+      <Card title="TeamNet calendar sync">
+        <TeamNetUrlEditor
           practiceId={practiceId}
-          currentSlug={currentSlug}
-          canEdit={canManage}
+          initialUrl={teamnetUrl}
+          lastSyncTime={lastSyncTime}
         />
       </Card>
       <Card title="EMIS appointment report">
@@ -344,21 +350,26 @@ function IntegrationsTab({ practiceId, currentSlug, canManage }) {
 
 function DangerTab({ practiceId, practiceName }) {
   return (
-    <div style={{
-      background: 'rgba(127,29,29,0.15)',
-      border: '1px solid rgba(239,68,68,0.3)',
-      borderRadius: 12,
-      padding: 24,
-    }}>
-      <h3 style={{ color: '#fca5a5', fontSize: 16, fontWeight: 600, marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
-        Delete this practice
-      </h3>
-      <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
-        Permanently delete this practice and all of its data — clinicians, rota notes,
-        absences, buddy assignments, demand history, settings, members, and invites.
-        Only visible to platform admins. <strong>There is no undo.</strong>
-      </p>
-      <DeletePracticeButton practiceId={practiceId} practiceName={practiceName} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card title="Data cleanup">
+        <DataCleanupActions practiceId={practiceId} />
+      </Card>
+      <div style={{
+        background: 'rgba(127,29,29,0.15)',
+        border: '1px solid rgba(239,68,68,0.3)',
+        borderRadius: 12,
+        padding: 24,
+      }}>
+        <h3 style={{ color: '#fca5a5', fontSize: 16, fontWeight: 600, marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
+          Delete this practice
+        </h3>
+        <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+          Permanently delete this practice and all of its data — clinicians, rota notes,
+          absences, buddy assignments, demand history, settings, members, and invites.
+          Only visible to platform admins. <strong>There is no undo.</strong>
+        </p>
+        <DeletePracticeButton practiceId={practiceId} practiceName={practiceName} />
+      </div>
     </div>
   );
 }

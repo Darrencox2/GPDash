@@ -12,7 +12,7 @@ const TABS = [
   { id: 'users', label: 'Users', requires: 'view' },
   { id: 'buddy-cover', label: 'Buddy cover', requires: 'admin' },
   { id: 'demand', label: 'Demand model', requires: 'admin' },
-  { id: 'integrations', label: 'Integrations', requires: 'view' },
+  { id: 'resources', label: 'Resources', requires: 'view' },
   { id: 'danger', label: 'Danger zone', requires: 'platform_admin' },
 ];
 
