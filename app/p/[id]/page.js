@@ -55,9 +55,13 @@ export default async function PracticePage({ params }) {
   cutoff.setMonth(cutoff.getMonth() - 12);
   const cutoffStr = cutoff.toISOString().slice(0, 10);
 
+  // Auth first (one round-trip) so we have user.id for the parallel queries below.
+  // supabase.auth.getUser() is fast (JWT verification from cookie, no DB hit).
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/v4/login');
+
   const tSetup = Date.now();
   const [
-    { data: { user } },
     { data: clinicians },
     { data: workingPatterns },
     { data: absences },
@@ -69,7 +73,6 @@ export default async function PracticePage({ params }) {
     { data: myProfile },
     { data: myMembership },
   ] = await Promise.all([
-    supabase.auth.getUser(),
     supabase.from('clinicians').select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, aliases, linked_user_id').eq('practice_id', practiceId).order('name'),
     supabase.from('working_patterns').select('id, clinician_id, effective_from, effective_to, pattern, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId).is('effective_to', null),
     supabase.from('absences').select('id, clinician_id, start_date, end_date, reason, notes, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId),
@@ -77,19 +80,15 @@ export default async function PracticePage({ params }) {
     supabase.from('huddle_csv_data').select('data, updated_at').eq('practice_id', practiceId).maybeSingle(),
     supabase.from('buddy_allocations').select('date, allocations').eq('practice_id', practiceId).gte('date', cutoffStr),
     supabase.from('rota_notes').select('clinician_id, date, note, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId),
-    supabase.from('practice_users').select('role, practices(id, name, slug)'),
-    // Platform admin flag — must filter by id because owners/admins see
-    // other members' profiles too via RLS, and maybeSingle() errors on
-    // multiple rows.
+    supabase.from('practice_users').select('role, practices(id, name, slug)').eq('user_id', user.id),
+    // Platform admin flag — filter by id because owners/admins see other
+    // members' profiles too via RLS.
     supabase.from('profiles').select('is_platform_admin').eq('id', user.id).maybeSingle(),
-    // Role for THIS practice specifically — must filter by user_id because
-    // owners/admins can see every membership row in the practice via RLS,
-    // and maybeSingle() errors on multiple rows.
+    // Role for THIS practice specifically — filter by user_id because
+    // owners/admins can see every membership row in the practice via RLS.
     supabase.from('practice_users').select('role').eq('practice_id', practiceId).eq('user_id', user.id).maybeSingle(),
   ]);
   const tQueries = Date.now();
-
-  if (!user) redirect('/v4/login');
 
   const v4Data = {
     practice,
