@@ -24,6 +24,8 @@ import { createClient } from '@/utils/supabase/server';
 
 // Force Node runtime so fetch defaults are predictable.
 export const runtime = 'nodejs';
+// Don't cache — we want fresh API responses each lookup.
+export const dynamic = 'force-dynamic';
 
 const NHS_ORD_BASE = 'https://directory.spineservices.nhs.uk/ORD/2-0-0';
 const OPENPRESCRIBING_BASE = 'https://openprescribing.net/api/1.0';
@@ -191,17 +193,19 @@ function buildPostcodeVariants(postcodeRaw) {
 async function fetchOrgsByPostcode(postcode) {
   try {
     const url = `${NHS_ORD_BASE}/organisations?Postcode=${encodeURIComponent(postcode)}&PrimaryRoleId=${GP_PRACTICE_ROLE_ID}`;
-    // No Accept header — NHS ORD returns 406 if we set one (they pick the
-    // format themselves and serve JSON by default).
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
+      headers: {
+        // Some NHS endpoints reject requests without these
+        'User-Agent': 'GPDash/1.0 (+https://gpdash.net)',
+        'Accept': 'application/json, text/plain, */*',
+      },
     });
     if (!res.ok) {
       return { orgs: [], error: `HTTP ${res.status}` };
     }
     const json = await res.json();
     const all = json?.Organisations || [];
-    // Filter to active practices only (NHS ORD can include closed ones)
     const active = all.filter(o => !o.Status || o.Status === 'Active');
     return { orgs: active, error: null };
   } catch (e) {
@@ -209,34 +213,27 @@ async function fetchOrgsByPostcode(postcode) {
   }
 }
 
-/**
- * OpenPrescribing fallback: searches by partial code/name/postcode. Less
- * authoritative than NHS ORD (only includes practices that have published
- * prescribing data) but more reliable as a lookup mechanism.
- *
- * Endpoint: /api/1.0/org_code/?q=BS25&exact=false
- * Returns: [{ code, name, ods_name, ... }, ...]
- */
 async function fetchOrgsViaOpenPrescribing(query) {
   try {
     const url = `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&exact=false&format=json`;
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
+      headers: {
+        'User-Agent': 'GPDash/1.0 (+https://gpdash.net)',
+        'Accept': 'application/json',
+      },
     });
     if (!res.ok) {
       return { orgs: [], error: `HTTP ${res.status}` };
     }
     const json = await res.json();
     if (!Array.isArray(json)) return { orgs: [], error: null };
-    // Filter to GP practices (some entries are CCGs/PCNs)
-    // OpenPrescribing has no explicit type field but practice codes are
-    // typically 6 chars. We filter loosely and convert to ORD shape.
     const practices = json
       .filter(o => o.code && o.code.length <= 7 && o.name)
       .map(o => ({
         OrgId: o.code,
         Name: o.name,
-        Status: 'Active', // OpenPrescribing only lists currently-prescribing practices
+        Status: 'Active',
       }));
     return { orgs: practices, error: null };
   } catch (e) {
