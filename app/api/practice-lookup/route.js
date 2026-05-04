@@ -1,19 +1,29 @@
 // /api/practice-lookup
 //
-// Given a UK postcode, returns up to ~5 GP practices nearby with their
-// list size from NHS Digital (via OpenPrescribing). Two-tier search:
-//   1. Exact postcode (most precise)
-//   2. Outward-code prefix (e.g. BS25) — used as fallback when exact misses
+// Given a UK postcode, returns up to ~5 GP practices in the area with
+// their list size from NHS Digital (via OpenPrescribing).
 //
-// Also filters out ODS codes that are ALREADY claimed by an existing
-// practice in our database — except for the currentPracticeId (so when a
-// practice re-runs setup, they can still re-pick themselves). Practices
-// already in our DB are still returned, but with `existsInDatabase: true`
-// and `unavailable: true` so the UI can show them disabled.
+// Postcode → practice resolution is best-effort. NHS ORD's Postcode
+// parameter does a "contains" match on whatever postcode value is stored,
+// which sometimes has a space ("BS25 1HZ") and sometimes doesn't ("BS251HZ").
+// We try several variants in sequence:
+//   1. Exact, with the space the user typed
+//   2. Standard format with space
+//   3. No spaces
+//   4. Outward code with trailing space
+//   5. Outward code only
+//
+// Stops at the first variant that returns at least one active GP practice.
+//
+// Also filters / flags ODS codes that are already claimed by another
+// practice in our database.
 
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+
+// Force Node runtime so fetch defaults are predictable.
+export const runtime = 'nodejs';
 
 const NHS_ORD_BASE = 'https://directory.spineservices.nhs.uk/ORD/2-0-0';
 const OPENPRESCRIBING_BASE = 'https://openprescribing.net/api/1.0';
@@ -23,31 +33,36 @@ const MAX_PRACTICES = 5;
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const postcodeRaw = (searchParams.get('postcode') || '').trim().toUpperCase();
-  const postcodeNoSpace = postcodeRaw.replace(/\s+/g, '');
   const currentPracticeId = searchParams.get('currentPracticeId') || null;
-  if (!postcodeNoSpace) {
+  if (!postcodeRaw) {
     return NextResponse.json({ error: 'postcode required' }, { status: 400 });
   }
 
+  const variants = buildPostcodeVariants(postcodeRaw);
+  const debug = { triedVariants: [], errorsByVariant: {} };
+
   try {
-    // ─── 1. Find practices via two-tier search ──────────────────────
-    let orgs = await fetchOrgsByPostcode(postcodeNoSpace);
-    let searchedBy = 'exact';
-    if (orgs.length === 0) {
-      // Fall back to outward code (e.g. BS25 from BS25 1HZ). Most postcodes
-      // have a 2-4 char outward code followed by digits and 2 letters.
-      // Take everything before the last 3 chars.
-      if (postcodeNoSpace.length > 3) {
-        const outward = postcodeNoSpace.slice(0, -3);
-        orgs = await fetchOrgsByPostcode(outward);
-        searchedBy = 'outward_code';
+    let orgs = [];
+    let searchedBy = null;
+    for (const v of variants) {
+      const { orgs: result, error } = await fetchOrgsByPostcode(v);
+      debug.triedVariants.push({ variant: v, count: result.length, error });
+      if (error) debug.errorsByVariant[v] = error;
+      if (result.length > 0) {
+        orgs = result;
+        searchedBy = v;
+        break;
       }
     }
+
     if (orgs.length === 0) {
-      return NextResponse.json({ practices: [], reason: 'no_active_gp_practice_at_postcode', searchedBy });
+      return NextResponse.json({
+        practices: [],
+        reason: 'no_active_gp_practice_at_postcode',
+        debug,
+      });
     }
 
-    // De-dupe (the outward search can include the exact postcode results too)
     const seen = new Set();
     orgs = orgs.filter(o => {
       if (seen.has(o.OrgId)) return false;
@@ -55,9 +70,8 @@ export async function GET(request) {
       return true;
     }).slice(0, MAX_PRACTICES);
 
-    // ─── 2. Check which ODS codes already exist in our database ─────
     const odsCodes = orgs.map(o => o.OrgId).filter(Boolean);
-    const existingByOds = new Map(); // ods → { id, name, slug }
+    const existingByOds = new Map();
     if (odsCodes.length > 0) {
       const cookieStore = cookies();
       const supabase = createClient(cookieStore);
@@ -72,7 +86,6 @@ export async function GET(request) {
       }
     }
 
-    // ─── 3. Enrich with list size + database-existence flags ────────
     const enriched = await Promise.all(orgs.map(async (org) => {
       const odsCode = org.OrgId;
       const existing = existingByOds.get(odsCode);
@@ -114,20 +127,56 @@ export async function GET(request) {
       return result;
     }));
 
-    return NextResponse.json({ practices: enriched, searchedBy });
+    return NextResponse.json({ practices: enriched, searchedBy, debug });
   } catch (e) {
-    return NextResponse.json({ error: 'lookup failed', practices: [] }, { status: 500 });
+    return NextResponse.json({ error: e?.message || 'lookup failed', practices: [], debug }, { status: 500 });
   }
+}
+
+function buildPostcodeVariants(postcodeRaw) {
+  const variants = [];
+  const seen = new Set();
+  const add = (v) => {
+    if (!v || seen.has(v)) return;
+    seen.add(v);
+    variants.push(v);
+  };
+
+  const noSpace = postcodeRaw.replace(/\s+/g, '');
+
+  // 1. Whatever the user typed
+  add(postcodeRaw);
+  // 2. Standard formatted "AA9A 9AA" with one space before last 3 chars
+  if (noSpace.length >= 5) {
+    add(noSpace.slice(0, -3) + ' ' + noSpace.slice(-3));
+  }
+  // 3. No-space form
+  add(noSpace);
+  // 4. Outward code with trailing space (helps NHS ORD prefix matching)
+  if (noSpace.length > 3) {
+    const outward = noSpace.slice(0, -3);
+    add(outward + ' ');
+    add(outward);
+  }
+  return variants;
 }
 
 async function fetchOrgsByPostcode(postcode) {
   try {
-    const url = `${NHS_ORD_BASE}/organisations?Postcode=${encodeURIComponent(postcode)}&PrimaryRoleId=${GP_PRACTICE_ROLE_ID}&Status=Active&Limit=20`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return [];
+    const url = `${NHS_ORD_BASE}/organisations?Postcode=${encodeURIComponent(postcode)}&PrimaryRoleId=${GP_PRACTICE_ROLE_ID}`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8000),
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!res.ok) {
+      return { orgs: [], error: `HTTP ${res.status}` };
+    }
     const json = await res.json();
-    return json?.Organisations || [];
-  } catch {
-    return [];
+    const all = json?.Organisations || [];
+    // Filter to active practices only (NHS ORD can include closed ones)
+    const active = all.filter(o => !o.Status || o.Status === 'Active');
+    return { orgs: active, error: null };
+  } catch (e) {
+    return { orgs: [], error: e?.message || 'fetch_failed' };
   }
 }

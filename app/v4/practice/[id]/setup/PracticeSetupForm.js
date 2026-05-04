@@ -36,6 +36,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   const [practiceCandidates, setPracticeCandidates] = useState([]); // all GP practices at postcode
   const [practiceMatchBusy, setPracticeMatchBusy] = useState(false);
   const [practiceMatchReason, setPracticeMatchReason] = useState(null);
+  const [practiceMatchDebug, setPracticeMatchDebug] = useState(null);
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
   const [error, setError] = useState('');
@@ -71,6 +72,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
       const candidates = practiceRes?.practices || [];
       setPracticeCandidates(candidates);
       setPracticeMatchReason(practiceRes?.reason || null);
+      setPracticeMatchDebug(practiceRes?.debug || null);
     }, 400);
     return () => clearTimeout(lookupTimer.current);
   }, [postcode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -227,9 +229,24 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
         <Card title={`GP practices at this postcode${practiceCandidates.length > 1 ? ` (${practiceCandidates.length} found)` : ''}`} status={fieldStatus('practice', savingField, savedField)}>
           {practiceMatchBusy && <div style={{ color: '#94a3b8', fontSize: 12 }}>Looking up NHS Digital…</div>}
           {!practiceMatchBusy && practiceCandidates.length === 0 && lookup && (
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
-              No active GP practice found at this postcode. Enter your practice name and list size manually below.
-            </p>
+            <>
+              <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+                No active GP practice found at this postcode. Enter your practice name and list size manually below.
+              </p>
+              {practiceMatchDebug?.triedVariants?.length > 0 && (
+                <details style={{ marginTop: 8, fontSize: 11, color: '#64748b' }}>
+                  <summary style={{ cursor: 'pointer' }}>Show what was searched</summary>
+                  <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontFamily: 'ui-monospace, Menlo, monospace' }}>
+                    {practiceMatchDebug.triedVariants.map((t, i) => (
+                      <div key={i}>
+                        "{t.variant}" → {t.count} result{t.count === 1 ? '' : 's'}
+                        {t.error && <span style={{ color: '#fca5a5' }}> · error: {t.error}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </>
           )}
           {!practiceMatchBusy && practiceCandidates.length > 0 && (
             <>
