@@ -717,6 +717,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   return {
                     ...c,
                     displayName: matched?.name || c.name,
+                    title: matched?.title || '',
                     role: matched?.role || '',
                     initials: matched?.initials || (c.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2),
                     total: avail + (c.booked || 0),
@@ -787,7 +788,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{fontFamily:"'Outfit',sans-serif",background: band.colour, boxShadow:`0 0 6px ${band.colour}30`}}>{c.initials}</div>
                             <div className="min-w-0">
-                              <span className="text-sm text-slate-200 truncate">{c.displayName}</span>
+                              <span className="text-sm text-slate-200 truncate">{c.title ? `${c.title} ` : ''}{c.displayName}</span>
                               {c.role && <div className="text-xs text-slate-400">{c.role}</div>}
                             </div>
                           </div>

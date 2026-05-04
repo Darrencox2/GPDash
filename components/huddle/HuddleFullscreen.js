@@ -585,6 +585,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 return {
                   ...c,
                   displayName: matched?.name || c.name,
+                  title: matched?.title || '',
                   role: matched?.role || '',
                   total: avail + (c.booked || 0),
                   avail,
@@ -656,7 +657,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                         <div key={i} className="rounded-md flex items-center justify-between fs-slidein" style={{animationDelay:`${0.3+i*0.06}s`,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',padding:'clamp(2px,0.4vh,6px) clamp(4px,0.6vw,8px)'}}>
                           <div className="flex items-center min-w-0" style={{gap:'clamp(4px,0.5vw,8px)'}}>
                             <div className="rounded-md flex items-center justify-center font-bold text-white flex-shrink-0" style={{width:'clamp(22px,3vh,36px)',height:'clamp(22px,3vh,36px)',fontSize:'clamp(8px,1vh,12px)',fontFamily:"'Outfit',sans-serif",background:s.band.colour,boxShadow:`0 0 4px ${s.band.colour}30`}}>{(c.displayName||'').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
-                            <span className="truncate" style={{fontSize:'clamp(9px,1.3vh,15px)',color:'#e2e8f0'}}>{c.displayName}</span>
+                            <span className="truncate" style={{fontSize:'clamp(9px,1.3vh,15px)',color:'#e2e8f0'}}>{c.title ? `${c.title} ` : ''}{c.displayName}</span>
                           </div>
                           <div className="flex items-center flex-shrink-0" style={{gap:'clamp(3px,0.4vw,6px)'}}>
                             <span className="font-bold" style={{color:s.band.colour,fontSize:'clamp(9px,1.2vh,14px)',fontFamily:"'Space Mono',monospace"}}>{c.total}</span>
