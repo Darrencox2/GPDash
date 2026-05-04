@@ -1,3 +1,4 @@
+-- Migration 012: practice slugs
 -- Add a URL slug to each practice. Used as the public-facing identifier
 -- in URLs like /p/winscombe instead of the UUID.
 --
