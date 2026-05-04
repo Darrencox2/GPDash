@@ -343,10 +343,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       </div>
 
-      {/* NHS demand benchmarks ribbon — only renders if practice has ODS in
-          the latest NHS England OC submissions data. Stays quiet if not. */}
-      <NhsBenchmarkRibbon odsCode={data?._v4?.practiceOds} />
-
       {/* Not-today banner */}
       {!isViewingToday && (
         <div className="glass-dark rounded-lg p-3 flex items-center gap-2 mb-2">
@@ -392,6 +388,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       ) : (
         <>
+      {/* NHS demand benchmarks ribbon — sits just above the urgent
+          on-the-day gauge so it provides external context before users
+          look at today's numbers. Stays quiet if practice ODS isn't in
+          the latest NHS data. */}
+      <NhsBenchmarkRibbon
+        odsCode={data?._v4?.practiceOds}
+        listSize={data?._v4?.practiceListSize}
+      />
+
       {/* ═══ SUMMARY GAUGE BAR ═══ */}
       {capacity && (() => {
         const urgTotal = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0) + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0);

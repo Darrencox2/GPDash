@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import AdminNav from '../AdminNav';
 import NhsDataUploader from './NhsDataUploader';
+import ListSizeBackfill from './ListSizeBackfill';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,6 +108,9 @@ export default async function NhsDataAdminPage() {
 
         {/* Upload form */}
         <NhsDataUploader />
+
+        {/* List size backfill */}
+        <ListSizeBackfill />
       </div>
     </div>
   );

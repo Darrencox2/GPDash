@@ -2,25 +2,25 @@
 
 // NhsBenchmarkRibbon — compact horizontal info bar showing this practice's
 // monthly online-consult demand alongside its PCN average and the national
-// average. Sits at the top of the Today page as context: "are we busier or
-// quieter than peers".
+// average, NORMALISED to submissions per 1000 patients per reporting weekday
+// (apples-to-apples comparison regardless of practice size).
 //
-// Data sources (all populated from NHS England's monthly online-consultation
-// submissions data — see /v4/admin/nhs-data):
-//   - nhs_oc_baseline                  (this practice's own row)
-//   - nhs_oc_baseline_pcn_summary      (PCN-level aggregates)
-//   - nhs_oc_baseline_national_summary (national aggregates)
+// Data sources:
+//   - nhs_oc_baseline                  (this practice's own row + list_size)
+//   - nhs_oc_baseline_pcn_summary      (PCN per-1000 averages)
+//   - nhs_oc_baseline_national_summary (national per-1000 averages)
+//   - practices.list_size              (this practice's local list_size — preferred)
 //
-// All comparisons use submissions-per-day-with-data (i.e. average per
-// reporting weekday) which makes practices that didn't report every day
-// comparable. List-size normalisation is a future improvement.
+// If list_size is unknown for a practice, that practice doesn't contribute
+// to the per-1000 averages but still shows in raw counts. The summary views
+// surface practices_with_list_size so we can disclose backfill coverage.
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
 const supabase = createClient();
 
-export default function NhsBenchmarkRibbon({ odsCode }) {
+export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
   const [state, setState] = useState({ loading: true });
 
   useEffect(() => {
@@ -31,10 +31,9 @@ export default function NhsBenchmarkRibbon({ odsCode }) {
     let cancelled = false;
     (async () => {
       try {
-        // 1. Get this practice's row (latest month)
         const { data: ownRow, error: ownErr } = await supabase
           .from('nhs_oc_baseline')
-          .select('total, days_with_data, pcn_code, month')
+          .select('total, days_with_data, list_size, pcn_code, month')
           .eq('ods_code', odsCode)
           .order('month', { ascending: false })
           .limit(1)
@@ -46,45 +45,39 @@ export default function NhsBenchmarkRibbon({ odsCode }) {
         }
 
         const month = ownRow.month;
+        const effectiveListSize = listSize || ownRow.list_size || null;
 
-        // 2 + 3 in parallel: PCN summary for this month + national summary for this month
         const [{ data: pcnRow }, { data: natRow }] = await Promise.all([
           ownRow.pcn_code
             ? supabase
                 .from('nhs_oc_baseline_pcn_summary')
-                .select('practice_count, avg_total_per_practice, avg_days_with_data')
+                .select('practice_count, practices_with_list_size, avg_per_1000_per_day')
                 .eq('month', month)
                 .eq('pcn_code', ownRow.pcn_code)
                 .maybeSingle()
             : Promise.resolve({ data: null }),
           supabase
             .from('nhs_oc_baseline_national_summary')
-            .select('practice_count, avg_total_per_practice')
+            .select('practice_count, practices_with_list_size, avg_per_1000_per_day')
             .eq('month', month)
             .maybeSingle(),
         ]);
 
-        // Convert totals → per-day metrics (use days_with_data so partial
-        // reporters compare fairly).
-        const yourPerDay = ownRow.total / Math.max(1, ownRow.days_with_data);
-        const pcnPerDay = pcnRow
-          ? pcnRow.avg_total_per_practice / Math.max(1, pcnRow.avg_days_with_data || 23)
-          : null;
-        // We don't have avg_days_with_data on the national view, so assume
-        // 23 reporting weekdays per month (typical March).
-        const natPerDay = natRow
-          ? natRow.avg_total_per_practice / 23
+        const yourPer1000 = effectiveListSize && ownRow.days_with_data
+          ? (ownRow.total / ownRow.days_with_data) / effectiveListSize * 1000
           : null;
 
         if (!cancelled) {
           setState({
             loading: false,
             month,
-            yourPerDay,
-            pcnPerDay,
-            natPerDay,
+            yourPer1000,
+            yourListSize: effectiveListSize,
+            pcnPer1000: pcnRow?.avg_per_1000_per_day != null ? Number(pcnRow.avg_per_1000_per_day) : null,
+            natPer1000: natRow?.avg_per_1000_per_day != null ? Number(natRow.avg_per_1000_per_day) : null,
             pcnPracticeCount: pcnRow?.practice_count || 0,
-            natPracticeCount: natRow?.practice_count || 0,
+            pcnWithListSize: pcnRow?.practices_with_list_size || 0,
+            natWithListSize: natRow?.practices_with_list_size || 0,
           });
         }
       } catch (err) {
@@ -92,7 +85,7 @@ export default function NhsBenchmarkRibbon({ odsCode }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [odsCode]);
+  }, [odsCode, listSize]);
 
   if (state.loading) {
     return (
@@ -102,29 +95,27 @@ export default function NhsBenchmarkRibbon({ odsCode }) {
     );
   }
 
-  // Errors: stay quiet rather than shouting. The ribbon is contextual; if
-  // there's no data for this practice (e.g. brand new practice not in the
-  // last NHS baseline), just show a friendly hint rather than a red banner.
-  if (state.error === 'no-ods') {
-    return null; // setup not done — don't pollute the page
-  }
-  if (state.error === 'no-data') {
+  if (state.error === 'no-ods' || state.error === 'no-data') return null;
+  if (state.error) return null;
+
+  const { month, yourPer1000, yourListSize, pcnPer1000, natPer1000, pcnPracticeCount, pcnWithListSize, natWithListSize } = state;
+
+  if (yourPer1000 == null) {
     return (
       <div style={ribbonStyle()}>
         <span style={{ color: '#64748b', fontSize: 12 }}>
-          NHS demand benchmarks unavailable for this practice (ODS not in latest NHS England data).
+          NHS demand benchmarks need your practice list size to compute. Set it under
+          Practice → Details.
         </span>
       </div>
     );
   }
-  if (state.error) {
-    return null; // silent on transient errors
-  }
 
-  const { month, yourPerDay, pcnPerDay, natPerDay, pcnPracticeCount } = state;
   const monthLabel = formatMonthYear(month);
-  const pcnDelta = pcnPerDay ? ((yourPerDay - pcnPerDay) / pcnPerDay) * 100 : null;
-  const natDelta = natPerDay ? ((yourPerDay - natPerDay) / natPerDay) * 100 : null;
+  const pcnDelta = pcnPer1000 ? ((yourPer1000 - pcnPer1000) / pcnPer1000) * 100 : null;
+  const natDelta = natPer1000 ? ((yourPer1000 - natPer1000) / natPer1000) * 100 : null;
+  const pcnCoverage = pcnPracticeCount > 0 ? Math.round((pcnWithListSize / pcnPracticeCount) * 100) : 0;
+  const natCoverage = natWithListSize > 0 ? `${(natWithListSize / 1000).toFixed(1)}k` : '0';
 
   return (
     <div style={ribbonStyle()}>
@@ -133,37 +124,41 @@ export default function NhsBenchmarkRibbon({ odsCode }) {
           NHS demand · {monthLabel}
         </span>
         <span style={{ color: '#475569' }}>·</span>
-        <Stat label="You" value={yourPerDay} colour="#a5f3fc" emphasised />
-        {pcnPerDay != null && (
+        <Stat label="You" value={yourPer1000} colour="#a5f3fc" emphasised />
+        {pcnPer1000 != null && (
           <>
             <span style={{ color: '#475569' }}>·</span>
             <Stat
-              label={`PCN avg${pcnPracticeCount ? ` (${pcnPracticeCount})` : ''}`}
-              value={pcnPerDay}
+              label={`PCN avg${pcnPracticeCount ? ` (${pcnWithListSize}/${pcnPracticeCount})` : ''}`}
+              value={pcnPer1000}
               delta={pcnDelta}
             />
           </>
         )}
-        {natPerDay != null && (
+        {natPer1000 != null && (
           <>
             <span style={{ color: '#475569' }}>·</span>
             <Stat
-              label="National avg"
-              value={natPerDay}
+              label={`National avg (${natCoverage})`}
+              value={natPer1000}
               delta={natDelta}
             />
           </>
         )}
       </div>
       <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>
-        Submissions per reporting weekday (online consultations)
+        Online consultation submissions per 1,000 patients per reporting weekday
+        {yourListSize ? ` · your list: ${yourListSize.toLocaleString()}` : ''}
+        {pcnPer1000 != null && pcnCoverage < 80 && pcnCoverage > 0
+          ? ` · PCN coverage ${pcnCoverage}% (list-size backfill in progress)`
+          : ''}
       </div>
     </div>
   );
 }
 
 function Stat({ label, value, delta, colour, emphasised }) {
-  const fmt = (n) => Math.round(n).toLocaleString();
+  const fmt = (n) => n >= 100 ? Math.round(n).toLocaleString() : n.toFixed(1);
   return (
     <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
       <span style={{ fontSize: 11, color: '#94a3b8' }}>{label}:</span>
@@ -173,8 +168,9 @@ function Stat({ label, value, delta, colour, emphasised }) {
         color: colour || '#cbd5e1',
         fontFamily: "'Space Mono', monospace",
       }}>
-        {fmt(value)}/day
+        {fmt(value)}
       </span>
+      <span style={{ fontSize: 10, color: '#64748b' }}>/1k</span>
       {delta != null && Math.abs(delta) >= 1 && (
         <span style={{
           fontSize: 11,
