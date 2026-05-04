@@ -17,10 +17,11 @@ export const dynamic = 'force-dynamic';
 
 // ─── GET: read everything in a single round-trip ──────────────────────
 //
-// All Supabase queries fire in parallel. The client makes ONE fetch and
-// gets everything: practice data, allocations, notes, memberships, user
-// info. No serial chain on the server.
+// ONE Promise.all containing every query plus auth check. No serial
+// dependencies. Working patterns and absences use embedded foreign-key
+// filters so they don't need to wait for a clinician-id pre-query.
 export async function GET(request) {
+  const t0 = Date.now();
   const url = new URL(request.url);
   const practiceId = url.searchParams.get('practice');
   if (!practiceId) {
@@ -31,22 +32,17 @@ export async function GET(request) {
   const supabase = createClient(cookieStore);
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
-
-  // Compute allocation cutoff
+  // Compute allocation cutoff (sync, no DB)
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - 12);
   const cutoffStr = cutoff.toISOString().slice(0, 10);
 
-  // Get clinician IDs for this practice (needed for FK queries)
-  const { data: clinicianRows } = await supabase.from('clinicians')
-    .select('id')
-    .eq('practice_id', practiceId);
-  const clinicianIds = (clinicianRows || []).map(r => r.id);
-
-  // ALL the queries we need, fired in true parallel
+  // EVERYTHING in parallel — including auth.
+  // Working patterns / absences / rota notes use embedded join filters
+  // (clinicians!inner(practice_id)) so we don't need to pre-fetch IDs.
+  const t1 = Date.now();
   const [
+    { data: { user } },
     { data: practice },
     { data: clinicians },
     { data: workingPatterns },
@@ -57,6 +53,7 @@ export async function GET(request) {
     { data: notes },
     { data: memberships },
   ] = await Promise.all([
+    supabase.auth.getUser(),
     supabase.from('practices')
       .select('id, name, ods_code, region')
       .eq('id', practiceId)
@@ -65,17 +62,13 @@ export async function GET(request) {
       .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, aliases, linked_user_id')
       .eq('practice_id', practiceId)
       .order('name'),
-    clinicianIds.length > 0
-      ? supabase.from('working_patterns')
-          .select('id, clinician_id, effective_from, effective_to, pattern')
-          .in('clinician_id', clinicianIds)
-          .is('effective_to', null)
-      : Promise.resolve({ data: [] }),
-    clinicianIds.length > 0
-      ? supabase.from('absences')
-          .select('id, clinician_id, start_date, end_date, reason, notes')
-          .in('clinician_id', clinicianIds)
-      : Promise.resolve({ data: [] }),
+    supabase.from('working_patterns')
+      .select('id, clinician_id, effective_from, effective_to, pattern, clinicians!inner(practice_id)')
+      .eq('clinicians.practice_id', practiceId)
+      .is('effective_to', null),
+    supabase.from('absences')
+      .select('id, clinician_id, start_date, end_date, reason, notes, clinicians!inner(practice_id)')
+      .eq('clinicians.practice_id', practiceId),
     supabase.from('practice_settings')
       .select('huddle_settings, buddy_settings, room_allocation, closed_days, teamnet_url, extras')
       .eq('practice_id', practiceId)
@@ -88,16 +81,15 @@ export async function GET(request) {
       .select('date, allocations')
       .eq('practice_id', practiceId)
       .gte('date', cutoffStr),
-    clinicianIds.length > 0
-      ? supabase.from('rota_notes')
-          .select('clinician_id, date, note')
-          .in('clinician_id', clinicianIds)
-      : Promise.resolve({ data: [] }),
+    supabase.from('rota_notes')
+      .select('clinician_id, date, note, clinicians!inner(practice_id)')
+      .eq('clinicians.practice_id', practiceId),
     supabase.from('practice_users')
-      .select('role, practices(id, name)')
-      .eq('user_id', user.id),
+      .select('role, practices(id, name)'),  // RLS filters to current user automatically
   ]);
+  const tQueries = Date.now();
 
+  if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
   if (!practice) return NextResponse.json({ error: 'Practice not found or access denied' }, { status: 404 });
 
   // Adapt — passes through the same shape as before
@@ -145,12 +137,15 @@ export async function GET(request) {
     })).filter(p => p.id),
   };
 
+  const tEnd = Date.now();
   // Cache hint — let the browser cache the response for a few seconds
-  // so navigation back/forward and rapid page reloads don't re-fetch
+  // so navigation back/forward and rapid page reloads don't re-fetch.
+  // Server-Timing header lets us see in DevTools where the time goes.
   return new NextResponse(JSON.stringify(v3Shape), {
     headers: {
       'content-type': 'application/json',
       'cache-control': 'private, max-age=10, stale-while-revalidate=60',
+      'server-timing': `setup;dur=${t1 - t0},queries;dur=${tQueries - t1},shape;dur=${tEnd - tQueries},total;dur=${tEnd - t0}`,
     },
   });
 }
