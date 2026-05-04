@@ -28,14 +28,33 @@ export default async function PracticeAdminPage({ params }) {
     .maybeSingle();
   if (!practice) notFound();
 
-  // Caller's role
+  // Caller's role in THIS practice (may be null if platform admin isn't a member)
   const { data: myMembership } = await supabase
     .from('practice_users')
     .select('role')
     .eq('practice_id', practiceId)
     .eq('user_id', user.id)
     .maybeSingle();
-  if (!myMembership) notFound();
+
+  // Platform admin override — site owner can manage any practice
+  const { data: myProfile } = await supabase
+    .from('profiles')
+    .select('is_platform_admin')
+    .eq('id', user.id)
+    .maybeSingle();
+  const isPlatformAdmin = !!myProfile?.is_platform_admin;
+
+  // Permission gate: must be admin/owner of this practice OR platform admin
+  const isAdminOrOwner = myMembership?.role === 'owner' || myMembership?.role === 'admin';
+  if (!isAdminOrOwner && !isPlatformAdmin) {
+    // If they're a member but not admin → bounce to dashboard. If they're
+    // not a member at all → 404 (don't leak that the practice exists).
+    if (myMembership) {
+      redirect(`/p/${practice.slug || practiceId}`);
+    } else {
+      notFound();
+    }
+  }
 
   // Members (via RPC that joins to auth.users to get emails)
   const { data: members } = await supabase
@@ -59,7 +78,7 @@ export default async function PracticeAdminPage({ params }) {
 
   const myClinician = (clinicians || []).find(c => c.linked_user_id === user.id);
 
-  const canManage = myMembership.role === 'owner' || myMembership.role === 'admin';
+  const canManage = isAdminOrOwner || isPlatformAdmin;
 
   return (
     <div style={{
@@ -82,7 +101,7 @@ export default async function PracticeAdminPage({ params }) {
           <span style={{
             padding: '2px 8px', background: 'rgba(16,185,129,0.15)',
             color: '#34d399', borderRadius: 999, fontWeight: 600, fontSize: 11,
-          }}>You: {myMembership.role}</span>
+          }}>You: {myMembership?.role || (isPlatformAdmin ? 'platform admin' : 'guest')}</span>
         </div>
 
         <Card title="Practice URL">
@@ -146,7 +165,7 @@ export default async function PracticeAdminPage({ params }) {
 
         {canManage && (
           <Card title="Invite a member">
-            <InviteForm practiceId={practiceId} canMakeOwner={myMembership.role === 'owner'} />
+            <InviteForm practiceId={practiceId} canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin} />
           </Card>
         )}
       </div>

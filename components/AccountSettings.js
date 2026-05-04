@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { roleLabel, isPlatformAdmin, isOwner, isAdmin } from '@/lib/permissions';
+import { roleLabel, isPlatformAdmin, isOwner, isAdmin, canEditPracticeData } from '@/lib/permissions';
 
 export default function AccountSettings({ data }) {
   const supabase = createClient();
@@ -145,7 +145,9 @@ export default function AccountSettings({ data }) {
           <Row label="Current practice">{v4.practiceName}</Row>
         </div>
         <div className="mt-4 flex gap-2 flex-wrap">
-          <a href={`/v4/practice/${practiceId}`} className="px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Manage practice (members, invites)</a>
+          {canEditPracticeData(data) && (
+            <a href={`/v4/practice/${practiceId}`} className="px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Manage practice (members, invites)</a>
+          )}
           <a href="/v4/dashboard" className="px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Switch practice</a>
         </div>
       </div>
