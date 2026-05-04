@@ -205,7 +205,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
     const gc = GROUP_COLOURS[c.group] || GROUP_COLOURS.admin;
     return (
       <div className={`card transition-colors ${!c.confirmed ? 'border-amber-300 bg-amber-50/30' : c.status === 'longTermAbsent' ? 'border-amber-200 bg-amber-50/50' : compact ? 'opacity-70 hover:opacity-100' : ''}`}>
-        <div className="p-3 flex items-center gap-3">
+        <div className="p-3 flex items-center gap-3 flex-wrap">
           {!showRestore && (
             <button onClick={(e) => { e.stopPropagation(); removePerson(c.id); }} className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0" title="Mark as left">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -219,28 +219,28 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
               {c.status === 'longTermAbsent' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">LTA</span>}
             </div>
             <div className="text-xs text-slate-500">{c.role}{c.source === 'csv' ? ' · from CSV' : ''}</div>
-            {!compact && (
-              <div className="flex gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
-                {DAYS.map(day => {
-                  const ensureArr = (v) => Array.isArray(v) ? v : v ? Object.values(v) : [];
-                  const works = ensureArr(data.weeklyRota?.[day]).includes(c.id);
-                  return (
-                    <button
-                      key={day}
-                      onClick={(e) => { e.stopPropagation(); toggleRotaDay(c.id, day); }}
-                      title={`${day} — click to toggle`}
-                      className={`w-6 h-6 rounded text-[10px] font-semibold transition-colors ${
-                        works
-                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                          : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                      }`}>
-                      {DAY_LABELS[day]}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
+          {!compact && (
+            <div className="flex gap-1 flex-shrink-0">
+              {DAYS.map(day => {
+                const ensureArr = (v) => Array.isArray(v) ? v : v ? Object.values(v) : [];
+                const works = ensureArr(data.weeklyRota?.[day]).includes(c.id);
+                return (
+                  <button
+                    key={day}
+                    onClick={(e) => { e.stopPropagation(); toggleRotaDay(c.id, day); }}
+                    title={`${day} — click to toggle`}
+                    className={`w-7 h-7 rounded text-xs font-semibold transition-colors ${
+                      works
+                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                    }`}>
+                    {DAY_LABELS[day]}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {c.buddyCover && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">Buddy</span>}
             {c.showWhosIn && <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 font-medium">Who's In</span>}
@@ -441,20 +441,12 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
         <input type="text" placeholder="Search by name or role..." value={search} onChange={e => setSearch(e.target.value)}
           className="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
         {setActiveSection && (
-          <>
-            <button
-              onClick={() => setActiveSection('team-rota')}
-              className="px-3 py-2 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 border border-amber-200 whitespace-nowrap"
-              title="Open the full working-patterns grid">
-              Weekly grid →
-            </button>
-            <button
-              onClick={() => setActiveSection('buddy-cover')}
-              className="px-3 py-2 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium hover:bg-purple-100 border border-purple-200 whitespace-nowrap"
-              title="See buddy cover allocations for this week">
-              Buddy cover →
-            </button>
-          </>
+          <button
+            onClick={() => setActiveSection('team-rota')}
+            className="px-3 py-2 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 border border-amber-200 whitespace-nowrap"
+            title="Open the full working-patterns grid">
+            Weekly grid →
+          </button>
         )}
       </div>
 
