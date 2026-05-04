@@ -3,24 +3,26 @@
 //
 // Run by platform admins via /v4/admin/nhs-data. Idempotent — only updates
 // rows where list_size is currently null. Designed to be re-runnable and
-// resumable; if it times out, just hit it again.
+// resumable; if it times out, just hit it again (or use auto-loop).
 //
-// Throughput: OpenPrescribing has no documented rate limit but politely
-// throttle to ~10 req/sec to avoid being noisy. With ~6,000 unique ODS codes
-// this takes roughly 10 minutes but each request handles one practice → it's
-// chunked by ?limit=N so a single invocation only does N before returning.
+// Throughput: parallelizes 5 concurrent fetches to OpenPrescribing. Each
+// invocation breaks out when approaching the Vercel 60s ceiling so we
+// always return valid JSON to the client (rather than letting Vercel
+// emit its HTML timeout page).
 
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Vercel hobby/pro limit; we chunk to fit
+export const maxDuration = 60;
 
-const DEFAULT_BATCH = 500;
-const REQ_DELAY_MS = 100; // ~10 req/sec
+const DEFAULT_BATCH = 300;
+const CONCURRENCY = 5;
+const TIME_BUDGET_MS = 50_000; // Leave 10s headroom under Vercel's 60s
 
 export async function POST(request) {
+  const startedAt = Date.now();
   const cookieStore = cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
@@ -28,7 +30,6 @@ export async function POST(request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
 
-  // Platform admin gate
   const { data: profile } = await supabase
     .from('profiles')
     .select('is_platform_admin')
@@ -41,8 +42,6 @@ export async function POST(request) {
   const url = new URL(request.url);
   const batchSize = Math.min(parseInt(url.searchParams.get('limit') || DEFAULT_BATCH), 2000);
 
-  // Find ods_codes that need a list_size (latest month per practice; we only
-  // ever populate ONE row per practice — they don't change frequently)
   const { data: needBackfill, error: queryErr } = await supabase
     .from('nhs_oc_baseline')
     .select('ods_code')
@@ -53,7 +52,6 @@ export async function POST(request) {
   if (queryErr) return NextResponse.json({ error: queryErr.message }, { status: 500 });
 
   if (!needBackfill || needBackfill.length === 0) {
-    // Done
     const { count: remaining } = await supabase
       .from('nhs_oc_baseline')
       .select('id', { count: 'exact', head: true })
@@ -69,58 +67,62 @@ export async function POST(request) {
     });
   }
 
-  // Deduplicate ods codes (each row is per-month; we want one fetch per practice)
   const uniqueOds = [...new Set(needBackfill.map(r => r.ods_code))];
-
   const results = { updated: 0, skipped: 0, errors: 0, fetched: 0 };
   const errorSamples = [];
+  let timedOut = false;
 
-  for (const ods of uniqueOds) {
-    try {
-      // OpenPrescribing org_code endpoint — list size in `total_list_size`
-      const r = await fetch(
-        `https://openprescribing.net/api/1.0/org_code/?q=${encodeURIComponent(ods)}&format=json&exact=true&org_type=practice`,
-        { headers: { 'User-Agent': 'GPDash-backfill/1.0 (admin@gpdash.net)' } }
-      );
-      results.fetched++;
-
-      if (!r.ok) {
-        results.errors++;
-        if (errorSamples.length < 5) errorSamples.push({ ods, status: r.status });
-        await sleep(REQ_DELAY_MS);
-        continue;
-      }
-
-      const arr = await r.json();
-      const match = Array.isArray(arr) ? arr.find(p => p.code === ods) : null;
-      const listSize = match?.total_list_size;
-
-      if (typeof listSize !== 'number' || listSize <= 0) {
-        results.skipped++;
-        await sleep(REQ_DELAY_MS);
-        continue;
-      }
-
-      // Update ALL months for this practice in one query
-      const { error: updErr } = await supabase
-        .from('nhs_oc_baseline')
-        .update({ list_size: listSize })
-        .eq('ods_code', ods);
-
-      if (updErr) {
-        results.errors++;
-        if (errorSamples.length < 5) errorSamples.push({ ods, error: updErr.message });
-      } else {
-        results.updated++;
-      }
-    } catch (err) {
-      results.errors++;
-      if (errorSamples.length < 5) errorSamples.push({ ods, error: err.message });
+  // Process in concurrent chunks; check time budget between chunks
+  let cursor = 0;
+  while (cursor < uniqueOds.length) {
+    if (Date.now() - startedAt > TIME_BUDGET_MS) {
+      timedOut = true;
+      break;
     }
-    await sleep(REQ_DELAY_MS);
+    const chunk = uniqueOds.slice(cursor, cursor + CONCURRENCY);
+    cursor += chunk.length;
+
+    await Promise.all(chunk.map(async (ods) => {
+      try {
+        const r = await fetch(
+          `https://openprescribing.net/api/1.0/org_code/?q=${encodeURIComponent(ods)}&format=json&exact=true&org_type=practice`,
+          { headers: { 'User-Agent': 'GPDash-backfill/1.0 (admin@gpdash.net)' } }
+        );
+        results.fetched++;
+
+        if (!r.ok) {
+          results.errors++;
+          if (errorSamples.length < 5) errorSamples.push({ ods, status: r.status });
+          return;
+        }
+
+        const arr = await r.json();
+        const match = Array.isArray(arr) ? arr.find(p => p.code === ods) : null;
+        const listSize = match?.total_list_size;
+
+        if (typeof listSize !== 'number' || listSize <= 0) {
+          results.skipped++;
+          return;
+        }
+
+        const { error: updErr } = await supabase
+          .from('nhs_oc_baseline')
+          .update({ list_size: listSize })
+          .eq('ods_code', ods);
+
+        if (updErr) {
+          results.errors++;
+          if (errorSamples.length < 5) errorSamples.push({ ods, error: updErr.message });
+        } else {
+          results.updated++;
+        }
+      } catch (err) {
+        results.errors++;
+        if (errorSamples.length < 5) errorSamples.push({ ods, error: err.message });
+      }
+    }));
   }
 
-  // Final counts so the admin UI can show progress
   const { count: remaining } = await supabase
     .from('nhs_oc_baseline')
     .select('id', { count: 'exact', head: true })
@@ -130,15 +132,14 @@ export async function POST(request) {
     .select('id', { count: 'exact', head: true });
 
   return NextResponse.json({
-    batch: uniqueOds.length,
+    batch: cursor,
+    requested: uniqueOds.length,
+    timedOut,
+    elapsedMs: Date.now() - startedAt,
     ...results,
     errorSamples,
     remaining: remaining || 0,
     total: total || 0,
     done: (remaining || 0) === 0,
   });
-}
-
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
 }

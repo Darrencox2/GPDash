@@ -30,12 +30,24 @@ export default function ListSizeBackfill() {
     setRunning(true);
     setError('');
     try {
-      const r = await fetch('/api/admin/backfill-nhs-list-sizes?limit=500', { method: 'POST' });
-      const json = await r.json();
+      const r = await fetch('/api/admin/backfill-nhs-list-sizes?limit=300', { method: 'POST' });
+      // The endpoint may emit Vercel's HTML error page if it times out;
+      // try-parse so we report a useful message instead of "Unexpected token A".
+      const text = await r.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        if (r.status === 504 || /timed?\s*out|gateway/i.test(text)) {
+          throw new Error('Server hit the 60s function timeout. The batch size has been reduced — try again. The progress so far has been saved (refresh to see).');
+        }
+        throw new Error(`Server returned a non-JSON response (HTTP ${r.status}). First 120 chars: ${text.slice(0, 120)}`);
+      }
       if (!r.ok) throw new Error(json.error || `HTTP ${r.status}`);
       setProgress(json);
+      // Only auto-chain when there was forward progress (avoid runaway loops
+      // on persistent errors). batch>0 means we processed at least one ODS.
       if (autoLoop && !json.done && json.batch > 0) {
-        // chain another batch after a short pause so we don't hammer
         setTimeout(() => runBatch(), 1500);
         return;
       }
@@ -91,7 +103,7 @@ export default function ListSizeBackfill() {
             cursor: running ? 'wait' : 'pointer',
           }}
         >
-          {running ? 'Running…' : 'Run a batch (500 practices)'}
+          {running ? 'Running…' : 'Run a batch (300 practices)'}
         </button>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#94a3b8', cursor: 'pointer' }}>
           <input
@@ -140,7 +152,14 @@ export default function ListSizeBackfill() {
             </div>
           ) : (
             <>
-              <div>Last batch: <strong>{progress.batch}</strong> practices fetched</div>
+              <div>Last batch: <strong>{progress.batch}</strong> practices fetched
+                {progress.elapsedMs != null ? ` in ${(progress.elapsedMs / 1000).toFixed(1)}s` : ''}
+                {progress.timedOut && (
+                  <span style={{ color: '#fbbf24', fontStyle: 'italic', marginLeft: 8 }}>
+                    (stopped before 60s timeout — auto-loop will continue)
+                  </span>
+                )}
+              </div>
               <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>
                 ✓ {progress.updated} updated · {progress.skipped} skipped (no list size in OpenPrescribing) · {progress.errors} errors
               </div>
