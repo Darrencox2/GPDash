@@ -116,6 +116,37 @@ export default async function PracticeAdminPage({ params }) {
           />
         </Card>
 
+        <Card title="Practice setup">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 13, color: '#cbd5e1' }}>
+              {practice.setup_completed_at ? (
+                <>
+                  <span style={{ color: '#34d399' }}>✓ Complete</span>
+                  {' · '}Postcode, list size, and consultation tool configured.
+                </>
+              ) : (
+                <>
+                  <span style={{ color: '#fcd34d' }}>Incomplete</span>
+                  {' · '}Add postcode, list size and consultation tool to enable
+                  practice-specific demand predictions.
+                </>
+              )}
+            </div>
+            <Link href={`/v4/practice/${practice.slug}/setup`} style={{
+              fontSize: 12, color: '#22d3ee', textDecoration: 'none',
+              padding: '6px 12px', border: '1px solid rgba(34,211,238,0.3)',
+              borderRadius: 6,
+            }}>{practice.setup_completed_at ? 'Edit setup' : 'Open setup →'}</Link>
+          </div>
+          {practice.postcode && (
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 12, color: '#94a3b8', display: 'grid', gridTemplateColumns: '120px 1fr', gap: 4 }}>
+              <span style={{ color: '#64748b' }}>Postcode</span><span>{practice.postcode}</span>
+              {practice.list_size && (<><span style={{ color: '#64748b' }}>List size</span><span>{practice.list_size.toLocaleString()}</span></>)}
+              {practice.online_consult_tool && (<><span style={{ color: '#64748b' }}>Tool</span><span>{practice.online_consult_tool}</span></>)}
+            </div>
+          )}
+        </Card>
+
         <Card title="Your clinician record">
           <ClinicianLinker
             practiceId={practiceId}
