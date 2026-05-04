@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { getHuddleCapacity, getDutyDoctor, getSiteColour } from '@/lib/huddle';
 import { matchesStaffMember, DAYS, getWeekStart, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
+import { canEditRotaNote } from '@/lib/permissions';
 
 const GROUP_META = {
   gp: { label: 'Clinicians', bg: 'rgba(99,102,241,0.15)', tx: '#a5b4fc', dot: '#6366f1' },
@@ -60,6 +61,11 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
   const select = c => { setSelectedId(c.id); setSearch(''); setShowDropdown(false); setIsSearching(false); window.location.hash = `rota-${c.initials}`; };
   const selected = clinicians.find(c => c.id === selectedId);
+
+  // Permission: can the current user edit rota notes for this clinician?
+  // Admins/owners can edit anyone's. Users can only edit their own (i.e.,
+  // the clinician linked to their auth user).
+  const canEditNotes = canEditRotaNote(data, selectedId);
   const hs = data?.huddleSettings || {};
   const dutySlots = hs?.dutyDoctorSlot;
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
@@ -290,6 +296,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
   };
   const saveNote = (isoKey, text) => {
     if (!selected || !saveData) return;
+    if (!canEditNotes) return;  // user can only edit notes for their own clinician
     const allNotes = data?.rotaNotes || {};
     const myNotes = { ...(allNotes[selected.id] || {}) };
     if (text.trim()) myNotes[isoKey] = text.trim();
@@ -694,7 +701,17 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
                           {/* Note edit/display */}
                           <div className="rounded-lg" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)'}}>
-                            {editingNote === day.isoKey ? (
+                            {!canEditNotes ? (
+                              // Read-only display for users viewing someone else's rota
+                              <div className="p-2 flex items-start gap-2">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" className="flex-shrink-0 mt-0.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                {note ? (
+                                  <span className="text-xs text-slate-400 italic">{note}</span>
+                                ) : (
+                                  <span className="text-xs text-slate-600 italic">No note</span>
+                                )}
+                              </div>
+                            ) : editingNote === day.isoKey ? (
                               <div className="p-2">
                                 <textarea
                                   value={noteDraft}

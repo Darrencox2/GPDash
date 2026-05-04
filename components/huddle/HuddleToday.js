@@ -8,6 +8,7 @@ import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr, logEvent } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge } from './HuddleShared';
+import { canEditPracticeData } from '@/lib/permissions';
 import RoutineWaitTime from './RoutineWaitTime';
 
 // ── Colour palette for capacity cards ─────────────────────────────
@@ -30,6 +31,7 @@ const GRADIENT_MAP = Object.fromEntries(CARD_COLOURS.map(c => [c.key, c.gradient
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════
 export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages, setActiveSection }) {
+  const canEdit = canEditPracticeData(data);
   const [newMsg, setNewMsg] = useState('');
   const [newAuthor, setNewAuthor] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -102,15 +104,17 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
   // Wrapper setters that persist to Redis
   const persistFilter = (key, value) => {
+    if (!canEdit) return;
     const newSaved = { ...data.huddleSettings?.savedSlotFilters, [key]: value };
     saveData({ ...data, huddleSettings: { ...hs, savedSlotFilters: newSaved } }, false);
   };
-  const setUrgentOverrides = (v) => { setUrgentOverridesLocal(v); persistFilter('urgent', v); };
-  const setRoutineOverrides = (v) => { setRoutineOverridesLocal(v); persistFilter('routine', v); };
+  const setUrgentOverrides = (v) => { if (!canEdit) return; setUrgentOverridesLocal(v); persistFilter('urgent', v); };
+  const setRoutineOverrides = (v) => { if (!canEdit) return; setRoutineOverridesLocal(v); persistFilter('routine', v); };
   const dutyDoctorSlot = hs?.dutyDoctorSlot || null;
   const hasDutySlot = dutyDoctorSlot && (!Array.isArray(dutyDoctorSlot) || dutyDoctorSlot.length > 0);
-  const setDutyDoctorSlot = (v) => { saveData({ ...data, huddleSettings: { ...hs, dutyDoctorSlot: v && v.length > 0 ? v : null } }, false); };
+  const setDutyDoctorSlot = (v) => { if (!canEdit) return; saveData({ ...data, huddleSettings: { ...hs, dutyDoctorSlot: v && v.length > 0 ? v : null } }, false); };
   const setCardOverride = (cardId, v) => {
+    if (!canEdit) return;
     setCardOverrides(prev => ({ ...prev, [cardId]: v }));
     persistFilter(cardId, v);
   };
@@ -118,6 +122,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const capacityCards = hs?.capacityCards || DEFAULT_CAPACITY_CARDS;
 
   const addCapacityCard = () => {
+    if (!canEdit) return;
     if (!newCardTitle.trim()) return;
     const id = 'card_' + Date.now();
     const newCard = { id, title: newCardTitle.trim(), colour: newCardColour };
@@ -129,6 +134,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   };
 
   const removeCapacityCard = (cardId) => {
+    if (!canEdit) return;
     const updatedCards = capacityCards.filter(c => c.id !== cardId);
     const newSaved = { ...hs?.savedSlotFilters };
     delete newSaved[cardId];
@@ -193,17 +199,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     } catch (err) { setError('Failed to parse CSV: ' + err.message); toast('Failed to parse CSV', 'error'); }
   };
 
-  const onFileChange = (e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => processCSV(ev.target.result); r.readAsText(f); e.target.value = ''; };
-  const onDrop = (e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (!f || !f.name.endsWith('.csv')) { toast('Please drop a CSV file', 'warning'); return; } const r = new FileReader(); r.onload = (ev) => processCSV(ev.target.result); r.readAsText(f); };
+  const onFileChange = (e) => { if (!canEdit) return; const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => processCSV(ev.target.result); r.readAsText(f); e.target.value = ''; };
+  const onDrop = (e) => { if (!canEdit) return; e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (!f || !f.name.endsWith('.csv')) { toast('Please drop a CSV file', 'warning'); return; } const r = new FileReader(); r.onload = (ev) => processCSV(ev.target.result); r.readAsText(f); };
 
   const addMessage = () => {
+    if (!canEdit) return;
     if (!newMsg.trim()) return;
     const updated = [...huddleMessages, { id: Date.now(), text: newMsg.trim(), author: newAuthor.trim() || null, addedAt: new Date().toISOString() }];
     setHuddleMessages(updated);
     saveData({ ...data, huddleMessages: updated }, false);
     setNewMsg('');
   };
-  const removeMessage = (i) => { const updated = huddleMessages.filter((_, idx) => idx !== i); setHuddleMessages(updated); saveData({ ...data, huddleMessages: updated }, false); };
+  const removeMessage = (i) => { if (!canEdit) return; const updated = huddleMessages.filter((_, idx) => idx !== i); setHuddleMessages(updated); saveData({ ...data, huddleMessages: updated }, false); };
 
   const isUploadedToday = data?.huddleCsvUploadedAt ? new Date(data.huddleCsvUploadedAt).toDateString() === realToday.toDateString() : false;
   const viewingDateStr = toHuddleDateStr(viewingDate);
@@ -269,7 +276,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
   return (
     <div className="-m-4 lg:-m-6 min-h-screen animate-in" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)'}}
-      onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } }} onDragLeave={e => { e.preventDefault(); setIsDragging(false); }} onDrop={e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } }}>
+      onDragOver={canEdit ? e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } } : undefined}
+      onDragLeave={canEdit ? e => { e.preventDefault(); setIsDragging(false); } : undefined}
+      onDrop={canEdit ? e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } } : undefined}>
     <div className="max-w-6xl mx-auto px-3 py-4 sm:p-4 lg:p-6 space-y-4">
       {isFullscreen && <HuddleFullscreen data={data} huddleData={huddleData} viewingDate={viewingDate} onExit={() => { setIsFullscreen(false); setHuddleScreen(null); if (huddleScreen === 2) window.close(); }} onNavigateDay={navigateDay} screen={huddleScreen} />}
       {isDragging && (
@@ -316,13 +325,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
-          <button onClick={() => fileRef.current?.click()}
-            className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
-            style={{ background: isUploadedToday ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.6)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}
-            title={data?.huddleCsvUploadedAt ? `Uploaded ${new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : 'No CSV uploaded'}>
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            <span className="hidden sm:inline">{isUploadedToday ? 'CSV uploaded' : 'Upload CSV'}</span>
-          </button>
+          {canEdit && (
+            <button onClick={() => fileRef.current?.click()}
+              className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
+              style={{ background: isUploadedToday ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.6)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}
+              title={data?.huddleCsvUploadedAt ? `Uploaded ${new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : 'No CSV uploaded'}>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              <span className="hidden sm:inline">{isUploadedToday ? 'CSV uploaded' : 'Upload CSV'}</span>
+            </button>
+          )}
           <button onClick={() => setIsFullscreen(true)} className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
             style={{ background: 'rgba(124,58,237,0.7)', border: '1px solid rgba(124,58,237,0.3)' }}>
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
@@ -350,9 +361,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       {!huddleData ? (
         <div className="glass rounded-xl p-12 text-center">
           <div className="text-5xl mb-4">📊</div>
-          <h2 className="font-heading text-lg font-medium text-slate-200 mb-2">Upload Appointment Report</h2>
-          <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload or drag-and-drop your EMIS CSV to see urgent capacity.</p>
-          <Button onClick={() => fileRef.current?.click()}>Select CSV File</Button>
+          <h2 className="font-heading text-lg font-medium text-slate-200 mb-2">No appointment data yet</h2>
+          {canEdit ? (
+            <>
+              <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload or drag-and-drop your EMIS CSV to see urgent capacity.</p>
+              <Button onClick={() => fileRef.current?.click()}>Select CSV File</Button>
+            </>
+          ) : (
+            <p className="text-sm text-slate-500 max-w-md mx-auto">Ask an admin to upload today's EMIS appointment report.</p>
+          )}
         </div>
       ) : isPracticeClosed ? (
         <div className="glass rounded-xl overflow-hidden">

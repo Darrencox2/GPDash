@@ -4,8 +4,10 @@ import { autoAllocateRooms, getRoomTypes, GRID_SIZES, RECURRENCE_LABELS, DAY_LAB
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getCliniciansForSession } from '@/lib/huddle';
 import { predictDemand } from '@/lib/demandPredictor';
+import { canEditPracticeData } from '@/lib/permissions';
 
 export default function RoomDashboard({ data, saveData, huddleData, toast }) {
+  const canEdit = canEditPracticeData(data);
   const ra = data?.roomAllocation || {};
   const sites = ra.sites || [];
   const [selectedSiteId, setSelectedSiteId] = useState(sites[0]?.id || null);
@@ -170,13 +172,14 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
 
   // ── Pointer-based drag ──────────────────────────────────────
   const startDrag = useCallback((person, e) => {
+    if (!canEdit) return;  // read-only for non-admin users
     if (!editMode) setEditMode(true);
     e.preventDefault();
     setDragPerson(person);
     setDragPos({ x: e.clientX, y: e.clientY });
     setIsDragging(true);
     setHoveredRoom(null);
-  }, [editMode]);
+  }, [editMode, canEdit]);
 
   useEffect(() => {
     if (!isDragging) return;
@@ -279,8 +282,8 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
           <div className="flex items-center gap-2 print:hidden">
             <button onClick={() => setShowDebug(!showDebug)} className={`text-xs px-2 py-1 rounded transition-colors ${showDebug ? 'bg-amber-400 text-amber-900 font-medium' : 'bg-white/20 text-white/70 hover:text-white hover:bg-white/30'}`}>{showDebug ? '● Debug' : 'Debug'}</button>
             <button onClick={() => window.print()} className="text-xs px-2 py-1 rounded bg-white/20 text-white hover:bg-white/30">Print</button>
-            {hasAnyOverrides && <button onClick={resetAll} className="text-xs text-white/60 hover:text-white">Reset all</button>}
-            <button onClick={() => { setEditMode(!editMode); setDragPerson(null); }} className={`px-3 py-1 rounded text-xs font-medium transition-colors ${editMode ? 'bg-white text-indigo-600' : 'bg-white/20 text-white hover:bg-white/30'}`}>{editMode ? 'Done' : 'Edit'}</button>
+            {canEdit && hasAnyOverrides && <button onClick={resetAll} className="text-xs text-white/60 hover:text-white">Reset all</button>}
+            {canEdit && <button onClick={() => { setEditMode(!editMode); setDragPerson(null); }} className={`px-3 py-1 rounded text-xs font-medium transition-colors ${editMode ? 'bg-white text-indigo-600' : 'bg-white/20 text-white hover:bg-white/30'}`}>{editMode ? 'Done' : 'Edit'}</button>}
           </div>
         </div>
 

@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react';
 import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations, getSiteColour } from '@/lib/huddle';
+import { canEditPracticeData } from '@/lib/permissions';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -81,6 +82,7 @@ function DropZone({ onDrop, children, isEmpty }) {
 }
 
 export default function WhosInOut({ data, saveData, huddleData, onNavigate, viewingDate: viewingDateProp }) {
+  const canEdit = canEditPracticeData(data);
   const sites = data?.roomAllocation?.sites || [];
   const siteCol = (name) => getSiteColour(name, sites);
   const [showSettings, setShowSettings] = useState(false);
@@ -236,6 +238,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   };
 
   const moveToColumn = (personJson, targetColumn) => {
+    if (!canEdit) return;  // read-only for non-admin users
     try {
       const { id } = JSON.parse(personJson);
       if (typeof id !== 'number') return;
@@ -262,11 +265,13 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   };
 
   const hidePerson = (id) => {
+    if (!canEdit) return;
     const updated = allClinicians.map(c => c.id === id ? { ...c, showWhosIn: false } : c);
     saveData({ ...data, clinicians: updated }, false);
   };
 
   const showPerson = (id) => {
+    if (!canEdit) return;
     const updated = allClinicians.map(c => c.id === id ? { ...c, showWhosIn: true } : c);
     saveData({ ...data, clinicians: updated }, false);
   };

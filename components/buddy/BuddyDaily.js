@@ -2,8 +2,10 @@
 import { useState, useMemo } from 'react';
 import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
 import { getCliniciansForDate } from '@/lib/huddle';
+import { canEditPracticeData } from '@/lib/permissions';
 
 export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData }) {
+  const canEdit = canEditPracticeData(data);
   const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
 
   const currentAlloc = getCurrentAllocations();
@@ -205,8 +207,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {canEdit && (
           <button onClick={handleCopyWeek} className="px-3 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5" style={{background:"rgba(16,185,129,0.6)",border:"1px solid rgba(16,185,129,0.3)"}}>Copy Week</button>
-          {isGenerating ? (
+          )}
+          {canEdit && (isGenerating ? (
             <div className="flex items-center gap-2">
               <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden"><div className="h-full w-1/3 bg-gradient-to-r from-violet-500 to-purple-600 rounded-full animate-progress" /></div>
               <button onClick={() => setIsGenerating(false)} className="btn-secondary text-xs py-1 px-2">Stop</button>
@@ -240,7 +244,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               setIsGenerating(false);
               setSyncStatus(`Done — ${generated} days`); setTimeout(() => setSyncStatus(''), 4000);
             }} className="px-3 py-2 rounded-lg text-sm font-medium text-white" style={{background:"rgba(124,58,237,0.7)",border:"1px solid rgba(124,58,237,0.3)"}}>Generate 4 Weeks</button>
-          )}
+          ))}
         </div>
       </div>
 
@@ -340,7 +344,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           <div className="text-2xl mb-2">🏠</div>
           <div className="text-lg font-medium text-white mb-1" style={{fontFamily:"'Outfit',sans-serif"}}>Practice Closed</div>
           <div className="text-sm text-slate-500">{getClosedReason(getDateKey())}</div>
-          {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-600 hover:text-purple-800">Mark as open →</button>}
+          {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-600 hover:text-purple-800">Mark as open →</button>}
         </div>
       ) : (
         <>
@@ -357,7 +361,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                   <span><strong className="text-red-400">{absentClinicians.length}</strong> <span className="text-slate-500">absent</span></span>
                   <span><strong className="text-amber-400">{dayOffClinicians.length}</strong> <span className="text-slate-500">day off</span></span>
                 </div>
-                {!isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded" style={{border:'1px solid #334155'}}>Mark closed</button>}
+                {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded" style={{border:'1px solid #334155'}}>Mark closed</button>}
               </div>
             </div>
             <div className="px-5 pb-5">
@@ -402,11 +406,11 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           <span style={{fontSize:11, fontWeight:500, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}</span>
                         </span>
                       ) : (
-                        <button onClick={() => togglePresence(c.id, selectedDay)} className="flex items-center gap-1.5 rounded-full flex-shrink-0 transition-all duration-150" style={{
+                        <button onClick={canEdit ? () => togglePresence(c.id, selectedDay) : undefined} className="flex items-center gap-1.5 rounded-full flex-shrink-0 transition-all duration-150" style={{
                           padding: '5px 14px',
                           background: status === 'present' ? '#10b98130' : status === 'absent' ? '#ef444430' : '#f59e0b20',
                           border: `1px solid ${status === 'present' ? '#10b98160' : status === 'absent' ? '#ef444460' : '#f59e0b40'}`,
-                          cursor: 'pointer',
+                          cursor: canEdit ? 'pointer' : 'default',
                         }}>
                           <span style={{fontSize:13, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span>
                           <span style={{fontSize:12, fontWeight:500, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}</span>
@@ -443,8 +447,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 <p className="text-xs text-slate-500 mt-0.5">Workload balanced across present clinicians</p>
               </div>
               <div className="flex items-center gap-2">
-                {hasAllocations && <button onClick={handleCopyDay} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5" style={{background:'rgba(16,185,129,0.6)',border:'1px solid rgba(16,185,129,0.3)'}}>Copy Day</button>}
-                {!isPastDate(getDateKey()) && <button onClick={handleGenerate} disabled={presentClinicians.length === 0} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40" style={{background:'rgba(124,58,237,0.7)',border:'1px solid rgba(124,58,237,0.3)'}}>{hasAllocations ? 'Regenerate' : 'Generate'}</button>}
+                {canEdit && hasAllocations && <button onClick={handleCopyDay} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5" style={{background:'rgba(16,185,129,0.6)',border:'1px solid rgba(16,185,129,0.3)'}}>Copy Day</button>}
+                {canEdit && !isPastDate(getDateKey()) && <button onClick={handleGenerate} disabled={presentClinicians.length === 0} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40" style={{background:'rgba(124,58,237,0.7)',border:'1px solid rgba(124,58,237,0.3)'}}>{hasAllocations ? 'Regenerate' : 'Generate'}</button>}
               </div>
             </div>
             <div className="p-5">

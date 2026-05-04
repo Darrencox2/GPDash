@@ -4,6 +4,7 @@ import { getHuddleCapacity, getDateTotals, getDutyDoctor, getSiteColour } from '
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand, getWeatherForecast, BASELINE, DOW_EFFECTS } from '@/lib/demandPredictor';
 import ClinicianCapacity from './ClinicianCapacity';
+import { canEditPracticeData } from '@/lib/permissions';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -46,6 +47,7 @@ function DonutGauge({ avail, emb, booked }) {
 }
 
 export default function HuddleForward({ data, saveData, huddleData, setActiveSection }) {
+  const canEdit = canEditPracticeData(data);
   const [selectedDay, setSelectedDay] = useState(null);
   const [weather, setWeather] = useState(null);
   const [mobileTab, setMobileTab] = useState('short');
@@ -241,8 +243,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#ef4444'}}/>Short</span>
           <span className="text-slate-700">|</span>
           {rTarget>0
-            ?<span className="text-slate-400">Routine: <strong className="text-slate-300">{rTarget}</strong>/wk <button onClick={()=>{const v=prompt('Weekly routine target:',rTarget);if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer ml-1" style={{background:'none',border:'none',fontSize:'inherit'}}>edit</button></span>
-            :<button onClick={()=>{const v=prompt('Set weekly routine slot target:','200');if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer" style={{background:'none',border:'none',fontSize:'inherit'}}>Set routine target</button>}
+            ?<span className="text-slate-400">Routine: <strong className="text-slate-300">{rTarget}</strong>/wk {canEdit && <button onClick={()=>{const v=prompt('Weekly routine target:',rTarget);if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer ml-1" style={{background:'none',border:'none',fontSize:'inherit'}}>edit</button>}</span>
+            :canEdit ? <button onClick={()=>{const v=prompt('Set weekly routine slot target:','200');if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer" style={{background:'none',border:'none',fontSize:'inherit'}}>Set routine target</button> : <span className="text-slate-500 text-xs">Routine target not set</span>}
         </div>
 
         {/* Diagram: how to read the calendar */}
