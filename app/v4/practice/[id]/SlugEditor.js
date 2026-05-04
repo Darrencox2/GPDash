@@ -30,24 +30,30 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
       return;
     }
     setStatus({ kind: 'saving', message: 'Saving…' });
-    const { error } = await supabase
+    // .select() forces the API to return the updated row(s). If RLS blocks
+    // the update we'll get an empty array back rather than a silent success.
+    const { data, error } = await supabase
       .from('practices')
       .update({ slug: value })
-      .eq('id', practiceId);
+      .eq('id', practiceId)
+      .select('id, slug');
 
     if (error) {
-      // Most likely cause: unique-index violation
       if (error.code === '23505') {
         setStatus({ kind: 'error', message: 'That slug is already taken. Try another.' });
+      } else if (error.code === '23514') {
+        setStatus({ kind: 'error', message: 'Invalid slug format. Use lowercase letters, digits, and dashes only.' });
       } else {
         setStatus({ kind: 'error', message: error.message || 'Save failed.' });
       }
       return;
     }
-    setStatus({ kind: 'saved', message: 'Saved. Redirecting…' });
-    // Navigate to the new URL — the practice mgmt page itself uses UUID
-    // so we stay here, but the user's browser bookmark for /p/[old] will
-    // need updating. Refresh to pick up the new slug in any links.
+    if (!data || data.length === 0) {
+      setStatus({ kind: 'error', message: 'Save was blocked — only owners and admins can change the practice URL.' });
+      return;
+    }
+    setStatus({ kind: 'saved', message: 'Saved.' });
+    // Refresh the server component so any links on this page pick up the new slug
     startTransition(() => router.refresh());
   };
 
