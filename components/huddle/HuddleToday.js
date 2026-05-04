@@ -35,7 +35,6 @@ const GRADIENT_MAP = Object.fromEntries(CARD_COLOURS.map(c => [c.key, c.gradient
 export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages, setActiveSection }) {
   const canEdit = canEditPracticeData(data);
   const [newMsg, setNewMsg] = useState('');
-  const [newAuthor, setNewAuthor] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
   const [viewingDate, setViewingDate] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d; });
@@ -207,7 +206,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const addMessage = () => {
     if (!canEdit) return;
     if (!newMsg.trim()) return;
-    const updated = [...huddleMessages, { id: Date.now(), text: newMsg.trim(), author: newAuthor.trim() || null, addedAt: new Date().toISOString() }];
+    // Author is always the logged-in user — pulled from _v4.userName which
+    // resolves to linked clinician name → profile name → email local part.
+    const author = data?._v4?.userName || null;
+    const updated = [...huddleMessages, { id: Date.now(), text: newMsg.trim(), author, addedAt: new Date().toISOString() }];
     setHuddleMessages(updated);
     saveData({ ...data, huddleMessages: updated }, false);
     setNewMsg('');
@@ -482,37 +484,76 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         }
         return (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* NOTICEBOARD — right column */}
+            {/* NOTICEBOARD — message-thread style (Option B from the design pass).
+                Avatars use a deterministic colour per author so the same
+                person always looks the same. No more random rainbow rotation. */}
             <div className="glass rounded-xl overflow-hidden flex flex-col md:order-2">
               <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
-                {huddleMessages.length > 0 && <span className="text-xs text-slate-600 ml-auto">{huddleMessages.length}</span>}
+                {huddleMessages.length > 0 && <span className="text-xs text-slate-600 ml-auto">{huddleMessages.length} today</span>}
               </div>
-              <div className="p-3 space-y-1.5 flex-1">
-                {huddleMessages.length === 0 && <p className="text-sm text-slate-500 text-center py-3">No messages yet.</p>}
+              <div className="flex-1 overflow-y-auto" style={{maxHeight:'420px'}}>
+                {huddleMessages.length === 0 && (
+                  <div className="text-center py-8 px-4">
+                    <div className="text-sm text-slate-500">No notices yet today.</div>
+                    {canEdit && <div className="text-xs text-slate-600 mt-1">Post the first one below.</div>}
+                  </div>
+                )}
                 {huddleMessages.map((msg, i) => {
-                  const colours = ['#f59e0b','#3b82f6','#ec4899','#10b981','#8b5cf6'];
-                  const c = colours[i % colours.length];
-                  const initials = msg.author ? msg.author.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
+                  // Deterministic palette — hash the author name into one of 5
+                  // muted accent colours so the same person is always shown
+                  // with the same avatar tint.
+                  const palette = [
+                    { bg: 'rgba(59,130,246,0.18)', fg: '#93c5fd' },   // blue
+                    { bg: 'rgba(16,185,129,0.18)', fg: '#6ee7b7' },   // green
+                    { bg: 'rgba(168,85,247,0.18)', fg: '#d8b4fe' },   // purple
+                    { bg: 'rgba(245,158,11,0.18)', fg: '#fcd34d' },   // amber
+                    { bg: 'rgba(236,72,153,0.18)', fg: '#f9a8d4' },   // pink
+                  ];
+                  const authorKey = msg.author || 'anon';
+                  let h = 0; for (let k = 0; k < authorKey.length; k++) h = (h * 31 + authorKey.charCodeAt(k)) | 0;
+                  const c = palette[Math.abs(h) % palette.length];
+                  const initials = msg.author
+                    ? msg.author.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2)
+                    : '?';
                   const time = msg.addedAt ? new Date(msg.addedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
                   return (
-                    <div key={msg.id || i} className="flex items-start gap-2 px-2.5 py-2 rounded-lg group" style={{ borderLeft: `3px solid ${c}`, background: `${c}10` }}>
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0 mt-0.5" style={{ background: `${c}30`, color: c }}>{initials}</div>
+                    <div key={msg.id || i} className="px-4 py-2.5 flex gap-2.5 items-start group hover:bg-white/[0.02] transition-colors">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium flex-shrink-0" style={{ background: c.bg, color: c.fg }}>{initials}</div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs text-slate-300 leading-tight block">{msg.text}</span>
-                        {time && <span className="text-[10px] text-slate-600">{time}</span>}
+                        <div className="flex items-baseline gap-2 mb-0.5">
+                          <span className="text-xs font-medium text-slate-200">{msg.author || 'Anonymous'}</span>
+                          {time && <span className="text-[10px] text-slate-500">{time}</span>}
+                        </div>
+                        <div className="text-xs text-slate-300 leading-relaxed break-words">{msg.text}</div>
                       </div>
-                      {canEdit && <button onClick={() => removeMessage(i)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs mt-0.5">✕</button>}
+                      {canEdit && (
+                        <button onClick={() => removeMessage(i)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs leading-none mt-1" title="Delete notice">✕</button>
+                      )}
                     </div>
                   );
                 })}
               </div>
               {canEdit && (
-                <div className="flex gap-1.5 p-3 pt-0">
-                  <input type="text" value={newAuthor} onChange={e => setNewAuthor(e.target.value)} placeholder="Name" className="w-16 px-2 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}} />
-                  <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMessage(); }} placeholder="Message..." className="flex-1 px-2 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}} />
-                  <Button onClick={addMessage} size="sm">+</Button>
+                <div className="p-3 flex gap-2" style={{borderTop:'1px solid rgba(255,255,255,0.04)'}}>
+                  <input
+                    type="text"
+                    value={newMsg}
+                    onChange={e => setNewMsg(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addMessage(); }}
+                    placeholder="Add a notice…"
+                    className="flex-1 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    style={{background:'rgba(0,0,0,0.3)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}}
+                  />
+                  <button
+                    onClick={addMessage}
+                    disabled={!newMsg.trim()}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{background:'rgba(34,211,238,0.15)',border:'1px solid rgba(34,211,238,0.3)',color:'#67e8f9'}}
+                  >
+                    Post
+                  </button>
                 </div>
               )}
             </div>
