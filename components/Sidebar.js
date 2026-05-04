@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import GPDashLogo from './GPDashLogo';
 import { APP_VERSION } from '@/lib/version';
+import { canEditPracticeData } from '@/lib/permissions';
 
 const NAV_ITEMS = [
   { id: 'huddle-today', section: null, label: 'Today', colour: '#10b981',
@@ -26,15 +27,35 @@ const NAV_ITEMS = [
     icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' },
 
   { id: '_admin', section: 'ADMIN' },
-  { id: 'team-members', section: 'ADMIN', label: 'Team', colour: '#fbbf24',
+  { id: 'team-members', section: 'ADMIN', label: 'Team', colour: '#fbbf24', requires: 'admin',
     icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' },
-  { id: 'settings', section: 'ADMIN', label: 'Settings', colour: '#94a3b8',
+  { id: 'settings', section: 'ADMIN', label: 'Settings', colour: '#94a3b8', requires: 'admin',
     icon: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z' },
   { id: 'changelog', section: 'ADMIN', label: 'Changelog', colour: '#94a3b8',
     icon: 'M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z' },
 ];
 
-export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen }) {
+export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen, data }) {
+  // Role-aware nav: drop admin-only items if the user can't edit practice data,
+  // then drop section dividers that no longer have any items below them.
+  const canEdit = canEditPracticeData(data);
+  const filteredNav = (() => {
+    const items = NAV_ITEMS.filter(item => !(item.requires === 'admin' && !canEdit));
+    // Drop any section divider whose section has no following entries before
+    // the next divider. Walk backwards: an empty section produces a divider
+    // immediately followed by another divider (or end of list).
+    const result = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const next = items[i + 1];
+      const isDivider = item.id?.startsWith('_');
+      const nextIsDivider = !next || next.id?.startsWith('_');
+      if (isDivider && nextIsDivider) continue;  // empty section → skip
+      result.push(item);
+    }
+    return result;
+  })();
+
   return (
     <>
       {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
@@ -60,7 +81,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto px-1.5 py-3">
-            {NAV_ITEMS.map(item => {
+            {filteredNav.map(item => {
               // Section divider
               if (item.id.startsWith('_')) {
                 if (!sidebarOpen) return <div key={item.id} className="mx-2 my-2" style={{height:1,background:'#1e293b'}} />;

@@ -8,7 +8,7 @@ export default function InviteForm({ practiceId, canMakeOwner }) {
   const router = useRouter();
   const supabase = createClient();
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('clinician');
+  const [role, setRole] = useState('user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -38,13 +38,24 @@ export default function InviteForm({ practiceId, canMakeOwner }) {
 
     setSuccess(`Invite sent to ${email}.`);
     setEmail('');
-    setRole('clinician');
+    setRole('user');
     router.refresh();
   };
 
+  // Role options. 'user' = read-mostly (can view + edit own rota notes).
+  // 'admin' = practice operations. 'owner' = full control + ownership transfer.
+  // 'clinician' and 'receptionist' from the legacy enum are not offered for
+  // new invites — treat them as deprecated; the permissions code handles them
+  // as user-level if they exist on legacy rows.
   const roleOptions = canMakeOwner
-    ? ['clinician', 'admin', 'owner', 'receptionist']
-    : ['clinician', 'admin', 'receptionist'];
+    ? ['user', 'admin', 'owner']
+    : ['user', 'admin'];
+
+  const roleDescription = {
+    user: 'Can view dashboard data and edit their own rota notes',
+    admin: 'Can edit clinicians, working patterns, settings, and invite users',
+    owner: 'Full control including renaming the practice and transferring ownership',
+  };
 
   return (
     <form onSubmit={handleSubmit}>
@@ -74,6 +85,9 @@ export default function InviteForm({ practiceId, canMakeOwner }) {
             <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
           ))}
         </select>
+        <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
+          {roleDescription[role] || ''}
+        </p>
       </div>
 
       <button

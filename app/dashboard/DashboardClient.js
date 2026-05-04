@@ -22,6 +22,7 @@ import { DAYS, getWeekStart, getCurrentDay, generateBuddyAllocations, getDefault
 import { predictDemand } from '@/lib/demandPredictor';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
+import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 
 // Lazy-load section components — they're each 50–200KB with heavy
@@ -40,6 +41,7 @@ const RoomDashboard = lazy(() => import('@/components/room/RoomDashboard'));
 const Changelog = lazy(() => import('@/components/Changelog'));
 const AccountSettings = lazy(() => import('@/components/AccountSettings'));
 const PerfOverlay = lazy(() => import('@/components/PerfOverlay'));
+const ViewOnlyBanner = lazy(() => import('@/components/ViewOnlyBanner'));
 
 // Static normalizer — same logic as the in-component one, but pulled to
 // module scope so it can run at state-init time (before the component
@@ -522,9 +524,12 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
 
   return (
     <div className={`min-h-screen flex ${'bg-[#0f172a]'}`}>
-      <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} data={data} />
       <main className={`flex-1 min-h-screen min-w-0 ${'bg-[#0f172a]'}`}>
         <div className="max-w-6xl mx-auto p-4 lg:p-6 animate-in">
+          <Suspense fallback={null}>
+            <ViewOnlyBanner data={data} />
+          </Suspense>
           <Suspense fallback={<div className="text-sm text-slate-500 py-12 text-center">Loading…</div>}>
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
@@ -544,8 +549,12 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
         <footer className="mt-8 pb-6">
           <div className="text-center text-xs text-slate-400">
             GPDash — {data._v4?.practiceName || 'Practice'} · v4 Postgres
-            {' · '}
-            <a href={`/v4/practice/${practiceId}`} style={{ color: '#94a3b8', textDecoration: 'underline' }}>Manage practice</a>
+            {canEditPracticeData(data) && (
+              <>
+                {' · '}
+                <a href={`/v4/practice/${practiceId}`} style={{ color: '#94a3b8', textDecoration: 'underline' }}>Manage practice</a>
+              </>
+            )}
             {' · '}
             {allPractices.length > 1 ? (
               <select

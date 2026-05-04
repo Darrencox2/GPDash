@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { roleLabel, isPlatformAdmin, isOwner, isAdmin } from '@/lib/permissions';
 
 export default function AccountSettings({ data }) {
   const supabase = createClient();
@@ -88,6 +89,7 @@ export default function AccountSettings({ data }) {
         <h2 className="text-base font-semibold text-slate-900 mb-3">Sign-in</h2>
         <div className="space-y-2 text-sm">
           <Row label="Email">{v4.userEmail}</Row>
+          <Row label="Role"><RoleBadge data={data} /></Row>
           <Row label="User ID"><span className="font-mono text-xs">{v4.userId}</span></Row>
         </div>
         <div className="mt-4 flex gap-2 flex-wrap">
@@ -167,5 +169,29 @@ function Row({ label, children }) {
       <span className="text-xs text-slate-500 uppercase tracking-wide">{label}</span>
       <span className="text-sm text-slate-900">{children}</span>
     </div>
+  );
+}
+
+function RoleBadge({ data }) {
+  const label = roleLabel(data);
+  // Colour by role: cyan = platform admin, emerald = owner, amber = admin, slate = user
+  const palette = isPlatformAdmin(data)
+    ? { bg: '#cffafe', fg: '#0e7490', border: '#67e8f9' }
+    : isOwner(data)
+    ? { bg: '#d1fae5', fg: '#065f46', border: '#6ee7b7' }
+    : isAdmin(data)
+    ? { bg: '#fef3c7', fg: '#92400e', border: '#fcd34d' }
+    : { bg: '#f1f5f9', fg: '#475569', border: '#cbd5e1' };
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '2px 10px',
+      background: palette.bg,
+      color: palette.fg,
+      border: `1px solid ${palette.border}`,
+      borderRadius: 999,
+      fontSize: 12,
+      fontWeight: 500,
+    }}>{label}</span>
   );
 }
