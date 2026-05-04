@@ -48,6 +48,16 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
     persist({ ...hs, routineWeeklyTarget: parseInt(value) || 0 });
   }
 
+  function updateConvRate(value) {
+    const dc = hs.demandCapacity || {};
+    persist({ ...hs, demandCapacity: { ...dc, conversionRate: parseFloat(value) } });
+  }
+
+  const convRate = hs?.demandCapacity?.conversionRate ?? 0.25;
+  // Compute a sample target so users can see what the slider produces
+  const sampleDemand = 130;
+  const sampleTarget = Math.round(sampleDemand * convRate);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {error && (
@@ -56,10 +66,53 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
         </div>
       )}
 
-      <Card title="Urgent expected capacity" status={saving ? 'saving' : saved ? 'saved' : null}>
+      <Card title="Today gauge target (demand-driven)" status={saving ? 'saving' : saved ? 'saved' : null}>
         <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
-          Expected urgent slots per session. These targets colour-code the Today page and
-          Capacity Planning view: <span style={{ color: '#34d399' }}>green</span> at ≥90%,
+          The Today page urgent gauge target is calculated dynamically from
+          today's predicted demand. This slider sets what proportion of
+          requests typically need an urgent slot. The static table below is
+          used as a fallback when there's no prediction available, and for
+          Capacity Planning's weekly view.
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+          <label style={{ fontSize: 14, color: '#cbd5e1', minWidth: 130 }}>
+            Demand → urgent ratio
+          </label>
+          <input
+            type="range"
+            min={0.05}
+            max={0.60}
+            step={0.01}
+            value={convRate}
+            onChange={(e) => updateConvRate(e.target.value)}
+            style={{ flex: 1, minWidth: 200 }}
+          />
+          <span style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#e2e8f0',
+            background: 'rgba(0,0,0,0.3)',
+            padding: '6px 14px',
+            borderRadius: 6,
+            minWidth: 64,
+            textAlign: 'center',
+            fontFamily: "'Space Mono', monospace",
+          }}>
+            {convRate.toFixed(2)}
+          </span>
+        </div>
+        <p style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>
+          Example: if today's predicted demand is {sampleDemand} requests
+          and the ratio is {convRate.toFixed(2)}, the gauge target will be {sampleTarget} urgent
+          slots ({sampleDemand} × {convRate.toFixed(2)}).
+        </p>
+      </Card>
+
+      <Card title="Static capacity targets (capacity planning)" status={saving ? 'saving' : saved ? 'saved' : null}>
+        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+          Fixed expected slots per session per weekday. Used by Capacity Planning's
+          weekly view, and as a fallback for Today's gauge when no prediction is
+          available. Colour bands: <span style={{ color: '#34d399' }}>green</span> at ≥90%,
           {' '}<span style={{ color: '#fbbf24' }}>amber</span> at 80–89%,
           {' '}<span style={{ color: '#f87171' }}>red</span> below 80%.
         </p>

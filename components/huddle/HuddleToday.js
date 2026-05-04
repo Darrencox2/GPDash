@@ -420,7 +420,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         const urgAvail = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0);
         const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
         const todayDayName = dayNames[viewingDate.getDay()];
-        const targetTotal = (hs.expectedCapacity?.[todayDayName]?.am || 0) + (hs.expectedCapacity?.[todayDayName]?.pm || 0);
+        // Gauge target = predicted demand × urgent conversion ratio when both
+        // are available (live, demand-driven). Falls back to the static
+        // expected-capacity table (kept for capacity planning use) when
+        // there's no prediction for the day. The conversion rate lives in
+        // huddleSettings.demandCapacity.conversionRate (0..1, default 0.25)
+        // and is editable in Practice → Demand model.
+        const convRate = hs?.demandCapacity?.conversionRate ?? 0.25;
+        const predictedToday = viewingPrediction?.predicted || 0;
+        const demandDrivenTarget = predictedToday > 0 ? Math.round(predictedToday * convRate) : 0;
+        const staticTarget = (hs.expectedCapacity?.[todayDayName]?.am || 0) + (hs.expectedCapacity?.[todayDayName]?.pm || 0);
+        const targetTotal = demandDrivenTarget > 0 ? demandDrivenTarget : staticTarget;
+        const targetSource = demandDrivenTarget > 0 ? 'demand' : (staticTarget > 0 ? 'static' : 'none');
         const coveragePct = targetTotal > 0 ? Math.round((urgTotal / targetTotal) * 100) : 0;
         const band = getBand(urgTotal, targetTotal);
         const pred = viewingPrediction;

@@ -51,14 +51,14 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
           ownRow.pcn_code
             ? supabase
                 .from('nhs_oc_baseline_pcn_summary')
-                .select('practice_count, practices_with_list_size, avg_per_1000_per_day')
+                .select('practice_count, practices_with_list_size, avg_per_1000_per_day, avg_total_per_practice, avg_days_with_data')
                 .eq('month', month)
                 .eq('pcn_code', ownRow.pcn_code)
                 .maybeSingle()
             : Promise.resolve({ data: null }),
           supabase
             .from('nhs_oc_baseline_national_summary')
-            .select('practice_count, practices_with_list_size, avg_per_1000_per_day')
+            .select('practice_count, practices_with_list_size, avg_per_1000_per_day, avg_total_per_practice, avg_days_with_data')
             .eq('month', month)
             .maybeSingle(),
         ]);
@@ -67,14 +67,33 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
           ? (ownRow.total / ownRow.days_with_data) / effectiveListSize * 1000
           : null;
 
+        // When backfill is incomplete, the views' calibrated avg_per_1000_per_day
+        // may be null. Fall back to an estimate computed from raw totals divided
+        // by the typical UK GP practice list size (~9,665 patients per NHS Digital).
+        const UK_AVG_LIST_SIZE = 9665;
+        function calibratedOrEstimate(row) {
+          if (!row) return { value: null, estimated: false };
+          const calibrated = row.avg_per_1000_per_day != null ? Number(row.avg_per_1000_per_day) : null;
+          if (calibrated != null) return { value: calibrated, estimated: false };
+          if (row.avg_total_per_practice != null && Number(row.avg_days_with_data) > 0) {
+            const rawPerDay = Number(row.avg_total_per_practice) / Number(row.avg_days_with_data);
+            return { value: (rawPerDay / UK_AVG_LIST_SIZE) * 1000, estimated: true };
+          }
+          return { value: null, estimated: false };
+        }
+        const pcn = calibratedOrEstimate(pcnRow);
+        const nat = calibratedOrEstimate(natRow);
+
         if (!cancelled) {
           setState({
             loading: false,
             month,
             yourPer1000,
             yourListSize: effectiveListSize,
-            pcnPer1000: pcnRow?.avg_per_1000_per_day != null ? Number(pcnRow.avg_per_1000_per_day) : null,
-            natPer1000: natRow?.avg_per_1000_per_day != null ? Number(natRow.avg_per_1000_per_day) : null,
+            pcnPer1000: pcn.value,
+            pcnEstimated: pcn.estimated,
+            natPer1000: nat.value,
+            natEstimated: nat.estimated,
             pcnPracticeCount: pcnRow?.practice_count || 0,
             pcnWithListSize: pcnRow?.practices_with_list_size || 0,
             natWithListSize: natRow?.practices_with_list_size || 0,
@@ -98,7 +117,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
   if (state.error === 'no-ods' || state.error === 'no-data') return null;
   if (state.error) return null;
 
-  const { month, yourPer1000, yourListSize, pcnPer1000, natPer1000, pcnPracticeCount, pcnWithListSize, natWithListSize } = state;
+  const { month, yourPer1000, yourListSize, pcnPer1000, pcnEstimated, natPer1000, natEstimated, pcnPracticeCount, pcnWithListSize, natWithListSize } = state;
 
   if (yourPer1000 == null) {
     return (
@@ -115,7 +134,6 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
   const pcnDelta = pcnPer1000 ? ((yourPer1000 - pcnPer1000) / pcnPer1000) * 100 : null;
   const natDelta = natPer1000 ? ((yourPer1000 - natPer1000) / natPer1000) * 100 : null;
   const pcnCoverage = pcnPracticeCount > 0 ? Math.round((pcnWithListSize / pcnPracticeCount) * 100) : 0;
-  const natCoverage = natWithListSize > 0 ? `${(natWithListSize / 1000).toFixed(1)}k` : '0';
 
   return (
     <div style={ribbonStyle()}>
@@ -132,6 +150,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
               label={`PCN avg${pcnPracticeCount ? ` (${pcnWithListSize}/${pcnPracticeCount})` : ''}`}
               value={pcnPer1000}
               delta={pcnDelta}
+              estimated={pcnEstimated}
             />
           </>
         )}
@@ -139,9 +158,10 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
           <>
             <span style={{ color: '#475569' }}>·</span>
             <Stat
-              label={`National avg (${natCoverage})`}
+              label={`National avg`}
               value={natPer1000}
               delta={natDelta}
+              estimated={natEstimated}
             />
           </>
         )}
@@ -149,15 +169,17 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
       <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>
         Online consultation submissions per 1,000 patients per reporting weekday
         {yourListSize ? ` · your list: ${yourListSize.toLocaleString()}` : ''}
-        {pcnPer1000 != null && pcnCoverage < 80 && pcnCoverage > 0
-          ? ` · PCN coverage ${pcnCoverage}% (list-size backfill in progress)`
-          : ''}
+        {(pcnEstimated || natEstimated)
+          ? ' · ~est figures use UK avg list size; refine via /v4/admin/nhs-data backfill'
+          : pcnPer1000 != null && pcnCoverage < 80 && pcnCoverage > 0
+            ? ` · PCN coverage ${pcnCoverage}% (list-size backfill in progress)`
+            : ''}
       </div>
     </div>
   );
 }
 
-function Stat({ label, value, delta, colour, emphasised }) {
+function Stat({ label, value, delta, colour, emphasised, estimated }) {
   const fmt = (n) => n >= 100 ? Math.round(n).toLocaleString() : n.toFixed(1);
   return (
     <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
@@ -171,6 +193,11 @@ function Stat({ label, value, delta, colour, emphasised }) {
         {fmt(value)}
       </span>
       <span style={{ fontSize: 10, color: '#64748b' }}>/1k</span>
+      {estimated && (
+        <span style={{ fontSize: 10, color: '#fcd34d', fontStyle: 'italic' }} title="Estimated using UK average list size — refine by running the list-size backfill in /v4/admin/nhs-data">
+          ~est
+        </span>
+      )}
       {delta != null && Math.abs(delta) >= 1 && (
         <span style={{
           fontSize: 11,
