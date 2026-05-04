@@ -18,44 +18,48 @@
 
 @layer components {
   .card { @apply bg-white rounded-xl shadow-sm border border-slate-200/80; }
-  /* Glass design system
+  /* Glass design system — Option B (radial highlight + brighter top edge)
    *
-   * Goals: a frosted-glass feel rather than flat dark blocks. Each layer
-   * combines a subtle linear gradient (light catching the top edge), a
-   * backdrop blur (so the page gradient bleeds through), a soft hairline
-   * border, and an inset top-edge highlight to mimic the "shine" of glass.
+   * Goal: feel like an actual glass pane, not a flat dark block. Layers
+   * a radial highlight at the top-left corner over a vertical gradient,
+   * frosts the page background through the surface with backdrop-filter,
+   * and uses an asymmetric border (top edge brighter than sides) so the
+   * eye reads it as a light source rather than a drawn outline.
    *
-   * The trick is layering: any single one of those cues alone reads as
-   * gimmicky, but together they make the surface feel like an object
-   * rather than a coloured rectangle.
+   * The radial highlight is achieved via stacked CSS backgrounds rather
+   * than ::before pseudo-elements — safer because it doesn't require
+   * adding `position: relative` and `overflow: hidden` to every consumer.
    */
   .glass {
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 60%, rgba(255,255,255,0.02) 100%),
-      rgba(15,23,42,0.55);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-top-color: rgba(255,255,255,0.12);
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
+      radial-gradient(120% 80% at 30% 0%, rgba(255,255,255,0.08) 0%, transparent 50%),
+      linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 50%, rgba(255,255,255,0.04) 100%),
+      rgba(15,23,42,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-top-color: rgba(255,255,255,0.2);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.06),
-      inset 0 -1px 0 rgba(0,0,0,0.15),
-      0 1px 2px rgba(0,0,0,0.2);
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      inset 0 0 30px rgba(255,255,255,0.03),
+      0 8px 24px rgba(0,0,0,0.25);
   }
   .glass-header {
     background:
+      radial-gradient(100% 100% at 30% 0%, rgba(255,255,255,0.06) 0%, transparent 60%),
       linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%),
-      rgba(15,23,42,0.6);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      rgba(15,23,42,0.5);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
   }
   .glass-inner {
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%),
+      radial-gradient(120% 80% at 30% 0%, rgba(255,255,255,0.06) 0%, transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 100%),
       rgba(255,255,255,0.015);
-    border: 1px solid rgba(255,255,255,0.05);
-    border-top-color: rgba(255,255,255,0.09);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-top-color: rgba(255,255,255,0.14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
   }
   .btn-primary { @apply bg-slate-900 text-white font-medium py-2 px-4 rounded-lg text-sm hover:bg-slate-800 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed; }
   .btn-secondary { @apply bg-white text-slate-700 border border-slate-200 font-medium py-1.5 px-3 rounded-lg text-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1; }
@@ -101,31 +105,35 @@
   .drop-zone.active { @apply border-teal-400 bg-teal-50/50; }
 
   /* Glass design system — duplicates of the @layer-components definitions
-   * above for use without @apply. Same look, different selector context. */
+   * above for use without @apply. Same look, different selector context.
+   * Option B (radial highlight + brighter top edge). */
   .glass-dark {
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 60%, rgba(255,255,255,0.02) 100%),
-      rgba(15,23,42,0.55);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-top-color: rgba(255,255,255,0.12);
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
+      radial-gradient(120% 80% at 30% 0%, rgba(255,255,255,0.08) 0%, transparent 50%),
+      linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 50%, rgba(255,255,255,0.04) 100%),
+      rgba(15,23,42,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-top-color: rgba(255,255,255,0.2);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.06),
-      inset 0 -1px 0 rgba(0,0,0,0.15),
-      0 1px 2px rgba(0,0,0,0.2);
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      inset 0 0 30px rgba(255,255,255,0.03),
+      0 8px 24px rgba(0,0,0,0.25);
   }
   .glass-panel {
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 100%),
-      rgba(15,23,42,0.7);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-top-color: rgba(255,255,255,0.12);
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
+      radial-gradient(120% 80% at 30% 0%, rgba(255,255,255,0.1) 0%, transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%),
+      rgba(15,23,42,0.5);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-top-color: rgba(255,255,255,0.22);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.07),
-      0 4px 16px rgba(0,0,0,0.25);
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      inset 0 0 40px rgba(255,255,255,0.03),
+      0 12px 32px rgba(0,0,0,0.3);
   }
 
   .glass-cog { @apply cursor-pointer opacity-40 hover:opacity-80 transition-opacity; }

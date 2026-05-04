@@ -413,7 +413,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           </div>
         </div>
       ) : (
-        <>
+        <div className="space-y-4">
       {/* NHS demand benchmarks ribbon — sits just above the urgent
           on-the-day gauge so it provides external context before users
           look at today's numbers. Stays quiet if practice ODS isn't in
@@ -1015,7 +1015,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             ))}
           </div>
 
-        </>
+        </div>
       )}
       </div>
     </div>
