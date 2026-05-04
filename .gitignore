@@ -29,3 +29,7 @@ npm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local test scripts (not committed — for predictor/parser/seed verification)
+test-*.js
+test-*.cjs
