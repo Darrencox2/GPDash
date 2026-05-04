@@ -68,12 +68,17 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
     const newRota = { ...data.weeklyRota };
     const summary = []; // { name, days: 'Mon/Tue/Thu', changed: bool }
 
-    // Helper: compute initials from a CSV name like "COX, Darren (Dr)" → "DC"
-    // Used as a fallback when matchesStaffMember() fails (name format mismatch)
-    const csvNameInitials = (csvName) => {
-      if (!csvName) return '';
+    // Helpers for the fallback initials match. `csvNameInitialsAll` returns
+    // EVERY plausible initials variant for a CSV name so a clinician
+    // registered with 3-letter initials (e.g. JAG for Jane A Gomm) can still
+    // be matched even when the CSV only carries first+last names.
+    //
+    // For "Gomm, Jane (Dr)" we yield: ['JG', 'JAG', 'GOMM']
+    // For "Cox, Darren (Dr)" we yield: ['DC', 'DAC' ...] – simple cases
+    //   only return one variant.
+    const csvNameInitialsAll = (csvName) => {
+      if (!csvName) return [];
       const cleaned = csvName.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').trim();
-      // "SURNAME, Firstname" → reorder to "Firstname Surname"
       let parts;
       if (cleaned.includes(',')) {
         const [surname, first] = cleaned.split(',').map(s => s.trim());
@@ -81,11 +86,60 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
       } else {
         parts = cleaned.split(/\s+/);
       }
-      // Take first letter of first part + first letter of last part (handles "Anna Mary Smith" → AS)
-      if (parts.length === 0) return '';
-      if (parts.length === 1) return parts[0][0]?.toUpperCase() || '';
-      return ((parts[0][0] || '') + (parts[parts.length - 1][0] || '')).toUpperCase();
+      if (parts.length === 0) return [];
+      if (parts.length === 1) {
+        const single = parts[0][0]?.toUpperCase() || '';
+        return single ? [single] : [];
+      }
+      const first = parts[0];          // "Jane"
+      const surname = parts[parts.length - 1]; // "Gomm"
+      const variants = new Set();
+      // Standard 2-letter: first-of-first + first-of-last → "JG"
+      variants.add(((first[0] || '') + (surname[0] || '')).toUpperCase());
+      // Surname expansion (Jane G[omm] → first-of-first + first 1, 2, 3 of surname)
+      // e.g. JAG = first-of-first + first-of-A_lwaysThere + ?
+      // Actually JAG comes from J(ane) + A + G(omm) or J(ane) + (Apparently middle name) + G(omm)
+      // For middle name expansion, build surname-prefix variants of length 2,3:
+      for (let n = 2; n <= 3; n++) {
+        if (surname.length >= n) {
+          variants.add(((first[0] || '') + surname.slice(0, n)).toUpperCase());
+        }
+      }
+      // First-name prefix expansion: J + (first letter of surname) → JaG
+      // also catches initials like "JaG" stored as JAG
+      if (first.length >= 2) {
+        variants.add(((first[0] || '') + (first[1] || '') + (surname[0] || '')).toUpperCase());
+        if (first.length >= 3) {
+          variants.add(((first[0] || '') + (first[1] || '') + (first[2] || '') + (surname[0] || '')).toUpperCase());
+        }
+      }
+      // Surname only (rare but happens in some CSVs)
+      variants.add(surname.toUpperCase());
+      return Array.from(variants).filter(Boolean);
     };
+
+    // Pre-compute every CSV name's possible initials, and an *ambiguity map*
+    // that records which initials values appear for >1 distinct CSV name.
+    // Any initials in this set can NOT be used by the fallback match — they
+    // would silently pick the wrong person.
+    const csvNamesSeen = new Set();
+    const initialsToCsvNames = new Map(); // initials → Set<csvName>
+    for (const dateStr of recentDates) {
+      const cap = getHuddleCapacity(huddleData, dateStr, hs);
+      const allByClin = [...(cap?.am?.byClinician || []), ...(cap?.pm?.byClinician || [])];
+      for (const bc of allByClin) {
+        if (!bc?.name || csvNamesSeen.has(bc.name)) continue;
+        csvNamesSeen.add(bc.name);
+        for (const v of csvNameInitialsAll(bc.name)) {
+          if (!initialsToCsvNames.has(v)) initialsToCsvNames.set(v, new Set());
+          initialsToCsvNames.get(v).add(bc.name);
+        }
+      }
+    }
+    const ambiguousInitials = new Set();
+    for (const [init, names] of initialsToCsvNames) {
+      if (names.size > 1) ambiguousInitials.add(init);
+    }
 
     // Build a "any byClinician name that matches this clinician" lookup so we
     // can debug which CSV names matched (or didn't) for diagnostic output
@@ -116,12 +170,15 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
           let inPm = cap.pm?.byClinician?.find(bc => matchesStaffMember(bc.name, c));
 
           // Fallback: initials match. Only fires if name match failed AND
-          // the clinician has initials AND the CSV name's derived initials match
-          if (!inAm && cInitials) {
-            inAm = cap.am?.byClinician?.find(bc => csvNameInitials(bc.name) === cInitials);
+          // the clinician's registered initials aren't ambiguous in the CSV
+          // (would map to multiple distinct CSV names — refuse rather than
+          // silently pick the wrong one).
+          const cInitialsUsable = cInitials && !ambiguousInitials.has(cInitials);
+          if (!inAm && cInitialsUsable) {
+            inAm = cap.am?.byClinician?.find(bc => csvNameInitialsAll(bc.name).includes(cInitials));
           }
-          if (!inPm && cInitials) {
-            inPm = cap.pm?.byClinician?.find(bc => csvNameInitials(bc.name) === cInitials);
+          if (!inPm && cInitialsUsable) {
+            inPm = cap.pm?.byClinician?.find(bc => csvNameInitialsAll(bc.name).includes(cInitials));
           }
 
           if (inAm) matchedCsvNames.add(inAm.name);
@@ -207,7 +264,22 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
     }
 
     saveData({ ...data, weeklyRota: newRota });
-    setGenReport({ summary, weeksAnalysed: Math.min(12, Math.floor(recentDates.length / 5)) });
+    // Build a list of clinicians whose initials clash with another CSV name
+    // so the auto-generate report can warn the user. Even though we now
+    // refuse the fallback in these cases, the user still wants to know.
+    const ambiguityWarnings = [];
+    for (const c of eligibleClinicians) {
+      const cInit = (c.initials || '').toUpperCase();
+      if (cInit && ambiguousInitials.has(cInit)) {
+        const csvNames = Array.from(initialsToCsvNames.get(cInit) || []);
+        ambiguityWarnings.push({ name: c.name, initials: cInit, csvNames });
+      }
+    }
+    setGenReport({
+      summary,
+      weeksAnalysed: Math.min(12, Math.floor(recentDates.length / 5)),
+      ambiguityWarnings,
+    });
     setGenerating(false);
   };
 
@@ -266,6 +338,18 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
                 </p>
               )}
             </div>
+            {genReport.ambiguityWarnings?.length > 0 && (
+              <div className="mt-3 p-3 rounded bg-amber-100 border border-amber-300 text-xs text-amber-900">
+                <p className="font-medium mb-1">Ambiguous initials detected — auto-match skipped for these clinicians:</p>
+                <ul className="space-y-0.5 ml-4 list-disc">
+                  {genReport.ambiguityWarnings.map(w => (
+                    <li key={w.name}>
+                      <span className="font-mono font-semibold">{w.initials}</span> — {w.name}: matches {w.csvNames.length} CSV names ({w.csvNames.join(', ')}). Use the alias field on the clinicians page to disambiguate, or set their initials to a unique value (e.g. {w.initials.length === 2 ? w.initials.replace(/^(\w)/, '$1A') : 'a longer string'}).
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         );
       })()}
