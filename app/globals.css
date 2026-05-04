@@ -18,9 +18,45 @@
 
 @layer components {
   .card { @apply bg-white rounded-xl shadow-sm border border-slate-200/80; }
-  .glass { background: rgba(15,23,42,0.7); border: 1px solid rgba(255,255,255,0.06); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
-  .glass-header { background: rgba(15,23,42,0.85); border-bottom: 1px solid rgba(255,255,255,0.04); }
-  .glass-inner { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); }
+  /* Glass design system
+   *
+   * Goals: a frosted-glass feel rather than flat dark blocks. Each layer
+   * combines a subtle linear gradient (light catching the top edge), a
+   * backdrop blur (so the page gradient bleeds through), a soft hairline
+   * border, and an inset top-edge highlight to mimic the "shine" of glass.
+   *
+   * The trick is layering: any single one of those cues alone reads as
+   * gimmicky, but together they make the surface feel like an object
+   * rather than a coloured rectangle.
+   */
+  .glass {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 60%, rgba(255,255,255,0.02) 100%),
+      rgba(15,23,42,0.55);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-top-color: rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -1px 0 rgba(0,0,0,0.15),
+      0 1px 2px rgba(0,0,0,0.2);
+  }
+  .glass-header {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%),
+      rgba(15,23,42,0.6);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .glass-inner {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%),
+      rgba(255,255,255,0.015);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-top-color: rgba(255,255,255,0.09);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
   .btn-primary { @apply bg-slate-900 text-white font-medium py-2 px-4 rounded-lg text-sm hover:bg-slate-800 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed; }
   .btn-secondary { @apply bg-white text-slate-700 border border-slate-200 font-medium py-1.5 px-3 rounded-lg text-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1; }
   .btn-success { @apply bg-emerald-600 text-white font-medium py-1.5 px-3 rounded-lg text-sm hover:bg-emerald-700 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1; }
@@ -64,11 +100,33 @@
   .drop-zone { @apply border-2 border-dashed border-slate-300 rounded-xl transition-all duration-200; }
   .drop-zone.active { @apply border-teal-400 bg-teal-50/50; }
 
-  /* Glass design system */
-  .glass-dark { background: rgba(15,23,42,0.7); border: 1px solid rgba(255,255,255,0.06); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
-  .glass-panel { background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.06); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
-  .glass-inner { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); }
-  .glass-header { background: rgba(15,23,42,0.85); border-bottom: 1px solid rgba(255,255,255,0.04); }
+  /* Glass design system — duplicates of the @layer-components definitions
+   * above for use without @apply. Same look, different selector context. */
+  .glass-dark {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 60%, rgba(255,255,255,0.02) 100%),
+      rgba(15,23,42,0.55);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-top-color: rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -1px 0 rgba(0,0,0,0.15),
+      0 1px 2px rgba(0,0,0,0.2);
+  }
+  .glass-panel {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 100%),
+      rgba(15,23,42,0.7);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-top-color: rgba(255,255,255,0.12);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.07),
+      0 4px 16px rgba(0,0,0,0.25);
+  }
 
   .glass-cog { @apply cursor-pointer opacity-40 hover:opacity-80 transition-opacity; }
   .font-mono-data { font-family: 'Space Mono', monospace; }
