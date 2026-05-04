@@ -207,7 +207,9 @@ async function getAllPracticesGeoJSON() {
   if (cachedPractices && (Date.now() - cachedAt) < PRACTICES_CACHE_TTL_MS) {
     return cachedPractices;
   }
-  const url = `${OPENPRESCRIBING_BASE}/org_location/?org_type=practice&format=json`;
+  // Note: don't pass format=json — that returns a flat JSON shape with no
+  // coordinates. The default format is GeoJSON which is what we want.
+  const url = `${OPENPRESCRIBING_BASE}/org_location/?org_type=practice`;
   const res = await fetch(url, {
     signal: AbortSignal.timeout(15000),
     headers: FETCH_HEADERS,
@@ -216,13 +218,43 @@ async function getAllPracticesGeoJSON() {
     throw new Error(`openprescribing_org_location_${res.status}`);
   }
   const json = await res.json();
-  const features = json?.features || [];
-  const practices = features.map(f => ({
-    odsCode: f.properties?.code,
-    name: f.properties?.name,
-    lng: f.geometry?.coordinates?.[0],
-    lat: f.geometry?.coordinates?.[1],
-  })).filter(p => p.odsCode && p.lat != null && p.lng != null);
+  // The response could be in one of several shapes depending on what
+  // OpenPrescribing actually returns. Try each:
+  //   1. GeoJSON FeatureCollection with .features array
+  //   2. Flat array of features
+  //   3. Object with .results array
+  let features = [];
+  if (Array.isArray(json?.features)) features = json.features;
+  else if (Array.isArray(json)) features = json;
+  else if (Array.isArray(json?.results)) features = json.results;
+
+  const practices = features.map(f => {
+    // GeoJSON Feature shape
+    if (f?.geometry?.coordinates && f?.properties) {
+      return {
+        odsCode: f.properties.code || f.properties.ods_code,
+        name: f.properties.name,
+        lng: f.geometry.coordinates[0],
+        lat: f.geometry.coordinates[1],
+      };
+    }
+    // Flat shape (in case OpenPrescribing returns something simpler)
+    return {
+      odsCode: f?.code || f?.ods_code,
+      name: f?.name,
+      lng: f?.lng ?? f?.longitude,
+      lat: f?.lat ?? f?.latitude,
+    };
+  }).filter(p => p.odsCode && p.lat != null && p.lng != null);
+
+  if (practices.length === 0) {
+    // Surface a small slice of the raw response in the error so the debug
+    // expander can show us what shape we actually got.
+    const sampleKeys = Object.keys(json || {}).slice(0, 8);
+    const sampleStr = JSON.stringify(json).slice(0, 500);
+    throw new Error(`openprescribing_returned_unexpected_shape:keys=[${sampleKeys.join(',')}]:sample=${sampleStr}`);
+  }
+
   cachedPractices = practices;
   cachedAt = Date.now();
   return practices;
