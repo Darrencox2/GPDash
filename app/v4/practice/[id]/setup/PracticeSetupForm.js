@@ -290,7 +290,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 8, fontSize: 13 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 8, fontSize: 15 }}>
           {error}
         </div>
       )}
@@ -302,7 +302,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
             <h2 style={{
               fontFamily: "'Outfit', sans-serif",
-              fontSize: 18,
+              fontSize: 22,
               fontWeight: 600,
               color: 'white',
               margin: 0,
@@ -318,9 +318,9 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                   background: 'rgba(34,211,238,0.08)',
                   border: '1px solid rgba(34,211,238,0.25)',
                   color: '#22d3ee',
-                  padding: '6px 12px',
+                  padding: '8px 14px',
                   borderRadius: 6,
-                  fontSize: 12,
+                  fontSize: 14,
                   cursor: 'pointer',
                 }}
               >Change practice</button>
@@ -332,12 +332,25 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                   background: 'rgba(239,68,68,0.06)',
                   border: '1px solid rgba(239,68,68,0.2)',
                   color: '#fca5a5',
-                  padding: '6px 12px',
+                  padding: '8px 14px',
                   borderRadius: 6,
-                  fontSize: 12,
+                  fontSize: 14,
                   cursor: savingField === 'practice' ? 'wait' : 'pointer',
                 }}
               >Clear details</button>
+              <button
+                type="button"
+                onClick={() => setEditingDetails(!editingDetails)}
+                style={{
+                  background: editingDetails ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: editingDetails ? '#22d3ee' : '#94a3b8',
+                  padding: '8px 14px',
+                  borderRadius: 6,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >{editingDetails ? '✓ Done editing' : 'Edit details'}</button>
             </div>
           </div>
 
@@ -371,7 +384,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           {/* Location context (from postcodes.io lookup) */}
           {(lookup || lookupBusy) && (
             <div style={{
-              fontSize: 12,
+              fontSize: 14,
               color: '#cbd5e1',
               padding: 10,
               background: 'rgba(0,0,0,0.2)',
@@ -407,7 +420,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           {/* NHS organisational context (from nhs_oc_baseline) */}
           {nhsDetails && (
             <div style={{
-              fontSize: 12,
+              fontSize: 14,
               color: '#cbd5e1',
               padding: 10,
               background: 'rgba(34, 211, 238, 0.04)',
@@ -416,7 +429,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               marginBottom: 12,
               lineHeight: 1.6,
             }}>
-              <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+              <div style={{ fontSize: 14, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                 NHS England — {formatMonthYear(nhsDetails.month)}
               </div>
               {nhsDetails.pcn_name && (
@@ -425,35 +438,15 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               {nhsDetails.icb_name && (
                 <div><span style={{ color: '#64748b' }}>ICB:</span> {nhsDetails.icb_name}</div>
               )}
-              {nhsDetails.supplier && (
-                <div><span style={{ color: '#64748b' }}>OC supplier:</span> {nhsDetails.supplier}</div>
-              )}
               {nhsDetails.total != null && (
                 <div><span style={{ color: '#64748b' }}>Submissions that month:</span> {nhsDetails.total.toLocaleString()} across {nhsDetails.days_with_data} days</div>
               )}
             </div>
           )}
-
-          {/* Edit details toggle (postcode / list size override) */}
-          <button
-            type="button"
-            onClick={() => setEditingDetails(!editingDetails)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#94a3b8',
-              fontSize: 11,
-              cursor: 'pointer',
-              padding: 0,
-              textDecoration: 'underline',
-            }}
-          >
-            {editingDetails ? '✓ Done editing' : 'Edit postcode or list size manually'}
-          </button>
         </Card>
       ) : (
         <Card title="Find your practice" status={fieldStatus('practice', savingField, savedField)}>
-          <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, lineHeight: 1.5 }}>
             Type your practice name to search NHS Digital and pre-fill its official
             name, ODS code, and list size in one click.
           </p>
@@ -465,16 +458,16 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             style={input}
             autoFocus={showSearch && !!odsCode}
           />
-          {practiceMatchBusy && <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 10 }}>Searching…</div>}
+          {practiceMatchBusy && <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 10 }}>Searching…</div>}
           {!practiceMatchBusy && practiceQuery.trim().length >= 2 && practiceCandidates.length === 0 && (
             <>
-              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
+              <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 10 }}>
                 No matches. Try a different word — names are matched in order, so "Banwell" might find practices that "Winscombe" doesn't.
               </p>
               {practiceMatchDebug?.attempts?.length > 0 && (
-                <details style={{ marginTop: 8, fontSize: 11, color: '#64748b' }}>
+                <details style={{ marginTop: 8, fontSize: 15, color: '#64748b' }}>
                   <summary style={{ cursor: 'pointer' }}>Show what was searched (debug)</summary>
-                  <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontFamily: 'ui-monospace, Menlo, monospace', whiteSpace: 'pre-wrap', fontSize: 10 }}>
+                  <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontFamily: 'ui-monospace, Menlo, monospace', whiteSpace: 'pre-wrap', fontSize: 12 }}>
                     {practiceMatchDebug.attempts.map((a, i) => (
                       <div key={i} style={{ marginBottom: 6 }}>
                         <div style={{ wordBreak: 'break-all' }}>{a.url}</div>
@@ -525,10 +518,10 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500, marginBottom: 2 }}>
+                        <div style={{ fontSize: 15, color: '#e2e8f0', fontWeight: 500, marginBottom: 2 }}>
                           {p.name}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: 15, color: '#64748b', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                           <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{p.odsCode}</span>
                           {p.listSize != null ? (
                             <span>
@@ -540,7 +533,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                           )}
                         </div>
                       </div>
-                      <div style={{ flexShrink: 0, fontSize: 11, fontWeight: 500, alignSelf: 'center', color: isSelected ? '#34d399' : unavailable ? '#fcd34d' : '#22d3ee' }}>
+                      <div style={{ flexShrink: 0, fontSize: 15, fontWeight: 500, alignSelf: 'center', color: isSelected ? '#34d399' : unavailable ? '#fcd34d' : '#22d3ee' }}>
                         {isSelected ? '✓ Selected' : unavailable ? 'Already on GPDash' : 'Select →'}
                       </div>
                     </div>
@@ -553,7 +546,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             <button
               type="button"
               onClick={() => { setShowSearch(false); setPracticeQuery(''); setPracticeCandidates([]); }}
-              style={{ marginTop: 12, background: 'none', border: 'none', color: '#94a3b8', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+              style={{ marginTop: 12, background: 'none', border: 'none', color: '#94a3b8', fontSize: 15, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
             >Cancel — keep current practice</button>
           )}
         </Card>
@@ -566,7 +559,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           background: 'rgba(34, 211, 238, 0.07)',
           border: '1px solid rgba(34, 211, 238, 0.25)',
           borderRadius: 10,
-          fontSize: 12,
+          fontSize: 14,
           color: '#a5f3fc',
           lineHeight: 1.5,
         }}>
@@ -604,7 +597,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             {lookupBusy && <div style={{ ...lookupBox, color: '#94a3b8' }}>Looking up…</div>}
             {lookup && !lookupBusy && (
               <div style={lookupBox}>
-                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 6, fontSize: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 6, fontSize: 14 }}>
                   <span style={{ color: '#64748b' }}>Local authority</span>
                   <span style={{ color: '#cbd5e1' }}>{lookup.admin_district || '—'}</span>
                   <span style={{ color: '#64748b' }}>Region</span>
@@ -678,7 +671,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             color: allRequired ? 'white' : '#64748b',
             border: 'none',
             borderRadius: 8,
-            fontSize: 13,
+            fontSize: 15,
             fontWeight: 500,
             cursor: allRequired ? 'pointer' : 'not-allowed',
           }}
@@ -693,14 +686,14 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             color: '#94a3b8',
             border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 8,
-            fontSize: 13,
+            fontSize: 15,
             cursor: 'pointer',
           }}
         >
           Skip for now
         </button>
         {!allRequired && (
-          <span style={{ alignSelf: 'center', fontSize: 11, color: '#64748b' }}>
+          <span style={{ alignSelf: 'center', fontSize: 15, color: '#64748b' }}>
             Fill in name, postcode, list size and tool to mark complete
           </span>
         )}
@@ -732,9 +725,9 @@ function Card({ title, status, children }) {
   return (
     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 18 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: '#cbd5e1' }}>{title}</h3>
-        {status === 'saving' && <span style={{ fontSize: 11, color: '#64748b' }}>Saving…</span>}
-        {status === 'saved' && <span style={{ fontSize: 11, color: '#34d399' }}>✓ Saved</span>}
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1' }}>{title}</h3>
+        {status === 'saving' && <span style={{ fontSize: 15, color: '#64748b' }}>Saving…</span>}
+        {status === 'saved' && <span style={{ fontSize: 15, color: '#34d399' }}>✓ Saved</span>}
       </div>
       {children}
     </div>
@@ -749,7 +742,7 @@ function Stat({ label, value, mono, editable, inputType, inputValue, onInputChan
   return (
     <div>
       <div style={{
-        fontSize: 10,
+        fontSize: 14,
         color: '#64748b',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -768,7 +761,7 @@ function Stat({ label, value, mono, editable, inputType, inputValue, onInputChan
             border: '1px solid rgba(34,211,238,0.3)',
             borderRadius: 6,
             color: '#e2e8f0',
-            fontSize: 18,
+            fontSize: 22,
             fontWeight: 600,
             fontFamily: mono ? 'ui-monospace, Menlo, monospace' : "'Outfit', sans-serif",
             outline: 'none',
@@ -776,7 +769,7 @@ function Stat({ label, value, mono, editable, inputType, inputValue, onInputChan
         />
       ) : (
         <div style={{
-          fontSize: 18,
+          fontSize: 22,
           fontWeight: 600,
           color: '#e2e8f0',
           fontFamily: mono ? 'ui-monospace, Menlo, monospace' : "'Outfit', sans-serif",
@@ -788,19 +781,19 @@ function Stat({ label, value, mono, editable, inputType, inputValue, onInputChan
 
 const input = {
   width: '100%',
-  padding: '8px 12px',
+  padding: '10px 12px',
   background: 'rgba(0,0,0,0.2)',
   border: '1px solid rgba(255,255,255,0.08)',
   borderRadius: 8,
   color: '#e2e8f0',
-  fontSize: 14,
+  fontSize: 15,
 };
-const hint = { fontSize: 11, color: '#64748b', marginTop: 8, lineHeight: 1.5 };
+const hint = { fontSize: 13, color: '#64748b', marginTop: 8, lineHeight: 1.6 };
 const lookupBox = {
   marginTop: 10,
-  padding: 10,
+  padding: 12,
   background: 'rgba(34,211,238,0.05)',
   border: '1px solid rgba(34,211,238,0.15)',
   borderRadius: 6,
-  fontSize: 12,
+  fontSize: 14,
 };
