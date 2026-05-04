@@ -9,6 +9,7 @@ import { resolvePracticeIdentifier } from '@/lib/v4-data';
 import InviteForm from './InviteForm';
 import ClinicianLinker from './ClinicianLinker';
 import SlugEditor from './SlugEditor';
+import EmisReportCard from '@/components/EmisReportCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,6 +146,10 @@ export default async function PracticeAdminPage({ params }) {
               {practice.online_consult_tool && (<><span style={{ color: '#64748b' }}>Tool</span><span>{practice.online_consult_tool}</span></>)}
             </div>
           )}
+        </Card>
+
+        <Card title="EMIS appointment report">
+          <EmisReportCard variant="inline" />
         </Card>
 
         <Card title="Your clinician record">

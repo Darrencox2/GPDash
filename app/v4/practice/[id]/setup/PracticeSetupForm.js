@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { lookupPostcode, isValidPostcodeFormat, formatPostcode } from '@/lib/postcode-lookup';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
+import EmisReportCard from '@/components/EmisReportCard';
 
 const ONLINE_CONSULT_TOOLS = [
   { value: 'askmygp', label: 'AskMyGP' },
@@ -198,6 +199,9 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           You can change this anytime.
         </p>
       </Card>
+
+      {/* EMIS appointment report — download XML + how-to */}
+      <EmisReportCard />
 
       {/* Done button */}
       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
