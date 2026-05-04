@@ -181,6 +181,28 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
       })
       .catch(e => console.warn('NHS seed call failed:', e));
 
+    // Auto-fill postcode from OpenPrescribing's location data + postcodes.io
+    // reverse-geocoding. Best-effort — falls back to manual entry if either
+    // hop fails. Skip if we already have a postcode (don't trample existing).
+    if (!postcode) {
+      fetch(`/api/v4/lookup-practice-postcode?ods=${encodeURIComponent(p.odsCode)}`)
+        .then(r => r.json())
+        .then(async result => {
+          if (result?.postcode) {
+            // Save to DB and update local state — postcodes.io useEffect will
+            // then run and populate the LEA / region info panel below.
+            const { error: pcErr } = await supabase
+              .from('practices')
+              .update({ postcode: result.postcode })
+              .eq('id', practiceId);
+            if (!pcErr) {
+              setPostcode(result.postcode);
+            }
+          }
+        })
+        .catch(e => console.warn('Postcode auto-fill failed:', e));
+    }
+
     router.refresh();
   }
 
@@ -435,9 +457,8 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           maxLength={10}
         />
         <p style={hint}>
-          We look up your local authority and region from this. Used for school holiday
-          calendars in the demand model. (We'll auto-fill this from your selected
-          practice in a future update — for now, please enter it manually.)
+          Auto-filled from your selected practice when possible. Used for
+          school holiday calendars in the demand model — edit if it's wrong.
         </p>
         {lookupBusy && <div style={{ ...lookupBox, color: '#94a3b8' }}>Looking up…</div>}
         {lookup && !lookupBusy && (
