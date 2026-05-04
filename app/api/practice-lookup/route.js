@@ -27,9 +27,11 @@ export const runtime = 'nodejs';
 // Don't cache — we want fresh API responses each lookup.
 export const dynamic = 'force-dynamic';
 
-const NHS_ORD_BASE = 'https://directory.spineservices.nhs.uk/ORD/2-0-0';
+// NHS Digital's FHIR Organization endpoint (the modern API — the older
+// REST one at directory.spineservices.nhs.uk/ORD/2-0-0/ now returns HTTP 406
+// regardless of headers, suggesting it's been deprecated).
+const NHS_FHIR_BASE = 'https://directory.spineservices.nhs.uk/STU3';
 const OPENPRESCRIBING_BASE = 'https://openprescribing.net/api/1.0';
-const GP_PRACTICE_ROLE_ID = 'RO177';
 const MAX_PRACTICES = 5;
 
 export async function GET(request) {
@@ -48,15 +50,15 @@ export async function GET(request) {
     let searchedBy = null;
     let source = null;
 
-    // First: try NHS ORD with each variant
+    // First: try NHS FHIR Organization search with each variant
     for (const v of variants) {
       const { orgs: result, error } = await fetchOrgsByPostcode(v);
-      debug.triedVariants.push({ variant: v, source: 'nhs_ord', count: result.length, error });
-      if (error) debug.errorsByVariant[`ord:${v}`] = error;
+      debug.triedVariants.push({ variant: v, source: 'nhs_fhir', count: result.length, error });
+      if (error) debug.errorsByVariant[`fhir:${v}`] = error;
       if (result.length > 0) {
         orgs = result;
         searchedBy = v;
-        source = 'nhs_ord';
+        source = 'nhs_fhir';
         break;
       }
     }
@@ -192,25 +194,57 @@ function buildPostcodeVariants(postcodeRaw) {
 
 async function fetchOrgsByPostcode(postcode) {
   try {
-    const url = `${NHS_ORD_BASE}/organisations?Postcode=${encodeURIComponent(postcode)}&PrimaryRoleId=${GP_PRACTICE_ROLE_ID}`;
+    // FHIR R3 Organization search with postcode filter and GP practice role.
+    // Role ID RO177 = GP Practice; FHIR uses the system+code form.
+    const url = `${NHS_FHIR_BASE}/Organization?address-postalcode=${encodeURIComponent(postcode)}&active=true&_count=20`;
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
       headers: {
-        // Some NHS endpoints reject requests without these
-        'User-Agent': 'GPDash/1.0 (+https://gpdash.net)',
-        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'GPDash/1.0',
+        'Accept': 'application/fhir+json, application/json',
       },
     });
     if (!res.ok) {
       return { orgs: [], error: `HTTP ${res.status}` };
     }
     const json = await res.json();
-    const all = json?.Organisations || [];
-    const active = all.filter(o => !o.Status || o.Status === 'Active');
-    return { orgs: active, error: null };
+    // FHIR Bundle: { resourceType: 'Bundle', entry: [{ resource: Organization }, ...] }
+    const entries = json?.entry || [];
+    const orgs = entries
+      .map(e => fhirOrganizationToOrd(e.resource))
+      .filter(o => o && o.OrgId);
+    // Filter to GP practices only — FHIR returns all organisation types
+    const practices = orgs.filter(o => o.IsGpPractice);
+    return { orgs: practices, error: null };
   } catch (e) {
     return { orgs: [], error: e?.message || 'fetch_failed' };
   }
+}
+
+/**
+ * Convert a FHIR Organization resource into the simpler shape the rest of
+ * this file uses (matching what NHS ORD's old REST API returned).
+ */
+function fhirOrganizationToOrd(org) {
+  if (!org) return null;
+  // ODS code is in identifier with system https://fhir.nhs.uk/Id/ods-organization-code
+  const odsId = (org.identifier || []).find(i =>
+    i.system?.includes('ods-organization-code') || i.system?.endsWith('/ods-org-code')
+  );
+  // Active status
+  const isActive = org.active !== false;
+  // GP practice detection: check the type / role coding for RO177 or
+  // "GP PRACTICE" textual match. FHIR uses extension or type.coding.
+  const types = (org.type || []).flatMap(t => t.coding || []);
+  const isGpPractice = types.some(c =>
+    c.code === 'RO177' || (c.display || '').toUpperCase().includes('GP PRACTICE')
+  );
+  return {
+    OrgId: odsId?.value || org.id,
+    Name: org.name,
+    Status: isActive ? 'Active' : 'Inactive',
+    IsGpPractice: isGpPractice,
+  };
 }
 
 async function fetchOrgsViaOpenPrescribing(query) {
