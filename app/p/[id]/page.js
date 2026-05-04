@@ -78,10 +78,14 @@ export default async function PracticePage({ params }) {
     supabase.from('buddy_allocations').select('date, allocations').eq('practice_id', practiceId).gte('date', cutoffStr),
     supabase.from('rota_notes').select('clinician_id, date, note, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId),
     supabase.from('practice_users').select('role, practices(id, name, slug)'),
-    // Platform admin flag — single profile row for the current user
-    supabase.from('profiles').select('is_platform_admin').maybeSingle(),
-    // Role for THIS practice specifically (not all memberships)
-    supabase.from('practice_users').select('role').eq('practice_id', practiceId).maybeSingle(),
+    // Platform admin flag — must filter by id because owners/admins see
+    // other members' profiles too via RLS, and maybeSingle() errors on
+    // multiple rows.
+    supabase.from('profiles').select('is_platform_admin').eq('id', user.id).maybeSingle(),
+    // Role for THIS practice specifically — must filter by user_id because
+    // owners/admins can see every membership row in the practice via RLS,
+    // and maybeSingle() errors on multiple rows.
+    supabase.from('practice_users').select('role').eq('practice_id', practiceId).eq('user_id', user.id).maybeSingle(),
   ]);
   const tQueries = Date.now();
 
