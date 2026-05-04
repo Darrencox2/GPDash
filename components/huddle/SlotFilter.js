@@ -88,12 +88,17 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
 }
 
 // ── Combined component (convenience) ─────────────────────────────
-export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, title, variant = 'dark', initialOverrides, dutyDoctorSlot, setDutyDoctorSlot }) {
+export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, title, variant = 'dark', initialOverrides, dutyDoctorSlot, setDutyDoctorSlot, readOnly }) {
   const [show, setShow] = useState(false);
+  // In readOnly mode, callbacks become no-ops so checkboxes don't appear to
+  // toggle (and never persist). Cleaner than letting the click do nothing.
+  const noop = () => {};
+  const setOverridesGated = readOnly ? noop : setOverrides;
+  const setDutyDoctorSlotGated = readOnly ? noop : setDutyDoctorSlot;
   return (
     <>
-      <SlotFilterButton overrides={overrides} setOverrides={setOverrides} knownSlotTypes={knownSlotTypes} show={show} setShow={setShow} variant={variant} initialOverrides={initialOverrides} />
-      <SlotFilterPanel overrides={overrides} setOverrides={setOverrides} knownSlotTypes={knownSlotTypes} show={show} setShow={setShow} title={title} dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} />
+      <SlotFilterButton overrides={overrides} setOverrides={setOverridesGated} knownSlotTypes={knownSlotTypes} show={show} setShow={setShow} variant={variant} initialOverrides={initialOverrides} />
+      <SlotFilterPanel overrides={overrides} setOverrides={setOverridesGated} knownSlotTypes={knownSlotTypes} show={show} setShow={setShow} title={title} dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlotGated} />
     </>
   );
 }

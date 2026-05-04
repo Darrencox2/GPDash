@@ -146,7 +146,7 @@ export default function AccountSettings({ data }) {
         </div>
         <div className="mt-4 flex gap-2 flex-wrap">
           {canEditPracticeData(data) && (
-            <a href={`/v4/practice/${practiceId}`} className="px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Manage practice (members, invites)</a>
+            <a href={`/v4/practice/${v4.practiceSlug || practiceId}`} className="px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Manage practice (members, invites)</a>
           )}
           <a href="/v4/dashboard" className="px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Switch practice</a>
         </div>

@@ -548,7 +548,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
             {canEditPracticeData(data) && (
               <>
                 {' · '}
-                <a href={`/v4/practice/${practiceId}`} style={{ color: '#94a3b8', textDecoration: 'underline' }}>Manage practice</a>
+                <a href={`/v4/practice/${data._v4?.practiceSlug || practiceId}`} style={{ color: '#94a3b8', textDecoration: 'underline' }}>Manage practice</a>
               </>
             )}
             {' · '}

@@ -5,6 +5,7 @@ import { redirect, notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import { resolvePracticeIdentifier } from '@/lib/v4-data';
 import InviteForm from './InviteForm';
 import ClinicianLinker from './ClinicianLinker';
 import SlugEditor from './SlugEditor';
@@ -12,7 +13,7 @@ import SlugEditor from './SlugEditor';
 export const dynamic = 'force-dynamic';
 
 export default async function PracticeAdminPage({ params }) {
-  const { id: practiceId } = params;
+  const { id: identifier } = params;
 
   const cookieStore = cookies();
   const supabase = createClient(cookieStore);
@@ -21,12 +22,15 @@ export default async function PracticeAdminPage({ params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/v4/login');
 
-  const { data: practice } = await supabase
-    .from('practices')
-    .select('id, name, slug, ods_code, region, created_at')
-    .eq('id', practiceId)
-    .maybeSingle();
+  // Resolve identifier (slug | ods_code | uuid) to a practice row
+  const practice = await resolvePracticeIdentifier(supabase, identifier);
   if (!practice) notFound();
+  const practiceId = practice.id;
+
+  // Canonicalise URL to slug form for shareable/bookmark consistency
+  if (identifier !== practice.slug) {
+    redirect(`/v4/practice/${practice.slug}`);
+  }
 
   // Caller's role in THIS practice (may be null if platform admin isn't a member)
   const { data: myMembership } = await supabase

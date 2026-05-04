@@ -465,16 +465,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         <span className="text-xs text-slate-300 leading-tight block">{msg.text}</span>
                         {time && <span className="text-[10px] text-slate-600">{time}</span>}
                       </div>
-                      <button onClick={() => removeMessage(i)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs mt-0.5">✕</button>
+                      {canEdit && <button onClick={() => removeMessage(i)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs mt-0.5">✕</button>}
                     </div>
                   );
                 })}
               </div>
-              <div className="flex gap-1.5 p-3 pt-0">
-                <input type="text" value={newAuthor} onChange={e => setNewAuthor(e.target.value)} placeholder="Name" className="w-16 px-2 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}} />
-                <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMessage(); }} placeholder="Message..." className="flex-1 px-2 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}} />
-                <Button onClick={addMessage} size="sm">+</Button>
-              </div>
+              {canEdit && (
+                <div className="flex gap-1.5 p-3 pt-0">
+                  <input type="text" value={newAuthor} onChange={e => setNewAuthor(e.target.value)} placeholder="Name" className="w-16 px-2 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}} />
+                  <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMessage(); }} placeholder="Message..." className="flex-1 px-2 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500" style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}} />
+                  <Button onClick={addMessage} size="sm">+</Button>
+                </div>
+              )}
             </div>
             {/* SUMMARY — spans first 3 cols */}
             <div className="glass rounded-xl p-5 md:col-span-3 md:order-1">
@@ -696,7 +698,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <div className="glass-header px-4 py-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span className="font-heading text-base font-medium text-slate-200">Urgent on the day</span>
-                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} />
+                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} readOnly={!canEdit} />
                   </div>
                 </div>
                 {displayDate && displayDate !== viewingDateStr && (
@@ -798,7 +800,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => setActiveSection('huddle-forward')} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">Clinician detail →</button>
-                      <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" />
+                      <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" readOnly={!canEdit} />
                     </div>
                   </div>
                 </div>
@@ -851,7 +853,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         <div className="text-xs text-slate-600">Next 14 days</div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <SlotFilter overrides={overrides} setOverrides={(v) => setCardOverride(card.id, v)} knownSlotTypes={knownSlotTypes} title={`${card.title} Slots`} />
+                        <SlotFilter overrides={overrides} setOverrides={(v) => setCardOverride(card.id, v)} knownSlotTypes={knownSlotTypes} title={`${card.title} Slots`} readOnly={!canEdit} />
                         <button onClick={() => { if (confirm(`Remove "${card.title}" card?`)) removeCapacityCard(card.id); }}
                           className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 text-xs">✕</button>
                       </div>
@@ -863,7 +865,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             })}
 
             {/* Add card button */}
-            {!showAddCard ? (
+            {canEdit && (!showAddCard ? (
               <button onClick={() => setShowAddCard(true)}
                 className="glass-inner rounded-xl flex items-center justify-center border-2 border-dashed transition-colors hover:border-slate-500"
                 style={{borderColor:'rgba(255,255,255,0.08)', minHeight:80}}>
@@ -889,7 +891,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   ))}
                 </div>
               </div>
-            )}
+            ))}
           </div>
 
         </>
