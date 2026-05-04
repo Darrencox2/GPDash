@@ -38,6 +38,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   const [practiceCandidates, setPracticeCandidates] = useState([]);
   const [practiceMatchBusy, setPracticeMatchBusy] = useState(false);
   const [practiceMatchReason, setPracticeMatchReason] = useState(null);
+  const [practiceMatchDebug, setPracticeMatchDebug] = useState(null);
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
   const [error, setError] = useState('');
@@ -78,6 +79,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
       setPracticeMatchBusy(false);
       setPracticeCandidates(res?.practices || []);
       setPracticeMatchReason(res?.reason || null);
+      setPracticeMatchDebug(res?.debug || null);
     }, 350);
     return () => clearTimeout(practiceSearchTimer.current);
   }, [practiceQuery]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -244,9 +246,29 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
         />
         {practiceMatchBusy && <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 10 }}>Searching…</div>}
         {!practiceMatchBusy && practiceQuery.trim().length >= 2 && practiceCandidates.length === 0 && (
-          <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
-            No matches. Try a different word — names are matched in order, so "Banwell" might find practices that "Winscombe" doesn't.
-          </p>
+          <>
+            <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
+              No matches. Try a different word — names are matched in order, so "Banwell" might find practices that "Winscombe" doesn't.
+            </p>
+            {practiceMatchDebug?.attempts?.length > 0 && (
+              <details style={{ marginTop: 8, fontSize: 11, color: '#64748b' }}>
+                <summary style={{ cursor: 'pointer' }}>Show what was searched (debug)</summary>
+                <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontFamily: 'ui-monospace, Menlo, monospace', whiteSpace: 'pre-wrap', fontSize: 10 }}>
+                  {practiceMatchDebug.attempts.map((a, i) => (
+                    <div key={i} style={{ marginBottom: 6 }}>
+                      <div style={{ wordBreak: 'break-all' }}>{a.url}</div>
+                      <div>status: {a.status ?? 'fetch failed'} · matches: {a.matchCount ?? 'n/a'}</div>
+                      {a.contentType && <div>content-type: {a.contentType}</div>}
+                      {a.bodyPreview && <div style={{ color: '#94a3b8' }}>body: {a.bodyPreview}</div>}
+                      {a.errorBody && <div style={{ color: '#fca5a5' }}>error body: {a.errorBody}</div>}
+                      {a.fetchError && <div style={{ color: '#fca5a5' }}>fetch error: {a.fetchError}</div>}
+                      {a.parseError && <div style={{ color: '#fca5a5' }}>parse error: {a.parseError}</div>}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </>
         )}
         {!practiceMatchBusy && practiceCandidates.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>

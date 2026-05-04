@@ -35,36 +35,77 @@ export async function GET(request) {
     return NextResponse.json({ practices: [], reason: 'query_too_short' });
   }
 
-  const debug = { steps: [] };
+  const debug = { steps: [], attempts: [] };
 
   try {
-    const opUrl = `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&exact=false&org_type=practice&format=json`;
-    const opRes = await fetch(opUrl, {
-      signal: AbortSignal.timeout(8000),
-      headers: FETCH_HEADERS,
-    });
-    debug.steps.push({ step: 'op_search', status: opRes.status, query });
-    if (!opRes.ok) {
-      return NextResponse.json({
-        practices: [],
-        reason: 'openprescribing_unavailable',
-        debug,
-      });
+    // Try multiple URL variants in case org_type=practice doesn't filter
+    // properly on this endpoint. The org_code endpoint behaves slightly
+    // differently than documented.
+    const queries = [
+      // 1. Simplest: just query, no filters
+      `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}`,
+      // 2. With exact=false
+      `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&exact=false`,
+      // 3. With org_type filter
+      `${OPENPRESCRIBING_BASE}/org_code/?q=${encodeURIComponent(query)}&exact=false&org_type=practice`,
+    ];
+
+    let candidates = [];
+    let usedUrl = null;
+    for (const opUrl of queries) {
+      try {
+        const opRes = await fetch(opUrl, {
+          signal: AbortSignal.timeout(8000),
+          headers: FETCH_HEADERS,
+        });
+        const attempt = {
+          url: opUrl,
+          status: opRes.status,
+          ok: opRes.ok,
+          contentType: opRes.headers.get('content-type'),
+        };
+        let bodyText = '';
+        if (opRes.ok) {
+          // Read as text first so we can inspect malformed responses
+          bodyText = await opRes.text();
+          attempt.bodyLength = bodyText.length;
+          attempt.bodyPreview = bodyText.slice(0, 300);
+          try {
+            const parsed = JSON.parse(bodyText);
+            const arr = Array.isArray(parsed) ? parsed : [];
+            // Filter to GP practices: codes are typically 6 chars and look
+            // like LXXXXX or similar — but we won't be too strict here, just
+            // check it has both code and name
+            const matched = arr.filter(o => o && o.code && o.name);
+            attempt.matchCount = matched.length;
+            if (matched.length > 0) {
+              candidates = matched.slice(0, MAX_PRACTICES);
+              usedUrl = opUrl;
+              debug.attempts.push(attempt);
+              break;
+            }
+          } catch (e) {
+            attempt.parseError = e.message;
+          }
+        } else {
+          // Capture the error body too
+          try { attempt.errorBody = (await opRes.text()).slice(0, 200); } catch {}
+        }
+        debug.attempts.push(attempt);
+      } catch (e) {
+        debug.attempts.push({ url: opUrl, fetchError: e?.message || 'fetch_failed' });
+      }
     }
-    const opJson = await opRes.json();
-    if (!Array.isArray(opJson) || opJson.length === 0) {
+
+    debug.steps.push({ step: 'op_search', usedUrl, candidatesFound: candidates.length });
+
+    if (candidates.length === 0) {
       return NextResponse.json({
         practices: [],
         reason: 'no_practices_match',
         debug,
       });
     }
-
-    const candidates = opJson
-      .filter(o => o.code && o.name)
-      .slice(0, MAX_PRACTICES);
-
-    debug.steps.push({ step: 'candidates', count: candidates.length });
 
     const odsCodes = candidates.map(o => o.code);
     const existingByOds = new Map();
