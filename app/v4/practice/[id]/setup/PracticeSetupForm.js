@@ -11,6 +11,7 @@ import { createClient } from '@/utils/supabase/client';
 import { lookupPostcode, isValidPostcodeFormat, formatPostcode } from '@/lib/postcode-lookup';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import EmisReportCard from '@/components/EmisReportCard';
+import SlugEditor from '../SlugEditor';
 
 const ONLINE_CONSULT_TOOLS = [
   { value: 'askmygp', label: 'AskMyGP' },
@@ -443,6 +444,30 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               )}
             </div>
           )}
+
+          {/* Practice URL (slug) — sits inside the Your practice card so all
+              identity-level info lives together. SlugEditor handles its own
+              save state. */}
+          <div style={{
+            marginTop: 12,
+            padding: 12,
+            background: 'rgba(0,0,0,0.2)',
+            border: '1px solid rgba(255,255,255,0.04)',
+            borderRadius: 6,
+          }}>
+            <div style={{
+              fontSize: 12,
+              color: '#64748b',
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+              marginBottom: 8,
+            }}>Practice URL</div>
+            <SlugEditor
+              practiceId={practiceId}
+              currentSlug={practiceSlug}
+              canEdit={true}
+            />
+          </div>
         </Card>
       ) : (
         <Card title="Find your practice" status={fieldStatus('practice', savingField, savedField)}>

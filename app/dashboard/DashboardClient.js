@@ -111,16 +111,18 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
   const [loading, setLoading] = useState(!initialData);
   const [selectedWeek, setSelectedWeek] = useState(() => getWeekStart(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => getCurrentDay());
-  const [activeSection, setActiveSection] = useState(() => {
-    // Allow initial section from URL (?section=...) for cross-page sidebar
-    // navigation (e.g. coming from /v4/practice/[slug]).
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      const section = url.searchParams.get('section');
-      if (section) return section;
-    }
-    return 'huddle-today';
-  });
+  const [activeSection, setActiveSection] = useState('huddle-today');
+  // Pick up `?section=X` after hydration. The previous useState initializer
+  // pattern with `typeof window !== 'undefined'` doesn't work cross-page in
+  // App Router — server renders with default, client hydrates with that
+  // value, the useState initializer doesn't re-run. So we sync explicitly
+  // here on mount when arriving from another route (e.g. Practice settings →
+  // My account).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const section = new URL(window.location.href).searchParams.get('section');
+    if (section) setActiveSection(section);
+  }, []); // mount-only — subsequent in-page nav uses setActiveSection directly
   const [syncStatus, setSyncStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);

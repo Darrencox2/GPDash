@@ -16,7 +16,6 @@ import DashboardShell from '@/components/DashboardShell';
 import PracticeTabs from './PracticeTabs';
 import PracticeSetupForm from './setup/PracticeSetupForm';
 import InviteForm from './InviteForm';
-import SlugEditor from './SlugEditor';
 import EmisReportCard from '@/components/EmisReportCard';
 import DeletePracticeButton from './DeletePracticeButton';
 import DemandUpload from './DemandUpload';
@@ -197,32 +196,19 @@ export default async function PracticeAdminPage({ params }) {
 
 function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <PracticeSetupForm
-        practiceId={practiceId}
-        practiceSlug={practiceSlug}
-        initial={{
-          name: fullPractice?.name || '',
-          odsCode: fullPractice?.ods_code || '',
-          postcode: fullPractice?.postcode || '',
-          listSize: fullPractice?.list_size || '',
-          onlineConsultTool: fullPractice?.online_consult_tool || '',
-          region: fullPractice?.region || '',
-          setupCompletedAt: fullPractice?.setup_completed_at,
-        }}
-      />
-      <Card title="Practice URL">
-        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 12 }}>
-          The short URL for the public dashboard view. Changing this breaks any
-          existing links your team has bookmarked.
-        </p>
-        <SlugEditor
-          practiceId={practiceId}
-          currentSlug={practiceSlug}
-          canEdit={canManage}
-        />
-      </Card>
-    </div>
+    <PracticeSetupForm
+      practiceId={practiceId}
+      practiceSlug={practiceSlug}
+      initial={{
+        name: fullPractice?.name || '',
+        odsCode: fullPractice?.ods_code || '',
+        postcode: fullPractice?.postcode || '',
+        listSize: fullPractice?.list_size || '',
+        onlineConsultTool: fullPractice?.online_consult_tool || '',
+        region: fullPractice?.region || '',
+        setupCompletedAt: fullPractice?.setup_completed_at,
+      }}
+    />
   );
 }
 
