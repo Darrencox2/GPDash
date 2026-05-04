@@ -362,14 +362,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       </div>
 
-      {/* Not-today banner */}
-      {!isViewingToday && (
+      {/* Show a small warning only when CSV data is missing for the
+          viewed date — the redundant "Viewing X" date label has been
+          removed since the date is already prominent in the navigator. */}
+      {!isViewingToday && !hasDataForDate && huddleData && (
         <div className="glass-dark rounded-lg p-3 flex items-center gap-2 mb-2">
           <svg className="w-4 h-4 text-slate-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span className="text-xs text-slate-400">
-            Viewing {viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-            {!hasDataForDate && huddleData && ' — no CSV data available for this date'}
-          </span>
+          <span className="text-xs text-slate-400">No CSV data available for this date</span>
         </div>
       )}
 
