@@ -659,14 +659,20 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               const bar = barPct(slots, target);
               const availPct = slots > 0 ? (avail / slots) * 100 : 0;
               const bookedPct = slots > 0 ? (booked / slots) * 100 : 0;
-              const LOCATION_SORT = { 'Winscombe': 0, 'Banwell': 1, 'Locking': 2 };
               const allClinicians = (sessionData?.byClinician || [])
                 .map(c => {
                   const matched = teamClinicians.find(tc => matchesStaffMember(c.name, tc));
-                  return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', initials: matched?.initials || (c.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2), total: c.available + (c.embargoed || 0) + (c.booked || 0) };
+                  const avail = (c.available || 0) + (c.embargoed || 0);
+                  return {
+                    ...c,
+                    displayName: matched?.name || c.name,
+                    role: matched?.role || '',
+                    initials: matched?.initials || (c.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2),
+                    total: avail + (c.booked || 0),
+                    avail,
+                  };
                 })
-                .filter(c => c.total > 0)
-                .sort((a, b) => (LOCATION_SORT[a.location] ?? 9) - (LOCATION_SORT[b.location] ?? 9) || b.total - a.total);
+                .filter(c => c.total > 0);
 
               // Resolve duty doctor and remove from clinician list
               const dutyDocDisplay = dutyDoc ? (() => {
@@ -675,29 +681,17 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 return { name: matched?.name || dutyDoc.name, initials: matched?.initials || (dutyDoc.name || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2), title: matched?.title, location: dutyDoc.location, total: dutyInList?.total || 0, csvName: dutyDoc.name, booked: dutyInList?.booked || 0, avail: (dutyInList?.available || 0) + (dutyInList?.embargoed || 0) };
               })() : null;
 
-              // Filter duty doctor out of the list
-              const cliniciansAfterDuty = dutyDocDisplay
-                ? allClinicians.filter(c => !matchesStaffMember(c.name, { name: dutyDocDisplay.name, aliases: [] }))
-                : allClinicians;
-
-              // Duty support = clinician with most total slots (after removing duty doctor and exclusions)
-              // Must have at least 5 urgent slots AND at least 2 more than runner-up
-              const supportCandidates = cliniciansAfterDuty.filter(c => !c.displayName?.toLowerCase().includes('balson'));
-              const sortedSupport = [...supportCandidates].sort((a, b) => b.total - a.total);
-              const topSupport = sortedSupport[0] || null;
-              const runnerUp = sortedSupport[1] || null;
-              const dutySupportClin = topSupport && topSupport.total >= 5 && topSupport.total >= ((runnerUp?.total || 0) + 2) ? topSupport : null;
-              const dutySupportDisplay = dutySupportClin ? dutySupportClin : null;
-
-              // Filter duty support out of main list
-              const clinicians = dutySupportDisplay
-                ? cliniciansAfterDuty.filter(c => c.name !== dutySupportDisplay.name)
-                : cliniciansAfterDuty;
+              // The remainder list = everyone except the duty doctor, sorted
+              // by available urgent slots descending (who has the most spare
+              // capacity right now). Tie-break on total slots so the busier
+              // session sits above an emptier one with the same availability.
+              const clinicians = (dutyDocDisplay
+                  ? allClinicians.filter(c => !matchesStaffMember(c.name, { name: dutyDocDisplay.name, aliases: [] }))
+                  : allClinicians
+                ).slice().sort((a, b) => (b.avail || 0) - (a.avail || 0) || (b.total || 0) - (a.total || 0));
 
               const dutyLocCol = dutyDocDisplay?.location ? siteCol(dutyDocDisplay.location) : null;
               const dutyLocLetter = dutyDocDisplay?.location ? dutyDocDisplay.location.charAt(0) : '';
-              const supportLocCol = dutySupportDisplay?.location ? siteCol(dutySupportDisplay.location) : null;
-              const supportLocLetter = dutySupportDisplay?.location ? dutySupportDisplay.location.charAt(0) : '';
 
               return (
                 <div className="flex-1 p-4">
@@ -731,18 +725,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                           <div className="text-xs text-white/60">Duty · {dutyDocDisplay.location || '?'}</div>
                         </div>
                         <span className="font-mono-data text-base font-bold text-white flex-shrink-0">{dutyDocDisplay.total}</span>
-                      </div>
-                    </div>
-                  )}
-                  {dutySupportDisplay && (
-                    <div className="rounded-lg overflow-hidden mb-3" style={{ background: '#2563eb', boxShadow: '0 2px 8px rgba(37,99,235,0.2)' }}>
-                      <div className="flex items-center gap-2.5 px-3 py-2.5">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="flex-shrink-0"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-white truncate">{dutySupportDisplay.displayName}</div>
-                          <div className="text-xs text-white/60">Support · {dutySupportDisplay.location || '?'}</div>
-                        </div>
-                        <span className="font-mono-data text-base font-bold text-white flex-shrink-0">{dutySupportDisplay.total}</span>
                       </div>
                     </div>
                   )}

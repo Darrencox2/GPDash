@@ -565,8 +565,15 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
               const markerPct = (s.target / scale) * 100;
               const allCliniciansList = (s.data?.byClinician || []).map(c => {
                 const matched = allClinicians.find(tc => matchesStaffMember(c.name, tc));
-                return { ...c, displayName: matched?.name || c.name, role: matched?.role || '', total: c.available + (c.embargoed || 0) + (c.booked || 0) };
-              }).filter(c => c.total > 0).sort((a,b) => ({'Winscombe':0,'Banwell':1,'Locking':2}[a.location]??9) - ({'Winscombe':0,'Banwell':1,'Locking':2}[b.location]??9) || b.total - a.total);
+                const avail = (c.available || 0) + (c.embargoed || 0);
+                return {
+                  ...c,
+                  displayName: matched?.name || c.name,
+                  role: matched?.role || '',
+                  total: avail + (c.booked || 0),
+                  avail,
+                };
+              }).filter(c => c.total > 0);
               const dutySlots = hs?.dutyDoctorSlot;
               const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
               const dutyDoc = hasDuty ? getDutyDoctor(huddleData, todayDateStr, s.session, dutySlots, allClinicians) : null;
@@ -576,25 +583,17 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 return { name: m?.name || dutyDoc.name, title: m?.title, location: dutyDoc.location, total: dutyInList?.total || 0, avail: (dutyInList?.available||0) + (dutyInList?.embargoed||0), booked: dutyInList?.booked||0 };
               })() : null;
 
-              // Duty support
-              const cliniciansAfterDuty = dutyDisplay
-                ? allCliniciansList.filter(c => !matchesStaffMember(c.name, { name: dutyDisplay.name, aliases: [] }))
-                : allCliniciansList;
-              const supportCandidates = cliniciansAfterDuty.filter(c => !c.displayName?.toLowerCase().includes('balson'));
-              const sortedSupport = [...supportCandidates].sort((a, b) => b.total - a.total);
-              const topSupport = sortedSupport[0] || null;
-              const runnerUp = sortedSupport[1] || null;
-              const dutySupportClin = topSupport && topSupport.total >= 5 && topSupport.total >= ((runnerUp?.total || 0) + 2) ? topSupport : null;
-              const dutySupportDisplay = dutySupportClin ? dutySupportClin : null;
-
-              const clinicians = dutySupportDisplay
-                ? cliniciansAfterDuty.filter(c => c.name !== dutySupportDisplay.name)
-                : cliniciansAfterDuty;
+              // Remainder = everyone except duty doctor, sorted by available
+              // urgent slots descending (most spare capacity first). Tie-break
+              // on total slots so a busier clinician ranks above an emptier
+              // one with equal availability.
+              const clinicians = (dutyDisplay
+                  ? allCliniciansList.filter(c => !matchesStaffMember(c.name, { name: dutyDisplay.name, aliases: [] }))
+                  : allCliniciansList
+                ).slice().sort((a, b) => (b.avail || 0) - (a.avail || 0) || (b.total || 0) - (a.total || 0));
 
               const dutyLocCol = dutyDisplay?.location ? siteCol(dutyDisplay.location) : null;
               const dutyLocLetter = dutyDisplay?.location ? dutyDisplay.location.charAt(0) : '';
-              const supportLocCol = dutySupportDisplay?.location ? siteCol(dutySupportDisplay.location) : null;
-              const supportLocLetter = dutySupportDisplay?.location ? dutySupportDisplay.location.charAt(0) : '';
               return (
                 <div key={si} className="flex-1 flex flex-col overflow-auto" style={{borderLeft:si===1?'1px solid rgba(255,255,255,0.04)':undefined}}>
                   <div style={{background:'rgba(15,23,42,0.85)',padding:'clamp(4px,0.6vh,10px) clamp(6px,0.8vw,14px)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
@@ -631,18 +630,6 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                             <div style={{fontSize:'clamp(7px,0.9vh,11px)',color:'rgba(255,255,255,0.6)'}}>Duty · {dutyDisplay.location||'?'}</div>
                           </div>
                           <span className="font-bold text-white flex-shrink-0" style={{fontSize:'clamp(10px,1.4vh,18px)',fontFamily:"'Space Mono',monospace"}}>{dutyDisplay.total}</span>
-                        </div>
-                      </div>
-                    )}
-                    {dutySupportDisplay && (
-                      <div className="rounded-lg overflow-hidden flex-shrink-0" style={{marginBottom:'clamp(3px,0.5vh,8px)',background:'#2563eb',boxShadow:'0 2px 6px rgba(37,99,235,0.2)'}}>
-                        <div className="flex items-center" style={{gap:'clamp(4px,0.5vw,8px)',padding:'clamp(3px,0.5vh,8px) clamp(6px,0.8vw,10px)'}}>
-                          <svg style={{width:'clamp(12px,1.5vh,18px)',height:'clamp(12px,1.5vh,18px)',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-white truncate" style={{fontSize:'clamp(9px,1.3vh,16px)'}}>{dutySupportDisplay.displayName}</div>
-                            <div style={{fontSize:'clamp(7px,0.9vh,11px)',color:'rgba(255,255,255,0.6)'}}>Support · {dutySupportDisplay.location||'?'}</div>
-                          </div>
-                          <span className="font-bold text-white flex-shrink-0" style={{fontSize:'clamp(10px,1.4vh,18px)',fontFamily:"'Space Mono',monospace"}}>{dutySupportDisplay.total}</span>
                         </div>
                       </div>
                     )}
