@@ -8,7 +8,7 @@ import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr, logEvent } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
-import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge } from './HuddleShared';
+import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge, ACCENT_BAR_COLOURS } from './HuddleShared';
 import { canEditPracticeData } from '@/lib/permissions';
 import NhsBenchmarkRibbon from './NhsBenchmarkRibbon';
 import RoutineWaitTime from './RoutineWaitTime';
@@ -27,6 +27,24 @@ const CARD_COLOURS = [
   { key: 'teal', label: 'Teal', gradient: 'from-teal-500 to-emerald-600' },
 ];
 const GRADIENT_MAP = Object.fromEntries(CARD_COLOURS.map(c => [c.key, c.gradient]));
+
+// New practices start with no capacity cards. The empty state below the
+// "Add card" button explains how to create them. Previously HuddleToday
+// referenced DEFAULT_CAPACITY_CARDS without declaring it — the only reason
+// the page didn't crash for new practices was that hs?.capacityCards
+// happened to be truthy after they ran setup. This makes the fallback
+// explicit and safe.
+const DEFAULT_CAPACITY_CARDS = [];
+
+// Allowed durations for the per-card period selector. 7/14/21/28 covers
+// most needs — short rolling outlook (1 week), default fortnight, three
+// weeks, and full month.
+const CARD_DURATIONS = [
+  { days: 7, label: '7 days' },
+  { days: 14, label: '14 days' },
+  { days: 21, label: '21 days' },
+  { days: 28, label: '28 days' },
+];
 
 
 // ══════════════════════════════════════════════════════════════════
@@ -126,12 +144,23 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     if (!canEdit) return;
     if (!newCardTitle.trim()) return;
     const id = 'card_' + Date.now();
-    const newCard = { id, title: newCardTitle.trim(), colour: newCardColour };
+    // Default to 14 days — the previous fixed duration, so existing cards
+    // that are missing the field render the same as before via the
+    // (card.days || 14) fallback at render time.
+    const newCard = { id, title: newCardTitle.trim(), colour: newCardColour, days: 14 };
     const updatedCards = [...capacityCards, newCard];
     saveData({ ...data, huddleSettings: { ...hs, capacityCards: updatedCards } });
     setCardOverrides(prev => ({ ...prev, [id]: null }));
     setNewCardTitle('');
     setShowAddCard(false);
+  };
+
+  // Update any field on an existing card. Used by the duration picker
+  // and the inline title/colour editors.
+  const updateCapacityCard = (cardId, patch) => {
+    if (!canEdit) return;
+    const updatedCards = capacityCards.map(c => c.id === cardId ? { ...c, ...patch } : c);
+    saveData({ ...data, huddleSettings: { ...hs, capacityCards: updatedCards } });
   };
 
   const removeCapacityCard = (cardId) => {
@@ -959,28 +988,88 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             );
           })()}
 
-          {/* ─── CUSTOM CAPACITY CARDS (14 days each) ─── */}
+          {/* ─── CUSTOM CAPACITY CARDS ─── */}
+          {capacityCards.length === 0 ? (
+            // Empty-state how-to. Shows when a practice hasn't created any
+            // capacity cards yet — typical for new sign-ups. Explains what
+            // the cards are for and how to add one, rather than just an
+            // orphan "+" button.
+            <div className="glass rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{background:'rgba(139,92,246,0.15)',border:'1px solid rgba(139,92,246,0.25)'}}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-heading text-base font-medium text-slate-200 mb-1">Capacity cards</h3>
+                  <p className="text-sm text-slate-500 mb-3 leading-relaxed">
+                    Build cards to track availability for specific clinic types — for example "Diabetes review", "Travel clinic", or "First trimester antenatal". Each card filters the routine slot types you assign to it and shows availability across the next 7, 14, 21, or 28 days.
+                  </p>
+                  {canEdit ? (
+                    !showAddCard ? (
+                      <button onClick={() => setShowAddCard(true)} className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors" style={{background:'rgba(139,92,246,0.15)',border:'1px solid rgba(139,92,246,0.3)',color:'#c4b5fd'}}>+ Create your first card</button>
+                    ) : (
+                      <div className="flex gap-2 mb-2">
+                        <input type="text" value={newCardTitle} onChange={e => setNewCardTitle(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') addCapacityCard(); }}
+                          placeholder="e.g. Diabetes review"
+                          className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800/50 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500" autoFocus />
+                        <Button onClick={addCapacityCard} size="sm" disabled={!newCardTitle.trim()}>Add</Button>
+                        <button onClick={() => { setShowAddCard(false); setNewCardTitle(''); }} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
+                      </div>
+                    )
+                  ) : (
+                    <p className="text-xs text-slate-600 italic">Ask an admin to set these up.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {capacityCards.map(card => {
-              const gradient = GRADIENT_MAP[card.colour] || GRADIENT_MAP.violet;
               const overrides = cardOverrides[card.id] || null;
               const effective = overrides || allSlotsOverrides;
+              const cardDays = card.days || 14;
+              const accentBar = ACCENT_BAR_COLOURS[card.colour] || '#8b5cf6';
               return (
                 <div key={card.id} className="rounded-xl overflow-visible group relative glass-dark">
-                  <div className="glass-header px-4 py-2.5 rounded-t-xl">
+                  {/* Coloured top stripe — quick visual anchor that matches the
+                      card's accent colour without making the whole header
+                      garish. */}
+                  <div style={{height:3,background:accentBar,borderTopLeftRadius:12,borderTopRightRadius:12}} />
+                  <div className="glass-header px-4 py-2.5">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-heading text-base font-medium text-slate-200">{card.title}</div>
-                        <div className="text-xs text-slate-600">Next 14 days</div>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:accentBar,boxShadow:`0 0 8px ${accentBar}88`}} />
+                        <div className="min-w-0">
+                          <div className="font-heading text-base font-medium text-slate-200 truncate">{card.title}</div>
+                          <div className="text-xs text-slate-600">Next {cardDays} days</div>
+                        </div>
                       </div>
                       <div className="flex items-center gap-1">
+                        {/* Duration picker — only visible to editors. Quietly
+                            sized so it doesn't compete with the title. */}
+                        {canEdit && (
+                          <select
+                            value={cardDays}
+                            onChange={e => updateCapacityCard(card.id, { days: parseInt(e.target.value, 10) })}
+                            className="text-xs bg-transparent border border-white/10 hover:border-white/25 text-slate-400 hover:text-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-white/30 transition-colors cursor-pointer"
+                            title="Period"
+                            style={{appearance:'none'}}
+                          >
+                            {CARD_DURATIONS.map(d => (
+                              <option key={d.days} value={d.days} style={{background:'#1e293b'}}>{d.label}</option>
+                            ))}
+                          </select>
+                        )}
                         <SlotFilter overrides={overrides} setOverrides={(v) => setCardOverride(card.id, v)} knownSlotTypes={knownSlotTypes} title={`${card.title} Slots`} readOnly={!canEdit} />
-                        <button onClick={() => { if (confirm(`Remove "${card.title}" card?`)) removeCapacityCard(card.id); }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 text-xs">✕</button>
+                        {canEdit && (
+                          <button onClick={() => { if (confirm(`Remove "${card.title}" card?`)) removeCapacityCard(card.id); }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 text-xs">✕</button>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={effective} accent={card.colour} teamClinicians={teamClinicians} hasFilter={!!overrides} />
+                  <SevenDayStrip huddleData={huddleData} huddleSettings={hs} overrides={effective} accent={card.colour} teamClinicians={teamClinicians} hasFilter={!!overrides} days={cardDays} />
                 </div>
               );
             })}
@@ -1014,6 +1103,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               </div>
             ))}
           </div>
+          )}
 
         </div>
       )}

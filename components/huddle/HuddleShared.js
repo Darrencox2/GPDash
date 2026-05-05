@@ -176,8 +176,20 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
 }
 
 // ── 7-day compact bar chart strip with available/embargoed/booked ──
-export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal', teamClinicians, hasFilter = true }) {
-  const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, 14, overrides), [huddleData, huddleSettings, overrides]);
+// SevenDayStrip — capacity bars for N consecutive days. The function name
+// is historical; the duration is now a per-card prop (7/14/21/28 days).
+//
+// `accent` ties the available-slots bar colour to the card's chosen palette
+// rather than always rendering universal emerald, so two cards side-by-side
+// stay distinguishable at a glance. Colours below match the keys in
+// HuddleToday's CARD_COLOURS palette.
+export const ACCENT_BAR_COLOURS = {
+  violet: '#8b5cf6', sky: '#0ea5e9', rose: '#f43f5e', indigo: '#6366f1',
+  amber: '#f59e0b', lime: '#84cc16', fuchsia: '#d946ef', cyan: '#06b6d4',
+  emerald: '#10b981', teal: '#14b8a6',
+};
+export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 'teal', teamClinicians, hasFilter = true, days: dayCount = 14 }) {
+  const days = useMemo(() => getNDayAvailability(huddleData, huddleSettings, dayCount, overrides), [huddleData, huddleSettings, overrides, dayCount]);
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   if (!hasFilter) return (
@@ -188,10 +200,29 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
     </div>
   );
   const maxVal = Math.max(...days.map(d => (d.available || 0) + (d.embargoed || 0) + (d.booked || 0)), 1);
+  const availColour = ACCENT_BAR_COLOURS[accent] || '#10b981';
+
+  // Aggregate totals shown above the bars so users don't have to mental-
+  // sum across N columns.
+  const totals = days.reduce((acc, d) => ({
+    avail: acc.avail + (d.available || 0),
+    emb: acc.emb + (d.embargoed || 0),
+    book: acc.book + (d.booked || 0),
+  }), { avail: 0, emb: 0, book: 0 });
 
   return (
-    <div className="p-4" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
-      <div className="flex items-end gap-1.5 relative" style={{ height: 100 }}>
+    <div className="p-4" style={{background:'linear-gradient(180deg, rgba(15,23,42,0.4) 0%, rgba(15,23,42,0.6) 100%)'}}>
+      {/* Totals row above the bars — one-glance summary so users don't
+          have to mental-sum the columns. */}
+      <div className="flex items-baseline justify-between mb-3">
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-mono-data text-2xl font-bold" style={{color:availColour}}>{totals.avail + totals.emb}</span>
+          <span className="text-xs text-slate-500">available</span>
+          {totals.book > 0 && <span className="text-xs text-slate-600 ml-1">· {totals.book} booked</span>}
+        </div>
+        <div className="text-[10px] text-slate-600 uppercase tracking-wider">{dayCount} days</div>
+      </div>
+      <div className="flex items-end relative" style={{ height: 100, gap: dayCount > 14 ? 2 : 6 }}>
         {days.map((d, i) => {
           const isToday = i === 0;
           const hasData = d.available !== null;
@@ -201,39 +232,48 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
           const total = avail + emb + book;
           const totalPct = hasData && total > 0 ? Math.max(12, (total / maxVal) * 100) : 0;
           const isHovered = hoveredIdx === i;
-          const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444';
+          const HATCH = `repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444`;
+          // Drop the per-day numeric labels above each bar when we're
+          // showing 21+ days — they'd just be visual noise at that point.
+          // The hover tooltip + totals row above cover that information.
+          const showCountLabel = dayCount <= 14;
+          // Show day-of-week letters for ≤14 days. For longer periods,
+          // show only Mondays as anchors so the axis stays legible.
+          const showDayLabel = dayCount <= 14 || d.dayName === 'Monday' || isToday;
           return (
             <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5 relative"
               onMouseEnter={() => setHoveredIdx(i)}
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
-              {hasData && total > 0 && (
-                <div className="text-[10px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? '#34d399' : '#64748b'}}>
+              {showCountLabel && hasData && total > 0 && (
+                <div className="text-[10px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? availColour : '#64748b'}}>
                   {avail + emb}{book > 0 && <span style={{color:'#ef4444'}}>+{book}</span>}
                 </div>
               )}
               <div className="w-full rounded-t-md overflow-hidden cursor-pointer transition-all duration-200"
                 style={{ height: hasData ? `${totalPct}%` : '8%', minHeight: 3,
-                  outline: isToday ? '2px solid #e2e8f0' : isHovered ? '2px solid #34d399' : 'none', outlineOffset: -1,
-                  boxShadow: isHovered ? '0 0 12px rgba(52,211,153,0.3)' : 'none',
+                  outline: isToday ? `2px solid ${availColour}` : isHovered ? `2px solid ${availColour}` : 'none', outlineOffset: -1,
+                  boxShadow: isHovered ? `0 0 12px ${availColour}55` : 'none',
                   transform: isHovered ? 'scaleX(1.1)' : 'none', zIndex: isHovered || isToday ? 10 : 1 }}>
                 {hasData && total > 0 ? (
                   <div className="w-full h-full flex flex-col justify-end">
-                    {avail > 0 && <div style={{height:`${(avail/total)*100}%`,background:'#10b981'}} />}
+                    {avail > 0 && <div style={{height:`${(avail/total)*100}%`,background:availColour}} />}
                     {emb > 0 && <div style={{height:`${(emb/total)*100}%`,background:'#f59e0b'}} />}
                     {book > 0 && <div style={{height:`${(book/total)*100}%`,background:HATCH}} />}
                   </div>
                 ) : <div className="w-full h-full" style={{background:'#334155'}} />}
               </div>
-              <div className="mt-0.5 text-center">
-                <div className="text-[9px] leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
-                <div className="text-[8px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
-              </div>
+              {showDayLabel ? (
+                <div className="mt-0.5 text-center">
+                  <div className="text-[9px] leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+                  <div className="text-[8px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
+                </div>
+              ) : <div style={{height:18}} />}
               {isHovered && hasData && total > 0 && (
                 <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap pointer-events-none" style={{background:'#0f172a',border:'1px solid #334155',minWidth:'100px'}}>
                   <div className="text-xs font-bold mb-0.5 text-slate-200">{d.dayName} {d.dayNum}</div>
                   <div className="space-y-0.5 text-[11px]">
-                    <div className="flex justify-between gap-3"><span className="text-slate-400">Available</span><span className="font-semibold text-emerald-400">{avail}</span></div>
+                    <div className="flex justify-between gap-3"><span className="text-slate-400">Available</span><span className="font-semibold" style={{color:availColour}}>{avail}</span></div>
                     {emb > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
                     {book > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
                   </div>
@@ -244,8 +284,8 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
           );
         })}
       </div>
-      <div className="flex items-center gap-3 mt-2 pt-2" style={{borderTop:'1px solid #334155'}}>
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}} /><span className="text-xs text-slate-500">Available</span></div>
+      <div className="flex items-center gap-3 mt-2 pt-2" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:availColour}} /><span className="text-xs text-slate-500">Available</span></div>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}} /><span className="text-xs text-slate-500">Embargoed</span></div>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444',backgroundSize:'5px 5px'}} /><span className="text-xs text-slate-500">Booked</span></div>
       </div>

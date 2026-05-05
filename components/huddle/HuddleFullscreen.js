@@ -6,10 +6,10 @@ import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DEFAULT_CAPACITY_CARDS = [
-  { id: 'minorIllness', title: 'Minor Illness', colour: 'violet' },
-  { id: 'physio', title: 'Physiotherapy', colour: 'sky' },
-];
+// New practices start with no capacity cards. They appear via the
+// "Add card" button or the empty-state how-to. Previously this defaulted
+// to Minor Illness + Physiotherapy which are Winscombe-specific examples.
+const DEFAULT_CAPACITY_CARDS = [];
 const DEMAND_COLOURS = {
   low: { bg: '#10b98122', text: '#34d399', label: 'LOW DEMAND' },
   normal: { bg: '#3b82f622', text: '#60a5fa', label: 'NORMAL' },
@@ -336,7 +336,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   }, [routineDays]);
   const routineBarMax = useMemo(() => Math.max(...routineDays.filter(d=>d.available!==null&&!d.isWeekend).map(d=>(d.available||0)+(d.embargoed||0)+(d.booked||0)),1), [routineDays]);
   const capacityCards = hs?.capacityCards || DEFAULT_CAPACITY_CARDS;
-  const cardData = useMemo(() => { if(!huddleData) return []; return capacityCards.map(card=>{ const ov=saved[card.id]||allSlotsOverrides; const days=getNDayAvailability(huddleData,hs,14,ov); const w=days.filter(d=>d.available!==null&&!d.isWeekend); return {...card,avail:w.reduce((s,d)=>s+(d.available||0),0),emb:w.reduce((s,d)=>s+(d.embargoed||0),0),booked:w.reduce((s,d)=>s+(d.booked||0),0)}; }); }, [huddleData,hs,capacityCards,saved,allSlotsOverrides]);
+  const cardData = useMemo(() => { if(!huddleData) return []; return capacityCards.map(card=>{ const ov=saved[card.id]||allSlotsOverrides; const cardDays=card.days||14; const days=getNDayAvailability(huddleData,hs,cardDays,ov); const w=days.filter(d=>d.available!==null&&!d.isWeekend); return {...card,cardDays,avail:w.reduce((s,d)=>s+(d.available||0),0),emb:w.reduce((s,d)=>s+(d.embargoed||0),0),booked:w.reduce((s,d)=>s+(d.booked||0),0)}; }); }, [huddleData,hs,capacityCards,saved,allSlotsOverrides]);
 
   // ── Demand derived ────────────────────────────────────────────
   const t = demandData?.today;
