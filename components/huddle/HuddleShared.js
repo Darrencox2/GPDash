@@ -211,7 +211,11 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
 
     {/* Drill-down: clinician slots. Renders at the same z-level as the
         outer panel — closing it returns to the day panel rather than
-        closing both. */}
+    {/* Drill-down: clinician slots. The back arrow steps back to the
+        day-level panel so the user can pick a different clinician;
+        the X close button closes the entire stack (both panels) so
+        the user can dismiss the popout without having to back out
+        through every layer. */}
     {drillClinician && (
       <ClinicianDayPanel
         clinicianName={drillClinician}
@@ -220,7 +224,8 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
         huddleSettings={huddleSettings}
         overrides={overrides}
         teamClinicians={teamClinicians}
-        onClose={() => setDrillClinician(null)}
+        onBack={() => setDrillClinician(null)}
+        onClose={() => { setDrillClinician(null); onClose?.(); }}
         accent={accent}
       />
     )}
@@ -360,7 +365,7 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
 // Backwards compatibility: if a practice has parsed CSV data from
 // before slotRows was added, this falls back to a simple AM/PM
 // summary so the panel still renders rather than going blank.
-export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSettings, overrides, teamClinicians, onClose, accent = '#06b6d4' }) {
+export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSettings, overrides, teamClinicians, onClose, onBack, accent = '#06b6d4' }) {
   if (!clinicianName || !dateStr || !huddleData) return null;
   const cap = getHuddleCapacity(huddleData, dateStr, huddleSettings, overrides);
 
@@ -493,6 +498,7 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
     <SidePanel
       open={true}
       onClose={onClose}
+      onBack={onBack}
       title={`${title ? `${title} ` : ''}${displayName}`}
       subtitle={
         <div className="flex items-center gap-2 text-xs text-slate-500">

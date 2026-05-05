@@ -29,7 +29,7 @@ import { createPortal } from 'react-dom';
 //  - accent: hex string — drives the small left-edge stripe + scroll thumb
 //  - width: 'sm' | 'md' | 'lg' (default 'md', maps to 320 / 400 / 480px)
 //  - children: panel body
-export default function SidePanel({ open, onClose, title, subtitle, accent = '#06b6d4', width = 'md', children }) {
+export default function SidePanel({ open, onClose, onBack, title, subtitle, accent = '#06b6d4', width = 'md', children }) {
   const panelRef = useRef(null);
   // Portals can only render after mount (document.body is undefined during
   // SSR). This flag flips on the first client-side effect tick.
@@ -88,6 +88,22 @@ export default function SidePanel({ open, onClose, title, subtitle, accent = '#0
           className="px-5 pt-4 pb-3 flex items-start justify-between flex-shrink-0"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
+          {/* Optional back-arrow — when onBack is provided this renders
+              before the title so the panel can act like a stage in a
+              navigation stack (e.g. day-panel → clinician-panel) without
+              the user losing the ability to step back without dismissing
+              the whole stack. The X close button still closes everything. */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0 mr-2 -ml-1"
+              aria-label="Back"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
           <div className="min-w-0 flex-1">
             {typeof title === 'string' ? (
               <div className="text-base font-medium text-slate-100 truncate">{title}</div>
