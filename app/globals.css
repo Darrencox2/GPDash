@@ -136,7 +136,24 @@
       0 12px 32px rgba(0,0,0,0.3);
   }
 
-  .glass-cog { @apply cursor-pointer opacity-40 hover:opacity-80 transition-opacity; }
+  /* Setting cog icon — used throughout for tucked-away, secondary-action
+   * settings buttons. Looks etched/dim by default (low opacity slate), then
+   * fades to teal on hover so it stays discoverable without competing with
+   * primary content for attention. */
+  .glass-cog {
+    cursor: pointer;
+    color: rgb(100 116 139 / 0.55); /* slate-500 at 55% — etched look */
+    transition: color 0.15s ease-out, background-color 0.15s ease-out;
+  }
+  .glass-cog:hover {
+    color: #2dd4bf; /* teal-400 — distinct accent on hover */
+  }
+  /* Active/open state for cogs that toggle a panel. Components add this
+   * class when their associated panel is open. */
+  .glass-cog-active {
+    color: #2dd4bf;
+    background: rgb(45 212 191 / 0.1);
+  }
   .font-mono-data { font-family: 'Space Mono', monospace; }
   .font-heading { font-family: 'Outfit', sans-serif; }
 }

@@ -28,7 +28,7 @@ export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show
         }
         setShow(!show);
       }}
-      className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${show ? 'bg-white/15 text-white' : hasFilter ? 'text-cyan-400 hover:text-cyan-300 hover:bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+      className={`glass-cog ${show ? 'glass-cog-active' : ''} relative w-8 h-8 rounded-lg flex items-center justify-center ${hasFilter && !show ? '!text-cyan-400 hover:!text-cyan-300' : ''}`}
       title={`Filter slots${selectedCount > 0 ? ` (${selectedCount} selected)` : ''}`}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -47,7 +47,13 @@ export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show
 }
 
 // ── Slide-out panel ──────────────────────────────────────────────────────
-export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show, setShow, title, dutyDoctorSlot, setDutyDoctorSlot }) {
+//
+// Optional `cardSettings` prop: when present, the panel renders a card-level
+// editor block at the top (title, colour, duration, full-width toggle). Used
+// by capacity cards on the Today page so all card configuration lives behind
+// one cog. Caller passes { card, palette, onChange, onDelete } where palette
+// is a list of {key, label, hex} colour options.
+export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show, setShow, title, dutyDoctorSlot, setDutyDoctorSlot, cardSettings }) {
   const [search, setSearch] = useState('');
   if (!show || !overrides) return null;
 
@@ -122,6 +128,108 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
             </button>
           </div>
         </div>
+
+        {/* Card-level settings — only rendered when cardSettings prop is
+            provided. Lets editors change the card's title, accent colour,
+            visible period, and full-width toggle without leaving the panel.
+            All four were previously either un-editable, in a separate
+            picker, or required delete-and-recreate. */}
+        {cardSettings && (
+          <div
+            className="px-5 py-3 flex-shrink-0 space-y-3"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            {/* Title */}
+            <div>
+              <label className="text-[11px] text-slate-500 uppercase tracking-wider">Title</label>
+              <input
+                type="text"
+                value={cardSettings.card.title}
+                onChange={e => cardSettings.onChange({ title: e.target.value })}
+                className="w-full mt-1 px-2.5 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: '#e2e8f0' }}
+              />
+            </div>
+
+            {/* Colour */}
+            <div>
+              <label className="text-[11px] text-slate-500 uppercase tracking-wider">Accent colour</label>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {cardSettings.palette.map(c => {
+                  const isActive = cardSettings.card.colour === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      onClick={() => cardSettings.onChange({ colour: c.key })}
+                      title={c.label}
+                      className={`w-6 h-6 rounded-md transition-all ${isActive ? 'scale-110' : 'opacity-60 hover:opacity-100'}`}
+                      style={{
+                        background: c.hex,
+                        boxShadow: isActive ? `0 0 0 2px rgba(255,255,255,0.4), 0 0 8px ${c.hex}88` : 'none',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Period */}
+            <div>
+              <label className="text-[11px] text-slate-500 uppercase tracking-wider">Period</label>
+              <div className="flex gap-1 mt-1.5">
+                {[7, 14, 21, 28].map(d => {
+                  const isActive = (cardSettings.card.days || 14) === d;
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => cardSettings.onChange({ days: d })}
+                      className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${isActive ? 'text-cyan-300' : 'text-slate-400 hover:text-slate-200'}`}
+                      style={{
+                        background: isActive ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: isActive ? '1px solid rgba(34,211,238,0.35)' : '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      {d} days
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Span (full-width toggle) */}
+            <div>
+              <label className="flex items-center justify-between cursor-pointer text-sm text-slate-300">
+                <span>
+                  <span className="block">Full-width card</span>
+                  <span className="block text-[11px] text-slate-500 mt-0.5">Spans the full row instead of half</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={!!cardSettings.card.fullWidth}
+                  onChange={e => cardSettings.onChange({ fullWidth: e.target.checked })}
+                  className="w-4 h-4 cursor-pointer"
+                  style={{ accentColor: '#06b6d4' }}
+                />
+              </label>
+            </div>
+
+            {/* Delete card */}
+            {cardSettings.onDelete && (
+              <button
+                onClick={() => {
+                  if (confirm(`Remove "${cardSettings.card.title}" card?`)) {
+                    cardSettings.onDelete();
+                    setShow(false);
+                  }
+                }}
+                className="w-full px-2.5 py-1.5 rounded-lg text-xs text-red-400/80 hover:text-red-300 transition-colors"
+                style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}
+              >
+                Remove card
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Duty doctor block */}
         {setDutyDoctorSlot && (
@@ -263,11 +371,12 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
 }
 
 // ── Convenience export combining button + panel ──────────────────────────
-export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, title, variant = 'dark', initialOverrides, dutyDoctorSlot, setDutyDoctorSlot, readOnly }) {
+export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, title, variant = 'dark', initialOverrides, dutyDoctorSlot, setDutyDoctorSlot, readOnly, cardSettings }) {
   const [show, setShow] = useState(false);
   const noop = () => {};
   const setOverridesGated = readOnly ? noop : setOverrides;
   const setDutyDoctorSlotGated = readOnly ? noop : setDutyDoctorSlot;
+  const cardSettingsGated = readOnly ? null : cardSettings;
   return (
     <>
       <SlotFilterButton
@@ -288,6 +397,7 @@ export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, ti
         title={title}
         dutyDoctorSlot={dutyDoctorSlot}
         setDutyDoctorSlot={setDutyDoctorSlotGated}
+        cardSettings={cardSettingsGated}
       />
     </>
   );

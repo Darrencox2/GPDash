@@ -93,6 +93,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const [showAddCard, setShowAddCard] = useState(false);
   const [newCardTitle, setNewCardTitle] = useState('');
   const [newCardColour, setNewCardColour] = useState('rose');
+  // Drag-and-drop state for reordering capacity cards. We track the index
+  // being dragged + the index it's hovering over for the drop indicator.
+  const [draggingCardIdx, setDraggingCardIdx] = useState(null);
+  const [dragOverCardIdx, setDragOverCardIdx] = useState(null);
 
   // Date navigation helpers
   const realToday = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
@@ -162,6 +166,26 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     const updatedCards = capacityCards.map(c => c.id === cardId ? { ...c, ...patch } : c);
     saveData({ ...data, huddleSettings: { ...hs, capacityCards: updatedCards } });
   };
+
+  // Reorder cards via drag-and-drop. Pure index shuffle: pull the dragged
+  // card out of its current position and splice it in at the target index.
+  const reorderCapacityCards = (fromIdx, toIdx) => {
+    if (!canEdit) return;
+    if (fromIdx === toIdx || fromIdx == null || toIdx == null) return;
+    const next = [...capacityCards];
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    saveData({ ...data, huddleSettings: { ...hs, capacityCards: next } });
+  };
+
+  // Palette for the card-settings panel. Maps the existing CARD_COLOURS
+  // entries into {key, label, hex} consumed by SlotFilter's cardSettings
+  // prop. Hex from ACCENT_BAR_COLOURS so the swatch matches the actual
+  // bar colour the user will see on the card.
+  const cardPalette = useMemo(
+    () => CARD_COLOURS.map(c => ({ key: c.key, label: c.label, hex: ACCENT_BAR_COLOURS[c.key] || '#8b5cf6' })),
+    []
+  );
 
   const removeCapacityCard = (cardId) => {
     if (!canEdit) return;
@@ -1024,14 +1048,52 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               </div>
             </div>
           ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {capacityCards.map(card => {
+          <div className="grid gap-4" style={{gridTemplateColumns:'repeat(2, minmax(0, 1fr))'}}>
+            {capacityCards.map((card, idx) => {
               const overrides = cardOverrides[card.id] || null;
               const effective = overrides || allSlotsOverrides;
               const cardDays = card.days || 14;
               const accentBar = ACCENT_BAR_COLOURS[card.colour] || '#8b5cf6';
+              const isDragging = draggingCardIdx === idx;
+              const isDragOver = dragOverCardIdx === idx && draggingCardIdx !== null && draggingCardIdx !== idx;
               return (
-                <div key={card.id} className="rounded-xl overflow-visible group relative glass-dark">
+                <div
+                  key={card.id}
+                  draggable={canEdit}
+                  onDragStart={(e) => {
+                    if (!canEdit) return;
+                    setDraggingCardIdx(idx);
+                    // Required so Firefox actually fires the drag.
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', String(idx));
+                  }}
+                  onDragOver={(e) => {
+                    if (!canEdit || draggingCardIdx == null) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (dragOverCardIdx !== idx) setDragOverCardIdx(idx);
+                  }}
+                  onDragLeave={() => {
+                    if (dragOverCardIdx === idx) setDragOverCardIdx(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    reorderCapacityCards(draggingCardIdx, idx);
+                    setDraggingCardIdx(null);
+                    setDragOverCardIdx(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingCardIdx(null);
+                    setDragOverCardIdx(null);
+                  }}
+                  className="rounded-xl overflow-visible group relative glass-dark transition-all"
+                  style={{
+                    gridColumn: card.fullWidth ? 'span 2' : 'span 1',
+                    opacity: isDragging ? 0.4 : 1,
+                    cursor: canEdit ? 'grab' : 'default',
+                    boxShadow: isDragOver ? `0 0 0 2px ${accentBar}, 0 8px 24px rgba(0,0,0,0.3)` : undefined,
+                  }}
+                >
                   {/* Coloured top stripe — quick visual anchor that matches the
                       card's accent colour without making the whole header
                       garish. */}
@@ -1039,6 +1101,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="glass-header px-4 py-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 min-w-0">
+                        {/* Drag handle — only visible on hover, only for editors */}
+                        {canEdit && (
+                          <div className="flex-shrink-0 opacity-0 group-hover:opacity-50 transition-opacity text-slate-500" title="Drag to reorder">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+                          </div>
+                        )}
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:accentBar,boxShadow:`0 0 8px ${accentBar}88`}} />
                         <div className="min-w-0">
                           <div className="font-heading text-base font-medium text-slate-200 truncate">{card.title}</div>
@@ -1046,26 +1114,20 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        {/* Duration picker — only visible to editors. Quietly
-                            sized so it doesn't compete with the title. */}
-                        {canEdit && (
-                          <select
-                            value={cardDays}
-                            onChange={e => updateCapacityCard(card.id, { days: parseInt(e.target.value, 10) })}
-                            className="text-xs bg-transparent border border-white/10 hover:border-white/25 text-slate-400 hover:text-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-white/30 transition-colors cursor-pointer"
-                            title="Period"
-                            style={{appearance:'none'}}
-                          >
-                            {CARD_DURATIONS.map(d => (
-                              <option key={d.days} value={d.days} style={{background:'#1e293b'}}>{d.label}</option>
-                            ))}
-                          </select>
-                        )}
-                        <SlotFilter overrides={overrides} setOverrides={(v) => setCardOverride(card.id, v)} knownSlotTypes={knownSlotTypes} title={`${card.title} Slots`} readOnly={!canEdit} />
-                        {canEdit && (
-                          <button onClick={() => { if (confirm(`Remove "${card.title}" card?`)) removeCapacityCard(card.id); }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 text-xs">✕</button>
-                        )}
+                        {/* Single cog now hosts: slot filter + title/colour/period/full-width editing + delete */}
+                        <SlotFilter
+                          overrides={overrides}
+                          setOverrides={(v) => setCardOverride(card.id, v)}
+                          knownSlotTypes={knownSlotTypes}
+                          title={`${card.title} settings`}
+                          readOnly={!canEdit}
+                          cardSettings={canEdit ? {
+                            card,
+                            palette: cardPalette,
+                            onChange: (patch) => updateCapacityCard(card.id, patch),
+                            onDelete: () => removeCapacityCard(card.id),
+                          } : null}
+                        />
                       </div>
                     </div>
                   </div>
