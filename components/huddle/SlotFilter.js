@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 // ─────────────────────────────────────────────────────────────────────────
 // SlotFilter — gear icon + slide-out panel for selecting which appointment
@@ -55,7 +56,14 @@ export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show
 // is a list of {key, label, hex} colour options.
 export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show, setShow, title, dutyDoctorSlot, setDutyDoctorSlot, cardSettings }) {
   const [search, setSearch] = useState('');
-  if (!show || !overrides) return null;
+  // Same portal pattern as SidePanel — without it, position: fixed on this
+  // panel ends up positioned relative to whichever .glass card hosts the
+  // cog (because backdrop-filter creates a stacking context). Result: the
+  // panel sits inside the card instead of sliding out from the viewport.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!show || !overrides || !mounted) return null;
 
   const slots = (knownSlotTypes || []).slice().sort();
   const filteredSlots = search ? slots.filter(s => s.toLowerCase().includes(search.toLowerCase())) : slots;
@@ -66,7 +74,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
     Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])
   );
 
-  return (
+  const panel = (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={title || 'Slot filter'}>
       {/* Backdrop */}
       <div
@@ -368,6 +376,8 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
       </div>
     </div>
   );
+
+  return createPortal(panel, document.body);
 }
 
 // ── Convenience export combining button + panel ──────────────────────────

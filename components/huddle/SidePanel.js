@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // SidePanel — unified right-side slide-out used across the dashboard.
 //
@@ -11,6 +12,15 @@ import { useEffect, useRef } from 'react';
 //  - Dark glass theme that matches the rest of the dashboard
 //  - Stacking is consistent (z-50 for the scrim, z-50+1 for the panel)
 //
+// IMPORTANT — rendered via a React portal into document.body. Without the
+// portal, position: fixed on the panel becomes relative to the nearest
+// stacking-context ancestor — and our .glass cards create new stacking
+// contexts (because backdrop-filter does). The visible result is the
+// panel ending up trapped inside the card rather than sliding out from
+// the viewport edge. The portal escapes that entirely by mounting the
+// panel as a direct child of <body> regardless of where SidePanel is
+// invoked from in the React tree.
+//
 // Props:
 //  - open: boolean — controls visibility
 //  - onClose: () => void
@@ -19,13 +29,12 @@ import { useEffect, useRef } from 'react';
 //  - accent: hex string — drives the small left-edge stripe + scroll thumb
 //  - width: 'sm' | 'md' | 'lg' (default 'md', maps to 320 / 400 / 480px)
 //  - children: panel body
-//
-// The panel uses position: fixed + flex justify-end so it always sits on
-// the viewport's right edge regardless of where the trigger element lives
-// in the DOM. The semi-transparent scrim fills the rest of the screen and
-// captures click-outside.
 export default function SidePanel({ open, onClose, title, subtitle, accent = '#06b6d4', width = 'md', children }) {
   const panelRef = useRef(null);
+  // Portals can only render after mount (document.body is undefined during
+  // SSR). This flag flips on the first client-side effect tick.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   // Close on ESC and lock body scroll while open. Body scroll lock prevents
   // the page jumping behind the scrim when the user wheels.
@@ -35,7 +44,6 @@ export default function SidePanel({ open, onClose, title, subtitle, accent = '#0
     document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    // Focus the panel for screen readers — small accessibility win
     setTimeout(() => panelRef.current?.focus(), 50);
     return () => {
       document.removeEventListener('keydown', onKey);
@@ -43,11 +51,11 @@ export default function SidePanel({ open, onClose, title, subtitle, accent = '#0
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   const widthPx = width === 'sm' ? 320 : width === 'lg' ? 480 : 400;
 
-  return (
+  const panel = (
     <div className="fixed inset-0 z-50 flex justify-end" style={{ animation: 'sp-fade-in 0.15s ease-out' }}>
       {/* Scrim — click anywhere outside to close */}
       <div
@@ -61,7 +69,7 @@ export default function SidePanel({ open, onClose, title, subtitle, accent = '#0
         tabIndex={-1}
         role="dialog"
         aria-label={typeof title === 'string' ? title : 'Details'}
-        className="flex flex-col h-full outline-none"
+        className="flex flex-col h-full outline-none relative"
         style={{
           width: widthPx,
           background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.98) 100%)',
@@ -116,4 +124,6 @@ export default function SidePanel({ open, onClose, title, subtitle, accent = '#0
       `}</style>
     </div>
   );
+
+  return createPortal(panel, document.body);
 }
