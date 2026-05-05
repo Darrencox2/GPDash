@@ -279,7 +279,34 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         <div className="px-5 py-4 flex items-center gap-2 border-b border-white/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
           <span className="text-sm font-semibold text-white">Capacity planning</span>
-          <span className="text-xs text-slate-500 ml-auto">6-week forward view</span>
+          <span className="text-xs text-slate-500 ml-2">6-week forward view</span>
+          {/* Slot-filter cogs sit in the page header so they're discoverable
+              even when no day is selected. Both cogs share
+              data.huddleSettings.savedSlotFilters with the Today page so
+              edits made here also reflect there — definitions of "what
+              counts as urgent" are practice-wide, not per-screen. */}
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-slate-500">Urgent</span>
+              <SlotFilter
+                overrides={urgOv}
+                setOverrides={(v) => persistFilter('urgent', v)}
+                knownSlotTypes={knownSlotTypes}
+                title="Urgent slot types"
+                readOnly={!canEdit}
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-slate-500">Routine</span>
+              <SlotFilter
+                overrides={routOv}
+                setOverrides={(v) => persistFilter('routine', v)}
+                knownSlotTypes={knownSlotTypes}
+                title="Routine slot types"
+                readOnly={!canEdit}
+              />
+            </div>
+          </div>
         </div>
         {/* Header */}
         <div className="grid border-b border-white/10" style={{gridTemplateColumns:COLS}}>
@@ -412,29 +439,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         <div className="hidden lg:block rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
           <div className="px-5 py-3 flex items-center justify-between" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
             <span className="text-sm font-semibold text-white">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr} — who and where</span>
-            <div className="flex items-center gap-1">
-              {/* Slot-filter cogs — let the user adjust which slot types
-                  count as urgent vs routine right from the day-detail
-                  view. Both cogs share the practice's savedSlotFilters
-                  so a change here reflects on the Today page too. */}
-              <span className="text-[10px] text-slate-500 mr-1">Urgent</span>
-              <SlotFilter
-                overrides={urgOv}
-                setOverrides={(v) => persistFilter('urgent', v)}
-                knownSlotTypes={knownSlotTypes}
-                title="Urgent slot types"
-                readOnly={!canEdit}
-              />
-              <span className="text-[10px] text-slate-500 ml-2 mr-1">Routine</span>
-              <SlotFilter
-                overrides={routOv}
-                setOverrides={(v) => persistFilter('routine', v)}
-                knownSlotTypes={knownSlotTypes}
-                title="Routine slot types"
-                readOnly={!canEdit}
-              />
-              <button onClick={()=>setSelectedDay(null)} className="text-white/60 hover:text-white text-sm font-bold ml-2" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
-            </div>
+            <button onClick={()=>setSelectedDay(null)} className="text-white/60 hover:text-white text-sm font-bold" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
           </div>
           <PredictionBand day={detailDay} convRate={convRate} />
           <div className="grid grid-cols-3 gap-0">

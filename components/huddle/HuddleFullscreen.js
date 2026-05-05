@@ -141,6 +141,14 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const dateKey = toLocalIso(today);
   const todayDateStr = useMemo(() => toHuddleDateStr(today), [today]);
   const hs = data?.huddleSettings || {};
+  // Practice site list — used by useMemos and helpers further down. Must
+  // be declared BEFORE any useMemo that references it: minified production
+  // builds run dependency-array evaluation immediately, which hits the TDZ
+  // for any const declared later in the function. (This was previously
+  // declared near the bottom, which threw "Cannot access 'sites' before
+  // initialization" once the file was minified.)
+  const sites = data?.roomAllocation?.sites || [];
+  const siteCol = (name) => getSiteColour(name, sites);
   const messages = ensureArray(data?.huddleMessages || []);
 
   // Fullscreen API — skip in dual mode (use CSS overlay instead)
@@ -379,8 +387,6 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
 
   // ── Components ────────────────────────────────────────────────
   const ROLE_BG = {'GP Partner':'bg-blue-50 border-blue-200','Associate Partner':'bg-blue-50 border-blue-200','Salaried GP':'bg-indigo-50 border-indigo-200','Locum':'bg-purple-50 border-purple-200','GP Registrar':'bg-rose-50 border-rose-200','Medical Student':'bg-rose-50 border-rose-200','ANP':'bg-emerald-50 border-emerald-200','Paramedic Practitioner':'bg-amber-50 border-amber-200','Pharmacist':'bg-cyan-50 border-cyan-200','Physiotherapist':'bg-cyan-50 border-cyan-200','Practice Nurse':'bg-teal-50 border-teal-200','Nurse Associate':'bg-teal-50 border-teal-200','HCA':'bg-lime-50 border-lime-200'};
-  const sites = data?.roomAllocation?.sites || [];
-  const siteCol = (name) => getSiteColour(name, sites);
   const roleColMap = { gp: '#3b82f6', nursing: '#10b981', allied: '#a855f7' };
   const PersonCard = ({ person, delay, reason, location }) => {
     const isAbsent = !!reason;
