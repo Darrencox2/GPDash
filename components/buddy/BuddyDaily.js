@@ -4,7 +4,7 @@ import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generat
 import { getCliniciansForDate } from '@/lib/huddle';
 import { canEditPracticeData } from '@/lib/permissions';
 
-export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData }) {
+export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData, setActiveSection }) {
   const canEdit = canEditPracticeData(data);
   const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
 
@@ -207,6 +207,22 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Quick link to the rota grid — historically there was a sidebar
+              entry for this but it was retired when the sidebar was tidied.
+              The grid view is still useful from inside Buddy Cover when an
+              admin needs to inspect or tweak a clinician's standing weekly
+              pattern, so we expose it here. */}
+          {setActiveSection && (
+            <button
+              onClick={() => setActiveSection('team-rota')}
+              className="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 flex items-center gap-1.5 transition-colors"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              title="Open the standing weekly rota grid for the buddy-cover team"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 4v18M16 4v18"/></svg>
+              Weekly grid
+            </button>
+          )}
           {canEdit && (
           <button onClick={handleCopyWeek} className="px-3 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5" style={{background:"rgba(16,185,129,0.6)",border:"1px solid rgba(16,185,129,0.3)"}}>Copy Week</button>
           )}

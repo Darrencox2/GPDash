@@ -5,6 +5,7 @@ import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import ClinicianCapacity from './ClinicianCapacity';
+import SlotFilter from './SlotFilter';
 import { canEditPracticeData } from '@/lib/permissions';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -23,6 +24,92 @@ function dowDemandColour(predicted, dowBaseline) {
   if (ratio <= 1.1) return { bg: '#10b981', text: '#fff', label: 'Normal' };
   if (ratio <= 1.25) return { bg: '#f59e0b', text: '#fff', label: 'High' };
   return { bg: '#ef4444', text: '#fff', label: 'V.High' };
+}
+
+// PredictionBand — sits at the top of the day-detail panel and explains
+// the demand prediction for that date. Pulls from pred.factors to list
+// the biggest contributors (e.g. "Mondays +12, school holiday +8") so a
+// number like "Predicted 87 — HIGH" doesn't appear as a black box.
+//
+// Skipped entirely on bank holidays (no prediction is run) and on days
+// with no prediction (pred = null, e.g. far-future weekends).
+function PredictionBand({ day, convRate }) {
+  if (!day || day.isBH || !day.pred?.predicted) return null;
+  const pred = day.pred;
+  const predicted = Math.round(pred.predicted);
+  const needed = Math.round(predicted * (convRate || 0.25));
+  const dc = day.dc;
+  const conf = pred.confidence;
+  const confLow = conf?.low ? Math.round(conf.low) : null;
+  const confHigh = conf?.high ? Math.round(conf.high) : null;
+
+  // Pull the top-3 contributing factors by absolute effect size. We skip
+  // the baseline itself (always present and not "informative") and skip
+  // the dayOfWeek factor when the user is already looking at e.g. a
+  // Tuesday (it's tautological). Sort by |effect| descending.
+  const factorEntries = [];
+  const f = pred.factors || {};
+  if (f.dayOfWeek?.effect) factorEntries.push({ label: f.dayOfWeek.day || 'Day of week', effect: f.dayOfWeek.effect });
+  if (f.month?.effect) factorEntries.push({ label: 'Time of year', effect: f.month.effect });
+  if (f.schoolHoliday) factorEntries.push({ label: 'School holiday', effect: f.schoolHoliday });
+  if (f.firstWeekBack) factorEntries.push({ label: 'First week back', effect: f.firstWeekBack });
+  if (f.firstDayBack) factorEntries.push({ label: 'First day back from break', effect: f.firstDayBack });
+  if (f.secondDayBack) factorEntries.push({ label: 'Second day back', effect: f.secondDayBack });
+  if (f.nearBankHoliday) factorEntries.push({ label: `Near bank holiday (${f.nearBankHoliday.daysAway}d)`, effect: f.nearBankHoliday.effect });
+  if (f.christmasPeriod) factorEntries.push({ label: 'Christmas period', effect: f.christmasPeriod });
+  if (f.endOfMonth) factorEntries.push({ label: 'End of month', effect: f.endOfMonth });
+  if (f.shortWeek?.effect) factorEntries.push({ label: `Short week (${f.shortWeek.workingDays}d)`, effect: f.shortWeek.effect });
+  if (f.weather?.effect) factorEntries.push({ label: f.weather.label || 'Weather', effect: f.weather.effect });
+  if (f.heavyRain?.effect) factorEntries.push({ label: 'Heavy rain', effect: f.heavyRain.effect });
+  if (f.postRainRebound?.effect) factorEntries.push({ label: 'Post-rain rebound', effect: f.postRainRebound.effect });
+  if (f.mediaOverride?.effect) factorEntries.push({ label: f.mediaOverride.label || 'Media event', effect: f.mediaOverride.effect });
+  factorEntries.sort((a, b) => Math.abs(b.effect) - Math.abs(a.effect));
+  const topFactors = factorEntries.slice(0, 3);
+
+  return (
+    <div className="px-5 py-3" style={{ background: 'rgba(99,102,241,0.08)', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
+      <div className="flex items-center gap-4 flex-wrap">
+        {/* Headline number + band */}
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono-data text-2xl font-bold" style={{ color: dc.bg }}>{predicted}</span>
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider">predicted</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: dc.bg, color: dc.text }}>{dc.label}</span>
+        </div>
+        {/* Conversion-implied urgent need */}
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-mono-data text-base font-bold text-amber-400">{needed}</span>
+          <span className="text-[10px] text-slate-500">urgent slots needed</span>
+        </div>
+        {/* Confidence band */}
+        {confLow !== null && confHigh !== null && (
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] text-slate-500">range</span>
+            <span className="font-mono-data text-xs text-slate-400">{confLow}–{confHigh}</span>
+          </div>
+        )}
+        {/* Fallback warning — practice hasn't calibrated its model */}
+        {pred.usingFallback && (
+          <span className="text-[10px] text-amber-400 italic">estimate (no calibration)</span>
+        )}
+      </div>
+      {/* Top factors row */}
+      {topFactors.length > 0 && (
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider">Drivers:</span>
+          {topFactors.map((tf, i) => {
+            const sign = tf.effect > 0 ? '+' : '';
+            const colour = tf.effect > 0 ? '#fbbf24' : '#34d399';
+            return (
+              <span key={i} className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <span className="text-slate-400">{tf.label}</span>
+                <span className="ml-1 font-mono-data font-bold" style={{ color: colour }}>{sign}{Math.round(tf.effect)}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function DonutGauge({ avail, emb, booked }) {
@@ -68,6 +155,19 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
     if (!data?.clinicians) return [];
     return (Array.isArray(data.clinicians)?data.clinicians:Object.values(data.clinicians)).filter(c=>c.status!=='left');
   }, [data?.clinicians]);
+  // List of slot types seen in the parsed CSV — required by SlotFilter for
+  // the picker. Memoised because the underlying data array is stable.
+  const knownSlotTypes = useMemo(() => huddleData?.allSlotTypes || [], [huddleData]);
+  // Persist a saved slot filter (urgent/routine) — same key/value shape as
+  // the Today page uses. Editing here writes to data.huddleSettings.
+  // savedSlotFilters[key], so the change applies wherever the dashboard
+  // reads that filter (Today urgent breakdown, capacity gauges, etc.) —
+  // we deliberately don't fork separate filters for capacity planning.
+  const persistFilter = (key, value) => {
+    if (!canEdit) return;
+    const newSaved = { ...hs.savedSlotFilters, [key]: value };
+    saveData({ ...data, huddleSettings: { ...hs, savedSlotFilters: newSaved } }, false);
+  };
 
   useEffect(() => {
     const lat = data?._v4?.practiceLatitude;
@@ -129,6 +229,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           monthStr:date.toLocaleString('en-GB',{month:'short'}),hasData,isToday,isBH,isPast,
           amS,pmS,amT,pmT,rA,rE,rB,rTotal:rA+rE+rB,
           predicted,dc,needed:predicted?Math.round(predicted*convRate):0,
+          // Full pred object (factors, confidence band, demand level) is
+          // surfaced in the day-detail panel so the user can see WHY a
+          // particular day is rated the way it is.
+          pred,
           uCap,routCap:hasData&&!isBH?getHuddleCapacity(huddleData,dateStr,hs,routOv):null,
           amDuty,pmDuty});
       }
@@ -308,8 +412,31 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         <div className="hidden lg:block rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
           <div className="px-5 py-3 flex items-center justify-between" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
             <span className="text-sm font-semibold text-white">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr} — who and where</span>
-            <button onClick={()=>setSelectedDay(null)} className="text-white/60 hover:text-white text-sm font-bold" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
+            <div className="flex items-center gap-1">
+              {/* Slot-filter cogs — let the user adjust which slot types
+                  count as urgent vs routine right from the day-detail
+                  view. Both cogs share the practice's savedSlotFilters
+                  so a change here reflects on the Today page too. */}
+              <span className="text-[10px] text-slate-500 mr-1">Urgent</span>
+              <SlotFilter
+                overrides={urgOv}
+                setOverrides={(v) => persistFilter('urgent', v)}
+                knownSlotTypes={knownSlotTypes}
+                title="Urgent slot types"
+                readOnly={!canEdit}
+              />
+              <span className="text-[10px] text-slate-500 ml-2 mr-1">Routine</span>
+              <SlotFilter
+                overrides={routOv}
+                setOverrides={(v) => persistFilter('routine', v)}
+                knownSlotTypes={knownSlotTypes}
+                title="Routine slot types"
+                readOnly={!canEdit}
+              />
+              <button onClick={()=>setSelectedDay(null)} className="text-white/60 hover:text-white text-sm font-bold ml-2" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
+            </div>
           </div>
+          <PredictionBand day={detailDay} convRate={convRate} />
           <div className="grid grid-cols-3 gap-0">
             <div className="p-5" style={{borderRight:"1px solid rgba(255,255,255,0.06)"}}>
               <div className="flex items-center gap-2 mb-3">
@@ -488,12 +615,13 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   <div className="px-4 pb-3 -mt-1">
                     <div className="rounded-lg overflow-hidden" style={{background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)'}}>
                       <div className="px-3 py-2 flex items-center justify-between" style={{borderBottom: '1px solid rgba(99,102,241,0.15)'}}>
-                        <div>
-                          <div className="text-xs font-semibold text-slate-200">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</div>
-                          {detailDay.predicted && <div className="text-[10px] text-slate-500">Predicted demand: <span style={{color: detailDay.dc.text, fontWeight: 600}}>{detailDay.predicted}</span></div>}
-                        </div>
+                        <div className="text-xs font-semibold text-slate-200">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</div>
                         <button onClick={() => setSelectedDay(null)} className="text-slate-500 hover:text-white text-xs" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
                       </div>
+                      {/* Full prediction band — driver factors, confidence
+                          range, and demand level all visible at the top of
+                          the mobile card too. */}
+                      <PredictionBand day={detailDay} convRate={convRate} />
                       <div className="p-3 space-y-2">
                         {/* AM urgent */}
                         {(() => {
