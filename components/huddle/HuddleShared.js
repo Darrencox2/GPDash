@@ -401,14 +401,18 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
   // Available = the panel's accent, Embargoed = amber, Booked = red,
   // Blocked = neutral grey (rare but does appear in some practices).
   const STATUS_STYLE = {
-    available: { bg: `${accent}15`, border: `${accent}30`, text: accent, label: 'Avail' },
-    embargoed: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', text: '#fbbf24', label: 'Emb' },
-    booked: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', text: '#f87171', label: 'Bkd' },
-    blocked: { bg: 'rgba(100,116,139,0.15)', border: 'rgba(100,116,139,0.3)', text: '#94a3b8', label: 'Blkd' },
+    available: { bg: `${accent}15`, border: `${accent}30`, text: accent, label: 'Avail', rank: 0 },
+    embargoed: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', text: '#fbbf24', label: 'Emb', rank: 1 },
+    booked: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', text: '#f87171', label: 'Bkd', rank: 2 },
+    blocked: { bg: 'rgba(100,116,139,0.15)', border: 'rgba(100,116,139,0.3)', text: '#94a3b8', label: 'Blkd', rank: 3 },
   };
 
-  // Group rows under AM / PM headers based on the time string. Mirrors
-  // the parser's session derivation logic so the boundary is consistent.
+  // EMIS's "Appointment huddle dashboard" CSV doesn't emit per-slot times
+  // — every row carries either "Before 12:59" or "After 13:00" as a
+  // session bucket. So instead of a misleading time column, we group
+  // rows by session and show slot type + count + status in each row.
+  // The `sessionFor` derivation matches the parser's logic exactly so
+  // a row's group is consistent with how it was parsed.
   const sessionFor = (timeStr) => {
     if (!timeStr) return 'am';
     const t = timeStr.toLowerCase();
@@ -418,17 +422,32 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
     if (m) return parseInt(m[1], 10) >= 13 ? 'pm' : 'am';
     return 'am';
   };
-  const amRows = filteredRows.filter(r => sessionFor(r.time) === 'am');
-  const pmRows = filteredRows.filter(r => sessionFor(r.time) === 'pm');
+  // Sort within each session: status priority (Avail → Emb → Bkd → Blkd)
+  // then alphabetical slot type. Without real times, this is the most
+  // useful ordering — admins scanning the panel want to see what's bookable
+  // first, then what's coming free, then what's already taken.
+  const sortRows = (rows) => rows.slice().sort((a, b) => {
+    const rA = STATUS_STYLE[a.status]?.rank ?? 9;
+    const rB = STATUS_STYLE[b.status]?.rank ?? 9;
+    if (rA !== rB) return rA - rB;
+    return (a.slotType || '').localeCompare(b.slotType || '');
+  });
+  const amRows = sortRows(filteredRows.filter(r => sessionFor(r.time) === 'am'));
+  const pmRows = sortRows(filteredRows.filter(r => sessionFor(r.time) === 'pm'));
 
-  // Single-row renderer used for both sessions and the fallback.
+  // Single-row renderer used for both sessions and the fallback. No time
+  // column — slot type takes the lead, count appears as a pill on the
+  // right when > 1, status pill at the end.
   const SlotRow = ({ row, i }) => {
     const style = STATUS_STYLE[row.status] || STATUS_STYLE.available;
     return (
       <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-        <span className="font-mono-data text-xs text-slate-400 flex-shrink-0" style={{ minWidth: 56 }}>{row.time || '—'}</span>
         <span className="text-xs text-slate-300 truncate flex-1">{row.slotType}</span>
-        {row.count > 1 && <span className="text-[10px] text-slate-500 flex-shrink-0">×{row.count}</span>}
+        {row.count > 1 && (
+          <span className="font-mono-data text-[10px] text-slate-400 flex-shrink-0 px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            ×{row.count}
+          </span>
+        )}
         <span
           className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-semibold flex-shrink-0"
           style={{ background: style.bg, border: `1px solid ${style.border}`, color: style.text }}
