@@ -3,6 +3,8 @@ import { useState, useMemo } from 'react';
 import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations, getSiteColour } from '@/lib/huddle';
 import { canEditPracticeData } from '@/lib/permissions';
+import { ClinicianDayPanel } from './HuddleShared';
+import SidePanel from './SidePanel';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -19,7 +21,7 @@ const ROLE_COLOURS = {
   'Medical Student': 'bg-rose-50 border-rose-200 text-rose-800',
 };
 
-function PersonCard({ person, status, reason, onDragStart, onHide, location, sessionLoc, getSiteCol }) {
+function PersonCard({ person, status, reason, onClick, onHide, location, sessionLoc, getSiteCol }) {
   const isAbsent = status === 'absent';
   const isDayOff = status === 'dayoff';
   const displayName = person.title ? `${person.title} ${person.name}` : person.name;
@@ -38,12 +40,21 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
   const hasLoc = !isAbsent && !isDayOff && (aLoc || pLoc);
   const isSplit = hasLoc && aLoc && pLoc && aLoc !== pLoc;
 
+  // Only "present" people have CSV slot data — clicking absent or day-off
+  // shouldn't open the panel because there's nothing to show.
+  const isClickable = !!onClick && !isAbsent && !isDayOff;
+
   return (
-    <div draggable onDragStart={(e) => { e.stopPropagation(); onDragStart?.(e); }}
-      className="glass-inner rounded-lg transition-all cursor-grab active:cursor-grabbing group relative px-3 py-2 flex items-center justify-between">
+    <button
+      type="button"
+      onClick={isClickable ? onClick : undefined}
+      disabled={!isClickable}
+      className={`glass-inner rounded-lg transition-all group relative px-3 py-2 flex items-center justify-between text-left w-full ${isClickable ? 'cursor-pointer hover:bg-white/5' : 'cursor-default'}`}
+    >
       {onHide && (
-        <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
-          className="opacity-0 group-hover:opacity-100 text-xs text-slate-500 hover:text-red-400 transition-opacity absolute top-1 right-1 z-10">✕</button>
+        <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
+          role="button"
+          className="opacity-0 group-hover:opacity-100 text-xs text-slate-500 hover:text-red-400 transition-opacity absolute top-1 right-1 z-10 cursor-pointer">✕</span>
       )}
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
@@ -63,19 +74,18 @@ function PersonCard({ person, status, reason, onDragStart, onHide, location, ses
           <div className="rounded-b-sm flex items-center justify-center text-[9px] font-bold text-white" style={{ width: 22, height: 13, background: isSplit ? pC : aC }}>{pLoc?.charAt(0) || aLoc?.charAt(0) || '?'}</div>
         </div>
       )}
-    </div>
+    </button>
   );
 }
 
-function DropZone({ onDrop, children, isEmpty }) {
-  const [dragOver, setDragOver] = useState(false);
+// PeopleGrid — replaces the old DropZone. We no longer support drag-drop
+// to manually move people between Present / Absent / Day Off columns —
+// users now rely on the rota and CSV to drive that classification, and
+// click any present person to open their slot breakdown.
+function PeopleGrid({ children, isEmpty }) {
   return (
-    <div onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
-      onDragLeave={(e) => { e.stopPropagation(); setDragOver(false); }}
-      onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); onDrop?.(e); }}
-      className={`min-h-[40px] rounded-xl border-2 border-dashed p-1.5 transition-all ${dragOver ? 'border-indigo-400' : 'border-transparent'}`}
-      style={{ background: dragOver ? 'rgba(99,102,241,0.05)' : 'transparent' }}>
-      {isEmpty && !dragOver && <div className="flex items-center justify-center py-2 text-xs text-slate-600">None</div>}
+    <div className="min-h-[40px] p-1.5">
+      {isEmpty && <div className="flex items-center justify-center py-2 text-xs text-slate-600">None</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">{children}</div>
     </div>
   );
@@ -87,6 +97,10 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   const siteCol = (name) => getSiteColour(name, sites);
   const [showSettings, setShowSettings] = useState(false);
   const [showAbsent, setShowAbsent] = useState(false);
+  // Clicking a present person opens their slot breakdown in a SidePanel.
+  // Stores the person object (the team-register entry) so we can look up
+  // their CSV name via matchesStaffMember on each cap.am.byClinician row.
+  const [selectedPerson, setSelectedPerson] = useState(null);
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
 
@@ -241,38 +255,9 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   // ── NOW safe to early return ───────────────────────────────────────
   if (!DAYS.includes(dayName) || allClinicians.length === 0) return null;
 
-  // ── Drag handlers ─────────────────────────────────────────────────
-  const handleDragStart = (e, person) => {
-    e.dataTransfer.setData('whosInPerson', JSON.stringify({ id: person.id }));
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const moveToColumn = (personJson, targetColumn) => {
-    if (!canEdit) return;  // read-only for non-admin users
-    try {
-      const { id } = JSON.parse(personJson);
-      if (typeof id !== 'number') return;
-      const currentScheduled = manualOverride?.scheduled
-        ? [...ensureArray(manualOverride.scheduled)]
-        : [...rotaScheduled];
-      const currentPresent = manualPresent
-        ? [...manualPresent]
-        : categories.inPractice.filter(e => typeof e.person.id === 'number').map(e => e.person.id);
-
-      let newPresent, newScheduled;
-      if (targetColumn === 'present') {
-        newPresent = currentPresent.includes(id) ? currentPresent : [...currentPresent, id];
-        newScheduled = currentScheduled.includes(id) ? currentScheduled : [...currentScheduled, id];
-      } else if (targetColumn === 'absent') {
-        newPresent = currentPresent.filter(cid => cid !== id);
-        newScheduled = currentScheduled.includes(id) ? currentScheduled : [...currentScheduled, id];
-      } else {
-        newPresent = currentPresent.filter(cid => cid !== id);
-        newScheduled = currentScheduled.filter(cid => cid !== id);
-      }
-      saveData({ ...data, dailyOverrides: { ...data.dailyOverrides, [dayKey]: { present: newPresent, scheduled: newScheduled } } });
-    } catch (e) { console.error(e); }
-  };
+  // Drag-drop manual overrides have been removed — clinicians' status
+  // (Present / Absent / Day Off) is driven by the rota + CSV. Clicking a
+  // present clinician opens their slot breakdown instead.
 
   const hidePerson = (id) => {
     if (!canEdit) return;
@@ -289,7 +274,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   const hiddenPeople = allClinicians.filter(c => c.showWhosIn === false && c.status !== 'left' && c.status !== 'administrative');
 
   return (
-    <div className="rounded-xl overflow-hidden glass" onDragOver={(e) => e.stopPropagation()} onDrop={(e) => e.stopPropagation()}>
+    <div className="rounded-xl overflow-hidden glass">
       <div className="glass-header px-4 py-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -326,9 +311,9 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
               <div className="w-1 h-3.5 rounded-full" style={{background:section.colour}} />
               <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">{section.label} ({section.team.length})</span>
             </div>
-            <DropZone onDrop={(e) => moveToColumn(e.dataTransfer.getData('whosInPerson'), 'present')} isEmpty={section.team.length === 0}>
-              {section.team.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
-            </DropZone>
+            <PeopleGrid isEmpty={section.team.length === 0}>
+              {section.team.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onClick={() => setSelectedPerson({ person: e.person, accent: section.colour })} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
+            </PeopleGrid>
           </div>
         ))}
 
@@ -345,8 +330,8 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
             </button>
             {showAbsent && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
-                {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onDragStart={(ev) => handleDragStart(ev, e.person)} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
+                {categories.leaveAbsent.map(e => <PersonCard key={e.person.id} person={e.person} status="absent" reason={e.reason} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
+                {categories.dayOff.map(e => <PersonCard key={e.person.id} person={e.person} status="dayoff" onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
               </div>
             )}
           </div>
@@ -367,51 +352,70 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         )}
       </div>
 
-      {/* Right-side settings panel */}
-      {showSettings && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="flex-1 bg-black/20" onClick={() => setShowSettings(false)} />
-          <div className="w-80 shadow-2xl flex flex-col h-full animate-slide-in-right" style={{background:"#0f172a",borderLeft:"1px solid rgba(255,255,255,0.08)"}}>
-            <div className="px-4 py-3 flex items-center justify-between flex-shrink-0" style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
-              <div className="text-sm font-semibold text-slate-200">Who's In Settings</div>
-              <button onClick={() => setShowSettings(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10">✕</button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {hiddenPeople.length > 0 && (
-                <div className="px-4 py-3 border-b border-slate-100">
-                  <div className="text-xs font-semibold text-slate-600 mb-2">Hidden People</div>
-                  <p className="text-[13px] text-slate-400 mb-2">Click to restore.</p>
-                  <div className="space-y-1">
-                    {hiddenPeople.map(c => (
-                      <button key={c.id} onClick={() => showPerson(c.id)}
-                        className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-emerald-400 transition-colors flex items-center justify-between" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)"}}>
-                        <span>{c.name}</span><span className="text-xs text-slate-400">restore</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {Object.entries(STAFF_GROUPS).map(([groupKey, groupInfo]) => {
-                const groupPeople = allClinicians.filter(c => c.group === groupKey && c.status !== 'left' && c.status !== 'administrative');
-                if (groupPeople.length === 0) return null;
-                return (
-                  <div key={groupKey} className="px-4 py-3 border-b border-slate-100">
-                    <div className="text-xs font-semibold text-slate-600 mb-2">{groupInfo.label}</div>
-                    <div className="space-y-1">
-                      {groupPeople.map(c => (
-                        <button key={c.id} onClick={() => c.showWhosIn !== false ? hidePerson(c.id) : showPerson(c.id)}
-                          className="w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between" style={{background: c.showWhosIn !== false ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: c.showWhosIn !== false ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.06)', color: c.showWhosIn !== false ? '#34d399' : '#64748b'}}>
-                          <span>{c.name}</span><span className="text-xs opacity-60">{c.role}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+      {/* Settings — unified right-side panel */}
+      <SidePanel
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="Who's In settings"
+        subtitle="Hide / show people on this card"
+        accent="#06b6d4"
+        width="md"
+      >
+        {hiddenPeople.length > 0 && (
+          <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Hidden — click to restore</div>
+            <div className="space-y-1">
+              {hiddenPeople.map(c => (
+                <button key={c.id} onClick={() => showPerson(c.id)}
+                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-emerald-400 transition-colors flex items-center justify-between" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)"}}>
+                  <span>{c.name}</span><span className="text-xs text-slate-500">restore</span>
+                </button>
+              ))}
             </div>
           </div>
-        </div>
-      )}
+        )}
+        {Object.entries(STAFF_GROUPS).map(([groupKey, groupInfo]) => {
+          const groupPeople = allClinicians.filter(c => c.group === groupKey && c.status !== 'left' && c.status !== 'administrative');
+          if (groupPeople.length === 0) return null;
+          return (
+            <div key={groupKey} className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{groupInfo.label}</div>
+              <div className="space-y-1">
+                {groupPeople.map(c => (
+                  <button key={c.id} onClick={() => c.showWhosIn !== false ? hidePerson(c.id) : showPerson(c.id)}
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between" style={{background: c.showWhosIn !== false ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: c.showWhosIn !== false ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.06)', color: c.showWhosIn !== false ? '#34d399' : '#64748b'}}>
+                    <span>{c.name}</span><span className="text-xs opacity-60">{c.role}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </SidePanel>
+
+      {/* Slot breakdown — opens when a present person is clicked. CSV
+          name lookup uses matchesStaffMember to find the matching CSV row
+          for the clicked team-register person. */}
+      {selectedPerson && (() => {
+        const csvName = todayCsvClinicians.find(n => matchesStaffMember(n, selectedPerson.person));
+        if (!csvName) return (
+          <SidePanel open={true} onClose={() => setSelectedPerson(null)} title={selectedPerson.person.name} accent={selectedPerson.accent}>
+            <div className="px-4 py-8 text-center text-sm text-slate-500">No CSV slot data found for this person on this date.</div>
+          </SidePanel>
+        );
+        return (
+          <ClinicianDayPanel
+            clinicianName={csvName}
+            dateStr={viewingDateStr}
+            huddleData={huddleData}
+            huddleSettings={data?.huddleSettings}
+            overrides={null}
+            teamClinicians={allClinicians}
+            onClose={() => setSelectedPerson(null)}
+            accent={selectedPerson.accent}
+          />
+        );
+      })()}
     </div>
   );
 }

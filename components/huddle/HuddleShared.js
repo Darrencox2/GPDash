@@ -1,7 +1,8 @@
 'use client';
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { getHuddleCapacity, getNDayAvailability } from '@/lib/huddle';
+import { getHuddleCapacity, getNDayAvailability, parseHuddleDateStr } from '@/lib/huddle';
 import { matchesStaffMember } from '@/lib/data';
+import SidePanel from './SidePanel';
 
 export const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200',
@@ -67,11 +68,19 @@ export function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#1
 }
 
 // ── Capacity Day Detail Panel (right slide-out) ──────────────────
-export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, overrides, teamClinicians, onClose }) {
+// CapacityDayPanel — slide-out shown when a user clicks a day-bar in any of
+// the capacity strips. Replaces the previous light-themed inline panel
+// with the unified dark SidePanel so it matches the rest of the dashboard.
+//
+// Phase 1 (this version): per-clinician summary of available / embargoed /
+//   booked slots for the day, plus a slot-type breakdown.
+// Phase 2 (next push): per-row time strings and per-clinician drill-down
+//   into individual slots.
+export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, overrides, teamClinicians, onClose, accent = '#06b6d4' }) {
   if (!dateStr || !huddleData) return null;
   const cap = getHuddleCapacity(huddleData, dateStr, huddleSettings, overrides);
 
-  // Merge AM+PM clinician data into unified list
+  // Merge AM+PM clinician data into a single per-clinician row
   const mergedClinicians = {};
   [...cap.am.byClinician, ...cap.pm.byClinician].forEach(c => {
     if (!mergedClinicians[c.name]) mergedClinicians[c.name] = { name: c.name, available: 0, embargoed: 0, booked: 0 };
@@ -79,99 +88,109 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
     mergedClinicians[c.name].embargoed += c.embargoed || 0;
     mergedClinicians[c.name].booked += c.booked || 0;
   });
-  const allClinicians = Object.values(mergedClinicians).sort((a, b) => (b.available + b.embargoed + b.booked) - (a.available + a.embargoed + a.booked));
+  const allClinicians = Object.values(mergedClinicians).sort((a, b) =>
+    (b.available + b.embargoed + b.booked) - (a.available + a.embargoed + a.booked)
+  );
 
   const totalAvail = allClinicians.reduce((s, c) => s + c.available, 0);
   const totalEmb = allClinicians.reduce((s, c) => s + c.embargoed, 0);
   const totalBooked = allClinicians.reduce((s, c) => s + c.booked, 0);
 
+  // Format the date nicely for the panel header. dateStr is "DD-Mmm-YYYY".
+  const niceDate = (() => {
+    try {
+      const d = parseHuddleDateStr(dateStr);
+      return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    } catch { return dateStr; }
+  })();
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="flex-1 bg-black/20" onClick={onClose} />
-      <div className="w-96 bg-white shadow-2xl border-l border-slate-200 flex flex-col h-full animate-slide-in-right">
-        <div className="px-5 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between flex-shrink-0">
-          <div>
-            <div className="text-sm font-bold text-white">{dateStr}</div>
-            <div className="text-[10px] text-white/70">
-              {totalAvail + totalEmb} available · {totalBooked} booked
-            </div>
+    <SidePanel
+      open={true}
+      onClose={onClose}
+      title={niceDate}
+      subtitle={`${totalAvail + totalEmb} available · ${totalBooked} booked`}
+      accent={accent}
+      width="md"
+    >
+      {/* Three-up summary tiles — same colours as the bars below */}
+      <div className="grid grid-cols-3 gap-px" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex flex-col items-center py-3" style={{ background: 'rgba(15,23,42,0.5)' }}>
+          <div className="flex items-center gap-1 mb-0.5">
+            <div className="w-2 h-2 rounded-full" style={{ background: accent }} />
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Available</span>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">✕</button>
+          <span className="font-mono-data text-xl font-bold" style={{ color: accent }}>{totalAvail}</span>
         </div>
-
-        {/* Summary pills */}
-        <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100">
-          <div className="flex flex-col items-center py-3">
-            <div className="flex items-center gap-1 mb-0.5"><div className="w-2 h-2 rounded-full bg-emerald-400" /><span className="text-[10px] text-slate-500">Available</span></div>
-            <span className="text-xl font-bold text-emerald-600">{totalAvail}</span>
+        <div className="flex flex-col items-center py-3" style={{ background: 'rgba(15,23,42,0.5)' }}>
+          <div className="flex items-center gap-1 mb-0.5">
+            <div className="w-2 h-2 rounded-full bg-amber-400" />
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Embargoed</span>
           </div>
-          <div className="flex flex-col items-center py-3">
-            <div className="flex items-center gap-1 mb-0.5"><div className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-[10px] text-slate-500">Embargoed</span></div>
-            <span className="text-xl font-bold text-amber-600">{totalEmb}</span>
-          </div>
-          <div className="flex flex-col items-center py-3">
-            <div className="flex items-center gap-1 mb-0.5"><div className="w-2 h-2 rounded-full bg-slate-400" /><span className="text-[10px] text-slate-500">Booked</span></div>
-            <span className="text-xl font-bold text-slate-600">{totalBooked}</span>
-          </div>
+          <span className="font-mono-data text-xl font-bold text-amber-400">{totalEmb}</span>
         </div>
-
-        {/* Column headers */}
-        <div className="px-5 py-2 border-b border-slate-100 flex items-center">
-          <div className="flex-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Clinician</div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className="w-10 text-center text-[9px] font-semibold text-emerald-600 uppercase">Avail</span>
-            <span className="w-10 text-center text-[9px] font-semibold text-amber-600 uppercase">Emb</span>
-            <span className="w-10 text-center text-[9px] font-semibold text-slate-500 uppercase">Bkd</span>
+        <div className="flex flex-col items-center py-3" style={{ background: 'rgba(15,23,42,0.5)' }}>
+          <div className="flex items-center gap-1 mb-0.5">
+            <div className="w-2 h-2 rounded-full bg-red-400" />
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Booked</span>
           </div>
-        </div>
-
-        {/* Clinician list */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="px-4 py-3 space-y-1.5">
-            {allClinicians.length > 0 ? allClinicians.map((c, i) => {
-              const matched = (teamClinicians || []).find(tc => matchesStaffMember(c.name, tc));
-              const displayName = matched?.name || c.name;
-              const role = matched?.role || '';
-              const roleColour = ROLE_COLOURS[role] || 'bg-slate-50 border-slate-200';
-              return (
-                <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${roleColour}`}>
-                  <svg className="w-5 h-5 opacity-50 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                  </svg>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold truncate">{displayName}</div>
-                    <div className="text-[10px] opacity-60 truncate">{role || 'Staff'}</div>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="w-10 text-center text-sm font-bold tabular-nums text-emerald-600 bg-emerald-50 rounded py-0.5">{c.available}</span>
-                    <span className="w-10 text-center text-sm font-bold tabular-nums text-amber-600 bg-amber-50 rounded py-0.5">{c.embargoed}</span>
-                    <span className="w-10 text-center text-sm font-bold tabular-nums text-slate-600 bg-slate-100 rounded py-0.5">{c.booked}</span>
-                  </div>
-                </div>
-              );
-            }) : <div className="text-center text-slate-400 text-xs py-3">No clinicians</div>}
-          </div>
-
-          {/* Slot type breakdown */}
-          {cap.bySlotType.length > 0 && (
-            <div className="px-5 py-3 border-t border-slate-100">
-              <div className="text-xs font-semibold text-slate-500 uppercase mb-2">By Slot Type</div>
-              <div className="space-y-1">
-                {cap.bySlotType.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between py-1 text-xs">
-                    <span className="text-slate-600 truncate mr-2">{s.name}</span>
-                    <div className="flex items-center gap-2 tabular-nums flex-shrink-0">
-                      <span className="text-emerald-600 font-medium">{s.total + (s.totalEmb||0)}</span>
-                      {(s.totalBook||0) > 0 && <span className="text-slate-400">({s.totalBook})</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <span className="font-mono-data text-xl font-bold text-red-400">{totalBooked}</span>
         </div>
       </div>
-    </div>
+
+      {/* Column headers */}
+      <div className="px-4 py-2 flex items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="flex-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Clinician</div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="w-9 text-center text-[9px] font-semibold uppercase tracking-wider" style={{ color: accent }}>Avail</span>
+          <span className="w-9 text-center text-[9px] font-semibold text-amber-400 uppercase tracking-wider">Emb</span>
+          <span className="w-9 text-center text-[9px] font-semibold text-red-400 uppercase tracking-wider">Bkd</span>
+        </div>
+      </div>
+
+      {/* Clinician list */}
+      <div className="px-3 py-2 space-y-1">
+        {allClinicians.length > 0 ? allClinicians.map((c, i) => {
+          const matched = (teamClinicians || []).find(tc => matchesStaffMember(c.name, tc));
+          const displayName = matched?.name || c.name;
+          const role = matched?.role || '';
+          const title = matched?.title || '';
+          return (
+            <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-slate-200 truncate">{title ? `${title} ` : ''}{displayName}</div>
+                {role && <div className="text-[10px] text-slate-500 truncate">{role}</div>}
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className="w-9 text-center text-sm font-mono-data tabular-nums rounded py-0.5" style={{ color: accent, background: `${accent}15` }}>{c.available}</span>
+                <span className="w-9 text-center text-sm font-mono-data tabular-nums text-amber-400 bg-amber-500/10 rounded py-0.5">{c.embargoed}</span>
+                <span className="w-9 text-center text-sm font-mono-data tabular-nums text-red-400 bg-red-500/10 rounded py-0.5">{c.booked}</span>
+              </div>
+            </div>
+          );
+        }) : (
+          <div className="text-center text-slate-500 text-xs py-6">No clinicians for this day</div>
+        )}
+      </div>
+
+      {/* Slot type breakdown — only when we have type data */}
+      {cap.bySlotType.length > 0 && (
+        <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">By slot type</div>
+          <div className="space-y-1">
+            {cap.bySlotType.map((s, i) => (
+              <div key={i} className="flex items-center justify-between py-1 text-xs">
+                <span className="text-slate-400 truncate mr-2">{s.name}</span>
+                <div className="flex items-center gap-2 tabular-nums flex-shrink-0">
+                  <span className="font-medium" style={{ color: accent }}>{s.total + (s.totalEmb || 0)}</span>
+                  {(s.totalBook || 0) > 0 && <span className="text-slate-600">({s.totalBook})</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </SidePanel>
   );
 }
 
@@ -289,8 +308,106 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}} /><span className="text-xs text-slate-500">Embargoed</span></div>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444',backgroundSize:'5px 5px'}} /><span className="text-xs text-slate-500">Booked</span></div>
       </div>
-      {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
+      {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} accent={availColour} />}
     </div>
+  );
+}
+
+// ClinicianDayPanel — slide-out shown when a user clicks a specific
+// clinician anywhere on the dashboard (urgent on-the-day, Who's In,
+// day-click drill-down). Shows their slots for the date split by AM /
+// PM / status.
+//
+// Phase 1 (this version): aggregated counts by AM/PM session and by
+// status. Same data the existing `byClinician` carries, just per-person.
+// Phase 2 (next push): individual rows with start times, when the parser
+// captures them.
+export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSettings, overrides, teamClinicians, onClose, accent = '#06b6d4' }) {
+  if (!clinicianName || !dateStr || !huddleData) return null;
+  const cap = getHuddleCapacity(huddleData, dateStr, huddleSettings, overrides);
+
+  const amRow = cap.am.byClinician.find(c => c.name === clinicianName) || null;
+  const pmRow = cap.pm.byClinician.find(c => c.name === clinicianName) || null;
+  const amTotal = (amRow?.available || 0) + (amRow?.embargoed || 0) + (amRow?.booked || 0);
+  const pmTotal = (pmRow?.available || 0) + (pmRow?.embargoed || 0) + (pmRow?.booked || 0);
+
+  const totalAvail = (amRow?.available || 0) + (pmRow?.available || 0);
+  const totalEmb = (amRow?.embargoed || 0) + (pmRow?.embargoed || 0);
+  const totalBooked = (amRow?.booked || 0) + (pmRow?.booked || 0);
+
+  const matched = (teamClinicians || []).find(tc => matchesStaffMember(clinicianName, tc));
+  const displayName = matched?.name || clinicianName;
+  const role = matched?.role || '';
+  const title = matched?.title || '';
+
+  const niceDate = (() => {
+    try {
+      const d = parseHuddleDateStr(dateStr);
+      return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    } catch { return dateStr; }
+  })();
+
+  const SessionBlock = ({ label, row, sessionTotal }) => {
+    if (!row || sessionTotal === 0) return null;
+    return (
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
+          <span className="font-mono-data text-sm font-bold text-slate-300">{sessionTotal} slots</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: `${accent}10`, border: `1px solid ${accent}25` }}>
+            <div className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: accent }}>Avail</div>
+            <div className="font-mono-data text-base font-bold" style={{ color: accent }}>{row.available || 0}</div>
+          </div>
+          <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <div className="text-[9px] uppercase tracking-wider text-amber-400 mb-0.5">Emb</div>
+            <div className="font-mono-data text-base font-bold text-amber-400">{row.embargoed || 0}</div>
+          </div>
+          <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+            <div className="text-[9px] uppercase tracking-wider text-red-400 mb-0.5">Bkd</div>
+            <div className="font-mono-data text-base font-bold text-red-400">{row.booked || 0}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <SidePanel
+      open={true}
+      onClose={onClose}
+      title={`${title ? `${title} ` : ''}${displayName}`}
+      subtitle={
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <span>{niceDate}</span>
+          {role && <><span>·</span><span>{role}</span></>}
+        </div>
+      }
+      accent={accent}
+      width="md"
+    >
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono-data text-3xl font-bold" style={{ color: accent }}>{totalAvail + totalEmb}</span>
+          <span className="text-xs text-slate-500">available today</span>
+          {totalBooked > 0 && <span className="text-xs text-slate-600 ml-auto">{totalBooked} booked</span>}
+        </div>
+      </div>
+
+      {amTotal === 0 && pmTotal === 0 ? (
+        <div className="px-4 py-8 text-center text-sm text-slate-500">No slots for this clinician on this date.</div>
+      ) : (
+        <>
+          <SessionBlock label="Morning" row={amRow} sessionTotal={amTotal} />
+          <SessionBlock label="Afternoon" row={pmRow} sessionTotal={pmTotal} />
+        </>
+      )}
+
+      <div className="px-4 py-3 text-[11px] text-slate-600 italic" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        Individual slot times coming soon — for now see the AM/PM split above.
+      </div>
+    </SidePanel>
   );
 }
 
@@ -401,7 +518,7 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}} /><span className="text-xs text-slate-500">Embargoed</span></div>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:HATCH,backgroundSize:'5px 5px'}} /><span className="text-xs text-slate-500">Booked</span></div>
       </div>
-      {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} />}
+      {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} accent="#10b981" />}
     </div>
   );
 }

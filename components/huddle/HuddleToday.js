@@ -8,7 +8,7 @@ import HuddleFullscreen from './HuddleFullscreen';
 import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr, logEvent } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
-import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge, ACCENT_BAR_COLOURS } from './HuddleShared';
+import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge, ACCENT_BAR_COLOURS, ClinicianDayPanel } from './HuddleShared';
 import { canEditPracticeData } from '@/lib/permissions';
 import NhsBenchmarkRibbon from './NhsBenchmarkRibbon';
 import RoutineWaitTime from './RoutineWaitTime';
@@ -97,6 +97,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   // being dragged + the index it's hovering over for the drop indicator.
   const [draggingCardIdx, setDraggingCardIdx] = useState(null);
   const [dragOverCardIdx, setDragOverCardIdx] = useState(null);
+  // Clicking a clinician in the urgent on-the-day list opens their slot
+  // breakdown in a side panel. Store both the clinician name (for lookup
+  // in the parsed CSV) and the accent colour to use for the panel —
+  // matches whichever band colour the clinician was rendered in.
+  const [selectedUrgentClinician, setSelectedUrgentClinician] = useState(null);
 
   // Date navigation helpers
   const realToday = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
@@ -823,7 +828,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                   </div>
                   {dutyDocDisplay && (
-                    <div className="rounded-lg overflow-hidden mb-2" style={{ background: '#dc2626', boxShadow: '0 2px 8px rgba(220,38,38,0.2)' }}>
+                    <button
+                      onClick={() => setSelectedUrgentClinician({ name: dutyDocDisplay.csvName, accent: '#dc2626' })}
+                      className="rounded-lg overflow-hidden mb-2 w-full text-left transition-transform hover:scale-[1.01]"
+                      style={{ background: '#dc2626', boxShadow: '0 2px 8px rgba(220,38,38,0.2)', cursor: 'pointer' }}
+                    >
                       <div className="flex items-center gap-2.5 px-3 py-2.5">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="white" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
                         <div className="flex-1 min-w-0">
@@ -832,13 +841,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         </div>
                         <span className="font-mono-data text-base font-bold text-white flex-shrink-0">{dutyDocDisplay.total}</span>
                       </div>
-                    </div>
+                    </button>
                   )}
                   <div className="flex flex-col gap-2">
                     {clinicians.map((c, i) => {
                       const locPill = c.location ? siteCol(c.location) : null;
                       return (
-                        <div key={i} className="glass-inner rounded-lg px-3 py-2 flex items-center justify-between">
+                        <button
+                          key={i}
+                          onClick={() => setSelectedUrgentClinician({ name: c.name, accent: band.colour })}
+                          className="glass-inner rounded-lg px-3 py-2 flex items-center justify-between text-left transition-colors hover:bg-white/5"
+                          style={{ cursor: 'pointer' }}
+                        >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{fontFamily:"'Outfit',sans-serif",background: band.colour, boxShadow:`0 0 6px ${band.colour}30`}}>{c.initials}</div>
                             <div className="min-w-0">
@@ -850,7 +864,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                             <span className="font-mono-data text-sm font-bold" style={{color: band.colour}}>{c.total}</span>
                             {locPill && <div className="w-5 h-5 rounded flex items-center justify-center text-xs font-bold text-white" style={{background:locPill}}>{c.location.charAt(0)}</div>}
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                     {clinicians.length === 0 && <div className="text-center text-slate-400 text-sm py-3">No capacity</div>}
@@ -1000,10 +1014,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   ))}
                 </div>
 
-                <details className="border-t border-white/10">
-                  <summary className="px-4 py-2 text-xs text-slate-500 cursor-pointer hover:text-slate-300 flex items-center justify-center gap-1">
-                    28-day chart
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+                <details className="border-t border-white/10 group">
+                  <summary
+                    className="px-4 py-3 text-sm text-slate-300 cursor-pointer flex items-center justify-center gap-2 transition-colors hover:bg-white/5"
+                    style={{ listStyle: 'none' }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400 transition-transform group-open:rotate-180"><path d="M6 9l6 6 6-6"/></svg>
+                    <span className="font-medium">View next 28 days</span>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">expand</span>
                   </summary>
                   <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={effectiveRoutineOverrides} teamClinicians={teamClinicians} />
                 </details>
@@ -1171,6 +1189,22 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       )}
       </div>
     </div>
+
+    {/* Clinician slot breakdown — opens when a row in the urgent on the
+        day list (or the duty doctor card) is clicked. Uses the urgent
+        overrides so what's shown matches what the user just clicked on. */}
+    {selectedUrgentClinician && (
+      <ClinicianDayPanel
+        clinicianName={selectedUrgentClinician.name}
+        dateStr={displayDate}
+        huddleData={huddleData}
+        huddleSettings={hs}
+        overrides={urgentOverrides}
+        teamClinicians={teamClinicians}
+        onClose={() => setSelectedUrgentClinician(null)}
+        accent={selectedUrgentClinician.accent}
+      />
+    )}
     </div>
   );
 }
