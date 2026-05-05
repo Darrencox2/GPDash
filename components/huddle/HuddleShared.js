@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { getHuddleCapacity, getNDayAvailability, parseHuddleDateStr } from '@/lib/huddle';
+import { getHuddleCapacity, getNDayAvailability, parseHuddleDateStr, getSlotRowsForClinicianDate } from '@/lib/huddle';
 import { matchesStaffMember } from '@/lib/data';
 import SidePanel from './SidePanel';
 
@@ -77,6 +77,11 @@ export function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#1
 // Phase 2 (next push): per-row time strings and per-clinician drill-down
 //   into individual slots.
 export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, overrides, teamClinicians, onClose, accent = '#06b6d4' }) {
+  // Drill-down state: which clinician was clicked inside this panel?
+  // Lifted to component state so the secondary panel can open over the
+  // top of the day panel (proper navigation stack).
+  const [drillClinician, setDrillClinician] = useState(null);
+
   if (!dateStr || !huddleData) return null;
   const cap = getHuddleCapacity(huddleData, dateStr, huddleSettings, overrides);
 
@@ -96,7 +101,6 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
   const totalEmb = allClinicians.reduce((s, c) => s + c.embargoed, 0);
   const totalBooked = allClinicians.reduce((s, c) => s + c.booked, 0);
 
-  // Format the date nicely for the panel header. dateStr is "DD-Mmm-YYYY".
   const niceDate = (() => {
     try {
       const d = parseHuddleDateStr(dateStr);
@@ -105,8 +109,9 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
   })();
 
   return (
+    <>
     <SidePanel
-      open={true}
+      open={!drillClinician}
       onClose={onClose}
       title={niceDate}
       subtitle={`${totalAvail + totalEmb} available · ${totalBooked} booked`}
@@ -138,9 +143,12 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
         </div>
       </div>
 
-      {/* Column headers */}
+      {/* Column headers + click-through hint */}
       <div className="px-4 py-2 flex items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="flex-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Clinician</div>
+        <div className="flex-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+          Clinician
+          <span className="ml-2 text-[9px] text-slate-600 normal-case tracking-normal italic">(click for slots)</span>
+        </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="w-9 text-center text-[9px] font-semibold uppercase tracking-wider" style={{ color: accent }}>Avail</span>
           <span className="w-9 text-center text-[9px] font-semibold text-amber-400 uppercase tracking-wider">Emb</span>
@@ -148,7 +156,10 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
         </div>
       </div>
 
-      {/* Clinician list */}
+      {/* Clinician list — each row is now a button that opens the per-
+          clinician slot breakdown for this date. Same data the rest of
+          the dashboard uses, so a click on a clinician here lands on
+          the same panel as a click on them in urgent on the day. */}
       <div className="px-3 py-2 space-y-1">
         {allClinicians.length > 0 ? allClinicians.map((c, i) => {
           const matched = (teamClinicians || []).find(tc => matchesStaffMember(c.name, tc));
@@ -156,7 +167,13 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
           const role = matched?.role || '';
           const title = matched?.title || '';
           return (
-            <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)' }}>
+            <button
+              key={i}
+              type="button"
+              onClick={() => setDrillClinician(c.name)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors hover:bg-white/5"
+              style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}
+            >
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-slate-200 truncate">{title ? `${title} ` : ''}{displayName}</div>
                 {role && <div className="text-[10px] text-slate-500 truncate">{role}</div>}
@@ -166,7 +183,7 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
                 <span className="w-9 text-center text-sm font-mono-data tabular-nums text-amber-400 bg-amber-500/10 rounded py-0.5">{c.embargoed}</span>
                 <span className="w-9 text-center text-sm font-mono-data tabular-nums text-red-400 bg-red-500/10 rounded py-0.5">{c.booked}</span>
               </div>
-            </div>
+            </button>
           );
         }) : (
           <div className="text-center text-slate-500 text-xs py-6">No clinicians for this day</div>
@@ -191,6 +208,23 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
         </div>
       )}
     </SidePanel>
+
+    {/* Drill-down: clinician slots. Renders at the same z-level as the
+        outer panel — closing it returns to the day panel rather than
+        closing both. */}
+    {drillClinician && (
+      <ClinicianDayPanel
+        clinicianName={drillClinician}
+        dateStr={dateStr}
+        huddleData={huddleData}
+        huddleSettings={huddleSettings}
+        overrides={overrides}
+        teamClinicians={teamClinicians}
+        onClose={() => setDrillClinician(null)}
+        accent={accent}
+      />
+    )}
+    </>
   );
 }
 
@@ -315,21 +349,23 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
 
 // ClinicianDayPanel — slide-out shown when a user clicks a specific
 // clinician anywhere on the dashboard (urgent on-the-day, Who's In,
-// day-click drill-down). Shows their slots for the date split by AM /
-// PM / status.
+// day-click drill-down). Renders the clinician's slots for the date
+// as a time-ordered list, each row tagged with its slot type and
+// availability status (Available / Embargoed / Booked).
 //
-// Phase 1 (this version): aggregated counts by AM/PM session and by
-// status. Same data the existing `byClinician` carries, just per-person.
-// Phase 2 (next push): individual rows with start times, when the parser
-// captures them.
+// Phase 1 showed only AM/PM aggregate counts because the parser
+// hadn't captured per-row times. Phase 2 (this version) consumes
+// parsedData.slotRows populated by the v4.5.31 parser.
+//
+// Backwards compatibility: if a practice has parsed CSV data from
+// before slotRows was added, this falls back to a simple AM/PM
+// summary so the panel still renders rather than going blank.
 export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSettings, overrides, teamClinicians, onClose, accent = '#06b6d4' }) {
   if (!clinicianName || !dateStr || !huddleData) return null;
   const cap = getHuddleCapacity(huddleData, dateStr, huddleSettings, overrides);
 
   const amRow = cap.am.byClinician.find(c => c.name === clinicianName) || null;
   const pmRow = cap.pm.byClinician.find(c => c.name === clinicianName) || null;
-  const amTotal = (amRow?.available || 0) + (amRow?.embargoed || 0) + (amRow?.booked || 0);
-  const pmTotal = (pmRow?.available || 0) + (pmRow?.embargoed || 0) + (pmRow?.booked || 0);
 
   const totalAvail = (amRow?.available || 0) + (pmRow?.available || 0);
   const totalEmb = (amRow?.embargoed || 0) + (pmRow?.embargoed || 0);
@@ -347,13 +383,74 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
     } catch { return dateStr; }
   })();
 
-  const SessionBlock = ({ label, row, sessionTotal }) => {
-    if (!row || sessionTotal === 0) return null;
+  // Pull the time-ordered slot list. If the practice's parsed CSV is
+  // pre-Phase-2 (no slotRows field), this returns []. We fall back to
+  // the AM/PM tile summary in that case so older data still renders.
+  const slotRows = getSlotRowsForClinicianDate(huddleData, dateStr, clinicianName);
+  const hasRows = slotRows.length > 0;
+
+  // Apply the slot-type filter if one was passed in. Same shape the rest
+  // of the dashboard uses: { [slotType]: true | false }. When undefined,
+  // include everything.
+  const filteredRows = overrides && Object.values(overrides).some(Boolean)
+    ? slotRows.filter(r => overrides[r.slotType])
+    : slotRows;
+
+  // STATUS_STYLE — pill colours for each row's availability status. We
+  // keep these aligned with the rest of the dashboard's conventions:
+  // Available = the panel's accent, Embargoed = amber, Booked = red,
+  // Blocked = neutral grey (rare but does appear in some practices).
+  const STATUS_STYLE = {
+    available: { bg: `${accent}15`, border: `${accent}30`, text: accent, label: 'Avail' },
+    embargoed: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', text: '#fbbf24', label: 'Emb' },
+    booked: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', text: '#f87171', label: 'Bkd' },
+    blocked: { bg: 'rgba(100,116,139,0.15)', border: 'rgba(100,116,139,0.3)', text: '#94a3b8', label: 'Blkd' },
+  };
+
+  // Group rows under AM / PM headers based on the time string. Mirrors
+  // the parser's session derivation logic so the boundary is consistent.
+  const sessionFor = (timeStr) => {
+    if (!timeStr) return 'am';
+    const t = timeStr.toLowerCase();
+    if (t.includes('before')) return 'am';
+    if (t.includes('after')) return 'pm';
+    const m = timeStr.match(/(\d{1,2}):/);
+    if (m) return parseInt(m[1], 10) >= 13 ? 'pm' : 'am';
+    return 'am';
+  };
+  const amRows = filteredRows.filter(r => sessionFor(r.time) === 'am');
+  const pmRows = filteredRows.filter(r => sessionFor(r.time) === 'pm');
+
+  // Single-row renderer used for both sessions and the fallback.
+  const SlotRow = ({ row, i }) => {
+    const style = STATUS_STYLE[row.status] || STATUS_STYLE.available;
+    return (
+      <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+        <span className="font-mono-data text-xs text-slate-400 flex-shrink-0" style={{ minWidth: 56 }}>{row.time || '—'}</span>
+        <span className="text-xs text-slate-300 truncate flex-1">{row.slotType}</span>
+        {row.count > 1 && <span className="text-[10px] text-slate-500 flex-shrink-0">×{row.count}</span>}
+        <span
+          className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-semibold flex-shrink-0"
+          style={{ background: style.bg, border: `1px solid ${style.border}`, color: style.text }}
+        >
+          {style.label}
+        </span>
+      </div>
+    );
+  };
+
+  // Backwards-compatible fallback for older parsed data without slotRows.
+  // Same layout as the Phase-1 panel — three colour-coded count tiles per
+  // session — so users on stale data still see something useful.
+  const SessionTileBlock = ({ label, row }) => {
+    if (!row) return null;
+    const t = (row.available || 0) + (row.embargoed || 0) + (row.booked || 0);
+    if (t === 0) return null;
     return (
       <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
-          <span className="font-mono-data text-sm font-bold text-slate-300">{sessionTotal} slots</span>
+          <span className="font-mono-data text-sm font-bold text-slate-300">{t} slots</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: `${accent}10`, border: `1px solid ${accent}25` }}>
@@ -387,6 +484,7 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
       accent={accent}
       width="md"
     >
+      {/* Summary bar — total available with booked count */}
       <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-baseline gap-2">
           <span className="font-mono-data text-3xl font-bold" style={{ color: accent }}>{totalAvail + totalEmb}</span>
@@ -395,18 +493,52 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
         </div>
       </div>
 
-      {amTotal === 0 && pmTotal === 0 ? (
-        <div className="px-4 py-8 text-center text-sm text-slate-500">No slots for this clinician on this date.</div>
+      {hasRows ? (
+        // Phase-2 view: per-slot rows grouped by AM/PM.
+        filteredRows.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-slate-500">No slots match the current filter for this clinician.</div>
+        ) : (
+          <>
+            {amRows.length > 0 && (
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Morning</span>
+                  <span className="text-[10px] text-slate-600">{amRows.reduce((s, r) => s + r.count, 0)} slots</span>
+                </div>
+                <div className="space-y-1">
+                  {amRows.map((r, i) => <SlotRow key={`am-${i}`} row={r} i={i} />)}
+                </div>
+              </div>
+            )}
+            {pmRows.length > 0 && (
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Afternoon</span>
+                  <span className="text-[10px] text-slate-600">{pmRows.reduce((s, r) => s + r.count, 0)} slots</span>
+                </div>
+                <div className="space-y-1">
+                  {pmRows.map((r, i) => <SlotRow key={`pm-${i}`} row={r} i={i} />)}
+                </div>
+              </div>
+            )}
+          </>
+        )
       ) : (
+        // Phase-1 fallback for parsed data that predates slotRows.
+        // Encourages a re-upload so future panels show the full detail.
         <>
-          <SessionBlock label="Morning" row={amRow} sessionTotal={amTotal} />
-          <SessionBlock label="Afternoon" row={pmRow} sessionTotal={pmTotal} />
+          <SessionTileBlock label="Morning" row={amRow} />
+          <SessionTileBlock label="Afternoon" row={pmRow} />
+          {(amRow || pmRow) && (
+            <div className="px-4 py-3 text-[11px] text-slate-600 italic" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              Per-slot times appear after the next CSV upload.
+            </div>
+          )}
+          {!amRow && !pmRow && (
+            <div className="px-4 py-8 text-center text-sm text-slate-500">No slots for this clinician on this date.</div>
+          )}
         </>
       )}
-
-      <div className="px-4 py-3 text-[11px] text-slate-600 italic" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-        Individual slot times coming soon — for now see the AM/PM split above.
-      </div>
     </SidePanel>
   );
 }
