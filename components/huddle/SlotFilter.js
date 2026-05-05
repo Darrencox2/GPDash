@@ -29,7 +29,7 @@ export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show
         }
         setShow(!show);
       }}
-      className={`glass-cog ${show ? 'glass-cog-active' : ''} relative w-8 h-8 rounded-lg flex items-center justify-center ${hasFilter && !show ? '!text-cyan-400 hover:!text-cyan-300' : ''}`}
+      className={`glass-cog ${show ? 'glass-cog-active' : ''} relative w-8 h-8 rounded-lg flex items-center justify-center`}
       title={`Filter slots${selectedCount > 0 ? ` (${selectedCount} selected)` : ''}`}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
