@@ -10,6 +10,8 @@ import AdminNav from '../../AdminNav';
 import PasswordResetButton from './PasswordResetButton';
 import UserActions from './UserActions';
 import GenerateLinkButton from './GenerateLinkButton';
+import SuspensionCard from './SuspensionCard';
+import UserActivityTimeline from './UserActivityTimeline';
 import CopyableValue from '@/components/CopyableValue';
 
 export const dynamic = 'force-dynamic';
@@ -74,6 +76,11 @@ export default async function AdminUserDetailPage({ params }) {
               {details.name && <div style={{ color: '#94a3b8', fontSize: 13 }}>{details.name}</div>}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {details.suspended_at && (
+                <span style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 999, fontWeight: 600 }}>
+                  Suspended
+                </span>
+              )}
               {details.is_platform_admin && (
                 <span style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 999 }}>
                   Platform admin
@@ -98,6 +105,20 @@ export default async function AdminUserDetailPage({ params }) {
 
         {/* All admin actions: profile editing, membership management, delete user */}
         <UserActions user={details} allPractices={allPractices} />
+
+        {/* Activity timeline — recent audit + auth events for this user
+            across every practice they touch. Cross-practice support
+            view: "what has this person actually been doing?" */}
+        <div style={card}>
+          <h3 style={cardHeader}>Recent activity</h3>
+          <UserActivityTimeline userId={details.id} />
+        </div>
+
+        {/* Suspend / unsuspend — less drastic than delete. Reversible. */}
+        <div style={card}>
+          <h3 style={cardHeader}>Suspension</h3>
+          <SuspensionCard user={details} />
+        </div>
 
         {/* Sign-in / confirmation link generation. Useful for users
             stuck on email_unconfirmed, or anyone who can't access their

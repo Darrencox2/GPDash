@@ -36,6 +36,7 @@ const FILTERS = [
   { id: 'never',   label: 'Never signed in',    test: u => !u.last_sign_in_at },
   { id: 'unconfirmed', label: 'Email unconfirmed', test: u => !u.email_confirmed_at },
   { id: 'admins',  label: 'Platform admins',    test: u => u.is_platform_admin },
+  { id: 'suspended', label: 'Suspended',        test: u => u.is_suspended },
   { id: 'orphans', label: 'Orphans',            test: isOrphan },
 ];
 
@@ -59,15 +60,16 @@ export default function UserListTable({ users }) {
   // ─── Stats — computed once from the full unfiltered list ─────────────
   const stats = useMemo(() => {
     const total = users.length;
-    let active = 0, never = 0, admins = 0, orphans = 0, unconfirmed = 0;
+    let active = 0, never = 0, admins = 0, orphans = 0, unconfirmed = 0, suspended = 0;
     for (const u of users) {
       if (isActive30d(u)) active++;
       if (!u.last_sign_in_at) never++;
       if (u.is_platform_admin) admins++;
       if (isOrphan(u)) orphans++;
       if (!u.email_confirmed_at) unconfirmed++;
+      if (u.is_suspended) suspended++;
     }
-    return { total, active, never, admins, orphans, unconfirmed };
+    return { total, active, never, admins, orphans, unconfirmed, suspended };
   }, [users]);
 
   // ─── Apply filter then sort ──────────────────────────────────────────
@@ -104,6 +106,7 @@ export default function UserListTable({ users }) {
         <Stat label="Never signed in" value={stats.never} colour="#94a3b8" />
         <Stat label="Email unconfirmed" value={stats.unconfirmed} colour="#fbbf24" />
         <Stat label="Platform admins" value={stats.admins} colour="#67e8f9" />
+        <Stat label="Suspended"       value={stats.suspended} colour="#fbbf24" />
         <Stat label="Orphans"         value={stats.orphans} colour="#fbbf24" tooltip="Users with no practice memberships who aren't platform admins — they signed up but never finished onboarding (or were removed from every practice)." />
       </div>
 
@@ -165,12 +168,16 @@ export default function UserListTable({ users }) {
 
 function UserRow({ user: u }) {
   const orphan = isOrphan(u);
+  const suspended = !!u.is_suspended;
   return (
     <tr style={{
       borderTop: '1px solid rgba(255,255,255,0.04)',
-      // Subtle amber tint on orphan rows so they stand out without
-      // shouting — they're not errors, just "needs attention".
-      background: orphan ? 'rgba(251,191,36,0.04)' : undefined,
+      // Subtle tint on rows that need attention. Suspended takes
+      // precedence over orphan because it's a stronger signal.
+      background: suspended ? 'rgba(245,158,11,0.06)'
+        : orphan ? 'rgba(251,191,36,0.04)'
+        : undefined,
+      opacity: suspended ? 0.85 : 1,
     }}>
       <td style={{ ...td, color: '#e2e8f0' }}>
         {u.email}
@@ -182,7 +189,9 @@ function UserRow({ user: u }) {
       </td>
       <td style={{ ...td, color: '#94a3b8' }}>{u.name || '—'}</td>
       <td style={td}>
-        {u.is_platform_admin ? (
+        {suspended ? (
+          <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 999, fontWeight: 600 }}>Suspended</span>
+        ) : u.is_platform_admin ? (
           <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 999 }}>Platform admin</span>
         ) : orphan ? (
           <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(251,191,36,0.12)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 999 }} title="No practice memberships — never finished onboarding">Orphan</span>
