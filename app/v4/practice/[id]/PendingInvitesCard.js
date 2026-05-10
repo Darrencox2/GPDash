@@ -14,6 +14,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { getSiteUrl } from '@/lib/site-url';
 
 export default function PendingInvitesCard({ invites, canManage }) {
   if (!invites || invites.length === 0) return null;
@@ -44,11 +45,10 @@ function InviteRow({ invite: inv, canManage }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  // Build the invite URL on the client to use the actual current origin
-  // (works for preview vs production seamlessly).
-  const inviteUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/v4/invite/${inv.id}`
-    : `/v4/invite/${inv.id}`;
+  // Build the invite URL using the configured stable site URL so the
+  // Copy-link output points at preview.gpdash.net / gpdash.net rather
+  // than a transient Vercel deployment URL that 404s after rebuilds.
+  const inviteUrl = `${getSiteUrl()}/v4/invite/${inv.id}`;
 
   const copy = async () => {
     try {

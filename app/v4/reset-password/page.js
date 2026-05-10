@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { AuthCard, formStyles as f } from '../_lib/auth-ui';
+import { getSiteUrl } from '@/lib/site-url';
 
 export default function ResetPasswordPage() {
   const supabase = createClient();
@@ -21,7 +22,7 @@ export default function ResetPasswordPage() {
     }
     setLoading(true);
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/v4/reset-password/update`,
+      redirectTo: `${getSiteUrl()}/v4/reset-password/update`,
     });
     setLoading(false);
     if (err) {

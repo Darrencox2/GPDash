@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { getSiteUrl } from '@/lib/site-url';
 
 export default function PasswordResetButton({ email }) {
   const supabase = createClient();
@@ -17,7 +18,7 @@ export default function PasswordResetButton({ email }) {
     setBusy(true);
     setStatus({ kind: 'idle', message: '' });
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/v4/reset-password/update`,
+      redirectTo: `${getSiteUrl()}/v4/reset-password/update`,
     });
     setBusy(false);
     if (error) {
@@ -58,7 +59,7 @@ export default function PasswordResetButton({ email }) {
       )}
       <p style={{ color: '#64748b', fontSize: 11, marginTop: 8, lineHeight: 1.5 }}>
         Sends a Supabase recovery email to <strong style={{ color: '#94a3b8' }}>{email}</strong>.
-        The link redirects them to {typeof window !== 'undefined' ? window.location.origin : ''}/v4/reset-password/update where they can set a new password.
+        The link redirects them to {getSiteUrl()}/v4/reset-password/update where they can set a new password.
       </p>
     </div>
   );

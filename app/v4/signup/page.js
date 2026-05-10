@@ -40,6 +40,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist } from '../_lib/auth-ui';
+import { getSiteUrl } from '@/lib/site-url';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -91,7 +92,10 @@ export default function SignupPage() {
         // Magic link in the email also works as a fallback — some users
         // will click the link instead of typing the code. Both paths
         // land in the right place via /auth/callback?next=...
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        // Use getSiteUrl so the link points at the stable preview /
+        // production alias rather than the per-deployment Vercel URL
+        // (which 404s once newer deployments retire it).
+        emailRedirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
     setLoading(false);
