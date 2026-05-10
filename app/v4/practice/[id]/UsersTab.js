@@ -46,7 +46,8 @@ export default function UsersTab({
   myUserId,             // for the "you" highlight
   isPlatformAdmin,
   InviteForm,           // injected so we don't duplicate the form
-  pendingInviteList,    // injected: <InvitesList />, render Push B improvements there
+  bulkInviteButton,     // injected: <BulkInviteButton />
+  pendingInviteList,    // injected: <PendingInvitesCard />
   helpfulFooter,        // injected: the "link clinician" banner
 }) {
   const myRole = myMembership?.role || (isPlatformAdmin ? 'owner' : null);
@@ -99,7 +100,26 @@ export default function UsersTab({
 
       {canManage && (
         <Card title="Invite a member">
-          {InviteForm}
+          <div style={{ marginBottom: InviteForm ? 14 : 0 }}>{InviteForm}</div>
+          {/* Bulk invite — opens the paste-and-parse modal. Lives next to
+              the single-invite form because they're complementary: one
+              email at a time vs many at once. */}
+          {bulkInviteButton && (
+            <div style={{
+              paddingTop: 14,
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}>
+              <div style={{ fontSize: 12, color: '#94a3b8', flex: '1 1 240px' }}>
+                Got a list? Paste a bunch at once — Outlook contacts, comma-separated, anything.
+              </div>
+              {bulkInviteButton}
+            </div>
+          )}
         </Card>
       )}
 

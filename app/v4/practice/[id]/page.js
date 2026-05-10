@@ -17,6 +17,8 @@ import PracticeTabs from './PracticeTabs';
 import PracticeSetupForm from './setup/PracticeSetupForm';
 import InviteForm from './InviteForm';
 import UsersTab from './UsersTab';
+import PendingInvitesCard from './PendingInvitesCard';
+import BulkInviteButton from './BulkInviteButton';
 import EmisReportCard from '@/components/EmisReportCard';
 import DeletePracticeButton from './DeletePracticeButton';
 import DemandUpload from './DemandUpload';
@@ -144,32 +146,16 @@ export default async function PracticeAdminPage({ params }) {
             canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin}
           />
         }
-        pendingInviteList={
-          (invites && invites.length > 0) ? (
-            <div style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 12,
-              padding: 20,
-            }}>
-              <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginBottom: 14 }}>
-                Pending invites
-              </h3>
-              {invites.map(inv => (
-                <div key={inv.id} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
-                }}>
-                  <div>
-                    <div style={{ fontSize: 14, color: '#e2e8f0' }}>{inv.email}</div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                      Invited as {inv.role} · expires {new Date(inv.expires_at).toLocaleDateString('en-GB')}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        bulkInviteButton={
+          canManage ? (
+            <BulkInviteButton
+              practiceId={practiceId}
+              canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin}
+            />
           ) : null
+        }
+        pendingInviteList={
+          <PendingInvitesCard invites={invites || []} canManage={canManage} />
         }
         helpfulFooter={
           <div style={{
