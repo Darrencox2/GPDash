@@ -9,6 +9,8 @@ import { createClient } from '@/utils/supabase/server';
 import AdminNav from '../../AdminNav';
 import PasswordResetButton from './PasswordResetButton';
 import UserActions from './UserActions';
+import GenerateLinkButton from './GenerateLinkButton';
+import CopyableValue from '@/components/CopyableValue';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,9 +46,7 @@ export default async function AdminUserDetailPage({ params }) {
   }
   if (!details) notFound();
 
-  // Pull every practice for the membership picker. Fine to fetch all —
-  // we have a handful of practices, not thousands. If/when this becomes
-  // expensive we can switch to a search-as-you-type input.
+  // Pull every practice for the membership picker.
   const { data: practiceRows } = await supabase.rpc('admin_list_practices');
   const allPractices = (practiceRows || []).map(p => ({ id: p.id, name: p.name, slug: p.slug }));
 
@@ -69,7 +69,7 @@ export default async function AdminUserDetailPage({ params }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <div>
               <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'white', marginBottom: 4 }}>
-                {details.email}
+                <CopyableValue value={details.email} title="Copy email">{details.email}</CopyableValue>
               </h2>
               {details.name && <div style={{ color: '#94a3b8', fontSize: 13 }}>{details.name}</div>}
             </div>
@@ -87,13 +87,25 @@ export default async function AdminUserDetailPage({ params }) {
             </div>
           </div>
 
-          <Row label="User ID"><span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11 }}>{details.id}</span></Row>
+          <Row label="User ID">
+            <CopyableValue value={details.id} title="Copy user ID">
+              <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11 }}>{details.id}</span>
+            </CopyableValue>
+          </Row>
           <Row label="Created">{new Date(details.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Row>
           <Row label="Last sign-in">{details.last_sign_in_at ? new Date(details.last_sign_in_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'never'}</Row>
         </div>
 
         {/* All admin actions: profile editing, membership management, delete user */}
         <UserActions user={details} allPractices={allPractices} />
+
+        {/* Sign-in / confirmation link generation. Useful for users
+            stuck on email_unconfirmed, or anyone who can't access their
+            email but the admin can verify identity by other means. */}
+        <div style={card}>
+          <h3 style={cardHeader}>Sign-in & email links</h3>
+          <GenerateLinkButton email={details.email} emailUnconfirmed={!details.email_confirmed_at} />
+        </div>
 
         {/* Password reset stays separate — it's a one-shot transactional action */}
         <div style={card}>

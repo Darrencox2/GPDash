@@ -1,0 +1,249 @@
+'use client';
+
+// UserListTable — client-side table with stats row, filter chips,
+// sortable columns, and orphan highlighting.
+//
+// Server still fetches via admin_list_users(search_query) and passes
+// the full array down. Search query stays a server-driven URL param
+// (preserves bookmarkability and SSR), but filtering and sorting are
+// client-side because they're cheap operations on an array of, what,
+// hundreds of rows at most.
+//
+// Filter "orphan" = a user with zero practice memberships AND not a
+// platform admin. They signed up but never finished onboarding (or
+// were removed from every practice), and are good candidates for
+// follow-up or deletion.
+
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+
+const DAY_MS = 86400000;
+
+function isOrphan(u) {
+  // Platform admins legitimately have no memberships sometimes
+  return Number(u.membership_count) === 0 && !u.is_platform_admin;
+}
+
+function isActive30d(u) {
+  if (!u.last_sign_in_at) return false;
+  return Date.now() - new Date(u.last_sign_in_at).getTime() < 30 * DAY_MS;
+}
+
+const FILTERS = [
+  { id: 'all',     label: 'All',                test: () => true },
+  { id: 'active',  label: 'Active (30d)',       test: isActive30d },
+  { id: 'dormant', label: 'Dormant',            test: u => u.last_sign_in_at && !isActive30d(u) },
+  { id: 'never',   label: 'Never signed in',    test: u => !u.last_sign_in_at },
+  { id: 'unconfirmed', label: 'Email unconfirmed', test: u => !u.email_confirmed_at },
+  { id: 'admins',  label: 'Platform admins',    test: u => u.is_platform_admin },
+  { id: 'orphans', label: 'Orphans',            test: isOrphan },
+];
+
+// Sortable columns. Each maps a row → comparable key. Nulls sort last
+// regardless of direction (so "never signed in" doesn't dominate
+// the top of the table when sorting by last sign-in).
+const COLS = {
+  email:      { label: 'Email',         get: u => (u.email || '').toLowerCase(),   align: 'left' },
+  name:       { label: 'Name',          get: u => (u.name || '').toLowerCase(),    align: 'left' },
+  role:       { label: 'Role',          get: u => u.is_platform_admin ? 1 : 0,     align: 'left' },
+  practices:  { label: 'Practices',     get: u => Number(u.membership_count || 0), align: 'right' },
+  created:    { label: 'Created',       get: u => new Date(u.created_at).getTime(), align: 'left' },
+  last:       { label: 'Last sign-in',  get: u => u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : null, align: 'left' },
+};
+
+export default function UserListTable({ users }) {
+  const [filter, setFilter] = useState('all');
+  const [sortKey, setSortKey] = useState('created');
+  const [sortDir, setSortDir] = useState('desc');
+
+  // ─── Stats — computed once from the full unfiltered list ─────────────
+  const stats = useMemo(() => {
+    const total = users.length;
+    let active = 0, never = 0, admins = 0, orphans = 0, unconfirmed = 0;
+    for (const u of users) {
+      if (isActive30d(u)) active++;
+      if (!u.last_sign_in_at) never++;
+      if (u.is_platform_admin) admins++;
+      if (isOrphan(u)) orphans++;
+      if (!u.email_confirmed_at) unconfirmed++;
+    }
+    return { total, active, never, admins, orphans, unconfirmed };
+  }, [users]);
+
+  // ─── Apply filter then sort ──────────────────────────────────────────
+  const visible = useMemo(() => {
+    const filt = FILTERS.find(f => f.id === filter)?.test || (() => true);
+    const filtered = users.filter(filt);
+    const col = COLS[sortKey];
+    if (!col) return filtered;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const va = col.get(a);
+      const vb = col.get(b);
+      // Nulls always last regardless of direction
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }, [users, filter, sortKey, sortDir]);
+
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+
+  return (
+    <div>
+      {/* Stats row */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16, marginBottom: 16 }}>
+        <Stat label="Total"           value={stats.total} />
+        <Stat label="Active (30d)"    value={stats.active} colour="#34d399" />
+        <Stat label="Never signed in" value={stats.never} colour="#94a3b8" />
+        <Stat label="Email unconfirmed" value={stats.unconfirmed} colour="#fbbf24" />
+        <Stat label="Platform admins" value={stats.admins} colour="#67e8f9" />
+        <Stat label="Orphans"         value={stats.orphans} colour="#fbbf24" tooltip="Users with no practice memberships who aren't platform admins — they signed up but never finished onboarding (or were removed from every practice)." />
+      </div>
+
+      {/* Filter chips */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+        {FILTERS.map(f => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            style={{
+              padding: '5px 12px',
+              fontSize: 12,
+              fontWeight: 500,
+              color: filter === f.id ? 'white' : '#94a3b8',
+              background: filter === f.id ? 'rgba(34,211,238,0.18)' : 'rgba(255,255,255,0.04)',
+              border: filter === f.id ? '1px solid rgba(34,211,238,0.4)' : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 999,
+              cursor: 'pointer',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: 'rgba(255,255,255,0.04)', textAlign: 'left' }}>
+              <SortableTh col="email"     label="Email"        sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+              <SortableTh col="name"      label="Name"         sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+              <SortableTh col="role"      label="Role"         sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+              <SortableTh col="practices" label="Practices"    sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} align="right" />
+              <SortableTh col="created"   label="Created"      sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+              <SortableTh col="last"      label="Last sign-in" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+              <th style={th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.length === 0 && (
+              <tr><td colSpan={7} style={{ ...td, textAlign: 'center', padding: 32, color: '#64748b' }}>
+                No users match this filter.
+              </td></tr>
+            )}
+            {visible.map(u => (
+              <UserRow key={u.id} user={u} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 11, color: '#64748b', textAlign: 'right' }}>
+        Showing {visible.length} of {users.length} users
+      </div>
+    </div>
+  );
+}
+
+function UserRow({ user: u }) {
+  const orphan = isOrphan(u);
+  return (
+    <tr style={{
+      borderTop: '1px solid rgba(255,255,255,0.04)',
+      // Subtle amber tint on orphan rows so they stand out without
+      // shouting — they're not errors, just "needs attention".
+      background: orphan ? 'rgba(251,191,36,0.04)' : undefined,
+    }}>
+      <td style={{ ...td, color: '#e2e8f0' }}>
+        {u.email}
+        {!u.email_confirmed_at && (
+          <span style={{ marginLeft: 8, fontSize: 10, padding: '1px 6px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
+            unconfirmed
+          </span>
+        )}
+      </td>
+      <td style={{ ...td, color: '#94a3b8' }}>{u.name || '—'}</td>
+      <td style={td}>
+        {u.is_platform_admin ? (
+          <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 999 }}>Platform admin</span>
+        ) : orphan ? (
+          <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(251,191,36,0.12)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 999 }} title="No practice memberships — never finished onboarding">Orphan</span>
+        ) : (
+          <span style={{ color: '#64748b', fontSize: 12 }}>—</span>
+        )}
+      </td>
+      <td style={{ ...td, textAlign: 'right', color: '#cbd5e1' }}>{u.membership_count}</td>
+      <td style={{ ...td, color: '#64748b', fontSize: 12 }}>
+        {new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+      </td>
+      <td style={{ ...td, color: '#64748b', fontSize: 12 }}>
+        {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'never'}
+      </td>
+      <td style={{ ...td, textAlign: 'right' }}>
+        <Link href={`/v4/admin/users/${u.id}`} style={{ color: '#22d3ee', textDecoration: 'none', fontSize: 12 }}>Open →</Link>
+      </td>
+    </tr>
+  );
+}
+
+function Stat({ label, value, colour, tooltip }) {
+  return (
+    <div
+      title={tooltip}
+      style={{
+        flex: '0 1 auto',
+        minWidth: 110,
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 10,
+        padding: '10px 14px',
+        cursor: tooltip ? 'help' : 'default',
+      }}
+    >
+      <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 600, color: colour || '#e2e8f0', fontFamily: "'Outfit', sans-serif" }}>{value}</div>
+    </div>
+  );
+}
+
+function SortableTh({ col, label, sortKey, sortDir, onClick, align }) {
+  const active = sortKey === col;
+  return (
+    <th
+      onClick={() => onClick(col)}
+      style={{
+        ...th,
+        textAlign: align || 'left',
+        cursor: 'pointer',
+        userSelect: 'none',
+        color: active ? '#cbd5e1' : '#64748b',
+      }}
+    >
+      {label}
+      <span style={{ marginLeft: 4, fontSize: 9, color: active ? '#22d3ee' : '#475569' }}>
+        {active ? (sortDir === 'asc' ? '▲' : '▼') : '◇'}
+      </span>
+    </th>
+  );
+}
+
+const th = { padding: '10px 14px', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, color: '#64748b' };
+const td = { padding: '10px 14px', fontSize: 13 };

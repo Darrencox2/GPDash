@@ -34,6 +34,10 @@ export default function UserActions({ user, allPractices }) {
   const [draftFirstName, setDraftFirstName] = useState(user.first_name || '');
   const [draftLastName, setDraftLastName] = useState(user.last_name || '');
   const [draftPlatformAdmin, setDraftPlatformAdmin] = useState(!!user.is_platform_admin);
+  // admin_notes — internal-only field, only visible to platform admins.
+  // Use it to capture context that would otherwise live in your head:
+  // "called about ODS code", "wants free trial extension", etc.
+  const [draftAdminNotes, setDraftAdminNotes] = useState(user.admin_notes || '');
 
   const saveProfile = async () => {
     setBusy('profile');
@@ -42,10 +46,7 @@ export default function UserActions({ user, allPractices }) {
       new_first_name: draftFirstName.trim() || null,
       new_last_name: draftLastName.trim() || null,
       new_is_platform_admin: draftPlatformAdmin,
-      // Don't pass new_name explicitly — the RPC will recompute it from
-      // first + last so display stays in sync. If we ever want a custom
-      // display name (mononyms, non-Western order, etc.) we'd add a
-      // separate "display name" field to the editor.
+      new_admin_notes: draftAdminNotes,
     });
     setBusy(null);
     if (err) { showErr(err.message); return; }
@@ -174,6 +175,15 @@ export default function UserActions({ user, allPractices }) {
                 </div>
               )}
             </Field>
+            <Field label="Admin notes (internal — only visible to platform admins)">
+              <textarea
+                value={draftAdminNotes}
+                onChange={(e) => setDraftAdminNotes(e.target.value)}
+                placeholder="e.g. Called about ODS code &mdash; helped them find it. Wants trial extension; circle back end of month."
+                rows={3}
+                style={{ ...input, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
+              />
+            </Field>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={saveProfile} disabled={busy === 'profile'} style={btnPrimary}>
                 {busy === 'profile' ? 'Saving…' : 'Save'}
@@ -184,6 +194,7 @@ export default function UserActions({ user, allPractices }) {
                   setDraftFirstName(user.first_name || '');
                   setDraftLastName(user.last_name || '');
                   setDraftPlatformAdmin(!!user.is_platform_admin);
+                  setDraftAdminNotes(user.admin_notes || '');
                 }}
                 style={btnSubtle}
               >
@@ -197,6 +208,16 @@ export default function UserActions({ user, allPractices }) {
             <Row label="Surname">{user.last_name || <em style={{ color: '#475569' }}>not set</em>}</Row>
             <Row label="Display name">{user.name || <em style={{ color: '#475569' }}>not set</em>}</Row>
             <Row label="Platform admin">{user.is_platform_admin ? 'Yes' : 'No'}</Row>
+            {/* Admin notes shown read-only here too — quick to scan without
+                clicking Edit. Empty notes hidden so the row isn't noise. */}
+            {user.admin_notes && (
+              <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 8 }}>
+                <div style={{ fontSize: 10, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Admin notes</div>
+                <div style={{ fontSize: 13, color: '#fde68a', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {user.admin_notes}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
