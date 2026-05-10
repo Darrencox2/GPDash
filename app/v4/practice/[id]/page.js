@@ -19,6 +19,8 @@ import InviteForm from './InviteForm';
 import UsersTab from './UsersTab';
 import PendingInvitesCard from './PendingInvitesCard';
 import BulkInviteButton from './BulkInviteButton';
+import TransferOwnershipButton from './TransferOwnershipButton';
+import MembershipChangesCard from './MembershipChangesCard';
 import EmisReportCard from '@/components/EmisReportCard';
 import DeletePracticeButton from './DeletePracticeButton';
 import DemandUpload from './DemandUpload';
@@ -136,6 +138,7 @@ export default async function PracticeAdminPage({ params }) {
         members={members || []}
         invites={invites || []}
         practiceId={practiceId}
+        practiceName={practice?.name || 'this practice'}
         canManage={canManage}
         myMembership={myMembership}
         myUserId={user.id}
@@ -156,6 +159,21 @@ export default async function PracticeAdminPage({ params }) {
         }
         pendingInviteList={
           <PendingInvitesCard invites={invites || []} canManage={canManage} />
+        }
+        transferOwnershipButton={
+          /* Owner-only (or platform admin acting on owner's behalf). The
+             RPC enforces this regardless. */
+          (myMembership?.role === 'owner' || isPlatformAdmin) ? (
+            <TransferOwnershipButton
+              practiceId={practiceId}
+              practiceName={practice?.name || 'this practice'}
+              members={members || []}
+              myUserId={user.id}
+            />
+          ) : null
+        }
+        membershipChangesCard={
+          <MembershipChangesCard practiceId={practiceId} />
         }
         helpfulFooter={
           <div style={{

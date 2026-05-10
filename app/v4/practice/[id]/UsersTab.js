@@ -18,6 +18,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import LeavePracticeButton from './LeavePracticeButton';
 
 const ROLE_STYLES = {
   owner: {
@@ -41,6 +42,7 @@ export default function UsersTab({
   members,
   invites,
   practiceId,
+  practiceName,         // for confirm dialogs (Leave / Transfer)
   canManage,            // owner OR admin (true means show invite form)
   myMembership,         // {role} for the signed-in user, or null
   myUserId,             // for the "you" highlight
@@ -48,6 +50,8 @@ export default function UsersTab({
   InviteForm,           // injected so we don't duplicate the form
   bulkInviteButton,     // injected: <BulkInviteButton />
   pendingInviteList,    // injected: <PendingInvitesCard />
+  transferOwnershipButton, // injected: <TransferOwnershipButton /> (owner only)
+  membershipChangesCard,   // injected: <MembershipChangesCard />
   helpfulFooter,        // injected: the "link clinician" banner
 }) {
   const myRole = myMembership?.role || (isPlatformAdmin ? 'owner' : null);
@@ -85,6 +89,7 @@ export default function UsersTab({
               key={m.user_id}
               member={m}
               practiceId={practiceId}
+              practiceName={practiceName}
               myRole={myRole}
               myUserId={myUserId}
               isPlatformAdmin={isPlatformAdmin}
@@ -94,8 +99,7 @@ export default function UsersTab({
         )}
       </Card>
 
-      {/* Pending invites list — Push A keeps the existing simple display.
-          Push B will replace this with revoke + copy-link controls. */}
+      {/* Pending invites list */}
       {pendingInviteList}
 
       {canManage && (
@@ -123,13 +127,30 @@ export default function UsersTab({
         </Card>
       )}
 
+      {/* Transfer ownership — owner-only. Distinct card so it stays
+          discoverable but doesn't clutter the main member list. */}
+      {transferOwnershipButton && (
+        <Card title="Transfer ownership">
+          <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+            Step down from owner and promote another member to owner in one action.
+            Useful when the practice changes hands or you're stepping back from administration.
+            Required if you (as the only owner) want to leave the practice.
+          </p>
+          {transferOwnershipButton}
+        </Card>
+      )}
+
+      {/* Membership change history — visible to all members, helps
+          answer "did I do that or did someone else?" questions. */}
+      {membershipChangesCard}
+
       {helpfulFooter}
     </div>
   );
 }
 
 // ─── Row ─────────────────────────────────────────────────────────────
-function MemberRow({ member: m, practiceId, myRole, myUserId, isPlatformAdmin, totalOwners }) {
+function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPlatformAdmin, totalOwners }) {
   const router = useRouter();
   const supabase = createClient();
   const [busy, setBusy] = useState(null); // 'role' | 'remove' | null
@@ -268,6 +289,18 @@ function MemberRow({ member: m, practiceId, myRole, myUserId, isPlatformAdmin, t
             >
               {busy === 'remove' ? '…' : 'Remove'}
             </button>
+          )}
+
+          {/* Leave button on the self-row only. Owners can only leave
+              if they're not the last owner (button stays visible but
+              disabled with explanation). */}
+          {isMe && (
+            <LeavePracticeButton
+              practiceId={practiceId}
+              practiceName={practiceName}
+              myRole={m.role}
+              totalOwners={totalOwners}
+            />
           )}
         </div>
       </div>
