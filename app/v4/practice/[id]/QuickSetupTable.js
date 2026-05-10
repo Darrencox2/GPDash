@@ -15,12 +15,18 @@
 //
 // "Needs attention" highlight: rows are flagged amber when essential
 // fields are missing — empty initials, or role still set to a placeholder
-// like 'Staff'. Helps the user spot who hasn't been touched yet.
+// like 'Staff' or a stray title (Mrs / Mr / Dr / etc) that the CSV
+// import couldn't reliably distinguish from a real role.
+//
+// Bulk actions: a checkbox at the start of every row + a select-all
+// checkbox in the header. When 1+ rows are selected, a sticky toolbar
+// appears with: set role / set group / set status / toggle buddy cover /
+// toggle who's in. Each action applies to every selected row in one
+// batch and is auto-saved like any other edit.
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { guessGroupFromRole } from '@/lib/data';
 
-const TITLES = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof'];
 const ROLES = [
   'GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum',
   'ANP', 'Paramedic Practitioner', 'Pharmacist', 'Physiotherapist',
@@ -40,20 +46,24 @@ const STATUSES = [
   { value: 'left', label: 'Left' },
 ];
 
-// Default role used by CSV auto-discovery when no role parenthetical is
-// present. Treat as "needs review" because it's almost certainly wrong.
-const PLACEHOLDER_ROLES = new Set(['', 'Staff', 'Unknown']);
+// Treat these strings as "role wasn't really set" — usually CSV-import
+// debris (a title that landed in the parens, or our literal default).
+// Title-like values can sneak in when the CSV has names like
+// "Smith, Jane (Mrs)" — old imports may have these stored. Showing
+// them in the dropdown as "(custom)" was misleading.
+const TITLE_LIKE = new Set(['mr', 'mrs', 'ms', 'miss', 'mx', 'dr', 'doctor', 'prof', 'professor', 'rev', 'sir', 'dame', 'lord', 'lady']);
+const PLACEHOLDER_ROLES = new Set(['', 'staff', 'unknown']);
+function isPlaceholderOrTitle(role) {
+  const r = (role || '').trim().toLowerCase();
+  return PLACEHOLDER_ROLES.has(r) || TITLE_LIKE.has(r);
+}
 
-// Helper: detect rows that need user attention before they're useful.
 function needsAttention(c) {
   if (!c.initials || c.initials.trim().length === 0) return true;
-  if (PLACEHOLDER_ROLES.has((c.role || '').trim())) return true;
+  if (isPlaceholderOrTitle(c.role)) return true;
   return false;
 }
 
-// Subtle deep-equality for the diff that triggers auto-save. Avoids a
-// JSON.stringify on every render — only call when something might have
-// actually changed.
 function clinicianFieldsEqual(a, b) {
   return (
     a.name === b.name &&
@@ -64,7 +74,8 @@ function clinicianFieldsEqual(a, b) {
     a.status === b.status &&
     (a.sessions || 0) === (b.sessions || 0) &&
     !!a.buddyCover === !!b.buddyCover &&
-    (a.canProvideCover !== false) === (b.canProvideCover !== false)
+    (a.canProvideCover !== false) === (b.canProvideCover !== false) &&
+    (a.showWhosIn !== false) === (b.showWhosIn !== false)
   );
 }
 
@@ -72,16 +83,14 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
   const [clinicians, setClinicians] = useState(initialClinicians || []);
   const [search, setSearch] = useState('');
   const [showLeft, setShowLeft] = useState(false);
-  const [saveState, setSaveState] = useState('idle'); // idle | dirty | saving | saved | error
+  const [saveState, setSaveState] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
 
-  // The "last saved" snapshot is used to decide if anything's dirty.
-  // We start with the initial data treated as saved.
   const lastSavedRef = useRef(initialClinicians || []);
   const saveTimer = useRef(null);
   const inFlight = useRef(false);
 
-  // Re-derive dirtiness whenever clinicians changes.
   const isDirty = useMemo(() => {
     const saved = lastSavedRef.current;
     if (clinicians.length !== saved.length) return true;
@@ -94,10 +103,8 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
     return false;
   }, [clinicians]);
 
-  // Auto-save: when dirty, debounce 800ms then POST. Clear timer on
-  // unmount or further edits (the next render cycle will set a new one).
   const doSave = useCallback(async () => {
-    if (inFlight.current) return; // single-flight
+    if (inFlight.current) return;
     inFlight.current = true;
     setSaveState('saving');
     setErrorMsg('');
@@ -129,9 +136,6 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
     return () => clearTimeout(saveTimer.current);
   }, [isDirty, clinicians, doSave]);
 
-  // Update a single field on a single clinician. When role changes, also
-  // re-derive group via guessGroupFromRole so the user doesn't have to
-  // manually keep them in sync (they can still override).
   const updateField = (id, field, value) => {
     setClinicians(prev => prev.map(c => {
       if (c.id !== id) return c;
@@ -144,7 +148,33 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
     }));
   };
 
-  // ─── Derived: filtered + sorted rows ──────────────────────────────────
+  // ─── Bulk update: apply a partial change to every selected row ───────
+  // Same role-derives-group rule as single-row updates.
+  const bulkUpdate = (changes) => {
+    if (selectedIds.size === 0) return;
+    setClinicians(prev => prev.map(c => {
+      if (!selectedIds.has(c.id)) return c;
+      const updated = { ...c, ...changes };
+      if (changes.role !== undefined) {
+        const guessed = guessGroupFromRole(changes.role);
+        if (guessed && changes.group === undefined) updated.group = guessed;
+      }
+      return updated;
+    }));
+  };
+
+  // ─── Selection helpers ───────────────────────────────────────────────
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  // ─── Derived: filtered + sorted rows ─────────────────────────────────
   const filtered = useMemo(() => {
     let rows = clinicians;
     if (!showLeft) {
@@ -158,7 +188,6 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
         (c.role || '').toLowerCase().includes(q)
       );
     }
-    // Sort: needs-attention first, then by group (gp, nursing, allied, admin), then alphabetically
     const groupOrder = { gp: 0, nursing: 1, allied: 2, admin: 3 };
     return [...rows].sort((a, b) => {
       const aA = needsAttention(a) ? 0 : 1;
@@ -171,27 +200,41 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
     });
   }, [clinicians, search, showLeft]);
 
+  // Visible-rows-only "select all" — checking the header box selects
+  // everything currently filtered, not hidden left/searched-out rows.
+  const allFilteredSelected = filtered.length > 0 && filtered.every(c => selectedIds.has(c.id));
+  const someFilteredSelected = filtered.some(c => selectedIds.has(c.id));
+  const toggleSelectAllFiltered = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        filtered.forEach(c => next.delete(c.id));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        filtered.forEach(c => next.add(c.id));
+        return next;
+      });
+    }
+  };
+
   const attentionCount = useMemo(() => clinicians.filter(c => c.status !== 'left' && needsAttention(c)).length, [clinicians]);
+  const selectedCount = selectedIds.size;
 
   return (
     <div>
-      {/* Header strip: search, show-left toggle, save status, attention count */}
+      {/* Header strip: search, show-left toggle, save status */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
         <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+          type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search by name, role, or initials…"
           style={{
-            flex: '1 1 240px',
-            padding: '8px 12px',
-            fontSize: 13,
+            flex: '1 1 240px', padding: '8px 12px', fontSize: 13,
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 6,
-            color: '#e2e8f0',
-            outline: 'none',
-            fontFamily: 'inherit',
+            borderRadius: 6, color: '#e2e8f0', outline: 'none', fontFamily: 'inherit',
           }}
         />
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#cbd5e1', cursor: 'pointer' }}>
@@ -201,7 +244,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
         <SaveIndicator state={saveState} errorMsg={errorMsg} onRetry={doSave} />
       </div>
 
-      {attentionCount > 0 && (
+      {attentionCount > 0 && selectedCount === 0 && (
         <div style={{
           padding: '10px 14px', marginBottom: 12,
           background: 'rgba(245,158,11,0.08)',
@@ -210,30 +253,51 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
           fontSize: 12, color: '#fde68a', lineHeight: 1.5,
         }}>
           <strong style={{ color: '#fbbf24' }}>{attentionCount} clinician{attentionCount === 1 ? '' : 's'} need{attentionCount === 1 ? 's' : ''} attention.</strong>{' '}
-          Highlighted rows below are missing initials or have a placeholder role. Fix those and the highlight clears.
+          Highlighted rows are missing initials or have a placeholder role.
+          Tip: tick multiple rows and use the bulk actions toolbar to set them all at once.
         </div>
       )}
 
-      {/* Scrollable table — sticky-name on the left so wide screens get a tidy
-          experience and narrow ones can pan horizontally without losing
-          context of who they're editing. */}
+      {/* Bulk actions toolbar — appears when ≥1 row selected. Sticky to
+          top of the table area so it's always visible while scrolling
+          through 30+ clinicians. */}
+      {selectedCount > 0 && (
+        <BulkActionsBar
+          count={selectedCount}
+          onClear={clearSelection}
+          onSetRole={(role) => bulkUpdate({ role })}
+          onSetGroup={(group) => bulkUpdate({ group })}
+          onSetStatus={(status) => bulkUpdate({ status })}
+          onSetBuddyCover={(buddyCover) => bulkUpdate({ buddyCover })}
+          onSetWhosIn={(showWhosIn) => bulkUpdate({ showWhosIn })}
+        />
+      )}
+
       <div style={{
         border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 10,
-        overflow: 'hidden',
+        borderRadius: 10, overflow: 'hidden',
       }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 920 }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 980 }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <Th sticky width={220}>Name</Th>
-                <Th width={70}>Title</Th>
-                <Th width={70}>Initials</Th>
+                <Th width={36} style={{ textAlign: 'center', paddingLeft: 12, paddingRight: 4 }}>
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    ref={el => { if (el) el.indeterminate = someFilteredSelected && !allFilteredSelected; }}
+                    onChange={toggleSelectAllFiltered}
+                    aria-label="Select all visible rows"
+                    style={{ cursor: 'pointer' }}
+                  />
+                </Th>
+                <Th sticky stickyLeft={36} width={240}>Name</Th>
+                <Th width={80}>Initials</Th>
                 <Th width={170}>Role</Th>
                 <Th width={110}>Group</Th>
-                <Th width={70} style={{ textAlign: 'center' }}>Sess/wk</Th>
                 <Th width={140}>Status</Th>
-                <Th width={80} style={{ textAlign: 'center' }}>Buddy</Th>
+                <Th width={100} style={{ textAlign: 'center' }}>Buddy cover</Th>
+                <Th width={100} style={{ textAlign: 'center' }}>Who's In</Th>
               </tr>
             </thead>
             <tbody>
@@ -243,6 +307,8 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
                   c={c}
                   zebra={i % 2 === 1}
                   needsAttn={c.status !== 'left' && needsAttention(c)}
+                  selected={selectedIds.has(c.id)}
+                  onToggleSelect={() => toggleSelect(c.id)}
                   onChange={(field, value) => updateField(c.id, field, value)}
                 />
               ))}
@@ -261,42 +327,50 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
       </div>
 
       <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
-        Edits save automatically. For deeper settings (room preferences, buddy assignments, aliases), open Team Members on the practice dashboard.
+        Edits save automatically. For deeper settings (room preferences, primary/secondary buddy assignments, aliases), open Team Members on the practice dashboard.
       </div>
     </div>
   );
 }
 
 // ─── Row ────────────────────────────────────────────────────────────────
-function Row({ c, zebra, needsAttn, onChange }) {
+function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange }) {
   const [localInitials, setLocalInitials] = useState(c.initials || '');
-  // Keep local in sync with prop changes (e.g. when re-fetching after save)
   useEffect(() => { setLocalInitials(c.initials || ''); }, [c.initials]);
 
-  const baseBg = needsAttn
-    ? 'rgba(245,158,11,0.06)'
-    : (zebra ? 'rgba(255,255,255,0.015)' : 'transparent');
+  const baseBg = selected
+    ? 'rgba(34,211,238,0.08)' // selected: cyan tint
+    : (needsAttn
+      ? 'rgba(245,158,11,0.06)'
+      : (zebra ? 'rgba(255,255,255,0.015)' : 'transparent'));
+
+  const stickyBg = selected
+    ? '#0d2230'
+    : (needsAttn ? '#1f1a0e' : (zebra ? '#0f1825' : '#0d1422'));
+
+  // If the stored role is title-like (e.g. 'Mrs' lingering from a buggy
+  // CSV import), DON'T offer it as a "(custom)" option — that just
+  // lets the user keep the bad data. Treat it as empty in the dropdown
+  // so they have to pick a real role. The needs-attention banner already
+  // tells them why.
+  const showRoleAsCustom = c.role && !ROLES.includes(c.role) && !isPlaceholderOrTitle(c.role);
+  const dropdownRole = isPlaceholderOrTitle(c.role) ? '' : c.role;
 
   return (
     <tr style={{ background: baseBg, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-      <Td sticky bg={needsAttn ? '#1f1a0e' : (zebra ? '#0f1825' : '#0d1422')}>
+      <Td style={{ textAlign: 'center', paddingLeft: 12, paddingRight: 4 }}>
+        <input type="checkbox" checked={selected} onChange={onToggleSelect} aria-label={`Select ${c.name}`} style={{ cursor: 'pointer' }} />
+      </Td>
+      <Td sticky stickyLeft={36} bg={stickyBg}>
         <input
-          type="text"
-          value={c.name || ''}
+          type="text" value={c.name || ''}
           onChange={e => onChange('name', e.target.value)}
           style={inputStyle}
         />
       </Td>
       <Td>
-        <select value={c.title || ''} onChange={e => onChange('title', e.target.value)} style={selectStyle}>
-          {TITLES.map(t => <option key={t} value={t}>{t || '—'}</option>)}
-        </select>
-      </Td>
-      <Td>
         <input
-          type="text"
-          maxLength={4}
-          value={localInitials}
+          type="text" maxLength={4} value={localInitials}
           onChange={e => {
             const v = e.target.value.toUpperCase().slice(0, 4);
             setLocalInitials(v);
@@ -307,11 +381,10 @@ function Row({ c, zebra, needsAttn, onChange }) {
         />
       </Td>
       <Td>
-        <select value={c.role || ''} onChange={e => onChange('role', e.target.value)} style={selectStyle}>
+        <select value={dropdownRole || ''} onChange={e => onChange('role', e.target.value)} style={selectStyle}>
           <option value="">— select —</option>
           {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-          {/* Allow CSV-derived roles that aren't in our list to remain visible */}
-          {c.role && !ROLES.includes(c.role) && <option value={c.role}>{c.role} (custom)</option>}
+          {showRoleAsCustom && <option value={c.role}>{c.role} (custom)</option>}
         </select>
       </Td>
       <Td>
@@ -319,35 +392,133 @@ function Row({ c, zebra, needsAttn, onChange }) {
           {GROUPS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
         </select>
       </Td>
-      <Td style={{ textAlign: 'center' }}>
-        <input
-          type="number"
-          min={0}
-          max={10}
-          value={c.sessions || 0}
-          onChange={e => onChange('sessions', parseInt(e.target.value) || 0)}
-          style={{ ...inputStyle, textAlign: 'center', width: 50, padding: '6px 4px' }}
-        />
-      </Td>
       <Td>
         <select value={c.status || 'active'} onChange={e => onChange('status', e.target.value)} style={selectStyle}>
           {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
       </Td>
       <Td style={{ textAlign: 'center' }}>
-        <input
-          type="checkbox"
-          checked={!!c.buddyCover}
-          onChange={e => onChange('buddyCover', e.target.checked)}
-          style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
-        />
+        <ToggleButton on={!!c.buddyCover} onClick={() => onChange('buddyCover', !c.buddyCover)} colourOn="#a855f7" />
+      </Td>
+      <Td style={{ textAlign: 'center' }}>
+        <ToggleButton on={c.showWhosIn !== false} onClick={() => onChange('showWhosIn', c.showWhosIn === false)} colourOn="#14b8a6" />
       </Td>
     </tr>
   );
 }
 
+// ─── On/off button (replaces checkboxes for boolean fields) ────────────
+// Visually: pill that's coloured + filled when on, outlined + grey when
+// off. Bigger hit target than a checkbox, and the colour codes for
+// each toggle (purple = buddy cover, teal = who's in) match the
+// existing v3 visual language.
+function ToggleButton({ on, onClick, colourOn }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      style={{
+        padding: '4px 12px',
+        fontSize: 11, fontWeight: 600,
+        background: on ? colourOn : 'rgba(255,255,255,0.04)',
+        color: on ? 'white' : '#64748b',
+        border: `1px solid ${on ? colourOn : 'rgba(255,255,255,0.1)'}`,
+        borderRadius: 999,
+        cursor: 'pointer',
+        minWidth: 50,
+        fontFamily: 'inherit',
+        transition: 'background 0.1s, color 0.1s, border 0.1s',
+      }}
+    >
+      {on ? 'On' : 'Off'}
+    </button>
+  );
+}
+
+// ─── Bulk actions toolbar ──────────────────────────────────────────────
+function BulkActionsBar({ count, onClear, onSetRole, onSetGroup, onSetStatus, onSetBuddyCover, onSetWhosIn }) {
+  return (
+    <div style={{
+      position: 'sticky', top: 0, zIndex: 10,
+      padding: '10px 14px', marginBottom: 12,
+      background: 'rgba(34,211,238,0.1)',
+      border: '1px solid rgba(34,211,238,0.25)',
+      borderRadius: 8,
+      display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+      backdropFilter: 'blur(8px)',
+    }}>
+      <strong style={{ fontSize: 13, color: '#a5f3fc' }}>{count} selected</strong>
+      <span style={{ color: '#475569' }}>·</span>
+
+      <BulkSelect label="Set role" onChange={onSetRole}>
+        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+      </BulkSelect>
+
+      <BulkSelect label="Set group" onChange={onSetGroup}>
+        {GROUPS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+      </BulkSelect>
+
+      <BulkSelect label="Set status" onChange={onSetStatus}>
+        {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+      </BulkSelect>
+
+      <span style={{ color: '#475569' }}>·</span>
+      <BulkButton onClick={() => onSetBuddyCover(true)}>Buddy on</BulkButton>
+      <BulkButton onClick={() => onSetBuddyCover(false)}>Buddy off</BulkButton>
+      <BulkButton onClick={() => onSetWhosIn(true)}>Who's In on</BulkButton>
+      <BulkButton onClick={() => onSetWhosIn(false)}>Who's In off</BulkButton>
+
+      <span style={{ marginLeft: 'auto' }}>
+        <button onClick={onClear} style={{
+          padding: '5px 10px', fontSize: 11,
+          background: 'transparent',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 4, color: '#94a3b8', cursor: 'pointer',
+        }}>Clear selection</button>
+      </span>
+    </div>
+  );
+}
+
+function BulkSelect({ label, onChange, children }) {
+  return (
+    <select
+      defaultValue=""
+      onChange={(e) => {
+        if (!e.target.value) return;
+        onChange(e.target.value);
+        // Reset to placeholder so the same action can be repeated. The
+        // user's intent is "do this NOW" not "lock this dropdown".
+        e.target.value = '';
+      }}
+      style={{
+        padding: '5px 10px', fontSize: 12,
+        background: 'rgba(0,0,0,0.3)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 4, color: '#cbd5e1', cursor: 'pointer',
+        fontFamily: 'inherit',
+      }}
+    >
+      <option value="">{label}…</option>
+      {children}
+    </select>
+  );
+}
+function BulkButton({ onClick, children }) {
+  return (
+    <button onClick={onClick} style={{
+      padding: '5px 10px', fontSize: 11, fontWeight: 500,
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: 4, color: '#cbd5e1', cursor: 'pointer',
+      fontFamily: 'inherit',
+    }}>{children}</button>
+  );
+}
+
 // ─── Cell components ────────────────────────────────────────────────────
-function Th({ children, sticky, width, style }) {
+function Th({ children, sticky, stickyLeft, width, style }) {
   return (
     <th style={{
       padding: '10px 12px',
@@ -358,21 +529,20 @@ function Th({ children, sticky, width, style }) {
       borderBottom: '1px solid rgba(255,255,255,0.08)',
       width,
       position: sticky ? 'sticky' : 'static',
-      left: sticky ? 0 : 'auto',
+      left: sticky ? (stickyLeft || 0) : 'auto',
       zIndex: sticky ? 2 : 1,
       ...style,
     }}>{children}</th>
   );
 }
-
-function Td({ children, sticky, bg, style }) {
+function Td({ children, sticky, stickyLeft, bg, style }) {
   return (
     <td style={{
       padding: '6px 8px',
       fontSize: 13, color: '#e2e8f0',
       verticalAlign: 'middle',
       position: sticky ? 'sticky' : 'static',
-      left: sticky ? 0 : 'auto',
+      left: sticky ? (stickyLeft || 0) : 'auto',
       zIndex: sticky ? 1 : 0,
       background: sticky ? bg : 'transparent',
       ...style,
@@ -381,23 +551,15 @@ function Td({ children, sticky, bg, style }) {
 }
 
 const inputStyle = {
-  width: '100%',
-  padding: '6px 8px',
-  fontSize: 13,
+  width: '100%', padding: '6px 8px', fontSize: 13,
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.06)',
-  borderRadius: 4,
-  color: '#e2e8f0',
-  outline: 'none',
-  fontFamily: 'inherit',
+  borderRadius: 4, color: '#e2e8f0', outline: 'none', fontFamily: 'inherit',
 };
 const selectStyle = { ...inputStyle, cursor: 'pointer' };
 
-// ─── Save indicator ─────────────────────────────────────────────────────
 function SaveIndicator({ state, errorMsg, onRetry }) {
-  if (state === 'idle') {
-    return <span style={{ fontSize: 11, color: '#64748b' }}>—</span>;
-  }
+  if (state === 'idle') return <span style={{ fontSize: 11, color: '#64748b' }}>—</span>;
   if (state === 'dirty' || state === 'saving') {
     return <span style={{ fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#94a3b8' }} />

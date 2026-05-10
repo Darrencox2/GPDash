@@ -220,11 +220,21 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       // Auto-discover unmatched CSV clinicians
       let updatedClinicians = [...teamClinicians];
       let newCount = 0;
+      // Some CSVs have parens that hold a TITLE rather than a role — e.g.
+      // "Smith, Jane (Mrs)" or "Brown, Tom (Dr)". We must not capture
+      // those as the clinician's role; otherwise the dropdown ends up
+      // showing "Mrs (custom)" / "Dr (custom)" and the user has to fix
+      // every row by hand. Treat title-like parens as "no role detected".
+      const TITLE_LIKE = new Set(['mr', 'mrs', 'ms', 'miss', 'mx', 'dr', 'doctor', 'prof', 'professor', 'rev', 'reverend', 'sir', 'dame', 'lord', 'lady']);
       (parsed.clinicians || []).forEach(csvName => {
         const matched = updatedClinicians.some(c => matchesStaffMember(csvName, c));
         if (!matched) {
           const roleMatch = csvName.match(/\(([^)]+)\)/);
-          const role = roleMatch ? roleMatch[1] : 'Staff';
+          const rawRole = roleMatch ? roleMatch[1].trim() : '';
+          // If the parens were just a title, drop the role (let the user
+          // pick a real one in Quick Setup). Otherwise use what was found,
+          // or fall back to empty string so the row flags as needs-attention.
+          const role = (!rawRole || TITLE_LIKE.has(rawRole.toLowerCase())) ? '' : rawRole;
           const rawName = csvName.replace(/\(.*?\)/g, '').trim();
           // Flip "SURNAME, First" to "First Surname"
           let name = rawName;

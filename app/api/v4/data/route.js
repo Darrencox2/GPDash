@@ -59,7 +59,7 @@ export async function GET(request) {
       .eq('id', practiceId)
       .maybeSingle(),
     supabase.from('clinicians')
-      .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, aliases, linked_user_id')
+      .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, show_whos_in, aliases, linked_user_id')
       .eq('practice_id', practiceId)
       .order('name'),
     supabase.from('working_patterns')
@@ -413,6 +413,10 @@ export async function POST(request) {
             sessions: c.sessions || 0,
             buddy_cover: !!c.buddyCover,
             can_provide_cover: c.canProvideCover !== false,
+            // showWhosIn defaults TRUE — this matches the v3 default for
+            // CSV-discovered clinicians and the column default in
+            // migration 041. Only false if explicitly set false.
+            show_whos_in: c.showWhosIn !== false,
             aliases: c.aliases || [],
           }));
         } else {
@@ -432,6 +436,7 @@ export async function POST(request) {
         (c.sessions || 0) !== (old.sessions || 0) ||
         !!c.buddyCover !== !!old.buddyCover ||
         (c.canProvideCover !== false) !== (old.canProvideCover !== false) ||
+        (c.showWhosIn !== false) !== (old.showWhosIn !== false) ||
         JSON.stringify(c.aliases || []) !== JSON.stringify(old.aliases || [])
       );
       if (fieldsChanged) {
@@ -445,6 +450,7 @@ export async function POST(request) {
           sessions: c.sessions || 0,
           buddy_cover: !!c.buddyCover,
           can_provide_cover: c.canProvideCover !== false,
+          show_whos_in: c.showWhosIn !== false,
           aliases: c.aliases || [],
         }).eq('id', c.id));
       }

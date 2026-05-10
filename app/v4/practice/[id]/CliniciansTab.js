@@ -22,7 +22,7 @@ export default async function CliniciansTab({ practiceId }) {
 
   const { data: rows, error } = await supabase
     .from('clinicians')
-    .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, aliases, linked_user_id, created_at')
+    .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, show_whos_in, aliases, linked_user_id, created_at')
     .eq('practice_id', practiceId)
     .order('name', { ascending: true });
 
@@ -47,6 +47,7 @@ export default async function CliniciansTab({ practiceId }) {
     sessions: c.sessions || 0,
     buddyCover: !!c.buddy_cover,
     canProvideCover: c.can_provide_cover !== false,
+    showWhosIn: c.show_whos_in !== false, // default true if column missing pre-041
     aliases: c.aliases || [],
     linkedUserId: c.linked_user_id,
   }));
