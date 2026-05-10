@@ -38,7 +38,7 @@ export default async function OnboardingSetupPage({ params }) {
   // (When the wizard finishes the user invites their team, so during
   // setup there are typically no other members anyway.)
   const { data: membership } = await supabase
-    .from('practice_members')
+    .from('practice_users')
     .select('role')
     .eq('practice_id', practiceId)
     .eq('user_id', user.id)
