@@ -85,8 +85,8 @@ export default async function AdminPracticesPage() {
                     {new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td style={{ ...td, textAlign: 'right' }}>
-                    <Link href={`/p/${p.slug}`} style={linkStyle}>Open →</Link>
-                    <Link href={`/v4/practice/${p.slug}`} style={{ ...linkStyle, marginLeft: 12 }}>Manage</Link>
+                    <Link href={`/p/${p.slug}`} style={linkStyle} title="Open this practice's main app (Today, capacity, etc.)">Open →</Link>
+                    <Link href={`/v4/admin/practices/${p.id}`} style={{ ...linkStyle, marginLeft: 12 }} title="Manage as platform admin">Manage</Link>
                   </td>
                 </tr>
               ))}
