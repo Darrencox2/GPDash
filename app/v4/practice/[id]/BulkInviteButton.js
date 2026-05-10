@@ -47,24 +47,34 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
       return;
     }
     setError('');
-    setRows(parsed.map(p => ({ ...p, role: 'user' })));
+    // include defaults to true — admin ticks/unticks to choose what to send
+    setRows(parsed.map(p => ({ ...p, role: 'user', include: true })));
     setStage('review');
   };
 
   const updateRole = (idx, role) => {
     setRows(rs => rs.map((r, i) => i === idx ? { ...r, role } : r));
   };
+  const toggleInclude = (idx) => {
+    setRows(rs => rs.map((r, i) => i === idx ? { ...r, include: !r.include } : r));
+  };
+  const setAllIncluded = (include) => {
+    setRows(rs => rs.map(r => ({ ...r, include })));
+  };
   const removeRow = (idx) => {
     setRows(rs => rs.filter((_, i) => i !== idx));
   };
 
+  // The set actually sent: only rows the admin has ticked.
+  const includedRows = rows.filter(r => r.include);
+
   const submit = async () => {
-    if (rows.length === 0) return;
+    if (includedRows.length === 0) return;
     setStage('submitting');
     setError('');
     const { data, error: err } = await supabase.rpc('bulk_invite_users_to_practice', {
       target_practice_id: practiceId,
-      invitees: rows.map(r => ({ email: r.email, role: r.role })),
+      invitees: includedRows.map(r => ({ email: r.email, role: r.role })),
     });
     if (err) {
       setError(err.message);
@@ -73,7 +83,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
     }
     setResults(data);
     setStage('done');
-    router.refresh(); // pull fresh invites for the page
+    router.refresh();
   };
 
   return (
@@ -131,20 +141,60 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
             {stage === 'review' && (
               <>
                 <h3 style={modalTitle}>
-                  Review {rows.length} invite{rows.length === 1 ? '' : 's'}
+                  Confirm {rows.length} email{rows.length === 1 ? '' : 's'}
                 </h3>
                 <p style={modalDesc}>
-                  Adjust roles if needed. Click an X to remove someone.
+                  Tick the addresses you want to invite, untick any that look wrong. Each invitee will receive an email with their invite link.
                 </p>
+
+                {/* Select-all / select-none controls — handy when there are
+                    many parsed rows and the admin wants to invert their
+                    decision quickly. */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, fontSize: 12 }}>
+                  <span style={{ color: '#94a3b8' }}>
+                    {includedRows.length} of {rows.length} selected
+                  </span>
+                  <span style={{ color: '#475569' }}>·</span>
+                  <button onClick={() => setAllIncluded(true)} style={miniBtn}>Select all</button>
+                  <button onClick={() => setAllIncluded(false)} style={miniBtn}>Select none</button>
+                </div>
+
                 <div style={{ maxHeight: 320, overflowY: 'auto', marginBottom: 14, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
                   {rows.map((r, idx) => (
-                    <div key={r.email} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '10px 12px',
-                      borderBottom: idx < rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                    }}>
+                    <div
+                      key={r.email}
+                      onClick={() => toggleInclude(idx)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '10px 12px',
+                        borderBottom: idx < rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                        cursor: 'pointer',
+                        opacity: r.include ? 1 : 0.45,
+                        background: r.include ? 'transparent' : 'rgba(0,0,0,0.15)',
+                        transition: 'opacity 0.15s, background 0.15s',
+                      }}
+                    >
+                      {/* Tick / cross indicator. Tick = green checkmark in
+                          a green circle. Cross = grey × in a grey circle.
+                          Whole row is clickable to toggle. */}
+                      <div
+                        aria-checked={r.include}
+                        role="checkbox"
+                        style={{
+                          width: 22, height: 22, borderRadius: '50%',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: r.include ? 'rgba(16,185,129,0.15)' : 'rgba(100,116,139,0.15)',
+                          border: `1px solid ${r.include ? 'rgba(16,185,129,0.5)' : 'rgba(100,116,139,0.4)'}`,
+                          color: r.include ? '#34d399' : '#94a3b8',
+                          fontSize: 13, fontWeight: 700, lineHeight: 1,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {r.include ? '✓' : '×'}
+                      </div>
+
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {r.email}
@@ -156,15 +206,16 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                       <select
                         value={r.role}
                         onChange={(e) => updateRole(idx, e.target.value)}
-                        style={roleSelect}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ ...roleSelect, opacity: r.include ? 1 : 0.5 }}
                       >
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
                         {canMakeOwner && <option value="owner">Owner</option>}
                       </select>
                       <button
-                        onClick={() => removeRow(idx)}
-                        title="Remove"
+                        onClick={(e) => { e.stopPropagation(); removeRow(idx); }}
+                        title="Remove from list entirely"
                         aria-label="Remove from list"
                         style={{
                           background: 'transparent',
@@ -182,8 +233,8 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                 {error && <div style={errorBox}>{error}</div>}
                 <div style={buttonRow}>
                   <button onClick={() => { setStage('paste'); setError(''); }} style={btnSubtle}>← Back</button>
-                  <button onClick={submit} disabled={rows.length === 0} style={btnPrimary}>
-                    Send {rows.length} invite{rows.length === 1 ? '' : 's'}
+                  <button onClick={submit} disabled={includedRows.length === 0} style={{ ...btnPrimary, opacity: includedRows.length === 0 ? 0.5 : 1 }}>
+                    Send {includedRows.length} invite{includedRows.length === 1 ? '' : 's'} & email{includedRows.length === 1 ? '' : 's'}
                   </button>
                 </div>
               </>
@@ -223,8 +274,15 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                   </div>
                 )}
                 <div style={{ fontSize: 11, color: '#64748b', marginBottom: 14, lineHeight: 1.5 }}>
-                  Invite emails aren't sent automatically yet — copy each link from the
-                  Pending invites list and forward it to the recipient.
+                  {results.created > 0 ? (
+                    <>
+                      Invite emails are being sent in the background. If a recipient
+                      doesn't receive theirs, you can copy their link from the Pending
+                      invites list and forward it manually.
+                    </>
+                  ) : (
+                    <>No new invites created — every email was already a member or had a pending invite.</>
+                  )}
                 </div>
                 <div style={buttonRow}>
                   <button onClick={close} style={btnPrimary}>Done</button>
@@ -310,3 +368,4 @@ const errorBox = {
 const buttonRow = { display: 'flex', gap: 8, justifyContent: 'flex-end' };
 const btnPrimary = { padding: '8px 16px', background: '#0891b2', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 const btnSubtle = { padding: '8px 16px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const miniBtn = { padding: '3px 8px', background: 'rgba(255,255,255,0.04)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, fontSize: 11, fontWeight: 500, cursor: 'pointer' };
