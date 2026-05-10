@@ -16,6 +16,7 @@ import DashboardShell from '@/components/DashboardShell';
 import PracticeTabs from './PracticeTabs';
 import PracticeSetupForm from './setup/PracticeSetupForm';
 import InviteForm from './InviteForm';
+import UsersTab from './UsersTab';
 import EmisReportCard from '@/components/EmisReportCard';
 import DeletePracticeButton from './DeletePracticeButton';
 import DemandUpload from './DemandUpload';
@@ -135,7 +136,55 @@ export default async function PracticeAdminPage({ params }) {
         practiceId={practiceId}
         canManage={canManage}
         myMembership={myMembership}
+        myUserId={user.id}
         isPlatformAdmin={isPlatformAdmin}
+        InviteForm={
+          <InviteForm
+            practiceId={practiceId}
+            canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin}
+          />
+        }
+        pendingInviteList={
+          (invites && invites.length > 0) ? (
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 12,
+              padding: 20,
+            }}>
+              <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginBottom: 14 }}>
+                Pending invites
+              </h3>
+              {invites.map(inv => (
+                <div key={inv.id} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                }}>
+                  <div>
+                    <div style={{ fontSize: 14, color: '#e2e8f0' }}>{inv.email}</div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                      Invited as {inv.role} · expires {new Date(inv.expires_at).toLocaleDateString('en-GB')}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null
+        }
+        helpfulFooter={
+          <div style={{
+            padding: 12,
+            background: 'rgba(34, 211, 238, 0.05)',
+            border: '1px solid rgba(34, 211, 238, 0.15)',
+            borderRadius: 8,
+            fontSize: 13,
+            color: '#94a3b8',
+            lineHeight: 1.5,
+          }}>
+            Looking to link your account to a clinician record? That lives in
+            Sidebar → My account.
+          </div>
+        }
       />
     ),
     'buddy-cover': (
@@ -223,73 +272,6 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
         setupCompletedAt: fullPractice?.setup_completed_at,
       }}
     />
-  );
-}
-
-function UsersTab({ members, invites, practiceId, canManage, myMembership, isPlatformAdmin }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Card title="Team members">
-        {members.length === 0 ? (
-          <p style={{ fontSize: 14, color: '#64748b' }}>No members yet.</p>
-        ) : (
-          members.map(m => (
-            <div key={m.user_id} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
-            }}>
-              <div>
-                <div style={{ fontSize: 14, color: '#e2e8f0' }}>{m.email || '—'}</div>
-                {m.name && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{m.name}</div>}
-              </div>
-              <span style={{
-                fontSize: 12, padding: '4px 12px',
-                background: 'rgba(99,102,241,0.15)',
-                color: '#a5b4fc',
-                borderRadius: 999, fontWeight: 600,
-              }}>{m.role}</span>
-            </div>
-          ))
-        )}
-      </Card>
-
-      {invites.length > 0 && (
-        <Card title="Pending invites">
-          {invites.map(inv => (
-            <div key={inv.id} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
-            }}>
-              <div>
-                <div style={{ fontSize: 14, color: '#e2e8f0' }}>{inv.email}</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                  Invited as {inv.role} · expires {new Date(inv.expires_at).toLocaleDateString('en-GB')}
-                </div>
-              </div>
-            </div>
-          ))}
-        </Card>
-      )}
-
-      {canManage && (
-        <Card title="Invite a member">
-          <InviteForm practiceId={practiceId} canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin} />
-        </Card>
-      )}
-
-      <div style={{
-        padding: 12,
-        background: 'rgba(34, 211, 238, 0.05)',
-        border: '1px solid rgba(34, 211, 238, 0.15)',
-        borderRadius: 8,
-        fontSize: 13,
-        color: '#94a3b8',
-        lineHeight: 1.5,
-      }}>
-        Looking to link your account to a clinician record? That lives in
-        Sidebar → My account.
-      </div>
-    </div>
   );
 }
 
