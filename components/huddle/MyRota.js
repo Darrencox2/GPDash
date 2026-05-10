@@ -48,6 +48,15 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  // Initial auto-select: try in order
+  //   1. URL hash (#rota-XX) — explicit deep-link, always wins
+  //   2. The clinician linked to the signed-in user's account
+  //      (data._v4.linkedClinicianId — set when an admin links a clinician
+  //      record to a user, or via the Account page self-link)
+  //   3. First clinician alphabetically — last-resort fallback so the
+  //      page still renders something for non-clinician users
+  // Without (2) the rota always opened on whoever sorted first
+  // alphabetically and the user had to click their own name every time.
   useEffect(() => {
     if (clinicians.length === 0) return;
     const hash = window.location.hash;
@@ -56,8 +65,12 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
       const m = clinicians.find(c => c.initials === init);
       if (m) { setSelectedId(m.id); return; }
     }
-    if (!selectedId) setSelectedId(clinicians[0].id);
-  }, [clinicians]);
+    if (!selectedId) {
+      const linkedId = data?._v4?.linkedClinicianId;
+      const linked = linkedId ? clinicians.find(c => c.id === linkedId) : null;
+      setSelectedId(linked ? linked.id : clinicians[0].id);
+    }
+  }, [clinicians, data?._v4?.linkedClinicianId]);
 
   const select = c => { setSelectedId(c.id); setSearch(''); setShowDropdown(false); setIsSearching(false); window.location.hash = `rota-${c.initials}`; };
   const selected = clinicians.find(c => c.id === selectedId);
