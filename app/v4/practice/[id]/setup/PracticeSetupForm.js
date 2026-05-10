@@ -13,14 +13,10 @@ import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import EmisReportCard from '@/components/EmisReportCard';
 import SlugEditor from '../SlugEditor';
 
-const ONLINE_CONSULT_TOOLS = [
-  { value: 'askmygp', label: 'AskMyGP' },
-  { value: 'anima', label: 'Anima' },
-  { value: 'klinik', label: 'Klinik' },
-  { value: 'patchs', label: 'PATCHS' },
-  { value: 'accurx', label: 'AccuRx' },
-  { value: 'other', label: 'Other / none' },
-];
+// (Online consultation tool field was removed — it wasn't actually used
+// for any logic, only stored. Demand upload always shows the AskMyGP
+// flow regardless. The column is still in the schema but no longer
+// surfaced in the UI.)
 
 export default function PracticeSetupForm({ practiceId, practiceSlug, initial }) {
   const router = useRouter();
@@ -30,7 +26,6 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   const [odsCode, setOdsCode] = useState(initial.odsCode);
   const [postcode, setPostcode] = useState(initial.postcode);
   const [listSize, setListSize] = useState(initial.listSize);
-  const [tool, setTool] = useState(initial.onlineConsultTool);
   const [region, setRegion] = useState(initial.region);
   const [lookup, setLookup] = useState(null); // postcodes.io result
   const [lookupBusy, setLookupBusy] = useState(false);
@@ -168,11 +163,6 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
     if (!trimmed) return;
     setName(trimmed);
     await saveField('practice name', 'name', trimmed);
-  }
-
-  async function saveTool(value) {
-    setTool(value);
-    await saveField('online consultation tool', 'online_consult_tool', value || null);
   }
 
   // Apply NHS practice details to the form fields. One click = name + ODS +
@@ -681,22 +671,6 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           </Card>
         </>
       )}
-
-      {/* Online consult tool */}
-      <Card title="Online consultation tool" status={fieldStatus('online consultation tool', savingField, savedField)}>
-        <select
-          value={tool}
-          onChange={(e) => saveTool(e.target.value)}
-          style={input}
-        >
-          <option value="">Select…</option>
-          {ONLINE_CONSULT_TOOLS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-        <p style={hint}>
-          Which tool you use determines the format we accept for demand history uploads.
-          You can change this anytime.
-        </p>
-      </Card>
 
       {/* EMIS appointment report — download XML + how-to */}
       <EmisReportCard />

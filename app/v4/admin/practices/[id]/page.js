@@ -98,7 +98,6 @@ export default async function AdminPracticeDetailPage({ params }) {
           <Row label="Postcode">{details.postcode || <em style={{ color: '#64748b' }}>not set</em>}</Row>
           <Row label="Region">{details.region || <em style={{ color: '#64748b' }}>not set</em>}</Row>
           <Row label="List size">{details.list_size ? details.list_size.toLocaleString('en-GB') : <em style={{ color: '#64748b' }}>not set</em>}</Row>
-          <Row label="Online consult">{details.online_consult_tool || <em style={{ color: '#64748b' }}>not set</em>}</Row>
           <Row label="Created">{new Date(details.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Row>
           <Row label="Setup completed">{details.setup_completed_at ? new Date(details.setup_completed_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <em style={{ color: '#fbbf24' }}>not yet</em>}</Row>
         </div>

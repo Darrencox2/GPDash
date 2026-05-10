@@ -184,9 +184,13 @@ export default function CreatePracticePage() {
       setCreating(false);
       return;
     }
-    // Land on the new practice's app — they'll see the "Finish practice
-    // setup" banner if anything's still missing.
-    router.push('/v4/dashboard');
+    // New practices land in the setup wizard rather than the dashboard.
+    // The wizard walks them through TeamNet, EMIS/CSV, demand, and
+    // invites — only when they finish does it set setup_completed_at
+    // and redirect them through to /p/<slug>. (The /p/[slug] server
+    // component also enforces this redirect for owners/admins, so
+    // even if they navigate away mid-wizard they'll be brought back.)
+    router.push(`/v4/onboarding/setup/${practiceId}`);
     router.refresh();
   };
 

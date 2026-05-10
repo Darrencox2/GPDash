@@ -11,7 +11,7 @@ import { parseAskMyGpCSV, readAskMyGpFile } from '@/lib/demand-parsers/askmygp';
 import { recalibrateDemandModel } from '@/lib/demand-recalibration';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 
-export default function DemandUpload({ practiceId, onlineConsultTool, demandSettings, history }) {
+export default function DemandUpload({ practiceId, demandSettings, history, onUploadSuccess }) {
   const supabase = createClient();
   const router = useRouter();
   const fileInput = useRef(null);
@@ -112,6 +112,11 @@ export default function DemandUpload({ practiceId, onlineConsultTool, demandSett
         parseErrors: parsed.errors,
         calibration,
       });
+      // Tell the wizard (or any other parent that cares) we just uploaded
+      // demand data — so it can flip its "step done" indicator without
+      // waiting for a page refresh. No-op for the standard practice
+      // management page since it doesn't pass this prop.
+      onUploadSuccess?.();
       router.refresh();
     } catch (e) {
       setError(e?.message || 'Upload failed');
@@ -127,18 +132,8 @@ export default function DemandUpload({ practiceId, onlineConsultTool, demandSett
     if (file) handleFile(file);
   }
 
-  const showAskMyGpFlow = onlineConsultTool === 'askmygp' || !onlineConsultTool;
-
   return (
     <div>
-      {!showAskMyGpFlow && (
-        <div style={{ padding: 12, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, color: '#fcd34d', fontSize: 12, marginBottom: 12 }}>
-          Your practice is configured to use <strong>{onlineConsultTool}</strong> for online consultations.
-          A parser for that tool isn't available yet — for now you can still upload AskMyGP-format CSVs below
-          and we'll combine the data.
-        </div>
-      )}
-
       {/* Existing data summary */}
       {history && history.length > 0 && (
         <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>

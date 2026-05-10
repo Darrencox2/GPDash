@@ -205,7 +205,6 @@ export default async function PracticeAdminPage({ params }) {
     demand: (
       <DemandTab
         practiceId={practiceId}
-        onlineConsultTool={fullPractice?.online_consult_tool}
         demandSettings={demandSettings}
         huddleSettings={huddleSettings}
         history={historySummary || []}
@@ -279,7 +278,6 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
         odsCode: fullPractice?.ods_code || '',
         postcode: fullPractice?.postcode || '',
         listSize: fullPractice?.list_size || '',
-        onlineConsultTool: fullPractice?.online_consult_tool || '',
         region: fullPractice?.region || '',
         setupCompletedAt: fullPractice?.setup_completed_at,
       }}
@@ -287,7 +285,7 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
   );
 }
 
-function DemandTab({ practiceId, onlineConsultTool, demandSettings, huddleSettings, history, canManage }) {
+function DemandTab({ practiceId, demandSettings, huddleSettings, history, canManage }) {
   if (!canManage) {
     return <Card title="Demand model"><p style={{ fontSize: 14, color: '#64748b' }}>Admin-only.</p></Card>;
   }
@@ -301,7 +299,7 @@ function DemandTab({ practiceId, onlineConsultTool, demandSettings, huddleSettin
         </p>
         <DemandUpload
           practiceId={practiceId}
-          onlineConsultTool={onlineConsultTool}
+          
           demandSettings={demandSettings}
           history={history}
         />

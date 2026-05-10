@@ -119,6 +119,29 @@ export default async function PracticePage({ params }) {
   // Otherwise their actual membership role (or null if they have none).
   const myRole = isPlatformAdmin ? 'owner' : (myMembership?.role || null);
 
+  // ─── Setup-incomplete gate ─────────────────────────────────────────
+  // If the practice owner hasn't finished the setup wizard yet, the
+  // dashboard would render an empty/broken-looking experience —
+  // missing list size, no clinicians, blank capacity calculations.
+  // For owners/admins, bounce them back into the wizard so they
+  // finish what they started. For regular team members, show a holding
+  // page rather than the broken dashboard. Platform admins skip this
+  // and see the dashboard as-is — useful for support / debugging.
+  if (!practice.setup_completed_at && !isPlatformAdmin) {
+    if (myRole === 'owner' || myRole === 'admin') {
+      redirect(`/v4/onboarding/setup/${practiceId}`);
+    } else if (myRole) {
+      // Regular team member arriving before the owner has finished
+      // setup — show them a friendly holding screen via the
+      // dedicated route below. (We can't render arbitrary JSX here
+      // because this function returns to the dashboard's expected
+      // shape; redirect is cleanest.)
+      redirect(`/p/${practice.slug}/setup-in-progress`);
+    }
+    // No role at all — falls through to existing not-found behaviour
+    // in the dashboard render below.
+  }
+
   v3Shape._v4 = {
     practiceId,
     practiceSlug: practice.slug,
