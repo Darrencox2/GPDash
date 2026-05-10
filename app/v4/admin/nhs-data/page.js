@@ -46,16 +46,16 @@ export default async function NhsDataAdminPage() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
       color: '#e2e8f0',
-      padding: 32,
+      padding: '32px 32px 64px',
     }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <AdminNav active="nhs-data" />
 
-        <div style={{ marginBottom: 24 }}>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'white', marginBottom: 6 }}>
+        <div style={{ marginBottom: 26 }}>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 8, letterSpacing: -0.3 }}>
             NHS Online Consultation submissions data
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.6 }}>
+          <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6, maxWidth: 720 }}>
             Source dataset used to pre-seed demand predictions for new
             practices and to power PCN / national benchmarking. NHS England
             publishes a fresh month roughly 6 weeks after the month ends.
@@ -69,31 +69,31 @@ export default async function NhsDataAdminPage() {
 
         {/* Current data status */}
         <div style={{
-          padding: 16,
+          padding: 18,
           background: 'rgba(0,0,0,0.2)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 12,
-          marginBottom: 16,
+          marginBottom: 18,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: '#cbd5e1', marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "'Outfit', sans-serif" }}>
             Months currently in the database
           </div>
           {months.length === 0 ? (
-            <div style={{ fontSize: 12, color: '#94a3b8' }}>No data uploaded yet.</div>
+            <div style={{ fontSize: 13, color: '#94a3b8' }}>No data uploaded yet.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {months.map(m => (
                 <div key={m.month} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '8px 12px',
+                  padding: '10px 14px',
                   background: 'rgba(255,255,255,0.03)',
                   borderRadius: 6,
-                  fontSize: 12,
+                  fontSize: 13,
                 }}>
                   <div style={{ fontFamily: "'Space Mono', monospace", color: '#e2e8f0' }}>
                     {formatMonthYear(m.month)}
                   </div>
-                  <div style={{ display: 'flex', gap: 16, color: '#64748b' }}>
+                  <div style={{ display: 'flex', gap: 16, color: '#94a3b8' }}>
                     <span>{m.count.toLocaleString()} practices</span>
                     <span>uploaded {formatRelativeDate(m.ingested_at)}</span>
                   </div>
@@ -111,6 +111,21 @@ export default async function NhsDataAdminPage() {
 
         {/* List size backfill */}
         <ListSizeBackfill />
+
+        <div style={{
+          marginTop: 36,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          fontSize: 12,
+          color: '#64748b',
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}>
+          <span>GPDash · Platform admin</span>
+          <span>Only platform admins see this section.</span>
+        </div>
       </div>
     </div>
   );
@@ -150,16 +165,16 @@ function FreshnessReminder({ months }) {
 
   return (
     <div style={{
-      padding: '12px 14px',
+      padding: '14px 16px',
       background: 'rgba(245, 158, 11, 0.07)',
       border: '1px solid rgba(245, 158, 11, 0.25)',
       borderRadius: 10,
-      fontSize: 12,
+      fontSize: 13,
       color: '#fcd34d',
-      lineHeight: 1.5,
-      marginBottom: 16,
+      lineHeight: 1.6,
+      marginBottom: 18,
     }}>
-      <div style={{ fontWeight: 500, marginBottom: 4 }}>
+      <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 14 }}>
         ⏰ {missingLabel} data is likely available now
       </div>
       <div>

@@ -100,7 +100,7 @@ export default function UserListTable({ users }) {
   return (
     <div>
       {/* Stats row */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 18, marginBottom: 18 }}>
         <Stat label="Total"           value={stats.total} />
         <Stat label="Active (30d)"    value={stats.active} colour="#34d399" />
         <Stat label="Never signed in" value={stats.never} colour="#94a3b8" />
@@ -111,16 +111,16 @@ export default function UserListTable({ users }) {
       </div>
 
       {/* Filter chips */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
         {FILTERS.map(f => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
             style={{
-              padding: '5px 12px',
-              fontSize: 12,
+              padding: '6px 14px',
+              fontSize: 13,
               fontWeight: 500,
-              color: filter === f.id ? 'white' : '#94a3b8',
+              color: filter === f.id ? 'white' : '#cbd5e1',
               background: filter === f.id ? 'rgba(34,211,238,0.18)' : 'rgba(255,255,255,0.04)',
               border: filter === f.id ? '1px solid rgba(34,211,238,0.4)' : '1px solid rgba(255,255,255,0.08)',
               borderRadius: 999,
@@ -134,7 +134,7 @@ export default function UserListTable({ users }) {
 
       {/* Table */}
       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
             <tr style={{ background: 'rgba(255,255,255,0.04)', textAlign: 'left' }}>
               <SortableTh col="email"     label="Email"        sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
@@ -148,7 +148,7 @@ export default function UserListTable({ users }) {
           </thead>
           <tbody>
             {visible.length === 0 && (
-              <tr><td colSpan={7} style={{ ...td, textAlign: 'center', padding: 32, color: '#64748b' }}>
+              <tr><td colSpan={7} style={{ ...td, textAlign: 'center', padding: 36, color: '#94a3b8' }}>
                 No users match this filter.
               </td></tr>
             )}
@@ -159,7 +159,7 @@ export default function UserListTable({ users }) {
         </table>
       </div>
 
-      <div style={{ marginTop: 10, fontSize: 11, color: '#64748b', textAlign: 'right' }}>
+      <div style={{ marginTop: 12, fontSize: 12, color: '#94a3b8', textAlign: 'right' }}>
         Showing {visible.length} of {users.length} users
       </div>
     </div>
@@ -182,32 +182,32 @@ function UserRow({ user: u }) {
       <td style={{ ...td, color: '#e2e8f0' }}>
         {u.email}
         {!u.email_confirmed_at && (
-          <span style={{ marginLeft: 8, fontSize: 10, padding: '1px 6px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
+          <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
             unconfirmed
           </span>
         )}
       </td>
-      <td style={{ ...td, color: '#94a3b8' }}>{u.name || '—'}</td>
+      <td style={{ ...td, color: '#cbd5e1' }}>{u.name || '—'}</td>
       <td style={td}>
         {suspended ? (
-          <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 999, fontWeight: 600 }}>Suspended</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 999, fontWeight: 600 }}>Suspended</span>
         ) : u.is_platform_admin ? (
-          <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 999 }}>Platform admin</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 999, fontWeight: 600 }}>Platform admin</span>
         ) : orphan ? (
-          <span style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(251,191,36,0.12)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 999 }} title="No practice memberships — never finished onboarding">Orphan</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(251,191,36,0.12)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 999 }} title="No practice memberships — never finished onboarding">Orphan</span>
         ) : (
-          <span style={{ color: '#64748b', fontSize: 12 }}>—</span>
+          <span style={{ color: '#94a3b8', fontSize: 13 }}>—</span>
         )}
       </td>
-      <td style={{ ...td, textAlign: 'right', color: '#cbd5e1' }}>{u.membership_count}</td>
-      <td style={{ ...td, color: '#64748b', fontSize: 12 }}>
+      <td style={{ ...td, textAlign: 'right', color: '#e2e8f0' }}>{u.membership_count}</td>
+      <td style={{ ...td, color: '#94a3b8', fontSize: 13 }}>
         {new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
       </td>
-      <td style={{ ...td, color: '#64748b', fontSize: 12 }}>
+      <td style={{ ...td, color: '#94a3b8', fontSize: 13 }}>
         {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'never'}
       </td>
       <td style={{ ...td, textAlign: 'right' }}>
-        <Link href={`/v4/admin/users/${u.id}`} style={{ color: '#22d3ee', textDecoration: 'none', fontSize: 12 }}>Open →</Link>
+        <Link href={`/v4/admin/users/${u.id}`} style={{ color: '#22d3ee', textDecoration: 'none', fontSize: 13, fontWeight: 500 }}>Open →</Link>
       </td>
     </tr>
   );
@@ -219,16 +219,16 @@ function Stat({ label, value, colour, tooltip }) {
       title={tooltip}
       style={{
         flex: '0 1 auto',
-        minWidth: 110,
+        minWidth: 130,
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 10,
-        padding: '10px 14px',
+        padding: '12px 16px',
         cursor: tooltip ? 'help' : 'default',
       }}
     >
-      <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 600, color: colour || '#e2e8f0', fontFamily: "'Outfit', sans-serif" }}>{value}</div>
+      <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 600, color: colour || '#e2e8f0', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{value}</div>
     </div>
   );
 }
@@ -243,16 +243,17 @@ function SortableTh({ col, label, sortKey, sortDir, onClick, align }) {
         textAlign: align || 'left',
         cursor: 'pointer',
         userSelect: 'none',
-        color: active ? '#cbd5e1' : '#64748b',
+        color: active ? '#e2e8f0' : '#94a3b8',
       }}
     >
       {label}
-      <span style={{ marginLeft: 4, fontSize: 9, color: active ? '#22d3ee' : '#475569' }}>
+      <span style={{ marginLeft: 6, fontSize: 10, color: active ? '#22d3ee' : '#64748b' }}>
         {active ? (sortDir === 'asc' ? '▲' : '▼') : '◇'}
       </span>
     </th>
   );
 }
 
-const th = { padding: '10px 14px', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, color: '#64748b' };
-const td = { padding: '10px 14px', fontSize: 13 };
+const th = { padding: '12px 16px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, color: '#94a3b8' };
+const td = { padding: '12px 16px', fontSize: 14 };
+

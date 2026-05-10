@@ -38,25 +38,25 @@ export default async function AdminPracticesPage() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
       color: '#e2e8f0',
-      padding: 32,
+      padding: '32px 32px 64px',
     }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <AdminNav active="practices" />
 
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 14, borderRadius: 8, marginBottom: 18, fontSize: 14 }}>
             {error.message}
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 14, marginBottom: 28, flexWrap: 'wrap' }}>
           <Stat label="Practices" value={practices?.length || 0} />
           <Stat label="Total members" value={(practices || []).reduce((s, p) => s + Number(p.member_count || 0), 0)} />
           <Stat label="Total clinicians" value={(practices || []).reduce((s, p) => s + Number(p.clinician_count || 0), 0)} />
         </div>
 
         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.04)', textAlign: 'left' }}>
                 <th style={th}>Name</th>
@@ -71,45 +71,72 @@ export default async function AdminPracticesPage() {
             </thead>
             <tbody>
               {(practices || []).length === 0 && (
-                <tr><td colSpan={8} style={{ ...td, textAlign: 'center', padding: 32, color: '#64748b' }}>No practices yet.</td></tr>
+                <tr><td colSpan={8} style={{ ...td, textAlign: 'center', padding: 36, color: '#94a3b8' }}>No practices yet.</td></tr>
               )}
               {(practices || []).map(p => (
                 <tr key={p.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                   <td style={{ ...td, color: '#e2e8f0', fontWeight: 500 }}>{p.name}</td>
-                  <td style={{ ...td, color: '#94a3b8', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }}>{p.slug}</td>
-                  <td style={{ ...td, color: '#94a3b8', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }}>{p.ods_code || '—'}</td>
-                  <td style={{ ...td, color: '#94a3b8' }}>{p.region || '—'}</td>
-                  <td style={{ ...td, textAlign: 'right', color: '#cbd5e1' }}>{p.member_count}</td>
-                  <td style={{ ...td, textAlign: 'right', color: '#cbd5e1' }}>{p.clinician_count}</td>
-                  <td style={{ ...td, color: '#64748b', fontSize: 12 }}>
+                  <td style={{ ...td, color: '#cbd5e1', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>{p.slug}</td>
+                  <td style={{ ...td, color: '#cbd5e1', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>{p.ods_code || '—'}</td>
+                  <td style={{ ...td, color: '#cbd5e1' }}>{p.region || '—'}</td>
+                  <td style={{ ...td, textAlign: 'right', color: '#e2e8f0' }}>{p.member_count}</td>
+                  <td style={{ ...td, textAlign: 'right', color: '#e2e8f0' }}>{p.clinician_count}</td>
+                  <td style={{ ...td, color: '#94a3b8', fontSize: 13 }}>
                     {new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td style={{ ...td, textAlign: 'right' }}>
                     <Link href={`/p/${p.slug}`} style={linkStyle} title="Open this practice's main app (Today, capacity, etc.)">Open →</Link>
-                    <Link href={`/v4/admin/practices/${p.id}`} style={{ ...linkStyle, marginLeft: 12 }} title="Manage as platform admin">Manage</Link>
+                    <Link href={`/v4/admin/practices/${p.id}`} style={{ ...linkStyle, marginLeft: 14 }} title="Manage as platform admin">Manage</Link>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        <AdminFooter />
       </div>
     </div>
   );
 }
 
-const th = { padding: '10px 14px', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, color: '#64748b' };
-const td = { padding: '10px 14px', fontSize: 13 };
-const linkStyle = { color: '#22d3ee', textDecoration: 'none', fontSize: 12 };
+const th = { padding: '12px 16px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, color: '#94a3b8' };
+const td = { padding: '12px 16px', fontSize: 14 };
+const linkStyle = { color: '#22d3ee', textDecoration: 'none', fontSize: 13, fontWeight: 500 };
 
 function Stat({ label, value }) {
   return (
     <div style={{
-      flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 10, padding: '14px 16px',
+      flex: '1 1 200px',
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 10,
+      padding: '16px 18px',
     }}>
-      <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 600, color: '#e2e8f0', fontFamily: "'Outfit', sans-serif" }}>{value}</div>
+      <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 600, color: '#e2e8f0', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{value}</div>
+    </div>
+  );
+}
+
+// Tiny "you are here" footer common to admin pages — gives a sense of
+// completeness ("the page has an end") that's missing when the table just
+// stops abruptly.
+function AdminFooter() {
+  return (
+    <div style={{
+      marginTop: 36,
+      paddingTop: 20,
+      borderTop: '1px solid rgba(255,255,255,0.06)',
+      fontSize: 12,
+      color: '#64748b',
+      display: 'flex',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: 12,
+    }}>
+      <span>GPDash · Platform admin</span>
+      <span>Only platform admins see this section.</span>
     </div>
   );
 }

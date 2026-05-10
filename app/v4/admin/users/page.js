@@ -34,15 +34,17 @@ export default async function AdminUsersPage({ searchParams }) {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
       color: '#e2e8f0',
-      padding: 32,
+      padding: '32px 32px 64px',
     }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <AdminNav active="users" />
 
-        <UserSearch initialSearch={search} />
+        <div style={{ marginBottom: 4 }}>
+          <UserSearch initialSearch={search} />
+        </div>
 
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 8, marginTop: 16 }}>
+          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 14, borderRadius: 8, marginTop: 18, fontSize: 14 }}>
             {error.message}
           </div>
         )}
@@ -51,6 +53,21 @@ export default async function AdminUsersPage({ searchParams }) {
             Server still runs the search query (preserves ?q= URL flow) and
             passes the rows down for client-side enrichment. */}
         <UserListTable users={users || []} />
+
+        <div style={{
+          marginTop: 36,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          fontSize: 12,
+          color: '#64748b',
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}>
+          <span>GPDash · Platform admin</span>
+          <span>Only platform admins see this section.</span>
+        </div>
       </div>
     </div>
   );

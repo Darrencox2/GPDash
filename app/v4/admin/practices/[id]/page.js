@@ -63,29 +63,29 @@ export default async function AdminPracticeDetailPage({ params }) {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
       color: '#e2e8f0',
-      padding: 32,
+      padding: '32px 32px 64px',
     }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <AdminNav active="practices" />
 
-        <Link href="/v4/admin" style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none', display: 'inline-block', marginBottom: 16 }}>
+        <Link href="/v4/admin" style={{ fontSize: 13, color: '#cbd5e1', textDecoration: 'none', display: 'inline-block', marginBottom: 18 }}>
           ← All practices
         </Link>
 
         {/* Identity */}
         <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'white', marginBottom: 4 }}>
+              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 6, letterSpacing: -0.3 }}>
                 {details.name}
               </h2>
-              <div style={{ fontSize: 12, color: '#64748b', fontFamily: 'ui-monospace, Menlo, monospace' }}>
+              <div style={{ fontSize: 13, color: '#94a3b8', fontFamily: 'ui-monospace, Menlo, monospace' }}>
                 {details.slug}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {!details.setup_completed_at && (
-                <span style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
+                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
                   Setup incomplete
                 </span>
               )}
@@ -93,18 +93,18 @@ export default async function AdminPracticeDetailPage({ params }) {
           </div>
 
           <Row label="ODS code">
-            {details.ods_code ? <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{details.ods_code}</span> : <em style={{ color: '#475569' }}>not set</em>}
+            {details.ods_code ? <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{details.ods_code}</span> : <em style={{ color: '#64748b' }}>not set</em>}
           </Row>
-          <Row label="Postcode">{details.postcode || <em style={{ color: '#475569' }}>not set</em>}</Row>
-          <Row label="Region">{details.region || <em style={{ color: '#475569' }}>not set</em>}</Row>
-          <Row label="List size">{details.list_size ? details.list_size.toLocaleString('en-GB') : <em style={{ color: '#475569' }}>not set</em>}</Row>
-          <Row label="Online consult">{details.online_consult_tool || <em style={{ color: '#475569' }}>not set</em>}</Row>
+          <Row label="Postcode">{details.postcode || <em style={{ color: '#64748b' }}>not set</em>}</Row>
+          <Row label="Region">{details.region || <em style={{ color: '#64748b' }}>not set</em>}</Row>
+          <Row label="List size">{details.list_size ? details.list_size.toLocaleString('en-GB') : <em style={{ color: '#64748b' }}>not set</em>}</Row>
+          <Row label="Online consult">{details.online_consult_tool || <em style={{ color: '#64748b' }}>not set</em>}</Row>
           <Row label="Created">{new Date(details.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Row>
           <Row label="Setup completed">{details.setup_completed_at ? new Date(details.setup_completed_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <em style={{ color: '#fbbf24' }}>not yet</em>}</Row>
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
           <Stat label="Members" value={details.members.length} />
           <Stat label="Clinicians" value={details.clinician_count} />
         </div>
@@ -115,7 +115,7 @@ export default async function AdminPracticeDetailPage({ params }) {
         {/* Deeper settings — link out to existing tabs */}
         <div style={card}>
           <h3 style={cardHeader}>Practice settings</h3>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 14, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 14, color: '#cbd5e1', marginBottom: 16, lineHeight: 1.6 }}>
             Detailed practice configuration lives on the practice's own settings page. You'll see
             the same controls a practice owner sees, plus admin-only sections.
           </p>
@@ -143,19 +143,34 @@ export default async function AdminPracticeDetailPage({ params }) {
             practiceSlug={details.slug}
           />
         </div>
+
+        <div style={{
+          marginTop: 36,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          fontSize: 12,
+          color: '#64748b',
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}>
+          <span>GPDash · Platform admin</span>
+          <Link href="/v4/admin" style={{ color: '#64748b', textDecoration: 'none' }}>← All practices</Link>
+        </div>
       </div>
     </div>
   );
 }
 
-const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 20, marginBottom: 16 };
-const cardHeader = { fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 };
+const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 22, marginBottom: 18 };
+const cardHeader = { fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "'Outfit', sans-serif" };
 
 function Row({ label, children }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0', gap: 12 }}>
-      <span style={{ color: '#64748b', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
-      <span style={{ color: '#cbd5e1', fontSize: 13 }}>{children}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', gap: 12 }}>
+      <span style={{ color: '#94a3b8', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600 }}>{label}</span>
+      <span style={{ color: '#e2e8f0', fontSize: 14 }}>{children}</span>
     </div>
   );
 }
@@ -163,11 +178,14 @@ function Row({ label, children }) {
 function Stat({ label, value }) {
   return (
     <div style={{
-      flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 10, padding: '14px 16px',
+      flex: '1 1 200px',
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 10,
+      padding: '16px 18px',
     }}>
-      <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 600, color: '#e2e8f0', fontFamily: "'Outfit', sans-serif" }}>{value}</div>
+      <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 600, color: '#e2e8f0', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{value}</div>
     </div>
   );
 }
@@ -179,8 +197,8 @@ function SettingsLink({ href, label, kind, title }) {
       href={href}
       title={title}
       style={{
-        padding: '7px 12px',
-        fontSize: 12,
+        padding: '8px 14px',
+        fontSize: 13,
         fontWeight: 500,
         color: isPrimary ? 'white' : '#22d3ee',
         background: isPrimary ? '#0891b2' : 'rgba(255,255,255,0.04)',

@@ -58,37 +58,37 @@ export default async function AdminUserDetailPage({ params }) {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
       color: '#e2e8f0',
-      padding: 32,
+      padding: '32px 32px 64px',
     }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <AdminNav active="users" />
 
-        <Link href="/v4/admin/users" style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none', display: 'inline-block', marginBottom: 16 }}>
+        <Link href="/v4/admin/users" style={{ fontSize: 13, color: '#cbd5e1', textDecoration: 'none', display: 'inline-block', marginBottom: 18 }}>
           ← All users
         </Link>
 
         {/* Identity (read-only — name editing now handled by UserActions) */}
         <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'white', marginBottom: 4 }}>
+              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 6, letterSpacing: -0.3 }}>
                 <CopyableValue value={details.email} title="Copy email">{details.email}</CopyableValue>
               </h2>
-              {details.name && <div style={{ color: '#94a3b8', fontSize: 13 }}>{details.name}</div>}
+              {details.name && <div style={{ color: '#cbd5e1', fontSize: 14 }}>{details.name}</div>}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {details.suspended_at && (
-                <span style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 999, fontWeight: 600 }}>
+                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 999, fontWeight: 600 }}>
                   Suspended
                 </span>
               )}
               {details.is_platform_admin && (
-                <span style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 999 }}>
+                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 999, fontWeight: 600 }}>
                   Platform admin
                 </span>
               )}
               {!details.email_confirmed_at && (
-                <span style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
+                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
                   Email unconfirmed
                 </span>
               )}
@@ -97,7 +97,7 @@ export default async function AdminUserDetailPage({ params }) {
 
           <Row label="User ID">
             <CopyableValue value={details.id} title="Copy user ID">
-              <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11 }}>{details.id}</span>
+              <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }}>{details.id}</span>
             </CopyableValue>
           </Row>
           <Row label="Created">{new Date(details.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Row>
@@ -143,19 +143,34 @@ export default async function AdminUserDetailPage({ params }) {
           <h3 style={cardHeader}>Password reset</h3>
           <PasswordResetButton email={details.email} />
         </div>
+
+        <div style={{
+          marginTop: 36,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          fontSize: 12,
+          color: '#64748b',
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}>
+          <span>GPDash · Platform admin</span>
+          <Link href="/v4/admin/users" style={{ color: '#64748b', textDecoration: 'none' }}>← All users</Link>
+        </div>
       </div>
     </div>
   );
 }
 
-const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 20, marginBottom: 16 };
-const cardHeader = { fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 };
+const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 22, marginBottom: 18 };
+const cardHeader = { fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "'Outfit', sans-serif" };
 
 function Row({ label, children }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0', gap: 12 }}>
-      <span style={{ color: '#64748b', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
-      <span style={{ color: '#cbd5e1', fontSize: 13 }}>{children}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', gap: 12 }}>
+      <span style={{ color: '#94a3b8', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600 }}>{label}</span>
+      <span style={{ color: '#e2e8f0', fontSize: 14 }}>{children}</span>
     </div>
   );
 }

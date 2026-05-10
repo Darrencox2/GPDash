@@ -17,40 +17,40 @@ export default function UserSearch({ initialSearch }) {
   };
 
   return (
-    <form onSubmit={submit} style={{ display: 'flex', gap: 8 }}>
+    <form onSubmit={submit} style={{ display: 'flex', gap: 10 }}>
       <input
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search by email or name..."
+        placeholder="Search by email or name…"
         style={{
           flex: 1,
-          padding: '8px 12px',
+          padding: '10px 14px',
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 8,
           color: '#e2e8f0',
-          fontSize: 13,
+          fontSize: 14,
         }}
       />
       <button type="submit" style={{
-        padding: '8px 16px',
+        padding: '10px 20px',
         background: '#0891b2',
         color: 'white',
         border: 'none',
         borderRadius: 8,
-        fontSize: 13,
-        fontWeight: 500,
+        fontSize: 14,
+        fontWeight: 600,
         cursor: 'pointer',
       }}>Search</button>
       {initialSearch && (
         <button type="button" onClick={() => { setValue(''); router.push('/v4/admin/users'); }} style={{
-          padding: '8px 12px',
+          padding: '10px 16px',
           background: 'transparent',
-          color: '#94a3b8',
-          border: '1px solid rgba(255,255,255,0.08)',
+          color: '#cbd5e1',
+          border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 8,
-          fontSize: 13,
+          fontSize: 14,
           cursor: 'pointer',
         }}>Clear</button>
       )}
