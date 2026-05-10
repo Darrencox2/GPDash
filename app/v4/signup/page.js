@@ -136,12 +136,56 @@ export default function SignupPage() {
     }
   };
 
+  // Resend cooldown: Supabase rate-limits auth.resend per user (typically
+  // 60s between attempts). Without explicit handling the user clicks the
+  // button, gets a generic error message, and assumes nothing happened.
+  // We track an explicit cooldown locally so the button disables and
+  // shows seconds remaining.
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [cooldownNow, setCooldownNow] = useState(Date.now());
+  useEffect(() => {
+    if (cooldownUntil <= Date.now()) return;
+    const t = setInterval(() => setCooldownNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [cooldownUntil]);
+  const cooldownSecsLeft = Math.max(0, Math.ceil((cooldownUntil - cooldownNow) / 1000));
+
   const handleResend = async () => {
     setError('');
     setResendBusy(true);
-    const { error: err } = await supabase.auth.resend({ type: 'signup', email });
+    setResentAt(null);
+    const { error: err } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        // Same emailRedirectTo as the original signup so the magic link
+        // in the resent email points at the stable site (preview /
+        // production), not whichever transient deployment URL the
+        // browser happened to be on. Without this Supabase falls back
+        // to the project's Site URL config, which may not have ?next=
+        // wired up for invite-aware redirects.
+        emailRedirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
     setResendBusy(false);
-    if (err) { setError(err.message); return; }
+    if (err) {
+      // Supabase rate-limit message looks like "For security purposes,
+      // you can only request this after Ns." — extract the seconds and
+      // start a local cooldown so the UI is honest about what to do.
+      const m = String(err.message || '').match(/after\s+(\d+)\s*seconds?/i);
+      if (m) {
+        const secs = parseInt(m[1], 10);
+        setCooldownUntil(Date.now() + secs * 1000);
+        setError(`Hold on — Supabase asks us to wait ${secs} seconds between resends. Try again in a moment.`);
+      } else {
+        setError(err.message || 'Resend failed. Try again in a moment.');
+      }
+      return;
+    }
+    // Soft cooldown after a successful resend too — Supabase's next
+    // resend would be rate-limited anyway, so disable the button for
+    // 60s rather than have the user click it three times in a panic.
+    setCooldownUntil(Date.now() + 60_000);
     setResentAt(new Date());
   };
 
@@ -212,17 +256,17 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={handleResend}
-                disabled={resendBusy}
+                disabled={resendBusy || cooldownSecsLeft > 0}
                 style={{
                   padding: '6px 12px', fontSize: 12,
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: 6, color: '#cbd5e1',
-                  cursor: resendBusy ? 'wait' : 'pointer',
-                  opacity: resendBusy ? 0.6 : 1,
+                  cursor: (resendBusy || cooldownSecsLeft > 0) ? 'not-allowed' : 'pointer',
+                  opacity: (resendBusy || cooldownSecsLeft > 0) ? 0.5 : 1,
                 }}
               >
-                {resendBusy ? 'Sending…' : 'Resend code'}
+                {resendBusy ? 'Sending…' : (cooldownSecsLeft > 0 ? `Resend in ${cooldownSecsLeft}s` : 'Resend code')}
               </button>
               <button
                 type="button"
