@@ -71,6 +71,15 @@ $$;
 
 
 -- ─── Allow updating via admin_update_user_profile ─────────────────────────
+-- Adding a new optional arg (new_admin_notes) creates a new function
+-- VARIANT — the old one with 5 args still exists in the catalog. To
+-- prevent PostgREST from getting ambiguous overload resolution we
+-- drop every prior variant explicitly. (DROP IF EXISTS is idempotent —
+-- safe to keep around even after this is the only signature.)
+drop function if exists public.admin_update_user_profile(uuid, text, boolean);
+drop function if exists public.admin_update_user_profile(uuid, text, boolean, text, text);
+drop function if exists public.admin_update_user_profile(uuid, text, boolean, text, text, text);
+
 create or replace function public.admin_update_user_profile(
   target_user_id uuid,
   new_name text default null,
@@ -153,7 +162,14 @@ grant execute on function public.admin_update_user_profile(uuid, text, boolean, 
 -- Used by the new UserListTable's "Email unconfirmed" filter and the
 -- per-row "unconfirmed" badge. Including admin_notes too so the future
 -- list filter "users with notes" comes for free without another RPC change.
-create or replace function public.admin_list_users(search_query text default null)
+--
+-- IMPORTANT: must DROP first. Adding columns to a TABLE-returning
+-- function changes the return type, which CREATE OR REPLACE FUNCTION
+-- can't do — Postgres throws "cannot change return type of existing
+-- function". The DROP is idempotent (IF EXISTS).
+drop function if exists public.admin_list_users(text);
+
+create function public.admin_list_users(search_query text default null)
 returns table (
   id uuid,
   email text,

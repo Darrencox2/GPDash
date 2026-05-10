@@ -85,7 +85,13 @@ $$;
 -- and per-row badge. We keep boolean rather than the timestamp because
 -- the list view doesn't need the precise timestamp, and a bool is the
 -- minimal cardinality the table needs.
-create or replace function public.admin_list_users(search_query text default null)
+--
+-- Same DROP-then-CREATE pattern as migration 022: adding columns to a
+-- TABLE-returning function changes the return type, which CREATE OR
+-- REPLACE FUNCTION can't do.
+drop function if exists public.admin_list_users(text);
+
+create function public.admin_list_users(search_query text default null)
 returns table (
   id uuid,
   email text,
