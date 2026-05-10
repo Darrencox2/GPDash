@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { AuthCard, formStyles as f } from '../../_lib/auth-ui';
+import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist } from '../../_lib/auth-ui';
 
 export default function ResetPasswordUpdatePage() {
   const router = useRouter();
@@ -26,6 +26,8 @@ export default function ResetPasswordUpdatePage() {
     });
   }, [supabase]);
 
+  const passwordsMatch = !confirmPassword || password === confirmPassword;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -33,12 +35,12 @@ export default function ResetPasswordUpdatePage() {
       setError('Supabase not configured.');
       return;
     }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+    if (!isPasswordValid(password)) {
+      setError('Password must be at least 8 characters and include a letter and a digit.');
       return;
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
     setLoading(true);
@@ -63,13 +65,13 @@ export default function ResetPasswordUpdatePage() {
             type="password"
             required
             autoComplete="new-password"
-            minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={f.input}
             placeholder="At least 8 characters"
             disabled={!ready}
           />
+          <PasswordChecklist password={password} />
         </div>
 
         <div style={f.field}>
@@ -78,13 +80,20 @@ export default function ResetPasswordUpdatePage() {
             type="password"
             required
             autoComplete="new-password"
-            minLength={8}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            style={f.input}
+            style={{
+              ...f.input,
+              borderColor: passwordsMatch ? f.input.border : 'rgba(239,68,68,0.5)',
+            }}
             placeholder="Re-enter password"
             disabled={!ready}
           />
+          {!passwordsMatch && (
+            <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5' }}>
+              Passwords don't match yet.
+            </div>
+          )}
         </div>
 
         <button

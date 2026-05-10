@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
-import { AuthCard, formStyles as f } from '../_lib/auth-ui';
+import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist } from '../_lib/auth-ui';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -12,16 +12,27 @@ export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [needsVerification, setNeedsVerification] = useState(false);
+
+  // We only show the password mismatch warning *after* the user has typed
+  // something into the confirm field — typing both fields character-by-
+  // character would otherwise scream "passwords do not match!" the entire
+  // time, which is noise.
+  const passwordsMatch = !confirmPassword || password === confirmPassword;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    if (!isPasswordValid(password)) {
+      setError('Password must be at least 8 characters and include a letter and a digit.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
     if (!supabase) {
@@ -104,12 +115,35 @@ export default function SignupPage() {
             type="password"
             required
             autoComplete="new-password"
-            minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={f.input}
             placeholder="At least 8 characters"
           />
+          <PasswordChecklist password={password} />
+        </div>
+
+        <div style={f.field}>
+          <label style={f.label}>Confirm password</label>
+          <input
+            type="password"
+            required
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            style={{
+              ...f.input,
+              // Subtle red ring when the user has typed something AND it
+              // doesn't match — avoids flagging an empty field as wrong.
+              borderColor: passwordsMatch ? f.input.border : 'rgba(239,68,68,0.5)',
+            }}
+            placeholder="Re-enter your password"
+          />
+          {!passwordsMatch && (
+            <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5' }}>
+              Passwords don't match yet.
+            </div>
+          )}
         </div>
 
         <button

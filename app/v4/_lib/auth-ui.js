@@ -106,3 +106,71 @@ export const formStyles = {
     textDecoration: 'none',
   },
 };
+
+// ─── Password validation ──────────────────────────────────────────────
+//
+// Beta-grade password policy. Deliberately not draconian — research is
+// pretty clear that "your password must contain a haiku and a Sanskrit
+// glyph" rules push users toward "Password1!" and post-it notes. We
+// require:
+//  - At least 8 characters
+//  - At least one letter
+//  - At least one digit
+//
+// Length is the only thing that genuinely matters for brute-force
+// resistance. The letter+digit minima are there as a small mistake-
+// catcher (catches "12345678" and "aaaaaaaa" without forcing real users
+// to memorise theatre).
+export function validatePassword(pw) {
+  return {
+    longEnough: (pw || '').length >= 8,
+    hasLetter: /[a-zA-Z]/.test(pw || ''),
+    hasDigit: /[0-9]/.test(pw || ''),
+  };
+}
+
+export function isPasswordValid(pw) {
+  const v = validatePassword(pw);
+  return v.longEnough && v.hasLetter && v.hasDigit;
+}
+
+// PasswordChecklist — small live-updating requirements box rendered under
+// the password field. Each rule turns green when satisfied. Used on
+// signup and reset-password.
+export function PasswordChecklist({ password }) {
+  const v = validatePassword(password);
+  const Item = ({ ok, label }) => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      fontSize: 11,
+      color: ok ? '#34d399' : '#94a3b8',
+      transition: 'color 0.15s',
+    }}>
+      <span style={{
+        display: 'inline-block',
+        width: 12,
+        textAlign: 'center',
+        fontWeight: 700,
+      }}>{ok ? '✓' : '·'}</span>
+      <span>{label}</span>
+    </div>
+  );
+  return (
+    <div style={{
+      marginTop: 6,
+      padding: '8px 10px',
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: 6,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3,
+    }}>
+      <Item ok={v.longEnough} label="At least 8 characters" />
+      <Item ok={v.hasLetter} label="Includes a letter" />
+      <Item ok={v.hasDigit} label="Includes a digit" />
+    </div>
+  );
+}
