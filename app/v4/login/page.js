@@ -1,15 +1,28 @@
 'use client';
 export const dynamic = 'force-dynamic';
+
+// /v4/login
+//
+// Standard email + password sign-in. Reads ?email= for pre-fill and
+// ?next= for post-login redirect — both used by the invite landing
+// page so a sign-in started from an invite returns to the invite page
+// to accept it. Falls back to /v4/dashboard if no ?next= given.
+
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { AuthCard, formStyles as f } from '../_lib/auth-ui';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
-  const [email, setEmail] = useState('');
+
+  const emailParam = searchParams.get('email') || '';
+  const next = searchParams.get('next') || '/v4/dashboard';
+
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,11 +39,18 @@ export default function LoginPage() {
     setLoading(false);
     if (err) {
       setError(err.message);
-    } else {
-      router.push('/v4/dashboard');
-      router.refresh();
+      return;
     }
+    router.push(next);
+    router.refresh();
   };
+
+  // Build the "Sign up" link preserving query params so the invite-from-
+  // signup flow stays connected if they bounce between the two pages.
+  const signupQs = new URLSearchParams();
+  if (emailParam) signupQs.set('email', emailParam);
+  if (next !== '/v4/dashboard') signupQs.set('next', next);
+  const signupHref = '/v4/signup' + (signupQs.toString() ? `?${signupQs.toString()}` : '');
 
   return (
     <AuthCard title="Sign in to GPDash" subtitle="v4 preview — for testing only">
@@ -68,14 +88,14 @@ export default function LoginPage() {
           disabled={loading}
           style={{ ...f.button, ...(loading ? f.buttonDisabled : {}) }}
         >
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? 'Signing in…' : 'Sign in'}
         </button>
 
         <div style={f.footerLink}>
           <Link href="/v4/reset-password" style={f.link}>Forgot password?</Link>
         </div>
         <div style={f.footerLink}>
-          No account? <Link href="/v4/signup" style={f.link}>Sign up</Link>
+          No account? <Link href={signupHref} style={f.link}>Sign up</Link>
         </div>
       </form>
     </AuthCard>

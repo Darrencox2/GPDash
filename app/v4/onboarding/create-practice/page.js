@@ -104,32 +104,62 @@ export default function CreatePracticePage() {
     }
   };
 
+  // Postcode lookup state. Runs in parallel with the duplicate check —
+  // the user can hit Create as soon as the dup check returns; we'll
+  // include whichever postcode we have at that moment (or null if it
+  // hasn't returned yet, which is fine because the setup wizard will
+  // still ask).
+  const [postcodeLookup, setPostcodeLookup] = useState(null); // null = not started, '' = none found, 'BS25 1AA' = found
+  const [postcodeBusy, setPostcodeBusy] = useState(false);
+
   // ─── User picks a practice from results ──────────────────────────────
-  // Triggers the duplicate check. We do this server-side because RLS
-  // would hide existing-practices-the-user-is-not-in from a direct
-  // query against the practices table.
+  // Triggers TWO server-side calls in parallel:
+  //   1. Duplicate check via check_practice_exists_by_ods (RLS-bypassing
+  //      so the user learns about practices they're not a member of).
+  //   2. Postcode reverse-geocode via /api/v4/lookup-practice-postcode
+  //      (ODS → lat/lng via OpenPrescribing → postcode via postcodes.io).
+  //      Spares the user from typing a postcode the system can already
+  //      derive. Fails gracefully — we just create with postcode=null
+  //      and the setup wizard asks like before.
   const pickPractice = async (practice) => {
     setPicked(practice);
     setError('');
     setDupCheck(null);
+    setPostcodeLookup(null);
     if (!practice.odsCode) {
-      // No ODS to check against — proceed (rare; OpenPrescribing always
-      // returns ODS, so this shouldn't fire in practice).
       setDupCheck({ exists: false });
       return;
     }
+
+    // Fire both lookups in parallel and update state independently.
     setDupCheckBusy(true);
-    const { data, error: err } = await supabase.rpc('check_practice_exists_by_ods', {
-      ods: practice.odsCode,
-    });
-    setDupCheckBusy(false);
-    if (err) { setError(err.message); return; }
-    setDupCheck(data || { exists: false });
+    setPostcodeBusy(true);
+
+    // 1. Duplicate check
+    supabase.rpc('check_practice_exists_by_ods', { ods: practice.odsCode })
+      .then(({ data, error: err }) => {
+        setDupCheckBusy(false);
+        if (err) { setError(err.message); return; }
+        setDupCheck(data || { exists: false });
+      });
+
+    // 2. Postcode lookup (best-effort, never blocks creation)
+    fetch(`/api/v4/lookup-practice-postcode?ods=${encodeURIComponent(practice.odsCode)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        setPostcodeBusy(false);
+        setPostcodeLookup(json?.postcode || '');
+      })
+      .catch(() => {
+        setPostcodeBusy(false);
+        setPostcodeLookup('');
+      });
   };
 
   const reset = () => {
     setPicked(null);
     setDupCheck(null);
+    setPostcodeLookup(null);
     setError('');
   };
 
@@ -142,7 +172,10 @@ export default function CreatePracticePage() {
       practice_name: picked.name,
       ods_code: picked.odsCode || null,
       region: null, // dropped from this form — setup wizard fills later if needed
-      postcode: null, // not in OpenPrescribing data
+      // Postcode reverse-geocoded from ODS via /api/v4/lookup-practice-postcode.
+      // Empty string from the lookup means "tried but couldn't find" — pass null
+      // so the setup wizard knows to ask.
+      postcode: postcodeLookup || null,
       list_size: picked.listSize ?? null,
       online_consult_tool: null,
     });
@@ -152,7 +185,7 @@ export default function CreatePracticePage() {
       return;
     }
     // Land on the new practice's app — they'll see the "Finish practice
-    // setup" banner if we still need postcode etc.
+    // setup" banner if anything's still missing.
     router.push('/v4/dashboard');
     router.refresh();
   };
@@ -257,6 +290,20 @@ export default function CreatePracticePage() {
           <div style={{ fontSize: 12, color: '#94a3b8' }}>
             ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{picked.odsCode}</span>
             {picked.listSize ? <> · {picked.listSize.toLocaleString('en-GB')} patients</> : null}
+          </div>
+        )}
+        {/* Postcode auto-lookup result. We don't block creation on it —
+            it's purely informational: lets the user see the system
+            already knows where they are, so the setup wizard won't
+            need to ask. */}
+        {postcodeBusy && (
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+            Looking up postcode…
+          </div>
+        )}
+        {!postcodeBusy && postcodeLookup && (
+          <div style={{ fontSize: 12, color: '#34d399', marginTop: 4 }}>
+            ✓ Postcode: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{postcodeLookup}</span>
           </div>
         )}
       </div>
