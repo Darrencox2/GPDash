@@ -1,0 +1,16 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- GPDash 3x3 capacity-tile grid. Tile colors echo the practice
+       dashboard: emerald (capacity available) / amber (busy) /
+       red (full) / slate (admin). Square corners with subtle
+       rounded outer to read well at 16x16 favicon scale. -->
+  <rect width="32" height="32" rx="6.72" fill="#1e293b"/>
+  <rect x="4" y="4" width="7.36" height="7.36" rx="2.69" fill="#10b981"/>
+  <rect x="12.32" y="4" width="7.36" height="7.36" rx="2.69" fill="#10b981" opacity="0.7"/>
+  <rect x="20.64" y="4" width="7.36" height="7.36" rx="2.69" fill="#334155"/>
+  <rect x="4" y="12.32" width="7.36" height="7.36" rx="2.69" fill="#10b981" opacity="0.7"/>
+  <rect x="12.32" y="12.32" width="7.36" height="7.36" rx="2.69" fill="#f59e0b"/>
+  <rect x="20.64" y="12.32" width="7.36" height="7.36" rx="2.69" fill="#334155"/>
+  <rect x="4" y="20.64" width="7.36" height="7.36" rx="2.69" fill="#ef4444"/>
+  <rect x="12.32" y="20.64" width="7.36" height="7.36" rx="2.69" fill="#f59e0b" opacity="0.5"/>
+  <rect x="20.64" y="20.64" width="7.36" height="7.36" rx="2.69" fill="#334155"/>
+</svg>

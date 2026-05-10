@@ -2,7 +2,12 @@ import './globals.css'
 import ImpersonationBanner from '@/components/ImpersonationBanner';
 
 export const metadata = {
-  title: 'GPDash — Practice Dashboard',
+  title: {
+    default: 'GPDash — Practice Dashboard',
+    // Per-page metadata.title = 'Foo' becomes 'Foo · GPDash' in the
+    // browser tab. Pages without a title fall back to default above.
+    template: '%s · GPDash',
+  },
   description: 'GP practice dashboard — huddle capacity, buddy cover & team management',
 }
 

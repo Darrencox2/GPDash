@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import SignOutButton from './SignOutButton';
 import AcceptInviteButton from './AcceptInviteButton';
+import BrandHeader from '../_lib/BrandHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,11 +63,17 @@ export default async function DashboardPage() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: 32 }}>
 
+      {/* Brand strip — same on every v4 page so users always know they're
+          in GPDash and can click back to /v4 to switch context. */}
+      <div style={{ marginBottom: 28 }}>
+        <BrandHeader />
+      </div>
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
           <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600, color: 'white' }}>
-            GPDash v4
+            Your dashboard
           </h1>
           <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 4 }}>
             Signed in as {profile?.name || profile?.email || user.email}

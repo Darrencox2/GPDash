@@ -15,6 +15,7 @@ import { resolvePracticeIdentifier } from '@/lib/v4-data';
 import DashboardShell from '@/components/DashboardShell';
 import PracticeTabs from './PracticeTabs';
 import CliniciansTab from './CliniciansTab';
+import BrandHeader from '../../_lib/BrandHeader';
 import PracticeSetupForm from './setup/PracticeSetupForm';
 import InviteForm from './InviteForm';
 import UsersTab from './UsersTab';
@@ -240,6 +241,9 @@ export default async function PracticeAdminPage({ params }) {
     <DashboardShell shellData={shellData} activeSection="practice-settings">
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         {/* Page header */}
+        <div style={{ marginBottom: 18 }}>
+          <BrandHeader subtitle="Practice management" />
+        </div>
         <div style={{ marginBottom: 20 }}>
           <h1 style={{
             fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 600,

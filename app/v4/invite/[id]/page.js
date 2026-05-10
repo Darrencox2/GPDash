@@ -23,6 +23,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import AcceptInviteButton from './AcceptInviteButton';
+import BrandHeader from '../../_lib/BrandHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -158,9 +159,12 @@ function Shell({ title, children }) {
       color: '#e2e8f0',
       padding: 32,
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
+      gap: 20,
     }}>
+      <BrandHeader />
       <div style={{
         maxWidth: 480,
         width: '100%',

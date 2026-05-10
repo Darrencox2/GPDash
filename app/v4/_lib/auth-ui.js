@@ -1,6 +1,34 @@
 // Shared UI for v4 auth pages — keep visual consistency across login/signup/reset.
 // All client components since they have form interactions.
 
+// Inline SVG version of the GPDash logo, server-component-safe (no
+// hooks, no client-only refs). Used in the AuthCard header so every
+// auth page is unmistakably branded.
+function AuthLogo() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+      <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+        <rect width="36" height="36" rx="7.6" fill="#1e293b" stroke="#334155" strokeWidth="0.5"/>
+        <rect x="4.5" y="4.5" width="8.27" height="8.27" rx="3" fill="#10b981"/>
+        <rect x="13.87" y="4.5" width="8.27" height="8.27" rx="3" fill="#10b981" opacity="0.7"/>
+        <rect x="23.23" y="4.5" width="8.27" height="8.27" rx="3" fill="#334155"/>
+        <rect x="4.5" y="13.87" width="8.27" height="8.27" rx="3" fill="#10b981" opacity="0.7"/>
+        <rect x="13.87" y="13.87" width="8.27" height="8.27" rx="3" fill="#f59e0b"/>
+        <rect x="23.23" y="13.87" width="8.27" height="8.27" rx="3" fill="#334155"/>
+        <rect x="4.5" y="23.23" width="8.27" height="8.27" rx="3" fill="#ef4444"/>
+        <rect x="13.87" y="23.23" width="8.27" height="8.27" rx="3" fill="#f59e0b" opacity="0.5"/>
+        <rect x="23.23" y="23.23" width="8.27" height="8.27" rx="3" fill="#334155"/>
+      </svg>
+      <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, fontFamily: "'Space Mono', monospace" }}>
+        <span style={{ fontSize: 18, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>[</span>
+        <span style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>GP</span>
+        <span style={{ fontSize: 18, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>]</span>
+        <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 19, fontWeight: 200, color: '#10b981', letterSpacing: '3px', marginLeft: 2 }}>DASH</span>
+      </div>
+    </div>
+  );
+}
+
 export function AuthCard({ title, subtitle, children }) {
   return (
     <div style={{
@@ -19,6 +47,7 @@ export function AuthCard({ title, subtitle, children }) {
         padding: 32,
         boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
       }}>
+        <AuthLogo />
         <div style={{ marginBottom: 24 }}>
           <h1 style={{
             fontFamily: "'Outfit', sans-serif",

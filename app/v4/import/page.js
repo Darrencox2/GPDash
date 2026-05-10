@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import BrandHeader from '../_lib/BrandHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,9 @@ export default function V4ImportPage() {
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: 32, fontFamily: 'inherit', color: '#e2e8f0' }}>
+      <div style={{ marginBottom: 18 }}>
+        <BrandHeader subtitle="v3 → v4 import" />
+      </div>
       <Link href="/v4/dashboard" style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none' }}>
         ← Dashboard
       </Link>

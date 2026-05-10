@@ -127,7 +127,22 @@ export default function SignupPage() {
       type: 'signup',
     });
     setVerifyLoading(false);
-    if (err) { setError(err.message); return; }
+    if (err) {
+      // The default Supabase message for stale codes is "Token has
+      // expired or is invalid" which is technically correct but
+      // misleading — the most common cause isn't expiry but rather
+      // a previous resend (or duplicate signup attempt) invalidating
+      // the old token. Replace it with something the user can act on.
+      const raw = String(err.message || '').toLowerCase();
+      if (raw.includes('expired') || raw.includes('invalid') || raw.includes('not found')) {
+        setError(
+          'This code didn\'t work. If you signed up more than once or clicked Resend, only the most recent code is valid — check your inbox for the latest email and try again. If you\'re sure you\'re using the most recent code, click Resend.'
+        );
+      } else {
+        setError(err.message);
+      }
+      return;
+    }
     if (data?.session) {
       router.push(next);
       router.refresh();
