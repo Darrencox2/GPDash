@@ -111,22 +111,49 @@ export async function GET(request) {
 
     const odsCodes = candidates.map(o => o.code);
     const existingByOds = new Map();
+    // PCN / ICB / region from nhs_oc_baseline — used by the UI to
+    // disambiguate practices that share a name (e.g. three different
+    // "Horizon Health Centre"s in three regions). The baseline table
+    // has a row per practice per month, so we also pick the latest
+    // month per ODS to avoid duplicates.
+    const nhsContextByOds = new Map();
     if (odsCodes.length > 0) {
       const cookieStore = cookies();
       const supabase = createClient(cookieStore);
       if (supabase) {
-        const { data: existing } = await supabase
-          .from('practices')
-          .select('id, name, slug, ods_code')
-          .in('ods_code', odsCodes);
-        for (const p of existing || []) {
+        // Run both queries in parallel — independent tables, same client.
+        const [existingRes, nhsRes] = await Promise.all([
+          supabase
+            .from('practices')
+            .select('id, name, slug, ods_code')
+            .in('ods_code', odsCodes),
+          supabase
+            .from('nhs_oc_baseline')
+            .select('ods_code, pcn_name, icb_name, region_name, month')
+            .in('ods_code', odsCodes)
+            .order('month', { ascending: false }),
+        ]);
+
+        for (const p of existingRes.data || []) {
           if (p.ods_code) existingByOds.set(p.ods_code, p);
+        }
+        // Take the latest row per ODS — query is sorted desc so the
+        // first one we see for a given ODS is the most recent.
+        for (const row of nhsRes.data || []) {
+          if (row.ods_code && !nhsContextByOds.has(row.ods_code)) {
+            nhsContextByOds.set(row.ods_code, {
+              pcnName: row.pcn_name,
+              icbName: row.icb_name,
+              regionName: row.region_name,
+            });
+          }
         }
       }
     }
 
     const enriched = await Promise.all(candidates.map(async (c) => {
       const existing = existingByOds.get(c.code);
+      const nhsContext = nhsContextByOds.get(c.code);
       const isMyself = existing && currentPracticeId && existing.id === currentPracticeId;
       const result = {
         odsCode: c.code,
@@ -138,6 +165,12 @@ export async function GET(request) {
         existsInDatabase: !!existing,
         unavailable: !!existing && !isMyself,
         isCurrentPractice: !!isMyself,
+        // NHS organisational context — null if we don't have a baseline
+        // row for this ODS (very small practices and recently-coded
+        // practices may be missing).
+        pcnName: nhsContext?.pcnName || null,
+        icbName: nhsContext?.icbName || null,
+        regionName: nhsContext?.regionName || null,
       };
       try {
         const url = `${OPENPRESCRIBING_BASE}/org_details/?org_type=practice&keys=total_list_size&org=${encodeURIComponent(c.code)}&format=json`;

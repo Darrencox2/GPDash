@@ -248,6 +248,11 @@ export default function CreatePracticePage() {
         marginBottom: 16,
       }}>
         <div style={{ fontSize: 15, color: '#e2e8f0', fontWeight: 500, marginBottom: 4 }}>{picked.name}</div>
+        {(picked.pcnName || picked.icbName) && (
+          <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 4 }}>
+            {[picked.pcnName, picked.icbName].filter(Boolean).join(' · ')}
+          </div>
+        )}
         {picked.odsCode && (
           <div style={{ fontSize: 12, color: '#94a3b8' }}>
             ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{picked.odsCode}</span>
@@ -261,7 +266,9 @@ export default function CreatePracticePage() {
       )}
 
       {!dupCheckBusy && dupCheck?.exists && (
-        // Duplicate — explain and don't allow creation
+        // Duplicate — explain and don't allow creation. Show the original
+        // owner's name so the user knows who to contact, rather than the
+        // generic "ask your practice owner".
         <div style={{
           padding: 14,
           background: 'rgba(245,158,11,0.1)',
@@ -273,8 +280,13 @@ export default function CreatePracticePage() {
           lineHeight: 1.5,
         }}>
           <strong style={{ color: '#fbbf24' }}>This practice is already on GPDash.</strong>
-          {' '}Ask whoever set it up to invite you from the practice's Users page. They'll need
-          your email address ({/* show their email — would need to pass user prop, leave generic for now */}the one you signed up with).
+          {' '}
+          {dupCheck.owner_name ? (
+            <>Ask <strong style={{ color: '#fde68a' }}>{dupCheck.owner_name}</strong> to invite you from the practice's Users page.</>
+          ) : (
+            <>Ask whoever set it up to invite you from the practice's Users page.</>
+          )}
+          {' '}They'll need the email address you signed up with.
         </div>
       )}
 
@@ -334,6 +346,16 @@ function ResultButton({ practice, onClick }) {
   // Practices already in the DB show greyed out — selecting one will
   // surface the "Already on GPDash, contact owner" message but the user
   // needs to click to find that out, hence we still allow the click.
+
+  // Disambiguation line — handles the case where multiple practices
+  // share a name (e.g. several "Horizon Health Centre"s across the
+  // country). PCN is the most specific; ICB is broader; region broadest.
+  // Show whichever is available, prefer PCN.
+  const contextBits = [];
+  if (practice.pcnName) contextBits.push(practice.pcnName);
+  else if (practice.icbName) contextBits.push(practice.icbName);
+  if (practice.regionName && !contextBits.length) contextBits.push(practice.regionName);
+
   return (
     <button
       type="button"
@@ -353,6 +375,11 @@ function ResultButton({ practice, onClick }) {
       onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
     >
       <div style={{ fontWeight: 500 }}>{practice.name}</div>
+      {contextBits.length > 0 && (
+        <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 3 }}>
+          {contextBits.join(' · ')}
+        </div>
+      )}
       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
         ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{practice.odsCode}</span>
         {practice.listSize ? <> · {practice.listSize.toLocaleString('en-GB')} patients</> : null}
