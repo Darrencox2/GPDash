@@ -25,6 +25,28 @@ export async function middleware(request) {
         return NextResponse.redirect(dest);
       }
     }
+    // Anonymous visitor: should they see v3 (legacy single-tenant Winscombe
+    // app) or v4 (multi-tenant SaaS with sign-up)?
+    //
+    // Production gpdash.net currently serves v3 to live Winscombe, so the
+    // safe default is "show v3". But on the v4 preview deployment we want
+    // / to land on the v4 sign-in/sign-up page so testers don't hit the
+    // password-gated legacy app instead.
+    //
+    // Detection (in priority order):
+    //  1. NEXT_PUBLIC_DEFAULT_TO_V4 env var — manual override, useful when
+    //     we eventually flip production too without changing this code
+    //  2. VERCEL_ENV === 'preview' — automatic for any non-production
+    //     Vercel deployment (preview branches, PR previews, etc.)
+    //
+    // Production stays on v3 unless the env var is set explicitly.
+    const forceV4 = process.env.NEXT_PUBLIC_DEFAULT_TO_V4 === 'true';
+    const isVercelPreview = process.env.VERCEL_ENV === 'preview';
+    if (forceV4 || isVercelPreview) {
+      const dest = request.nextUrl.clone();
+      dest.pathname = '/v4';
+      return NextResponse.redirect(dest);
+    }
     return supabaseResponse;
   }
 
