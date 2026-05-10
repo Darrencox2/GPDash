@@ -12,6 +12,7 @@ import UserActions from './UserActions';
 import GenerateLinkButton from './GenerateLinkButton';
 import SuspensionCard from './SuspensionCard';
 import UserActivityTimeline from './UserActivityTimeline';
+import ImpersonateButton from './ImpersonateButton';
 import CopyableValue from '@/components/CopyableValue';
 
 export const dynamic = 'force-dynamic';
@@ -118,6 +119,15 @@ export default async function AdminUserDetailPage({ params }) {
         <div style={card}>
           <h3 style={cardHeader}>Suspension</h3>
           <SuspensionCard user={details} />
+        </div>
+
+        {/* Impersonation — sign in as this user for support / debugging.
+            Powerful capability; every session is logged with reason +
+            time-limited to 1 hour. See ImpersonateButton for the
+            list of refusal cases (self / suspended / other admin). */}
+        <div style={card}>
+          <h3 style={cardHeader}>Impersonate</h3>
+          <ImpersonateButton user={details} currentUserIsTarget={user.id === details.id} />
         </div>
 
         {/* Sign-in / confirmation link generation. Useful for users
