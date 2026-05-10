@@ -45,10 +45,13 @@ export default function LinkClinicianSuggest({ data }) {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
   const [dismissed, setDismissed] = useState(false);
+  const [markingNonClinical, setMarkingNonClinical] = useState(false);
 
   const v4 = data?._v4 || {};
   const userLastName = v4.userLastName;
   const linkedClinicianId = v4.linkedClinicianId;
+  const markedNonClinical = v4.markedNonClinical;
+  const practiceId = v4.practiceId;
 
   // Find candidate clinicians: active, unlinked (or linked to nobody, since
   // already-linked records can't be claimed), and surname matches the user's.
@@ -81,6 +84,27 @@ export default function LinkClinicianSuggest({ data }) {
     // disappears for the rest of the session.
     window.location.reload();
   };
+
+  const markNonClinical = async () => {
+    if (!practiceId || !v4.userId) return;
+    if (!confirm("Mark yourself as non-clinical for this practice?\n\nThis hides the 'Is this you?' suggestion and the 'Not linked to a clinician' warning on the Users tab. You can switch back later from Account settings.")) return;
+    setMarkingNonClinical(true);
+    setError('');
+    const { error: rpcErr } = await supabase.rpc('set_member_non_clinical_flag', {
+      target_practice_id: practiceId,
+      target_user_id: v4.userId,
+      marked: true,
+    });
+    setMarkingNonClinical(false);
+    if (rpcErr) { setError(rpcErr.message); return; }
+    window.location.reload();
+  };
+
+  // Suppress entirely if the user has explicitly said they're not a clinician
+  // here. The banner only ever showed when there was a surname match against
+  // an unlinked clinician, but even that's misleading for shared-surname
+  // staff who happen to be non-clinical.
+  if (markedNonClinical) return null;
 
   if (dismissed || candidates.length === 0) return null;
 
@@ -130,7 +154,7 @@ export default function LinkClinicianSuggest({ data }) {
         }}>{error}</div>
       )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         {candidates.map(c => (
           <button
             key={c.id}
@@ -151,10 +175,30 @@ export default function LinkClinicianSuggest({ data }) {
             {busy === c.id ? 'Linking…' : `Yes, I'm ${c.name}`}
           </button>
         ))}
+        {/* "I'm not a clinician" — sets the persistent flag so this banner
+            (and the matching Users-tab warning) stays away. Distinct from
+            the × dismiss which is just session-local. */}
+        <button
+          onClick={markNonClinical}
+          disabled={markingNonClinical}
+          style={{
+            padding: '8px 12px',
+            fontSize: 13,
+            fontWeight: 500,
+            color: '#cbd5e1',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 6,
+            cursor: markingNonClinical ? 'wait' : 'pointer',
+            opacity: markingNonClinical ? 0.6 : 1,
+          }}
+        >
+          {markingNonClinical ? 'Saving…' : "I'm not a clinician"}
+        </button>
       </div>
 
       <div style={{ marginTop: 8, fontSize: 11, color: '#64748b' }}>
-        Not here? You can still pick yourself manually in Account → "Your clinician record".
+        Wrong match? You can pick yourself manually in Account → "Your clinician record".
       </div>
     </div>
   );

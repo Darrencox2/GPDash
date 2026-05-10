@@ -86,7 +86,7 @@ export default async function PracticePage({ params }) {
     supabase.from('profiles').select('is_platform_admin, name, first_name, last_name').eq('id', user.id).maybeSingle(),
     // Role for THIS practice specifically — filter by user_id because
     // owners/admins can see every membership row in the practice via RLS.
-    supabase.from('practice_users').select('role').eq('practice_id', practiceId).eq('user_id', user.id).maybeSingle(),
+    supabase.from('practice_users').select('role, marked_non_clinical').eq('practice_id', practiceId).eq('user_id', user.id).maybeSingle(),
   ]);
   const tQueries = Date.now();
 
@@ -150,6 +150,11 @@ export default async function PracticePage({ params }) {
     isPlatformAdmin,
     linkedClinicianId: myClinician?.id || null,
     linkedClinicianName: myClinician?.name || null,
+    // Did the user (or an admin) mark them as non-clinical at this practice?
+    // Used to suppress the "Is this you?" banner and the "Not linked"
+    // warning on the Users tab. Distinct from "doesn't have a clinician
+    // record yet" — non-clinical staff legitimately won't ever have one.
+    markedNonClinical: !!myMembership?.marked_non_clinical,
     practices: (memberships || []).map(m => ({
       id: m.practices?.id,
       slug: m.practices?.slug,

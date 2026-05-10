@@ -58,14 +58,18 @@ export default function UsersTab({
 
   // ─── Stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    let owners = 0, admins = 0, users = 0, unlinked = 0;
+    let owners = 0, admins = 0, users = 0, unlinked = 0, nonClinical = 0;
     for (const m of members) {
       if (m.role === 'owner') owners++;
       else if (m.role === 'admin') admins++;
       else users++;
-      if (!m.linked_clinician_id) unlinked++;
+      if (m.marked_non_clinical) nonClinical++;
+      // "Unlinked" only counts people who haven't said they're not a
+      // clinician AND aren't actually linked. Non-clinical staff aren't
+      // a problem to surface.
+      else if (!m.linked_clinician_id) unlinked++;
     }
-    return { total: members.length, owners, admins, users, unlinked, invites: invites.length };
+    return { total: members.length, owners, admins, users, unlinked, nonClinical, invites: invites.length };
   }, [members, invites]);
 
   return (
@@ -77,7 +81,8 @@ export default function UsersTab({
           <Stat label="Owners" value={stats.owners} colour="#fcd34d" />
           <Stat label="Admins" value={stats.admins} colour="#67e8f9" />
           <Stat label="Users" value={stats.users} colour="#cbd5e1" />
-          {stats.unlinked > 0 && <Stat label="Unlinked" value={stats.unlinked} colour="#fbbf24" tooltip="Members who haven't linked themselves to a clinician record yet — their personal rota will be empty until they do." />}
+          {stats.unlinked > 0 && <Stat label="Unlinked" value={stats.unlinked} colour="#fbbf24" tooltip="Clinicians who haven't linked themselves to their record yet — their personal rota will be empty until they do. Non-clinical staff (practice managers, reception, etc.) don't count toward this." />}
+          {stats.nonClinical > 0 && <Stat label="Non-clinical" value={stats.nonClinical} colour="#94a3b8" tooltip="Members who explicitly aren't clinicians at this practice (practice managers, reception, IT, finance, etc.)." />}
           {stats.invites > 0 && <Stat label="Pending invites" value={stats.invites} colour="#a5b4fc" />}
         </div>
 
@@ -226,18 +231,22 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
             {isMe && <span style={{ fontSize: 10, padding: '1px 7px', background: 'rgba(34,211,238,0.18)', color: '#67e8f9', borderRadius: 999, fontWeight: 600, letterSpacing: 0.4 }}>YOU</span>}
           </div>
           {m.name && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{m.name}</div>}
-          {/* Linked clinician row */}
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-            {m.linked_clinician_id ? (
-              <span style={{ color: '#94a3b8' }}>
-                Linked to <span style={{ color: '#cbd5e1' }}>{m.linked_clinician_name}</span>
-              </span>
-            ) : (
-              <span style={{ color: '#fbbf24', opacity: 0.85 }} title="This member's account isn't linked to any clinician record. Their personal rota will be empty until they go to Sidebar → My account and link themselves.">
-                ⚠ Not linked to a clinician
-              </span>
-            )}
-          </div>
+          {/* Clinician-link status. Three states:
+               (a) Linked to a clinician record  → slate "Linked to X"
+               (b) Marked as non-clinical here   → slate "Non-clinical"
+                   (no warning — they shouldn't be guilt-tripped)
+               (c) Neither linked nor marked     → amber "Not linked"
+                   warning + an action depending on viewer:
+                     - self  : "I'm not a clinician" button
+                     - admin : "Mark non-clinical" button
+                     - other : just the warning
+          */}
+          <ClinicianLinkStatus
+            member={m}
+            practiceId={practiceId}
+            isMe={isMe}
+            canActOnTarget={canActOnTarget}
+          />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -327,6 +336,118 @@ function RoleBadge({ role }) {
     }}>{role}</span>
   );
 }
+
+// Clinician-link status row + inline actions. Three states (linked,
+// marked non-clinical, unlinked) with different actions per viewer.
+function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
+  const router = useRouter();
+  const supabase = createClient();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const setNonClinical = async (marked) => {
+    if (marked && !confirm(isMe
+      ? "Mark yourself as non-clinical for this practice?\n\nThis hides the 'Not linked to a clinician' warning. You can switch back later from Account settings."
+      : `Mark ${m.name || m.email} as non-clinical?\n\nThis hides the 'Not linked' warning on their row. They can change it themselves from Account settings.`
+    )) return;
+    if (!marked && !confirm(isMe
+      ? "Unmark yourself as non-clinical?\n\nThe 'Not linked' warning will reappear until you link a clinician record."
+      : `Unmark ${m.name || m.email} as non-clinical?`
+    )) return;
+    setBusy(true);
+    setError('');
+    const { error: err } = await supabase.rpc('set_member_non_clinical_flag', {
+      target_practice_id: practiceId,
+      target_user_id: m.user_id,
+      marked,
+    });
+    setBusy(false);
+    if (err) { setError(err.message); return; }
+    router.refresh();
+  };
+
+  // Linked → just show the link.
+  if (m.linked_clinician_id) {
+    return (
+      <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+        <span style={{ color: '#94a3b8' }}>
+          Linked to <span style={{ color: '#cbd5e1' }}>{m.linked_clinician_name}</span>
+        </span>
+      </div>
+    );
+  }
+
+  // Marked non-clinical → slate badge, no warning. Self or admin can undo.
+  if (m.marked_non_clinical) {
+    return (
+      <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ color: '#94a3b8' }}>Non-clinical</span>
+        {(isMe || canActOnTarget) && (
+          <button
+            onClick={() => setNonClinical(false)}
+            disabled={busy}
+            style={tinyLinkBtn}
+            title="They are clinical after all — remove the non-clinical flag"
+          >
+            {busy ? '…' : 'Undo'}
+          </button>
+        )}
+        {error && <span style={{ color: '#fca5a5' }}>{error}</span>}
+      </div>
+    );
+  }
+
+  // Unlinked and not marked → amber warning + action by viewer
+  return (
+    <div style={{ fontSize: 11, marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <span style={{ color: '#fbbf24', opacity: 0.9 }} title="This member's account isn't linked to any clinician record. If they're a clinician, their personal rota will be empty until they link via Account → 'Your clinician record'. If they're not clinical, click the button to suppress this warning.">
+        ⚠ Not linked to a clinician
+      </span>
+      {isMe ? (
+        <button
+          onClick={() => setNonClinical(true)}
+          disabled={busy}
+          style={tinyActionBtn}
+          title="I'm not a clinician — I'm here as practice manager / reception / IT / etc."
+        >
+          {busy ? '…' : "I'm not a clinician"}
+        </button>
+      ) : canActOnTarget ? (
+        <button
+          onClick={() => setNonClinical(true)}
+          disabled={busy}
+          style={tinyActionBtn}
+          title="Mark as non-clinical (e.g. practice manager, reception, IT) — suppresses this warning"
+        >
+          {busy ? '…' : 'Mark non-clinical'}
+        </button>
+      ) : null}
+      {error && <span style={{ color: '#fca5a5' }}>{error}</span>}
+    </div>
+  );
+}
+
+const tinyActionBtn = {
+  padding: '2px 8px',
+  fontSize: 11,
+  color: '#cbd5e1',
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 4,
+  cursor: 'pointer',
+  fontWeight: 500,
+};
+
+const tinyLinkBtn = {
+  padding: '0 4px',
+  fontSize: 11,
+  color: '#94a3b8',
+  background: 'transparent',
+  border: 'none',
+  textDecoration: 'underline',
+  cursor: 'pointer',
+};
+
 
 function Stat({ label, value, colour, tooltip }) {
   return (

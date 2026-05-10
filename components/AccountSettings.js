@@ -16,9 +16,12 @@ export default function AccountSettings({ data }) {
   const linkedName = v4.linkedClinicianName;
   const linkedId = v4.linkedClinicianId;
   const practiceId = v4.practiceId;
+  const userId = v4.userId;
+  const markedNonClinical = !!v4.markedNonClinical;
 
   const [signOutBusy, setSignOutBusy] = useState(false);
   const [unlinkBusy, setUnlinkBusy] = useState(false);
+  const [nonClinicalBusy, setNonClinicalBusy] = useState(false);
   const [error, setError] = useState('');
 
   // Allow self-link via dropdown if not currently linked
@@ -34,6 +37,20 @@ export default function AccountSettings({ data }) {
     const { error: rpcErr } = await supabase.rpc('claim_clinician_as_self', {
       target_clinician_id: pickClinician,
     });
+    if (rpcErr) { setError(rpcErr.message); return; }
+    window.location.reload();
+  };
+
+  const setNonClinical = async (marked) => {
+    if (marked && !confirm("Mark yourself as non-clinical for this practice?\n\nThis hides the 'Is this you?' suggestion on the dashboard and the 'Not linked' warning on the Users tab. You can switch back here anytime.")) return;
+    if (!marked && !confirm("Unmark yourself as non-clinical?\n\nThe linking prompts will reappear until you pick a clinician record.")) return;
+    setNonClinicalBusy(true); setError('');
+    const { error: rpcErr } = await supabase.rpc('set_member_non_clinical_flag', {
+      target_practice_id: practiceId,
+      target_user_id: userId,
+      marked,
+    });
+    setNonClinicalBusy(false);
     if (rpcErr) { setError(rpcErr.message); return; }
     window.location.reload();
   };
@@ -103,6 +120,8 @@ export default function AccountSettings({ data }) {
         <h2 className="text-base font-semibold text-slate-900 mb-3">Your clinician record</h2>
         <p className="text-xs text-slate-500 mb-3">
           Linking your account to a clinician record lets My Rota and personal notes know which person you are.
+          If you're not a clinician at this practice (e.g. practice manager, reception, IT), pick the
+          "I'm not a clinician here" option instead.
         </p>
         {linkedId ? (
           <div className="flex items-center justify-between gap-3">
@@ -111,6 +130,16 @@ export default function AccountSettings({ data }) {
             </div>
             <button onClick={unlinkSelf} disabled={unlinkBusy} className="px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50">
               {unlinkBusy ? 'Unlinking…' : 'Unlink'}
+            </button>
+          </div>
+        ) : markedNonClinical ? (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-md bg-slate-50 border border-slate-200">
+            <div className="text-sm text-slate-700">
+              You're marked as <strong>non-clinical</strong> at this practice.
+              <div className="text-xs text-slate-500 mt-1">No clinician record will be linked. Linking prompts are suppressed.</div>
+            </div>
+            <button onClick={() => setNonClinical(false)} disabled={nonClinicalBusy} className="px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 whitespace-nowrap">
+              {nonClinicalBusy ? '…' : 'I am clinical'}
             </button>
           </div>
         ) : (
@@ -127,13 +156,23 @@ export default function AccountSettings({ data }) {
                 </option>
               ))}
             </select>
-            <button
-              onClick={linkSelf}
-              disabled={!pickClinician}
-              className="px-3 py-1.5 text-sm rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Link this clinician to me
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={linkSelf}
+                disabled={!pickClinician}
+                className="px-3 py-1.5 text-sm rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Link this clinician to me
+              </button>
+              <span className="text-xs text-slate-400">or</span>
+              <button
+                onClick={() => setNonClinical(true)}
+                disabled={nonClinicalBusy}
+                className="px-3 py-1.5 text-sm rounded-md bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {nonClinicalBusy ? '…' : "I'm not a clinician here"}
+              </button>
+            </div>
           </div>
         )}
       </div>
