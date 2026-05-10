@@ -1,5 +1,6 @@
-// /v4/admin/users/[id] — user detail. Shows email, memberships, and a
-// button to send a password reset link.
+// /v4/admin/users/[id] — user detail. Shows email + identity, all
+// practice memberships, and admin actions: edit profile, manage
+// memberships, delete user, send password reset.
 
 import { redirect, notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
@@ -7,6 +8,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import AdminNav from '../../AdminNav';
 import PasswordResetButton from './PasswordResetButton';
+import UserActions from './UserActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +44,11 @@ export default async function AdminUserDetailPage({ params }) {
   }
   if (!details) notFound();
 
-  const memberships = details.memberships || [];
+  // Pull every practice for the membership picker. Fine to fetch all —
+  // we have a handful of practices, not thousands. If/when this becomes
+  // expensive we can switch to a search-as-you-type input.
+  const { data: practiceRows } = await supabase.rpc('admin_list_practices');
+  const allPractices = (practiceRows || []).map(p => ({ id: p.id, name: p.name, slug: p.slug }));
 
   return (
     <div style={{
@@ -58,7 +64,7 @@ export default async function AdminUserDetailPage({ params }) {
           ← All users
         </Link>
 
-        {/* Identity */}
+        {/* Identity (read-only — name editing now handled by UserActions) */}
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <div>
@@ -86,35 +92,12 @@ export default async function AdminUserDetailPage({ params }) {
           <Row label="Last sign-in">{details.last_sign_in_at ? new Date(details.last_sign_in_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'never'}</Row>
         </div>
 
-        {/* Memberships */}
-        <div style={card}>
-          <h3 style={cardHeader}>Practice memberships ({memberships.length})</h3>
-          {memberships.length === 0 ? (
-            <p style={{ color: '#64748b', fontSize: 13 }}>No practice memberships.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {memberships.map(m => (
-                <div key={m.practice_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
-                  <div>
-                    <div style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>{m.practice_name}</div>
-                    <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
-                      <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{m.practice_slug}</span>
-                      {' · '}joined {new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={roleBadge(m.role)}>{m.role}</span>
-                    <Link href={`/v4/practice/${m.practice_slug}`} style={{ color: '#22d3ee', fontSize: 12, textDecoration: 'none' }}>Manage →</Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* All admin actions: profile editing, membership management, delete user */}
+        <UserActions user={details} allPractices={allPractices} />
 
-        {/* Actions */}
+        {/* Password reset stays separate — it's a one-shot transactional action */}
         <div style={card}>
-          <h3 style={cardHeader}>Actions</h3>
+          <h3 style={cardHeader}>Password reset</h3>
           <PasswordResetButton email={details.email} />
         </div>
       </div>
@@ -132,13 +115,4 @@ function Row({ label, children }) {
       <span style={{ color: '#cbd5e1', fontSize: 13 }}>{children}</span>
     </div>
   );
-}
-
-function roleBadge(role) {
-  const palette = role === 'owner'
-    ? { bg: 'rgba(16,185,129,0.15)', fg: '#34d399', border: 'rgba(16,185,129,0.3)' }
-    : role === 'admin'
-    ? { bg: 'rgba(245,158,11,0.15)', fg: '#fcd34d', border: 'rgba(245,158,11,0.3)' }
-    : { bg: 'rgba(148,163,184,0.1)', fg: '#94a3b8', border: 'rgba(148,163,184,0.2)' };
-  return { fontSize: 11, padding: '3px 10px', background: palette.bg, color: palette.fg, border: `1px solid ${palette.border}`, borderRadius: 999, fontWeight: 500 };
 }
