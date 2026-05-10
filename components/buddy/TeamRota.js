@@ -1,287 +1,49 @@
 'use client';
 import { useState } from 'react';
-import { DAYS, matchesStaffMember, toLocalIso } from '@/lib/data';
-import { getHuddleCapacity, parseHuddleDateStr } from '@/lib/huddle';
+import { DAYS } from '@/lib/data';
+import { inferWeeklyRota } from '@/lib/auto-rota';
 
 export default function TeamRota({ data, saveData, helpers, huddleData }) {
   const { ensureArray, toggleRotaDay } = helpers;
   const [generating, setGenerating] = useState(false);
   const [genReport, setGenReport] = useState(null);
 
-  // Auto-generate weekly pattern from CSV history.
-  //
-  // CSV dates come in 'DD-Mon-YYYY' format (e.g. '03-May-2026') and the array
-  // can contain future planning dates (CSV exports cover months ahead). We
-  // need to:
-  //   1. Parse them properly via parseHuddleDateStr (string compare doesn't
-  //      give chronological order — '20-Sep-2033' sorts higher than '03-May-2026')
-  //   2. Filter to PAST dates only (real history, not future plans)
-  //   3. Take the most recent 12 weeks (~60 weekdays)
-  //   4. Bucket by weekday and check appearances
+  // Auto-generate weekly pattern from CSV history. The actual algorithm
+  // lives in lib/auto-rota.js so it can also run automatically on first
+  // CSV upload (see components/huddle/HuddleToday.js processCSV). Manual
+  // button preserves the historic UX: only buddyCover-enabled clinicians
+  // are touched.
   const autoGenerateFromCSV = () => {
     if (!huddleData?.dates?.length) {
       setGenReport({ error: 'No CSV data loaded — upload a CSV on the Today page first.' });
       return;
     }
     setGenerating(true);
-    const hs = data.huddleSettings || {};
-    const eligibleClinicians = ensureArray(data.clinicians)
-      .filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
 
-    // Parse + filter + sort dates chronologically (oldest → newest)
-    const todayMs = new Date().setHours(0, 0, 0, 0);
-    const datesWithObjs = huddleData.dates
-      .map(ds => ({ ds, d: parseHuddleDateStr(ds) }))
-      .filter(({ d }) => !isNaN(d) && d.getTime() <= todayMs)  // valid + past-or-today
-      .sort((a, b) => a.d - b.d);                              // chronological
+    const result = inferWeeklyRota({
+      huddleData,
+      clinicians: ensureArray(data.clinicians),
+      huddleSettings: data.huddleSettings || {},
+      plannedAbsences: ensureArray(data.plannedAbsences),
+      existingRota: data.weeklyRota || {},
+      includeOnlyBuddyCover: true, // manual-button behaviour
+    });
 
-    // Take the most recent 12 weeks (~60 weekdays — but may include weekends)
-    const recent = datesWithObjs.slice(-84);  // up to 12 weeks of daily data
-    const recentDates = recent.map(r => r.ds);
-
-    // Bucket dates by weekday
-    const datesByDay = { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] };
-    for (const { ds, d } of recent) {
-      const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
-      if (datesByDay[dayName]) datesByDay[dayName].push(ds);
+    if (result.error) {
+      setGenReport({ error: result.error });
+      setGenerating(false);
+      return;
     }
 
-    // Build a quick lookup: clinicianId → array of {start, end} absences (in ms)
-    const absencesByClinician = {};
-    for (const a of ensureArray(data.plannedAbsences)) {
-      if (!a.clinicianId || !a.startDate || !a.endDate) continue;
-      const start = new Date(a.startDate + 'T00:00:00').getTime();
-      const end = new Date(a.endDate + 'T23:59:59').getTime();
-      if (!absencesByClinician[a.clinicianId]) absencesByClinician[a.clinicianId] = [];
-      absencesByClinician[a.clinicianId].push({ start, end });
-    }
-    const wasOnLeave = (clinicianId, dateMs) => {
-      const list = absencesByClinician[clinicianId];
-      if (!list) return false;
-      for (const a of list) {
-        if (dateMs >= a.start && dateMs <= a.end) return true;
-      }
-      return false;
-    };
-
-    // For each clinician × weekday, count appearances
-    const newRota = { ...data.weeklyRota };
-    const summary = []; // { name, days: 'Mon/Tue/Thu', changed: bool }
-
-    // Helpers for the fallback initials match. `csvNameInitialsAll` returns
-    // EVERY plausible initials variant for a CSV name so a clinician
-    // registered with 3-letter initials (e.g. JAG for Jane A Gomm) can still
-    // be matched even when the CSV only carries first+last names.
-    //
-    // For "Gomm, Jane (Dr)" we yield: ['JG', 'JAG', 'GOMM']
-    // For "Cox, Darren (Dr)" we yield: ['DC', 'DAC' ...] – simple cases
-    //   only return one variant.
-    const csvNameInitialsAll = (csvName) => {
-      if (!csvName) return [];
-      const cleaned = csvName.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').trim();
-      let parts;
-      if (cleaned.includes(',')) {
-        const [surname, first] = cleaned.split(',').map(s => s.trim());
-        parts = [first, surname].filter(Boolean);
-      } else {
-        parts = cleaned.split(/\s+/);
-      }
-      if (parts.length === 0) return [];
-      if (parts.length === 1) {
-        const single = parts[0][0]?.toUpperCase() || '';
-        return single ? [single] : [];
-      }
-      const first = parts[0];          // "Jane"
-      const surname = parts[parts.length - 1]; // "Gomm"
-      const variants = new Set();
-      // Standard 2-letter: first-of-first + first-of-last → "JG"
-      variants.add(((first[0] || '') + (surname[0] || '')).toUpperCase());
-      // Surname expansion (Jane G[omm] → first-of-first + first 1, 2, 3 of surname)
-      // e.g. JAG = first-of-first + first-of-A_lwaysThere + ?
-      // Actually JAG comes from J(ane) + A + G(omm) or J(ane) + (Apparently middle name) + G(omm)
-      // For middle name expansion, build surname-prefix variants of length 2,3:
-      for (let n = 2; n <= 3; n++) {
-        if (surname.length >= n) {
-          variants.add(((first[0] || '') + surname.slice(0, n)).toUpperCase());
-        }
-      }
-      // First-name prefix expansion: J + (first letter of surname) → JaG
-      // also catches initials like "JaG" stored as JAG
-      if (first.length >= 2) {
-        variants.add(((first[0] || '') + (first[1] || '') + (surname[0] || '')).toUpperCase());
-        if (first.length >= 3) {
-          variants.add(((first[0] || '') + (first[1] || '') + (first[2] || '') + (surname[0] || '')).toUpperCase());
-        }
-      }
-      // Surname only (rare but happens in some CSVs)
-      variants.add(surname.toUpperCase());
-      return Array.from(variants).filter(Boolean);
-    };
-
-    // Pre-compute every CSV name's possible initials, and an *ambiguity map*
-    // that records which initials values appear for >1 distinct CSV name.
-    // Any initials in this set can NOT be used by the fallback match — they
-    // would silently pick the wrong person.
-    const csvNamesSeen = new Set();
-    const initialsToCsvNames = new Map(); // initials → Set<csvName>
-    for (const dateStr of recentDates) {
-      const cap = getHuddleCapacity(huddleData, dateStr, hs);
-      const allByClin = [...(cap?.am?.byClinician || []), ...(cap?.pm?.byClinician || [])];
-      for (const bc of allByClin) {
-        if (!bc?.name || csvNamesSeen.has(bc.name)) continue;
-        csvNamesSeen.add(bc.name);
-        for (const v of csvNameInitialsAll(bc.name)) {
-          if (!initialsToCsvNames.has(v)) initialsToCsvNames.set(v, new Set());
-          initialsToCsvNames.get(v).add(bc.name);
-        }
-      }
-    }
-    const ambiguousInitials = new Set();
-    for (const [init, names] of initialsToCsvNames) {
-      if (names.size > 1) ambiguousInitials.add(init);
-    }
-
-    // Build a "any byClinician name that matches this clinician" lookup so we
-    // can debug which CSV names matched (or didn't) for diagnostic output
-    const debugMatches = {}; // clinician.id -> Set of CSV names matched
-
-    for (const c of eligibleClinicians) {
-      const daysWorking = [];
-      const matchedCsvNames = new Set();
-      const cInitials = (c.initials || '').toUpperCase();
-
-      // Collect per-day appearances, recording which dates they appeared on.
-      // We need the dates (not just counts) for the fallback strategy below.
-      const appearancesByDay = { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] };
-      const availableWeeksByDay = { Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0 };
-
-      for (const day of DAYS) {
-        const dates = datesByDay[day] || [];
-        for (const dateStr of dates) {
-          const dateMs = parseHuddleDateStr(dateStr).getTime();
-          const onLeave = wasOnLeave(c.id, dateMs);
-          if (!onLeave) availableWeeksByDay[day]++;
-
-          const cap = getHuddleCapacity(huddleData, dateStr, hs);
-          if (!cap) continue;
-
-          // Try name-based match first (the proper way)
-          let inAm = cap.am?.byClinician?.find(bc => matchesStaffMember(bc.name, c));
-          let inPm = cap.pm?.byClinician?.find(bc => matchesStaffMember(bc.name, c));
-
-          // Fallback: initials match. Only fires if name match failed AND
-          // the clinician's registered initials aren't ambiguous in the CSV
-          // (would map to multiple distinct CSV names — refuse rather than
-          // silently pick the wrong one).
-          const cInitialsUsable = cInitials && !ambiguousInitials.has(cInitials);
-          if (!inAm && cInitialsUsable) {
-            inAm = cap.am?.byClinician?.find(bc => csvNameInitialsAll(bc.name).includes(cInitials));
-          }
-          if (!inPm && cInitialsUsable) {
-            inPm = cap.pm?.byClinician?.find(bc => csvNameInitialsAll(bc.name).includes(cInitials));
-          }
-
-          if (inAm) matchedCsvNames.add(inAm.name);
-          if (inPm) matchedCsvNames.add(inPm.name);
-
-          const hasAny = (inAm && (inAm.available > 0 || inAm.booked > 0 || inAm.embargoed > 0))
-                      || (inPm && (inPm.available > 0 || inPm.booked > 0 || inPm.embargoed > 0));
-          if (hasAny) appearancesByDay[day].push({ dateStr, dateMs });
-        }
-      }
-
-      // ─── PRIMARY DECISION: standard ≥50% threshold against leave-adjusted denominator ───
-      for (const day of DAYS) {
-        const dates = datesByDay[day] || [];
-        if (dates.length === 0) continue;
-        const appeared = appearancesByDay[day].length;
-        const availableWeeks = availableWeeksByDay[day];
-        const denominator = availableWeeks > 0 ? availableWeeks : dates.length;
-        const ratio = appeared / denominator;
-        const heavilyOnLeave = (dates.length - availableWeeks) > dates.length / 2;
-        if (ratio >= 0.5 || (heavilyOnLeave && appeared >= 1)) {
-          daysWorking.push(day);
-        }
-      }
-
-      // ─── FALLBACK: primary returned nothing → look at most recent activity ───
-      // Useful when a clinician's history is sparse (long absence, recent return,
-      // schedule change, parental leave etc) and the strict ratio fails.
-      // Strategy: gather all dates this clinician appeared (any weekday, in
-      // chronological order), take the most recent ~10 dates that span at most
-      // 4 weeks, and consider those weekdays their pattern.
-      let isFallback = false;
-      if (daysWorking.length === 0 && matchedCsvNames.size > 0) {
-        // They were matched in CSV but no weekday hit the threshold.
-        // Gather all appearance entries flattened
-        const allAppearances = [];
-        for (const day of DAYS) {
-          for (const a of appearancesByDay[day]) {
-            allAppearances.push({ ...a, day });
-          }
-        }
-        // Sort newest first
-        allAppearances.sort((a, b) => b.dateMs - a.dateMs);
-        if (allAppearances.length > 0) {
-          // Take appearances from the most recent 4-week window
-          const cutoff = allAppearances[0].dateMs - (4 * 7 * 86400_000);
-          const recentSet = new Set();
-          for (const a of allAppearances) {
-            if (a.dateMs < cutoff) break;
-            recentSet.add(a.day);
-          }
-          if (recentSet.size > 0) {
-            for (const day of DAYS) {
-              if (recentSet.has(day)) daysWorking.push(day);
-            }
-            isFallback = true;
-          }
-        }
-      }
-      debugMatches[c.id] = matchedCsvNames;
-
-      // Apply: ensure this clinician is in newRota[day] for each day in daysWorking
-      for (const day of DAYS) {
-        const arr = ensureArray(newRota[day]);
-        const isWorking = daysWorking.includes(day);
-        const has = arr.includes(c.id);
-        if (isWorking && !has) {
-          newRota[day] = [...arr, c.id];
-        } else if (!isWorking && has) {
-          newRota[day] = arr.filter(x => x !== c.id);
-        }
-      }
-      summary.push({
-        name: c.name,
-        initials: c.initials,
-        days: daysWorking.map(d => d.slice(0,3)).join(' ') || '—',
-        matchedAs: matchedCsvNames.size > 0 ? [...matchedCsvNames][0] : null,
-        isFallback,
-        // "Data incomplete" = no days could be inferred at all (neither primary
-        // nor fallback). User needs to set this manually.
-        incomplete: daysWorking.length === 0,
-      });
-    }
-
-    saveData({ ...data, weeklyRota: newRota });
-    // Build a list of clinicians whose initials clash with another CSV name
-    // so the auto-generate report can warn the user. Even though we now
-    // refuse the fallback in these cases, the user still wants to know.
-    const ambiguityWarnings = [];
-    for (const c of eligibleClinicians) {
-      const cInit = (c.initials || '').toUpperCase();
-      if (cInit && ambiguousInitials.has(cInit)) {
-        const csvNames = Array.from(initialsToCsvNames.get(cInit) || []);
-        ambiguityWarnings.push({ name: c.name, initials: cInit, csvNames });
-      }
-    }
+    saveData({ ...data, weeklyRota: result.newRota });
     setGenReport({
-      summary,
-      weeksAnalysed: Math.min(12, Math.floor(recentDates.length / 5)),
-      ambiguityWarnings,
+      summary: result.summary,
+      weeksAnalysed: result.weeksAnalysed,
+      ambiguityWarnings: result.ambiguityWarnings,
     });
     setGenerating(false);
   };
+
 
   const buddyCoverClinicians = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
 

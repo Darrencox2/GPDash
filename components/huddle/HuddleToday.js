@@ -10,6 +10,7 @@ import { predictDemand } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge, ACCENT_BAR_COLOURS, ClinicianDayPanel } from './HuddleShared';
 import { canEditPracticeData } from '@/lib/permissions';
+import { inferWeeklyRota } from '@/lib/auto-rota';
 import NhsBenchmarkRibbon from './NhsBenchmarkRibbon';
 import RoutineWaitTime from './RoutineWaitTime';
 
@@ -250,10 +251,71 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       });
 
       const updated = { ...data, clinicians: updatedClinicians, huddleCsvData: merged, huddleCsvUploadedAt: uploadTime, huddleSettings: newHs };
-      const desc = newCount > 0 ? `CSV uploaded — ${newCount} new staff discovered` : 'CSV uploaded';
-      saveData(logEvent(updated, 'csv', desc, { newStaffCount: newCount }), false);
-      const msg = newCount > 0 ? `Report uploaded — ${newCount} new staff discovered` : 'Report uploaded successfully';
-      toast(msg, newCount > 0 ? 'warning' : 'success');
+
+      // ─── First-upload baseline: auto-generate weekly working pattern ────
+      // If the practice has no working-pattern data yet (fresh setup, or
+      // explicit reset), infer everyone's pattern from the CSV history so
+      // the user has a baseline to refine instead of starting from scratch.
+      //
+      // We use the permissive filter (every active, non-administrative
+      // clinician with CSV activity, regardless of buddyCover) — and for
+      // anyone we can infer a pattern for, we also flip buddyCover=true
+      // so they show up in the rota grid. This is what makes the baseline
+      // actually visible to the user; without the buddyCover flip the
+      // weeklyRota entries are set but the UI hides them.
+      //
+      // Only fires on the FIRST upload (existing weeklyRota empty). On
+      // subsequent uploads the user has already curated their team and
+      // we don't want to clobber their decisions.
+      const existingRota = data.weeklyRota || {};
+      const hasExistingPattern = Object.values(existingRota).some(arr => Array.isArray(arr) && arr.length > 0);
+      let inferredCount = 0;
+      if (!hasExistingPattern && updatedClinicians.length > 0) {
+        const result = inferWeeklyRota({
+          huddleData: merged,
+          clinicians: updatedClinicians,
+          huddleSettings: newHs,
+          plannedAbsences: data.plannedAbsences || [],
+          existingRota,
+          includeOnlyBuddyCover: false, // permissive: capture everyone with CSV activity
+        });
+        if (!result.error) {
+          // Set buddyCover=true for every clinician we successfully inferred
+          // a pattern for — otherwise the rota grid (which filters by
+          // buddyCover) wouldn't show them and the baseline would be invisible.
+          const inferredIds = new Set(
+            (result.summary || []).filter(s => !s.incomplete).map(s => s.clinicianId)
+          );
+          inferredCount = inferredIds.size;
+          if (inferredCount > 0) {
+            updatedClinicians = updatedClinicians.map(c =>
+              inferredIds.has(c.id) ? { ...c, buddyCover: true } : c
+            );
+            updated.clinicians = updatedClinicians;
+            updated.weeklyRota = result.newRota;
+          }
+        }
+      }
+
+      const descParts = [`CSV uploaded`];
+      if (newCount > 0) descParts.push(`${newCount} new staff`);
+      if (inferredCount > 0) descParts.push(`patterns inferred for ${inferredCount}`);
+      const desc = descParts.length > 1 ? descParts.join(' — ') : descParts[0];
+      saveData(logEvent(updated, 'csv', desc, { newStaffCount: newCount, inferredPatterns: inferredCount }), false);
+
+      // Toast: surface auto-inference if it happened — it's a substantial
+      // one-time event and the user wants to know it ran.
+      let msg;
+      if (inferredCount > 0 && newCount > 0) {
+        msg = `Report uploaded — ${newCount} new staff discovered, working patterns inferred for ${inferredCount}. Review on Team → Rota.`;
+      } else if (inferredCount > 0) {
+        msg = `Report uploaded — working patterns inferred for ${inferredCount} clinicians. Review on Team → Rota.`;
+      } else if (newCount > 0) {
+        msg = `Report uploaded — ${newCount} new staff discovered`;
+      } else {
+        msg = 'Report uploaded successfully';
+      }
+      toast(msg, (newCount > 0 || inferredCount > 0) ? 'warning' : 'success');
       setError('');
     } catch (err) { setError('Failed to parse CSV: ' + err.message); toast('Failed to parse CSV', 'error'); }
   };
