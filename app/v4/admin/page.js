@@ -85,8 +85,10 @@ export default async function AdminPracticesPage() {
                     {new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td style={{ ...td, textAlign: 'right' }}>
-                    <Link href={`/p/${p.slug}`} style={linkStyle} title="Open this practice's main app (Today, capacity, etc.)">Open →</Link>
-                    <Link href={`/v4/admin/practices/${p.id}`} style={{ ...linkStyle, marginLeft: 14 }} title="Manage as platform admin">Manage</Link>
+                    <div style={{ display: 'inline-flex', gap: 8 }}>
+                      <Link href={`/p/${p.slug}`} style={btnPrimary} title="Open this practice's main app (Today, capacity, etc.)">Open →</Link>
+                      <Link href={`/v4/admin/practices/${p.id}`} style={btnSubtle} title="Manage as platform admin">Manage</Link>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -102,7 +104,37 @@ export default async function AdminPracticesPage() {
 
 const th = { padding: '12px 16px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, color: '#94a3b8' };
 const td = { padding: '12px 16px', fontSize: 14 };
-const linkStyle = { color: '#22d3ee', textDecoration: 'none', fontSize: 13, fontWeight: 500 };
+
+// Buttons used on row-action cells. Primary = the more frequent action
+// ("Open the dashboard" — what platform admins do most often), Subtle =
+// the secondary action ("Manage practice settings"). Both styled as
+// proper buttons with padding, border, and weight rather than bare
+// cyan links — easier to hit on touch and reads as a control rather
+// than a hyperlink to a different document.
+const btnPrimary = {
+  padding: '7px 14px',
+  fontSize: 13,
+  fontWeight: 600,
+  color: 'white',
+  background: '#0891b2',
+  border: '1px solid #0891b2',
+  borderRadius: 6,
+  textDecoration: 'none',
+  whiteSpace: 'nowrap',
+  display: 'inline-block',
+};
+const btnSubtle = {
+  padding: '7px 14px',
+  fontSize: 13,
+  fontWeight: 500,
+  color: '#cbd5e1',
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 6,
+  textDecoration: 'none',
+  whiteSpace: 'nowrap',
+  display: 'inline-block',
+};
 
 function Stat({ label, value }) {
   return (

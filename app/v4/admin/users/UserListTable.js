@@ -207,7 +207,18 @@ function UserRow({ user: u }) {
         {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'never'}
       </td>
       <td style={{ ...td, textAlign: 'right' }}>
-        <Link href={`/v4/admin/users/${u.id}`} style={{ color: '#22d3ee', textDecoration: 'none', fontSize: 13, fontWeight: 500 }}>Open →</Link>
+        <Link href={`/v4/admin/users/${u.id}`} style={{
+          padding: '6px 12px',
+          fontSize: 13,
+          fontWeight: 600,
+          color: 'white',
+          background: '#0891b2',
+          border: '1px solid #0891b2',
+          borderRadius: 6,
+          textDecoration: 'none',
+          whiteSpace: 'nowrap',
+          display: 'inline-block',
+        }}>Open →</Link>
       </td>
     </tr>
   );
