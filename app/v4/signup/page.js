@@ -112,8 +112,8 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
     const token = code.trim();
-    if (token.length !== 6) {
-      setError('Enter the 6-digit code from the email.');
+    if (token.length < 6) {
+      setError('Enter the verification code from the email (it should be 6 to 10 digits).');
       return;
     }
     setVerifyLoading(true);
@@ -155,7 +155,7 @@ export default function SignupPage() {
   // ─── Verify stage ─────────────────────────────────────────────────
   if (stage === 'verify') {
     return (
-      <AuthCard title="Check your email" subtitle={`We sent a 6-digit code to ${email}`}>
+      <AuthCard title="Check your email" subtitle={`We sent a verification code to ${email}`}>
         <form onSubmit={handleVerify}>
           {error && <div style={f.errorBox}>{error}</div>}
           {resentAt && !error && (
@@ -172,25 +172,30 @@ export default function SignupPage() {
               inputMode="numeric"
               autoComplete="one-time-code"
               pattern="[0-9]*"
-              maxLength={6}
+              maxLength={10}
               required
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              // Strip non-digits so paste-with-spaces works.
+              // Supabase OTPs are 6-10 digits depending on the project's
+              // Auth → Providers → Email → Email OTP Length setting.
+              // We accept anything in that range and let verifyOtp do
+              // the actual validation.
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
               style={{
                 ...f.input,
                 fontSize: 20,
-                letterSpacing: '0.4em',
+                letterSpacing: '0.3em',
                 textAlign: 'center',
                 fontFamily: "'Space Mono', monospace",
               }}
-              placeholder="000000"
+              placeholder="6 to 10 digits"
             />
           </div>
 
           <button
             type="submit"
-            disabled={verifyLoading || code.length !== 6}
-            style={{ ...f.button, ...((verifyLoading || code.length !== 6) ? f.buttonDisabled : {}) }}
+            disabled={verifyLoading || code.length < 6}
+            style={{ ...f.button, ...((verifyLoading || code.length < 6) ? f.buttonDisabled : {}) }}
           >
             {verifyLoading ? 'Verifying…' : 'Verify and continue'}
           </button>
