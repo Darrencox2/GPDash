@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 const TABS = [
   { id: 'details', label: 'Details', requires: 'view' },
   { id: 'users', label: 'Users', requires: 'view' },
+  { id: 'clinicians', label: 'Clinicians', requires: 'admin' },
   { id: 'buddy-cover', label: 'Buddy cover', requires: 'admin' },
   { id: 'demand', label: 'Demand model', requires: 'admin' },
   { id: 'resources', label: 'Resources', requires: 'view' },

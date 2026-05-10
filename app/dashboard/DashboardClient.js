@@ -586,6 +586,55 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
               >Open setup →</a>
             </div>
           )}
+
+          {/* "Review your team" banner — appears when there are clinicians
+              needing attention (missing initials or placeholder role like
+              "Staff"). Most likely to fire right after a CSV upload, when
+              a fresh practice has lots of CSV-discovered names with no
+              initials and generic roles. Disappears as the user works
+              through them. Only visible to admins/owners (the people
+              with permission to fix it). */}
+          {(() => {
+            if (!canEditPracticeData(data)) return null;
+            const PLACEHOLDER_ROLES = new Set(['', 'Staff', 'Unknown']);
+            const needCount = ensureArray(data.clinicians).filter(c =>
+              c.status !== 'left' && (
+                !c.initials || c.initials.trim().length === 0 ||
+                PLACEHOLDER_ROLES.has((c.role || '').trim())
+              )
+            ).length;
+            if (needCount === 0) return null;
+            const slug = data._v4?.practiceSlug || practiceId;
+            return (
+              <div style={{
+                marginBottom: 20,
+                padding: '14px 16px',
+                background: 'rgba(245,158,11,0.08)',
+                border: '1px solid rgba(245,158,11,0.2)',
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 16,
+                flexWrap: 'wrap',
+                lineHeight: 1.5,
+              }}>
+                <div style={{ fontSize: 13, color: '#cbd5e1', flex: '1 1 280px', minWidth: 0 }}>
+                  <strong style={{ color: '#fbbf24' }}>Review your team</strong>
+                  {' · '}{needCount} clinician{needCount === 1 ? '' : 's'} need{needCount === 1 ? 's' : ''} a role and initials. Quick setup is one row each, saves automatically.
+                </div>
+                <a
+                  href={`/v4/practice/${slug}?tab=clinicians`}
+                  style={{
+                    fontSize: 12, fontWeight: 500, color: 'white',
+                    background: '#d97706',
+                    padding: '8px 14px', borderRadius: 6,
+                    textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
+                  }}
+                >Quick setup →</a>
+              </div>
+            );
+          })()}
           <Suspense fallback={<div className="text-sm text-slate-500 py-12 text-center">Loading…</div>}>
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}

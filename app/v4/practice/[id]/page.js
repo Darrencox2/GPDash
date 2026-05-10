@@ -14,6 +14,7 @@ import { createClient } from '@/utils/supabase/server';
 import { resolvePracticeIdentifier } from '@/lib/v4-data';
 import DashboardShell from '@/components/DashboardShell';
 import PracticeTabs from './PracticeTabs';
+import CliniciansTab from './CliniciansTab';
 import PracticeSetupForm from './setup/PracticeSetupForm';
 import InviteForm from './InviteForm';
 import UsersTab from './UsersTab';
@@ -191,6 +192,9 @@ export default async function PracticeAdminPage({ params }) {
         }
       />
     ),
+    clinicians: canManage ? (
+      <CliniciansTab practiceId={practiceId} />
+    ) : null,
     'buddy-cover': (
       <BuddyCoverSettings
         practiceId={practiceId}
