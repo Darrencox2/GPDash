@@ -9,7 +9,8 @@ import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist } from '.
 export default function SignupPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -27,6 +28,14 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
 
+    // Surname required, forename optional. Mononyms exist (Indonesian,
+    // Icelandic, etc.) and we'd rather accept an unusual name than ask a
+    // user to fabricate a forename. Surname is required because clinician
+    // matching keys off it.
+    if (!lastName.trim()) {
+      setError('Please enter your surname.');
+      return;
+    }
     if (!isPasswordValid(password)) {
       setError('Password must be at least 8 characters and include a letter and a digit.');
       return;
@@ -41,11 +50,20 @@ export default function SignupPage() {
     }
 
     setLoading(true);
+    // Pass first_name + last_name through auth metadata. The
+    // handle_new_user() trigger reads those keys at insert time and
+    // populates profiles.first_name + last_name + name (combined).
+    // Legacy single-name is also passed for any older trigger version.
+    const combinedName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { name },
+        data: {
+          first_name: firstName.trim() || null,
+          last_name: lastName.trim(),
+          name: combinedName,
+        },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/v4/dashboard`,
       },
     });
@@ -83,17 +101,33 @@ export default function SignupPage() {
       <form onSubmit={handleSubmit}>
         {error && <div style={f.errorBox}>{error}</div>}
 
-        <div style={f.field}>
-          <label style={f.label}>Your name</label>
-          <input
-            type="text"
-            required
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={f.input}
-            placeholder="Dr Jane Smith"
-          />
+        {/* Forename + surname split. Surname required (used for the auto-
+            link suggestion that matches against clinician records);
+            forename optional to accommodate mononyms. */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ ...f.field, flex: 1 }}>
+            <label style={f.label}>Forename</label>
+            <input
+              type="text"
+              autoComplete="given-name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              style={f.input}
+              placeholder="Jane"
+            />
+          </div>
+          <div style={{ ...f.field, flex: 1 }}>
+            <label style={f.label}>Surname *</label>
+            <input
+              type="text"
+              required
+              autoComplete="family-name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              style={f.input}
+              placeholder="Smith"
+            />
+          </div>
         </div>
 
         <div style={f.field}>
@@ -133,8 +167,6 @@ export default function SignupPage() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             style={{
               ...f.input,
-              // Subtle red ring when the user has typed something AND it
-              // doesn't match — avoids flagging an empty field as wrong.
               borderColor: passwordsMatch ? f.input.border : 'rgba(239,68,68,0.5)',
             }}
             placeholder="Re-enter your password"

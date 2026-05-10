@@ -83,7 +83,7 @@ export default async function PracticePage({ params }) {
     supabase.from('practice_users').select('role, practices(id, name, slug)').eq('user_id', user.id),
     // Platform admin flag — filter by id because owners/admins see other
     // members' profiles too via RLS.
-    supabase.from('profiles').select('is_platform_admin, name').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('is_platform_admin, name, first_name, last_name').eq('id', user.id).maybeSingle(),
     // Role for THIS practice specifically — filter by user_id because
     // owners/admins can see every membership row in the practice via RLS.
     supabase.from('practice_users').select('role').eq('practice_id', practiceId).eq('user_id', user.id).maybeSingle(),
@@ -134,6 +134,10 @@ export default async function PracticePage({ params }) {
     demandSettings: settings?.demand_settings || null,
     userId: user.id,
     userEmail: user.email,
+    // Forename + surname split out — used by the auto-link suggestion to
+    // match the user's surname against clinician records on this practice.
+    userFirstName: myProfile?.first_name || null,
+    userLastName: myProfile?.last_name || null,
     // Display name for noticeboard posts, audit log, etc. Priority:
     //   1. Linked clinician's name (most accurate — that's their identity in
     //      the practice context)

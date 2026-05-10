@@ -31,15 +31,21 @@ export default function UserActions({ user, allPractices }) {
 
   // ─── Profile editing ───────────────────────────────────────────────
   const [editingProfile, setEditingProfile] = useState(false);
-  const [draftName, setDraftName] = useState(user.name || '');
+  const [draftFirstName, setDraftFirstName] = useState(user.first_name || '');
+  const [draftLastName, setDraftLastName] = useState(user.last_name || '');
   const [draftPlatformAdmin, setDraftPlatformAdmin] = useState(!!user.is_platform_admin);
 
   const saveProfile = async () => {
     setBusy('profile');
     const { error: err } = await supabase.rpc('admin_update_user_profile', {
       target_user_id: user.id,
-      new_name: draftName.trim() || null,
+      new_first_name: draftFirstName.trim() || null,
+      new_last_name: draftLastName.trim() || null,
       new_is_platform_admin: draftPlatformAdmin,
+      // Don't pass new_name explicitly — the RPC will recompute it from
+      // first + last so display stays in sync. If we ever want a custom
+      // display name (mononyms, non-Western order, etc.) we'd add a
+      // separate "display name" field to the editor.
     });
     setBusy(null);
     if (err) { showErr(err.message); return; }
@@ -134,14 +140,24 @@ export default function UserActions({ user, allPractices }) {
         </div>
         {editingProfile ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Field label="Name">
-              <input
-                type="text"
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-                style={input}
-              />
-            </Field>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Field label="Forename">
+                <input
+                  type="text"
+                  value={draftFirstName}
+                  onChange={(e) => setDraftFirstName(e.target.value)}
+                  style={input}
+                />
+              </Field>
+              <Field label="Surname">
+                <input
+                  type="text"
+                  value={draftLastName}
+                  onChange={(e) => setDraftLastName(e.target.value)}
+                  style={input}
+                />
+              </Field>
+            </div>
             <Field label="Platform admin">
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: '#cbd5e1' }}>
                 <input
@@ -165,7 +181,8 @@ export default function UserActions({ user, allPractices }) {
               <button
                 onClick={() => {
                   setEditingProfile(false);
-                  setDraftName(user.name || '');
+                  setDraftFirstName(user.first_name || '');
+                  setDraftLastName(user.last_name || '');
                   setDraftPlatformAdmin(!!user.is_platform_admin);
                 }}
                 style={btnSubtle}
@@ -176,7 +193,9 @@ export default function UserActions({ user, allPractices }) {
           </div>
         ) : (
           <>
-            <Row label="Name">{user.name || <em style={{ color: '#475569' }}>not set</em>}</Row>
+            <Row label="Forename">{user.first_name || <em style={{ color: '#475569' }}>not set</em>}</Row>
+            <Row label="Surname">{user.last_name || <em style={{ color: '#475569' }}>not set</em>}</Row>
+            <Row label="Display name">{user.name || <em style={{ color: '#475569' }}>not set</em>}</Row>
             <Row label="Platform admin">{user.is_platform_admin ? 'Yes' : 'No'}</Row>
           </>
         )}
