@@ -291,7 +291,11 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   }
 
   // ─── Render ───────────────────────────────────────────────────────
-  const allRequired = name && postcode && listSize && tool;
+  // Tool removed from required fields (v4.7.0) — name + postcode + listSize
+  // are now the minimum for marking the form complete. The wizard at
+  // /v4/onboarding/setup/[id] is the canonical setup flow these days;
+  // this form is the "manage" view that lets admins update details later.
+  const allRequired = name && postcode && listSize;
   const holidays = lookup?.admin_district ? getSchoolHolidaysForLEA(lookup.admin_district) : null;
 
   return (
@@ -709,7 +713,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
         </button>
         {!allRequired && (
           <span style={{ alignSelf: 'center', fontSize: 15, color: '#64748b' }}>
-            Fill in name, postcode, list size and tool to mark complete
+            Fill in name, postcode, and list size to mark complete
           </span>
         )}
       </div>
