@@ -39,9 +39,12 @@ const GROUPS = [
   { value: 'allied', label: 'Allied' },
   { value: 'admin', label: 'Admin' },
 ];
+// Database enum public.clinician_status only allows these three values.
+// Long-term absent is modelled separately via a boolean on the clinician
+// record in v3 — not a status here. Don't add other values to this list
+// or saves will fail with a Postgres enum constraint violation.
 const STATUSES = [
   { value: 'active', label: 'Active' },
-  { value: 'longTermAbsent', label: 'Long-term absent' },
   { value: 'administrative', label: 'Administrative' },
   { value: 'left', label: 'Left' },
 ];
@@ -114,9 +117,18 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicians }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Save failed (${res.status})`);
+      const body = await res.json().catch(() => ({}));
+      // res.ok is true for 200-299 — including 207 (multi-status).
+      // The API returns 207 when SOME ops ran but others failed
+      // (e.g. one row hit an enum/unique/check constraint). We must
+      // treat 207 as a failure here; otherwise the user sees "Saved"
+      // and assumes everything went through when one or more rows
+      // were silently rejected.
+      if (!res.ok || body?.ok === false) {
+        const detail = Array.isArray(body?.errors) && body.errors.length > 0
+          ? body.errors.join(' · ')
+          : (body?.error || `Save failed (${res.status})`);
+        throw new Error(detail);
       }
       lastSavedRef.current = clinicians;
       setSaveState('saved');
