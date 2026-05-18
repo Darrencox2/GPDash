@@ -391,8 +391,8 @@ export async function POST(request) {
     const oldById = {};
     for (const c of oldClins) oldById[c.id] = c;
 
-    // Build a set of initials already taken by ACTIVE existing clinicians.
-    // The database has:
+    // Build a set of initials already taken by ACTIVE existing clinicians
+    // that are NOT in the current request. The database has:
     //   unique index (practice_id, lower(initials))
     //   WHERE status='active' AND initials IS NOT NULL
     // — so we only need to dedupe against active rows with non-null
@@ -400,25 +400,29 @@ export async function POST(request) {
     // gets its initials nulled out; the user fixes it in Quick Setup.
     // (Quick Setup's "needs attention" highlight makes null initials
     // obvious, so this isn't a silent data loss — it's a deferred ask.)
+    //
+    // CRITICAL: rows in this batch (newClins) have their initials
+    // governed by what they claim in `c.initials`, not by what's in
+    // the database. We must exclude existing initials of those rows
+    // from `takenInitials` so a row updating ITSELF doesn't appear to
+    // collide with its own past state. Without this, every edit of
+    // any field (role, status, sessions, etc.) on a clinician with
+    // non-null initials would call safeInitials with their current
+    // initials, see them in the "taken" set, and nullify them.
+    const idsInBatch = new Set(newClins.map(c => c.id));
     const takenInitials = new Set();
     for (const old of oldClins) {
+      if (idsInBatch.has(old.id)) continue; // row is in the batch — its initials are governed below
       if (old.status === 'active' && old.initials) {
         takenInitials.add(String(old.initials).toLowerCase());
       }
     }
-    // Also exclude initials of EXISTING rows that are about to be updated
-    // to something else in this same request — they're vacating that slot.
-    for (const c of newClins) {
-      const old = oldById[c.id];
-      if (old && old.status === 'active' && old.initials &&
-          (c.initials || '').toLowerCase() !== String(old.initials).toLowerCase()) {
-        takenInitials.delete(String(old.initials).toLowerCase());
-      }
-    }
 
     // Helper: pick safe initials for an insert/update — drops to null
-    // rather than colliding. (Null is fine; the unique index skips
-    // null-initialed rows.)
+    // rather than colliding. Order-dependent: the first row in the
+    // batch to claim a particular initials string wins, subsequent
+    // collisions go to null. Most natural ordering (alphabetical by
+    // CSV column) gives a sensible deterministic result.
     const safeInitials = (requested, status) => {
       const v = (requested || '').trim();
       if (!v) return null;
@@ -557,7 +561,22 @@ export async function POST(request) {
   if (ops.length > 0) {
     const results = await Promise.all(ops.map(p => p.then ? p : Promise.resolve(p)));
     for (const r of results) {
-      if (r?.error) errors.push(r.error.message);
+      if (r?.error) {
+        // Surface in server logs with full Postgres detail so it shows
+        // up in Vercel's runtime logs. The client only sees `.message`,
+        // which is sometimes terse — having `code` + `details` + `hint`
+        // in the server log saves a debug round-trip.
+        console.error('[/api/v4/data POST] op error:', {
+          code: r.error.code,
+          message: r.error.message,
+          details: r.error.details,
+          hint: r.error.hint,
+        });
+        const friendly = r.error.message
+          + (r.error.details ? ` (${r.error.details})` : '')
+          + (r.error.hint ? ` — ${r.error.hint}` : '');
+        errors.push(friendly);
+      }
     }
   }
 
