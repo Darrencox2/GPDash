@@ -391,6 +391,44 @@ export async function POST(request) {
     const oldById = {};
     for (const c of oldClins) oldById[c.id] = c;
 
+    // Build a set of initials already taken by ACTIVE existing clinicians.
+    // The database has:
+    //   unique index (practice_id, lower(initials))
+    //   WHERE status='active' AND initials IS NOT NULL
+    // — so we only need to dedupe against active rows with non-null
+    // initials. Anything new we're about to insert that would collide
+    // gets its initials nulled out; the user fixes it in Quick Setup.
+    // (Quick Setup's "needs attention" highlight makes null initials
+    // obvious, so this isn't a silent data loss — it's a deferred ask.)
+    const takenInitials = new Set();
+    for (const old of oldClins) {
+      if (old.status === 'active' && old.initials) {
+        takenInitials.add(String(old.initials).toLowerCase());
+      }
+    }
+    // Also exclude initials of EXISTING rows that are about to be updated
+    // to something else in this same request — they're vacating that slot.
+    for (const c of newClins) {
+      const old = oldById[c.id];
+      if (old && old.status === 'active' && old.initials &&
+          (c.initials || '').toLowerCase() !== String(old.initials).toLowerCase()) {
+        takenInitials.delete(String(old.initials).toLowerCase());
+      }
+    }
+
+    // Helper: pick safe initials for an insert/update — drops to null
+    // rather than colliding. (Null is fine; the unique index skips
+    // null-initialed rows.)
+    const safeInitials = (requested, status) => {
+      const v = (requested || '').trim();
+      if (!v) return null;
+      if (status && status !== 'active') return v; // non-active rows ignored by the index
+      const key = v.toLowerCase();
+      if (takenInitials.has(key)) return null; // collision → null
+      takenInitials.add(key);
+      return v;
+    };
+
     for (const c of newClins) {
       const old = oldById[c.id];
       if (!old) {
@@ -406,7 +444,7 @@ export async function POST(request) {
             practice_id: practiceId,
             name: c.name,
             title: c.title || null,
-            initials: c.initials || null,
+            initials: safeInitials(c.initials, c.status || 'active'),
             role: c.role || null,
             group_id: c.group || 'admin',
             status: c.status || 'active',
@@ -443,7 +481,7 @@ export async function POST(request) {
         ops.push(supabase.from('clinicians').update({
           name: c.name,
           title: c.title || null,
-          initials: c.initials || null,
+          initials: safeInitials(c.initials, c.status || 'active'),
           role: c.role || null,
           group_id: c.group || 'admin',
           status: c.status || 'active',

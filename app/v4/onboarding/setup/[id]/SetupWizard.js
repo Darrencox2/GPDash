@@ -657,6 +657,48 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         throw new Error("Couldn't find any clinicians in that CSV. Is it the EMIS appointment-data export?");
       }
 
+      // Generate initials for the batch. Two CSV name formats are common:
+      //   "SURNAME, Forename"  → forename-then-surname initials: 'MB'
+      //   "Forename Surname"   → same shape: 'MB'
+      // Single-letter initials (just the surname's first letter, as the old
+      // wizard did) collide constantly — every B-surname conflicted with
+      // every other, and the database unique index
+      // (practice_id, lower(initials)) WHERE status='active'
+      // rejected 25+ of every 40-clinician import.
+      //
+      // Even two-letter initials can collide ("Michelle Balson" and
+      // "Mark Banwell" both → 'MB'), so we dedupe within the batch by
+      // appending a number ('MB', 'MB2', 'MB3'). The user can pick
+      // meaningful initials in Quick Setup afterwards; this just makes
+      // sure the import doesn't lose data.
+      const baseInitialsFor = (csvName) => {
+        const clean = csvName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+        // "SURNAME, Forename" → forename first
+        if (clean.includes(',')) {
+          const [surname, forename] = clean.split(',').map(s => s.trim());
+          if (surname && forename) {
+            return (forename.charAt(0) + surname.charAt(0)).toUpperCase();
+          }
+        }
+        // "Forename Surname" or just "Surname"
+        const parts = clean.split(/\s+/).filter(Boolean);
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+      };
+      const usedInitials = new Set();
+      const assignInitials = (csvName) => {
+        const base = baseInitialsFor(csvName) || '';
+        if (!base) return null; // empty → let it be NULL (DB skips uniqueness on null)
+        let candidate = base;
+        let n = 2;
+        while (usedInitials.has(candidate)) {
+          candidate = base + n;
+          n++;
+        }
+        usedInitials.add(candidate);
+        return candidate;
+      };
+
       // Build clinician records — strip any parens that just contain
       // a title; let the user fix initials/role on the Clinicians tab.
       const newClinicians = csvNames.map((csvName) => {
@@ -665,14 +707,11 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         const rawRole = roleMatch ? roleMatch[1].trim() : '';
         const role = (!rawRole || TITLE_LIKE.has(rawRole.toLowerCase())) ? '' : rawRole;
         const guessedGroup = guessGroupFromRole(role) || 'admin';
-        // Surname-based initials are rough but cover the common
-        // "Smith, Jane" pattern. Quick Setup will let the user fix.
-        const surnameInitial = (cleanName.split(/[, ]+/)[0] || '').charAt(0).toUpperCase();
         return {
           id: crypto.randomUUID(),
           name: cleanName,
           title: '',
-          initials: surnameInitial,
+          initials: assignInitials(csvName),
           role,
           group: guessedGroup,
           status: 'active',
@@ -689,9 +728,17 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicians: newClinicians }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Save failed (${res.status})`);
+      const body = await res.json().catch(() => ({}));
+      // res.ok is true for 207 (Multi-Status) too. The API returns 207
+      // when SOME inserts succeeded and others failed (e.g. on a unique
+      // constraint). Treat that as a partial failure here so the user
+      // can see what went wrong rather than getting a green tick while
+      // half their team is silently missing.
+      if (!res.ok || body?.ok === false) {
+        const detail = Array.isArray(body?.errors) && body.errors.length > 0
+          ? `${body.errors.length} clinician${body.errors.length === 1 ? '' : 's'} failed to save: ${body.errors.slice(0, 3).join('; ')}${body.errors.length > 3 ? '…' : ''}`
+          : (body?.error || `Save failed (${res.status})`);
+        throw new Error(detail);
       }
 
       setHasClinicians(true);
