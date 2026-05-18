@@ -11,6 +11,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { adaptToV3Shape, resolvePracticeIdentifier } from '@/lib/v4-data';
+import { isMinimumSetupComplete, getSectionStatuses, countCliniciansNeedingAttention } from '@/lib/setup-status';
 import DashboardClient from '@/app/dashboard/DashboardClient';
 
 export const dynamic = 'force-dynamic';
@@ -119,6 +120,26 @@ export default async function PracticePage({ params }) {
   // Otherwise their actual membership role (or null if they have none).
   const myRole = isPlatformAdmin ? 'owner' : (myMembership?.role || null);
 
+  // ─── Auto-complete: derive setup_completed_at from data ────────────
+  // setup_completed_at used to need an explicit click to set. Now the
+  // server marks it whenever the minimum data is present (postcode +
+  // list size + at least one clinician). Self-healing — if anyone
+  // creates a practice through SQL or imports v3 data, the dashboard
+  // will mark it complete on next visit. Setup never gets stuck in a
+  // "I have everything but the flag isn't set" state.
+  const minimumMet = isMinimumSetupComplete(practice, (clinicians || []).length);
+  if (minimumMet && !practice.setup_completed_at && (myRole === 'owner' || myRole === 'admin')) {
+    // Best-effort — don't block the render if this fails.
+    try {
+      const ts = new Date().toISOString();
+      await supabase.from('practices').update({ setup_completed_at: ts }).eq('id', practiceId);
+      practice.setup_completed_at = ts;
+    } catch (e) {
+      // Surface in server logs but proceed
+      console.warn('auto-mark setup_completed_at failed:', e?.message);
+    }
+  }
+
   // ─── Setup-incomplete gate ─────────────────────────────────────────
   // If the practice owner hasn't finished the setup wizard yet, the
   // dashboard would render an empty/broken-looking experience —
@@ -141,6 +162,22 @@ export default async function PracticePage({ params }) {
     // No role at all — falls through to existing not-found behaviour
     // in the dashboard render below.
   }
+
+  // ─── Section statuses for the dashboard's completeness strip ──────
+  // Cheap to compute server-side from data we already loaded. Two
+  // extra counts to fetch (demand_history, members) — both head-only.
+  const [{ count: demandHistoryCount }, { count: memberCount }] = await Promise.all([
+    supabase.from('demand_history').select('practice_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
+    supabase.from('practice_users').select('user_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
+  ]);
+  const sectionStatuses = getSectionStatuses({
+    practice,
+    clinicianCount: (clinicians || []).length,
+    clinicianNeedsAttentionCount: countCliniciansNeedingAttention(clinicians || []),
+    teamnetUrl: settings?.teamnet_url || null,
+    demandHistoryCount: demandHistoryCount || 0,
+    memberCount: memberCount || 1,
+  });
 
   v3Shape._v4 = {
     practiceId,
@@ -196,5 +233,11 @@ export default async function PracticePage({ params }) {
     region: process.env.VERCEL_REGION || 'local',
   };
 
-  return <DashboardClient initialData={v3Shape} initialPracticeId={practiceId} serverTimings={serverTimings} />;
+  return <DashboardClient
+    initialData={v3Shape}
+    initialPracticeId={practiceId}
+    serverTimings={serverTimings}
+    sectionStatuses={sectionStatuses}
+    practiceManagementPath={`/v4/practice/${practice.slug}`}
+  />;
 }

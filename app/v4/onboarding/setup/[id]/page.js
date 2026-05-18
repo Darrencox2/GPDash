@@ -17,6 +17,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import SetupWizard from './SetupWizard';
+import { isMinimumSetupComplete } from '@/lib/setup-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,6 +94,24 @@ export default async function OnboardingSetupPage({ params }) {
     .is('accepted_at', null)
     .is('revoked_at', null);
 
+  // ─── Auto-completion ────────────────────────────────────────────────
+  // setup_completed_at used to require an explicit "Complete setup"
+  // button click. With v4.8.0 it's derived from data: the moment the
+  // minimum (postcode + list size + ≥1 clinician) is met, we set the
+  // timestamp on the next load. The user is still in the wizard so
+  // they can keep going through optional steps (TeamNet, demand,
+  // invites) — but they can leave to the dashboard at any time without
+  // anything blocking them.
+  const minimumMet = isMinimumSetupComplete(practice, clinicianCount || 0);
+  if (minimumMet && !practice.setup_completed_at) {
+    await supabase
+      .from('practices')
+      .update({ setup_completed_at: new Date().toISOString() })
+      .eq('id', practiceId);
+    // Refresh the local object so the wizard knows it's auto-completed.
+    practice.setup_completed_at = new Date().toISOString();
+  }
+
   return (
     <SetupWizard
       practice={practice}
@@ -101,6 +120,7 @@ export default async function OnboardingSetupPage({ params }) {
       hasDemandData={(demandHistoryCount || 0) > 0}
       hasInvites={(pendingInvitesCount || 0) > 0}
       userRole={membership.role}
+      autoCompleted={minimumMet}
     />
   );
 }

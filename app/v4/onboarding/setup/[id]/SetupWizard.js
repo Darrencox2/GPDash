@@ -69,6 +69,9 @@ export default function SetupWizard({
   hasClinicians: initialHasClinicians,
   hasDemandData: initialHasDemandData,
   hasInvites: initialHasInvites,
+  // Server has already marked setup_completed_at — skip the client-side
+  // write. Acts as the initial value of autoMarkedAt so we don't re-fire.
+  autoCompleted = false,
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -107,7 +110,7 @@ export default function SetupWizard({
   // to navigate away via the "Go to dashboard" button (jarring to
   // auto-redirect mid-flight while they might be filling in optional
   // steps).
-  const [autoMarkedAt, setAutoMarkedAt] = useState(null);
+  const [autoMarkedAt, setAutoMarkedAt] = useState(autoCompleted ? new Date() : null);
   const [autoMarkInFlight, setAutoMarkInFlight] = useState(false);
   const [navigating, setNavigating] = useState(false);
 

@@ -6,6 +6,17 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { TabStatusDot } from '../../_lib/SectionStatus';
+
+// Map each tab id to the section-status key it should reflect. Tabs
+// without a status key (buddy-cover, activity, danger) show no dot.
+const TAB_STATUS_KEY = {
+  details:    'details',
+  users:      'team',
+  clinicians: 'clinicians',
+  demand:     'demand',
+  resources:  'teamnet',
+};
 
 const TABS = [
   { id: 'details', label: 'Details', requires: 'view' },
@@ -18,7 +29,7 @@ const TABS = [
   { id: 'danger', label: 'Danger zone', requires: 'platform_admin' },
 ];
 
-export default function PracticeTabs({ canManage, isPlatformAdmin, children }) {
+export default function PracticeTabs({ canManage, isPlatformAdmin, sectionStatuses = null, children }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlTab = searchParams.get('tab');
@@ -60,26 +71,31 @@ export default function PracticeTabs({ canManage, isPlatformAdmin, children }) {
         marginBottom: 24,
         flexWrap: 'wrap',
       }}>
-        {visibleTabs.map(t => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => pickTab(t.id)}
-            style={{
-              padding: '10px 16px',
-              fontSize: 14,
-              fontWeight: t.id === effectiveTab ? 600 : 400,
-              color: t.id === effectiveTab ? (t.id === 'danger' ? '#fca5a5' : '#22d3ee') : '#94a3b8',
-              background: 'none',
-              border: 'none',
-              borderBottom: `2px solid ${t.id === effectiveTab ? (t.id === 'danger' ? '#fca5a5' : '#22d3ee') : 'transparent'}`,
-              marginBottom: -1,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}>
-            {t.label}
-          </button>
-        ))}
+        {visibleTabs.map(t => {
+          const statusKey = TAB_STATUS_KEY[t.id];
+          const status = statusKey && sectionStatuses ? sectionStatuses[statusKey] : null;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => pickTab(t.id)}
+              style={{
+                padding: '10px 16px',
+                fontSize: 14,
+                fontWeight: t.id === effectiveTab ? 600 : 400,
+                color: t.id === effectiveTab ? (t.id === 'danger' ? '#fca5a5' : '#22d3ee') : '#94a3b8',
+                background: 'none',
+                border: 'none',
+                borderBottom: `2px solid ${t.id === effectiveTab ? (t.id === 'danger' ? '#fca5a5' : '#22d3ee') : 'transparent'}`,
+                marginBottom: -1,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}>
+              {status && <TabStatusDot complete={status.complete} />}
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab content */}

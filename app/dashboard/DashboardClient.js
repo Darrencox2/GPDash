@@ -25,6 +25,7 @@ import Sidebar from '@/components/Sidebar';
 import LinkClinicianSuggest from '@/components/LinkClinicianSuggest';
 import { canEditPracticeData, isPlatformAdmin } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
+import { DashboardCompletenessStrip } from '@/app/v4/_lib/SectionStatus';
 
 // Lazy-load section components — they're each 50–200KB with heavy
 // dependencies. Loading them on demand cuts initial bundle dramatically
@@ -86,17 +87,23 @@ function normalizeDataStatic(d) {
   return d;
 }
 
-export default function DashboardRoot({ initialData = null, initialPracticeId = null, serverTimings = null }) {
+export default function DashboardRoot({ initialData = null, initialPracticeId = null, serverTimings = null, sectionStatuses = null, practiceManagementPath = null }) {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: '#f1f5f9' }}>Loading...</div>}>
       <ToastProvider>
-        <DashboardContent initialData={initialData} initialPracticeId={initialPracticeId} serverTimings={serverTimings} />
+        <DashboardContent
+          initialData={initialData}
+          initialPracticeId={initialPracticeId}
+          serverTimings={serverTimings}
+          sectionStatuses={sectionStatuses}
+          practiceManagementPath={practiceManagementPath}
+        />
       </ToastProvider>
     </Suspense>
   );
 }
 
-function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
+function DashboardContent({ initialData, initialPracticeId, serverTimings, sectionStatuses, practiceManagementPath }) {
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -550,41 +557,14 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings }) {
               the signed-in user has a surname but isn't yet linked. */}
           <LinkClinicianSuggest data={data} />
 
-          {/* Practice setup banner — shown to admins/owners when setup_completed_at is null */}
-          {!data._v4?.setupCompletedAt && canEditPracticeData(data) && (
-            <div style={{
-              marginBottom: 20,
-              padding: '14px 16px',
-              background: 'rgba(34,211,238,0.08)',
-              border: '1px solid rgba(34,211,238,0.2)',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 16,
-              flexWrap: 'wrap',
-              lineHeight: 1.5,
-            }}>
-              <div style={{ fontSize: 13, color: '#cbd5e1', flex: '1 1 280px', minWidth: 0 }}>
-                <strong style={{ color: '#67e8f9' }}>Finish practice setup</strong>
-                {' · '}Add your postcode, list size and consultation tool so demand
-                predictions calibrate to your practice.
-              </div>
-              <a
-                href={`/v4/practice/${data._v4?.practiceSlug || practiceId}/setup`}
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: 'white',
-                  background: '#0891b2',
-                  padding: '8px 14px',
-                  borderRadius: 6,
-                  textDecoration: 'none',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >Open setup →</a>
-            </div>
+          {/* Practice setup — section-by-section status strip. Auto-hides
+              once everything's green. Click any segment to jump to that
+              tab on the practice management page. */}
+          {canEditPracticeData(data) && sectionStatuses && (
+            <DashboardCompletenessStrip
+              statuses={sectionStatuses}
+              practicePath={practiceManagementPath}
+            />
           )}
 
           {/* "Review your team" banner — appears when there are clinicians

@@ -31,6 +31,8 @@ import TeamNetUrlEditor from './TeamNetUrlEditor';
 import DataCleanupActions from './DataCleanupActions';
 import CapacityTargetsEditor from './CapacityTargetsEditor';
 import AuditLogView from './AuditLogView';
+import { getSectionStatuses, countCliniciansNeedingAttention } from '@/lib/setup-status';
+import { SectionStatusStripe } from '../../_lib/SectionStatus';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,6 +118,25 @@ export default async function PracticeAdminPage({ params }) {
 
   const canManage = isAdminOrOwner || isPlatformAdmin;
 
+  // ─── Section statuses for the tab indicators ────────────────────────
+  // Each visible tab gets a coloured dot showing whether that section
+  // is complete (green) or needs attention (amber). Same logic as the
+  // dashboard's completeness strip — single helper so the two stay in
+  // sync.
+  const [{ data: clinicianRows }, { count: demandHistoryCount }, { count: memberCount }] = await Promise.all([
+    supabase.from('clinicians').select('initials, role, status').eq('practice_id', practiceId),
+    supabase.from('demand_history').select('practice_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
+    supabase.from('practice_users').select('user_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
+  ]);
+  const sectionStatuses = getSectionStatuses({
+    practice: fullPractice,
+    clinicianCount: (clinicianRows || []).length,
+    clinicianNeedsAttentionCount: countCliniciansNeedingAttention(clinicianRows || []),
+    teamnetUrl,
+    demandHistoryCount: demandHistoryCount || 0,
+    memberCount: memberCount || 1,
+  });
+
   const shellData = {
     _v4: {
       practiceSlug: practice.slug,
@@ -126,75 +147,91 @@ export default async function PracticeAdminPage({ params }) {
   };
 
   // Build tab content as a map; PracticeTabs picks the active one.
+  // Each section gets a small status stripe at the top (green when
+  // complete, amber when there's something to do). Mapping below
+  // matches the dashboard's completeness strip so the two stay in sync.
+  const stripeFor = (key) => sectionStatuses[key]
+    ? <SectionStatusStripe complete={sectionStatuses[key].complete} hint={sectionStatuses[key].hint} label={sectionStatuses[key].label} />
+    : null;
+
   const tabContent = {
     details: (
-      <DetailsTab
-        practiceId={practiceId}
-        practiceSlug={practice.slug}
-        fullPractice={fullPractice}
-        canManage={canManage}
-      />
+      <>
+        {stripeFor('details')}
+        <DetailsTab
+          practiceId={practiceId}
+          practiceSlug={practice.slug}
+          fullPractice={fullPractice}
+          canManage={canManage}
+        />
+      </>
     ),
     users: (
-      <UsersTab
-        members={members || []}
-        invites={invites || []}
-        practiceId={practiceId}
-        practiceName={practice?.name || 'this practice'}
-        canManage={canManage}
-        myMembership={myMembership}
-        myUserId={user.id}
-        isPlatformAdmin={isPlatformAdmin}
-        InviteForm={
-          <InviteForm
-            practiceId={practiceId}
-            canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin}
-          />
-        }
-        bulkInviteButton={
-          canManage ? (
-            <BulkInviteButton
+      <>
+        {stripeFor('team')}
+        <UsersTab
+          members={members || []}
+          invites={invites || []}
+          practiceId={practiceId}
+          practiceName={practice?.name || 'this practice'}
+          canManage={canManage}
+          myMembership={myMembership}
+          myUserId={user.id}
+          isPlatformAdmin={isPlatformAdmin}
+          InviteForm={
+            <InviteForm
               practiceId={practiceId}
               canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin}
             />
-          ) : null
-        }
-        pendingInviteList={
-          <PendingInvitesCard invites={invites || []} canManage={canManage} />
-        }
-        transferOwnershipButton={
-          /* Owner-only (or platform admin acting on owner's behalf). The
-             RPC enforces this regardless. */
-          (myMembership?.role === 'owner' || isPlatformAdmin) ? (
-            <TransferOwnershipButton
-              practiceId={practiceId}
-              practiceName={practice?.name || 'this practice'}
-              members={members || []}
-              myUserId={user.id}
-            />
-          ) : null
-        }
-        membershipChangesCard={
-          <MembershipChangesCard practiceId={practiceId} />
-        }
-        helpfulFooter={
-          <div style={{
-            padding: 12,
-            background: 'rgba(34, 211, 238, 0.05)',
-            border: '1px solid rgba(34, 211, 238, 0.15)',
-            borderRadius: 8,
-            fontSize: 13,
-            color: '#94a3b8',
-            lineHeight: 1.5,
-          }}>
-            Looking to link your account to a clinician record? That lives in
-            Sidebar → My account.
-          </div>
-        }
-      />
+          }
+          bulkInviteButton={
+            canManage ? (
+              <BulkInviteButton
+                practiceId={practiceId}
+                canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin}
+              />
+            ) : null
+          }
+          pendingInviteList={
+            <PendingInvitesCard invites={invites || []} canManage={canManage} />
+          }
+          transferOwnershipButton={
+            /* Owner-only (or platform admin acting on owner's behalf). The
+               RPC enforces this regardless. */
+            (myMembership?.role === 'owner' || isPlatformAdmin) ? (
+              <TransferOwnershipButton
+                practiceId={practiceId}
+                practiceName={practice?.name || 'this practice'}
+                members={members || []}
+                myUserId={user.id}
+              />
+            ) : null
+          }
+          membershipChangesCard={
+            <MembershipChangesCard practiceId={practiceId} />
+          }
+          helpfulFooter={
+            <div style={{
+              padding: 12,
+              background: 'rgba(34, 211, 238, 0.05)',
+              border: '1px solid rgba(34, 211, 238, 0.15)',
+              borderRadius: 8,
+              fontSize: 13,
+              color: '#94a3b8',
+              lineHeight: 1.5,
+            }}>
+              Looking to link your account to a clinician record? That lives in
+              Sidebar → My account.
+            </div>
+          }
+        />
+      </>
     ),
     clinicians: canManage ? (
-      <CliniciansTab practiceId={practiceId} />
+      <>
+        {stripeFor('clinicians')}
+        <CliniciansTab practiceId={practiceId} />
+      </>
     ) : null,
     'buddy-cover': (
       <BuddyCoverSettings
@@ -203,20 +240,26 @@ export default async function PracticeAdminPage({ params }) {
       />
     ),
     demand: (
-      <DemandTab
-        practiceId={practiceId}
-        demandSettings={demandSettings}
-        huddleSettings={huddleSettings}
-        history={historySummary || []}
-        canManage={canManage}
-      />
+      <>
+        {stripeFor('demand')}
+        <DemandTab
+          practiceId={practiceId}
+          demandSettings={demandSettings}
+          huddleSettings={huddleSettings}
+          history={historySummary || []}
+          canManage={canManage}
+        />
+      </>
     ),
     resources: (
-      <ResourcesTab
-        practiceId={practiceId}
-        teamnetUrl={teamnetUrl}
-        lastSyncTime={lastSyncTime}
-      />
+      <>
+        {stripeFor('teamnet')}
+        <ResourcesTab
+          practiceId={practiceId}
+          teamnetUrl={teamnetUrl}
+          lastSyncTime={lastSyncTime}
+        />
+      </>
     ),
     activity: canManage ? (
       <Card title="Audit log">
@@ -258,7 +301,7 @@ export default async function PracticeAdminPage({ params }) {
           </div>
         </div>
 
-        <PracticeTabs canManage={canManage} isPlatformAdmin={isPlatformAdmin}>
+        <PracticeTabs canManage={canManage} isPlatformAdmin={isPlatformAdmin} sectionStatuses={sectionStatuses}>
           {tabContent}
         </PracticeTabs>
       </div>
