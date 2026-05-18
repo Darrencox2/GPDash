@@ -99,27 +99,69 @@ export default function SetupWizard({
 
   const [globalError, setGlobalError] = useState('');
 
-  // Final "Complete setup" handler — sets setup_completed_at + redirects.
-  const [completing, setCompleting] = useState(false);
-  const completeSetup = async () => {
-    setCompleting(true);
-    setGlobalError('');
-    const { error } = await supabase
-      .from('practices')
-      .update({ setup_completed_at: new Date().toISOString() })
-      .eq('id', practice.id);
-    if (error) {
-      setGlobalError(error.message || 'Could not mark setup complete — try again.');
-      setCompleting(false);
-      return;
-    }
+  // ─── Auto-complete + navigation ──────────────────────────────────────
+  // The system knows when setup is "done" — all required steps have data.
+  // No need for an explicit "Complete setup" click. We fire the DB
+  // update in the background the first time canComplete becomes true,
+  // which unlocks /p/<slug> for the owner. The user still chooses when
+  // to navigate away via the "Go to dashboard" button (jarring to
+  // auto-redirect mid-flight while they might be filling in optional
+  // steps).
+  const [autoMarkedAt, setAutoMarkedAt] = useState(null);
+  const [autoMarkInFlight, setAutoMarkInFlight] = useState(false);
+  const [navigating, setNavigating] = useState(false);
+
+  const goToDashboard = async () => {
+    setNavigating(true);
     router.push(`/p/${practice.slug}`);
     router.refresh();
   };
 
-  // Navigation helpers. We don't block forward nav on incomplete required
-  // steps — only the final "Complete setup" button is gated. This lets
-  // the user preview what's coming.
+  // Per-step "is this done" derivations — drive the progress indicator
+  // (filled vs hollow dots), the colored top border on each step card,
+  // and the auto-complete trigger.
+  const stepDone = [
+    !!postcode && !!listSize,                           // 0: details
+    teamnetUrl.length > 0,                              // 1: teamnet (optional, but tick if set)
+    hasClinicians,                                      // 2: emis
+    hasDemandData,                                      // 3: demand
+    hasInvites,                                         // 4: invites
+  ];
+  const requiredIncomplete = STEPS
+    .map((s, i) => s.required && !stepDone[i] ? s : null)
+    .filter(Boolean);
+  const canComplete = requiredIncomplete.length === 0;
+
+  // Fire-once auto-mark: when canComplete first becomes true, write
+  // setup_completed_at in the background. Subsequent renders don't
+  // re-fire — autoMarkedAt acts as the latch. If the write fails the
+  // user can keep using the wizard; we surface the error and they'll
+  // get redirected back from /p/<slug> until it succeeds.
+  useEffect(() => {
+    if (!canComplete) return;
+    if (autoMarkedAt) return;
+    if (autoMarkInFlight) return;
+    let cancelled = false;
+    (async () => {
+      setAutoMarkInFlight(true);
+      const { error } = await supabase
+        .from('practices')
+        .update({ setup_completed_at: new Date().toISOString() })
+        .eq('id', practice.id);
+      if (cancelled) return;
+      setAutoMarkInFlight(false);
+      if (error) {
+        setGlobalError(error.message || 'Could not mark setup complete — your changes are saved, but the dashboard may still redirect you back here. Try again or refresh.');
+        return;
+      }
+      setAutoMarkedAt(new Date());
+    })();
+    return () => { cancelled = true; };
+  }, [canComplete, autoMarkedAt, autoMarkInFlight, supabase, practice.id]);
+
+  // Navigation helpers. Forward nav is unrestricted — the user can
+  // preview later steps. The per-card colored top border + amber
+  // banner on missing-required steps tells them what still needs doing.
   const goNext = useCallback(() => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(s => s + 1);
@@ -136,20 +178,6 @@ export default function SetupWizard({
     setCurrentStep(idx);
     setAnimKey(k => k + 1);
   }, []);
-
-  // Per-step "is this done" derivations — drive the progress indicator
-  // (filled vs hollow dots) and the Continue button enable state.
-  const stepDone = [
-    !!postcode && !!listSize,                           // 0: details
-    teamnetUrl.length > 0,                              // 1: teamnet (optional, but tick if set)
-    hasClinicians,                                      // 2: emis
-    hasDemandData,                                      // 3: demand
-    hasInvites,                                         // 4: invites
-  ];
-  const requiredIncomplete = STEPS
-    .map((s, i) => s.required && !stepDone[i] ? s : null)
-    .filter(Boolean);
-  const canComplete = requiredIncomplete.length === 0;
 
   // ─── Render ──────────────────────────────────────────────────────────
   return (
@@ -175,11 +203,24 @@ export default function SetupWizard({
         onStepClick={goToStep}
       />
 
-      {/* Step card with animation */}
+      {/* Step card with animation. Top border is colour-coded:
+            green  → step has data, complete
+            amber  → step is REQUIRED but not yet complete (action needed)
+            none   → step is optional and not yet complete (no pressure)
+          Gives an at-a-glance read of where attention is needed,
+          reinforcing the progress dots above. */}
       <div style={cardWrapperStyle}>
         <div key={animKey} style={cardAnimWrapperStyle}>
-          <div style={cardStyle}>
-            <StepHeader step={STEPS[currentStep]} index={currentStep} />
+          <div style={{
+            ...cardStyle,
+            borderTopWidth: 4,
+            borderTopStyle: 'solid',
+            borderTopColor:
+              stepDone[currentStep] ? '#10b981' :
+              STEPS[currentStep].required ? '#f59e0b' :
+              'rgba(255,255,255,0.08)',
+          }}>
+            <StepHeader step={STEPS[currentStep]} index={currentStep} done={stepDone[currentStep]} />
             <div style={{ marginTop: 28 }}>
               {currentStep === 0 && (
                 <DetailsStep
@@ -259,22 +300,54 @@ export default function SetupWizard({
               </button>
             </>
           ) : (
+            // Last step. The "complete" state is automatic — setup_completed_at
+            // gets written the moment all required steps have data (see the
+            // useEffect that watches canComplete). This button is purely
+            // navigation: take the user to their dashboard once they're done
+            // exploring optional steps.
             <button
-              onClick={completeSetup}
-              disabled={!canComplete || completing}
+              onClick={goToDashboard}
+              disabled={!canComplete || navigating}
               style={{
                 ...btnPrimary,
                 background: canComplete ? '#10b981' : '#0891b2',
                 opacity: canComplete ? 1 : 0.4,
-                cursor: canComplete && !completing ? 'pointer' : 'not-allowed',
+                cursor: canComplete && !navigating ? 'pointer' : 'not-allowed',
                 paddingLeft: 22, paddingRight: 22,
               }}
             >
-              {completing ? 'Finishing…' : (canComplete ? '✓ Complete setup' : 'Complete required steps first')}
+              {navigating ? 'Loading…' : (canComplete ? '✓ Go to dashboard' : 'Complete required steps first')}
             </button>
           )}
         </div>
       </div>
+
+      {/* When the system has auto-marked setup complete, give the user
+          a clear acknowledgement they can act on regardless of which
+          step they're currently looking at. The dashboard is now
+          accessible — they don't have to march to the final step. */}
+      {autoMarkedAt && currentStep < STEPS.length - 1 && (
+        <div style={{
+          maxWidth: 720, margin: '14px auto 0',
+          padding: '10px 16px',
+          background: 'rgba(16,185,129,0.1)',
+          border: '1px solid rgba(16,185,129,0.3)',
+          borderRadius: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          fontSize: 13,
+        }}>
+          <span style={{ color: '#6ee7b7' }}>
+            ✓ All set — you can head to your dashboard whenever you're ready.
+          </span>
+          <button
+            onClick={goToDashboard}
+            disabled={navigating}
+            style={{ ...btnPrimary, background: '#10b981', padding: '6px 14px', fontSize: 12 }}
+          >
+            {navigating ? 'Loading…' : 'Go to dashboard'}
+          </button>
+        </div>
+      )}
 
       {/* Surface what's still required when the user is on the last step */}
       {currentStep === STEPS.length - 1 && !canComplete && (
@@ -425,12 +498,39 @@ function CheckIcon() {
 }
 
 // ─── Step header (number + title + subtitle) ───────────────────────────
-function StepHeader({ step, index }) {
+function StepHeader({ step, index, done }) {
+  // Eyebrow colour matches the card's top-border treatment so the
+  // status reads consistently — emerald when done, cyan otherwise.
+  const eyebrowColor = done ? '#10b981' : '#0891b2';
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: '#0891b2', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
-        Step {index + 1}
-        {step.optional && <span style={{ color: '#64748b', marginLeft: 8, letterSpacing: 1 }}>· optional</span>}
+      <div style={{ fontSize: 11, fontWeight: 600, color: eyebrowColor, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span>Step {index + 1}</span>
+        {step.optional && <span style={{ color: '#64748b', letterSpacing: 1 }}>· optional</span>}
+        {done && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '2px 8px',
+            background: 'rgba(16,185,129,0.15)',
+            border: '1px solid rgba(16,185,129,0.35)',
+            borderRadius: 4,
+            color: '#6ee7b7', fontSize: 10, letterSpacing: 1,
+          }}>
+            ✓ Done
+          </span>
+        )}
+        {!done && step.required && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '2px 8px',
+            background: 'rgba(245,158,11,0.12)',
+            border: '1px solid rgba(245,158,11,0.35)',
+            borderRadius: 4,
+            color: '#fbbf24', fontSize: 10, letterSpacing: 1,
+          }}>
+            ! Required
+          </span>
+        )}
       </div>
       <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 600, color: 'white', lineHeight: 1.15, marginBottom: 8 }}>
         {step.title}
