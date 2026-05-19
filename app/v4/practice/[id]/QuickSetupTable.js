@@ -283,19 +283,18 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
         </div>
       )}
 
-      {/* Bulk actions toolbar — appears when ≥1 row selected. Sticky to
-          top of the table area so it's always visible while scrolling
-          through 30+ clinicians. */}
-      {selectedCount > 0 && (
-        <BulkActionsBar
-          count={selectedCount}
-          onClear={clearSelection}
-          onSetRole={(role) => bulkUpdate({ role })}
-          onSetStatus={(status) => bulkUpdate({ status })}
-          onSetBuddyCover={(buddyCover) => bulkUpdate({ buddyCover })}
-          onSetWhosIn={(showWhosIn) => bulkUpdate({ showWhosIn })}
-        />
-      )}
+      {/* Bulk actions toolbar — always visible. When nothing is selected
+          the controls are disabled and the bar shows a "tick a row to
+          start" prompt. Sticky to the top of the table area so it's
+          always reachable while scrolling through 30+ clinicians. */}
+      <BulkActionsBar
+        count={selectedCount}
+        onClear={clearSelection}
+        onSetRole={(role) => bulkUpdate({ role })}
+        onSetStatus={(status) => bulkUpdate({ status })}
+        onSetBuddyCover={(buddyCover) => bulkUpdate({ buddyCover })}
+        onSetWhosIn={(showWhosIn) => bulkUpdate({ showWhosIn })}
+      />
 
       <div style={{
         border: '1px solid rgba(255,255,255,0.06)',
@@ -481,54 +480,70 @@ function ToggleSwitch({ on, onClick, colourOn, ariaLabel }) {
 }
 
 // ─── Bulk actions toolbar ──────────────────────────────────────────────
+// Always rendered, so users can see what's possible before they tick
+// anything. When count=0 the controls are disabled and the bar shows
+// a "tick a row below" prompt. As soon as a row is selected the bar
+// activates and the count updates.
+//
 // "Set group" was dropped in v4.8.5 — group is auto-derived from role
 // server-side, so exposing it as a separate action just gave users a
 // way to put a record in an inconsistent state. The role-derives-group
 // rule covers every practical case.
 function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCover, onSetWhosIn }) {
+  const active = count > 0;
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 10,
       padding: '10px 14px', marginBottom: 12,
-      background: 'rgba(34,211,238,0.1)',
-      border: '1px solid rgba(34,211,238,0.25)',
+      background: active ? 'rgba(34,211,238,0.10)' : 'rgba(255,255,255,0.03)',
+      border: `1px solid ${active ? 'rgba(34,211,238,0.25)' : 'rgba(255,255,255,0.08)'}`,
       borderRadius: 8,
       display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
       backdropFilter: 'blur(8px)',
+      transition: 'background 0.15s, border 0.15s',
     }}>
-      <strong style={{ fontSize: 13, color: '#a5f3fc' }}>{count} selected</strong>
+      {active ? (
+        <strong style={{ fontSize: 13, color: '#a5f3fc' }}>{count} selected</strong>
+      ) : (
+        <span style={{ fontSize: 13, color: '#94a3b8' }}>
+          Bulk edit — <span style={{ color: '#64748b' }}>tick rows below to enable</span>
+        </span>
+      )}
       <span style={{ color: '#475569' }}>·</span>
 
-      <BulkSelect label="Set role" onChange={onSetRole}>
+      <BulkSelect label="Set role" onChange={onSetRole} disabled={!active}>
         {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
       </BulkSelect>
 
-      <BulkSelect label="Set status" onChange={onSetStatus}>
+      <BulkSelect label="Set status" onChange={onSetStatus} disabled={!active}>
         {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
       </BulkSelect>
 
       <span style={{ color: '#475569' }}>·</span>
-      <BulkButton onClick={() => onSetBuddyCover(true)}>Buddy on</BulkButton>
-      <BulkButton onClick={() => onSetBuddyCover(false)}>Buddy off</BulkButton>
-      <BulkButton onClick={() => onSetWhosIn(true)}>Who's In on</BulkButton>
-      <BulkButton onClick={() => onSetWhosIn(false)}>Who's In off</BulkButton>
+      <BulkButton onClick={() => onSetBuddyCover(true)} disabled={!active}>Buddy on</BulkButton>
+      <BulkButton onClick={() => onSetBuddyCover(false)} disabled={!active}>Buddy off</BulkButton>
+      <BulkButton onClick={() => onSetWhosIn(true)} disabled={!active}>Who's In on</BulkButton>
+      <BulkButton onClick={() => onSetWhosIn(false)} disabled={!active}>Who's In off</BulkButton>
 
-      <span style={{ marginLeft: 'auto' }}>
-        <button onClick={onClear} style={{
-          padding: '5px 10px', fontSize: 11,
-          background: 'transparent',
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 4, color: '#94a3b8', cursor: 'pointer',
-        }}>Clear selection</button>
-      </span>
+      {active && (
+        <span style={{ marginLeft: 'auto' }}>
+          <button onClick={onClear} style={{
+            padding: '5px 10px', fontSize: 11,
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 4, color: '#94a3b8', cursor: 'pointer',
+          }}>Clear selection</button>
+        </span>
+      )}
     </div>
   );
 }
 
-function BulkSelect({ label, onChange, children }) {
+function BulkSelect({ label, onChange, children, disabled }) {
   return (
     <select
       defaultValue=""
+      disabled={disabled}
       onChange={(e) => {
         if (!e.target.value) return;
         onChange(e.target.value);
@@ -538,10 +553,13 @@ function BulkSelect({ label, onChange, children }) {
       }}
       style={{
         padding: '5px 10px', fontSize: 12,
-        background: 'rgba(0,0,0,0.3)',
+        background: disabled ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.3)',
         border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 4, color: '#cbd5e1', cursor: 'pointer',
+        borderRadius: 4,
+        color: disabled ? '#475569' : '#cbd5e1',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'inherit',
+        opacity: disabled ? 0.5 : 1,
       }}
     >
       <option value="">{label}…</option>
@@ -549,14 +567,17 @@ function BulkSelect({ label, onChange, children }) {
     </select>
   );
 }
-function BulkButton({ onClick, children }) {
+function BulkButton({ onClick, children, disabled }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} disabled={disabled} style={{
       padding: '5px 10px', fontSize: 11, fontWeight: 500,
       background: 'rgba(255,255,255,0.04)',
       border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 4, color: '#cbd5e1', cursor: 'pointer',
+      borderRadius: 4,
+      color: disabled ? '#475569' : '#cbd5e1',
+      cursor: disabled ? 'not-allowed' : 'pointer',
       fontFamily: 'inherit',
+      opacity: disabled ? 0.5 : 1,
     }}>{children}</button>
   );
 }
