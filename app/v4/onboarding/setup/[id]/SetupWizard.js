@@ -1032,6 +1032,19 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         — we'll detect your team from the appointments and create your clinician list.
       </p>
 
+      <div style={{
+        padding: 12,
+        background: 'rgba(34,211,238,0.05)',
+        border: '1px solid rgba(34,211,238,0.15)',
+        borderRadius: 8,
+        fontSize: 12, color: '#cbd5e1', lineHeight: 1.5,
+      }}>
+        <strong style={{ color: '#67e8f9' }}>One report does it all.</strong> This is the
+        same CSV you'll upload every day going forward — saved as a report definition in
+        EMIS, it takes about 30 seconds to run and re-upload. Each daily upload refreshes
+        the dashboard with that day's appointments + any new clinicians.
+      </div>
+
       {/* Step 3a: Download */}
       <div style={{
         background: 'rgba(255,255,255,0.03)',
@@ -1131,28 +1144,63 @@ function UploadFirstPrompt({ message }) {
   );
 }
 
-// Best-guess classification of a slot-type name. Used to seed the
-// per-row choice so the user only has to override the misses rather
-// than tag every one from scratch.
-function guessSlotCategory(name) {
+// Heuristic suggestion for a slot-type name. Returns the suggested
+// CATEGORY (routine / urgent / null) and whether it might be a DUTY
+// DOCTOR slot — these are independent so a slot can be both
+// "urgent" AND "duty doctor". Null category means we don't have a
+// confident suggestion and the slot stays in "Other (not included)"
+// until the user reviews it explicitly.
+//
+// Hits on suggestions:
+//   - routine: "book", "routine", "pre-book", "appt", "appointment",
+//     "f2f", "face to face"
+//   - urgent: "urgent", "same day", "OTD", "on the day", "acute",
+//     "emergency", "triage", "call back", "callback"
+//   - duty: "duty"
+// Everything else: no suggestion (user must review).
+function suggestSlotCategory(name) {
   const n = (name || '').toLowerCase();
-  if (n.includes('duty')) return 'duty';
-  if (n.match(/\bsame[\s-]?day\b/) || n.includes('urgent') || n.match(/\bontd\b/) || n.match(/\bon[\s-]?the[\s-]?day\b/) || n.includes('acute') || n.includes('emergency')) return 'urgent';
-  return 'routine';
+  // urgent first because urgent slots are often phrased with "book" too
+  if (/\bsame[\s-]?day\b/.test(n) || n.includes('urgent') || /\bontd\b/.test(n)
+      || /\bon[\s-]?the[\s-]?day\b/.test(n) || n.includes('acute')
+      || n.includes('emergency') || n.includes('triage')
+      || /\bcall[\s-]?back\b/.test(n)) {
+    return 'urgent';
+  }
+  if (n.includes('book') || n.includes('routine') || n.includes('pre-book')
+      || /\bappt\b/.test(n) || n.includes('appointment')
+      || /\bf2f\b/.test(n) || /\bface[\s-]?to[\s-]?face\b/.test(n)) {
+    return 'routine';
+  }
+  return null;
+}
+function suggestDuty(name) {
+  return /\bduty\b/.test((name || '').toLowerCase());
 }
 
 // ─── Step 3: Slot types ────────────────────────────────────────────────
-// Classify each slot type from the uploaded CSV as routine, urgent, or
-// duty-doctor. The dashboard uses these for the capacity bars (urgent
-// vs routine demand) and the duty-doctor highlight on the Today huddle.
+// Classify each slot type from the uploaded CSV.
+//
+// Three categories (mutually exclusive):
+//   - Routine: bookable, not on-the-day (the bulk of demand)
+//   - Urgent:  same-day / acute work
+//   - Other:   not included in the routine/urgent capacity model
+//             (admin, blocked, nursing, vaccinations, etc.) — the default
+//
+// Duty doctor is a SEPARATE, independent flag. A slot can be marked
+// urgent AND duty doctor (typical) or routine AND duty doctor, or
+// neither.
+//
+// Defaults: nothing is set until the user reviews. Slots default to
+// "Other" so they don't inadvertently pollute the demand model.
+// Heuristic suggestions are shown as hints — the user must explicitly
+// pick to commit, or click "Apply suggestions" to commit all at once.
 //
 // Storage:
-//   huddle_settings.savedSlotFilters[slotType] = true  → urgent
-//                                              = false → routine (default)
-//   huddle_settings.dutyDoctorSlot is an array of slot type strings
-//
-// Auto-saves on every change — one debounce per step is enough since the
-// settings JSON is small.
+//   huddle_settings.savedSlotFilters.routine = { slotName: true, ... }
+//   huddle_settings.savedSlotFilters.urgent  = { slotName: true, ... }
+//   huddle_settings.dutyDoctorSlot           = [slotName, ...]
+// Only true entries are written; slots not in either map are "Other".
 function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
   const supabase = createClient();
   const [saving, setSaving] = useState(false);
@@ -1165,27 +1213,16 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
     return [...list].sort((a, b) => a.localeCompare(b));
   }, [parsedCsv]);
 
-  // Effective per-slot category. Reads from slotFilters state; falls
-  // back to the guess for slots not yet classified.
-  //
-  // SHAPE NOTE: routine + urgent are objects keyed by slot name with
-  // boolean values (v3's existing shape). dutyDoctorSlot is an array.
-  // A slot can theoretically appear in multiple filters but the wizard
-  // enforces mutual exclusion (radio-style 3-way pick).
   const categoryOf = (name) => {
-    if ((slotFilters.dutyDoctorSlot || []).includes(name)) return 'duty';
     if (slotFilters.urgent && slotFilters.urgent[name]) return 'urgent';
     if (slotFilters.routine && slotFilters.routine[name]) return 'routine';
-    return guessSlotCategory(name);
+    return 'other';
   };
+  const isDuty = (name) => (slotFilters.dutyDoctorSlot || []).includes(name);
 
-  // Save the full slot-type config to practice_settings. JSON merge —
-  // we only own these three keys, leave any other huddle_settings keys
-  // (slot card config, urgent expected counts, etc.) alone.
   const saveToDb = async (next) => {
     setSaving(true);
     setError('');
-    // Read existing huddle_settings to merge into. RLS lets owners do this.
     const { data: existing } = await supabase
       .from('practice_settings')
       .select('huddle_settings')
@@ -1211,76 +1248,240 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
     setSavedAt(new Date());
   };
 
-  const setCategory = (slotName, category) => {
-    // Remove from all three buckets, then add to the chosen one.
-    // routine + urgent: objects keyed by slot name (slot stays in the
-    // map with value=false if not chosen, mirroring v3's shape — the
-    // dashboard's SlotFilter UI shows ALL known slots with their
-    // boolean state, not just the chosen ones).
-    const next = {
-      routine: { ...(slotFilters.routine || {}), [slotName]: category === 'routine' },
-      urgent: { ...(slotFilters.urgent || {}), [slotName]: category === 'urgent' },
-      dutyDoctorSlot: (slotFilters.dutyDoctorSlot || []).filter(s => s !== slotName),
-    };
-    if (category === 'duty') next.dutyDoctorSlot.push(slotName);
-    setSlotFilters(next);
+  const debouncedSave = (next) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => saveToDb(next), 500);
   };
 
+  const setCategory = (slotName, category) => {
+    // Strip slot from both maps first, then add to the chosen one
+    // (if not "other"). Keeping only `true` entries means the dashboard's
+    // urgent/routine check `urgentOverrides[name] === true` works without
+    // surprise — "Other" is the absence of an entry, not a `false` value.
+    const stripFromMap = (m) => {
+      if (!m) return {};
+      const next = { ...m };
+      delete next[slotName];
+      return next;
+    };
+    const next = {
+      routine: stripFromMap(slotFilters.routine),
+      urgent: stripFromMap(slotFilters.urgent),
+      dutyDoctorSlot: slotFilters.dutyDoctorSlot || [],
+    };
+    if (category === 'routine') next.routine[slotName] = true;
+    if (category === 'urgent') next.urgent[slotName] = true;
+    setSlotFilters(next);
+    debouncedSave(next);
+  };
+
+  const toggleDuty = (slotName) => {
+    const cur = (slotFilters.dutyDoctorSlot || []);
+    const has = cur.includes(slotName);
+    const nextDuty = has ? cur.filter(s => s !== slotName) : [...cur, slotName];
+    const next = {
+      routine: slotFilters.routine || {},
+      urgent: slotFilters.urgent || {},
+      dutyDoctorSlot: nextDuty,
+    };
+    setSlotFilters(next);
+    debouncedSave(next);
+  };
+
+  // "Apply suggestions" — commit every slot that has a confident suggestion
+  // and isn't already classified. Slots without a suggestion stay in
+  // "Other". Doesn't touch duty doctor flags — that's a separate
+  // "Apply duty suggestions" action below.
+  const applyCategorySuggestions = () => {
+    const nextRoutine = { ...(slotFilters.routine || {}) };
+    const nextUrgent = { ...(slotFilters.urgent || {}) };
+    for (const slot of slotTypes) {
+      const cur = categoryOf(slot);
+      if (cur !== 'other') continue; // user already picked
+      const suggested = suggestSlotCategory(slot);
+      if (suggested === 'routine') nextRoutine[slot] = true;
+      else if (suggested === 'urgent') nextUrgent[slot] = true;
+    }
+    const next = {
+      routine: nextRoutine,
+      urgent: nextUrgent,
+      dutyDoctorSlot: slotFilters.dutyDoctorSlot || [],
+    };
+    setSlotFilters(next);
+    debouncedSave(next);
+  };
+
+  const applyDutySuggestions = () => {
+    const cur = new Set(slotFilters.dutyDoctorSlot || []);
+    for (const slot of slotTypes) {
+      if (suggestDuty(slot)) cur.add(slot);
+    }
+    const next = {
+      routine: slotFilters.routine || {},
+      urgent: slotFilters.urgent || {},
+      dutyDoctorSlot: Array.from(cur),
+    };
+    setSlotFilters(next);
+    debouncedSave(next);
+  };
+
   if (!parsedCsv || slotTypes.length === 0) {
-    return <UploadFirstPrompt message="Once you've uploaded your EMIS appointment CSV, we'll list every slot type we found and let you tag each one as routine, urgent, or duty doctor." />;
+    return <UploadFirstPrompt message="Once you've uploaded your EMIS appointment CSV, we'll list every slot type we found here." />;
   }
 
   // Count by category for the summary line
   const summary = slotTypes.reduce((acc, s) => {
-    const cat = categoryOf(s);
-    acc[cat]++;
+    acc[categoryOf(s)]++;
+    if (isDuty(s)) acc.duty++;
     return acc;
-  }, { routine: 0, urgent: 0, duty: 0 });
+  }, { routine: 0, urgent: 0, other: 0, duty: 0 });
+
+  // Are there pending suggestions the user hasn't acted on?
+  const pendingCategorySuggestions = slotTypes.some(s => categoryOf(s) === 'other' && suggestSlotCategory(s) !== null);
+  const pendingDutySuggestions = slotTypes.some(s => suggestDuty(s) && !isDuty(s));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <p style={fieldHelp}>
-        We found <strong style={{ color: '#cbd5e1' }}>{slotTypes.length}</strong> slot
-        types in your CSV. Tag each one so the dashboard knows what counts as urgent
-        (same-day appointments) vs routine (booked in advance). The duty doctor slot
-        type gets highlighted on the daily huddle view.
-      </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{
+        padding: 14,
+        background: 'rgba(34,211,238,0.05)',
+        border: '1px solid rgba(34,211,238,0.15)',
+        borderRadius: 10,
+        fontSize: 13, color: '#cbd5e1', lineHeight: 1.55,
+      }}>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: '#67e8f9' }}>What goes here?</strong> Appointment
+          slot types for clinicians whose work is <strong>bookable by patients</strong> —
+          typically GP and ANP slots. Most practices set <em>nursing, HCA, phlebotomy,
+          vaccination, and admin</em> slots to <strong>Other</strong> since they\'re not
+          part of the routine-vs-urgent capacity model.
+        </p>
+        <p style={{ margin: '8px 0 0' }}>
+          <strong>Routine</strong> = booked in advance · <strong>Urgent</strong> =
+          same-day / acute work · <strong>Other</strong> = excluded from the model.
+          A slot can additionally be flagged as the <strong>duty doctor</strong> slot,
+          independent of its category.
+        </p>
+      </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12 }}>
         <SummaryPill colour="#64748b" label="Routine" count={summary.routine} />
         <SummaryPill colour="#f97316" label="Urgent" count={summary.urgent} />
+        <SummaryPill colour="#475569" label="Other" count={summary.other} />
         <SummaryPill colour="#8b5cf6" label="Duty doctor" count={summary.duty} />
         <span style={{ marginLeft: 'auto', fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b') }}>
           {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves on change')}
         </span>
       </div>
 
+      {(pendingCategorySuggestions || pendingDutySuggestions) && (
+        <div style={{
+          padding: 12,
+          background: 'rgba(168,85,247,0.08)',
+          border: '1px solid rgba(168,85,247,0.25)',
+          borderRadius: 8,
+          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+          fontSize: 12, color: '#cbd5e1',
+        }}>
+          <span>
+            <strong style={{ color: '#c4b5fd' }}>Suggestions available</strong> — we\'ve
+            guessed categories based on slot names. Apply them all in one go or click
+            through individually.
+          </span>
+          <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            {pendingCategorySuggestions && (
+              <button type="button" onClick={applyCategorySuggestions} style={pillButton('#a855f7')}>
+                Apply category suggestions
+              </button>
+            )}
+            {pendingDutySuggestions && (
+              <button type="button" onClick={applyDutySuggestions} style={pillButton('#a855f7')}>
+                Apply duty suggestions
+              </button>
+            )}
+          </span>
+        </div>
+      )}
+
       <div style={{
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 10,
         overflow: 'hidden',
       }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 240px 100px',
+          padding: '8px 14px',
+          background: 'rgba(255,255,255,0.03)',
+          fontSize: 11, fontWeight: 600, color: '#94a3b8',
+          textTransform: 'uppercase', letterSpacing: 0.4,
+        }}>
+          <div>Slot type</div>
+          <div style={{ textAlign: 'center' }}>Category</div>
+          <div style={{ textAlign: 'center' }}>Duty doctor</div>
+        </div>
         {slotTypes.map((slot, i) => {
           const cat = categoryOf(slot);
+          const duty = isDuty(slot);
+          const suggested = suggestSlotCategory(slot);
+          const suggestedDuty = suggestDuty(slot);
+          const showCategorySuggestion = cat === 'other' && suggested !== null;
           return (
             <div
               key={slot}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12,
+                display: 'grid',
+                gridTemplateColumns: '1fr 240px 100px',
+                alignItems: 'center', gap: 8,
                 padding: '10px 14px',
                 background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
-                borderBottom: i < slotTypes.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                borderTop: '1px solid rgba(255,255,255,0.04)',
               }}
             >
-              <div style={{ flex: 1, fontSize: 13, color: '#cbd5e1', fontFamily: "'Space Mono', monospace" }}>
-                {slot}
+              <div>
+                <div style={{ fontSize: 13, color: '#cbd5e1', fontFamily: "'Space Mono', monospace" }}>
+                  {slot}
+                </div>
+                {showCategorySuggestion && (
+                  <div style={{ marginTop: 2, fontSize: 10.5, color: '#a78bfa' }}>
+                    Suggested: <strong style={{ color: suggested === 'urgent' ? '#fdba74' : '#cbd5e1' }}>{suggested}</strong>
+                    {suggestedDuty && !duty && <span style={{ color: '#c4b5fd' }}> + duty doctor</span>}
+                  </div>
+                )}
+                {!showCategorySuggestion && suggestedDuty && !duty && (
+                  <div style={{ marginTop: 2, fontSize: 10.5, color: '#a78bfa' }}>
+                    Suggested: <strong style={{ color: '#c4b5fd' }}>duty doctor</strong>
+                  </div>
+                )}
               </div>
-              <SlotCategoryPicker
-                value={cat}
-                onChange={(c) => setCategory(slot, c)}
-              />
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <SlotCategoryPicker value={cat} onChange={(c) => setCategory(slot, c)} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => toggleDuty(slot)}
+                  role="switch"
+                  aria-checked={duty}
+                  aria-label={`Mark ${slot} as duty doctor slot`}
+                  style={{
+                    position: 'relative',
+                    width: 36, height: 20, padding: 0,
+                    background: duty ? '#8b5cf6' : 'rgba(255,255,255,0.10)',
+                    border: `1px solid ${duty ? '#8b5cf6' : 'rgba(255,255,255,0.14)'}`,
+                    borderRadius: 999, cursor: 'pointer',
+                    transition: 'background 0.15s, border 0.15s',
+                    boxShadow: duty ? '0 0 8px #8b5cf655' : 'none',
+                  }}
+                >
+                  <span aria-hidden style={{
+                    position: 'absolute', top: 1, left: duty ? 17 : 1,
+                    width: 16, height: 16, background: 'white',
+                    borderRadius: '50%', boxShadow: '0 1px 2px rgba(0,0,0,0.35)',
+                    transition: 'left 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }} />
+                </button>
+              </div>
             </div>
           );
         })}
@@ -1289,8 +1490,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
       {error && <div style={errorText}>{error}</div>}
 
       <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
-        These can be changed any time from Practice settings → Demand. Your initial
-        classification is based on slot-type names; check any that look wrong.
+        These can be changed any time from Practice settings → Demand.
       </div>
     </div>
   );
@@ -1311,11 +1511,24 @@ function SummaryPill({ colour, label, count }) {
   );
 }
 
+function pillButton(colour) {
+  return {
+    padding: '5px 12px',
+    fontSize: 11, fontWeight: 500,
+    background: `${colour}22`,
+    color: colour,
+    border: `1px solid ${colour}66`,
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  };
+}
+
 function SlotCategoryPicker({ value, onChange }) {
   const options = [
     { id: 'routine', label: 'Routine', colour: '#64748b' },
     { id: 'urgent',  label: 'Urgent',  colour: '#f97316' },
-    { id: 'duty',    label: 'Duty doctor', colour: '#8b5cf6' },
+    { id: 'other',   label: 'Other',   colour: '#475569' },
   ];
   return (
     <div style={{
@@ -1333,7 +1546,7 @@ function SlotCategoryPicker({ value, onChange }) {
             type="button"
             onClick={() => onChange(o.id)}
             style={{
-              padding: '5px 12px',
+              padding: '5px 10px',
               fontSize: 11, fontWeight: 500,
               background: active ? o.colour : 'transparent',
               color: active ? 'white' : '#94a3b8',
@@ -1556,13 +1769,16 @@ function ColourPicker({ value, onChange }) {
 
 // ─── Step 5: Demand history (optional) ─────────────────────────────────
 function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData }) {
+  const [howToOpen, setHowToOpen] = useState(null); // 'askmygp' | 'anima' | null
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <p style={fieldHelp}>
         GPDash can predict demand for any future date based on your historical patterns —
-        day of week, school holidays, weather, and so on. Upload your AskMyGP{' '}
-        <em>"Crosstab — Demand data"</em> CSV to calibrate the model to your practice.
-        You can skip this and add it later.
+        day of week, school holidays, weather, and so on. Upload an export from{' '}
+        <strong style={{ color: '#cbd5e1' }}>AskMyGP</strong> or{' '}
+        <strong style={{ color: '#cbd5e1' }}>Anima</strong> to calibrate the model
+        to your practice. The file format is auto-detected — drop the CSV and we'll
+        figure out which one. You can skip this and add it later.
       </p>
 
       {hasDemandData ? (
@@ -1592,11 +1808,91 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData 
         />
       )}
 
+      {/* Per-source how-to guides — expandable so they don't overwhelm
+          the page. The two tools have different export flows, so a
+          single set of instructions doesn't work. */}
+      <div style={{
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 10,
+        overflow: 'hidden',
+      }}>
+        <HowToHeader
+          title="How to export from AskMyGP"
+          open={howToOpen === 'askmygp'}
+          onClick={() => setHowToOpen(howToOpen === 'askmygp' ? null : 'askmygp')}
+        />
+        {howToOpen === 'askmygp' && (
+          <div style={howToBody}>
+            <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <li>Log in to AskMyGP and open the <strong>Reports</strong> module.</li>
+              <li>Choose <strong>"Crosstab — Demand data"</strong> from the list of standard reports.</li>
+              <li>Pick the date range you want (12 months recommended for the best calibration).</li>
+              <li>Click <strong>Export</strong> and save the CSV.</li>
+              <li>Drop it onto the upload area above.</li>
+            </ol>
+            <p style={{ margin: '10px 0 0', color: '#94a3b8', fontSize: 12 }}>
+              The file is UTF-16 tab-separated — that's normal, our parser handles it.
+            </p>
+          </div>
+        )}
+        <HowToHeader
+          title="How to export from Anima"
+          open={howToOpen === 'anima'}
+          onClick={() => setHowToOpen(howToOpen === 'anima' ? null : 'anima')}
+        />
+        {howToOpen === 'anima' && (
+          <div style={howToBody}>
+            <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <li>In Anima, go to <strong>Admin → Audit results</strong>.</li>
+              <li>Filter by <strong>Event: patientReviewSubmit</strong> over the date range you want.</li>
+              <li>Click <strong>Export</strong> — the file is named <span style={{ fontFamily: "'Space Mono', monospace", color: '#94a3b8' }}>ExportedAuditResults_*.csv</span>.</li>
+              <li>Drop it onto the upload area above.</li>
+            </ol>
+            <p style={{ margin: '10px 0 0', color: '#94a3b8', fontSize: 12 }}>
+              Both direct patient submissions and staff-proxy entries (receptionist phone-ins)
+              count toward your demand total — same as AskMyGP.
+            </p>
+          </div>
+        )}
+      </div>
+
       <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
         Don't have a demand CSV handy? Skip for now — you can upload it any time from the
         Demand tab on your practice settings page.
       </div>
     </div>
+  );
+}
+
+// ─── Collapsible how-to row ────────────────────────────────────────────
+const howToBody = {
+  padding: '12px 16px 16px',
+  background: 'rgba(0,0,0,0.15)',
+  fontSize: 13, color: '#cbd5e1', lineHeight: 1.55,
+};
+function HowToHeader({ title, open, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        width: '100%', padding: '10px 14px',
+        background: open ? 'rgba(34,211,238,0.06)' : 'rgba(255,255,255,0.02)',
+        border: 'none',
+        borderTop: '1px solid rgba(255,255,255,0.04)',
+        color: '#cbd5e1', fontSize: 13, fontWeight: 500,
+        cursor: 'pointer', textAlign: 'left',
+        fontFamily: 'inherit',
+      }}
+    >
+      <span style={{
+        display: 'inline-block', width: 10, color: '#67e8f9',
+        transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
+        transition: 'transform 0.15s',
+      }}>▶</span>
+      {title}
+    </button>
   );
 }
 
