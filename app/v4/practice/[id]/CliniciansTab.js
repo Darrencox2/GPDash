@@ -34,6 +34,22 @@ export default async function CliniciansTab({ practiceId }) {
     );
   }
 
+  // Current working patterns: one per clinician where effective_to is null
+  // (the "active" pattern). Dashboard reads with the same filter, so what
+  // we render here matches what the dashboard sees.
+  const clinicianIds = (rows || []).map(r => r.id);
+  const { data: patterns } = clinicianIds.length > 0
+    ? await supabase
+        .from('working_patterns')
+        .select('id, clinician_id, pattern')
+        .in('clinician_id', clinicianIds)
+        .is('effective_to', null)
+    : { data: [] };
+  const patternByClinician = {};
+  for (const wp of patterns || []) {
+    patternByClinician[wp.clinician_id] = { id: wp.id, pattern: wp.pattern || {} };
+  }
+
   // Adapt snake_case → v3-shape camelCase. Same shape used by /api/v4/data
   // mutation 6, so what we render is what we'd post back unchanged.
   const clinicians = (rows || []).map(c => ({
@@ -63,7 +79,11 @@ export default async function CliniciansTab({ practiceId }) {
           Quick setup for everyone in your team. Edit roles, initials, sessions and status inline. Saves automatically as you go.
         </p>
       </div>
-      <QuickSetupTable practiceId={practiceId} initialClinicians={clinicians} />
+      <QuickSetupTable
+        practiceId={practiceId}
+        initialClinicians={clinicians}
+        initialPatterns={patternByClinician}
+      />
     </div>
   );
 }

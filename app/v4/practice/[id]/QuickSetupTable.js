@@ -26,6 +26,7 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { guessGroupFromRole } from '@/lib/data';
+import WorkingDaysGrid from './WorkingDaysGrid';
 
 const ROLES = [
   'GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum',
@@ -82,13 +83,16 @@ function clinicianFieldsEqual(a, b) {
   );
 }
 
-export default function QuickSetupTable({ practiceId, initialClinicians }) {
+export default function QuickSetupTable({ practiceId, initialClinicians, initialPatterns }) {
   const [clinicians, setClinicians] = useState(initialClinicians || []);
   const [search, setSearch] = useState('');
   const [showLeft, setShowLeft] = useState(false);
   const [saveState, setSaveState] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedIds, setSelectedIds] = useState(() => new Set());
+  // Working days grid modal — opened from the toolbar. Kept out of the
+  // main table by user request ("don't create too much mess").
+  const [showWorkingGrid, setShowWorkingGrid] = useState(false);
 
   const lastSavedRef = useRef(initialClinicians || []);
   const saveTimer = useRef(null);
@@ -269,7 +273,8 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
 
   return (
     <div>
-      {/* Header strip: search, show-left toggle, save status */}
+      {/* Header strip: search, show-left toggle, save status,
+          working-days grid launcher */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
         <input
           type="text" value={search} onChange={e => setSearch(e.target.value)}
@@ -285,6 +290,18 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
           <input type="checkbox" checked={showLeft} onChange={e => setShowLeft(e.target.checked)} />
           Show left
         </label>
+        <button
+          type="button"
+          onClick={() => setShowWorkingGrid(true)}
+          style={{
+            padding: '8px 14px', fontSize: 12, fontWeight: 500,
+            background: 'rgba(16,185,129,0.10)',
+            border: '1px solid rgba(16,185,129,0.30)',
+            borderRadius: 6, color: '#34d399',
+            cursor: 'pointer', fontFamily: 'inherit',
+            whiteSpace: 'nowrap',
+          }}
+        >Working days grid</button>
         <SaveIndicator state={saveState} errorMsg={errorMsg} onRetry={doSave} />
       </div>
 
@@ -372,6 +389,15 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
       <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
         Edits save automatically. For deeper settings (room preferences, primary/secondary buddy assignments, aliases), open Team Members on the practice dashboard.
       </div>
+
+      {showWorkingGrid && (
+        <WorkingDaysGrid
+          practiceId={practiceId}
+          clinicians={clinicians}
+          initialPatterns={initialPatterns || {}}
+          onClose={() => setShowWorkingGrid(false)}
+        />
+      )}
     </div>
   );
 }
