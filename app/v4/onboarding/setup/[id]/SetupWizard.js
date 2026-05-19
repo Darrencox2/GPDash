@@ -123,13 +123,35 @@ export default function SetupWizard({
   const [parsedCsv, setParsedCsv] = useState(initialCsvData);
 
   // Slot-type filters live in huddle_settings.savedSlotFilters
-  // (routine + urgent) and huddle_settings.dutyDoctorSlot. Both
+  // (routine + urgent) and huddle_settings.dutyDoctorSlot. Both are
   // editable via Practice settings later — wizard just provides a
   // first-pass starting set.
+  //
+  // SHAPE: v3 stores each filter as an OBJECT mapping slot name to a
+  // boolean ({ "Telephone": true, "Booked": false }) NOT as an array.
+  // The dashboard's SlotFilter component reads from this shape, so the
+  // wizard has to write the same shape — anything else breaks v3 reads.
+  // We also tolerate arrays in case a previous wizard version wrote
+  // them (convert: ["A","B"] → { A: true, B: true }).
+  const normaliseSlotMap = (v) => {
+    if (!v) return {};
+    if (Array.isArray(v)) {
+      const o = {};
+      for (const name of v) if (name) o[name] = true;
+      return o;
+    }
+    if (typeof v === 'object') return v;
+    return {};
+  };
+  const normaliseDutySlot = (v) => {
+    if (!v) return [];
+    if (Array.isArray(v)) return v;
+    return [String(v)]; // legacy: single string
+  };
   const [slotFilters, setSlotFilters] = useState({
-    routine: initialHuddleSettings?.savedSlotFilters?.routine || [],
-    urgent:  initialHuddleSettings?.savedSlotFilters?.urgent || [],
-    dutyDoctorSlot: initialHuddleSettings?.dutyDoctorSlot || '',
+    routine: normaliseSlotMap(initialHuddleSettings?.savedSlotFilters?.routine),
+    urgent:  normaliseSlotMap(initialHuddleSettings?.savedSlotFilters?.urgent),
+    dutyDoctorSlot: normaliseDutySlot(initialHuddleSettings?.dutyDoctorSlot),
   });
 
   // Sites are stored as practice_settings.room_allocation.sites — an
@@ -161,7 +183,11 @@ export default function SetupWizard({
   // Per-step "is this done" derivations — drive the progress indicator
   // (filled vs hollow dots), the colored top border on each step card,
   // and the auto-complete trigger.
-  const slotsConfigured = !!(slotFilters.routine?.length || slotFilters.urgent?.length || slotFilters.dutyDoctorSlot);
+  const slotsConfigured = !!(
+    Object.values(slotFilters.routine || {}).some(Boolean) ||
+    Object.values(slotFilters.urgent || {}).some(Boolean) ||
+    (slotFilters.dutyDoctorSlot || []).length > 0
+  );
   const sitesConfigured = (sites?.length || 0) > 0;
   const stepDone = [
     !!postcode && !!listSize,                           // 0: details
@@ -1141,10 +1167,15 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
 
   // Effective per-slot category. Reads from slotFilters state; falls
   // back to the guess for slots not yet classified.
+  //
+  // SHAPE NOTE: routine + urgent are objects keyed by slot name with
+  // boolean values (v3's existing shape). dutyDoctorSlot is an array.
+  // A slot can theoretically appear in multiple filters but the wizard
+  // enforces mutual exclusion (radio-style 3-way pick).
   const categoryOf = (name) => {
     if ((slotFilters.dutyDoctorSlot || []).includes(name)) return 'duty';
-    if ((slotFilters.urgent || []).includes(name)) return 'urgent';
-    if ((slotFilters.routine || []).includes(name)) return 'routine';
+    if (slotFilters.urgent && slotFilters.urgent[name]) return 'urgent';
+    if (slotFilters.routine && slotFilters.routine[name]) return 'routine';
     return guessSlotCategory(name);
   };
 
@@ -1182,13 +1213,15 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
 
   const setCategory = (slotName, category) => {
     // Remove from all three buckets, then add to the chosen one.
+    // routine + urgent: objects keyed by slot name (slot stays in the
+    // map with value=false if not chosen, mirroring v3's shape — the
+    // dashboard's SlotFilter UI shows ALL known slots with their
+    // boolean state, not just the chosen ones).
     const next = {
-      routine: (slotFilters.routine || []).filter(s => s !== slotName),
-      urgent: (slotFilters.urgent || []).filter(s => s !== slotName),
+      routine: { ...(slotFilters.routine || {}), [slotName]: category === 'routine' },
+      urgent: { ...(slotFilters.urgent || {}), [slotName]: category === 'urgent' },
       dutyDoctorSlot: (slotFilters.dutyDoctorSlot || []).filter(s => s !== slotName),
     };
-    if (category === 'routine') next.routine.push(slotName);
-    if (category === 'urgent') next.urgent.push(slotName);
     if (category === 'duty') next.dutyDoctorSlot.push(slotName);
     setSlotFilters(next);
     if (saveTimer.current) clearTimeout(saveTimer.current);
