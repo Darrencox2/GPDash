@@ -305,10 +305,58 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     pending.pendingResolves = [];
     pending.timer = null;
 
-    // Strip huddleCsvData from the wire body unless it actually changed
+    // ─── Huddle CSV data: write directly to Supabase ───────────────────
+    // The parsed CSV blob can be megabytes (an EMIS export with 18k
+    // lines covering multiple years produces several MB of slotRows
+    // + per-date breakdowns). Vercel serverless functions reject
+    // request bodies over 4.5MB with FUNCTION_PAYLOAD_TOO_LARGE, so we
+    // can't route huddleCsvData through /api/v4/data. Instead we use
+    // the browser's authenticated Supabase session to UPSERT it
+    // directly — RLS on huddle_csv_data ensures only practice admins
+    // can write. Audit row in csv_uploads via the same path.
+    //
+    // Once the CSV is on disk in Supabase, we strip it from the
+    // /api/v4/data body so the small-payload diff stuff still goes
+    // through the API as before.
     const csvChanged = dataToSend.huddleCsvData && dataToSend.huddleCsvData !== lastSentCsvRef.current;
-    const bodyToSend = csvChanged ? dataToSend : { ...dataToSend, huddleCsvData: undefined };
-    if (csvChanged) lastSentCsvRef.current = dataToSend.huddleCsvData;
+    let csvWriteError = null;
+    if (csvChanged) {
+      try {
+        const { data: uploadRow, error: uploadErr } = await supabase
+          .from('csv_uploads')
+          .insert({
+            practice_id: practiceId,
+            uploaded_by: (await supabase.auth.getUser()).data?.user?.id,
+            uploaded_at: new Date().toISOString(),
+            filename: 'browser-upload',
+            notes: 'Uploaded via Today page',
+          })
+          .select('id')
+          .single();
+        if (uploadErr) throw uploadErr;
+        const { error: csvErr } = await supabase
+          .from('huddle_csv_data')
+          .upsert({
+            practice_id: practiceId,
+            data: dataToSend.huddleCsvData,
+            upload_id: uploadRow?.id || null,
+          });
+        if (csvErr) throw csvErr;
+        lastSentCsvRef.current = dataToSend.huddleCsvData;
+      } catch (e) {
+        // Don't abort the rest of the save — small fields (clinicians,
+        // weeklyRota, etc.) can still go through. But surface what
+        // happened so the user knows the CSV didn't land.
+        console.error('Direct CSV upload failed:', e);
+        csvWriteError = e?.message || 'CSV upload failed';
+      }
+    }
+
+    // Always strip huddleCsvData from the API body — it's huge and
+    // doesn't need to go through Vercel even when unchanged. The
+    // server's mutation 5 stays in place for compatibility with
+    // anything else that might POST it (deprecated paths, scripts).
+    const bodyToSend = { ...dataToSend, huddleCsvData: undefined };
 
     try {
       const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
@@ -317,10 +365,12 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
         body: JSON.stringify(bodyToSend),
       });
       const result = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      if (csvWriteError) {
+        toast(`CSV save failed: ${csvWriteError}`, 'error');
+      } else if (!res.ok) {
         toast(result.error || 'Save failed', 'error');
       } else if (result.errors?.length) {
-        toast(`Partial save: ${result.errors.length} errors`, 'error');
+        toast(`Partial save: ${result.errors.length} errors — ${result.errors[0]}`, 'error');
       } else if (showIndicator) {
         toast('Saved', 'success', 1500);
       }
@@ -330,7 +380,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       toast('Save failed', 'error');
       resolves.forEach(r => r({ error: err.message }));
     }
-  }, [practiceId, toast]);
+  }, [practiceId, supabase, toast]);
 
   const saveData = useCallback((newData, showIndicator = true) => {
     // Pre-process: assign UUIDs to any new clinicians (v3 components use Date.now())
@@ -387,11 +437,14 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
         clearTimeout(pending.timer);
         // We can't await the fetch on beforeunload reliably, so use sendBeacon
         // (fire-and-forget, browser keeps it alive after page unload).
+        // Always strip huddleCsvData here — sendBeacon hits the same 4.5MB
+        // Vercel limit and we can't direct-upload to Supabase during
+        // unload (would need an await). Any unsaved CSV will be re-sent
+        // on next dashboard load via the normal flush.
         try {
           const dataToSend = pending.latestData;
           if (dataToSend) {
-            const csvChanged = dataToSend.huddleCsvData && dataToSend.huddleCsvData !== lastSentCsvRef.current;
-            const bodyToSend = csvChanged ? dataToSend : { ...dataToSend, huddleCsvData: undefined };
+            const bodyToSend = { ...dataToSend, huddleCsvData: undefined };
             const blob = new Blob([JSON.stringify(bodyToSend)], { type: 'application/json' });
             navigator.sendBeacon(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, blob);
           }
