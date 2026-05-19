@@ -33,12 +33,12 @@ const ROLES = [
   'Practice Nurse', 'Nurse Associate', 'HCA',
   'Medical Student', 'Admin',
 ];
-const GROUPS = [
-  { value: 'gp', label: 'GP' },
-  { value: 'nursing', label: 'Nursing' },
-  { value: 'allied', label: 'Allied' },
-  { value: 'admin', label: 'Admin' },
-];
+// Group is auto-derived from role via guessGroupFromRole. No UI for it
+// anymore — exposing it as a separate field just let users put a row
+// into a state where role and group disagreed. The four groups
+// (gp / nursing / allied / admin) are still stored in the DB
+// (clinician_group enum) and used for filtering elsewhere; the role
+// dropdown determines which one a row gets.
 // Database enum public.clinician_status only allows these three values.
 // Long-term absent is modelled separately via a boolean on the clinician
 // record in v3 — not a status here. Don't add other values to this list
@@ -187,6 +187,16 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
   const clearSelection = () => setSelectedIds(new Set());
 
   // ─── Derived: filtered + sorted rows ─────────────────────────────────
+  // Sort priority:
+  //   1. Rows needing attention first (so users see what to fix)
+  //   2. Then by role, using ROLES array order (GP Partner, Associate
+  //      Partner, Salaried GP, ... — practical seniority/group order
+  //      already encoded in that constant). Unknown / custom roles
+  //      go to the end so the structured roles cluster cleanly.
+  //   3. Then alphabetically by name within each role.
+  // Effect: GP Partners cluster, then Salaried GPs, then ANPs, then
+  // Practice Nurses, etc. Makes bulk-edit (select all GP Partners →
+  // turn buddy on) intuitive without needing a group filter.
   const filtered = useMemo(() => {
     let rows = clinicians;
     if (!showLeft) {
@@ -200,14 +210,17 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
         (c.role || '').toLowerCase().includes(q)
       );
     }
-    const groupOrder = { gp: 0, nursing: 1, allied: 2, admin: 3 };
+    const roleOrder = Object.fromEntries(ROLES.map((r, i) => [r, i]));
     return [...rows].sort((a, b) => {
       const aA = needsAttention(a) ? 0 : 1;
       const bA = needsAttention(b) ? 0 : 1;
       if (aA !== bA) return aA - bA;
-      const aG = groupOrder[a.group] ?? 4;
-      const bG = groupOrder[b.group] ?? 4;
-      if (aG !== bG) return aG - bG;
+      const aR = roleOrder[a.role] ?? 999;
+      const bR = roleOrder[b.role] ?? 999;
+      if (aR !== bR) return aR - bR;
+      // Same role bucket — fall back to alphabetical
+      const ar = (a.role || '').localeCompare(b.role || '');
+      if (ar !== 0) return ar; // handles custom roles deterministically
       return (a.name || '').localeCompare(b.name || '');
     });
   }, [clinicians, search, showLeft]);
@@ -278,7 +291,6 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
           count={selectedCount}
           onClear={clearSelection}
           onSetRole={(role) => bulkUpdate({ role })}
-          onSetGroup={(group) => bulkUpdate({ group })}
           onSetStatus={(status) => bulkUpdate({ status })}
           onSetBuddyCover={(buddyCover) => bulkUpdate({ buddyCover })}
           onSetWhosIn={(showWhosIn) => bulkUpdate({ showWhosIn })}
@@ -306,7 +318,6 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
                 <Th sticky stickyLeft={36} width={240}>Name</Th>
                 <Th width={80}>Initials</Th>
                 <Th width={170}>Role</Th>
-                <Th width={110}>Group</Th>
                 <Th width={140}>Status</Th>
                 <Th width={100} style={{ textAlign: 'center' }}>Buddy cover</Th>
                 <Th width={100} style={{ textAlign: 'center' }}>Who's In</Th>
@@ -326,7 +337,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+                  <td colSpan={7} style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
                     {clinicians.length === 0
                       ? 'No clinicians yet. Upload a CSV from the Today page to populate this list.'
                       : 'No clinicians match your filters.'}
@@ -400,56 +411,81 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange }) {
         </select>
       </Td>
       <Td>
-        <select value={c.group || 'gp'} onChange={e => onChange('group', e.target.value)} style={selectStyle}>
-          {GROUPS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
-        </select>
-      </Td>
-      <Td>
         <select value={c.status || 'active'} onChange={e => onChange('status', e.target.value)} style={selectStyle}>
           {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
       </Td>
       <Td style={{ textAlign: 'center' }}>
-        <ToggleButton on={!!c.buddyCover} onClick={() => onChange('buddyCover', !c.buddyCover)} colourOn="#a855f7" />
+        <ToggleSwitch
+          on={!!c.buddyCover}
+          onClick={() => onChange('buddyCover', !c.buddyCover)}
+          colourOn="#a855f7"
+          ariaLabel={`Buddy cover for ${c.name}`}
+        />
       </Td>
       <Td style={{ textAlign: 'center' }}>
-        <ToggleButton on={c.showWhosIn !== false} onClick={() => onChange('showWhosIn', c.showWhosIn === false)} colourOn="#14b8a6" />
+        <ToggleSwitch
+          on={c.showWhosIn !== false}
+          onClick={() => onChange('showWhosIn', c.showWhosIn === false)}
+          colourOn="#14b8a6"
+          ariaLabel={`Show ${c.name} on Who's In page`}
+        />
       </Td>
     </tr>
   );
 }
 
-// ─── On/off button (replaces checkboxes for boolean fields) ────────────
-// Visually: pill that's coloured + filled when on, outlined + grey when
-// off. Bigger hit target than a checkbox, and the colour codes for
-// each toggle (purple = buddy cover, teal = who's in) match the
-// existing v3 visual language.
-function ToggleButton({ on, onClick, colourOn }) {
+// ─── Modern toggle switch ──────────────────────────────────────────────
+// iOS-style slider. Coloured track when on (purple = buddy cover,
+// teal = who's in), neutral when off. 36×20 with an 18px knob that
+// slides on click. Bigger hit target than a checkbox, more
+// recognisable than the old "On"/"Off" pill, and matches what users
+// expect for boolean settings in modern apps.
+function ToggleSwitch({ on, onClick, colourOn, ariaLabel }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={on}
+      role="switch"
+      aria-checked={on}
+      aria-label={ariaLabel}
       style={{
-        padding: '4px 12px',
-        fontSize: 11, fontWeight: 600,
-        background: on ? colourOn : 'rgba(255,255,255,0.04)',
-        color: on ? 'white' : '#64748b',
-        border: `1px solid ${on ? colourOn : 'rgba(255,255,255,0.1)'}`,
+        position: 'relative',
+        width: 36,
+        height: 20,
+        padding: 0,
+        background: on ? colourOn : 'rgba(255,255,255,0.10)',
+        border: `1px solid ${on ? colourOn : 'rgba(255,255,255,0.14)'}`,
         borderRadius: 999,
         cursor: 'pointer',
-        minWidth: 50,
-        fontFamily: 'inherit',
-        transition: 'background 0.1s, color 0.1s, border 0.1s',
+        transition: 'background 0.15s, border 0.15s',
+        boxShadow: on ? `0 0 8px ${colourOn}55` : 'none',
       }}
     >
-      {on ? 'On' : 'Off'}
+      <span
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 1,
+          left: on ? 17 : 1,
+          width: 16,
+          height: 16,
+          background: 'white',
+          borderRadius: '50%',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.35)',
+          transition: 'left 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      />
     </button>
   );
 }
 
 // ─── Bulk actions toolbar ──────────────────────────────────────────────
-function BulkActionsBar({ count, onClear, onSetRole, onSetGroup, onSetStatus, onSetBuddyCover, onSetWhosIn }) {
+// "Set group" was dropped in v4.8.5 — group is auto-derived from role
+// server-side, so exposing it as a separate action just gave users a
+// way to put a record in an inconsistent state. The role-derives-group
+// rule covers every practical case.
+function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCover, onSetWhosIn }) {
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 10,
@@ -465,10 +501,6 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetGroup, onSetStatus, on
 
       <BulkSelect label="Set role" onChange={onSetRole}>
         {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-      </BulkSelect>
-
-      <BulkSelect label="Set group" onChange={onSetGroup}>
-        {GROUPS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
       </BulkSelect>
 
       <BulkSelect label="Set status" onChange={onSetStatus}>
