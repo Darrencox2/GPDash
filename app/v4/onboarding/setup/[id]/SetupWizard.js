@@ -49,7 +49,7 @@ import BrandHeader from '../../../_lib/BrandHeader';
 import EmisReportCard from '@/components/EmisReportCard';
 import DemandUpload from '@/app/v4/practice/[id]/DemandUpload';
 import { parseHuddleCSV } from '@/lib/huddle';
-import { guessGroupFromRole } from '@/lib/data';
+import { guessGroupFromRole, buddyDefaultsForRole } from '@/lib/data';
 
 // Steps are declared up here so the progress indicator can render them
 // before the content. `optional: true` means Continue can advance even
@@ -959,6 +959,11 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         const rawRole = roleMatch ? roleMatch[1].trim() : '';
         const role = (!rawRole || TITLE_LIKE.has(rawRole.toLowerCase())) ? '' : rawRole;
         const guessedGroup = guessGroupFromRole(role) || 'admin';
+        // Role-based buddy defaults: GP Partners and Salaried GPs default
+        // in AND can cover; Registrars and ANPs default in but can't
+        // cover; everyone else off. See buddyDefaultsForRole in lib/data.js
+        // for the full table. Users still override per-clinician.
+        const buddyDefaults = buddyDefaultsForRole(role);
         return {
           id: crypto.randomUUID(),
           name: cleanName,
@@ -968,13 +973,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
           group: guessedGroup,
           status: 'active',
           sessions: 0,
-          // Both buddy-system flags default OFF for new CSV imports.
-          // Most CSVs include admin/reception staff alongside clinicians,
-          // and admins shouldn't be in the buddy cover pool by default.
-          // The user opts them in via the Quick Setup toggles once they
-          // know who actually participates.
-          buddyCover: false,
-          canProvideCover: false,
+          ...buddyDefaults,
           showWhosIn: true,
           aliases: [csvName],
         };

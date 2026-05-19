@@ -5,6 +5,27 @@ import GPDashLogo from './GPDashLogo';
 import { APP_VERSION } from '@/lib/version';
 import { canEditPracticeData } from '@/lib/permissions';
 
+// Derive a 2-letter tile string from a practice name. Strips stop-words
+// ("the", "and", "&") and common practice suffixes ("Family", "Practice",
+// "Surgery", "Centre", "Clinic", "Medical", "Health") so initials reflect
+// the distinctive part of the name:
+//   "Winscombe & Banwell Family Practice" → "WB"
+//   "Manor Park Surgery"                  → "MP"
+//   "The Old Surgery"                     → "OL"
+//   "Acme Medical Centre"                 → "AC"
+function practiceInitials(name) {
+  if (!name) return '?';
+  const stop = new Set(['the', 'and', 'of', '&']);
+  const skip = new Set(['family', 'medical', 'practice', 'surgery', 'centre', 'center', 'clinic', 'health']);
+  const words = name.split(/\s+/).filter(w => {
+    const lw = w.toLowerCase();
+    return w && !stop.has(lw) && !skip.has(lw);
+  });
+  if (words.length === 0) return name.slice(0, 2).toUpperCase();
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
 const NAV_ITEMS = [
   { id: 'huddle-today', section: null, label: 'Today', colour: '#10b981',
     icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
@@ -46,6 +67,10 @@ const NAV_ITEMS = [
 export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen, data, onNavigate }) {
   const router = useRouter();
   const practiceSlug = data?._v4?.practiceSlug;
+  const practiceName = data?._v4?.practiceName || null;
+  const myRole = data?._v4?.myRole || null;
+  const roleLabel = myRole ? (myRole.charAt(0).toUpperCase() + myRole.slice(1)) : null;
+  const initials = practiceName ? practiceInitials(practiceName) : '';
 
   // Click handler logic:
   //   - If item.external (e.g. 'practice-settings'), navigate to a separate route
@@ -170,6 +195,56 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               );
             })}
           </nav>
+
+          {/* Practice tile — identity anchor at the bottom. Avatar +
+              name + role. Not clickable (yet) — sets up the slot for a
+              future multi-practice switcher. When sidebar is collapsed,
+              the avatar alone shows centred. */}
+          {practiceName && (
+            <div className="p-2.5 border-t border-white/5">
+              {sidebarOpen ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 6px' }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 7,
+                    background: 'linear-gradient(135deg, #0891b2, #0e7490)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                    fontSize: 10, color: 'white', fontWeight: 500,
+                    letterSpacing: 0.5,
+                    fontFamily: "'Outfit', sans-serif",
+                  }}>
+                    {initials}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      fontSize: 11.5, color: '#e2e8f0', fontWeight: 500,
+                      lineHeight: 1.25,
+                      overflow: 'hidden', textOverflow: 'ellipsis',
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    }} title={practiceName}>
+                      {practiceName}
+                    </div>
+                    {roleLabel && (
+                      <div style={{ fontSize: 9.5, color: '#64748b', marginTop: 2 }}>
+                        {roleLabel}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0' }} title={practiceName}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 7,
+                    background: 'linear-gradient(135deg, #0891b2, #0e7490)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, color: 'white', fontWeight: 500,
+                    letterSpacing: 0.5,
+                    fontFamily: "'Outfit', sans-serif",
+                  }}>{initials}</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Version (practice logo removed — will be re-added per-practice later) */}
           <div className="p-2.5 border-t border-white/5">

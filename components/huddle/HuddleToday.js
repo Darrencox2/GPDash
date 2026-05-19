@@ -5,7 +5,7 @@ import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import HuddleFullscreen from './HuddleFullscreen';
-import { guessGroupFromRole, matchesStaffMember, toLocalIso, toHuddleDateStr, logEvent } from '@/lib/data';
+import { guessGroupFromRole, buddyDefaultsForRole, matchesStaffMember, toLocalIso, toHuddleDateStr, logEvent } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import { MiniGauge, SevenDayStrip, TwentyEightDayChart, ROLE_COLOURS, SpeedometerGauge, ACCENT_BAR_COLOURS, ClinicianDayPanel } from './HuddleShared';
@@ -250,11 +250,16 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           if (name.length < 3 || name.toLowerCase().includes('generic') || name.toLowerCase().includes('session holder')) return;
           const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
           const newId = Math.max(0, ...updatedClinicians.map(c => c.id)) + 1;
+          // Role-aware buddy defaults — GP Partners + Salaried GPs default
+          // in AND can cover; Registrars + ANPs default in but can't cover;
+          // everyone else off. Matches the wizard's CSV import behaviour.
+          const buddyDefaults = buddyDefaultsForRole(role);
           updatedClinicians.push({
             id: newId, name, initials, role, group: guessGroupFromRole(role),
             sessions: 0, primaryBuddy: null, secondaryBuddy: null,
-            status: 'active', longTermAbsent: false, canProvideCover: false,
-            buddyCover: false, showWhosIn: true, source: 'csv', confirmed: false, aliases: [csvName],
+            status: 'active', longTermAbsent: false,
+            ...buddyDefaults,
+            showWhosIn: true, source: 'csv', confirmed: false, aliases: [csvName],
           });
           newCount++;
         }
