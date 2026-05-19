@@ -156,6 +156,14 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
         const guessed = guessGroupFromRole(value);
         if (guessed) updated.group = guessed;
       }
+      // Cascade: turning buddy off forces can-cover off too. If they're
+      // not in the buddy system, they logically can't cover, and the
+      // UI's already disabling the can-cover toggle — but the stored
+      // value would still read as true from previous state, which
+      // confuses downstream code. Flip it now.
+      if (field === 'buddyCover' && value === false) {
+        updated.canProvideCover = false;
+      }
       return updated;
     }));
   };
@@ -168,12 +176,18 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
   // actions on the same set, just re-tick the rows.
   const bulkUpdate = (changes) => {
     if (selectedIds.size === 0) return;
+    // Buddy-off cascade: if bulk-setting buddyCover to false, also
+    // null out canProvideCover. The dependency rule is the same as
+    // the per-row updateField above.
+    const effectiveChanges = (changes.buddyCover === false)
+      ? { ...changes, canProvideCover: false }
+      : changes;
     setClinicians(prev => prev.map(c => {
       if (!selectedIds.has(c.id)) return c;
-      const updated = { ...c, ...changes };
-      if (changes.role !== undefined) {
-        const guessed = guessGroupFromRole(changes.role);
-        if (guessed && changes.group === undefined) updated.group = guessed;
+      const updated = { ...c, ...effectiveChanges };
+      if (effectiveChanges.role !== undefined) {
+        const guessed = guessGroupFromRole(effectiveChanges.role);
+        if (guessed && effectiveChanges.group === undefined) updated.group = guessed;
       }
       return updated;
     }));

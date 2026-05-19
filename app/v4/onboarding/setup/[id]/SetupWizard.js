@@ -817,8 +817,13 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
           group: guessedGroup,
           status: 'active',
           sessions: 0,
+          // Both buddy-system flags default OFF for new CSV imports.
+          // Most CSVs include admin/reception staff alongside clinicians,
+          // and admins shouldn't be in the buddy cover pool by default.
+          // The user opts them in via the Quick Setup toggles once they
+          // know who actually participates.
           buddyCover: false,
-          canProvideCover: true,
+          canProvideCover: false,
           showWhosIn: true,
           aliases: [csvName],
         };
