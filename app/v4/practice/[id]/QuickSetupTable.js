@@ -161,7 +161,11 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
   };
 
   // ─── Bulk update: apply a partial change to every selected row ───────
-  // Same role-derives-group rule as single-row updates.
+  // Same role-derives-group rule as single-row updates. After applying,
+  // the selection is cleared — once you've assigned the role you wanted,
+  // those rows are "done" and shouldn't stay selected (where the next
+  // bulk action would silently re-target them). If you DO want to chain
+  // actions on the same set, just re-tick the rows.
   const bulkUpdate = (changes) => {
     if (selectedIds.size === 0) return;
     setClinicians(prev => prev.map(c => {
@@ -173,6 +177,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
       }
       return updated;
     }));
+    setSelectedIds(new Set());
   };
 
   // ─── Selection helpers ───────────────────────────────────────────────
