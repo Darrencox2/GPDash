@@ -31,7 +31,10 @@ import { DashboardCompletenessStrip } from '@/app/v4/_lib/SectionStatus';
 // dependencies. Loading them on demand cuts initial bundle dramatically
 // and means the user doesn't pay for sections they never visit.
 const BuddyDaily = lazy(() => import('@/components/buddy/BuddyDaily'));
-const TeamMembers = lazy(() => import('@/components/buddy/TeamMembers'));
+// TeamMembers retired in v4.14.0 — see Practice → Clinicians for the
+// new home. Keeping the file in components/buddy/ for the moment so
+// v3 production (on `main`) still has it; can be removed when that
+// branch catches up.
 const TeamRota = lazy(() => import('@/components/buddy/TeamRota'));
 const BuddySettings = lazy(() => import('@/components/buddy/BuddySettings'));
 const HuddleToday = lazy(() => import('@/components/huddle/HuddleToday'));
@@ -43,6 +46,23 @@ const RoomDashboard = lazy(() => import('@/components/room/RoomDashboard'));
 const Changelog = lazy(() => import('@/components/Changelog'));
 const AccountSettings = lazy(() => import('@/components/AccountSettings'));
 const PerfOverlay = lazy(() => import('@/components/PerfOverlay'));
+
+// Soft-redirect from the retired team-members section to the new home.
+// We hit useEffect on mount and then router.replace to the practice
+// settings tab; the component itself just renders a brief "Redirecting…"
+// note in case the user has a slow connection.
+function RedirectToClinicians({ slug }) {
+  const router = useRouter();
+  useEffect(() => {
+    if (!slug) return;
+    router.replace(`/v4/practice/${slug}?tab=clinicians`);
+  }, [slug, router]);
+  return (
+    <div className="card p-12 text-center">
+      <div className="text-sm text-slate-500">Redirecting to Clinicians…</div>
+    </div>
+  );
+}
 
 // Static normalizer — same logic as the in-component one, but pulled to
 // module scope so it can run at state-init time (before the component
@@ -675,7 +695,13 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'workload-audit' && <WorkloadAudit data={data} huddleData={huddleData} />}
           {activeSection === 'qof-tracker' && <div className="card p-12 text-center"><div className="text-3xl mb-3">📋</div><h2 className="text-lg font-semibold text-slate-900">QOF Tracker</h2><p className="text-sm text-slate-500 mt-2">Coming soon — track QOF indicators and achievement rates.</p></div>}
-          {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} setActiveSection={setActiveSection} />}
+          {/* team-members section retired in v4.14.0 — Clinicians lives at
+              Practice → Clinicians now. If something still navigates to
+              this section ID (deep links from older URLs, third-party
+              docs), redirect on render rather than 404. */}
+          {activeSection === 'team-members' && (
+            <RedirectToClinicians slug={data?._v4?.practiceSlug} />
+          )}
           {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'changelog' && <Changelog />}

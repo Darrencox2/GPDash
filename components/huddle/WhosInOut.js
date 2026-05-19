@@ -290,13 +290,20 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
       </div>
 
       <div className="p-3 space-y-3" style={{background:'rgba(15,23,42,0.5)'}}>
-        {/* Unconfirmed staff banner */}
+        {/* Unconfirmed staff banner. Link goes to Practice → Clinicians
+            (which replaced the old in-dashboard "Clinicians" page in
+            v4.14.0). The link is rendered as a real anchor — full page
+            navigation rather than in-dashboard section change, since
+            the destination is a different route. */}
         {unconfirmedCount > 0 && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.15)'}}>
             <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
             <span className="text-xs text-amber-400">{unconfirmedCount} unconfirmed from CSV</span>
-            {onNavigate && (
-              <button onClick={() => onNavigate('team-members')} className="ml-auto text-xs font-medium text-amber-300 hover:text-amber-100 underline">Review</button>
+            {data?._v4?.practiceSlug && (
+              <a
+                href={`/v4/practice/${data._v4.practiceSlug}?tab=clinicians`}
+                className="ml-auto text-xs font-medium text-amber-300 hover:text-amber-100 underline"
+              >Review</a>
             )}
           </div>
         )}

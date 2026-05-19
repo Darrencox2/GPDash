@@ -24,7 +24,7 @@
 // toggle who's in. Each action applies to every selected row in one
 // batch and is auto-saved like any other edit.
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { guessGroupFromRole } from '@/lib/data';
 import WorkingDaysGrid from './WorkingDaysGrid';
 
@@ -361,17 +361,43 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
               </tr>
             </thead>
             <tbody>
-              {filtered.map((c, i) => (
-                <Row
-                  key={c.id}
-                  c={c}
-                  zebra={i % 2 === 1}
-                  needsAttn={c.status !== 'left' && needsAttention(c)}
-                  selected={selectedIds.has(c.id)}
-                  onToggleSelect={() => toggleSelect(c.id)}
-                  onChange={(field, value) => updateField(c.id, field, value)}
-                />
-              ))}
+              {filtered.map((c, i) => {
+                // Insert a subtle role-section header whenever the role
+                // changes from the previous visible row. Skipped while a
+                // search/filter is active because the order can interleave
+                // roles arbitrarily.
+                const showRoleHeader = (
+                  !search.trim() &&
+                  (i === 0 || (filtered[i - 1].role || '') !== (c.role || ''))
+                );
+                return (
+                  <React.Fragment key={c.id}>
+                    {showRoleHeader && (
+                      <tr>
+                        <td colSpan={8} style={{
+                          padding: '14px 14px 6px',
+                          fontSize: 10.5, fontWeight: 600,
+                          color: '#64748b',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.6,
+                          background: 'rgba(255,255,255,0.015)',
+                          borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.05)',
+                        }}>
+                          {c.role || 'Unassigned role'}
+                        </td>
+                      </tr>
+                    )}
+                    <Row
+                      c={c}
+                      zebra={i % 2 === 1}
+                      needsAttn={c.status !== 'left' && needsAttention(c)}
+                      selected={selectedIds.has(c.id)}
+                      onToggleSelect={() => toggleSelect(c.id)}
+                      onChange={(field, value) => updateField(c.id, field, value)}
+                    />
+                  </React.Fragment>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={8} style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
@@ -387,7 +413,9 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       </div>
 
       <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
-        Edits save automatically. For deeper settings (room preferences, primary/secondary buddy assignments, aliases), open Team Members on the practice dashboard.
+        Edits save automatically. For working pattern, open the working-days grid above;
+        deeper settings (room preferences, primary/secondary buddy, aliases) will be
+        in the per-clinician side panel — coming next.
       </div>
 
       {showWorkingGrid && (
