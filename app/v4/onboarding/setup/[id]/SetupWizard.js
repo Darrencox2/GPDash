@@ -954,7 +954,29 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
       // Build clinician records — strip any parens that just contain
       // a title; let the user fix initials/role on the Clinicians tab.
       const newClinicians = csvNames.map((csvName) => {
-        const cleanName = csvName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+        const cleanRaw = csvName.replace(/\s*\([^)]*\)\s*$/, '').trim();
+        // EMIS CSVs use "Surname, Firstname" order; flip to
+        // "Firstname Surname" so downstream matching (teamnet, room
+        // allocator, buddy cover) treats the surname as the actual
+        // surname rather than the first name. Without this flip, two
+        // clinicians sharing a first name (Katie Ellison + Katie
+        // Parkhouse) both get surname="Katie" and the teamnet matcher
+        // collides.
+        let flipped = cleanRaw;
+        if (cleanRaw.includes(',')) {
+          const parts = cleanRaw.split(',').map(s => s.trim());
+          if (parts.length === 2 && parts[0] && parts[1]) {
+            flipped = `${parts[1]} ${parts[0]}`;
+          }
+        }
+        // Title-case any all-caps words (CSVs commonly have
+        // "ELLISON, Katie" — surname uppercase, firstname mixed).
+        const cleanName = flipped.split(/\s+/).map(w => {
+          if (w.length > 1 && w === w.toUpperCase() && !/^(DR\.?|MR\.?|MRS\.?|MS\.?)$/i.test(w)) {
+            return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+          }
+          return w;
+        }).join(' ');
         const roleMatch = csvName.match(/\(([^)]+)\)/);
         const rawRole = roleMatch ? roleMatch[1].trim() : '';
         const role = (!rawRole || TITLE_LIKE.has(rawRole.toLowerCase())) ? '' : rawRole;
@@ -975,6 +997,8 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
           sessions: 0,
           ...buddyDefaults,
           showWhosIn: true,
+          // Keep the raw CSV name as an alias so future appointment
+          // imports (which use the original format) still match.
           aliases: [csvName],
         };
       });
