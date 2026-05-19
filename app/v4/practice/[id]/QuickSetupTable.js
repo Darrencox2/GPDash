@@ -298,6 +298,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
         onSetRole={(role) => bulkUpdate({ role })}
         onSetStatus={(status) => bulkUpdate({ status })}
         onSetBuddyCover={(buddyCover) => bulkUpdate({ buddyCover })}
+        onSetCanCover={(canProvideCover) => bulkUpdate({ canProvideCover })}
         onSetWhosIn={(showWhosIn) => bulkUpdate({ showWhosIn })}
       />
 
@@ -306,7 +307,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
         borderRadius: 10, overflow: 'hidden',
       }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 870 }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 970 }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
                 <Th width={36} style={{ textAlign: 'center', paddingLeft: 12, paddingRight: 4 }}>
@@ -323,7 +324,8 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
                 <Th width={80}>Initials</Th>
                 <Th width={170}>Role</Th>
                 <Th width={140}>Status</Th>
-                <Th width={100} style={{ textAlign: 'center' }}>Buddy cover</Th>
+                <Th width={100} style={{ textAlign: 'center' }}>In buddy system</Th>
+                <Th width={100} style={{ textAlign: 'center' }}>Can cover</Th>
                 <Th width={100} style={{ textAlign: 'center' }}>Who's In</Th>
               </tr>
             </thead>
@@ -341,7 +343,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+                  <td colSpan={8} style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
                     {clinicians.length === 0
                       ? 'No clinicians yet. Upload a CSV from the Today page to populate this list.'
                       : 'No clinicians match your filters.'}
@@ -424,7 +426,20 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange }) {
           on={!!c.buddyCover}
           onClick={() => onChange('buddyCover', !c.buddyCover)}
           colourOn="#a855f7"
-          ariaLabel={`Buddy cover for ${c.name}`}
+          ariaLabel={`In buddy system for ${c.name}`}
+        />
+      </Td>
+      <Td style={{ textAlign: 'center' }}>
+        {/* canProvideCover defaults to true. Only meaningful when the
+            row is in the buddy system — but we render it regardless so
+            users can pre-configure both at once. The buddy-cover engine
+            on the dashboard ignores canProvideCover for rows that
+            aren't in the buddy system in the first place. */}
+        <ToggleSwitch
+          on={c.canProvideCover !== false}
+          onClick={() => onChange('canProvideCover', c.canProvideCover === false)}
+          colourOn="#10b981"
+          ariaLabel={`Can cover others for ${c.name}`}
         />
       </Td>
       <Td style={{ textAlign: 'center' }}>
@@ -494,7 +509,7 @@ function ToggleSwitch({ on, onClick, colourOn, ariaLabel }) {
 // server-side, so exposing it as a separate action just gave users a
 // way to put a record in an inconsistent state. The role-derives-group
 // rule covers every practical case.
-function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCover, onSetWhosIn }) {
+function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCover, onSetCanCover, onSetWhosIn }) {
   const active = count > 0;
   return (
     <div style={{
@@ -527,6 +542,8 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
       <span style={{ color: '#475569' }}>·</span>
       <BulkButton onClick={() => onSetBuddyCover(true)} disabled={!active}>Buddy on</BulkButton>
       <BulkButton onClick={() => onSetBuddyCover(false)} disabled={!active}>Buddy off</BulkButton>
+      <BulkButton onClick={() => onSetCanCover(true)} disabled={!active}>Can cover on</BulkButton>
+      <BulkButton onClick={() => onSetCanCover(false)} disabled={!active}>Can cover off</BulkButton>
       <BulkButton onClick={() => onSetWhosIn(true)} disabled={!active}>Who's In on</BulkButton>
       <BulkButton onClick={() => onSetWhosIn(false)} disabled={!active}>Who's In off</BulkButton>
 
