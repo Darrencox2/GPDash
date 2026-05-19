@@ -22,7 +22,7 @@ export default async function CliniciansTab({ practiceId }) {
 
   const { data: rows, error } = await supabase
     .from('clinicians')
-    .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, show_whos_in, aliases, linked_user_id, created_at')
+    .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, show_whos_in, aliases, linked_user_id, metadata, created_at')
     .eq('practice_id', practiceId)
     .order('name', { ascending: true });
 
@@ -52,21 +52,39 @@ export default async function CliniciansTab({ practiceId }) {
 
   // Adapt snake_case → v3-shape camelCase. Same shape used by /api/v4/data
   // mutation 6, so what we render is what we'd post back unchanged.
-  const clinicians = (rows || []).map(c => ({
-    id: c.id,
-    name: c.name,
-    title: c.title,
-    initials: c.initials,
-    role: c.role,
-    group: c.group_id,
-    status: c.status,
-    sessions: c.sessions || 0,
-    buddyCover: !!c.buddy_cover,
-    canProvideCover: c.can_provide_cover !== false,
-    showWhosIn: c.show_whos_in !== false, // default true if column missing pre-041
-    aliases: c.aliases || [],
-    linkedUserId: c.linked_user_id,
-  }));
+  const clinicians = (rows || []).map(c => {
+    const meta = c.metadata || {};
+    return {
+      id: c.id,
+      name: c.name,
+      title: c.title,
+      initials: c.initials,
+      role: c.role,
+      group: c.group_id,
+      status: c.status,
+      sessions: c.sessions || 0,
+      buddyCover: !!c.buddy_cover,
+      canProvideCover: c.can_provide_cover !== false,
+      showWhosIn: c.show_whos_in !== false,
+      aliases: c.aliases || [],
+      linkedUserId: c.linked_user_id,
+      // v3-style extras unwrapped from metadata jsonb (see migration 033)
+      primaryBuddy: meta.primaryBuddy || null,
+      secondaryBuddy: meta.secondaryBuddy || null,
+      roomPreferences: meta.roomPreferences || {},
+      notes: meta.notes || '',
+    };
+  });
+
+  // Sites for room-preference picker in the side panel. Read directly
+  // from practice_settings.room_allocation.sites (same source the wizard
+  // and v3 Room Settings write to).
+  const { data: settingsRow } = await supabase
+    .from('practice_settings')
+    .select('room_allocation')
+    .eq('practice_id', practiceId)
+    .maybeSingle();
+  const sites = settingsRow?.room_allocation?.sites || [];
 
   return (
     <div>
@@ -83,6 +101,7 @@ export default async function CliniciansTab({ practiceId }) {
         practiceId={practiceId}
         initialClinicians={clinicians}
         initialPatterns={patternByClinician}
+        sites={sites}
       />
     </div>
   );

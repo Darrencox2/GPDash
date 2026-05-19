@@ -27,6 +27,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { guessGroupFromRole } from '@/lib/data';
 import WorkingDaysGrid from './WorkingDaysGrid';
+import ClinicianDetailsPanel from './ClinicianDetailsPanel';
 
 const ROLES = [
   'GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum',
@@ -83,7 +84,7 @@ function clinicianFieldsEqual(a, b) {
   );
 }
 
-export default function QuickSetupTable({ practiceId, initialClinicians, initialPatterns }) {
+export default function QuickSetupTable({ practiceId, initialClinicians, initialPatterns, sites }) {
   const [clinicians, setClinicians] = useState(initialClinicians || []);
   const [search, setSearch] = useState('');
   const [showLeft, setShowLeft] = useState(false);
@@ -93,6 +94,10 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
   // Working days grid modal — opened from the toolbar. Kept out of the
   // main table by user request ("don't create too much mess").
   const [showWorkingGrid, setShowWorkingGrid] = useState(false);
+  // Side panel for deeper per-clinician detail — opens on row click.
+  // Holds the clinician id (not the object) so the panel always reads
+  // the latest local state when the table edits a row underneath it.
+  const [panelClinicianId, setPanelClinicianId] = useState(null);
 
   const lastSavedRef = useRef(initialClinicians || []);
   const saveTimer = useRef(null);
@@ -394,6 +399,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
                       selected={selectedIds.has(c.id)}
                       onToggleSelect={() => toggleSelect(c.id)}
                       onChange={(field, value) => updateField(c.id, field, value)}
+                      onOpenPanel={() => setPanelClinicianId(c.id)}
                     />
                   </React.Fragment>
                 );
@@ -413,9 +419,8 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       </div>
 
       <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
-        Edits save automatically. For working pattern, open the working-days grid above;
-        deeper settings (room preferences, primary/secondary buddy, aliases) will be
-        in the per-clinician side panel — coming next.
+        Edits save automatically. <strong style={{ color: '#94a3b8' }}>Click a row</strong> to
+        open the details panel for aliases, buddy preferences, room preferences, and notes.
       </div>
 
       {showWorkingGrid && (
@@ -426,12 +431,40 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
           onClose={() => setShowWorkingGrid(false)}
         />
       )}
+
+      {/* Side panel for the clicked clinician — looks up by id so it
+          always renders the latest local state (the row beneath might
+          have been edited via the table after the panel opened). */}
+      {panelClinicianId && (() => {
+        const c = clinicians.find(x => x.id === panelClinicianId);
+        if (!c) return null;
+        const wp = (initialPatterns || {})[c.id] || null;
+        return (
+          <ClinicianDetailsPanel
+            clinician={c}
+            allClinicians={clinicians}
+            workingPattern={wp}
+            sites={sites || []}
+            practiceId={practiceId}
+            onClose={() => setPanelClinicianId(null)}
+            onPatch={(next) => {
+              // Mirror panel edits back into the table state so the row
+              // reflects them immediately. Doesn't trigger the API save
+              // path (panel saves direct to Supabase) — we just keep
+              // local state aligned.
+              setClinicians(prev => prev.map(x => x.id === next.id ? { ...x, ...next } : x));
+              lastSavedRef.current = lastSavedRef.current.map(x => x.id === next.id ? { ...x, ...next } : x);
+            }}
+            onOpenWorkingGrid={() => setShowWorkingGrid(true)}
+          />
+        );
+      })()}
     </div>
   );
 }
 
 // ─── Row ────────────────────────────────────────────────────────────────
-function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange }) {
+function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPanel }) {
   const [localInitials, setLocalInitials] = useState(c.initials || '');
   useEffect(() => { setLocalInitials(c.initials || ''); }, [c.initials]);
 
@@ -453,8 +486,24 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange }) {
   const showRoleAsCustom = c.role && !ROLES.includes(c.role) && !isPlaceholderOrTitle(c.role);
   const dropdownRole = isPlaceholderOrTitle(c.role) ? '' : c.role;
 
+  // Click anywhere on the row that isn't an interactive control opens
+  // the details panel. `closest('input, select, button, label')` covers
+  // the inputs, selects, toggles (buttons), the bulk-select checkbox,
+  // and its <label> — anything that has its own click semantics.
+  const handleRowClick = (e) => {
+    if (e.target.closest('input, select, button, label')) return;
+    onOpenPanel?.();
+  };
+
   return (
-    <tr style={{ background: baseBg, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+    <tr
+      onClick={handleRowClick}
+      style={{
+        background: baseBg,
+        borderTop: '1px solid rgba(255,255,255,0.04)',
+        cursor: 'pointer',
+      }}
+    >
       <Td style={{ textAlign: 'center', paddingLeft: 12, paddingRight: 4 }}>
         <input type="checkbox" checked={selected} onChange={onToggleSelect} aria-label={`Select ${c.name}`} style={{ cursor: 'pointer' }} />
       </Td>
