@@ -150,12 +150,19 @@ export default async function PracticeAdminPage({ params }) {
   // Each section gets a small status stripe at the top (green when
   // complete, amber when there's something to do). Mapping below
   // matches the dashboard's completeness strip so the two stay in sync.
+  //
+  // Width: most tabs are forms that read best at ~800px (long lines
+  // are hard to scan). The Clinicians tab is a data table that
+  // needs more horizontal room — wrap it in a wider container so
+  // all the columns (Name, Initials, Role, Status, Buddy, Who's In)
+  // are visible without horizontal scroll.
   const stripeFor = (key) => sectionStatuses[key]
     ? <SectionStatusStripe complete={sectionStatuses[key].complete} hint={sectionStatuses[key].hint} label={sectionStatuses[key].label} />
     : null;
+  const narrow = (children) => <div style={{ maxWidth: 800 }}>{children}</div>;
 
   const tabContent = {
-    details: (
+    details: narrow(
       <>
         {stripeFor('details')}
         <DetailsTab
@@ -166,7 +173,7 @@ export default async function PracticeAdminPage({ params }) {
         />
       </>
     ),
-    users: (
+    users: narrow(
       <>
         {stripeFor('team')}
         <UsersTab
@@ -227,19 +234,22 @@ export default async function PracticeAdminPage({ params }) {
         />
       </>
     ),
+    // Clinicians is the only tab that uses the full 1200px width — the
+    // Quick Setup data table needs all of it to render its columns
+    // without horizontal scroll on a typical laptop.
     clinicians: canManage ? (
       <>
         {stripeFor('clinicians')}
         <CliniciansTab practiceId={practiceId} />
       </>
     ) : null,
-    'buddy-cover': (
+    'buddy-cover': narrow(
       <BuddyCoverSettings
         practiceId={practiceId}
         initialSettings={buddySettings}
       />
     ),
-    demand: (
+    demand: narrow(
       <>
         {stripeFor('demand')}
         <DemandTab
@@ -251,7 +261,7 @@ export default async function PracticeAdminPage({ params }) {
         />
       </>
     ),
-    resources: (
+    resources: narrow(
       <>
         {stripeFor('teamnet')}
         <ResourcesTab
@@ -261,7 +271,7 @@ export default async function PracticeAdminPage({ params }) {
         />
       </>
     ),
-    activity: canManage ? (
+    activity: canManage ? narrow(
       <Card title="Audit log">
         <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
           Recent activity in this practice — clinician edits, CSV uploads,
@@ -271,7 +281,7 @@ export default async function PracticeAdminPage({ params }) {
         <AuditLogView practiceId={practiceId} />
       </Card>
     ) : null,
-    danger: isPlatformAdmin ? (
+    danger: isPlatformAdmin ? narrow(
       <DangerTab
         practiceId={practiceId}
         practiceName={practice.name}
@@ -281,23 +291,25 @@ export default async function PracticeAdminPage({ params }) {
 
   return (
     <DashboardShell shellData={shellData} activeSection="practice-settings">
-      <div style={{ maxWidth: 800, margin: '0 auto' }}>
-        {/* Page header */}
-        <div style={{ marginBottom: 18 }}>
-          <BrandHeader subtitle="Practice management" />
-        </div>
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{
-            fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 600,
-            color: 'white', marginBottom: 6,
-          }}>{practice.name}</h1>
-          <div style={{ display: 'flex', gap: 12, fontSize: 13, color: '#94a3b8', flexWrap: 'wrap' }}>
-            {practice.ods_code && <span>ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{practice.ods_code}</span></span>}
-            {practice.region && <span>{practice.region}</span>}
-            <span style={{
-              padding: '2px 10px', background: 'rgba(16,185,129,0.15)',
-              color: '#34d399', borderRadius: 999, fontWeight: 600, fontSize: 11,
-            }}>You: {myMembership?.role || (isPlatformAdmin ? 'platform admin' : 'guest')}</span>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        {/* Page header — kept narrower so the practice name + meta read well */}
+        <div style={{ maxWidth: 800 }}>
+          <div style={{ marginBottom: 18 }}>
+            <BrandHeader subtitle="Practice management" />
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <h1 style={{
+              fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 600,
+              color: 'white', marginBottom: 6,
+            }}>{practice.name}</h1>
+            <div style={{ display: 'flex', gap: 12, fontSize: 13, color: '#94a3b8', flexWrap: 'wrap' }}>
+              {practice.ods_code && <span>ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{practice.ods_code}</span></span>}
+              {practice.region && <span>{practice.region}</span>}
+              <span style={{
+                padding: '2px 10px', background: 'rgba(16,185,129,0.15)',
+                color: '#34d399', borderRadius: 999, fontWeight: 600, fontSize: 11,
+              }}>You: {myMembership?.role || (isPlatformAdmin ? 'platform admin' : 'guest')}</span>
+            </div>
           </div>
         </div>
 

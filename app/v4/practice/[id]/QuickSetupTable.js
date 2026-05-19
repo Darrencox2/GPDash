@@ -302,7 +302,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians }) {
         borderRadius: 10, overflow: 'hidden',
       }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 980 }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 870 }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
                 <Th width={36} style={{ textAlign: 'center', paddingLeft: 12, paddingRight: 4 }}>
