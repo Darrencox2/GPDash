@@ -69,10 +69,21 @@ export default async function OnboardingSetupPage({ params }) {
   // practice management drops them here explicitly; direct visits
   // (typing the URL, browser history) also work.
 
-  // TeamNet URL lives on practice_settings, not practices.
+  // TeamNet URL, huddle settings (for existing slot filters), room
+  // allocation (for existing sites) all live on practice_settings.
   const { data: settings } = await supabase
     .from('practice_settings')
-    .select('teamnet_url')
+    .select('teamnet_url, huddle_settings, room_allocation')
+    .eq('practice_id', practiceId)
+    .maybeSingle();
+
+  // Existing CSV upload — needed by the slot-types and sites steps so
+  // they show real data after a page refresh. If the user hasn't
+  // uploaded yet this is just null and those steps show their
+  // upload-first prompt.
+  const { data: csvRow } = await supabase
+    .from('huddle_csv_data')
+    .select('data')
     .eq('practice_id', practiceId)
     .maybeSingle();
 
@@ -124,6 +135,9 @@ export default async function OnboardingSetupPage({ params }) {
       hasInvites={(pendingInvitesCount || 0) > 0}
       userRole={membership.role}
       autoCompleted={minimumMet}
+      initialHuddleSettings={settings?.huddle_settings || {}}
+      initialSites={settings?.room_allocation?.sites || []}
+      initialCsvData={csvRow?.data || null}
     />
   );
 }

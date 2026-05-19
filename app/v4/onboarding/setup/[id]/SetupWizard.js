@@ -41,7 +41,7 @@
 // On final completion: setup_completed_at gets set and the user is
 // redirected to /p/<slug>.
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
@@ -58,8 +58,18 @@ const STEPS = [
   { id: 'details',   title: 'Your practice',          subtitle: 'A few key details', required: true },
   { id: 'teamnet',   title: 'TeamNet calendar',       subtitle: 'Optional · sync absences', optional: true },
   { id: 'emis',      title: 'Appointment data',       subtitle: 'EMIS report · build your team', required: true },
+  { id: 'slots',     title: 'Slot types',             subtitle: 'Routine, urgent, duty doctor', optional: true },
+  { id: 'sites',     title: 'Practice sites',         subtitle: 'Optional · assign colours', optional: true },
   { id: 'demand',    title: 'Demand history',         subtitle: 'Optional · calibrate the model', optional: true },
   { id: 'invites',   title: 'Invite your team',       subtitle: 'Optional · do later if you prefer', optional: true },
+];
+
+// Default colours for sites — picked from the standard practice palette
+// (lib/roomAllocation.js SITE_COLOUR_PRESETS). Keeping them duplicated
+// here so the wizard doesn't have to import from a v3-era module.
+const SITE_COLOUR_PRESETS = [
+  '#8b5cf6', '#06b6d4', '#f97316', '#ec4899', '#84cc16',
+  '#3b82f6', '#14b8a6', '#a855f7', '#eab308', '#64748b',
 ];
 
 // ───────────────────────────────────────────────────────────────────────
@@ -72,6 +82,11 @@ export default function SetupWizard({
   // Server has already marked setup_completed_at — skip the client-side
   // write. Acts as the initial value of autoMarkedAt so we don't re-fire.
   autoCompleted = false,
+  // Pre-loaded by server component so new slot/site steps render with
+  // existing state on first paint. Each is small enough to ship in HTML.
+  initialHuddleSettings = {},
+  initialSites = [],
+  initialCsvData = null,
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -84,8 +99,8 @@ export default function SetupWizard({
     // start at the last step (invites) so they can review or skip.
     if (!practice.postcode || !practice.list_size) return 0;
     if (!initialHasClinicians) return 2;
-    if (!initialHasDemandData) return 3;
-    return 4;
+    if (!initialHasDemandData) return 5;
+    return 6;
   });
   const [animKey, setAnimKey] = useState(0);
 
@@ -99,6 +114,29 @@ export default function SetupWizard({
   const [clinicianCountAdded, setClinicianCountAdded] = useState(0);
   const [hasDemandData, setHasDemandData] = useState(initialHasDemandData);
   const [hasInvites, setHasInvites] = useState(initialHasInvites);
+
+  // ─── CSV data + derived setup ─────────────────────────────────────
+  // The EMIS step parses the CSV and pushes the rich data up to the
+  // wizard so the slot-types + sites steps can read its allSlotTypes
+  // and locationData. Initialised from the server-pre-loaded blob so
+  // those steps work even on a fresh page load after upload.
+  const [parsedCsv, setParsedCsv] = useState(initialCsvData);
+
+  // Slot-type filters live in huddle_settings.savedSlotFilters
+  // (routine + urgent) and huddle_settings.dutyDoctorSlot. Both
+  // editable via Practice settings later — wizard just provides a
+  // first-pass starting set.
+  const [slotFilters, setSlotFilters] = useState({
+    routine: initialHuddleSettings?.savedSlotFilters?.routine || [],
+    urgent:  initialHuddleSettings?.savedSlotFilters?.urgent || [],
+    dutyDoctorSlot: initialHuddleSettings?.dutyDoctorSlot || '',
+  });
+
+  // Sites are stored as practice_settings.room_allocation.sites — an
+  // array of { id, name, colour, gridSize, rooms } objects. The
+  // wizard only configures name+colour; rooms get added via the v3
+  // Room Allocation page later.
+  const [sites, setSites] = useState(initialSites);
 
   const [globalError, setGlobalError] = useState('');
 
@@ -123,12 +161,16 @@ export default function SetupWizard({
   // Per-step "is this done" derivations — drive the progress indicator
   // (filled vs hollow dots), the colored top border on each step card,
   // and the auto-complete trigger.
+  const slotsConfigured = !!(slotFilters.routine?.length || slotFilters.urgent?.length || slotFilters.dutyDoctorSlot);
+  const sitesConfigured = (sites?.length || 0) > 0;
   const stepDone = [
     !!postcode && !!listSize,                           // 0: details
     teamnetUrl.length > 0,                              // 1: teamnet (optional, but tick if set)
     hasClinicians,                                      // 2: emis
-    hasDemandData,                                      // 3: demand
-    hasInvites,                                         // 4: invites
+    slotsConfigured,                                    // 3: slots (optional)
+    sitesConfigured,                                    // 4: sites (optional)
+    hasDemandData,                                      // 5: demand
+    hasInvites,                                         // 6: invites
   ];
   const requiredIncomplete = STEPS
     .map((s, i) => s.required && !stepDone[i] ? s : null)
@@ -251,9 +293,26 @@ export default function SetupWizard({
                   setHasClinicians={setHasClinicians}
                   setClinicianCountAdded={setClinicianCountAdded}
                   clinicianCountAdded={clinicianCountAdded}
+                  setParsedCsv={setParsedCsv}
                 />
               )}
               {currentStep === 3 && (
+                <SlotTypesStep
+                  practiceId={practice.id}
+                  parsedCsv={parsedCsv}
+                  slotFilters={slotFilters}
+                  setSlotFilters={setSlotFilters}
+                />
+              )}
+              {currentStep === 4 && (
+                <SitesStep
+                  practiceId={practice.id}
+                  parsedCsv={parsedCsv}
+                  sites={sites}
+                  setSites={setSites}
+                />
+              )}
+              {currentStep === 5 && (
                 <DemandStep
                   practiceId={practice.id}
                   practiceSlug={practice.slug}
@@ -261,7 +320,7 @@ export default function SetupWizard({
                   setHasDemandData={setHasDemandData}
                 />
               )}
-              {currentStep === 4 && (
+              {currentStep === 6 && (
                 <InvitesStep
                   practiceId={practice.id}
                   hasInvites={hasInvites}
@@ -651,6 +710,10 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
   const [savedAt, setSavedAt] = useState(null);
   const [error, setError] = useState('');
   const [showHowTo, setShowHowTo] = useState(false);
+  // Sync state — pressing "Sync now" hits the same /api/v4/sync-teamnet
+  // endpoint the standalone editor on the practice management page uses.
+  const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null);
   const saveTimer = useRef(null);
 
   // TeamNet URL lives on practice_settings (one row per practice). Upsert
@@ -675,6 +738,28 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
     saveTimer.current = setTimeout(() => save(v), 600);
   };
 
+  // Trigger an immediate calendar sync. Useful so users can confirm
+  // their URL works without waiting for the daily cron — and the
+  // "X absences imported" feedback gives instant confidence.
+  const syncNow = async () => {
+    setSyncing(true);
+    setSyncStatus(null);
+    setError('');
+    try {
+      const r = await fetch(`/api/v4/sync-teamnet?practice=${practiceId}`, { method: 'POST' });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || `HTTP ${r.status}`);
+      setSyncStatus({
+        ok: true,
+        text: `Synced — imported ${json.imported || 0} absence${json.imported === 1 ? '' : 's'}`,
+      });
+    } catch (err) {
+      setSyncStatus({ ok: false, text: `Sync failed: ${err.message}` });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <p style={fieldHelp}>
@@ -696,6 +781,45 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves as you type')}
         </div>
       </div>
+
+      {/* Sync now: confirms the URL works and pulls the first batch of
+          absences immediately rather than waiting for the daily cron.
+          Disabled until the URL has been saved (avoids hitting the API
+          with stale or empty input). */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={syncNow}
+          disabled={!teamnetUrl || syncing}
+          style={{
+            padding: '8px 14px',
+            background: (teamnetUrl && !syncing) ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${(teamnetUrl && !syncing) ? 'rgba(34,211,238,0.4)' : 'rgba(255,255,255,0.1)'}`,
+            color: (teamnetUrl && !syncing) ? '#67e8f9' : '#64748b',
+            borderRadius: 8,
+            fontSize: 13, fontWeight: 500,
+            cursor: (teamnetUrl && !syncing) ? 'pointer' : 'not-allowed',
+            fontFamily: 'inherit',
+          }}
+        >
+          {syncing ? 'Syncing…' : 'Sync now'}
+        </button>
+        <span style={{ fontSize: 12, color: '#64748b' }}>
+          Otherwise we sync once a day automatically.
+        </span>
+      </div>
+      {syncStatus && (
+        <div style={{
+          padding: 10,
+          background: syncStatus.ok ? 'rgba(16,185,129,0.10)' : 'rgba(239,68,68,0.10)',
+          border: `1px solid ${syncStatus.ok ? 'rgba(16,185,129,0.30)' : 'rgba(239,68,68,0.30)'}`,
+          color: syncStatus.ok ? '#34d399' : '#fca5a5',
+          borderRadius: 8,
+          fontSize: 13,
+        }}>
+          {syncStatus.text}
+        </div>
+      )}
 
       <button
         type="button"
@@ -735,7 +859,8 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
 }
 
 // ─── Step 3: EMIS report + first CSV upload ────────────────────────────
-function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCountAdded, clinicianCountAdded }) {
+function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCountAdded, clinicianCountAdded, setParsedCsv }) {
+  const supabase = createClient();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -850,6 +975,22 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
       setHasClinicians(true);
       setClinicianCountAdded(newClinicians.length);
       setSuccess(`✓ Found ${newClinicians.length} clinician${newClinicians.length === 1 ? '' : 's'} in your CSV. Your team is ready.`);
+
+      // Push parsed CSV up so the slot-types + sites steps can use it
+      // immediately (no need to navigate away and back). Also save the
+      // parsed blob to huddle_csv_data so it persists across reloads —
+      // direct Supabase write rather than via the API to avoid Vercel's
+      // 4.5MB function body limit (parsed CSV can be several MB).
+      setParsedCsv?.(parsed);
+      try {
+        await supabase
+          .from('huddle_csv_data')
+          .upsert({ practice_id: practiceId, data: parsed }, { onConflict: 'practice_id' });
+      } catch (e) {
+        // Non-fatal: clinicians are saved, slot/site steps may need
+        // a re-upload but the user has what they came for. Log + carry on.
+        console.warn('Could not persist parsed CSV to huddle_csv_data:', e);
+      }
     } catch (e) {
       setError(e.message || 'Something went wrong reading that CSV.');
     } finally {
@@ -940,7 +1081,447 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
   );
 }
 
-// ─── Step 4: Demand history (optional) ─────────────────────────────────
+// ─── Step 3 (slots) + Step 4 (sites) — shared helpers ─────────────────
+// Both steps need the parsed CSV in hand. If the user lands here without
+// uploading first, render an "upload-first" placeholder rather than an
+// empty grid that looks broken.
+function UploadFirstPrompt({ message }) {
+  return (
+    <div style={{
+      padding: 24,
+      background: 'rgba(245,158,11,0.06)',
+      border: '1px solid rgba(245,158,11,0.2)',
+      borderRadius: 10,
+      color: '#cbd5e1',
+      fontSize: 13, lineHeight: 1.6,
+      display: 'flex', flexDirection: 'column', gap: 6,
+    }}>
+      <div style={{ color: '#fcd34d', fontWeight: 600 }}>Upload your appointment CSV first</div>
+      <div>{message}</div>
+      <div style={{ marginTop: 8, fontSize: 12, color: '#94a3b8' }}>
+        Use the back button to return to the Appointment data step.
+      </div>
+    </div>
+  );
+}
+
+// Best-guess classification of a slot-type name. Used to seed the
+// per-row choice so the user only has to override the misses rather
+// than tag every one from scratch.
+function guessSlotCategory(name) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('duty')) return 'duty';
+  if (n.match(/\bsame[\s-]?day\b/) || n.includes('urgent') || n.match(/\bontd\b/) || n.match(/\bon[\s-]?the[\s-]?day\b/) || n.includes('acute') || n.includes('emergency')) return 'urgent';
+  return 'routine';
+}
+
+// ─── Step 3: Slot types ────────────────────────────────────────────────
+// Classify each slot type from the uploaded CSV as routine, urgent, or
+// duty-doctor. The dashboard uses these for the capacity bars (urgent
+// vs routine demand) and the duty-doctor highlight on the Today huddle.
+//
+// Storage:
+//   huddle_settings.savedSlotFilters[slotType] = true  → urgent
+//                                              = false → routine (default)
+//   huddle_settings.dutyDoctorSlot is an array of slot type strings
+//
+// Auto-saves on every change — one debounce per step is enough since the
+// settings JSON is small.
+function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
+  const supabase = createClient();
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState(null);
+  const [error, setError] = useState('');
+  const saveTimer = useRef(null);
+
+  const slotTypes = useMemo(() => {
+    const list = parsedCsv?.allSlotTypes || [];
+    return [...list].sort((a, b) => a.localeCompare(b));
+  }, [parsedCsv]);
+
+  // Effective per-slot category. Reads from slotFilters state; falls
+  // back to the guess for slots not yet classified.
+  const categoryOf = (name) => {
+    if ((slotFilters.dutyDoctorSlot || []).includes(name)) return 'duty';
+    if ((slotFilters.urgent || []).includes(name)) return 'urgent';
+    if ((slotFilters.routine || []).includes(name)) return 'routine';
+    return guessSlotCategory(name);
+  };
+
+  // Save the full slot-type config to practice_settings. JSON merge —
+  // we only own these three keys, leave any other huddle_settings keys
+  // (slot card config, urgent expected counts, etc.) alone.
+  const saveToDb = async (next) => {
+    setSaving(true);
+    setError('');
+    // Read existing huddle_settings to merge into. RLS lets owners do this.
+    const { data: existing } = await supabase
+      .from('practice_settings')
+      .select('huddle_settings')
+      .eq('practice_id', practiceId)
+      .maybeSingle();
+    const merged = {
+      ...(existing?.huddle_settings || {}),
+      savedSlotFilters: {
+        ...(existing?.huddle_settings?.savedSlotFilters || {}),
+        routine: next.routine,
+        urgent: next.urgent,
+      },
+      dutyDoctorSlot: next.dutyDoctorSlot,
+    };
+    const { error: err } = await supabase
+      .from('practice_settings')
+      .upsert({ practice_id: practiceId, huddle_settings: merged }, { onConflict: 'practice_id' });
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setSavedAt(new Date());
+  };
+
+  const setCategory = (slotName, category) => {
+    // Remove from all three buckets, then add to the chosen one.
+    const next = {
+      routine: (slotFilters.routine || []).filter(s => s !== slotName),
+      urgent: (slotFilters.urgent || []).filter(s => s !== slotName),
+      dutyDoctorSlot: (slotFilters.dutyDoctorSlot || []).filter(s => s !== slotName),
+    };
+    if (category === 'routine') next.routine.push(slotName);
+    if (category === 'urgent') next.urgent.push(slotName);
+    if (category === 'duty') next.dutyDoctorSlot.push(slotName);
+    setSlotFilters(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => saveToDb(next), 500);
+  };
+
+  if (!parsedCsv || slotTypes.length === 0) {
+    return <UploadFirstPrompt message="Once you've uploaded your EMIS appointment CSV, we'll list every slot type we found and let you tag each one as routine, urgent, or duty doctor." />;
+  }
+
+  // Count by category for the summary line
+  const summary = slotTypes.reduce((acc, s) => {
+    const cat = categoryOf(s);
+    acc[cat]++;
+    return acc;
+  }, { routine: 0, urgent: 0, duty: 0 });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <p style={fieldHelp}>
+        We found <strong style={{ color: '#cbd5e1' }}>{slotTypes.length}</strong> slot
+        types in your CSV. Tag each one so the dashboard knows what counts as urgent
+        (same-day appointments) vs routine (booked in advance). The duty doctor slot
+        type gets highlighted on the daily huddle view.
+      </p>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12 }}>
+        <SummaryPill colour="#64748b" label="Routine" count={summary.routine} />
+        <SummaryPill colour="#f97316" label="Urgent" count={summary.urgent} />
+        <SummaryPill colour="#8b5cf6" label="Duty doctor" count={summary.duty} />
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b') }}>
+          {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves on change')}
+        </span>
+      </div>
+
+      <div style={{
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 10,
+        overflow: 'hidden',
+      }}>
+        {slotTypes.map((slot, i) => {
+          const cat = categoryOf(slot);
+          return (
+            <div
+              key={slot}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '10px 14px',
+                background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
+                borderBottom: i < slotTypes.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+              }}
+            >
+              <div style={{ flex: 1, fontSize: 13, color: '#cbd5e1', fontFamily: "'Space Mono', monospace" }}>
+                {slot}
+              </div>
+              <SlotCategoryPicker
+                value={cat}
+                onChange={(c) => setCategory(slot, c)}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {error && <div style={errorText}>{error}</div>}
+
+      <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
+        These can be changed any time from Practice settings → Demand. Your initial
+        classification is based on slot-type names; check any that look wrong.
+      </div>
+    </div>
+  );
+}
+
+function SummaryPill({ colour, label, count }) {
+  return (
+    <span style={{
+      padding: '4px 10px',
+      background: `${colour}22`,
+      border: `1px solid ${colour}66`,
+      borderRadius: 999,
+      color: colour,
+      fontWeight: 500,
+    }}>
+      {count} {label}
+    </span>
+  );
+}
+
+function SlotCategoryPicker({ value, onChange }) {
+  const options = [
+    { id: 'routine', label: 'Routine', colour: '#64748b' },
+    { id: 'urgent',  label: 'Urgent',  colour: '#f97316' },
+    { id: 'duty',    label: 'Duty doctor', colour: '#8b5cf6' },
+  ];
+  return (
+    <div style={{
+      display: 'flex',
+      background: 'rgba(0,0,0,0.25)',
+      borderRadius: 6,
+      padding: 2,
+      gap: 2,
+    }}>
+      {options.map(o => {
+        const active = value === o.id;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onChange(o.id)}
+            style={{
+              padding: '5px 12px',
+              fontSize: 11, fontWeight: 500,
+              background: active ? o.colour : 'transparent',
+              color: active ? 'white' : '#94a3b8',
+              border: 'none', borderRadius: 4,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              transition: 'background 0.12s, color 0.12s',
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Step 4: Practice sites ────────────────────────────────────────────
+// Multi-site practices show appointments in different locations across
+// the CSV. The dashboard uses site colours throughout (room allocation,
+// Who's In legend, slot-type stacked bars) so picking colours early is
+// useful — defaults are fine for single-site practices and they can
+// skip this step.
+//
+// Storage: practice_settings.room_allocation.sites = [{ id, name, colour, gridSize, rooms }]
+// The wizard only sets id/name/colour. Rooms get added later in v3
+// Room Settings.
+function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
+  const supabase = createClient();
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState(null);
+  const [error, setError] = useState('');
+  const saveTimer = useRef(null);
+
+  // Extract unique location names from the parsed CSV. locationData
+  // shape: { date: { clinIdx: { locationName: count } } }
+  const csvLocations = useMemo(() => {
+    const seen = new Set();
+    const ld = parsedCsv?.locationData || {};
+    for (const date of Object.keys(ld)) {
+      for (const idx of Object.keys(ld[date] || {})) {
+        for (const loc of Object.keys(ld[date][idx] || {})) {
+          if (loc && loc.trim()) seen.add(loc.trim());
+        }
+      }
+    }
+    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  }, [parsedCsv]);
+
+  // Merge CSV locations with existing configured sites so the user
+  // sees BOTH (a) what's already configured and (b) any new
+  // locations the CSV mentions that aren't yet sites. New ones get
+  // a default colour from the rotation.
+  const displayedSites = useMemo(() => {
+    const existing = new Map(sites.map(s => [s.name, s]));
+    const out = [...sites];
+    csvLocations.forEach((loc, i) => {
+      if (!existing.has(loc)) {
+        out.push({
+          id: `site-${Date.now()}-${i}`,
+          name: loc,
+          colour: SITE_COLOUR_PRESETS[(sites.length + i) % SITE_COLOUR_PRESETS.length],
+          gridSize: 'small',
+          rooms: [],
+        });
+      }
+    });
+    return out;
+  }, [csvLocations, sites]);
+
+  const saveToDb = async (nextSites) => {
+    setSaving(true);
+    setError('');
+    const { data: existing } = await supabase
+      .from('practice_settings')
+      .select('room_allocation')
+      .eq('practice_id', practiceId)
+      .maybeSingle();
+    const merged = {
+      ...(existing?.room_allocation || {}),
+      sites: nextSites,
+    };
+    const { error: err } = await supabase
+      .from('practice_settings')
+      .upsert({ practice_id: practiceId, room_allocation: merged }, { onConflict: 'practice_id' });
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setSavedAt(new Date());
+  };
+
+  const updateColour = (siteId, colour) => {
+    const next = displayedSites.map(s => s.id === siteId ? { ...s, colour } : s);
+    setSites(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => saveToDb(next), 500);
+  };
+
+  const removeSite = (siteId) => {
+    const next = displayedSites.filter(s => s.id !== siteId);
+    setSites(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => saveToDb(next), 500);
+  };
+
+  if (!parsedCsv) {
+    return <UploadFirstPrompt message="Once you've uploaded your EMIS appointment CSV, we'll detect the practice sites from appointment locations and let you pick a colour for each." />;
+  }
+
+  if (displayedSites.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <p style={fieldHelp}>
+          We didn't find any site/location entries in your CSV. Most single-site
+          practices won't need to configure this. You can add sites manually later
+          via the v3 Room Settings page if needed.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <p style={fieldHelp}>
+        We found <strong style={{ color: '#cbd5e1' }}>{displayedSites.length}</strong> site
+        {displayedSites.length === 1 ? '' : 's'} in your CSV appointment data. Each gets a
+        colour that's used consistently across the dashboard (Who's In, capacity bars, room
+        allocation). Pick something distinctive for each, or skip — defaults work fine.
+      </p>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <span style={{ fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b') }}>
+          {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves on change')}
+        </span>
+      </div>
+
+      <div style={{
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 10,
+        overflow: 'hidden',
+      }}>
+        {displayedSites.map((site, i) => (
+          <div
+            key={site.id}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 14px',
+              background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
+              borderBottom: i < displayedSites.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+            }}
+          >
+            <div style={{
+              width: 28, height: 28, borderRadius: 6,
+              background: site.colour,
+              flexShrink: 0,
+              border: '1px solid rgba(255,255,255,0.1)',
+            }} />
+            <div style={{ flex: 1, fontSize: 13, color: '#cbd5e1', fontWeight: 500 }}>
+              {site.name}
+            </div>
+            <ColourPicker
+              value={site.colour}
+              onChange={(c) => updateColour(site.id, c)}
+            />
+            <button
+              type="button"
+              onClick={() => removeSite(site.id)}
+              title="Remove this site"
+              style={{
+                padding: '4px 8px', fontSize: 11,
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#94a3b8', borderRadius: 4,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >×</button>
+          </div>
+        ))}
+      </div>
+
+      {error && <div style={errorText}>{error}</div>}
+
+      <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
+        Sites can also be edited later from the v3 Room Settings page (rooms, grid size, etc.).
+      </div>
+    </div>
+  );
+}
+
+function ColourPicker({ value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+      {SITE_COLOUR_PRESETS.map(c => {
+        const active = c.toLowerCase() === (value || '').toLowerCase();
+        return (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onChange(c)}
+            title={c}
+            style={{
+              width: 22, height: 22,
+              padding: 0,
+              background: c,
+              border: active ? '2px solid white' : '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 4,
+              cursor: 'pointer',
+              transition: 'transform 0.1s',
+              transform: active ? 'scale(1.08)' : 'scale(1)',
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+
+// ─── Step 5: Demand history (optional) ─────────────────────────────────
 function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
