@@ -1017,6 +1017,70 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         // a re-upload but the user has what they came for. Log + carry on.
         console.warn('Could not persist parsed CSV to huddle_csv_data:', e);
       }
+
+      // ─── Auto-generate working patterns from CSV ───────────────────
+      // For each clinician we just saved, look back at the recent CSV
+      // history (the parsed blob we just stored) to infer their AM/PM
+      // working pattern. Only clinicians WITHOUT an existing
+      // working_patterns row get one — we never overwrite manual edits.
+      try {
+        const { inferAmPmPatterns } = await import('@/lib/auto-rota');
+        // Fetch the inserted clinicians back to get their UUIDs (the
+        // /api/v4/data response is { ok: true } without IDs). We need
+        // them for the working_patterns foreign key.
+        const { data: savedClinicians } = await supabase
+          .from('clinicians')
+          .select('id, name, initials, role, status, buddy_cover, aliases, metadata')
+          .eq('practice_id', practiceId);
+        if (savedClinicians && savedClinicians.length > 0) {
+          // Skip clinicians who already have a pattern (don't overwrite).
+          const ids = savedClinicians.map(c => c.id);
+          const { data: existing } = await supabase
+            .from('working_patterns')
+            .select('clinician_id')
+            .in('clinician_id', ids)
+            .is('effective_to', null);
+          const alreadyHasPattern = new Set((existing || []).map(r => r.clinician_id));
+          const targets = savedClinicians
+            .filter(c => !alreadyHasPattern.has(c.id))
+            .map(c => ({
+              id: c.id,
+              name: c.name,
+              initials: c.initials,
+              role: c.role,
+              status: c.status,
+              buddyCover: !!c.buddy_cover,
+              aliases: c.aliases || [],
+            }));
+          if (targets.length > 0) {
+            const { patterns } = inferAmPmPatterns({
+              huddleData: parsed,
+              clinicians: targets,
+              includeOnlyBuddyCover: false,
+            });
+            if (patterns && patterns.length > 0) {
+              const today = new Date().toISOString().slice(0, 10);
+              const inserts = patterns.map(p => ({
+                clinician_id: p.clinicianId,
+                effective_from: today,
+                effective_to: null,
+                pattern: p.pattern,
+              }));
+              const { error: wpErr } = await supabase
+                .from('working_patterns')
+                .insert(inserts);
+              if (wpErr) {
+                console.warn('Working pattern auto-generation failed:', wpErr);
+              } else {
+                setSuccess(prev => prev + ` Working patterns generated for ${patterns.length}.`);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Auto-generate working patterns: error', e);
+        // Non-fatal — user can fill the grid manually
+      }
     } catch (e) {
       setError(e.message || 'Something went wrong reading that CSV.');
     } finally {

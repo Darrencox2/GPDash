@@ -67,6 +67,10 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
   const [savingIds, setSavingIds] = useState(new Set());
   const [errors, setErrors] = useState({}); // clinicianId → error message
   const saveTimers = useRef({}); // clinicianId → timeout
+  // Auto-generate state — separate from per-row saving since it touches
+  // potentially every clinician at once and has its own progress arc.
+  const [generating, setGenerating] = useState(false);
+  const [generateStatus, setGenerateStatus] = useState(null);
 
   // Sort clinicians: by ROLES order, then by name. Skip "left" status.
   const ordered = useMemo(() => {
@@ -161,6 +165,78 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
     if (e.target === e.currentTarget) onClose();
   };
 
+  // Auto-generate from CSV — fetches the practice's stored huddle_csv_data,
+  // runs the inference, and writes patterns for clinicians WITHOUT an
+  // existing row (don't overwrite manual edits). Tells the user how many
+  // got generated + how many were skipped because they already had patterns
+  // or had no CSV activity.
+  const generateFromCsv = async ({ overwrite = false } = {}) => {
+    setGenerating(true);
+    setGenerateStatus(null);
+    try {
+      const { data: csvRow } = await supabase
+        .from('huddle_csv_data')
+        .select('data')
+        .eq('practice_id', practiceId)
+        .maybeSingle();
+      const parsed = csvRow?.data;
+      if (!parsed?.dates?.length) {
+        setGenerateStatus({ ok: false, text: 'No CSV data on file. Upload an EMIS report first via the Today page.' });
+        setGenerating(false);
+        return;
+      }
+      const { inferAmPmPatterns } = await import('@/lib/auto-rota');
+      // Filter target list: skip 'left' and (unless overwrite) skip
+      // clinicians who already have a pattern with at least one 'in'.
+      const targets = clinicians
+        .filter(c => c.status !== 'left')
+        .filter(c => {
+          if (overwrite) return true;
+          const existing = patterns[c.id]?.pattern || {};
+          const anyOn = DAYS.some(d => existing[d.key]?.am === 'in' || existing[d.key]?.pm === 'in');
+          return !anyOn;
+        });
+      if (targets.length === 0) {
+        setGenerateStatus({ ok: false, text: 'No clinicians need a generated pattern. Use "Regenerate all" if you want to overwrite existing patterns.' });
+        setGenerating(false);
+        return;
+      }
+      const { patterns: inferred, ambiguityWarnings } = inferAmPmPatterns({
+        huddleData: parsed,
+        clinicians: targets,
+        includeOnlyBuddyCover: false,
+      });
+
+      // Apply each inferred pattern via saveClinician (handles insert vs update)
+      let succeeded = 0;
+      for (const p of inferred) {
+        const cur = patterns[p.clinicianId] || { pattern: {} };
+        const payload = { ...cur, pattern: p.pattern };
+        try {
+          await saveClinician(p.clinicianId, payload);
+          // Mirror locally so the grid reflects immediately
+          setPatterns(prev => ({
+            ...prev,
+            [p.clinicianId]: { ...prev[p.clinicianId], pattern: p.pattern },
+          }));
+          succeeded++;
+        } catch {
+          // saveClinician already sets the error on this row
+        }
+      }
+      const skipped = targets.length - inferred.length;
+      const parts = [];
+      if (succeeded > 0) parts.push(`Generated ${succeeded} pattern${succeeded === 1 ? '' : 's'}`);
+      if (skipped > 0) parts.push(`${skipped} skipped (no CSV activity)`);
+      if (ambiguityWarnings?.length > 0) parts.push(`${ambiguityWarnings.length} ambiguous initials (check manually)`);
+      setGenerateStatus({ ok: succeeded > 0, text: parts.join(' · ') || 'Nothing to generate' });
+    } catch (e) {
+      setGenerateStatus({ ok: false, text: `Generation failed: ${e.message || e}` });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div
       onClick={handleBackdropClick}
@@ -210,6 +286,67 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
             }}
           >×</button>
         </div>
+
+        {/* Generate-from-CSV row */}
+        <div style={{
+          marginTop: 14, padding: '10px 12px',
+          background: 'rgba(16,185,129,0.06)',
+          border: '1px solid rgba(16,185,129,0.18)',
+          borderRadius: 8,
+          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+        }}>
+          <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
+            <strong style={{ color: '#34d399' }}>Auto-generate from CSV</strong>
+            <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>
+              Looks at the last 12 weeks of appointment history. Sets AM or PM "in" when
+              the clinician appeared in ≥50% of weeks for that session.
+            </div>
+          </div>
+          <button
+            onClick={() => generateFromCsv({ overwrite: false })}
+            disabled={generating}
+            style={{
+              padding: '7px 14px', fontSize: 12, fontWeight: 500,
+              background: generating ? 'rgba(255,255,255,0.04)' : 'rgba(16,185,129,0.15)',
+              border: '1px solid ' + (generating ? 'rgba(255,255,255,0.1)' : 'rgba(16,185,129,0.30)'),
+              borderRadius: 6,
+              color: generating ? '#64748b' : '#34d399',
+              cursor: generating ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {generating ? 'Generating…' : 'Generate for missing'}
+          </button>
+          <button
+            onClick={() => {
+              if (!confirm('Overwrite ALL working patterns from CSV? This will replace any manual edits.')) return;
+              generateFromCsv({ overwrite: true });
+            }}
+            disabled={generating}
+            style={{
+              padding: '7px 14px', fontSize: 12, fontWeight: 500,
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 6,
+              color: generating ? '#475569' : '#94a3b8',
+              cursor: generating ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Regenerate all
+          </button>
+        </div>
+        {generateStatus && (
+          <div style={{
+            marginTop: 8, padding: '8px 12px',
+            background: generateStatus.ok ? 'rgba(16,185,129,0.10)' : 'rgba(245,158,11,0.10)',
+            border: `1px solid ${generateStatus.ok ? 'rgba(16,185,129,0.30)' : 'rgba(245,158,11,0.30)'}`,
+            color: generateStatus.ok ? '#34d399' : '#fcd34d',
+            borderRadius: 6, fontSize: 12,
+          }}>
+            {generateStatus.text}
+          </div>
+        )}
 
         <div style={{
           marginTop: 16,
