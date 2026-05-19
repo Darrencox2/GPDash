@@ -20,6 +20,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { normalizeWorkingPattern } from '@/lib/v4-data';
 
 const DAYS = [
   { key: 'mon', label: 'Mon' },
@@ -57,12 +58,14 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
     // immediately on mount to get any saves the user made earlier in
     // this session — initialPatterns is captured at page load and
     // would otherwise be stale every time the modal reopens.
+    // normalizeWorkingPattern handles legacy long-key shapes from the
+    // old mutation-1 bug.
     const out = {};
     for (const c of clinicians) {
       const existing = initialPatterns[c.id];
       out[c.id] = {
         rowId: existing?.id,
-        pattern: existing?.pattern || {},
+        pattern: normalizeWorkingPattern(existing?.pattern),
       };
     }
     return out;
@@ -104,7 +107,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
           const row = (data || []).find(r => r.clinician_id === c.id);
           fresh[c.id] = {
             rowId: row?.id,
-            pattern: row?.pattern || {},
+            pattern: normalizeWorkingPattern(row?.pattern),
           };
         }
         setPatterns(fresh);

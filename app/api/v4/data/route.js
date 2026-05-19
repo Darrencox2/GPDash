@@ -223,32 +223,112 @@ export async function POST(request) {
   const ops = [];
 
   // ─── Mutation 1: weeklyRota → working_patterns ───────────────────────
+  // v3-shape weeklyRota is a day-level list of clinician IDs per day
+  // (Monday/Tuesday/...). v4 working_patterns has per-clinician AM/PM
+  // granularity in a JSONB pattern keyed by SHORT day names
+  // (mon/tue/wed/thu/fri).
+  //
+  // Two things this mutation has to get right:
+  //
+  //   1. Use SHORT keys when writing. Long keys (Monday/Tuesday/...)
+  //      are unreadable by the adapter and WorkingDaysGrid — that was
+  //      the v4.13.0-v4.18.1 bug. Every saveData call from the client
+  //      bundles weeklyRota, this code ran, wrote long keys, and
+  //      destroyed AM/PM granularity from the WorkingDaysGrid.
+  //
+  //   2. PRESERVE AM/PM granularity for days that didn't change. If
+  //      the clinician was already in on Tuesday with {am:'in', pm:'off'},
+  //      and the new weeklyRota still has them on Tuesday, don't
+  //      overwrite that to {am:'in', pm:'in'} — we'd lose their
+  //      half-day pattern. Compare day-sets, not stringified patterns.
   if (newData.weeklyRota) {
-    const oldRota = oldData.weeklyRota || {};
     const newRota = newData.weeklyRota;
-    // Build per-clinician new pattern
-    const newPatternsByClinician = {};
-    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    for (const day of dayNames) {
-      for (const cid of (newRota[day] || [])) {
-        if (!newPatternsByClinician[cid]) newPatternsByClinician[cid] = {};
-        newPatternsByClinician[cid][day] = { am: 'in', pm: 'in' };
+    const SHORT_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
+    const LONG_TO_SHORT = {
+      Monday: 'mon', Tuesday: 'tue', Wednesday: 'wed', Thursday: 'thu', Friday: 'fri',
+    };
+    // Read legacy long-key patterns gracefully — same logic as
+    // normalizeWorkingPattern in lib/v4-data.js but inlined here to
+    // keep the API route self-contained.
+    const normalize = (pattern) => {
+      if (!pattern || typeof pattern !== 'object') return {};
+      const out = {};
+      for (const [k, v] of Object.entries(pattern)) {
+        if (!v || typeof v !== 'object') continue;
+        const short = LONG_TO_SHORT[k] || k.toLowerCase();
+        if (SHORT_DAYS.includes(short)) {
+          out[short] = { am: v.am === 'in' ? 'in' : 'off', pm: v.pm === 'in' ? 'in' : 'off' };
+        }
+      }
+      return out;
+    };
+
+    // Build per-clinician new day-set (which days they're in per v3 rota)
+    const newDaysByClinician = {};
+    for (const [longDay, shortDay] of Object.entries(LONG_TO_SHORT)) {
+      for (const cid of (newRota[longDay] || [])) {
+        if (!newDaysByClinician[cid]) newDaysByClinician[cid] = new Set();
+        newDaysByClinician[cid].add(shortDay);
       }
     }
-    // For each clinician with an existing pattern OR a new one, upsert
+
     const allClinicians = new Set([
       ...(v4Data.workingPatterns || []).map(wp => wp.clinician_id),
-      ...Object.keys(newPatternsByClinician),
+      ...Object.keys(newDaysByClinician),
     ]);
+
     for (const cid of allClinicians) {
-      const newPattern = newPatternsByClinician[cid] || {};
+      const newDays = newDaysByClinician[cid] || new Set();
       const existing = (v4Data.workingPatterns || []).find(wp => wp.clinician_id === cid);
+
       if (existing) {
-        // Compare patterns; if changed, update
-        if (JSON.stringify(existing.pattern) !== JSON.stringify(newPattern)) {
-          ops.push(supabase.from('working_patterns').update({ pattern: newPattern }).eq('id', existing.id));
+        // Compute existing day-set from the (possibly legacy-shaped) pattern
+        const existingPattern = normalize(existing.pattern);
+        const existingDays = new Set();
+        for (const sd of SHORT_DAYS) {
+          const day = existingPattern[sd];
+          if (day?.am === 'in' || day?.pm === 'in') existingDays.add(sd);
         }
-      } else if (Object.keys(newPattern).length > 0) {
+        // If the day-set hasn't changed, there's nothing to do — the
+        // weeklyRota the client posted matches what working_patterns
+        // already says. This is the common case for every saveData call.
+        const sameSet = newDays.size === existingDays.size
+          && [...newDays].every(d => existingDays.has(d));
+
+        // Even when the day-set hasn't changed, if the pattern was
+        // stored in legacy long-key shape, rewrite it as short-key
+        // so the stored data self-heals over time.
+        const hasLegacyKeys = existing.pattern && Object.keys(existing.pattern).some(k => k in LONG_TO_SHORT);
+
+        if (sameSet && !hasLegacyKeys) continue;
+
+        // Build the updated pattern: preserve AM/PM granularity for
+        // days that are in both the old and new set; switch removed
+        // days to both-off; default added days to both-in.
+        const updatedPattern = {};
+        for (const sd of SHORT_DAYS) {
+          const wasIn = existingDays.has(sd);
+          const willBeIn = newDays.has(sd);
+          if (wasIn && willBeIn) {
+            // Same day → preserve existing AM/PM exactly
+            updatedPattern[sd] = existingPattern[sd] || { am: 'in', pm: 'in' };
+          } else if (willBeIn) {
+            // Newly added day → default to whole-day in (user can
+            // refine to half-day via WorkingDaysGrid)
+            updatedPattern[sd] = { am: 'in', pm: 'in' };
+          }
+          // Day removed → omit from pattern (treated as off everywhere
+          // that reads working_patterns)
+        }
+        ops.push(supabase.from('working_patterns').update({ pattern: updatedPattern }).eq('id', existing.id));
+      } else if (newDays.size > 0) {
+        // No existing pattern for this clinician → INSERT
+        const newPattern = {};
+        for (const sd of SHORT_DAYS) {
+          if (newDays.has(sd)) {
+            newPattern[sd] = { am: 'in', pm: 'in' };
+          }
+        }
         ops.push(supabase.from('working_patterns').insert({
           clinician_id: cid,
           effective_from: '1970-01-01',
