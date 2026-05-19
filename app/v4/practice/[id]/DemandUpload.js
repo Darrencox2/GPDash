@@ -1,13 +1,16 @@
 'use client';
 
-// DemandUpload — drag-drop CSV upload for AskMyGP demand history.
-// Parses, upserts into demand_history, then recalibrates the model and
-// writes to practice_settings.demand_settings. All in one go.
+// DemandUpload — drag-drop CSV upload for demand history.
+// Auto-detects which online-consultation tool the file came from
+// (AskMyGP, Anima, …), parses with the appropriate parser, upserts
+// into demand_history with the right `source` tag, then recalibrates
+// the model and writes to practice_settings.demand_settings. All in
+// one go.
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { parseAskMyGpCSV, readAskMyGpFile } from '@/lib/demand-parsers/askmygp';
+import { parseDemandFile, SUPPORTED_SOURCES } from '@/lib/demand-parsers';
 import { recalibrateDemandModel } from '@/lib/demand-recalibration';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 
@@ -17,7 +20,7 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
   const fileInput = useRef(null);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
-  const [result, setResult] = useState(null); // { added, skipped, errors, totalRows, calibration }
+  const [result, setResult] = useState(null); // { added, skipped, errors, totalRows, calibration, source }
   const [error, setError] = useState('');
 
   async function handleFile(file) {
@@ -26,22 +29,32 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
     setError('');
     setResult(null);
     try {
-      // 1. Parse
-      const text = await readAskMyGpFile(file);
-      const parsed = parseAskMyGpCSV(text);
+      // 1. Auto-detect format + parse
+      const { source, sourceLabel, parsed } = await parseDemandFile(file);
+      if (!source) {
+        setError(parsed.errors[0] || 'Could not recognise this file format');
+        setBusy(false);
+        return;
+      }
       if (!parsed.summary || parsed.rows.length === 0) {
         setError(parsed.errors[0] || 'No data rows found in file');
         setBusy(false);
         return;
       }
 
-      // 2. Upsert into demand_history (one row per date, last write wins)
-      // Supabase handles upsert via .upsert() with onConflict
+      // 2. Upsert into demand_history. Schema constraint is
+      //    `unique (practice_id, date)` — one row per practice per
+      //    date, regardless of source. A re-upload (even from a
+      //    different tool) overwrites: the `source` column records
+      //    who provided the winning data point. If a practice ever
+      //    runs parallel pilots and needs to combine multiple
+      //    sources per date, we'd drop the unique constraint and
+      //    sum at read-time — not today's problem.
       const records = parsed.rows.map(r => ({
         practice_id: practiceId,
         date: r.date,
         request_count: r.count,
-        source: 'askmygp',
+        source,
       }));
       // Chunk to avoid request size limits
       const chunkSize = 500;
@@ -111,6 +124,13 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
         latest: parsed.summary.latest,
         parseErrors: parsed.errors,
         calibration,
+        source,
+        sourceLabel,
+        // Anima parser also returns proxyEvents / directEvents for
+        // info — surface them when present so users can see the mix.
+        totalEvents: parsed.summary.totalEvents,
+        proxyEvents: parsed.summary.proxyEvents,
+        directEvents: parsed.summary.directEvents,
       });
       // Tell the wizard (or any other parent that cares) we just uploaded
       // demand data — so it can flip its "step done" indicator without
@@ -166,7 +186,7 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
           {busy ? 'Uploading and recalibrating…' : 'Drop CSV here or click to browse'}
         </div>
         <div style={{ fontSize: 11, color: '#64748b' }}>
-          AskMyGP "Crosstab — Demand data" export (UTF-16 tab-separated)
+          Supports: {SUPPORTED_SOURCES.map(s => s.label).join(' · ')}
         </div>
         <input
           ref={fileInput}
@@ -185,11 +205,31 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
       )}
       {result && !error && (
         <div style={{ marginTop: 12, padding: 14, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, fontSize: 12, color: '#cbd5e1' }}>
-          <div style={{ color: '#34d399', fontWeight: 600, marginBottom: 6 }}>✓ Uploaded</div>
+          <div style={{ color: '#34d399', fontWeight: 600, marginBottom: 6 }}>
+            ✓ Uploaded
+            {result.sourceLabel && (
+              <span style={{ marginLeft: 8, fontWeight: 400, color: '#94a3b8', fontSize: 11 }}>
+                detected as {result.sourceLabel}
+              </span>
+            )}
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 4, marginBottom: 8 }}>
             <span style={{ color: '#64748b' }}>Days in this file</span><span>{result.rowsInFile.toLocaleString()}</span>
             <span style={{ color: '#64748b' }}>Date range</span><span>{formatDate(result.earliest)} → {formatDate(result.latest)}</span>
             <span style={{ color: '#64748b' }}>Total days on file</span><span>{result.rowsTotal.toLocaleString()}</span>
+            {result.totalEvents != null && (
+              <>
+                <span style={{ color: '#64748b' }}>Submissions</span>
+                <span>
+                  {result.totalEvents.toLocaleString()} total
+                  {result.proxyEvents != null && result.directEvents != null && (
+                    <span style={{ color: '#64748b' }}>
+                      {' '}— {result.directEvents.toLocaleString()} direct + {result.proxyEvents.toLocaleString()} via staff
+                    </span>
+                  )}
+                </span>
+              </>
+            )}
           </div>
           {result.calibration?.sufficient ? (
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
