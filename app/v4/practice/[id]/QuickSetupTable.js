@@ -430,16 +430,19 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange }) {
         />
       </Td>
       <Td style={{ textAlign: 'center' }}>
-        {/* canProvideCover defaults to true. Only meaningful when the
-            row is in the buddy system — but we render it regardless so
-            users can pre-configure both at once. The buddy-cover engine
-            on the dashboard ignores canProvideCover for rows that
-            aren't in the buddy system in the first place. */}
+        {/* canProvideCover defaults to true. Disabled when the row is
+            NOT in the buddy system — if they're not participating,
+            "can cover others" is moot, and showing it as freely
+            editable would suggest a setting that has no effect. The
+            underlying value is preserved (state isn't touched when
+            disabled), so turning buddy back on restores their
+            previous preference. */}
         <ToggleSwitch
           on={c.canProvideCover !== false}
           onClick={() => onChange('canProvideCover', c.canProvideCover === false)}
           colourOn="#10b981"
           ariaLabel={`Can cover others for ${c.name}`}
+          disabled={!c.buddyCover}
         />
       </Td>
       <Td style={{ textAlign: 'center' }}>
@@ -460,14 +463,22 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange }) {
 // slides on click. Bigger hit target than a checkbox, more
 // recognisable than the old "On"/"Off" pill, and matches what users
 // expect for boolean settings in modern apps.
-function ToggleSwitch({ on, onClick, colourOn, ariaLabel }) {
+//
+// `disabled`: render dimmed and ignore clicks. Used for dependent
+// toggles like "Can cover" when the parent "In buddy system" toggle
+// is off — the underlying value is preserved so turning the parent
+// back on restores the user's previous preference; we just stop them
+// from editing while it has no effect.
+function ToggleSwitch({ on, onClick, colourOn, ariaLabel, disabled }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       role="switch"
       aria-checked={on}
+      aria-disabled={disabled || undefined}
       aria-label={ariaLabel}
+      disabled={disabled}
       style={{
         position: 'relative',
         width: 36,
@@ -476,9 +487,10 @@ function ToggleSwitch({ on, onClick, colourOn, ariaLabel }) {
         background: on ? colourOn : 'rgba(255,255,255,0.10)',
         border: `1px solid ${on ? colourOn : 'rgba(255,255,255,0.14)'}`,
         borderRadius: 999,
-        cursor: 'pointer',
-        transition: 'background 0.15s, border 0.15s',
-        boxShadow: on ? `0 0 8px ${colourOn}55` : 'none',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'background 0.15s, border 0.15s, opacity 0.15s',
+        boxShadow: on && !disabled ? `0 0 8px ${colourOn}55` : 'none',
+        opacity: disabled ? 0.35 : 1,
       }}
     >
       <span
