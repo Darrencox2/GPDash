@@ -717,16 +717,14 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           borderRadius: 10,
           fontSize: 13, color: '#cbd5e1', lineHeight: 1.7,
         }}>
-          <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <li>Open <strong>TeamNet</strong> and go to the <strong>Diary</strong> module.</li>
-            <li>Click <strong>Sync</strong> (top right) and choose <strong>Webcal / iCal subscription</strong>.</li>
-            <li>Pick the diary you want to sync from (typically the practice-wide one).</li>
-            <li>Set the date range — we recommend "all dates" or a 12-month rolling window.</li>
-            <li>TeamNet shows a URL starting with <span style={{ fontFamily: "'Space Mono', monospace", color: '#94a3b8' }}>https://teamnet.clarity.co.uk/Diary/Sync/...</span></li>
-            <li>Copy that URL and paste it into the field above.</li>
+          <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <li>Open <strong>TeamNet</strong> and go to <strong>Diary</strong>.</li>
+            <li>Make sure <strong>"My items only"</strong> is <strong>unticked</strong> — you want the whole practice diary, not just yours.</li>
+            <li>Click <strong>Add to external calendar</strong>.</li>
+            <li>Copy the link TeamNet provides and paste it into the field above.</li>
           </ol>
           <p style={{ marginTop: 12, marginBottom: 0, color: '#94a3b8', fontSize: 12 }}>
-            We sync this once a day. After this is set up, planned absences from TeamNet will appear in your buddy roster.
+            We sync once a day. After this is set up, planned absences from TeamNet will appear automatically in your buddy roster.
           </p>
         </div>
       )}

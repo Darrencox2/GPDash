@@ -325,18 +325,46 @@ export default async function PracticeAdminPage({ params }) {
 
 function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
   return (
-    <PracticeSetupForm
-      practiceId={practiceId}
-      practiceSlug={practiceSlug}
-      initial={{
-        name: fullPractice?.name || '',
-        odsCode: fullPractice?.ods_code || '',
-        postcode: fullPractice?.postcode || '',
-        listSize: fullPractice?.list_size || '',
-        region: fullPractice?.region || '',
-        setupCompletedAt: fullPractice?.setup_completed_at,
-      }}
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PracticeSetupForm
+        practiceId={practiceId}
+        practiceSlug={practiceSlug}
+        initial={{
+          name: fullPractice?.name || '',
+          odsCode: fullPractice?.ods_code || '',
+          postcode: fullPractice?.postcode || '',
+          listSize: fullPractice?.list_size || '',
+          region: fullPractice?.region || '',
+          setupCompletedAt: fullPractice?.setup_completed_at,
+        }}
+      />
+      {canManage && (
+        <div style={{
+          padding: 14,
+          background: 'rgba(34,211,238,0.05)',
+          border: '1px solid rgba(34,211,238,0.15)',
+          borderRadius: 8,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, flexWrap: 'wrap',
+        }}>
+          <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5 }}>
+            <strong style={{ color: '#67e8f9' }}>Replay the setup wizard</strong>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+              Step through the original onboarding flow again — useful for adding TeamNet sync,
+              re-uploading demand data, or just reviewing what's configured. Nothing gets reset.
+            </div>
+          </div>
+          <a
+            href={`/v4/onboarding/setup/${practiceId}`}
+            style={{
+              fontSize: 12, fontWeight: 500, color: 'white',
+              background: '#0891b2', padding: '8px 14px', borderRadius: 6,
+              textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >Open wizard →</a>
+        </div>
+      )}
+    </div>
   );
 }
 

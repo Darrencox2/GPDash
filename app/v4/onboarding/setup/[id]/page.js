@@ -61,10 +61,13 @@ export default async function OnboardingSetupPage({ params }) {
     redirect('/v4/dashboard');
   }
 
-  // Already complete? No need to be here — straight through to the dashboard.
-  if (practice.setup_completed_at) {
-    redirect(`/p/${practice.slug}`);
-  }
+  // Wizard is replayable. Even after setup_completed_at is set, the user
+  // can revisit this URL to update TeamNet URL, re-upload a CSV, send
+  // more invites, etc. Each step shows its existing state populated
+  // from current data, so nothing needs to be re-entered — they can
+  // just review or change what they want. The "?replay=1" link in
+  // practice management drops them here explicitly; direct visits
+  // (typing the URL, browser history) also work.
 
   // TeamNet URL lives on practice_settings, not practices.
   const { data: settings } = await supabase
