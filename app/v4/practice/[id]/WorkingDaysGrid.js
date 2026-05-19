@@ -18,7 +18,7 @@
 // Sessions/week is computed live: sum of `in` cells across all
 // AM and PM slots. Whole day in = 2 sessions; AM only = 1.
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
 const DAYS = [
@@ -52,8 +52,11 @@ function sessionsFromPattern(pattern) {
 export default function WorkingDaysGrid({ practiceId, clinicians, initialPatterns, onClose }) {
   const supabase = createClient();
   const [patterns, setPatterns] = useState(() => {
-    // Map of clinicianId → { id?: rowId, pattern: { mon: {am, pm}, ... } }
-    // Initialise from server-loaded data + fill blanks with all-off
+    // Seed from the server-rendered initialPatterns so the modal isn't
+    // visibly empty for the half-second the refetch takes. Refetch
+    // immediately on mount to get any saves the user made earlier in
+    // this session — initialPatterns is captured at page load and
+    // would otherwise be stale every time the modal reopens.
     const out = {};
     for (const c of clinicians) {
       const existing = initialPatterns[c.id];
@@ -71,6 +74,47 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
   // potentially every clinician at once and has its own progress arc.
   const [generating, setGenerating] = useState(false);
   const [generateStatus, setGenerateStatus] = useState(null);
+  const [refreshing, setRefreshing] = useState(true);
+
+  // Refresh-on-mount: re-fetch current working_patterns from the DB so
+  // the modal always shows what's actually saved. Without this, closing
+  // and reopening within the same session would re-mount with stale
+  // initialPatterns (server-rendered at page load, doesn't reflect
+  // edits made earlier in the same session). Saves persist fine — the
+  // grid just couldn't see them on its second open.
+  useEffect(() => {
+    let cancelled = false;
+    const ids = clinicians.map(c => c.id);
+    if (ids.length === 0) { setRefreshing(false); return; }
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('working_patterns')
+          .select('id, clinician_id, pattern')
+          .in('clinician_id', ids)
+          .is('effective_to', null);
+        if (cancelled) return;
+        if (error) {
+          // Non-fatal — keep the initial seed. User can still edit + save.
+          setRefreshing(false);
+          return;
+        }
+        const fresh = {};
+        for (const c of clinicians) {
+          const row = (data || []).find(r => r.clinician_id === c.id);
+          fresh[c.id] = {
+            rowId: row?.id,
+            pattern: row?.pattern || {},
+          };
+        }
+        setPatterns(fresh);
+      } finally {
+        if (!cancelled) setRefreshing(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount only — clinicians prop is stable for the modal's lifetime
 
   // Sort clinicians: by ROLES order, then by name. Skip "left" status.
   const ordered = useMemo(() => {

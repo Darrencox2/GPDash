@@ -10,6 +10,10 @@ export default function WorkloadAudit({ data, huddleData }) {
   const urgentOverrides = useMemo(() => hs?.savedSlotFilters?.urgent || null, [hs]);
   const [expandedDuty, setExpandedDuty] = useState(null);
   const [expandedSupport, setExpandedSupport] = useState(null);
+  // Time range picker — defaults to the new "last 8 + next 8" which best
+  // matches the previous fixed view (historical + 8-week trajectory).
+  // Choices: 'all', 'last8', 'last8next8', 'next8'.
+  const [timeRange, setTimeRange] = useState('last8next8');
 
   const allClinicians = useMemo(() => {
     if (!data?.clinicians) return [];
@@ -114,17 +118,43 @@ export default function WorkloadAudit({ data, huddleData }) {
       return { clinicians, avgDutyRatio, avgSupportRatio, earliestDate: fmtDate(earliest), latestDate: fmtDate(latest) };
     };
 
-    // Historical: before today
-    const historical = scanDates(d => d < today);
-    // Projected: all data up to 8 weeks out (historical + future)
-    const projected = scanDates(d => d <= eightWeeksOut);
+    // Historical and 8-week-trajectory used to be two parallel scans.
+    // Now a single scan with the user-picked time range from above.
+    // We keep the `scanDates` helper so we can also compute a fixed
+    // "next 8 weeks" projection alongside the chosen range — useful
+    // when the user is looking at historical and wants to see where
+    // they're heading.
+    const eightWeeksBack = new Date(today); eightWeeksBack.setDate(eightWeeksBack.getDate() - 56);
 
-    // Build a lookup of projected ratios by clinician id
+    const filterByRange = (d) => {
+      switch (timeRange) {
+        case 'all':         return true;
+        case 'last8':       return d >= eightWeeksBack && d < today;
+        case 'next8':       return d >= today && d <= eightWeeksOut;
+        case 'last8next8':  return d >= eightWeeksBack && d <= eightWeeksOut;
+        default:            return true;
+      }
+    };
+    const main = scanDates(filterByRange);
+
+    // Trajectory column ("+8wk"): only meaningful when the main view
+    // is purely historical. When the user is already looking at future
+    // dates, projecting them again is redundant — return an empty map
+    // so RatioRow hides the column.
+    const showProjection = timeRange === 'last8';
+    const projected = showProjection ? scanDates(d => d <= eightWeeksOut) : { clinicians: [] };
     const projectedMap = {};
     projected.clinicians.forEach(c => { projectedMap[c.id] = c; });
 
-    return { ...historical, projected: projectedMap, projAvgDutyRatio: projected.avgDutyRatio, projAvgSupportRatio: projected.avgSupportRatio, projectedDate: fmtDate(eightWeeksOut) };
-  }, [huddleData, hs, dutySlots, hasDuty, allClinicians, urgentOverrides]);
+    return {
+      ...main,
+      projected: projectedMap,
+      showProjection,
+      projAvgDutyRatio: projected.avgDutyRatio,
+      projAvgSupportRatio: projected.avgSupportRatio,
+      projectedDate: fmtDate(eightWeeksOut),
+    };
+  }, [huddleData, hs, dutySlots, hasDuty, allClinicians, urgentOverrides, timeRange]);
 
   if (!huddleData) return (
     <div className="rounded-xl p-12 text-center" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}><div className="text-2xl mb-2">📊</div><h3 className="text-sm font-semibold text-slate-300 mb-1">No CSV data</h3><p className="text-xs text-slate-400">Upload a huddle CSV on the Today page to see workload audit.</p></div>
@@ -164,14 +194,16 @@ export default function WorkloadAudit({ data, huddleData }) {
               : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
           </div>
           <div className="w-14 text-[11px] text-slate-500 text-right font-medium">{count}/{c.sessions}</div>
-          <div className="w-20 text-right">
-            {projRatio !== null && projRatio !== undefined ? (
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{
-                background: projDelta > 0.02 ? '#fef2f2' : projDelta < -0.02 ? '#eff6ff' : '#f0fdf4',
-                color: projDelta > 0.02 ? '#dc2626' : projDelta < -0.02 ? '#2563eb' : '#16a34a'
-              }}>→ {projRatio.toFixed(2)}</span>
-            ) : null}
-          </div>
+          {audit.showProjection && (
+            <div className="w-20 text-right">
+              {projRatio !== null && projRatio !== undefined ? (
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{
+                  background: projDelta > 0.02 ? '#fef2f2' : projDelta < -0.02 ? '#eff6ff' : '#f0fdf4',
+                  color: projDelta > 0.02 ? '#dc2626' : projDelta < -0.02 ? '#2563eb' : '#16a34a'
+                }}>→ {projRatio.toFixed(2)}</span>
+              ) : null}
+            </div>
+          )}
           <span className="text-[10px] text-slate-400 w-4">{expanded ? '▲' : '▼'}</span>
         </div>
         {expanded && dates && dates.length > 0 && (
@@ -229,10 +261,42 @@ export default function WorkloadAudit({ data, huddleData }) {
 
   return (
     <div className="space-y-6">
+      {/* Time range picker — controls which dates feed the audit
+          calculations below. The header subtitle shows the resolved
+          date span so the user always knows what they're looking at. */}
+      <div className="rounded-xl px-5 py-3 flex items-center gap-3 flex-wrap" style={{background:"rgba(15,23,42,0.55)",border:"1px solid rgba(255,255,255,0.06)"}}>
+        <span className="text-xs font-medium text-slate-400">Time range</span>
+        <div className="flex" style={{background:"rgba(0,0,0,0.25)",borderRadius:6,padding:2,gap:2}}>
+          {[
+            { id: 'last8',       label: 'Last 8 weeks' },
+            { id: 'last8next8',  label: 'Last 8 + Next 8' },
+            { id: 'next8',       label: 'Next 8 weeks' },
+            { id: 'all',         label: 'All data' },
+          ].map(o => {
+            const active = timeRange === o.id;
+            return (
+              <button
+                key={o.id}
+                onClick={() => setTimeRange(o.id)}
+                style={{
+                  padding: '5px 12px', fontSize: 11, fontWeight: 500,
+                  background: active ? '#0891b2' : 'transparent',
+                  color: active ? 'white' : '#94a3b8',
+                  border: 'none', borderRadius: 4,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  whiteSpace: 'nowrap',
+                  transition: 'background 0.12s, color 0.12s',
+                }}
+              >{o.label}</button>
+            );
+          })}
+        </div>
+        <span className="text-[11px] text-slate-500 ml-auto">{audit.earliestDate} — {audit.latestDate}</span>
+      </div>
+
       <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3">
           <div className="text-base font-semibold text-white">Workload Audit</div>
-          <div className="text-[11px] text-white/60">{audit.earliestDate} — {audit.latestDate}</div>
         </div>
 
         <div className="p-5">
@@ -246,7 +310,7 @@ export default function WorkloadAudit({ data, huddleData }) {
             <div className="flex-1 text-[9px] text-slate-400">Ratio</div>
             <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
             <div className="w-14 text-[9px] text-slate-400 text-right">count</div>
-            <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>
+            {audit.showProjection && <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>}
             <div className="w-4"></div>
           </div>
           <div className="space-y-2">
@@ -269,7 +333,7 @@ export default function WorkloadAudit({ data, huddleData }) {
             <div className="flex-1 text-[9px] text-slate-400">Ratio</div>
             <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
             <div className="w-14 text-[9px] text-slate-400 text-right">count</div>
-            <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>
+            {audit.showProjection && <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>}
             <div className="w-4"></div>
           </div>
           <div className="space-y-2">

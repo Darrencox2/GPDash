@@ -25,6 +25,7 @@
 // batch and is auto-saved like any other edit.
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { guessGroupFromRole } from '@/lib/data';
 import WorkingDaysGrid from './WorkingDaysGrid';
 import ClinicianDetailsPanel from './ClinicianDetailsPanel';
@@ -92,8 +93,24 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   // Working days grid modal — opened from the toolbar. Kept out of the
-  // main table by user request ("don't create too much mess").
+  // main table by user request ("don't create too much mess"). Can also
+  // be auto-opened by deep link (?grid=open from Buddy Cover's "Working
+  // days grid" button); we strip the param after opening so the modal
+  // doesn't reopen if the user closes it then refreshes.
   const [showWorkingGrid, setShowWorkingGrid] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  useEffect(() => {
+    if (searchParams.get('grid') === 'open') {
+      setShowWorkingGrid(true);
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete('grid');
+      // Replace (not push) so the back button doesn't bounce through
+      // the deep-link URL.
+      router.replace(`?${next.toString()}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Side panel for deeper per-clinician detail — opens on row click.
   // Holds the clinician id (not the object) so the panel always reads
   // the latest local state when the table edits a row underneath it.
