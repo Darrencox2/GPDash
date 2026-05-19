@@ -826,7 +826,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         };
       });
 
-      const res = await fetch(`/api/v4/data?practiceId=${practiceId}`, {
+      const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicians: newClinicians }),
