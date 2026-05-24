@@ -34,9 +34,16 @@
 //      CSV upload extracts clinicians; this is the gate for completing
 //      setup, since without it the dashboard has nothing to show.
 //
-//   3. Demand data — optional CSV upload to calibrate the model.
+//   3. Slot types — categorise routine / urgent / duty doctor slots.
 //
-//   4. Invite your team — optional, paste comma-separated emails.
+//   4. Clinicians — review role for each person + generate working
+//      patterns from CSV. Opens the WorkingDaysGrid for review/edit.
+//
+//   5. Practice sites — colours per location.
+//
+//   6. Demand data — optional CSV upload to calibrate the model.
+//
+//   7. Invite your team — optional, paste comma-separated emails.
 //
 // On final completion: setup_completed_at gets set and the user is
 // redirected to /p/<slug>.
@@ -48,6 +55,7 @@ import { createClient } from '@/utils/supabase/client';
 import BrandHeader from '../../../_lib/BrandHeader';
 import EmisReportCard from '@/components/EmisReportCard';
 import DemandUpload from '@/app/v4/practice/[id]/DemandUpload';
+import WorkingDaysGrid from '@/app/v4/practice/[id]/WorkingDaysGrid';
 import { parseHuddleCSV } from '@/lib/huddle';
 import { guessGroupFromRole, buddyDefaultsForRole } from '@/lib/data';
 
@@ -55,13 +63,14 @@ import { guessGroupFromRole, buddyDefaultsForRole } from '@/lib/data';
 // before the content. `optional: true` means Continue can advance even
 // without action; `required: true` means setup can't complete without it.
 const STEPS = [
-  { id: 'details',   title: 'Your practice',          subtitle: 'A few key details', required: true },
-  { id: 'teamnet',   title: 'TeamNet calendar',       subtitle: 'Optional · sync absences', optional: true },
-  { id: 'emis',      title: 'Appointment data',       subtitle: 'EMIS report · build your team', required: true },
-  { id: 'slots',     title: 'Slot types',             subtitle: 'Routine, urgent, duty doctor', optional: true },
-  { id: 'sites',     title: 'Practice sites',         subtitle: 'Optional · assign colours', optional: true },
-  { id: 'demand',    title: 'Demand history',         subtitle: 'Optional · calibrate the model', optional: true },
-  { id: 'invites',   title: 'Invite your team',       subtitle: 'Optional · do later if you prefer', optional: true },
+  { id: 'details',    title: 'Your practice',          subtitle: 'A few key details', required: true },
+  { id: 'teamnet',    title: 'TeamNet calendar',       subtitle: 'Optional · sync absences', optional: true },
+  { id: 'emis',       title: 'Appointment data',       subtitle: 'EMIS report · build your team', required: true },
+  { id: 'slots',      title: 'Slot types',             subtitle: 'Routine, urgent, duty doctor', optional: true },
+  { id: 'clinicians', title: 'Your clinicians',        subtitle: 'Confirm roles + working pattern', optional: true },
+  { id: 'sites',      title: 'Practice sites',         subtitle: 'Optional · assign colours', optional: true },
+  { id: 'demand',     title: 'Demand history',         subtitle: 'Optional · calibrate the model', optional: true },
+  { id: 'invites',    title: 'Invite your team',       subtitle: 'Optional · do later if you prefer', optional: true },
 ];
 
 // Default colours for sites — picked from the standard practice palette
@@ -99,8 +108,8 @@ export default function SetupWizard({
     // start at the last step (invites) so they can review or skip.
     if (!practice.postcode || !practice.list_size) return 0;
     if (!initialHasClinicians) return 2;
-    if (!initialHasDemandData) return 5;
-    return 6;
+    if (!initialHasDemandData) return 6;
+    return 7;
   });
   const [animKey, setAnimKey] = useState(0);
 
@@ -114,6 +123,10 @@ export default function SetupWizard({
   const [clinicianCountAdded, setClinicianCountAdded] = useState(0);
   const [hasDemandData, setHasDemandData] = useState(initialHasDemandData);
   const [hasInvites, setHasInvites] = useState(initialHasInvites);
+  // Tracks whether the clinicians step has been "sorted" — i.e. all
+  // active clinicians have working patterns assigned. Lazy state: the
+  // ClinicianRolesStep checks the DB on mount and reports back.
+  const [cliniciansSorted, setCliniciansSorted] = useState(false);
 
   // ─── CSV data + derived setup ─────────────────────────────────────
   // The EMIS step parses the CSV and pushes the rich data up to the
@@ -194,9 +207,10 @@ export default function SetupWizard({
     teamnetUrl.length > 0,                              // 1: teamnet (optional, but tick if set)
     hasClinicians,                                      // 2: emis
     slotsConfigured,                                    // 3: slots (optional)
-    sitesConfigured,                                    // 4: sites (optional)
-    hasDemandData,                                      // 5: demand
-    hasInvites,                                         // 6: invites
+    cliniciansSorted,                                   // 4: clinicians (optional)
+    sitesConfigured,                                    // 5: sites (optional)
+    hasDemandData,                                      // 6: demand
+    hasInvites,                                         // 7: invites
   ];
   const requiredIncomplete = STEPS
     .map((s, i) => s.required && !stepDone[i] ? s : null)
@@ -331,6 +345,13 @@ export default function SetupWizard({
                 />
               )}
               {currentStep === 4 && (
+                <ClinicianRolesStep
+                  practiceId={practice.id}
+                  parsedCsv={parsedCsv}
+                  onSortedChange={setCliniciansSorted}
+                />
+              )}
+              {currentStep === 5 && (
                 <SitesStep
                   practiceId={practice.id}
                   parsedCsv={parsedCsv}
@@ -338,7 +359,7 @@ export default function SetupWizard({
                   setSites={setSites}
                 />
               )}
-              {currentStep === 5 && (
+              {currentStep === 6 && (
                 <DemandStep
                   practiceId={practice.id}
                   practiceSlug={practice.slug}
@@ -346,7 +367,7 @@ export default function SetupWizard({
                   setHasDemandData={setHasDemandData}
                 />
               )}
-              {currentStep === 6 && (
+              {currentStep === 7 && (
                 <InvitesStep
                   practiceId={practice.id}
                   hasInvites={hasInvites}
@@ -741,6 +762,34 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
   const saveTimer = useRef(null);
+
+  // Refetch the URL on mount. The wizard's initial prop is captured at
+  // server-render time, but the URL can change between visits (e.g. user
+  // sets it via the Practice → Resources tab, then revisits the wizard).
+  // Without this refetch the field would show blank on return even though
+  // a URL is saved in the DB. Same pattern as WorkingDaysGrid's mount
+  // refetch fix from v4.18.0.
+  //
+  // Guard: only refetch when the current state is empty. If the user has
+  // already started typing, we don't want to clobber their input with
+  // whatever's in the DB.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (teamnetUrl) return; // Don't clobber user input
+      const { data } = await supabase
+        .from('practice_settings')
+        .select('teamnet_url')
+        .eq('practice_id', practiceId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data?.teamnet_url && data.teamnet_url !== teamnetUrl) {
+        setTeamnetUrl(data.teamnet_url);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount only
 
   // TeamNet URL lives on practice_settings (one row per practice). Upsert
   // because a brand-new practice might not have the settings row yet.
@@ -1207,7 +1256,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
   );
 }
 
-// ─── Step 3 (slots) + Step 4 (sites) — shared helpers ─────────────────
+// ─── Step 3 (slots) + Step 5 (sites) — shared helpers ─────────────────
 // Both steps need the parsed CSV in hand. If the user lands here without
 // uploading first, render an "upload-first" placeholder rather than an
 // empty grid that looks broken.
@@ -1651,7 +1700,391 @@ function SlotCategoryPicker({ value, onChange }) {
   );
 }
 
-// ─── Step 4: Practice sites ────────────────────────────────────────────
+// ─── Step 4: Clinician roles + working pattern ────────────────────────
+// After slot types but before sites/demand. Lets the user review the
+// clinicians that came in from the CSV, confirm or change each role
+// (which drives buddy-cover defaults via buddyDefaultsForRole), then
+// run the auto-generation of working_patterns from the parsed CSV
+// (using inferAmPmPatterns) and inspect/edit the result in the
+// existing WorkingDaysGrid modal.
+//
+// "Sorted" — reported back to the wizard via onSortedChange — means
+// every active clinician has a working pattern. Used by the step-done
+// indicator on the parent's progress dots.
+const ROLES_LIST = [
+  'GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum',
+  'ANP', 'Paramedic Practitioner', 'Pharmacist', 'Physiotherapist',
+  'Practice Nurse', 'Nurse Associate', 'HCA',
+  'Medical Student', 'Admin',
+];
+
+function ClinicianRolesStep({ practiceId, parsedCsv, onSortedChange }) {
+  const supabase = createClient();
+  const [clinicians, setClinicians] = useState([]);
+  const [patterns, setPatterns] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [savingIds, setSavingIds] = useState(new Set());
+  const [showGrid, setShowGrid] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [genStatus, setGenStatus] = useState(null);
+  const [error, setError] = useState('');
+
+  // ─── Initial load ────────────────────────────────────────────────
+  // Fetch active clinicians + their current working_patterns in
+  // parallel. We only care about active ones — left/administrative
+  // shouldn't appear in the wizard's clinician review.
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    const [{ data: rows, error: cliErr }, { data: pats }] = await Promise.all([
+      supabase
+        .from('clinicians')
+        .select('id, name, initials, role, group_id, status, buddy_cover, can_provide_cover')
+        .eq('practice_id', practiceId)
+        .eq('status', 'active')
+        .order('name'),
+      supabase
+        .from('working_patterns')
+        .select('id, clinician_id, pattern, clinicians!inner(practice_id)')
+        .eq('clinicians.practice_id', practiceId)
+        .is('effective_to', null),
+    ]);
+    if (cliErr) {
+      setError(cliErr.message);
+    }
+    const list = rows || [];
+    const patternMap = {};
+    for (const wp of pats || []) {
+      patternMap[wp.clinician_id] = { id: wp.id, pattern: wp.pattern || {} };
+    }
+    setClinicians(list);
+    setPatterns(patternMap);
+    setLoading(false);
+    // Report "sorted" status back to the wizard parent. Sorted = every
+    // active clinician has a non-empty working pattern.
+    const allSorted = list.length > 0 && list.every(c => {
+      const p = patternMap[c.id]?.pattern || {};
+      return Object.keys(p).length > 0;
+    });
+    onSortedChange?.(allSorted);
+  }, [practiceId, supabase, onSortedChange]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  // ─── Save role ───────────────────────────────────────────────────
+  // Role drives the clinician's group_id (gp / nursing / allied /
+  // admin) and the default buddy-cover flags (GPs cover, registrars/
+  // ANPs are covered but don't cover, others are off). User changes
+  // here mirror what the Practice → Clinicians table does, just via
+  // a streamlined wizard UI.
+  const saveRole = async (clinicianId, role) => {
+    const group = guessGroupFromRole(role) || 'admin';
+    const buddyDefaults = buddyDefaultsForRole(role);
+    setSavingIds(prev => new Set([...prev, clinicianId]));
+    setError('');
+    const { error: updErr } = await supabase
+      .from('clinicians')
+      .update({
+        role,
+        group_id: group,
+        buddy_cover: buddyDefaults.buddyCover,
+        can_provide_cover: buddyDefaults.canProvideCover,
+      })
+      .eq('id', clinicianId);
+    setSavingIds(prev => {
+      const next = new Set(prev);
+      next.delete(clinicianId);
+      return next;
+    });
+    if (updErr) {
+      setError(updErr.message);
+      return;
+    }
+    setClinicians(prev => prev.map(c => c.id === clinicianId
+      ? { ...c, role, group_id: group, buddy_cover: buddyDefaults.buddyCover, can_provide_cover: buddyDefaults.canProvideCover }
+      : c
+    ));
+  };
+
+  // ─── Generate working patterns ──────────────────────────────────
+  // Runs inferAmPmPatterns from lib/auto-rota using the parsed CSV
+  // appointment data. For any clinician without an existing pattern,
+  // we insert one; for clinicians who already have one we leave it
+  // alone (the WorkingDaysGrid is where they edit existing patterns,
+  // not this button).
+  const generatePatterns = async () => {
+    if (!parsedCsv) {
+      setGenStatus({ ok: false, text: 'Upload your appointment CSV first (step 3) — patterns are inferred from the appointment history.' });
+      return;
+    }
+    setGenerating(true);
+    setGenStatus(null);
+    setError('');
+    try {
+      const { inferAmPmPatterns } = await import('@/lib/auto-rota');
+      // Only target clinicians without a pattern. We never overwrite
+      // existing patterns from this button — the grid is the place
+      // for edits to existing ones.
+      const targets = clinicians
+        .filter(c => !patterns[c.id] || Object.keys(patterns[c.id].pattern || {}).length === 0)
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          initials: c.initials,
+          status: c.status,
+          buddyCover: !!c.buddy_cover,
+          aliases: [],
+        }));
+      if (targets.length === 0) {
+        setGenStatus({ ok: true, text: 'All clinicians already have patterns. Click "View weekly grid" to edit them.' });
+        setGenerating(false);
+        return;
+      }
+      const { patterns: inferred } = inferAmPmPatterns({
+        huddleData: parsedCsv,
+        clinicians: targets,
+        includeOnlyBuddyCover: false,
+      });
+      if (!inferred || inferred.length === 0) {
+        setGenStatus({ ok: false, text: "Couldn't infer patterns from your CSV — the appointment data may not cover enough weeks. You can still set patterns manually via the weekly grid." });
+        setGenerating(false);
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      const inserts = inferred.map(p => ({
+        clinician_id: p.clinicianId,
+        effective_from: today,
+        effective_to: null,
+        pattern: p.pattern,
+      }));
+      const { error: insErr } = await supabase
+        .from('working_patterns')
+        .insert(inserts);
+      if (insErr) {
+        setGenStatus({ ok: false, text: insErr.message });
+        setGenerating(false);
+        return;
+      }
+      setGenStatus({ ok: true, text: `Generated patterns for ${inferred.length} clinician${inferred.length === 1 ? '' : 's'}. Click "View weekly grid" to review.` });
+      // Refresh local state (and "sorted" status)
+      await loadAll();
+    } catch (e) {
+      setGenStatus({ ok: false, text: e.message || 'Generation failed' });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // ─── Stats ──────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const withRoles = clinicians.filter(c => c.role && !['', 'staff', 'unknown'].includes(c.role.toLowerCase())).length;
+    const withPats = clinicians.filter(c => patterns[c.id] && Object.keys(patterns[c.id].pattern || {}).length > 0).length;
+    return { total: clinicians.length, withRoles, withPats };
+  }, [clinicians, patterns]);
+
+  // ─── Grid close handler ─────────────────────────────────────────
+  // After the grid closes, refresh local pattern state so the "X of N
+  // have patterns" indicator updates and the "sorted" status reflects
+  // any changes the user made inside the grid.
+  const onGridClose = async () => {
+    setShowGrid(false);
+    await loadAll();
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <p style={fieldHelp}>Loading your clinician list…</p>
+      </div>
+    );
+  }
+
+  if (clinicians.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <p style={fieldHelp}>
+          No active clinicians yet. Go back to step 3 (Appointment data) and upload
+          your EMIS CSV — your team gets built automatically from the appointment list.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <p style={fieldHelp}>
+        Here's your team, built from the appointment data. Confirm or change each
+        person's role — that sets sensible defaults for buddy cover and groupings.
+        Then click <strong style={{ color: '#67e8f9' }}>Generate patterns</strong> to
+        auto-detect everyone's working days from the CSV, and{' '}
+        <strong style={{ color: '#67e8f9' }}>View weekly grid</strong> to review or edit.
+      </p>
+
+      {/* Stats strip */}
+      <div style={{
+        display: 'flex', gap: 16, flexWrap: 'wrap',
+        padding: '10px 14px',
+        background: 'rgba(34,211,238,0.05)',
+        border: '1px solid rgba(34,211,238,0.15)',
+        borderRadius: 8,
+        fontSize: 12, color: '#cbd5e1',
+      }}>
+        <span><strong style={{ color: '#67e8f9' }}>{stats.total}</strong> clinicians</span>
+        <span><strong style={{ color: stats.withRoles === stats.total ? '#10b981' : '#fbbf24' }}>{stats.withRoles}</strong> with a role</span>
+        <span><strong style={{ color: stats.withPats === stats.total ? '#10b981' : '#fbbf24' }}>{stats.withPats}</strong> with a weekly pattern</span>
+      </div>
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button
+          onClick={generatePatterns}
+          disabled={generating || !parsedCsv}
+          style={{
+            padding: '10px 18px',
+            borderRadius: 8,
+            background: (generating || !parsedCsv) ? 'rgba(255,255,255,0.04)' : 'rgba(124,58,237,0.18)',
+            border: `1px solid ${(generating || !parsedCsv) ? 'rgba(255,255,255,0.1)' : 'rgba(124,58,237,0.4)'}`,
+            color: (generating || !parsedCsv) ? '#64748b' : '#a78bfa',
+            fontSize: 13, fontWeight: 600,
+            cursor: (generating || !parsedCsv) ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          {generating ? 'Generating…' : 'Generate patterns from CSV'}
+        </button>
+        <button
+          onClick={() => setShowGrid(true)}
+          style={{
+            padding: '10px 18px',
+            borderRadius: 8,
+            background: 'rgba(34,211,238,0.15)',
+            border: '1px solid rgba(34,211,238,0.4)',
+            color: '#67e8f9',
+            fontSize: 13, fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          View weekly grid →
+        </button>
+        {genStatus && (
+          <span style={{
+            fontSize: 12,
+            color: genStatus.ok ? '#10b981' : '#fca5a5',
+          }}>{genStatus.text}</span>
+        )}
+      </div>
+
+      {/* Clinician table */}
+      <div style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 10,
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1.2fr 100px',
+          gap: 0,
+          padding: '10px 16px',
+          background: 'rgba(0,0,0,0.2)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          fontSize: 11, fontWeight: 600,
+          color: '#94a3b8',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}>
+          <div>Name</div>
+          <div>Role</div>
+          <div style={{ textAlign: 'right' }}>Pattern</div>
+        </div>
+        <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+          {clinicians.map((c, i) => {
+            const hasPat = !!(patterns[c.id] && Object.keys(patterns[c.id].pattern || {}).length > 0);
+            const saving = savingIds.has(c.id);
+            const placeholderRole = !c.role || ['', 'staff', 'unknown'].includes((c.role || '').toLowerCase());
+            return (
+              <div key={c.id} style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1.2fr 100px',
+                gap: 0,
+                padding: '8px 16px',
+                borderBottom: i < clinicians.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                alignItems: 'center',
+                fontSize: 13,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 6,
+                    background: 'rgba(34,211,238,0.15)',
+                    border: '1px solid rgba(34,211,238,0.3)',
+                    color: '#67e8f9',
+                    fontSize: 11, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>{c.initials || '??'}</div>
+                  <span style={{ color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                </div>
+                <div>
+                  <select
+                    value={ROLES_LIST.includes(c.role) ? c.role : ''}
+                    onChange={e => saveRole(c.id, e.target.value)}
+                    disabled={saving}
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      background: 'rgba(0,0,0,0.3)',
+                      border: `1px solid ${placeholderRole ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                      borderRadius: 6,
+                      color: placeholderRole ? '#fbbf24' : '#e2e8f0',
+                      fontSize: 13,
+                      fontFamily: 'inherit',
+                      cursor: saving ? 'wait' : 'pointer',
+                    }}
+                  >
+                    <option value="" disabled style={{ background: '#1e293b' }}>
+                      {c.role && !ROLES_LIST.includes(c.role) ? `${c.role} (custom)` : 'Pick a role…'}
+                    </option>
+                    {ROLES_LIST.map(r => (
+                      <option key={r} value={r} style={{ background: '#1e293b' }}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: 12, color: hasPat ? '#10b981' : '#64748b' }}>
+                  {hasPat ? '✓ Set' : '— None'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {error && <div style={errorText}>{error}</div>}
+
+      {showGrid && (
+        <WorkingDaysGrid
+          practiceId={practiceId}
+          clinicians={clinicians.map(c => ({
+            // Adapt snake_case → v3-shape camelCase so the grid renders
+            // the same way it does on the Clinicians tab. The grid only
+            // uses id/name/initials/role/group/status, so the rest don't
+            // need to be perfect.
+            id: c.id, name: c.name, initials: c.initials, role: c.role,
+            group: c.group_id, status: c.status,
+          }))}
+          initialPatterns={Object.fromEntries(
+            Object.entries(patterns).map(([cid, p]) => [cid, { id: p.id, pattern: p.pattern }])
+          )}
+          onClose={onGridClose}
+        />
+      )}
+    </div>
+  );
+}
+
+
+// ─── Step 5: Practice sites ────────────────────────────────────────────
 // Multi-site practices show appointments in different locations across
 // the CSV. The dashboard uses site colours throughout (room allocation,
 // Who's In legend, slot-type stacked bars) so picking colours early is
@@ -1854,7 +2287,7 @@ function ColourPicker({ value, onChange }) {
 }
 
 
-// ─── Step 5: Demand history (optional) ─────────────────────────────────
+// ─── Step 6: Demand history (optional) ─────────────────────────────────
 function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData }) {
   const [howToOpen, setHowToOpen] = useState(null); // 'askmygp' | 'anima' | null
   return (
@@ -1983,7 +2416,7 @@ function HowToHeader({ title, open, onClick }) {
   );
 }
 
-// ─── Step 5: Invite team (optional) ────────────────────────────────────
+// ─── Step 7: Invite team (optional) ────────────────────────────────────
 function InvitesStep({ practiceId, hasInvites, setHasInvites }) {
   const supabase = createClient();
   const [emailsText, setEmailsText] = useState('');

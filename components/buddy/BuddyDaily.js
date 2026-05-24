@@ -487,9 +487,28 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                     </thead>
                     <tbody>
                       {(() => {
-                        const rows = presentIds.map(id => {
+                        // Filter to clinicians who are actually in the buddy
+                        // system. Without this filter, anyone present in the
+                        // rota shows up in the allocations table as a
+                        // "Covering" row, including registrars/ANPs/anyone
+                        // with buddyCover=false — even though they're
+                        // (correctly) absent from the top mini grid which
+                        // uses cliniciansList. This is also why the bottom
+                        // table could include "ghost" people who used to be
+                        // in buddy cover when the allocation was generated
+                        // but have since been toggled off.
+                        const buddyIds = new Set(cliniciansList.map(c => c.id));
+                        const rows = presentIds.filter(id => buddyIds.has(id)).map(id => {
                           const c = getClinicianById(id); const t = groupedAllocations[id] || { absent: [], dayOff: [] };
-                          return c ? { id, clinician: c, tasks: t, canCover: c.canProvideCover !== false, hasAllocs: t.absent.length > 0 || t.dayOff.length > 0 } : null;
+                          // Only count absent/dayOff people who are also in
+                          // the buddy system. Saved allocations can carry
+                          // people who were buddyCover=true at generation
+                          // time but have since been removed.
+                          const filteredTasks = {
+                            absent: (t.absent || []).filter(aid => buddyIds.has(aid)),
+                            dayOff: (t.dayOff || []).filter(aid => buddyIds.has(aid)),
+                          };
+                          return c ? { id, clinician: c, tasks: filteredTasks, canCover: c.canProvideCover !== false, hasAllocs: filteredTasks.absent.length > 0 || filteredTasks.dayOff.length > 0 } : null;
                         }).filter(Boolean);
                         rows.sort((a, b) => { if (a.canCover && !b.canCover) return -1; if (!a.canCover && b.canCover) return 1; if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; } return 0; });
                         return rows.map(({ clinician, tasks, canCover }) => (
