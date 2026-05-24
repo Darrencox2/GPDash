@@ -223,11 +223,50 @@ export default function SetupWizard({
   const [autoMarkedAt, setAutoMarkedAt] = useState(autoCompleted ? new Date() : null);
   const [autoMarkInFlight, setAutoMarkInFlight] = useState(false);
   const [navigating, setNavigating] = useState(false);
+  // ─── Unsaved-input warning (item 10) ─────────────────────────────────
+  // dirtyRef tracks "user has typed something we haven't persisted yet".
+  // Steps with debounced auto-save have a tiny window where this might
+  // be true; the InvitesStep textarea is the main case (no auto-save —
+  // emails only persist after Send is clicked). Browser-level navigation
+  // (close tab, refresh, type new URL) triggers a confirmation prompt
+  // via beforeunload; in-app router.push() doesn't fire beforeunload so
+  // the wizard's own buttons remain frictionless.
+  const dirtyRef = useRef(false);
+  const setDirty = useCallback((d) => { dirtyRef.current = !!d; }, []);
+  useEffect(() => {
+    const handler = (e) => {
+      if (dirtyRef.current) {
+        e.preventDefault();
+        e.returnValue = ''; // legacy Chrome
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
+  // ─── Completion celebration (item 9) ─────────────────────────────────
+  // When the user clicks "Go to dashboard", show a brief celebration
+  // overlay before the route change. Just a moment to acknowledge that
+  // they've finished — without it the wizard ends with a button click
+  // that silently navigates, which feels anticlimactic. ~1.8s is short
+  // enough not to be annoying on repeat visits but long enough to read.
+  const [celebrating, setCelebrating] = useState(false);
 
   const goToDashboard = async () => {
-    setNavigating(true);
-    router.push(`/p/${practice.slug}`);
-    router.refresh();
+    // Clear the dirty flag so beforeunload doesn't fire on the
+    // router.push (though router.push doesn't actually trigger
+    // beforeunload — being explicit anyway in case state's been
+    // touched right before the click).
+    dirtyRef.current = false;
+    setCelebrating(true);
+    // Brief celebration window, then navigate. We don't fight the user
+    // here — if they click anywhere during the celebration, that's their
+    // choice. The setTimeout fires regardless.
+    setTimeout(() => {
+      setNavigating(true);
+      router.push(`/p/${practice.slug}`);
+      router.refresh();
+    }, 1800);
   };
 
   // Per-step "is this done" derivations — drive the progress indicator
@@ -540,6 +579,7 @@ export default function SetupWizard({
                   practiceId={practice.id}
                   hasInvites={hasInvites}
                   setHasInvites={setHasInvites}
+                  setDirty={setDirty}
                 />
               )}
             </div>
@@ -654,6 +694,48 @@ export default function SetupWizard({
         Your changes save automatically. You can leave and come back any time.
       </div>
 
+      {/* ─── Completion celebration overlay ─────────────────────────
+          Fires when goToDashboard is clicked. Sits above everything
+          and fades in over the page. The checkmark pops in, then the
+          message lifts up, then we navigate. ~1.8s total to feel
+          deliberate without being slow. */}
+      {celebrating && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'radial-gradient(ellipse at center, rgba(16,185,129,0.2) 0%, rgba(15,23,42,0.95) 65%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          animation: 'wizardCelebrateFade 0.35s ease-out',
+        }}>
+          <div style={{
+            width: 96, height: 96, borderRadius: '50%',
+            background: '#10b981',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 24,
+            boxShadow: '0 0 0 8px rgba(16,185,129,0.15), 0 12px 40px -8px rgba(16,185,129,0.5)',
+            animation: 'wizardCelebratePop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="4 12 10 18 20 6" />
+            </svg>
+          </div>
+          <div style={{
+            fontSize: 32, fontWeight: 600, color: 'white',
+            fontFamily: "'Outfit', sans-serif", marginBottom: 8,
+            animation: 'wizardCelebrateLift 0.5s ease-out 0.25s both',
+            textAlign: 'center', padding: '0 24px',
+          }}>
+            You're all set up!
+          </div>
+          <div style={{
+            fontSize: 14, color: '#94a3b8',
+            animation: 'wizardCelebrateLift 0.5s ease-out 0.4s both',
+            textAlign: 'center', padding: '0 24px',
+          }}>
+            Taking you to your dashboard…
+          </div>
+        </div>
+      )}
+
       <style jsx global>{`
         @keyframes wizardSlideIn {
           from { transform: translateX(28px); opacity: 0; }
@@ -662,6 +744,19 @@ export default function SetupWizard({
         @keyframes wizardPulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(8,145,178,0.5); }
           50%      { box-shadow: 0 0 0 8px rgba(8,145,178,0); }
+        }
+        @keyframes wizardCelebrateFade {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes wizardCelebratePop {
+          0%   { transform: scale(0.5); opacity: 0; }
+          60%  { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(1);   opacity: 1; }
+        }
+        @keyframes wizardCelebrateLift {
+          from { transform: translateY(12px); opacity: 0; }
+          to   { transform: translateY(0);    opacity: 1; }
         }
       `}</style>
     </div>
@@ -2423,12 +2518,22 @@ function HowToHeader({ title, open, onClick }) {
 }
 
 // ─── Step 7: Invite team (optional) ────────────────────────────────────
-function InvitesStep({ practiceId, hasInvites, setHasInvites }) {
+function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
   const supabase = createClient();
   const [emailsText, setEmailsText] = useState('');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+
+  // Track unsaved state for the wizard's beforeunload warning. The
+  // textarea is the only field on the wizard without auto-save —
+  // emails only persist after Send is clicked. Without this hook the
+  // user could close the tab with a half-typed invite list and lose
+  // it silently.
+  useEffect(() => {
+    setDirty?.(emailsText.trim().length > 0);
+    return () => setDirty?.(false);
+  }, [emailsText, setDirty]);
 
   // Live email parsing. Splits the textarea on whitespace, commas, and
   // semicolons (mirroring the BulkInviteButton parser), then validates
@@ -2481,6 +2586,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites }) {
     setResult(data);
     if (data?.created > 0) setHasInvites(true);
     setEmailsText('');
+    setDirty?.(false);
   };
 
   const sendDisabled = sending || parsed.validEmails.length === 0;
