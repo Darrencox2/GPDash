@@ -18,9 +18,9 @@ import CopyableValue from '@/components/CopyableValue';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminUserDetailPage({ params }) {
-  const { id: userId } = params;
+  const { id: userId } = await params;
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 

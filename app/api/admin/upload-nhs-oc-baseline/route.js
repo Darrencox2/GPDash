@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) {
     return NextResponse.json({ error: 'no_supabase_client' }, { status: 500 });
@@ -105,7 +105,7 @@ export async function POST(request) {
 
 // GET: Return current ingestion status (latest month + freshness indicator)
 export async function GET() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) {
     return NextResponse.json({ error: 'no_supabase_client' }, { status: 500 });

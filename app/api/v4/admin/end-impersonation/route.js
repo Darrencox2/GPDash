@@ -24,7 +24,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
 

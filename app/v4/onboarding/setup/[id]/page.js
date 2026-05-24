@@ -26,7 +26,7 @@ export const metadata = {
 };
 
 export default async function OnboardingSetupPage({ params }) {
-  const { id: practiceId } = params;
+  const { id: practiceId } = await params;
   const supabase = createClient(cookies());
 
   const { data: { user } } = await supabase.auth.getUser();

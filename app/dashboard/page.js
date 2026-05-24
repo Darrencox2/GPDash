@@ -11,10 +11,10 @@ import { resolvePracticeIdentifier } from '@/lib/v4-data';
 export const dynamic = 'force-dynamic';
 
 export default async function LegacyDashboardRedirect({ searchParams }) {
-  const practiceId = searchParams?.practice;
+  const practiceId = (await searchParams)?.practice;
   if (!practiceId) redirect('/v4/dashboard');
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) redirect('/v4/dashboard');
 

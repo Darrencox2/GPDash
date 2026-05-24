@@ -137,7 +137,7 @@ export async function GET(request) {
     // month per ODS to avoid duplicates.
     const nhsContextByOds = new Map();
     if (odsCodes.length > 0) {
-      const cookieStore = cookies();
+      const cookieStore = await cookies();
       const supabase = createClient(cookieStore);
       if (supabase) {
         // Run both queries in parallel — independent tables, same client.

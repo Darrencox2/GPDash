@@ -3,6 +3,7 @@
 
 import { redirect } from 'next/navigation';
 
-export default function PracticeSetupRedirect({ params }) {
-  redirect(`/v4/practice/${params.id}?tab=details`);
+export default async function PracticeSetupRedirect({ params }) {
+  const { id } = await params;
+  redirect(`/v4/practice/${id}?tab=details`);
 }

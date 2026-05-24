@@ -47,7 +47,7 @@ export async function POST(request) {
   const badUuid = requireUuid(practiceId, 'practice');
   if (badUuid) return badUuid;
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
 

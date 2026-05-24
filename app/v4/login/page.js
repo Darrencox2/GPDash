@@ -8,13 +8,26 @@ export const dynamic = 'force-dynamic';
 // page so a sign-in started from an invite returns to the invite page
 // to accept it. Falls back to /v4/dashboard if no ?next= given.
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { AuthCard, formStyles as f } from '../_lib/auth-ui';
 
+// Outer wrapper provides the Suspense boundary that Next 15 requires
+// around any client component using useSearchParams() (was a build
+// warning in Next 14, a build error in 15). The inner component does
+// the real work; the fallback is a minimal placeholder since this
+// page renders quickly once the search params resolve.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<AuthCard title="Sign in">{null}</AuthCard>}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();

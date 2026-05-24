@@ -35,14 +35,26 @@ export const dynamic = 'force-dynamic';
 // template needs to include {{ .Token }} so the 6-digit code reaches
 // the user.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist } from '../_lib/auth-ui';
 import { getSiteUrl } from '@/lib/site-url';
 
+// Outer wrapper provides the Suspense boundary that Next 15 requires
+// around any client component using useSearchParams() (build error in
+// 15, was just a warning in 14). The inner component does the real
+// work — split out for the same reason as login/page.js.
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<AuthCard title="Create your account">{null}</AuthCard>}>
+      <SignupPageInner />
+    </Suspense>
+  );
+}
+
+function SignupPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();

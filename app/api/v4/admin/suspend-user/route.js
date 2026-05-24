@@ -38,7 +38,7 @@ export const dynamic = 'force-dynamic';
 const FOREVER = '876000h';
 
 async function requireAdminCaller() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return { error: 'Supabase not configured', status: 500 };
 

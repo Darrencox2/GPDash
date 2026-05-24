@@ -23,7 +23,7 @@ const TIME_BUDGET_MS = 50_000; // Leave 10s headroom under Vercel's 60s
 
 export async function POST(request) {
   const startedAt = Date.now();
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
 

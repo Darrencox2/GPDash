@@ -71,7 +71,7 @@ async function runImport(request, { dryRun }) {
   if (badUuid) return badUuid;
 
   // 1. Authn/authz: caller must be the owner of the target practice
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const userClient = createUserClient(cookieStore);
   if (!userClient) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });

@@ -37,9 +37,9 @@ import { SectionStatusStripe } from '../../_lib/SectionStatus';
 export const dynamic = 'force-dynamic';
 
 export default async function PracticeAdminPage({ params }) {
-  const { id: identifier } = params;
+  const { id: identifier } = await params;
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 

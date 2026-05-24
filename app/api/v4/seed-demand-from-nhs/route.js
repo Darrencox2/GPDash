@@ -28,7 +28,7 @@ export async function POST(request) {
   const badUuid = requireUuid(practiceId, 'practiceId');
   if (badUuid) return badUuid;
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) {
     return NextResponse.json({ error: 'no_supabase_client' }, { status: 500 });

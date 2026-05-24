@@ -14,7 +14,7 @@ import { cookies } from 'next/headers';
 import QuickSetupTable from './QuickSetupTable';
 
 export default async function CliniciansTab({ practiceId }) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) {
     return <div style={{ color: '#fca5a5' }}>Configuration error.</div>;

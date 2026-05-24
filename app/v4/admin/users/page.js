@@ -10,7 +10,7 @@ import UserListTable from './UserListTable';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminUsersPage({ searchParams }) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 
@@ -24,7 +24,7 @@ export default async function AdminUsersPage({ searchParams }) {
     .maybeSingle();
   if (!profile?.is_platform_admin) redirect('/v4/dashboard');
 
-  const search = searchParams?.q || '';
+  const search = (await searchParams)?.q || '';
   const { data: users, error } = await supabase.rpc('admin_list_users', {
     search_query: search || null,
   });

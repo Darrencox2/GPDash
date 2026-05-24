@@ -23,10 +23,10 @@ export default async function PracticePage({ params }) {
   const isCold = __warmAt === null;
   if (isCold) __warmAt = Date.now();
 
-  const identifier = params?.id;
+  const identifier = (await params)?.id;
   if (!identifier) redirect('/v4/dashboard');
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) {
     return <div style={{ padding: 32, color: 'white', background: '#0f172a', minHeight: '100vh' }}>Configuration error.</div>;

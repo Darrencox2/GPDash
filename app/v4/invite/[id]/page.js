@@ -28,9 +28,9 @@ import BrandHeader from '../../_lib/BrandHeader';
 export const dynamic = 'force-dynamic';
 
 export default async function InviteAcceptPage({ params }) {
-  const { id: inviteId } = params;
+  const { id: inviteId } = await params;
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return <Shell><Message kind="error">Supabase not configured.</Message></Shell>;
 

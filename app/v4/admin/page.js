@@ -16,7 +16,7 @@ import AdminNav from './AdminNav';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPracticesPage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 

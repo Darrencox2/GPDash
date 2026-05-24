@@ -12,7 +12,7 @@ import BrandHeader from '../_lib/BrandHeader';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
   if (!supabase) {

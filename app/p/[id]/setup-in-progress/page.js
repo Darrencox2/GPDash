@@ -21,6 +21,7 @@ import BrandHeader from '@/app/v4/_lib/BrandHeader';
 export const dynamic = 'force-dynamic';
 
 export default async function SetupInProgressPage({ params }) {
+  const { id } = await params;
   const supabase = createClient(cookies());
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -30,7 +31,7 @@ export default async function SetupInProgressPage({ params }) {
   const { data: practice } = await supabase
     .from('practices')
     .select('id, name, slug, setup_completed_at')
-    .eq('slug', params.id)
+    .eq('slug', id)
     .maybeSingle();
 
   if (!practice) redirect('/v4/dashboard');

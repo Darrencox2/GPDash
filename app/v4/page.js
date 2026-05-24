@@ -14,7 +14,7 @@ import { createClient } from '@/utils/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export default async function V4RootPage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   // If Supabase isn't configured we still want a useful destination —
   // the login page will surface that error in a friendly way.
