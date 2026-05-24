@@ -48,7 +48,7 @@
 // On final completion: setup_completed_at gets set and the user is
 // redirected to /p/<slug>.
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, createContext, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
@@ -80,6 +80,24 @@ const SITE_COLOUR_PRESETS = [
   '#8b5cf6', '#06b6d4', '#f97316', '#ec4899', '#84cc16',
   '#3b82f6', '#14b8a6', '#a855f7', '#eab308', '#64748b',
 ];
+
+// ─── Save tracker context ─────────────────────────────────────────────
+// Each step's save function calls trackSave(promise) so the global save
+// indicator in the header can show "Saving…" while any save is in
+// flight and "✓ Saved" briefly after the last one settles. Each step
+// also keeps its own inline feedback (which is more specific —
+// "Saving postcode…" etc) but the header gives an at-a-glance read so
+// the user knows they can safely navigate away.
+const SaveContext = createContext({ trackSave: (p) => p });
+
+// Hook for step components. Wraps a promise (or a function returning
+// one) and reports start/end to the shared tracker. Returns the
+// awaited result so existing code can be wrapped with minimal change:
+//   const ok = await trackSave(supabase.from(...).upsert(...));
+function useTrackedSave() {
+  const { trackSave } = useContext(SaveContext);
+  return trackSave;
+}
 
 // ───────────────────────────────────────────────────────────────────────
 export default function SetupWizard({
@@ -233,6 +251,37 @@ export default function SetupWizard({
   // more and won't see it again on revisit.
   const isFreshPractice = !practice.postcode && !practice.list_size && !initialHasClinicians;
   const [showWelcome, setShowWelcome] = useState(isFreshPractice);
+
+  // ─── Global save tracker (item 4) ────────────────────────────────────
+  // saveInFlightCount: number of in-flight save promises (0 = all settled)
+  // lastSavedAt: timestamp of the most recent successful save, used to
+  // briefly show "✓ Saved" after activity stops. Steps wrap their save
+  // calls with trackSave() — the hook just maintains the counter and
+  // timestamp, all UI lives in <GlobalSaveIndicator> in the top strip.
+  const [saveInFlightCount, setSaveInFlightCount] = useState(0);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+  const trackSave = useCallback(async (promise) => {
+    setSaveInFlightCount(c => c + 1);
+    setSaveError(null);
+    try {
+      const result = await promise;
+      // Treat both {error} responses (Supabase) and thrown errors as
+      // failures; we want a single error UI regardless of which shape.
+      if (result && typeof result === 'object' && result.error) {
+        setSaveError(result.error.message || 'Save failed');
+      } else {
+        setLastSavedAt(new Date());
+      }
+      return result;
+    } catch (e) {
+      setSaveError(e?.message || 'Save failed');
+      throw e;
+    } finally {
+      setSaveInFlightCount(c => c - 1);
+    }
+  }, []);
+  const saveCtxValue = useMemo(() => ({ trackSave }), [trackSave]);
 
   const [autoMarkedAt, setAutoMarkedAt] = useState(autoCompleted ? new Date() : null);
   const [autoMarkInFlight, setAutoMarkInFlight] = useState(false);
@@ -395,6 +444,7 @@ export default function SetupWizard({
 
   // ─── Render ──────────────────────────────────────────────────────────
   return (
+    <SaveContext.Provider value={saveCtxValue}>
     <div style={pageStyle}>
       {/* Subtle radial highlight behind the card to lift it off the
           gradient background. Using a fixed-position pseudo via a div
@@ -486,11 +536,18 @@ export default function SetupWizard({
         </div>
       )}
 
-      {/* Top strip: brand left, step counter right */}
+      {/* Top strip: brand left, step counter + save indicator right */}
       <div style={topStripStyle}>
         <BrandHeader />
-        <div style={{ fontSize: 12, color: '#64748b', letterSpacing: 1, textTransform: 'uppercase' }}>
-          Step {currentStep + 1} of {STEPS.length}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <GlobalSaveIndicator
+            inFlight={saveInFlightCount > 0}
+            lastSavedAt={lastSavedAt}
+            error={saveError}
+          />
+          <div style={{ fontSize: 12, color: '#64748b', letterSpacing: 1, textTransform: 'uppercase' }}>
+            Step {currentStep + 1} of {STEPS.length}
+          </div>
         </div>
       </div>
 
@@ -859,6 +916,77 @@ export default function SetupWizard({
         }
       `}</style>
     </div>
+    </SaveContext.Provider>
+  );
+}
+
+// Global save indicator that lives in the top strip. Three visual
+// states driven by props from the wizard's shared save tracker:
+//   - inFlight: at least one save promise pending → "Saving…" with
+//     a small pulsing dot
+//   - error: most recent save errored → red "Save error" with the
+//     specific message in a title tooltip
+//   - lastSavedAt within last 4s: brief "✓ Saved" confirmation
+//   - otherwise: nothing (no chatter when there's nothing to report)
+function GlobalSaveIndicator({ inFlight, lastSavedAt, error }) {
+  const [showRecent, setShowRecent] = useState(false);
+  useEffect(() => {
+    if (!lastSavedAt) return;
+    setShowRecent(true);
+    const t = setTimeout(() => setShowRecent(false), 4000);
+    return () => clearTimeout(t);
+  }, [lastSavedAt]);
+
+  // Don't show "✓ Saved" while a new save is in flight — the saving
+  // indicator wins; otherwise the UI flickers between Saved/Saving on
+  // rapid edits.
+  const showSaved = showRecent && !inFlight && !error;
+
+  if (!inFlight && !showSaved && !error) return null;
+
+  let bg, border, color, text;
+  if (inFlight) {
+    bg = 'rgba(8,145,178,0.12)';
+    border = 'rgba(8,145,178,0.35)';
+    color = '#67e8f9';
+    text = 'Saving…';
+  } else if (error) {
+    bg = 'rgba(239,68,68,0.10)';
+    border = 'rgba(239,68,68,0.35)';
+    color = '#fca5a5';
+    text = 'Save error';
+  } else {
+    bg = 'rgba(16,185,129,0.10)';
+    border = 'rgba(16,185,129,0.35)';
+    color = '#6ee7b7';
+    text = '✓ Saved';
+  }
+
+  return (
+    <div
+      title={error || (inFlight ? 'A save is in progress' : 'All changes saved')}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '4px 10px',
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 600,
+        color,
+        letterSpacing: 0.3,
+        transition: 'all 0.15s',
+      }}
+    >
+      {inFlight && (
+        <span style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: color,
+          animation: 'wizardPulse 1.4s infinite',
+        }} />
+      )}
+      {text}
+    </div>
   );
 }
 
@@ -1045,6 +1173,7 @@ function StepHeader({ step, index, done, liveSubtitle }) {
 // ─── Step 1: Practice details ──────────────────────────────────────────
 function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listSize, setListSize, region, setRegion }) {
   const supabase = createClient();
+  const trackSave = useTrackedSave();
   const [savingField, setSavingField] = useState('');
   const [error, setError] = useState('');
   const lookupTimer = useRef(null);
@@ -1055,12 +1184,14 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
   const saveField = async (column, value) => {
     setSavingField(column);
     setError('');
-    const { error: err } = await supabase
-      .from('practices')
-      .update({ [column]: value || null })
-      .eq('id', practiceId);
+    const result = await trackSave(
+      supabase
+        .from('practices')
+        .update({ [column]: value || null })
+        .eq('id', practiceId)
+    );
     setSavingField('');
-    if (err) setError(err.message);
+    if (result?.error) setError(result.error.message);
   };
 
   // Postcode lookup via postcodes.io (free, no auth) — fills region.
@@ -1144,6 +1275,7 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
 // ─── Step 2: TeamNet calendar sync ─────────────────────────────────────
 function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
   const supabase = createClient();
+  const trackSave = useTrackedSave();
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [error, setError] = useState('');
@@ -1205,12 +1337,14 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
   const save = async (url) => {
     setSaving(true);
     setError('');
-    const { error: err } = await supabase
-      .from('practice_settings')
-      .upsert({ practice_id: practiceId, teamnet_url: url || null }, { onConflict: 'practice_id' });
+    const result = await trackSave(
+      supabase
+        .from('practice_settings')
+        .upsert({ practice_id: practiceId, teamnet_url: url || null }, { onConflict: 'practice_id' })
+    );
     setSaving(false);
-    if (err) {
-      setError(err.message);
+    if (result?.error) {
+      setError(result.error.message);
       return false;
     }
     setSavedAt(new Date());
@@ -1866,6 +2000,7 @@ function suggestDuty(name) {
 // Only true entries are written; slots not in either map are "Other".
 function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
   const supabase = createClient();
+  const trackSave = useTrackedSave();
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [error, setError] = useState('');
@@ -1900,12 +2035,14 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
       },
       dutyDoctorSlot: next.dutyDoctorSlot,
     };
-    const { error: err } = await supabase
-      .from('practice_settings')
-      .upsert({ practice_id: practiceId, huddle_settings: merged }, { onConflict: 'practice_id' });
+    const result = await trackSave(
+      supabase
+        .from('practice_settings')
+        .upsert({ practice_id: practiceId, huddle_settings: merged }, { onConflict: 'practice_id' })
+    );
     setSaving(false);
-    if (err) {
-      setError(err.message);
+    if (result?.error) {
+      setError(result.error.message);
       return;
     }
     setSavedAt(new Date());
@@ -2387,6 +2524,7 @@ function ClinicianRolesStep({ practiceId, onSortedChange }) {
 // Room Settings.
 function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
   const supabase = createClient();
+  const trackSave = useTrackedSave();
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [error, setError] = useState('');
@@ -2440,12 +2578,14 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
       ...(existing?.room_allocation || {}),
       sites: nextSites,
     };
-    const { error: err } = await supabase
-      .from('practice_settings')
-      .upsert({ practice_id: practiceId, room_allocation: merged }, { onConflict: 'practice_id' });
+    const result = await trackSave(
+      supabase
+        .from('practice_settings')
+        .upsert({ practice_id: practiceId, room_allocation: merged }, { onConflict: 'practice_id' })
+    );
     setSaving(false);
-    if (err) {
-      setError(err.message);
+    if (result?.error) {
+      setError(result.error.message);
       return;
     }
     setSavedAt(new Date());
