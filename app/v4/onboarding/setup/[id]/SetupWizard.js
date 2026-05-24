@@ -1955,21 +1955,41 @@ function UploadFirstPrompt({ message }) {
 //     "emergency", "triage", "call back", "callback"
 //   - duty: "duty"
 // Everything else: no suggestion (user must review).
-function suggestSlotCategory(name) {
+// Heuristic categorisation for a slot name. Two layers:
+//   - suggestSlotCategory returns the raw 'routine' | 'urgent' | null
+//     for places that just need a category guess.
+//   - suggestSlotCategoryWithConfidence returns { category, confidence }
+//     where confidence is 'high' | 'medium', driven by HOW unambiguous
+//     the match is. "Urgent" is high-confidence urgent; "Book" is
+//     medium-confidence routine (could be either depending on practice
+//     conventions). Used in v4.22.3 to drive visual confidence badges
+//     in the wizard so users know which auto-fills to double-check.
+function suggestSlotCategoryWithConfidence(name) {
   const n = (name || '').toLowerCase();
-  // urgent first because urgent slots are often phrased with "book" too
-  if (/\bsame[\s-]?day\b/.test(n) || n.includes('urgent') || /\bontd\b/.test(n)
-      || /\bon[\s-]?the[\s-]?day\b/.test(n) || n.includes('acute')
-      || n.includes('emergency') || n.includes('triage')
+  // HIGH-confidence urgent — distinctive keywords with little ambiguity
+  if (/\bsame[\s-]?day\b/.test(n) || /\burgent\b/.test(n) || /\bontd\b/.test(n)
+      || /\bon[\s-]?the[\s-]?day\b/.test(n) || /\bacute\b/.test(n)
+      || /\bemergency\b/.test(n) || /\btriage\b/.test(n)
       || /\bcall[\s-]?back\b/.test(n)) {
-    return 'urgent';
+    return { category: 'urgent', confidence: 'high' };
   }
-  if (n.includes('book') || n.includes('routine') || n.includes('pre-book')
-      || /\bappt\b/.test(n) || n.includes('appointment')
+  // HIGH-confidence routine — explicit "routine" or "pre-book"
+  if (/\broutine\b/.test(n) || /\bpre[\s-]?book\b/.test(n)) {
+    return { category: 'routine', confidence: 'high' };
+  }
+  // MEDIUM-confidence routine — ambiguous "book"/"appt"/"f2f" markers
+  // that ALMOST always mean routine in practice but could conceivably
+  // be tagged on a same-day slot too
+  if (/\bbook\b/.test(n) || /\bappt\b/.test(n) || /\bappointment\b/.test(n)
       || /\bf2f\b/.test(n) || /\bface[\s-]?to[\s-]?face\b/.test(n)) {
-    return 'routine';
+    return { category: 'routine', confidence: 'medium' };
   }
   return null;
+}
+
+function suggestSlotCategory(name) {
+  const r = suggestSlotCategoryWithConfidence(name);
+  return r ? r.category : null;
 }
 function suggestDuty(name) {
   return /\bduty\b/.test((name || '').toLowerCase());
@@ -2005,6 +2025,15 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
   const [savedAt, setSavedAt] = useState(null);
   const [error, setError] = useState('');
   const saveTimer = useRef(null);
+  // Set of slot names the user has explicitly clicked. Slots NOT in this
+  // set whose current category matches a suggestion are visually marked
+  // as "auto-filled" — once the user interacts with them (clicks the
+  // picker or duty toggle), they're treated as confirmed and the
+  // "Suggested" badge goes away.
+  const [userTouched, setUserTouched] = useState(() => new Set());
+  // Latch so the auto-apply effect fires exactly once per mount even if
+  // slotFilters changes in the meantime.
+  const autoAppliedRef = useRef(false);
 
   const slotTypes = useMemo(() => {
     const list = parsedCsv?.allSlotTypes || [];
@@ -2053,6 +2082,64 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
     saveTimer.current = setTimeout(() => saveToDb(next), 500);
   };
 
+  // ─── Auto-apply suggestions on first mount ───────────────────────────
+  // If the user lands on this step for a brand-new practice (no slot
+  // filters saved yet, no duty doctor flags), pre-fill the categories
+  // using the heuristic suggestions. The user then confirms or
+  // overrides — much faster than picking each slot from scratch.
+  //
+  // Only fires when the filters are completely empty; if there's any
+  // existing classification the user has already reviewed the step and
+  // we don't want to clobber their decisions. Latch via
+  // autoAppliedRef so it runs at most once per mount.
+  useEffect(() => {
+    if (autoAppliedRef.current) return;
+    if (!slotTypes || slotTypes.length === 0) return;
+    const hasAnyClassification = (
+      Object.values(slotFilters.routine || {}).some(Boolean)
+      || Object.values(slotFilters.urgent || {}).some(Boolean)
+      || (slotFilters.dutyDoctorSlot || []).length > 0
+    );
+    if (hasAnyClassification) {
+      autoAppliedRef.current = true;
+      return; // existing user-saved data; don't overwrite
+    }
+    // Build a fresh classification from suggestions
+    const nextRoutine = {};
+    const nextUrgent = {};
+    const nextDuty = [];
+    let appliedAny = false;
+    for (const slot of slotTypes) {
+      const sug = suggestSlotCategoryWithConfidence(slot);
+      if (sug?.category === 'routine') {
+        nextRoutine[slot] = true;
+        appliedAny = true;
+      } else if (sug?.category === 'urgent') {
+        nextUrgent[slot] = true;
+        appliedAny = true;
+      }
+      if (suggestDuty(slot)) {
+        nextDuty.push(slot);
+        appliedAny = true;
+      }
+    }
+    if (!appliedAny) {
+      autoAppliedRef.current = true;
+      return;
+    }
+    const next = {
+      routine: nextRoutine,
+      urgent: nextUrgent,
+      dutyDoctorSlot: nextDuty,
+    };
+    setSlotFilters(next);
+    debouncedSave(next);
+    autoAppliedRef.current = true;
+    // ESLint: intentionally only depend on slotTypes — we don't want to
+    // re-run if the user edits filters after first mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotTypes]);
+
   const setCategory = (slotName, category) => {
     // Strip slot from both maps first, then add to the chosen one
     // (if not "other"). Keeping only `true` entries means the dashboard's
@@ -2072,6 +2159,13 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
     if (category === 'routine') next.routine[slotName] = true;
     if (category === 'urgent') next.urgent[slotName] = true;
     setSlotFilters(next);
+    // Explicit user pick → confirmed. Removes the "Suggested" badge so
+    // the user can scan for slots they haven't yet looked at.
+    setUserTouched(prev => {
+      const out = new Set(prev);
+      out.add(slotName);
+      return out;
+    });
     debouncedSave(next);
   };
 
@@ -2085,6 +2179,11 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
       dutyDoctorSlot: nextDuty,
     };
     setSlotFilters(next);
+    setUserTouched(prev => {
+      const out = new Set(prev);
+      out.add(slotName);
+      return out;
+    });
     debouncedSave(next);
   };
 
@@ -2150,17 +2249,17 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         fontSize: 13, color: '#cbd5e1', lineHeight: 1.55,
       }}>
         <p style={{ margin: 0 }}>
-          <strong style={{ color: '#67e8f9' }}>What goes here?</strong> Appointment
-          slot types for clinicians whose work is <strong>bookable by patients</strong> —
-          typically GP and ANP slots. Most practices set <em>nursing, HCA, phlebotomy,
-          vaccination, and admin</em> slots to <strong>Other</strong> since they\'re not
-          part of the routine-vs-urgent capacity model.
+          <strong style={{ color: '#67e8f9' }}>We've taken a first pass at categorising these</strong> based
+          on the slot names — look out for <span style={{ color: '#6ee7b7' }}>✓ AUTO</span> (confident match) and{' '}
+          <span style={{ color: '#fbbf24' }}>~ CHECK</span> (educated guess, worth a second look) badges below.
+          Click any picker to override; uncertain slots default to <strong>Other</strong>.
         </p>
         <p style={{ margin: '8px 0 0' }}>
           <strong>Routine</strong> = booked in advance · <strong>Urgent</strong> =
-          same-day / acute work · <strong>Other</strong> = excluded from the model.
-          A slot can additionally be flagged as the <strong>duty doctor</strong> slot,
-          independent of its category.
+          same-day / acute work · <strong>Other</strong> = excluded from the demand model
+          (admin, nursing, HCA, phlebotomy, vaccinations — these don't form part of the
+          routine-vs-urgent capacity model). A slot can also be flagged as the{' '}
+          <strong>duty doctor</strong> slot, independent of its category.
         </p>
       </div>
 
@@ -2223,8 +2322,19 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         {slotTypes.map((slot, i) => {
           const cat = categoryOf(slot);
           const duty = isDuty(slot);
-          const suggested = suggestSlotCategory(slot);
+          const sug = suggestSlotCategoryWithConfidence(slot);
+          const suggested = sug?.category || null;
+          const confidence = sug?.confidence || null;
           const suggestedDuty = suggestDuty(slot);
+          // Auto-applied indicator: the current value matches what the
+          // suggestion would say AND the user hasn't explicitly clicked
+          // this row. Once they click, userTouched gains the slot and
+          // the indicator disappears.
+          const touched = userTouched.has(slot);
+          const isAutoApplied = !touched && (
+            (suggested && cat === suggested)
+            || (suggestedDuty && duty)
+          );
           const showCategorySuggestion = cat === 'other' && suggested !== null;
           return (
             <div
@@ -2239,12 +2349,42 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
               }}
             >
               <div>
-                <div style={{ fontSize: 13, color: '#cbd5e1', fontFamily: "'Space Mono', monospace" }}>
+                <div style={{ fontSize: 13, color: '#cbd5e1', fontFamily: "'Space Mono', monospace", display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   {slot}
+                  {/* Auto-applied tag: subtle confidence indicator
+                      sitting next to the slot name. High confidence
+                      gets a green tick, medium gets an amber tilde
+                      (suggesting "double-check this one"). Disappears
+                      once the user clicks the picker. */}
+                  {isAutoApplied && confidence === 'high' && cat !== 'other' && (
+                    <span title="Confident auto-suggestion based on the slot name" style={{
+                      fontSize: 9.5, padding: '1px 7px', borderRadius: 999,
+                      background: 'rgba(16,185,129,0.12)',
+                      border: '1px solid rgba(16,185,129,0.3)',
+                      color: '#6ee7b7', letterSpacing: 0.4, fontFamily: 'inherit',
+                    }}>✓ AUTO</span>
+                  )}
+                  {isAutoApplied && confidence === 'medium' && cat !== 'other' && (
+                    <span title="Educated guess — worth double-checking" style={{
+                      fontSize: 9.5, padding: '1px 7px', borderRadius: 999,
+                      background: 'rgba(251,191,36,0.10)',
+                      border: '1px solid rgba(251,191,36,0.3)',
+                      color: '#fbbf24', letterSpacing: 0.4, fontFamily: 'inherit',
+                    }}>~ CHECK</span>
+                  )}
+                  {isAutoApplied && cat === 'other' && suggestedDuty && duty && (
+                    <span title="Auto-flagged as duty doctor based on the slot name" style={{
+                      fontSize: 9.5, padding: '1px 7px', borderRadius: 999,
+                      background: 'rgba(139,92,246,0.12)',
+                      border: '1px solid rgba(139,92,246,0.3)',
+                      color: '#c4b5fd', letterSpacing: 0.4, fontFamily: 'inherit',
+                    }}>✓ AUTO</span>
+                  )}
                 </div>
                 {showCategorySuggestion && (
                   <div style={{ marginTop: 2, fontSize: 10.5, color: '#a78bfa' }}>
                     Suggested: <strong style={{ color: suggested === 'urgent' ? '#fdba74' : '#cbd5e1' }}>{suggested}</strong>
+                    {confidence === 'medium' && <span style={{ color: '#94a3b8' }}> (medium confidence)</span>}
                     {suggestedDuty && !duty && <span style={{ color: '#c4b5fd' }}> + duty doctor</span>}
                   </div>
                 )}
