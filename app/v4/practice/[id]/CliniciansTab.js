@@ -20,11 +20,35 @@ export default async function CliniciansTab({ practiceId }) {
     return <div style={{ color: '#fca5a5' }}>Configuration error.</div>;
   }
 
-  const { data: rows, error } = await supabase
-    .from('clinicians')
-    .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, show_whos_in, aliases, linked_user_id, metadata, created_at')
-    .eq('practice_id', practiceId)
-    .order('name', { ascending: true });
+  // ─── All queries in parallel ───────────────────────────────────────
+  // Previously this tab did 3 sequential round trips (clinicians →
+  // working_patterns → practice_settings). Each is ~50-150ms, so the
+  // tab took 300-450ms longer than necessary on every navigation.
+  //
+  // working_patterns is filtered by practice via inner join on
+  // clinicians, so it doesn't need the clinician id list — meaning it
+  // can run in parallel with the clinician fetch.
+  const [
+    { data: rows, error },
+    { data: patterns },
+    { data: settingsRow },
+  ] = await Promise.all([
+    supabase
+      .from('clinicians')
+      .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, show_whos_in, aliases, linked_user_id, metadata, created_at')
+      .eq('practice_id', practiceId)
+      .order('name', { ascending: true }),
+    supabase
+      .from('working_patterns')
+      .select('id, clinician_id, pattern, clinicians!inner(practice_id)')
+      .eq('clinicians.practice_id', practiceId)
+      .is('effective_to', null),
+    supabase
+      .from('practice_settings')
+      .select('room_allocation')
+      .eq('practice_id', practiceId)
+      .maybeSingle(),
+  ]);
 
   if (error) {
     return (
@@ -34,17 +58,7 @@ export default async function CliniciansTab({ practiceId }) {
     );
   }
 
-  // Current working patterns: one per clinician where effective_to is null
-  // (the "active" pattern). Dashboard reads with the same filter, so what
-  // we render here matches what the dashboard sees.
-  const clinicianIds = (rows || []).map(r => r.id);
-  const { data: patterns } = clinicianIds.length > 0
-    ? await supabase
-        .from('working_patterns')
-        .select('id, clinician_id, pattern')
-        .in('clinician_id', clinicianIds)
-        .is('effective_to', null)
-    : { data: [] };
+  // Current working patterns by clinician. Same shape the modal expects.
   const patternByClinician = {};
   for (const wp of patterns || []) {
     patternByClinician[wp.clinician_id] = { id: wp.id, pattern: wp.pattern || {} };
@@ -76,14 +90,6 @@ export default async function CliniciansTab({ practiceId }) {
     };
   });
 
-  // Sites for room-preference picker in the side panel. Read directly
-  // from practice_settings.room_allocation.sites (same source the wizard
-  // and v3 Room Settings write to).
-  const { data: settingsRow } = await supabase
-    .from('practice_settings')
-    .select('room_allocation')
-    .eq('practice_id', practiceId)
-    .maybeSingle();
   const sites = settingsRow?.room_allocation?.sites || [];
 
   return (

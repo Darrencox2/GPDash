@@ -54,21 +54,42 @@ export default async function PracticeAdminPage({ params }) {
     redirect(`/v4/practice/${practice.slug}`);
   }
 
-  // Caller's role (may be null if platform admin isn't a member)
-  const { data: myMembership } = await supabase
-    .from('practice_users')
-    .select('role')
-    .eq('practice_id', practiceId)
-    .eq('user_id', user.id)
-    .maybeSingle();
+  // ─── All practice-page queries in one parallel batch ────────────────
+  // Previously this page did 5+ sequential queries (myMembership,
+  // myProfile, fullPractice, members, invites, then a Promise.all for
+  // settings/history, then another for clinicians/counts). Each round
+  // trip to Supabase from Vercel is ~50-150ms; compounding them serially
+  // added 400-700ms to every navigation to /v4/practice.
+  //
+  // Now everything that doesn't depend on user.id+practiceId (which we
+  // have above) goes into a single Promise.all. The auth/role gate that
+  // used to sit between query rounds is moved to AFTER all queries
+  // resolve — we just gate the rendered content rather than the queries.
+  const [
+    { data: myMembership },
+    { data: myProfile },
+    { data: fullPractice },
+    { data: members },
+    { data: invites },
+    { data: settingsRow },
+    { data: historySummary },
+    { data: clinicianRows },
+    { count: demandHistoryCount },
+    { count: memberCount },
+  ] = await Promise.all([
+    supabase.from('practice_users').select('role').eq('practice_id', practiceId).eq('user_id', user.id).maybeSingle(),
+    supabase.from('profiles').select('is_platform_admin').eq('id', user.id).maybeSingle(),
+    supabase.from('practices').select('id, name, slug, ods_code, postcode, list_size, online_consult_tool, region, setup_completed_at').eq('id', practiceId).maybeSingle(),
+    supabase.rpc('list_practice_members', { target_practice_id: practiceId }),
+    supabase.from('practice_invites').select('id, email, role, created_at, expires_at').eq('practice_id', practiceId).is('accepted_at', null).order('created_at', { ascending: false }),
+    supabase.from('practice_settings').select('demand_settings, buddy_settings, huddle_settings, teamnet_url, extras').eq('practice_id', practiceId).maybeSingle(),
+    supabase.from('demand_history_summary').select('source, row_count, earliest_date, latest_date, last_uploaded_at').eq('practice_id', practiceId),
+    supabase.from('clinicians').select('initials, role, status').eq('practice_id', practiceId),
+    supabase.from('demand_history').select('practice_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
+    supabase.from('practice_users').select('user_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
+  ]);
 
-  const { data: myProfile } = await supabase
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', user.id)
-    .maybeSingle();
   const isPlatformAdmin = !!myProfile?.is_platform_admin;
-
   const isAdminOrOwner = myMembership?.role === 'owner' || myMembership?.role === 'admin';
   if (!isAdminOrOwner && !isPlatformAdmin) {
     if (myMembership) {
@@ -78,38 +99,6 @@ export default async function PracticeAdminPage({ params }) {
     }
   }
 
-  // Full practice row with all setup-relevant fields
-  const { data: fullPractice } = await supabase
-    .from('practices')
-    .select('id, name, slug, ods_code, postcode, list_size, online_consult_tool, region, setup_completed_at')
-    .eq('id', practiceId)
-    .maybeSingle();
-
-  // Members (via RPC that joins to auth.users for emails)
-  const { data: members } = await supabase
-    .rpc('list_practice_members', { target_practice_id: practiceId });
-
-  // Pending invites
-  const { data: invites } = await supabase
-    .from('practice_invites')
-    .select('id, email, role, created_at, expires_at')
-    .eq('practice_id', practiceId)
-    .is('accepted_at', null)
-    .order('created_at', { ascending: false });
-
-  // Practice settings — pull all the JSONB fields for the various tabs
-  // in one query rather than three.
-  const [{ data: settingsRow }, { data: historySummary }] = await Promise.all([
-    supabase
-      .from('practice_settings')
-      .select('demand_settings, buddy_settings, huddle_settings, teamnet_url, extras')
-      .eq('practice_id', practiceId)
-      .maybeSingle(),
-    supabase
-      .from('demand_history_summary')
-      .select('source, row_count, earliest_date, latest_date, last_uploaded_at')
-      .eq('practice_id', practiceId),
-  ]);
   const demandSettings = settingsRow?.demand_settings || null;
   const buddySettings = settingsRow?.buddy_settings || {};
   const huddleSettings = settingsRow?.huddle_settings || {};
@@ -118,16 +107,6 @@ export default async function PracticeAdminPage({ params }) {
 
   const canManage = isAdminOrOwner || isPlatformAdmin;
 
-  // ─── Section statuses for the tab indicators ────────────────────────
-  // Each visible tab gets a coloured dot showing whether that section
-  // is complete (green) or needs attention (amber). Same logic as the
-  // dashboard's completeness strip — single helper so the two stay in
-  // sync.
-  const [{ data: clinicianRows }, { count: demandHistoryCount }, { count: memberCount }] = await Promise.all([
-    supabase.from('clinicians').select('initials, role, status').eq('practice_id', practiceId),
-    supabase.from('demand_history').select('practice_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
-    supabase.from('practice_users').select('user_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
-  ]);
   const sectionStatuses = getSectionStatuses({
     practice: fullPractice,
     clinicianCount: (clinicianRows || []).length,

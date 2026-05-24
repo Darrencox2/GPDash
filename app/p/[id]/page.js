@@ -62,6 +62,11 @@ export default async function PracticePage({ params }) {
   if (!user) redirect('/v4/login');
 
   const tSetup = Date.now();
+  // All queries that depend only on user.id + practiceId in a single
+  // parallel batch. Previously this was split across two Promise.alls
+  // (the second batch for section-status counts ran AFTER the first
+  // resolved) — costing ~50-150ms per round trip for no good reason
+  // since the counts don't depend on the first batch's results.
   const [
     { data: clinicians },
     { data: workingPatterns },
@@ -73,6 +78,8 @@ export default async function PracticePage({ params }) {
     { data: memberships },
     { data: myProfile },
     { data: myMembership },
+    { count: demandHistoryCount },
+    { count: memberCount },
   ] = await Promise.all([
     supabase.from('clinicians').select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, aliases, linked_user_id').eq('practice_id', practiceId).order('name'),
     supabase.from('working_patterns').select('id, clinician_id, effective_from, effective_to, pattern, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId).is('effective_to', null),
@@ -88,6 +95,8 @@ export default async function PracticePage({ params }) {
     // Role for THIS practice specifically — filter by user_id because
     // owners/admins can see every membership row in the practice via RLS.
     supabase.from('practice_users').select('role, marked_non_clinical').eq('practice_id', practiceId).eq('user_id', user.id).maybeSingle(),
+    supabase.from('demand_history').select('practice_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
+    supabase.from('practice_users').select('user_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
   ]);
   const tQueries = Date.now();
 
@@ -164,12 +173,8 @@ export default async function PracticePage({ params }) {
   }
 
   // ─── Section statuses for the dashboard's completeness strip ──────
-  // Cheap to compute server-side from data we already loaded. Two
-  // extra counts to fetch (demand_history, members) — both head-only.
-  const [{ count: demandHistoryCount }, { count: memberCount }] = await Promise.all([
-    supabase.from('demand_history').select('practice_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
-    supabase.from('practice_users').select('user_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
-  ]);
+  // Counts now come from the main Promise.all above (folded in to save
+  // a round trip). getSectionStatuses is a pure helper.
   const sectionStatuses = getSectionStatuses({
     practice,
     clinicianCount: (clinicians || []).length,
