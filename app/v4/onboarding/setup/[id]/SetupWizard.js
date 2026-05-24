@@ -103,13 +103,50 @@ export default function SetupWizard({
   // Step state. Animation key is bumped on every step change so the
   // content remounts and the CSS keyframes replay.
   const [currentStep, setCurrentStep] = useState(() => {
-    // Resume hint: jump straight to the first step that's still
-    // incomplete according to the data. If everything looks done,
-    // start at the last step (invites) so they can review or skip.
-    if (!practice.postcode || !practice.list_size) return 0;
-    if (!initialHasClinicians) return 2;
-    if (!initialHasDemandData) return 6;
-    return 7;
+    // Resume hint: land on the FIRST incomplete step. Required steps
+    // win over optional ones — if details isn't set, you start there
+    // no matter what's done elsewhere. After that, the first incomplete
+    // optional step. If everything's done, land on the final step so
+    // the user can see the dashboard button.
+    //
+    // Initial done-state per step, computed from server-passed props
+    // (we don't have access to the client-only stepDone array yet —
+    // that depends on huddle settings that are mutated in this
+    // component). Mirrors the logic in stepDone further down, but
+    // for the moment-in-time values we know at mount.
+    const slotsDoneAtMount = !!(
+      Object.values(initialHuddleSettings?.savedSlotFilters?.routine || {}).some(Boolean) ||
+      Object.values(initialHuddleSettings?.savedSlotFilters?.urgent || {}).some(Boolean) ||
+      (initialHuddleSettings?.dutyDoctorSlot || []).length > 0
+    );
+    const sitesDoneAtMount = (initialSites?.length || 0) > 0;
+    const doneAtMount = [
+      !!practice.postcode && !!practice.list_size,  // 0: details (required)
+      !!initialTeamnetUrl,                          // 1: teamnet (optional)
+      initialHasClinicians,                         // 2: emis (required)
+      slotsDoneAtMount,                             // 3: slots (optional)
+      initialHasClinicians,                         // 4: clinicians (optional; the
+                                                    //    actual "every clinician has a
+                                                    //    pattern" check needs a fetch
+                                                    //    inside the step — use
+                                                    //    "any clinicians exist" as
+                                                    //    a coarse proxy for the
+                                                    //    resume hint only)
+      sitesDoneAtMount,                             // 5: sites (optional)
+      initialHasDemandData,                         // 6: demand (optional)
+      initialHasInvites,                            // 7: invites (optional)
+    ];
+    // Required steps first
+    for (let i = 0; i < STEPS.length; i++) {
+      if (STEPS[i].required && !doneAtMount[i]) return i;
+    }
+    // Then first incomplete optional
+    for (let i = 0; i < STEPS.length; i++) {
+      if (!doneAtMount[i]) return i;
+    }
+    // Everything's done — land on the final step (invites) so the
+    // dashboard button is visible.
+    return STEPS.length - 1;
   });
   const [animKey, setAnimKey] = useState(0);
 
@@ -212,6 +249,45 @@ export default function SetupWizard({
     hasDemandData,                                      // 6: demand
     hasInvites,                                         // 7: invites
   ];
+
+  // ─── Live subtitle per step ──────────────────────────────────────────
+  // When a step is done, show a concise summary of what's set instead
+  // of the generic STEPS[i].subtitle. Helps when scrolling back
+  // through completed steps — at-a-glance "TeamNet ✓ Synced" is more
+  // useful than "Optional · sync absences". Falls back to the
+  // hardcoded subtitle when the step isn't done yet (no useful state
+  // to summarise).
+  const slotCount = (
+    Object.values(slotFilters.routine || {}).filter(Boolean).length +
+    Object.values(slotFilters.urgent || {}).filter(Boolean).length
+  );
+  const dutyCount = (slotFilters.dutyDoctorSlot || []).length;
+  const liveSubtitles = [
+    // 0: details
+    (postcode && listSize)
+      ? `${postcode} · ${Number(listSize).toLocaleString()} patients${region ? ` · ${region}` : ''}`
+      : STEPS[0].subtitle,
+    // 1: teamnet
+    teamnetUrl ? '✓ Calendar URL saved' : STEPS[1].subtitle,
+    // 2: emis (count not easily available client-side — use a generic done line)
+    hasClinicians ? '✓ Team imported from CSV' : STEPS[2].subtitle,
+    // 3: slots
+    slotsConfigured
+      ? `${slotCount} slot type${slotCount === 1 ? '' : 's'} categorised${dutyCount > 0 ? ` · duty doctor set` : ''}`
+      : STEPS[3].subtitle,
+    // 4: clinicians (the actual count needs a fetch the step does
+    //    internally; just show "✓ Reviewed" when sorted)
+    cliniciansSorted ? '✓ Roles + patterns reviewed' : STEPS[4].subtitle,
+    // 5: sites
+    sitesConfigured
+      ? `${sites.length} site${sites.length === 1 ? '' : 's'} configured`
+      : STEPS[5].subtitle,
+    // 6: demand
+    hasDemandData ? '✓ Demand model calibrated' : STEPS[6].subtitle,
+    // 7: invites
+    hasInvites ? '✓ Team invited' : STEPS[7].subtitle,
+  ];
+
   const requiredIncomplete = STEPS
     .map((s, i) => s.required && !stepDone[i] ? s : null)
     .filter(Boolean);
@@ -288,6 +364,49 @@ export default function SetupWizard({
         onStepClick={goToStep}
       />
 
+      {/* "Setup is saved — leave anytime" banner.
+          Once setup_completed_at has been auto-marked (canComplete
+          first became true), the user can leave to the dashboard
+          without losing anything. The "Go to dashboard" button only
+          appears on the final step, so without this hint the user
+          might think they need to finish every step. Banner appears
+          on every step except the final one (which has the dashboard
+          button right there). */}
+      {canComplete && currentStep < STEPS.length - 1 && (
+        <div style={{
+          maxWidth: 720, margin: '0 auto 16px',
+          padding: '10px 16px',
+          background: 'rgba(16,185,129,0.08)',
+          border: '1px solid rgba(16,185,129,0.25)',
+          borderRadius: 8,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, flexWrap: 'wrap',
+        }}>
+          <div style={{ fontSize: 13, color: '#a7f3d0', lineHeight: 1.4 }}>
+            <strong style={{ color: '#6ee7b7' }}>✓ Setup saved.</strong> You can leave
+            to the dashboard anytime — the optional steps below are nice-to-haves
+            you can come back to later.
+          </div>
+          <button
+            onClick={goToDashboard}
+            disabled={navigating}
+            style={{
+              padding: '7px 14px',
+              borderRadius: 6,
+              background: 'rgba(16,185,129,0.2)',
+              border: '1px solid rgba(16,185,129,0.4)',
+              color: '#6ee7b7',
+              fontSize: 12, fontWeight: 600,
+              cursor: navigating ? 'wait' : 'pointer',
+              fontFamily: 'inherit',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {navigating ? 'Loading…' : 'Go to dashboard →'}
+          </button>
+        </div>
+      )}
+
       {/* Step card with animation. Top border is colour-coded:
             green  → step has data, complete
             amber  → step is REQUIRED but not yet complete (action needed)
@@ -305,7 +424,57 @@ export default function SetupWizard({
               STEPS[currentStep].required ? '#f59e0b' :
               'rgba(255,255,255,0.08)',
           }}>
-            <StepHeader step={STEPS[currentStep]} index={currentStep} done={stepDone[currentStep]} />
+            <StepHeader step={STEPS[currentStep]} index={currentStep} done={stepDone[currentStep]} liveSubtitle={liveSubtitles[currentStep]} />
+            {/* Skipped-step reminder — only on the final (invites) step.
+                Lists any optional steps that haven't been completed with
+                quick-jump buttons. Lets the user spot what they skipped
+                in one place rather than scrolling back through the
+                progress dots. Hidden when there's nothing skipped. */}
+            {currentStep === STEPS.length - 1 && (() => {
+              const skipped = STEPS
+                .map((s, i) => ({ step: s, idx: i }))
+                .filter(({ step, idx }) => step.optional && !stepDone[idx]);
+              if (skipped.length === 0) return null;
+              return (
+                <div style={{
+                  marginTop: 24, padding: 16,
+                  background: 'rgba(251,191,36,0.06)',
+                  border: '1px solid rgba(251,191,36,0.2)',
+                  borderRadius: 10,
+                }}>
+                  <div style={{ fontSize: 12, color: '#fbbf24', fontWeight: 600, marginBottom: 10, letterSpacing: 0.5 }}>
+                    OPTIONAL STEPS YOU SKIPPED
+                  </div>
+                  <p style={{ fontSize: 13, color: '#cbd5e1', margin: '0 0 12px', lineHeight: 1.5 }}>
+                    No problem — you can finish setup without these. If you'd like to
+                    fill them in now, jump straight there:
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {skipped.map(({ step, idx }) => (
+                      <button
+                        key={step.id}
+                        onClick={() => goToStep(idx)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 6,
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          color: '#e2e8f0',
+                          fontSize: 12, fontWeight: 500,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                        }}
+                      >
+                        <span style={{ color: '#94a3b8', fontSize: 11 }}>{idx + 1}.</span>
+                        {step.title}
+                        <span style={{ color: '#64748b' }}>→</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             <div style={{ marginTop: 28 }}>
               {currentStep === 0 && (
                 <DetailsStep
@@ -567,6 +736,7 @@ function ProgressDots({ steps, currentStep, stepDone, onStepClick }) {
               type="button"
               onClick={() => onStepClick(i)}
               aria-label={`Go to step ${i + 1}: ${step.title}`}
+              title={`${step.title}${step.optional ? ' (optional)' : step.required ? ' (required)' : ''}${isDone ? ' · ✓ Done' : ''}`}
               style={{
                 width: 32, height: 32,
                 background: fill,
@@ -606,7 +776,7 @@ function CheckIcon() {
 }
 
 // ─── Step header (number + title + subtitle) ───────────────────────────
-function StepHeader({ step, index, done }) {
+function StepHeader({ step, index, done, liveSubtitle }) {
   // Eyebrow colour matches the card's top-border treatment so the
   // status reads consistently — emerald when done, cyan otherwise.
   const eyebrowColor = done ? '#10b981' : '#0891b2';
@@ -644,7 +814,7 @@ function StepHeader({ step, index, done }) {
         {step.title}
       </h1>
       <p style={{ fontSize: 15, color: '#94a3b8', lineHeight: 1.5 }}>
-        {step.subtitle}
+        {liveSubtitle || step.subtitle}
       </p>
     </div>
   );
