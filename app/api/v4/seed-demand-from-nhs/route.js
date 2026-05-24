@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { seedDemandFromBaseline } from '@/lib/demand-seed-from-nhs';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,22 @@ export async function POST(request) {
   const isAdmin = membership?.role === 'admin' || membership?.role === 'owner' || adminCheck === true;
   if (!isAdmin) {
     return NextResponse.json({ error: 'not_authorized' }, { status: 403 });
+  }
+
+  // Rate limit per-practice. Legitimate use is once at setup time, plus
+  // the occasional manual reseed. 20/min handles even aggressive testing.
+  const rl = await checkRateLimit(RATE_LIMITS.practiceCompute, `practice:${practiceId}`);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'too_many_requests' },
+      {
+        status: 429,
+        headers: {
+          ...rl.headers,
+          'Retry-After': String(rl.retryAfterSeconds),
+        },
+      }
+    );
   }
 
   // Get the practice's ODS code

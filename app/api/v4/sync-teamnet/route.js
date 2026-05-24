@@ -17,6 +17,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { parseTeamnetCalendar } from '@/lib/teamnet';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -60,6 +61,25 @@ export async function POST(request) {
     .eq('user_id', user.id)
     .maybeSingle();
   if (!membership) return NextResponse.json({ error: 'Not a member of this practice' }, { status: 403 });
+
+  // Rate limit per-practice. Legitimate use: occasional manual "Sync now"
+  // clicks + the daily cron — well below 10/min. Anything past that is
+  // almost certainly a script firing in a loop. Key on practice so a
+  // user with two practices doesn't burn through one bucket while
+  // testing the other.
+  const rl = await checkRateLimit(RATE_LIMITS.practiceSync, `practice:${practiceId}`);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Sync requested too frequently. Please wait before retrying.' },
+      {
+        status: 429,
+        headers: {
+          ...rl.headers,
+          'Retry-After': String(rl.retryAfterSeconds),
+        },
+      }
+    );
+  }
 
   // Try to parse body — empty body is allowed (signals full-sync mode).
   let body = {};

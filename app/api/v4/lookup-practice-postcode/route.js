@@ -11,6 +11,7 @@
 // asking the user to enter manually.
 
 import { NextResponse } from 'next/server';
+import { checkRateLimit, RATE_LIMITS, getRateLimitIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,23 @@ export async function GET(request) {
   const ods = (searchParams.get('ods') || '').trim().toUpperCase();
   if (!ods || !/^[A-Z0-9]{3,10}$/.test(ods)) {
     return NextResponse.json({ error: 'invalid_ods', message: 'Provide ?ods=L82085' }, { status: 400 });
+  }
+
+  // Anonymous endpoint. Rate-limit by IP — this proxies two external
+  // services (OpenPrescribing + postcodes.io), so we want to fail-fast
+  // on abuse rather than push it through.
+  const rl = await checkRateLimit(RATE_LIMITS.publicLookup, `ip:${getRateLimitIp(request)}`);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'rate_limited', postcode: null },
+      {
+        status: 429,
+        headers: {
+          ...rl.headers,
+          'Retry-After': String(rl.retryAfterSeconds),
+        },
+      }
+    );
   }
 
   const debug = { steps: [] };

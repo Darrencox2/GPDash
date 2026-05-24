@@ -23,6 +23,7 @@ import { Redis } from '@upstash/redis';
 import { cookies } from 'next/headers';
 import { createClient as createUserClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -88,6 +89,25 @@ async function runImport(request, { dryRun }) {
     .maybeSingle();
   if (!membership || membership.role !== 'owner') {
     return NextResponse.json({ error: 'Only the practice owner can import data' }, { status: 403 });
+  }
+
+  // Rate limit AFTER the auth check — we don't want an unauthenticated
+  // attacker to be able to exhaust the rate-limit bucket of a legitimate
+  // user by spamming this endpoint with arbitrary practice IDs. Keyed by
+  // user.id (per-importer), since each user only ever imports their own
+  // practices and the legitimate use is once-per-practice-ever.
+  const rl = await checkRateLimit(RATE_LIMITS.import, `user:${user.id}`);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many import attempts. Please wait a moment and try again.' },
+      {
+        status: 429,
+        headers: {
+          ...rl.headers,
+          'Retry-After': String(rl.retryAfterSeconds),
+        },
+      }
+    );
   }
 
   // 2. Need admin client (bypasses RLS for the bulk insert)

@@ -19,6 +19,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,6 +42,23 @@ export async function POST(request) {
     .maybeSingle();
   if (!profile?.is_platform_admin) {
     return NextResponse.json({ error: 'Forbidden: platform admin only' }, { status: 403 });
+  }
+
+  // Rate limit per admin. 30/min allows a batch of ~20 invites with
+  // headroom for retries; stops a script generating links for every
+  // user in the system.
+  const rl = await checkRateLimit(RATE_LIMITS.adminFrequent, `admin:${user.id}`);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many link generations. Wait a moment.' },
+      {
+        status: 429,
+        headers: {
+          ...rl.headers,
+          'Retry-After': String(rl.retryAfterSeconds),
+        },
+      }
+    );
   }
 
   // 2. Read body — { email, type? }

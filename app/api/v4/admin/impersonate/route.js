@@ -37,6 +37,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -59,6 +60,22 @@ export async function POST(request) {
     .maybeSingle();
   if (!callerProfile?.is_platform_admin) {
     return NextResponse.json({ error: 'Forbidden: platform admin only' }, { status: 403 });
+  }
+
+  // Rate limit per admin user. Even legitimate use is rare — 10/min stops
+  // anything that looks like impersonation-target enumeration.
+  const rl = await checkRateLimit(RATE_LIMITS.adminSensitive, `admin:${caller.id}`);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many impersonation requests. Wait a moment.' },
+      {
+        status: 429,
+        headers: {
+          ...rl.headers,
+          'Retry-After': String(rl.retryAfterSeconds),
+        },
+      }
+    );
   }
 
   // ─── 2. Read body ────────────────────────────────────────────────────

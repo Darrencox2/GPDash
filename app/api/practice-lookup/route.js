@@ -16,6 +16,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { checkRateLimit, RATE_LIMITS, getRateLimitIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,24 @@ export async function GET(request) {
   const currentPracticeId = searchParams.get('currentPracticeId') || null;
   if (!query || query.length < 2) {
     return NextResponse.json({ practices: [], reason: 'query_too_short' });
+  }
+
+  // Anonymous endpoint (called during practice creation before sign-in).
+  // Rate-limit by IP so we don't end up DoS-ing OpenPrescribing on
+  // behalf of a script. 60/min is generous for legitimate type-to-search
+  // even without client-side debouncing.
+  const rl = await checkRateLimit(RATE_LIMITS.publicLookup, `ip:${getRateLimitIp(request)}`);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many lookup requests. Please slow down.' },
+      {
+        status: 429,
+        headers: {
+          ...rl.headers,
+          'Retry-After': String(rl.retryAfterSeconds),
+        },
+      }
+    );
   }
 
   const debug = { steps: [], attempts: [] };
