@@ -70,6 +70,20 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const lines = [`${c.name} (${c.initials})`, `Status: ${status}`, `Role: ${c.role}`];
     if (hasPlannedAbsence(c.id, dateKey)) lines.push(`Planned: ${getPlannedAbsenceReason(c.id, dateKey)}`);
     if (c.longTermAbsent) lines.push('Long-term absent');
+    // Upgrade hint: if the live status is "absent" but the clinician
+    // isn't scheduled on this day AND has no planned absence today,
+    // it's the day-off-adjacent-to-leave upgrade firing. Explain why
+    // so the user doesn't wonder "why is my Wednesday day-off person
+    // showing as red absent?" The upgrade fires when the immediately
+    // previous OR next working day has a planned absence — usually a
+    // multi-day leave block that incidentally spans their day off.
+    if (status === 'absent' && !hasPlannedAbsence(c.id, dateKey)) {
+      const dayRota = data?.weeklyRota?.[selectedDay] || [];
+      const isScheduled = (Array.isArray(dayRota) ? dayRota : Object.values(dayRota)).includes(c.id);
+      if (!isScheduled) {
+        lines.push('⚠ Flagged for cover (day off adjacent to leave)');
+      }
+    }
     const isOverridden = overriddenIds.has(c.id);
     const csvNoSession = csvMismatches.presentNoCSV.has(c.id);
     const csvHasSession = csvMismatches.absentHasCSV.has(c.id);
@@ -493,22 +507,41 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         // "Covering" row, including registrars/ANPs/anyone
                         // with buddyCover=false — even though they're
                         // (correctly) absent from the top mini grid which
-                        // uses cliniciansList. This is also why the bottom
-                        // table could include "ghost" people who used to be
-                        // in buddy cover when the allocation was generated
-                        // but have since been toggled off.
+                        // uses cliniciansList.
+                        //
+                        // Reclassification: the saved allocation captures who's
+                        // assigned to cover whom (which is the bit we actually
+                        // want to preserve), but its absent/dayOff split can
+                        // go stale. Specifically: if a clinician was a
+                        // regular day-off person at generation time and has
+                        // since picked up an adjacent planned absence, the
+                        // computeDayStatus upgrade logic moves them from
+                        // dayOff to absent. The top mini grid uses live
+                        // status and shows them red, but the saved
+                        // allocation still has them in dayOffAllocations →
+                        // bottom table shows them in the View Only column.
+                        //
+                        // Walk each person who was assigned (whether to the
+                        // absent or dayOff column originally) and recheck
+                        // their current status. People now present don't
+                        // need cover at all and disappear from both
+                        // columns; people now absent move into the File &
+                        // Action column; people still on a day-off stay in
+                        // View Only. Top and bottom now always agree.
                         const buddyIds = new Set(cliniciansList.map(c => c.id));
                         const rows = presentIds.filter(id => buddyIds.has(id)).map(id => {
-                          const c = getClinicianById(id); const t = groupedAllocations[id] || { absent: [], dayOff: [] };
-                          // Only count absent/dayOff people who are also in
-                          // the buddy system. Saved allocations can carry
-                          // people who were buddyCover=true at generation
-                          // time but have since been removed.
-                          const filteredTasks = {
-                            absent: (t.absent || []).filter(aid => buddyIds.has(aid)),
-                            dayOff: (t.dayOff || []).filter(aid => buddyIds.has(aid)),
-                          };
-                          return c ? { id, clinician: c, tasks: filteredTasks, canCover: c.canProvideCover !== false, hasAllocs: filteredTasks.absent.length > 0 || filteredTasks.dayOff.length > 0 } : null;
+                          const c = getClinicianById(id);
+                          const t = groupedAllocations[id] || { absent: [], dayOff: [] };
+                          const reclassified = { absent: [], dayOff: [] };
+                          const allAssigned = [...(t.absent || []), ...(t.dayOff || [])];
+                          for (const aid of allAssigned) {
+                            if (!buddyIds.has(aid)) continue;
+                            const liveStatus = getClinicianStatus(aid, selectedDay);
+                            if (liveStatus === 'absent') reclassified.absent.push(aid);
+                            else if (liveStatus === 'dayoff') reclassified.dayOff.push(aid);
+                            // status === 'present' → don't render at all
+                          }
+                          return c ? { id, clinician: c, tasks: reclassified, canCover: c.canProvideCover !== false, hasAllocs: reclassified.absent.length > 0 || reclassified.dayOff.length > 0 } : null;
                         }).filter(Boolean);
                         rows.sort((a, b) => { if (a.canCover && !b.canCover) return -1; if (!a.canCover && b.canCover) return 1; if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; } return 0; });
                         return rows.map(({ clinician, tasks, canCover }) => (
