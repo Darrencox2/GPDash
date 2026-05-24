@@ -1107,7 +1107,12 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
   const supabase = createClient();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  // Summary panel: structured replacement for the old success string.
+  // null when nothing's been uploaded this session; populated after a
+  // successful parse with counts the user actually cares about.
+  // Shape: { clinicians, locations, dates, patternsGenerated,
+  //          patternsAlreadyExisted, totalClinicians }
+  const [summary, setSummary] = useState(null);
 
   // Clinician extraction logic — same TITLE_LIKE rule we use elsewhere
   // so a CSV name like "Smith, Jane (Mrs)" doesn't store "Mrs" as the
@@ -1117,7 +1122,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
 
   const handleFile = async (file) => {
     setError('');
-    setSuccess('');
+    setSummary(null);
     setUploading(true);
     try {
       const text = await file.text();
@@ -1126,6 +1131,21 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
       if (csvNames.length === 0) {
         throw new Error("Couldn't find any clinicians in that CSV. Is it the EMIS appointment-data export?");
       }
+
+      // Count unique site/location names across the parsed data. The
+      // locationData shape is { date: { clinIdx: { locationName: count } } },
+      // so walk all three levels and collect distinct location strings.
+      // Used in the post-upload summary so the user knows whether the
+      // upcoming Sites step has anything to configure.
+      const uniqueLocations = new Set();
+      for (const dateMap of Object.values(parsed.locationData || {})) {
+        for (const clinMap of Object.values(dateMap || {})) {
+          for (const loc of Object.keys(clinMap || {})) {
+            if (loc && loc.trim()) uniqueLocations.add(loc.trim());
+          }
+        }
+      }
+      const dateCount = Object.keys(parsed.dateData || {}).length;
 
       // Generate initials for the batch. Two CSV name formats are common:
       //   "SURNAME, Forename"  → forename-then-surname initials: 'MB'
@@ -1241,7 +1261,15 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
 
       setHasClinicians(true);
       setClinicianCountAdded(newClinicians.length);
-      setSuccess(`✓ Found ${newClinicians.length} clinician${newClinicians.length === 1 ? '' : 's'} in your CSV. Your team is ready.`);
+      setSummary({
+        clinicians: newClinicians.length,
+        locations: uniqueLocations.size,
+        dates: dateCount,
+        // Pattern counts populated below if the auto-gen runs
+        patternsGenerated: 0,
+        patternsAlreadyExisted: 0,
+        totalClinicians: newClinicians.length,
+      });
 
       // Push parsed CSV up so the slot-types + sites steps can use it
       // immediately (no need to navigate away and back). Also save the
@@ -1313,7 +1341,12 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
               if (wpErr) {
                 console.warn('Working pattern auto-generation failed:', wpErr);
               } else {
-                setSuccess(prev => prev + ` Working patterns generated for ${patterns.length}.`);
+                setSummary(prev => prev ? {
+                  ...prev,
+                  patternsGenerated: patterns.length,
+                  patternsAlreadyExisted: alreadyHasPattern.size,
+                  totalClinicians: savedClinicians.length,
+                } : prev);
               }
             }
           }
@@ -1418,7 +1451,47 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
             />
           </label>
         )}
-        {success && <div style={{ marginTop: 8, fontSize: 12, color: '#34d399' }}>{success}</div>}
+        {summary && (
+          <div style={{
+            marginTop: 14,
+            padding: 14,
+            background: 'rgba(16,185,129,0.08)',
+            border: '1px solid rgba(16,185,129,0.25)',
+            borderRadius: 10,
+          }}>
+            <div style={{
+              fontSize: 12, color: '#10b981', fontWeight: 700,
+              letterSpacing: 1, marginBottom: 10,
+            }}>
+              ✓ IMPORT COMPLETE
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: 12,
+              marginBottom: summary.patternsGenerated > 0 || summary.patternsAlreadyExisted > 0 ? 10 : 0,
+            }}>
+              <SummaryStat label="Clinicians" value={summary.clinicians} />
+              <SummaryStat label={summary.locations === 1 ? 'Site detected' : 'Sites detected'} value={summary.locations} />
+              {summary.dates > 0 && <SummaryStat label="Dates covered" value={summary.dates} />}
+            </div>
+            {(summary.patternsGenerated > 0 || summary.patternsAlreadyExisted > 0) && (
+              <div style={{ fontSize: 12, color: '#a7f3d0', lineHeight: 1.5 }}>
+                {summary.patternsGenerated > 0 && (
+                  <>Working patterns generated for <strong>{summary.patternsGenerated}</strong> of <strong>{summary.totalClinicians}</strong>{summary.patternsAlreadyExisted > 0 && <> ({summary.patternsAlreadyExisted} already had one)</>}. Review them in step 5.</>
+                )}
+                {summary.patternsGenerated === 0 && summary.patternsAlreadyExisted > 0 && (
+                  <>All <strong>{summary.patternsAlreadyExisted}</strong> existing patterns kept — review or edit in step 5.</>
+                )}
+              </div>
+            )}
+            {summary.locations > 1 && (
+              <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 8 }}>
+                Multiple sites detected — step 6 lets you pick a colour for each.
+              </div>
+            )}
+          </div>
+        )}
         {error && <div style={errorText}>{error}</div>}
       </div>
     </div>
@@ -2357,18 +2430,40 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  // Same parser as BulkInviteButton — pull anything that looks like
-  // an email out of the textarea, dedupe.
-  const parseEmails = (text) => {
-    const re = /([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
-    const matches = (text.match(re) || []).map(s => s.toLowerCase());
-    return Array.from(new Set(matches));
-  };
+  // Live email parsing. Splits the textarea on whitespace, commas, and
+  // semicolons (mirroring the BulkInviteButton parser), then validates
+  // each token against a standard email regex. Distinguishing valid vs
+  // invalid lets us show feedback inline — green chips for valid, amber
+  // chips with a hint for things that look like emails but don't quite
+  // parse (e.g. missing TLD). Without this, malformed input was just
+  // silently dropped at send time which left users wondering why their
+  // invite list was shorter than expected.
+  const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  const parsed = useMemo(() => {
+    const tokens = emailsText.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
+    const seen = new Set();
+    const validEmails = [];
+    const duplicates = [];
+    const invalid = [];
+    for (const t of tokens) {
+      const lower = t.toLowerCase();
+      if (emailRegex.test(t)) {
+        if (seen.has(lower)) {
+          duplicates.push(t);
+        } else {
+          seen.add(lower);
+          validEmails.push(lower);
+        }
+      } else {
+        invalid.push(t);
+      }
+    }
+    return { validEmails, duplicates, invalid };
+  }, [emailsText]);
 
   const send = async () => {
-    const emails = parseEmails(emailsText);
-    if (emails.length === 0) {
-      setError('Add at least one email address.');
+    if (parsed.validEmails.length === 0) {
+      setError('Add at least one valid email address.');
       return;
     }
     setSending(true);
@@ -2376,7 +2471,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites }) {
     setResult(null);
     const { data, error: err } = await supabase.rpc('bulk_invite_users_to_practice', {
       target_practice_id: practiceId,
-      invitees: emails.map(email => ({ email, role: 'user' })),
+      invitees: parsed.validEmails.map(email => ({ email, role: 'user' })),
     });
     setSending(false);
     if (err) {
@@ -2387,6 +2482,8 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites }) {
     if (data?.created > 0) setHasInvites(true);
     setEmailsText('');
   };
+
+  const sendDisabled = sending || parsed.validEmails.length === 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -2410,17 +2507,102 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites }) {
         </div>
       </div>
 
+      {/* Inline parsing feedback — only render when there's something
+          to show. Distinguishes between valid (green chips), already-
+          seen duplicates (subdued chips), and invalid-format tokens
+          (amber chips with a tooltip suggesting what's wrong). */}
+      {(parsed.validEmails.length > 0 || parsed.invalid.length > 0 || parsed.duplicates.length > 0) && (
+        <div style={{
+          padding: 12,
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 8,
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          {parsed.validEmails.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
+                ✓ {parsed.validEmails.length} VALID EMAIL{parsed.validEmails.length === 1 ? '' : 'S'}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {parsed.validEmails.map(e => (
+                  <span key={e} style={{
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    background: 'rgba(16,185,129,0.15)',
+                    border: '1px solid rgba(16,185,129,0.3)',
+                    color: '#6ee7b7',
+                    fontSize: 12,
+                  }}>{e}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {parsed.duplicates.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
+                {parsed.duplicates.length} DUPLICATE{parsed.duplicates.length === 1 ? '' : 'S'} (will skip)
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {parsed.duplicates.map((e, i) => (
+                  <span key={`${e}-${i}`} style={{
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#94a3b8',
+                    fontSize: 12,
+                    textDecoration: 'line-through',
+                  }}>{e}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {parsed.invalid.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
+                ⚠ {parsed.invalid.length} NOT RECOGNISED — CHECK FORMAT
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {parsed.invalid.map((e, i) => (
+                  <span
+                    key={`${e}-${i}`}
+                    title={e.includes('@') ? "Missing TLD (e.g. '.com')?" : "Missing @?"}
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: 999,
+                      background: 'rgba(251,191,36,0.1)',
+                      border: '1px solid rgba(251,191,36,0.3)',
+                      color: '#fbbf24',
+                      fontSize: 12,
+                      cursor: 'help',
+                    }}
+                  >{e}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <button
         onClick={send}
-        disabled={sending || emailsText.trim().length === 0}
+        disabled={sendDisabled}
         style={{
           ...btnPrimary,
           alignSelf: 'flex-start',
-          opacity: (sending || emailsText.trim().length === 0) ? 0.4 : 1,
-          cursor: (sending || emailsText.trim().length === 0) ? 'not-allowed' : 'pointer',
+          opacity: sendDisabled ? 0.4 : 1,
+          cursor: sendDisabled ? 'not-allowed' : 'pointer',
         }}
+        title={parsed.validEmails.length === 0 && emailsText.trim().length > 0
+          ? 'No valid emails detected — check formatting above'
+          : ''}
       >
-        {sending ? 'Sending…' : 'Send invites'}
+        {sending
+          ? 'Sending…'
+          : parsed.validEmails.length > 0
+            ? `Send ${parsed.validEmails.length} invite${parsed.validEmails.length === 1 ? '' : 's'}`
+            : 'Send invites'}
       </button>
 
       {result && (
@@ -2447,6 +2629,22 @@ function Label({ children }) {
     <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6, fontWeight: 500 }}>
       {children}
     </label>
+  );
+}
+
+// Compact stat cell for the EMIS upload summary. Shows a big number
+// plus a small caption. Used in a CSS grid that auto-fits across the
+// available width.
+function SummaryStat({ label, value }) {
+  return (
+    <div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: '#6ee7b7', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>
+        {value}
+      </div>
+      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, letterSpacing: 0.3 }}>
+        {label}
+      </div>
+    </div>
   );
 }
 const fieldHelp = { fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, margin: 0 };
