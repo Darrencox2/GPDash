@@ -11,6 +11,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { seedDemandFromBaseline } from '@/lib/demand-seed-from-nhs';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { requireUuid } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,9 +25,8 @@ export async function POST(request) {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
   const practiceId = body?.practiceId;
-  if (!practiceId) {
-    return NextResponse.json({ error: 'practice_id_required' }, { status: 400 });
-  }
+  const badUuid = requireUuid(practiceId, 'practiceId');
+  if (badUuid) return badUuid;
 
   const cookieStore = cookies();
   const supabase = createClient(cookieStore);

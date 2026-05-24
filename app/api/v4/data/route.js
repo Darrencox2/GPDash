@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { loadPracticeData, loadBuddyAllocations, adaptToV3Shape } from '@/lib/v4-data';
+import { requireUuid } from '@/lib/api-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,9 +25,8 @@ export async function GET(request) {
   const t0 = Date.now();
   const url = new URL(request.url);
   const practiceId = url.searchParams.get('practice');
-  if (!practiceId) {
-    return NextResponse.json({ error: 'practice query param required' }, { status: 400 });
-  }
+  const badUuid = requireUuid(practiceId, 'practice');
+  if (badUuid) return badUuid;
 
   const cookieStore = cookies();
   const supabase = createClient(cookieStore);
@@ -172,9 +172,8 @@ export async function GET(request) {
 export async function POST(request) {
   const url = new URL(request.url);
   const practiceId = url.searchParams.get('practice');
-  if (!practiceId) {
-    return NextResponse.json({ error: 'practice query param required' }, { status: 400 });
-  }
+  const badUuid = requireUuid(practiceId, 'practice');
+  if (badUuid) return badUuid;
 
   const cookieStore = cookies();
   const supabase = createClient(cookieStore);

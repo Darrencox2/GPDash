@@ -20,6 +20,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { isEmail, serverError } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -71,6 +72,9 @@ export async function POST(request) {
   // 'signup'   = confirmation link for unconfirmed accounts
   const type = body?.type || 'magiclink';
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 });
+  if (!isEmail(email)) {
+    return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+  }
   if (!['magiclink', 'recovery', 'signup'].includes(type)) {
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
   }
@@ -97,7 +101,14 @@ export async function POST(request) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    // Supabase Admin API errors can contain detail about which user
+    // exists / doesn't exist / is unconfirmed. Don't echo verbatim —
+    // log server-side, return a generic message + request ID.
+    return serverError(
+      'Could not generate the auth link. Check the email and try again.',
+      error,
+      { status: 400, context: { type, email_domain: email.split('@')[1] || null } }
+    );
   }
 
   // The action_link is the user-clickable URL. Hashed token info also

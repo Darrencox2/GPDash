@@ -18,6 +18,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { parseTeamnetCalendar } from '@/lib/teamnet';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { requireUuid, serverError } from '@/lib/api-helpers';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -43,9 +44,8 @@ const TEAMNET_MARKER = '[teamnet]';
 export async function POST(request) {
   const url = new URL(request.url);
   const practiceId = url.searchParams.get('practice');
-  if (!practiceId) {
-    return NextResponse.json({ error: 'practice query param required' }, { status: 400 });
-  }
+  const badUuid = requireUuid(practiceId, 'practice');
+  if (badUuid) return badUuid;
 
   const cookieStore = cookies();
   const supabase = createClient(cookieStore);
@@ -120,7 +120,11 @@ export async function POST(request) {
       }
       icsText = await r.text();
     } catch (err) {
-      return NextResponse.json({ error: `Calendar fetch error: ${err.message}` }, { status: 502 });
+      return serverError(
+        'Could not fetch the calendar. Check the URL and try again.',
+        err,
+        { status: 502, context: { practiceId, mode: 'parse-only' } }
+      );
     }
 
     let absences;
@@ -128,7 +132,11 @@ export async function POST(request) {
       // Parser expects v3-shape clinicians (with id field). Our v4 rows match.
       absences = parseTeamnetCalendar(icsText, clinicians || []);
     } catch (err) {
-      return NextResponse.json({ error: `Parse error: ${err.message}` }, { status: 500 });
+      return serverError(
+        'Could not parse the calendar — the format may be unsupported.',
+        err,
+        { status: 500, context: { practiceId, mode: 'parse-only' } }
+      );
     }
 
     // Replace existing teamnet-sourced absences. Find them by:
@@ -201,7 +209,11 @@ export async function POST(request) {
       }
       icsText = await r.text();
     } catch (err) {
-      return NextResponse.json({ error: `Calendar fetch error: ${err.message}` }, { status: 502 });
+      return serverError(
+        'Could not fetch the calendar. Check the URL and try again.',
+        err,
+        { status: 502, context: { practiceId, mode: 'full-sync' } }
+      );
     }
   } else {
     return NextResponse.json({ error: 'No ICS content or URL provided' }, { status: 400 });
@@ -211,7 +223,11 @@ export async function POST(request) {
   try {
     absences = parseTeamnetCalendar(icsText, clinicians || []);
   } catch (err) {
-    return NextResponse.json({ error: `Parse error: ${err.message}` }, { status: 500 });
+    return serverError(
+      'Could not parse the calendar — the format may be unsupported.',
+      err,
+      { status: 500, context: { practiceId, mode: 'full-sync' } }
+    );
   }
 
   try {

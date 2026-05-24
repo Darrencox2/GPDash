@@ -38,6 +38,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { requireUuid } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -83,9 +84,8 @@ export async function POST(request) {
   try { body = await request.json(); } catch { body = {}; }
   const targetUserId = body?.target_user_id;
   const reason = (body?.reason || '').trim() || null;
-  if (!targetUserId) {
-    return NextResponse.json({ error: 'target_user_id required' }, { status: 400 });
-  }
+  const badUuid = requireUuid(targetUserId, 'target_user_id');
+  if (badUuid) return badUuid;
   if (targetUserId === caller.id) {
     return NextResponse.json({ error: 'Cannot impersonate yourself' }, { status: 400 });
   }

@@ -24,6 +24,7 @@ import { cookies } from 'next/headers';
 import { createClient as createUserClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { requireUuid, serverError } from '@/lib/api-helpers';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -66,10 +67,8 @@ function normaliseWorkingPattern(wp) {
 async function runImport(request, { dryRun }) {
   const url = new URL(request.url);
   const practiceId = url.searchParams.get('practiceId');
-
-  if (!practiceId) {
-    return NextResponse.json({ error: 'practiceId query param required' }, { status: 400 });
-  }
+  const badUuid = requireUuid(practiceId, 'practiceId');
+  if (badUuid) return badUuid;
 
   // 1. Authn/authz: caller must be the owner of the target practice
   const cookieStore = cookies();
@@ -123,7 +122,11 @@ async function runImport(request, { dryRun }) {
   try {
     v3Data = await readRedisData();
   } catch (err) {
-    return NextResponse.json({ error: `Failed to read Redis: ${err.message}` }, { status: 500 });
+    return serverError(
+      'Failed to read the v3 Redis data. Check Upstash env vars and try again.',
+      err,
+      { status: 500, context: { practiceId, op: 'redis_read' } }
+    );
   }
   if (!v3Data || typeof v3Data !== 'object') {
     return NextResponse.json({ error: 'Redis blob is empty or invalid' }, { status: 500 });
