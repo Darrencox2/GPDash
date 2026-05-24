@@ -1182,6 +1182,24 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // mount only
 
+  // ─── URL validation ──────────────────────────────────────────────────
+  // Quick regex sanity check on the URL format before we bother saving
+  // and trying to sync. Three states:
+  //   bad-protocol  — empty/non-https; sync would 404 immediately
+  //   unusual-host  — https but doesn't mention teamnet/clarity/diary
+  //                   (could still work — TeamNet URLs vary — but worth a
+  //                   heads-up about typos)
+  //   looks-good    — passes both checks; auto-sync once saved
+  const urlState = useMemo(() => {
+    const v = (teamnetUrl || '').trim();
+    if (!v) return null;
+    if (!/^https:\/\//i.test(v)) return { kind: 'bad-protocol', text: 'URL should start with https://' };
+    if (!/teamnet|clarity\.co\.uk|diary|ics|webcal/i.test(v)) {
+      return { kind: 'unusual-host', text: "Doesn't look like a TeamNet URL — double check?" };
+    }
+    return { kind: 'looks-good' };
+  }, [teamnetUrl]);
+
   // TeamNet URL lives on practice_settings (one row per practice). Upsert
   // because a brand-new practice might not have the settings row yet.
   const save = async (url) => {
@@ -1193,15 +1211,28 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
     setSaving(false);
     if (err) {
       setError(err.message);
-      return;
+      return false;
     }
     setSavedAt(new Date());
+    return true;
   };
 
   const onChange = (v) => {
     setTeamnetUrl(v);
+    setSavedAt(null);     // re-edit clears the "Saved" indicator
+    setSyncStatus(null);  // ...and the previous sync result
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => save(v), 600);
+    saveTimer.current = setTimeout(async () => {
+      const ok = await save(v);
+      // Auto-fire a sync after save if URL looks plausible. This is the
+      // "live test" — confirms the URL is reachable + the calendar
+      // parses, without the user having to click Sync now manually. We
+      // only auto-fire on https URLs (skip the bad-protocol case where
+      // it's guaranteed to fail).
+      if (ok && v && /^https:\/\//i.test(v)) {
+        syncNow();
+      }
+    }, 600);
   };
 
   // Trigger an immediate calendar sync. Useful so users can confirm
@@ -1241,10 +1272,42 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           value={teamnetUrl}
           onChange={e => onChange(e.target.value)}
           placeholder="https://teamnet.clarity.co.uk/Diary/Sync/..."
-          style={inputStyle}
+          style={{
+            ...inputStyle,
+            borderColor: urlState?.kind === 'bad-protocol' ? 'rgba(239,68,68,0.4)'
+              : urlState?.kind === 'unusual-host' ? 'rgba(251,191,36,0.4)'
+              : urlState?.kind === 'looks-good' ? 'rgba(16,185,129,0.4)'
+              : inputStyle.border,
+          }}
         />
-        <div style={{ fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b'), marginTop: 6 }}>
-          {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves as you type')}
+        <div style={{
+          marginTop: 6,
+          fontSize: 11,
+          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+          color: '#64748b',
+        }}>
+          {/* Format check — shown as soon as the user types anything */}
+          {urlState && (
+            <span style={{
+              color: urlState.kind === 'looks-good' ? '#10b981'
+                : urlState.kind === 'unusual-host' ? '#fbbf24'
+                : '#fca5a5',
+            }}>
+              {urlState.kind === 'looks-good' ? '✓ Format looks right'
+                : urlState.kind === 'unusual-host' ? `⚠ ${urlState.text}`
+                : `✗ ${urlState.text}`}
+            </span>
+          )}
+          {/* Save state — separate from format check so the user sees both */}
+          <span style={{
+            color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b'),
+          }}>
+            {saving ? 'Saving…' : (savedAt ? '· ✓ Saved' : (urlState ? '· Auto-saves' : 'Auto-saves as you type'))}
+          </span>
+          {/* Sync state — shown after the auto-sync fires post-save */}
+          {syncing && (
+            <span style={{ color: '#94a3b8' }}>· Testing URL…</span>
+          )}
         </div>
       </div>
 
@@ -2517,7 +2580,47 @@ function ColourPicker({ value, onChange }) {
 
 // ─── Step 6: Demand history (optional) ─────────────────────────────────
 function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData }) {
+  const supabase = createClient();
   const [howToOpen, setHowToOpen] = useState(null); // 'askmygp' | 'anima' | null
+  // History summary per source. Fetched on mount + refetched after upload
+  // so the "what's unlocked" panel updates immediately.
+  // Shape: [{ source, row_count, earliest_date, latest_date }]
+  const [historySummary, setHistorySummary] = useState([]);
+
+  const loadHistory = useCallback(async () => {
+    const { data } = await supabase
+      .from('demand_history_summary')
+      .select('source, row_count, earliest_date, latest_date')
+      .eq('practice_id', practiceId);
+    setHistorySummary(data || []);
+  }, [practiceId, supabase]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  // Compute total span across all sources + total rows. Used to drive
+  // the feature-unlock checklist. Thresholds mirror the ones in
+  // lib/demand-recalibration.js:
+  //   MIN_SAMPLE_FOR_DOW       = 20 rows
+  //   MIN_SPAN_DAYS_FOR_TREND  = 90 days
+  //   MIN_SPAN_DAYS_FOR_MONTHS = 270 days
+  const { totalRows, totalSpanDays, earliest, latest } = useMemo(() => {
+    if (historySummary.length === 0) return { totalRows: 0, totalSpanDays: 0, earliest: null, latest: null };
+    let rows = 0;
+    let earliestStr = null;
+    let latestStr = null;
+    for (const h of historySummary) {
+      rows += (h.row_count || 0);
+      if (h.earliest_date && (!earliestStr || h.earliest_date < earliestStr)) earliestStr = h.earliest_date;
+      if (h.latest_date && (!latestStr || h.latest_date > latestStr)) latestStr = h.latest_date;
+    }
+    let span = 0;
+    if (earliestStr && latestStr) {
+      span = Math.round((new Date(latestStr) - new Date(earliestStr)) / 86400000);
+    }
+    return { totalRows: rows, totalSpanDays: span, earliest: earliestStr, latest: latestStr };
+  }, [historySummary]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <p style={fieldHelp}>
@@ -2532,19 +2635,56 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData 
       {hasDemandData ? (
         <div style={{
           padding: 16,
-          background: 'rgba(16,185,129,0.08)',
+          background: 'rgba(16,185,129,0.06)',
           border: '1px solid rgba(16,185,129,0.25)',
           borderRadius: 10,
-          display: 'flex', alignItems: 'center', gap: 12,
         }}>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CheckIcon />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, color: '#6ee7b7', fontWeight: 500 }}>Demand data uploaded</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
-              The model is now calibrated to your practice.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <CheckIcon />
             </div>
+            <div>
+              <div style={{ fontSize: 14, color: '#6ee7b7', fontWeight: 600 }}>Demand data uploaded</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                {totalRows > 0 ? (
+                  <>{totalRows.toLocaleString()} rows{totalSpanDays > 0 && <> · {totalSpanDays} day{totalSpanDays === 1 ? '' : 's'} of history</>}{earliest && latest && <> ({new Date(earliest).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} → {new Date(latest).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })})</>}</>
+                ) : (
+                  'Calibration complete'
+                )}
+              </div>
+            </div>
+          </div>
+          {totalSpanDays > 0 && (
+            <div>
+              <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: 0.5, fontWeight: 600, marginBottom: 8 }}>
+                MODEL FEATURES UNLOCKED
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <FeatureRow
+                  on={totalRows >= 1}
+                  label="Baseline demand"
+                  hint="Average daily demand from your data"
+                />
+                <FeatureRow
+                  on={totalRows >= 20}
+                  label="Day-of-week effects"
+                  hint={totalRows >= 20 ? "Mondays vs Fridays calibrated to your practice" : `Need 20+ rows — currently ${totalRows}`}
+                />
+                <FeatureRow
+                  on={totalSpanDays >= 90}
+                  label="Long-term growth trend"
+                  hint={totalSpanDays >= 90 ? "Growth slope calibrated from 90+ days of data" : `Need 90+ days of history — currently ${totalSpanDays}`}
+                />
+                <FeatureRow
+                  on={totalSpanDays >= 270}
+                  label="Monthly seasonality"
+                  hint={totalSpanDays >= 270 ? "Full-year patterns (school holidays, winter pressures)" : `Need 270+ days of history — currently ${totalSpanDays}. Upload more history to unlock`}
+                />
+              </div>
+            </div>
+          )}
+          <div style={{ marginTop: 14, fontSize: 11, color: '#64748b' }}>
+            Want to add more history? Drop another export onto the upload area on the Demand tab in your practice settings.
           </div>
         </div>
       ) : (
@@ -2552,7 +2692,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData 
           practiceId={practiceId}
           demandSettings={null}
           history={[]}
-          onUploadSuccess={() => setHasDemandData(true)}
+          onUploadSuccess={() => { setHasDemandData(true); loadHistory(); }}
         />
       )}
 
@@ -2862,6 +3002,40 @@ function Label({ children }) {
     <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6, fontWeight: 500 }}>
       {children}
     </label>
+  );
+}
+
+// Feature-unlock row for the demand step. Shows a small green/grey
+// pill indicating whether the feature is active, with a hint string
+// explaining what to do to unlock it (or what it means once active).
+function FeatureRow({ on, label, hint }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{
+        flexShrink: 0,
+        width: 16, height: 16, borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: on ? '#10b981' : 'rgba(255,255,255,0.06)',
+        border: `1px solid ${on ? '#10b981' : 'rgba(255,255,255,0.12)'}`,
+        marginTop: 2,
+      }}>
+        {on ? (
+          <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+            <path d="M2.5 7.5L5.5 10.5L11.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ) : null}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, color: on ? '#e2e8f0' : '#94a3b8', fontWeight: 500 }}>
+          {label}
+        </div>
+        {hint && (
+          <div style={{ fontSize: 11, color: on ? '#94a3b8' : '#64748b', marginTop: 1 }}>
+            {hint}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
