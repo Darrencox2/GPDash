@@ -1,0 +1,23 @@
+Contact: mailto:security@gpdash.net
+Expires: 2027-05-19T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://gpdash.net/.well-known/security.txt
+
+# GPDash — vulnerability disclosure
+#
+# We welcome reports of security issues affecting GPDash or the
+# practice data we hold. Please email security@gpdash.net with:
+#   - A description of the issue
+#   - Steps to reproduce
+#   - Your contact details for follow-up
+#
+# We aim to acknowledge reports within 2 working days and to publish
+# a remediation plan within 14 days for confirmed vulnerabilities.
+#
+# Please avoid:
+#   - Testing against live practice data — use the preview deployment
+#     at preview.gpdash.net or request a test account
+#   - Automated scanners that hit the production database
+#   - Anything that affects patient-facing services
+#
+# Thank you for helping keep GP practices safe.

@@ -22,10 +22,11 @@
 //                                but that's a heavier lift; this is still a major
 //                                step up from no CSP at all.
 //   style-src                  — same-origin + inline (we use style={{...}} pervasively)
-//      'unsafe-inline'           + Google Fonts stylesheet
-//      fonts.googleapis.com
-//   font-src                   — Google Fonts files (gstatic) + data: URIs
-//      fonts.gstatic.com         (Next.js inlines some small fonts as data URIs)
+//      'unsafe-inline'           + Bunny Fonts stylesheet (privacy-respecting
+//      fonts.bunny.net           Google Fonts drop-in — no IP tracking, EU-hosted,
+//                                GDPR-compliant)
+//   font-src                   — Bunny Fonts files + data: URIs (Next.js
+//      fonts.bunny.net           inlines some small fonts as data URIs)
 //      data:
 //   img-src 'self' data: blob: — own images + base64 + Blob URLs (file previews)
 //   connect-src                — XHR/fetch destinations: own origin (API routes),
@@ -107,13 +108,18 @@ const securityHeaders = [
 
   // ─── Content Security Policy ──────────────────────────────────────────
   // See comment block at top of file for per-directive rationale.
+  //
+  // Reporting: any directive violation triggers a POST to /api/csp-report.
+  // We use both `report-uri` (legacy, broader browser support) and the
+  // newer Reports API via the Report-To header (set separately below).
+  // Modern browsers prefer Report-To if both are present.
   {
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com data:",
+      "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
+      "font-src 'self' https://fonts.bunny.net data:",
       "img-src 'self' data: blob:",
       "connect-src 'self' https://*.supabase.co https://api.postcodes.io",
       "frame-src 'none'",
@@ -122,7 +128,22 @@ const securityHeaders = [
       "form-action 'self'",
       "object-src 'none'",
       "upgrade-insecure-requests",
+      "report-uri /api/csp-report",
+      "report-to csp-endpoint",
     ].join('; '),
+  },
+
+  // ─── Report-To header ─────────────────────────────────────────────────
+  // Configures the newer Reports API. The 'group' name matches the
+  // 'report-to' directive in the CSP above. max_age is in seconds —
+  // browser remembers the endpoint for 24h between requests.
+  {
+    key: 'Report-To',
+    value: JSON.stringify({
+      group: 'csp-endpoint',
+      max_age: 86400,
+      endpoints: [{ url: '/api/csp-report' }],
+    }),
   },
 
   // ─── Cross-origin isolation ───────────────────────────────────────────

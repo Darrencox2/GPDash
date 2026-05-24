@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Outfit:wght@200;300;400;500&display=swap');
+/* Fonts served via Bunny Fonts — a privacy-respecting drop-in replacement
+   for Google Fonts. Same font catalogue, GDPR-compliant (no tracking,
+   EU-hosted), no IP logging. Eliminates the Google trust requirement +
+   the data-protection concern of every page load pinging Google.
+   Long-term plan: self-host via next/font/google for zero external
+   dependencies. Tracked separately. */
+@import url('https://fonts.bunny.net/css?family=dm-sans:400,500,600,700|space-mono:400,700|outfit:200,300,400,500&display=swap');
 
 @tailwind base;
 @tailwind components;
