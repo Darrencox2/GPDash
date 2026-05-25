@@ -2,9 +2,9 @@
 // baseline data uploads. Shows latest month present, freshness indicator,
 // and the upload form for new monthly data.
 
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/admin-guard';
 import AdminNav from '../AdminNav';
 import NhsDataUploader from './NhsDataUploader';
 import ListSizeBackfill from './ListSizeBackfill';
@@ -16,14 +16,7 @@ export default async function NhsDataAdminPage() {
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/v4/login');
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (!profile?.is_platform_admin) redirect('/v4/dashboard');
+  await requireAdmin(supabase, { returnTo: '/v4/admin/nhs-data' });
 
   // Get all months we have data for (most recent first)
   const { data: monthsRaw } = await supabase

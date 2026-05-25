@@ -1,8 +1,8 @@
 // /v4/admin/users — search and list every user on the platform.
 
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/admin-guard';
 import AdminNav from '../AdminNav';
 import UserSearch from './UserSearch';
 import UserListTable from './UserListTable';
@@ -14,15 +14,7 @@ export default async function AdminUsersPage({ searchParams }) {
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/v4/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (!profile?.is_platform_admin) redirect('/v4/dashboard');
+  await requireAdmin(supabase, { returnTo: '/v4/admin/users' });
 
   const search = (await searchParams)?.q || '';
   const { data: users, error } = await supabase.rpc('admin_list_users', {

@@ -2,10 +2,11 @@
 // practice memberships, and admin actions: edit profile, manage
 // memberships, delete user, send password reset.
 
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/admin-guard';
 import AdminNav from '../../AdminNav';
 import PasswordResetButton from './PasswordResetButton';
 import UserActions from './UserActions';
@@ -24,15 +25,7 @@ export default async function AdminUserDetailPage({ params }) {
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/v4/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (!profile?.is_platform_admin) redirect('/v4/dashboard');
+  const { user } = await requireAdmin(supabase, { returnTo: `/v4/admin/users/${userId}` });
 
   const { data: details, error } = await supabase.rpc('admin_get_user', {
     target_user_id: userId,

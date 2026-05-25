@@ -49,11 +49,30 @@ function LoginPageInner() {
     }
     setLoading(true);
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (err) {
+      setLoading(false);
       setError(err.message);
       return;
     }
+
+    // Check whether MFA is required for this account. getAuthenticatorAssuranceLevel
+    // returns:
+    //   currentLevel = the level we're at right now
+    //   nextLevel    = the level we should be at
+    // If they don't match, the user has MFA enrolled but hasn't proved it
+    // this session — bounce them to the challenge page before continuing.
+    // requireAdmin in lib/admin-guard.js also enforces this server-side
+    // when an admin page is requested, but doing it here too gives a
+    // cleaner UX (one redirect, not a flash of the destination page
+    // before the server redirect kicks in).
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    setLoading(false);
+    if (aal && aal.currentLevel === 'aal1' && aal.nextLevel === 'aal2') {
+      router.push(`/v4/mfa-verify?next=${encodeURIComponent(next)}`);
+      router.refresh();
+      return;
+    }
+
     router.push(next);
     router.refresh();
   };

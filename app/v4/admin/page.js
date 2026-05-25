@@ -7,10 +7,10 @@
 // which RLS lets the platform admin into via the is_practice_admin()
 // override.
 
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/admin-guard';
 import AdminNav from './AdminNav';
 
 export const dynamic = 'force-dynamic';
@@ -20,16 +20,9 @@ export default async function AdminPracticesPage() {
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/v4/login');
-
-  // Gate: must be platform admin
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (!profile?.is_platform_admin) redirect('/v4/dashboard');
+  // Auth + platform-admin + MFA enforcement in one call. Redirects on
+  // any failure; if we get past this line the user is fully cleared.
+  await requireAdmin(supabase, { returnTo: '/v4/admin' });
 
   const { data: practices, error } = await supabase.rpc('admin_list_practices');
 

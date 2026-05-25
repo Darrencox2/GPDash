@@ -16,10 +16,11 @@
 // BuddyCoverSettings, DemandTab, etc.) here — they're 800+ lines and
 // changing them in two places would invite drift. Linked instead.
 
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/admin-guard';
 import AdminNav from '../../AdminNav';
 import PracticeMembers from './PracticeMembers';
 import DeletePracticeButton from './DeletePracticeButton';
@@ -33,15 +34,7 @@ export default async function AdminPracticeDetailPage({ params }) {
   const supabase = createClient(cookieStore);
   if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/v4/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_platform_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (!profile?.is_platform_admin) redirect('/v4/dashboard');
+  await requireAdmin(supabase, { returnTo: `/v4/admin/practices/${practiceId}` });
 
   const { data: details, error } = await supabase.rpc('admin_get_practice_detail', {
     target_practice_id: practiceId,
