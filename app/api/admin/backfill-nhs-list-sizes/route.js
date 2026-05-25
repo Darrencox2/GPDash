@@ -147,6 +147,31 @@ export async function POST(request) {
     .from('nhs_oc_baseline')
     .select('id', { count: 'exact', head: true });
 
+  // Audit log — only when a backfill batch completes. The route is
+  // designed to be hit repeatedly until done, so logging every batch
+  // would create noise. Logging when done=true captures the full run
+  // outcome at the right granularity for the audit trail.
+  if ((remaining || 0) === 0) {
+    try {
+      await supabase.rpc('log_platform_audit_event', {
+        action: 'list_sizes_backfilled',
+        target_user_id: null,
+        target_email: null,
+        description: 'NHS list-size backfill completed',
+        details: {
+          total_rows: total || 0,
+          final_batch_requested: uniqueOds.length,
+          final_batch_updated: results.updated,
+          final_batch_errors: results.errors,
+        },
+        ip_address: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+        user_agent: request.headers.get('user-agent')?.slice(0, 500) || null,
+      });
+    } catch (e) {
+      console.warn('[backfill-nhs-list-sizes] Audit log failed:', e?.message);
+    }
+  }
+
   return NextResponse.json({
     batch: cursor,
     requested: uniqueOds.length,

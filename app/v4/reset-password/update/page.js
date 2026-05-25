@@ -49,6 +49,13 @@ export default function ResetPasswordUpdatePage() {
     if (err) {
       setError(err.message);
     } else {
+      // Audit: log the password change. User is signed in at this
+      // point (the reset link gave them a session), so auth.uid()
+      // resolves correctly inside the RPC.
+      supabase.rpc('log_auth_event', {
+        event_type: 'password_changed',
+        details: { via: 'reset_link' },
+      }).catch(() => {});
       router.push('/v4/dashboard');
       router.refresh();
     }

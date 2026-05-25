@@ -111,6 +111,25 @@ export async function POST(request) {
     );
   }
 
+  // Audit log — admin link generation is sensitive. It produces a URL
+  // that gives whoever clicks it a signed-in session as the target user.
+  // We log who generated it, for whom, and the link type — but NOT the
+  // link itself (the action URL contains a one-shot token; logging it
+  // would create a window where a log reader could replay it).
+  try {
+    await supabase.rpc('log_platform_audit_event', {
+      action: 'admin_link_generated',
+      target_user_id: null,            // We don't have target's auth.uid here without an extra round-trip
+      target_email: email,
+      description: `${type} link generated for ${email}`,
+      details: { link_type: type },
+      ip_address: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+      user_agent: request.headers.get('user-agent')?.slice(0, 500) || null,
+    });
+  } catch (e) {
+    console.warn('[generate-link] Audit log failed:', e?.message);
+  }
+
   // The action_link is the user-clickable URL. Hashed token info also
   // exists in data.properties but we don't expose those — just the URL.
   return NextResponse.json({

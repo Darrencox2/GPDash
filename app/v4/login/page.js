@@ -52,8 +52,25 @@ function LoginPageInner() {
     if (err) {
       setLoading(false);
       setError(err.message);
+      // Audit: failed login attempt. Logged anonymously (no auth.uid()
+      // because sign-in failed) — log_auth_event grants execute to
+      // 'anon' specifically for this case. Best-effort; don't block
+      // the error UX on a logging failure.
+      supabase.rpc('log_auth_event', {
+        event_type: 'failed_login',
+        email,
+        details: { reason: err.message },
+      }).catch(() => {});
       return;
     }
+
+    // Audit: successful login. Now signed in so auth.uid() resolves
+    // and the row is attributed to the right user.
+    supabase.rpc('log_auth_event', {
+      event_type: 'login',
+      email,
+      details: null,
+    }).catch(() => {});
 
     // Check whether MFA is required for this account. getAuthenticatorAssuranceLevel
     // returns:

@@ -120,6 +120,27 @@ export async function POST(request) {
     }, { status: 500 });
   }
 
+  // Audit log — record the suspension. Uses the supabase client (caller's
+  // session) so auth.uid() inside the RPC resolves to the calling admin.
+  // best-effort: a failure to log shouldn't fail the operation, but
+  // console.warn so log monitoring can pick it up.
+  try {
+    // Look up target email for denormalised storage (so we can read the
+    // audit row meaningfully even after the target user is deleted).
+    const { data: targetUser } = await adminClient.auth.admin.getUserById(targetUserId);
+    await supabase.rpc('log_platform_audit_event', {
+      action: 'user_suspended',
+      target_user_id: targetUserId,
+      target_email: targetUser?.user?.email || null,
+      description: reason ? `Suspended (reason: ${reason})` : 'Suspended',
+      details: { reason },
+      ip_address: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+      user_agent: request.headers.get('user-agent')?.slice(0, 500) || null,
+    });
+  } catch (e) {
+    console.warn('[suspend-user] Audit log failed:', e?.message);
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -131,6 +152,7 @@ export async function POST(request) {
 export async function DELETE(request) {
   const auth = await requireAdminCaller();
   if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const { supabase } = auth;
 
   let body;
   try { body = await request.json(); } catch { body = {}; }
@@ -160,6 +182,22 @@ export async function DELETE(request) {
     return NextResponse.json({
       error: `Metadata clear failed (auth ban already lifted): ${metaErr.message}`,
     }, { status: 500 });
+  }
+
+  // Audit log — record the unsuspension.
+  try {
+    const { data: targetUser } = await adminClient.auth.admin.getUserById(targetUserId);
+    await supabase.rpc('log_platform_audit_event', {
+      action: 'user_unsuspended',
+      target_user_id: targetUserId,
+      target_email: targetUser?.user?.email || null,
+      description: 'Unsuspended',
+      details: null,
+      ip_address: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+      user_agent: request.headers.get('user-agent')?.slice(0, 500) || null,
+    });
+  } catch (e) {
+    console.warn('[suspend-user] Audit log failed:', e?.message);
   }
 
   return NextResponse.json({ ok: true });

@@ -28,6 +28,16 @@ export default function ResetPasswordPage() {
     if (err) {
       setError(err.message);
     } else {
+      // Audit: log the reset request. anon execute is granted on
+      // log_auth_event for exactly this case — the request happens
+      // before sign-in. Don't disclose whether the email exists
+      // (resetPasswordForEmail itself doesn't either), just record
+      // the request.
+      supabase.rpc('log_auth_event', {
+        event_type: 'password_reset_requested',
+        email,
+        details: null,
+      }).catch(() => {});
       setSent(true);
     }
   };

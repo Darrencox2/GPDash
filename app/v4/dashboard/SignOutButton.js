@@ -8,6 +8,13 @@ export default function SignOutButton() {
 
   const handleSignOut = async () => {
     if (supabase) {
+      // Audit: log BEFORE signOut. After signOut returns, auth.uid()
+      // inside the RPC is null, so log_auth_event would reject the
+      // call. Logging first attributes the row to the right user.
+      await supabase.rpc('log_auth_event', {
+        event_type: 'logout',
+        details: null,
+      }).catch(() => {});
       await supabase.auth.signOut();
     }
     router.push('/v4/login');

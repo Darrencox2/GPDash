@@ -146,6 +146,25 @@ export async function POST(request) {
     return NextResponse.json({ error: 'upsert_failed', detail: upsertErr.message }, { status: 500 });
   }
 
+  // Audit: seeding the demand model from NHS baseline is a settings
+  // mutation that materially changes how the practice's predictions
+  // are computed. Worth a row in the practice audit trail.
+  try {
+    await supabase.rpc('log_audit_event', {
+      target_practice_id: practiceId,
+      event_type: 'settings_changed',
+      description: `Demand model seeded from NHS baseline (${baseline.month})`,
+      details: {
+        source: 'nhs_oc_baseline',
+        source_month: baseline.month,
+        ods_code: practice.ods_code,
+        baseline_total: seed.sourceTotal,
+      },
+    });
+  } catch (e) {
+    console.warn('[seed-demand-from-nhs] Audit log failed:', e?.message);
+  }
+
   return NextResponse.json({
     seeded: true,
     odsCode: practice.ods_code,

@@ -156,6 +156,13 @@ function SignupPageInner() {
       return;
     }
     if (data?.session) {
+      // Audit: account creation complete. Logs after the session is
+      // active so auth.uid() resolves to the new user.
+      supabase.rpc('log_auth_event', {
+        event_type: 'signup',
+        email,
+        details: null,
+      }).catch(() => {});
       router.push(next);
       router.refresh();
     } else {

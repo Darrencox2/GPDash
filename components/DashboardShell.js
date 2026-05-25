@@ -41,6 +41,12 @@ export default function DashboardShell({ shellData, activeSection, children }) {
   };
 
   const signOut = async () => {
+    // Audit logout BEFORE actually signing out — after signOut, auth.uid()
+    // is null and the RPC rejects.
+    await supabase.rpc('log_auth_event', {
+      event_type: 'logout',
+      details: null,
+    }).catch(() => {});
     await supabase.auth.signOut();
     router.push('/v4/login');
   };

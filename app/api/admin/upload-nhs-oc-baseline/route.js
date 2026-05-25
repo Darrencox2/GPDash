@@ -94,6 +94,29 @@ export async function POST(request) {
     upserted += chunk.length;
   }
 
+  // Audit log — bulk data upload affecting every practice on the
+  // platform (NHS baseline data feeds the demand model for all
+  // practices). Worth logging for traceability.
+  try {
+    await supabase.rpc('log_platform_audit_event', {
+      action: 'nhs_baseline_uploaded',
+      target_user_id: null,
+      target_email: null,
+      description: `NHS OC baseline uploaded for ${monthIso}`,
+      details: {
+        month: monthIso,
+        practices_upserted: upserted,
+        total_rows_parsed: totalRowsParsed,
+        files: files.length,
+        parse_elapsed_ms: parseElapsedMs,
+      },
+      ip_address: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+      user_agent: request.headers.get('user-agent')?.slice(0, 500) || null,
+    });
+  } catch (e) {
+    console.warn('[upload-nhs-oc-baseline] Audit log failed:', e?.message);
+  }
+
   return NextResponse.json({
     success: true,
     monthIso,
