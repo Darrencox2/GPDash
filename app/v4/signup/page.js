@@ -395,6 +395,11 @@ function SignupPageInner() {
         <div style={f.footerLink}>
           Already have an account? <Link href={loginHref} style={f.link}>Sign in</Link>
         </div>
+
+        <div style={{ ...f.footerLink, fontSize: 11, opacity: 0.75, marginTop: 8 }}>
+          By creating an account you agree to GPDash&apos;s{' '}
+          <Link href="/privacy" style={f.link}>Privacy Notice</Link>.
+        </div>
       </form>
     </AuthCard>
   );

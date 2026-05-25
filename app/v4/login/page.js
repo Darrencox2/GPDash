@@ -146,6 +146,9 @@ function LoginPageInner() {
         <div style={f.footerLink}>
           No account? <Link href={signupHref} style={f.link}>Sign up</Link>
         </div>
+        <div style={{ ...f.footerLink, fontSize: 11, opacity: 0.75, marginTop: 12 }}>
+          <Link href="/privacy" style={f.link}>Privacy notice</Link>
+        </div>
       </form>
     </AuthCard>
   );
