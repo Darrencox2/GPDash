@@ -206,7 +206,283 @@ export default function AccountSettings({ data }) {
           and on-call commitments appear in Apple Calendar / Google Calendar / Outlook.
         </p>
       </div>
+
+      {/* ─── Data & Privacy ─── */}
+      <DataAndPrivacy userEmail={v4.userEmail} />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Data & Privacy section — GDPR Article 15 (data export) + Article 17
+// (right to erasure). The export endpoint streams a JSON archive; the
+// delete flow walks a confirmation dialog with a typed-email guard and
+// surfaces blockers (sole owner, sole platform admin) from the
+// /api/v4/account/delete-check pre-flight before letting the user
+// click the destructive button.
+// ─────────────────────────────────────────────────────────────────────────
+function DataAndPrivacy({ userEmail }) {
+  const router = useRouter();
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [checkLoading, setCheckLoading] = useState(false);
+  const [checkResult, setCheckResult] = useState(null);
+  const [confirmText, setConfirmText] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  const exportData = async () => {
+    setExportBusy(true); setExportError('');
+    try {
+      const res = await fetch('/api/v4/account/export');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setExportError(err.error || `Export failed (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Use the filename suggested by the Content-Disposition header,
+      // falling back to a sensible default if absent.
+      const dispo = res.headers.get('content-disposition') || '';
+      const m = /filename="([^"]+)"/.exec(dispo);
+      a.download = m ? m[1] : `gpdash-account-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setExportError(e?.message || 'Export failed');
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const openDeleteModal = async () => {
+    setShowDeleteModal(true);
+    setCheckLoading(true);
+    setCheckResult(null);
+    setDeleteError('');
+    setConfirmText('');
+    try {
+      const res = await fetch('/api/v4/account/delete-check');
+      const json = await res.json();
+      setCheckResult(json);
+    } catch (e) {
+      setCheckResult({ can_delete: false, blockers: [{ type: 'network', message: 'Could not run pre-flight check. Please try again.' }] });
+    } finally {
+      setCheckLoading(false);
+    }
+  };
+
+  const doDelete = async () => {
+    if (!checkResult?.can_delete) return;
+    if (confirmText.trim().toLowerCase() !== (userEmail || '').trim().toLowerCase()) {
+      setDeleteError('Type your account email exactly to confirm.');
+      return;
+    }
+    setDeleteBusy(true); setDeleteError('');
+    try {
+      const res = await fetch('/api/v4/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm_email: confirmText.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setDeleteError(json.error || `Deletion failed (${res.status})`);
+        setDeleteBusy(false);
+        return;
+      }
+      // Successful — bounce to /v4/goodbye via a full reload so all client
+      // state is discarded and the now-invalid session is forgotten.
+      window.location.href = json.redirect || '/v4/goodbye';
+    } catch (e) {
+      setDeleteError(e?.message || 'Deletion failed');
+      setDeleteBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="card p-5">
+        <h2 className="text-base font-semibold text-slate-900 mb-3">Data &amp; privacy</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Your rights under UK GDPR. Export gives you a JSON archive of
+          everything we hold about your account; deletion permanently
+          removes your account and anonymises any audit log entries you
+          appeared in.
+        </p>
+
+        <div className="space-y-3">
+          {/* Export */}
+          <div className="flex items-start justify-between gap-3 py-2">
+            <div className="flex-1">
+              <div className="text-sm font-medium text-slate-900">Export my data</div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                Download a JSON archive of your profile, practice memberships,
+                MFA factors (metadata only), and all audit / auth events you
+                appear in. Does not include practice-scoped data (clinicians,
+                rotas, CSVs) — the practice is the controller for that data.
+              </div>
+            </div>
+            <button
+              onClick={exportData}
+              disabled={exportBusy}
+              className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50"
+              style={{
+                background: '#0e7490',
+                color: 'white',
+                border: 'none',
+              }}
+            >
+              {exportBusy ? 'Preparing…' : 'Download JSON'}
+            </button>
+          </div>
+          {exportError && (
+            <div className="text-xs text-red-600 px-2 py-1.5 rounded-md" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+              {exportError}
+            </div>
+          )}
+
+          {/* Delete */}
+          <div
+            className="flex items-start justify-between gap-3 py-3 mt-3"
+            style={{ borderTop: '1px solid #e2e8f0' }}
+          >
+            <div className="flex-1">
+              <div className="text-sm font-medium text-red-700">Delete my account</div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                Permanent. Removes your profile, MFA factors, and practice
+                memberships. Audit log entries you appeared in are anonymised
+                but kept for practice integrity. Cannot be undone.
+              </div>
+            </div>
+            <button
+              onClick={openDeleteModal}
+              className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+              style={{
+                background: 'white',
+                color: '#b91c1c',
+                border: '1px solid #fecaca',
+              }}
+            >
+              Delete account…
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Delete modal ─── */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(2px)' }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="w-full max-w-lg rounded-xl"
+            style={{ background: 'white', border: '1px solid #e2e8f0', maxHeight: '85vh', overflowY: 'auto' }}
+          >
+            <div className="px-5 py-4" style={{ borderBottom: '1px solid #e2e8f0' }}>
+              <div className="text-base font-semibold text-red-700">Delete your GPDash account</div>
+              <div className="text-xs text-slate-500 mt-1">
+                This action is permanent. Read carefully before proceeding.
+              </div>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              {checkLoading ? (
+                <div className="text-sm text-slate-500 py-4">Running pre-flight checks…</div>
+              ) : checkResult?.can_delete === false ? (
+                <>
+                  <div className="text-sm font-medium text-slate-900 mb-1">
+                    You can&apos;t delete your account yet:
+                  </div>
+                  {checkResult.blockers.map((b, i) => (
+                    <div
+                      key={i}
+                      className="px-3 py-2.5 rounded-md text-xs"
+                      style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#7f1d1d' }}
+                    >
+                      <div className="font-medium mb-1">{b.message}</div>
+                      {b.action && <div className="opacity-80">{b.action}</div>}
+                      {b.practices && b.practices.length > 0 && (
+                        <ul className="mt-1.5 ml-3 list-disc opacity-80">
+                          {b.practices.map(p => <li key={p.slug}>{p.name} <span className="opacity-60">({p.slug})</span></li>)}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <div
+                    className="px-3 py-2.5 rounded-md text-xs"
+                    style={{ background: '#fef3c7', border: '1px solid #fcd34d', color: '#78350f' }}
+                  >
+                    <div className="font-medium mb-1">This will:</div>
+                    <ul className="ml-4 list-disc space-y-0.5 opacity-90">
+                      <li>Permanently delete your profile and MFA factors</li>
+                      <li>Remove your practice memberships</li>
+                      <li>Anonymise (not delete) audit log entries you appeared in</li>
+                      <li>Sign you out and discard your session</li>
+                    </ul>
+                  </div>
+                  <div className="text-xs text-slate-600 leading-relaxed">
+                    To confirm, type your account email below:{' '}
+                    <span className="font-mono font-medium text-slate-900">{userEmail}</span>
+                  </div>
+                  <input
+                    type="email"
+                    value={confirmText}
+                    onChange={e => setConfirmText(e.target.value)}
+                    placeholder="your email"
+                    autoComplete="off"
+                    className="w-full px-3 py-2 rounded-md text-sm"
+                    style={{ border: '1px solid #cbd5e1' }}
+                  />
+                </>
+              )}
+
+              {deleteError && (
+                <div className="text-xs text-red-700 px-3 py-2 rounded-md" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+                  {deleteError}
+                </div>
+              )}
+            </div>
+
+            <div
+              className="px-5 py-3 flex items-center justify-end gap-2"
+              style={{ borderTop: '1px solid #e2e8f0', background: '#f8fafc', borderBottomLeftRadius: '0.75rem', borderBottomRightRadius: '0.75rem' }}
+            >
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteBusy}
+                className="px-3 py-1.5 rounded-md text-xs font-medium text-slate-700"
+                style={{ background: 'white', border: '1px solid #cbd5e1' }}
+              >
+                Cancel
+              </button>
+              {checkResult?.can_delete && (
+                <button
+                  onClick={doDelete}
+                  disabled={deleteBusy || confirmText.trim().toLowerCase() !== (userEmail || '').trim().toLowerCase()}
+                  className="px-3 py-1.5 rounded-md text-xs font-medium disabled:opacity-50"
+                  style={{ background: '#b91c1c', color: 'white', border: 'none' }}
+                >
+                  {deleteBusy ? 'Deleting…' : 'Permanently delete my account'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
