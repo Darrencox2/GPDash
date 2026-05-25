@@ -54,7 +54,7 @@ export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show
 // by capacity cards on the Today page so all card configuration lives behind
 // one cog. Caller passes { card, palette, onChange, onDelete } where palette
 // is a list of {key, label, hex} colour options.
-export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show, setShow, title, dutyDoctorSlot, setDutyDoctorSlot, cardSettings }) {
+export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activeSlotTypes, show, setShow, title, dutyDoctorSlot, setDutyDoctorSlot, cardSettings }) {
   const [search, setSearch] = useState('');
   // Same portal pattern as SidePanel — without it, position: fixed on this
   // panel ends up positioned relative to whichever .glass card hosts the
@@ -70,9 +70,27 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
   const selectedCount = Object.values(overrides).filter(Boolean).length;
   const totalCount = slots.length;
 
+  // activeSlotTypes is a Set of slot type names that have actual count
+  // data in the current huddleData. knownSlotTypes is a permanent union
+  // of every slot type ever seen — once a name lands there it stays
+  // forever, even if EMIS renames it. If a slot type is in knownSlotTypes
+  // but NOT in activeSlotTypes, it's stale: the UI still offers it, but
+  // selecting it does nothing because no data is stored under that name.
+  // We surface this so the user can spot the mismatch and reselect.
+  const activeSet = activeSlotTypes instanceof Set ? activeSlotTypes : new Set(activeSlotTypes || []);
+  const hasActiveInfo = activeSet.size > 0;
+  const isStale = (s) => hasActiveInfo && !activeSet.has(s);
+
   const dutySelectedSet = new Set(
     Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])
   );
+
+  // Warn loudly if any SELECTED duty doctor slot type is no longer in the
+  // current data — that's the most common cause of "duty doctor not
+  // detected anywhere" reports.
+  const staleSelectedDuty = hasActiveInfo
+    ? Array.from(dutySelectedSet).filter(s => !activeSet.has(s))
+    : [];
 
   const panel = (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={title || 'Slot filter'}>
@@ -258,16 +276,45 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
                 </span>
               )}
             </div>
+
+            {/* Stale-selection warning — surfaces the common "duty doctor
+                stopped working" case where a saved slot type no longer
+                appears in current CSV data. */}
+            {staleSelectedDuty.length > 0 && (
+              <div
+                className="text-[11px] mb-2 px-2.5 py-2 rounded-md leading-relaxed"
+                style={{
+                  background: 'rgba(239,68,68,0.10)',
+                  border: '1px solid rgba(239,68,68,0.30)',
+                  color: '#fca5a5',
+                }}
+              >
+                <div className="font-semibold mb-1" style={{ color: '#fecaca' }}>
+                  Selected slot type isn&apos;t in your current data
+                </div>
+                <div>
+                  <span className="opacity-80">Not found in current CSV:</span>{' '}
+                  <span style={{ fontFamily: "'Space Mono', monospace" }}>
+                    {staleSelectedDuty.map(s => `"${s}"`).join(', ')}
+                  </span>
+                </div>
+                <div className="mt-1 opacity-80">
+                  Duty doctor won&apos;t be detected. Untick the stale entry and pick a slot type that&apos;s in your current data (marked below without &quot;stale&quot;).
+                </div>
+              </div>
+            )}
+
             <div className="space-y-0.5 max-h-32 overflow-y-auto pr-1 -mr-1" style={{ scrollbarWidth: 'thin' }}>
               {slots.map(s => {
                 const selected = dutySelectedSet.has(s);
+                const stale = isStale(s);
                 return (
                   <label
                     key={s}
                     className="flex items-center gap-2 text-xs cursor-pointer rounded-md px-2 py-1.5 transition-colors"
                     style={{
                       background: selected ? 'rgba(245,158,11,0.12)' : 'transparent',
-                      color: selected ? '#fde68a' : '#94a3b8',
+                      color: selected ? '#fde68a' : (stale ? '#64748b' : '#94a3b8'),
                     }}
                   >
                     <input
@@ -280,7 +327,16 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
                       className="flex-shrink-0 w-3.5 h-3.5 cursor-pointer"
                       style={{ accentColor: '#f59e0b' }}
                     />
-                    <span className="truncate" title={s}>{s}</span>
+                    <span className="truncate flex-1" title={s} style={stale ? { textDecoration: 'line-through' } : undefined}>{s}</span>
+                    {stale && (
+                      <span
+                        className="text-[9px] px-1 py-0.5 rounded uppercase tracking-wider flex-shrink-0"
+                        style={{ background: 'rgba(100,116,139,0.20)', color: '#94a3b8' }}
+                        title="This slot type isn't in your current CSV data. Selecting it has no effect."
+                      >
+                        stale
+                      </span>
+                    )}
                   </label>
                 );
               })}
@@ -381,7 +437,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, show,
 }
 
 // ── Convenience export combining button + panel ──────────────────────────
-export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, title, variant = 'dark', initialOverrides, dutyDoctorSlot, setDutyDoctorSlot, readOnly, cardSettings }) {
+export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, activeSlotTypes, title, variant = 'dark', initialOverrides, dutyDoctorSlot, setDutyDoctorSlot, readOnly, cardSettings }) {
   const [show, setShow] = useState(false);
   const noop = () => {};
   const setOverridesGated = readOnly ? noop : setOverrides;
@@ -402,6 +458,7 @@ export default function SlotFilter({ overrides, setOverrides, knownSlotTypes, ti
         overrides={overrides}
         setOverrides={setOverridesGated}
         knownSlotTypes={knownSlotTypes}
+        activeSlotTypes={activeSlotTypes}
         show={show}
         setShow={setShow}
         title={title}

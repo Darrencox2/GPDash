@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Button, Card } from '@/components/ui';
-import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getDutyDoctor, getBand, getCliniciansForDate, getSiteColour } from '@/lib/huddle';
+import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getDutyDoctor, getBand, getCliniciansForDate, getSiteColour, getActiveSlotTypes } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import HuddleFullscreen from './HuddleFullscreen';
@@ -79,6 +79,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   const fileRef = useRef(null);
   const hs = data?.huddleSettings || {};
   const knownSlotTypes = hs?.knownSlotTypes || [];
+  // Slot types that actually have count data in the current huddleData
+  // (vs the permanent union in hs.knownSlotTypes). Used by SlotFilter to
+  // visually distinguish stale entries — see getActiveSlotTypes docstring.
+  const activeSlotTypes = useMemo(() => getActiveSlotTypes(huddleData), [huddleData]);
   const saved = hs?.savedSlotFilters || {};
 
   // Initialise overrides from persisted settings
@@ -955,7 +959,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <div className="glass-header px-4 py-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span className="font-heading text-base font-medium text-slate-200">Urgent on the day</span>
-                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} readOnly={!canEdit} />
+                    <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} activeSlotTypes={activeSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} readOnly={!canEdit} />
                   </div>
                 </div>
                 {displayDate && displayDate !== viewingDateStr && (
@@ -1065,7 +1069,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => setActiveSection('huddle-forward')} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">Clinician detail →</button>
-                      <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} title="Routine Slot Filter" readOnly={!canEdit} />
+                      <SlotFilter overrides={routineOverrides} setOverrides={setRoutineOverrides} knownSlotTypes={knownSlotTypes} activeSlotTypes={activeSlotTypes} title="Routine Slot Filter" readOnly={!canEdit} />
                     </div>
                   </div>
                 </div>
@@ -1214,6 +1218,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                           overrides={overrides}
                           setOverrides={(v) => setCardOverride(card.id, v)}
                           knownSlotTypes={knownSlotTypes}
+                          activeSlotTypes={activeSlotTypes}
                           title={`${card.title} settings`}
                           readOnly={!canEdit}
                           cardSettings={canEdit ? {
