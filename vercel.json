@@ -1,3 +1,9 @@
 {
-  "regions": ["lhr1"]
+  "regions": ["lhr1"],
+  "crons": [
+    {
+      "path": "/api/cron/retention-cleanup",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }

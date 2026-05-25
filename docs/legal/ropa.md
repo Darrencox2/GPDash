@@ -220,6 +220,7 @@ operational version. Detailed agreements live in
 | Date | Change | Author |
 |---|---|---|
 | 2026-05-19 | Initial RoPA — covers controller activities 1–10 plus sub-processor list. Created as part of v4.26.0 GDPR Phase 1 | _[Darren]_ |
+| 2026-05-25 | Retention windows are now actively enforced by a scheduled cleanup job (daily 03:00 UTC) — see `/api/cron/retention-cleanup` and `lib/retention-policy.js`. The retention column on each processing activity above is the binding policy. Surfaced at `/v4/admin/retention` for verification | _[Darren]_ |
 
 ---
 
