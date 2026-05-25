@@ -89,7 +89,75 @@ export default async function AdminPracticesPage() {
           </table>
         </div>
 
+        <PublicLegalLinksCard />
+
         <AdminFooter />
+      </div>
+    </div>
+  );
+}
+
+// Card surfacing the unlisted public /legal pages so platform admins
+// can find and share them. These URLs are deliberately not linked
+// anywhere else in the app — the legal landing page also carries
+// noindex/nofollow — so this card is the canonical entry point.
+//
+// Intended use: paste a URL into an email to a practice's IG officer
+// during due diligence. The pages render cleanly without auth so the
+// recipient can read them straight away.
+function PublicLegalLinksCard() {
+  const links = [
+    { href: '/legal', label: 'Legal landing', desc: 'Index of practice-facing legal docs (DPA, DSPT, privacy notice, sub-processors). Share this URL for the full set.' },
+    { href: '/legal/dpa', label: 'DPA template', desc: 'Article 28 data processing agreement — direct link if a practice IG officer only wants this one.' },
+    { href: '/legal/dspt', label: 'DSPT evidence pack', desc: 'GPDash controls mapped to all 10 NHS DSPT standards.' },
+    { href: '/privacy', label: 'Public privacy notice', desc: 'Already linked from login + signup; included here for completeness.' },
+    { href: '/privacy/processors', label: 'Sub-processors list', desc: 'Already linked from the privacy notice.' },
+  ];
+
+  return (
+    <div style={{
+      marginTop: 32,
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 12,
+      padding: 22,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>Public legal pages</h2>
+        <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>Not linked from the public navigation</span>
+      </div>
+      <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, marginBottom: 14, lineHeight: 1.6 }}>
+        For sharing with a practice&apos;s IG officer during due diligence. These pages render without auth — paste the URL into an email and the recipient can read straight away.
+      </p>
+      <div style={{ display: 'grid', gap: 8 }}>
+        {links.map(link => (
+          <a
+            key={link.href}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              gap: 12,
+              padding: '10px 12px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 8,
+              textDecoration: 'none',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ flex: '1 1 280px' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#67e8f9', marginBottom: 2 }}>
+                {link.href} <span style={{ fontWeight: 400, color: '#94a3b8' }}>— {link.label}</span>
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>{link.desc}</div>
+            </div>
+            <span style={{ fontSize: 11, color: '#67e8f9', fontWeight: 500, whiteSpace: 'nowrap' }}>Open ↗</span>
+          </a>
+        ))}
       </div>
     </div>
   );
