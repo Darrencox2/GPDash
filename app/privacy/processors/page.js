@@ -1,5 +1,7 @@
 // /privacy/processors — public list of sub-processors GPDash uses.
 //
+// Dark glass theme matching /privacy and /legal/*.
+//
 // Kept separate from the main privacy notice so it can be updated more
 // frequently without re-versioning the whole notice. Each entry follows
 // the same shape: name, what they do for us, what data they handle,
@@ -12,6 +14,8 @@ export const metadata = {
   title: 'Sub-processors · GPDash',
   description: 'The third-party services GPDash uses to provide the platform.',
 };
+
+const PAGE_BG = 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)';
 
 const PROCESSORS = [
   {
@@ -61,49 +65,38 @@ const PROCESSORS = [
   },
 ];
 
+const inlineLink = { color: '#67e8f9', textDecoration: 'underline', textUnderlineOffset: 2 };
+
 export default function ProcessorsPage() {
   return (
-    <main className="min-h-screen px-6 py-10" style={{ background: '#f8fafc', color: '#0f172a' }}>
-      <article className="max-w-3xl mx-auto" style={{ lineHeight: 1.65 }}>
-        <header className="mb-8">
-          <p className="text-sm text-slate-500 mb-2">
-            <Link href="/privacy" className="text-cyan-700 hover:underline">← Privacy Notice</Link>
+    <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
+      <article style={{ maxWidth: 760, margin: '0 auto', lineHeight: 1.65 }}>
+        <header style={{ marginBottom: 32 }}>
+          <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10 }}>
+            <Link href="/privacy" style={inlineLink}>← Privacy Notice</Link>
           </p>
-          <h1 className="text-3xl font-semibold mb-2" style={{ color: '#0f172a' }}>Sub-processors</h1>
-          <p className="text-sm text-slate-500">
+          <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>Sub-processors</h1>
+          <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
             Last updated: <time dateTime={LEGAL_META.processorsLastUpdated}>{LEGAL_META.processorsLastUpdated}</time>
           </p>
         </header>
 
-        <section className="mb-8 text-sm text-slate-700 space-y-3">
-          <p>
-            These are the third-party services we use to provide GPDash. Each
-            one is a <em>sub-processor</em> — they process personal data on
-            our behalf under a data processing agreement, only on our
-            instructions, and only for the purposes listed below.
-          </p>
-          <p>
-            We&apos;ll update this page whenever the list changes and notify
-            existing customers by email before adding a new sub-processor
-            that materially changes data flows.
-          </p>
+        <section style={{ marginBottom: 28, fontSize: 14, color: '#cbd5e1', lineHeight: 1.7 }}>
+          <p>These are the third-party services we use to provide GPDash. Each one is a <em>sub-processor</em> — they process personal data on our behalf under a data processing agreement, only on our instructions, and only for the purposes listed below.</p>
+          <p>We&apos;ll update this page whenever the list changes and notify existing customers by email before adding a new sub-processor that materially changes data flows.</p>
         </section>
 
-        <div className="space-y-5">
+        <div style={{ display: 'grid', gap: 16 }}>
           {PROCESSORS.map(p => (
-            <article
-              key={p.name}
-              className="rounded-xl p-5"
-              style={{ background: 'white', border: '1px solid #e2e8f0' }}
-            >
-              <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
-                <h2 className="text-lg font-semibold" style={{ color: '#0f172a' }}>{p.name}</h2>
-                <a
-                  href={p.privacyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-cyan-700 hover:underline"
-                >
+            <article key={p.name} style={{
+              borderRadius: 12,
+              padding: 20,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+                <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, margin: 0, color: '#f1f5f9' }}>{p.name}</h2>
+                <a href={p.privacyUrl} target="_blank" rel="noopener noreferrer" style={{ ...inlineLink, fontSize: 12 }}>
                   Privacy notice ↗
                 </a>
               </div>
@@ -112,7 +105,7 @@ export default function ProcessorsPage() {
               <Row label="Region">{p.region}</Row>
               <Row label="Agreement">{p.dpa}</Row>
               {p.notes && (
-                <div className="text-xs text-slate-500 mt-3 pt-3 leading-relaxed" style={{ borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 12, paddingTop: 12, lineHeight: 1.6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   {p.notes}
                 </div>
               )}
@@ -120,24 +113,13 @@ export default function ProcessorsPage() {
           ))}
         </div>
 
-        <section className="mt-8 text-sm text-slate-700">
-          <h2 className="text-lg font-semibold mb-2" style={{ color: '#0f172a' }}>What about other tools?</h2>
-          <p>
-            Some tools are used by our development team (e.g. GitHub for
-            source code, Claude for engineering assistance) but are <em>not</em>{' '}
-            connected to the production data flow. They never see GPDash
-            user data and are therefore not sub-processors. If that ever
-            changes, this page will be updated and you&apos;ll be notified.
-          </p>
+        <section style={{ marginTop: 32, fontSize: 14, color: '#cbd5e1', lineHeight: 1.7 }}>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, marginBottom: 10, color: '#f1f5f9' }}>What about other tools?</h2>
+          <p>Some tools are used by our development team (e.g. GitHub for source code, Claude for engineering assistance) but are <em>not</em> connected to the production data flow. They never see GPDash user data and are therefore not sub-processors. If that ever changes, this page will be updated and you&apos;ll be notified.</p>
         </section>
 
-        <footer className="mt-10 pt-6 text-xs text-slate-500" style={{ borderTop: '1px solid #e2e8f0' }}>
-          <p>
-            Questions?{' '}
-            <a href={`mailto:${LEGAL_META.privacyContactEmail}`} className="text-cyan-700 hover:underline">
-              {LEGAL_META.privacyContactEmail}
-            </a>
-          </p>
+        <footer style={{ marginTop: 40, paddingTop: 24, fontSize: 12, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          Questions? <a href={`mailto:${LEGAL_META.privacyContactEmail}`} style={inlineLink}>{LEGAL_META.privacyContactEmail}</a>
         </footer>
       </article>
     </main>
@@ -146,9 +128,9 @@ export default function ProcessorsPage() {
 
 function Row({ label, children }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 py-1">
-      <span className="text-xs text-slate-500 uppercase tracking-wide sm:w-28 flex-shrink-0">{label}</span>
-      <span className="text-sm text-slate-800">{children}</span>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '4px 0', alignItems: 'baseline' }}>
+      <span style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, flex: '0 0 110px' }}>{label}</span>
+      <span style={{ fontSize: 13, color: '#cbd5e1', flex: '1 1 300px' }}>{children}</span>
     </div>
   );
 }
