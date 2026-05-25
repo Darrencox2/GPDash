@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Button, Card } from '@/components/ui';
-import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getDutyDoctor, getBand, getCliniciansForDate, getSiteColour, getActiveSlotTypes } from '@/lib/huddle';
+import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getDutyDoctor, getDutyDoctorDiagnostic, getBand, getCliniciansForDate, getSiteColour, getActiveSlotTypes } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import HuddleFullscreen from './HuddleFullscreen';
@@ -846,7 +846,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             };
 
             // Session panel renderer
-            const SessionPanel = ({ label, slots, avail, booked, added, target, band, isShort, sessionData, dutyDoc }) => {
+            const SessionPanel = ({ label, slots, avail, booked, added, target, band, isShort, sessionData, dutyDoc, dutyDocDiag, dutySlotNames }) => {
               const bar = barPct(slots, target);
               const availPct = slots > 0 ? (avail / slots) * 100 : 0;
               const bookedPct = slots > 0 ? (booked / slots) * 100 : 0;
@@ -924,6 +924,56 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       </div>
                     </button>
                   )}
+                  {/* Diagnostic — shown only when a duty slot is configured
+                      but no real GP was detected. Reveals what the function
+                      actually saw so the cause is visible at a glance:
+                      either no slot data at all for the configured types,
+                      or candidates that all got filtered out as dummies. */}
+                  {!dutyDocDisplay && dutyDocDiag && (dutyDocDiag.candidates?.length > 0 || (dutySlotNames || []).length > 0) && (
+                    <div className="rounded-lg mb-2 px-3 py-2.5 text-xs" style={{
+                      background: 'rgba(239,68,68,0.08)',
+                      border: '1px dashed rgba(239,68,68,0.30)',
+                      color: '#fca5a5',
+                    }}>
+                      <div className="font-semibold mb-1" style={{ color: '#fecaca' }}>
+                        Duty doctor not detected — diagnostic
+                      </div>
+                      <div className="opacity-80 mb-1">
+                        Looking for: <span style={{ fontFamily: "'Space Mono', monospace" }}>{(dutySlotNames || []).map(s => `"${s}"`).join(', ') || '(none)'}</span>
+                      </div>
+                      {dutyDocDiag.candidates.length === 0 ? (
+                        <div className="opacity-80">
+                          No slot data found for these slot types on this date / session.
+                          The slot type may be misspelled or have a leading/trailing space.
+                        </div>
+                      ) : (
+                        <>
+                          <div className="opacity-80 mb-1">Found these candidates (sorted by slot count):</div>
+                          <ul className="space-y-0.5 ml-1">
+                            {dutyDocDiag.candidates.map((c, i) => (
+                              <li key={i} className="flex items-start gap-1.5">
+                                <span className="opacity-60">·</span>
+                                <span style={{ fontFamily: "'Space Mono', monospace" }}>{c.name}</span>
+                                <span className="opacity-70">({c.count} slot{c.count === 1 ? '' : 's'})</span>
+                                <span className="opacity-70 ml-auto flex-shrink-0">
+                                  {c.matchesStaff ? (
+                                    <span style={{ color: '#86efac' }}>→ {c.matchedTo}</span>
+                                  ) : (
+                                    <span style={{ color: '#fca5a5' }}>no match in staff register</span>
+                                  )}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                          {dutyDocDiag.reason === 'all_filtered_as_dummies' && (
+                            <div className="opacity-80 mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(239,68,68,0.15)' }}>
+                              All candidates were filtered out — none of them match a clinician in your staff register. Either the duty slots are being recorded against an EMIS system entry (like &quot;TRIAGE, TELEPHONE&quot;), or the name format in your CSV differs from your saved clinicians. Add an alias for one of these names on the clinician&apos;s record to resolve.
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                   <div className="flex flex-col gap-2">
                     {clinicians.map((c, i) => {
                       const locPill = c.location ? siteCol(c.location) : null;
@@ -978,7 +1028,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <span className="font-heading text-sm font-medium text-slate-400">Morning</span>
                     </div>
                     <div style={{background:'rgba(15,23,42,0.4)'}}>
-                      <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} />
+                      <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutyDocDiag={hasDutySlot ? getDutyDoctorDiagnostic(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutySlotNames={Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])} />
                     </div>
                   </div>
                   <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
@@ -986,7 +1036,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <span className="font-heading text-sm font-medium text-slate-400">Afternoon</span>
                     </div>
                     <div style={{background:'rgba(15,23,42,0.4)'}}>
-                      <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} />
+                      <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} dutyDocDiag={hasDutySlot ? getDutyDoctorDiagnostic(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} dutySlotNames={Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])} />
                     </div>
                   </div>
                 </div>
