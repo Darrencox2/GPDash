@@ -158,6 +158,15 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       }
       lastSavedRef.current = clinicians;
       setSaveState('saved');
+      // Invalidate Next.js's route cache so subsequent navigation to
+      // the dashboard (and any other page that renders clinician data
+      // server-side) re-fetches from the DB rather than serving the
+      // pre-save HTML it cached earlier. Without this, toggling
+      // Who's In off here didn't visibly remove anyone from the
+      // dashboard's Who's In widget until the next hard refresh —
+      // the save was succeeding, but the dashboard's server render
+      // was sitting in the route cache from when the toggle was on.
+      router.refresh();
     } catch (e) {
       setSaveState('error');
       setErrorMsg(e.message || 'Save failed — try again');
