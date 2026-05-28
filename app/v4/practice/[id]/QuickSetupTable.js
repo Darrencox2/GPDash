@@ -87,6 +87,21 @@ function clinicianFieldsEqual(a, b) {
 
 export default function QuickSetupTable({ practiceId, initialClinicians, initialPatterns, sites }) {
   const [clinicians, setClinicians] = useState(initialClinicians || []);
+  // Diagnostic: log every mount so we can see if the component is
+  // being remounted (state-reset) between toggle clicks.
+  useEffect(() => {
+    const mountId = Math.random().toString(36).slice(2, 8);
+    console.log('[QuickSetupTable mount]', { mountId, initialClinicianCount: (initialClinicians || []).length });
+    return () => console.log('[QuickSetupTable unmount]', { mountId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Diagnostic: log whenever the clinicians state ref changes. If the
+  // showWhosIn for one clinician is reverting between clicks, this
+  // will show the revert event (count goes back to 0 false values).
+  useEffect(() => {
+    const offCount = clinicians.filter(c => c.showWhosIn === false).length;
+    console.log('[clinicians state change]', { count: clinicians.length, showWhosIn_false_count: offCount });
+  }, [clinicians]);
   const [search, setSearch] = useState('');
   const [showLeft, setShowLeft] = useState(false);
   const [saveState, setSaveState] = useState('idle');
