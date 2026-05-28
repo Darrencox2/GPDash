@@ -196,6 +196,12 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
   }, [isDirty, clinicians, doSave]);
 
   const updateField = (id, field, value) => {
+    // Diagnostic: log every updateField call. Paired with the toggle
+    // click log + the doSave snapshot, we can see whether state is
+    // actually changing.
+    if (field === 'showWhosIn') {
+      console.log('[updateField showWhosIn]', { id, field, value });
+    }
     setClinicians(prev => prev.map(c => {
       if (c.id !== id) return c;
       const updated = { ...c, [field]: value };
@@ -210,6 +216,13 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       // confuses downstream code. Flip it now.
       if (field === 'buddyCover' && value === false) {
         updated.canProvideCover = false;
+      }
+      if (field === 'showWhosIn') {
+        console.log('[updateField showWhosIn → setClinicians]', {
+          id,
+          before: c.showWhosIn,
+          after: updated.showWhosIn,
+        });
       }
       return updated;
     }));
@@ -603,7 +616,21 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPa
       <Td style={{ textAlign: 'center' }}>
         <ToggleSwitch
           on={c.showWhosIn !== false}
-          onClick={() => onChange('showWhosIn', c.showWhosIn === false)}
+          onClick={() => {
+            const newValue = c.showWhosIn === false;
+            // Diagnostic: prove the click is firing AND show what value
+            // we're about to pass to updateField. If this log appears
+            // but the save snapshot still shows showWhosIn=true, then
+            // updateField → setClinicians isn't sticking (state is
+            // being reverted somehow).
+            console.log('[WhosIn toggle click]', {
+              clinicianId: c.id,
+              name: c.name,
+              currentShowWhosIn: c.showWhosIn,
+              newValue,
+            });
+            onChange('showWhosIn', newValue);
+          }}
           colourOn="#14b8a6"
           ariaLabel={`Show ${c.name} on Who's In page`}
         />
