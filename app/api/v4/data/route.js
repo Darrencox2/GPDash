@@ -196,6 +196,26 @@ export async function POST(request) {
   const newData = await request.json();
   if (!newData) return NextResponse.json({ error: 'Body required' }, { status: 400 });
 
+  // Diagnostic: log every POST so we can see what's being written and
+  // from which page. Specifically interested in saves containing the
+  // clinicians array that might be overwriting Who's-In toggles.
+  const referer = request.headers.get('referer') || 'unknown';
+  const bodyKeys = Object.keys(newData);
+  const clinicianSummary = Array.isArray(newData.clinicians)
+    ? {
+        count: newData.clinicians.length,
+        showWhosIn_false_count: newData.clinicians.filter(c => c.showWhosIn === false).length,
+        first3_names: newData.clinicians.slice(0, 3).map(c => c.name),
+      }
+    : null;
+  console.log('[/api/v4/data POST] body received', {
+    userId: user.id,
+    practiceId,
+    referer,
+    bodyKeys,
+    clinicians: clinicianSummary,
+  });
+
   // FAST PATH: detect saves that only contain "delta" fields (overrides,
   // allocations, notes, settings, lastSyncTime). These are the high-frequency
   // saves — In/Out toggles, note edits, buddy generation, sync timestamp.
