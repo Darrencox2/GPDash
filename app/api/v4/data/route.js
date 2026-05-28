@@ -560,6 +560,24 @@ export async function POST(request) {
         (c.showWhosIn !== false) !== (old.showWhosIn !== false) ||
         JSON.stringify(c.aliases || []) !== JSON.stringify(old.aliases || [])
       );
+      // Diagnostic: log every clinician's showWhosIn comparison so we
+      // can see in Vercel function logs whether the field is reaching
+      // the API correctly and whether the diff catches it. Remove
+      // once the toggle-not-saving issue is closed.
+      const showWhosInIncoming = c.showWhosIn;
+      const showWhosInOld = old.showWhosIn;
+      const showWhosInWouldChange = (c.showWhosIn !== false) !== (old.showWhosIn !== false);
+      if (showWhosInWouldChange || showWhosInIncoming === false || showWhosInOld === false) {
+        console.log('[mutation6 showWhosIn]', {
+          clinicianId: c.id,
+          name: c.name,
+          incoming: showWhosInIncoming,
+          old: showWhosInOld,
+          wouldChange: showWhosInWouldChange,
+          fieldsChanged,
+          willWrite: c.showWhosIn !== false,
+        });
+      }
       if (fieldsChanged) {
         ops.push(supabase.from('clinicians').update({
           name: c.name,

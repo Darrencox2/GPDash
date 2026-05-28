@@ -138,12 +138,24 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
     setSaveState('saving');
     setErrorMsg('');
     try {
+      // Diagnostic: log what we're about to save, focusing on the
+      // Who's In toggles since that's the field people have reported
+      // not persisting. Easy to remove once we've confirmed the
+      // round-trip is clean.
+      const whosInSnapshot = clinicians.map(c => ({
+        id: c.id,
+        name: c.name,
+        showWhosIn: c.showWhosIn,
+      }));
+      console.log('[QuickSetup save] sending', { count: clinicians.length, showWhosIn: whosInSnapshot });
+
       const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicians }),
       });
       const body = await res.json().catch(() => ({}));
+      console.log('[QuickSetup save] response', { status: res.status, ok: body?.ok, op_count: body?.op_count, errors: body?.errors });
       // res.ok is true for 200-299 — including 207 (multi-status).
       // The API returns 207 when SOME ops ran but others failed
       // (e.g. one row hit an enum/unique/check constraint). We must
@@ -158,16 +170,16 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       }
       lastSavedRef.current = clinicians;
       setSaveState('saved');
-      // Invalidate Next.js's route cache so subsequent navigation to
-      // the dashboard (and any other page that renders clinician data
-      // server-side) re-fetches from the DB rather than serving the
-      // pre-save HTML it cached earlier. Without this, toggling
-      // Who's In off here didn't visibly remove anyone from the
-      // dashboard's Who's In widget until the next hard refresh —
-      // the save was succeeding, but the dashboard's server render
-      // was sitting in the route cache from when the toggle was on.
-      router.refresh();
+      // NOTE: removed router.refresh() that was added in v4.27.1.
+      // It was diagnosed at the time as a Next.js route-cache issue
+      // making the dashboard show stale data after a save. With the
+      // current bug ("toggle doesn't save AT ALL"), router.refresh
+      // is suspect — it triggers a server re-render that may be
+      // interfering. Removing it to isolate. If the original stale-
+      // dashboard issue resurfaces, a more targeted fix should be
+      // explored than a blanket route refresh.
     } catch (e) {
+      console.error('[QuickSetup save] error', e);
       setSaveState('error');
       setErrorMsg(e.message || 'Save failed — try again');
     } finally {
