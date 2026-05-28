@@ -50,21 +50,6 @@ export default async function CliniciansTab({ practiceId }) {
       .maybeSingle(),
   ]);
 
-  // Diagnostic: log how many CliniciansTab renders are happening on the
-  // server, and what the DB returned each time. The client log shows the
-  // component mounting twice with different data — this'll tell us
-  // whether the server is rendering twice with different data (so
-  // something between the two fetches is changing the DB), OR whether
-  // the server renders once and something on the client is generating
-  // stale data on the second mount.
-  const offCount = (rows || []).filter(r => r.show_whos_in === false).length;
-  console.log('[CliniciansTab server render]', {
-    practiceId,
-    rowCount: (rows || []).length,
-    show_whos_in_false_count: offCount,
-    timestamp: new Date().toISOString(),
-  });
-
   if (error) {
     return (
       <div style={{ padding: 16, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#fca5a5', fontSize: 13 }}>

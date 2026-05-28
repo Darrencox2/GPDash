@@ -8,10 +8,13 @@
 // every essential field is editable on-screen without expanding cards.
 //
 // Auto-save: edits update local state immediately and queue a debounced
-// save (~800ms after the last change). The whole clinicians array is sent
-// to /api/v4/data POST which diffs server-side and only writes changed
-// rows. Single-flight: in-flight save in progress + new edits → start a
-// new debounce after the current save settles.
+// save (~800ms after the last change). Field-level deltas are written
+// DIRECTLY to the clinicians table via the user's authenticated supabase
+// session (gated by the clinicians_update_admin RLS policy). Only the
+// columns that actually changed for the specific rows that changed are
+// touched — no bulk diff, no full-array POST. This isolates the table's
+// edits from any other component (dashboard, sync, side panel) that
+// might fire saves with stale clinicians data via the bulk POST endpoint.
 //
 // "Needs attention" highlight: rows are flagged amber when essential
 // fields are missing — empty initials, or role still set to a placeholder
@@ -26,6 +29,7 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import { guessGroupFromRole } from '@/lib/data';
 import WorkingDaysGrid from './WorkingDaysGrid';
 import ClinicianDetailsPanel from './ClinicianDetailsPanel';
@@ -86,83 +90,7 @@ function clinicianFieldsEqual(a, b) {
 }
 
 export default function QuickSetupTable({ practiceId, initialClinicians, initialPatterns, sites }) {
-  // State init: prefer sessionStorage if it has very recent data for this
-  // practiceId (< 2 seconds old). This is a defensive fix for a remount
-  // bug where the component mounts → unmounts → remounts with DIFFERENT
-  // initialClinicians (mount 1 has fresh DB data, mount 2 has stale
-  // data — root cause is likely RSC streaming or Router Cache). Without
-  // this guard, mount 2's stale data overwrites mount 1's correct data,
-  // and every subsequent save propagates the stale data back to the DB,
-  // losing user toggles.
-  //
-  // By persisting state on every change and reading on init, mount 2
-  // recovers mount 1's data. If the user is opening a fresh page (no
-  // recent storage), we use initialClinicians as normal.
-  const [clinicians, setClinicians] = useState(() => {
-    if (typeof window === 'undefined') return initialClinicians || [];
-    try {
-      const stored = sessionStorage.getItem(`qst:${practiceId}:state`);
-      if (stored) {
-        const { ts, data } = JSON.parse(stored);
-        if (Date.now() - ts < 2000 && Array.isArray(data)) {
-          console.log('[QuickSetupTable] using sessionStorage for remount recovery', {
-            stored_off_count: data.filter(c => c.showWhosIn === false).length,
-            initial_off_count: (initialClinicians || []).filter(c => c.showWhosIn === false).length,
-          });
-          return data;
-        }
-      }
-    } catch {}
-    return initialClinicians || [];
-  });
-
-  // Persist current state to sessionStorage on every change so a remount
-  // can recover it (see comment above).
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      sessionStorage.setItem(`qst:${practiceId}:state`, JSON.stringify({
-        ts: Date.now(),
-        data: clinicians,
-      }));
-    } catch {}
-  }, [clinicians, practiceId]);
-
-  // Diagnostic: log every mount so we can see if the component is
-  // being remounted (state-reset) between toggle clicks.
-  useEffect(() => {
-    const mountId = Math.random().toString(36).slice(2, 8);
-    const offCount = (initialClinicians || []).filter(c => c.showWhosIn === false).length;
-    console.log('[QuickSetupTable mount]', {
-      mountId,
-      initialClinicianCount: (initialClinicians || []).length,
-      initial_showWhosIn_false_count: offCount,
-    });
-    return () => console.log('[QuickSetupTable unmount]', { mountId });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  // Diagnostic: log whenever the clinicians state ref changes. If the
-  // showWhosIn for one clinician is reverting between clicks, this
-  // will show the revert event (count goes back to 0 false values).
-  useEffect(() => {
-    const offCount = clinicians.filter(c => c.showWhosIn === false).length;
-    console.log('[clinicians state change]', { count: clinicians.length, showWhosIn_false_count: offCount });
-  }, [clinicians]);
-  // Diagnostic: log whenever the initialClinicians PROP changes
-  // reference (without remount). Lets us see if the parent is passing
-  // new data while keeping this component instance alive.
-  const initialClinsRef = useRef(initialClinicians);
-  useEffect(() => {
-    if (initialClinsRef.current !== initialClinicians) {
-      const oldOff = (initialClinsRef.current || []).filter(c => c.showWhosIn === false).length;
-      const newOff = (initialClinicians || []).filter(c => c.showWhosIn === false).length;
-      console.log('[initialClinicians prop change WITHOUT remount]', {
-        oldShowWhosInFalseCount: oldOff,
-        newShowWhosInFalseCount: newOff,
-      });
-      initialClinsRef.current = initialClinicians;
-    }
-  }, [initialClinicians]);
+  const [clinicians, setClinicians] = useState(initialClinicians || []);
   const [search, setSearch] = useState('');
   const [showLeft, setShowLeft] = useState(false);
   const [saveState, setSaveState] = useState('idle');
@@ -192,6 +120,11 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
   // the latest local state when the table edits a row underneath it.
   const [panelClinicianId, setPanelClinicianId] = useState(null);
 
+  const supabaseRef = useRef(null);
+  if (!supabaseRef.current && typeof window !== 'undefined') {
+    supabaseRef.current = createClient();
+  }
+
   const lastSavedRef = useRef(initialClinicians || []);
   const saveTimer = useRef(null);
   const inFlight = useRef(false);
@@ -210,60 +143,82 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
 
   const doSave = useCallback(async () => {
     if (inFlight.current) return;
+    const supabase = supabaseRef.current;
+    if (!supabase) return;
     inFlight.current = true;
     setSaveState('saving');
     setErrorMsg('');
     try {
-      // Diagnostic: log what we're about to save, focusing on the
-      // Who's In toggles since that's the field people have reported
-      // not persisting. Easy to remove once we've confirmed the
-      // round-trip is clean.
-      const whosInSnapshot = clinicians.map(c => ({
-        id: c.id,
-        name: c.name,
-        showWhosIn: c.showWhosIn,
-      }));
-      console.log('[QuickSetup save] sending', { count: clinicians.length, showWhosIn: whosInSnapshot });
-
-      const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicians }),
-      });
-      const body = await res.json().catch(() => ({}));
-      console.log('[QuickSetup save] response', { status: res.status, ok: body?.ok, op_count: body?.op_count, errors: body?.errors });
-      // res.ok is true for 200-299 — including 207 (multi-status).
-      // The API returns 207 when SOME ops ran but others failed
-      // (e.g. one row hit an enum/unique/check constraint). We must
-      // treat 207 as a failure here; otherwise the user sees "Saved"
-      // and assumes everything went through when one or more rows
-      // were silently rejected.
-      if (!res.ok || body?.ok === false) {
-        const detail = Array.isArray(body?.errors) && body.errors.length > 0
-          ? body.errors.join(' · ')
-          : (body?.error || `Save failed (${res.status})`);
-        throw new Error(detail);
+      // Compute per-clinician field-level deltas vs lastSaved. Only the
+      // fields that ACTUALLY changed are sent. This bypasses the bulk
+      // /api/v4/data endpoint entirely — writes go straight to the
+      // clinicians table via the user's authenticated supabase session,
+      // gated by the clinicians_update_admin RLS policy.
+      //
+      // Why direct writes instead of the bulk POST endpoint: the bulk
+      // path sent the full clinicians array, server-side diffed against
+      // current DB, and wrote any field that differed. That made
+      // QuickSetupTable's saves vulnerable to being undone whenever ANY
+      // other component (dashboard, side panel, sync) fired a saveData
+      // call with stale clinicians data — because that save also sent
+      // the full array with potentially-stale showWhosIn values, and
+      // the server would dutifully write the stale values to the DB.
+      //
+      // Direct writes touch only the specific columns that changed for
+      // the specific rows that changed, so there's no surface area for
+      // unrelated stale state to clobber the user's edits.
+      const saved = lastSavedRef.current;
+      const savedById = new Map(saved.map(c => [c.id, c]));
+      const writes = [];
+      for (const c of clinicians) {
+        const old = savedById.get(c.id);
+        if (!old) continue; // QuickSetupTable doesn't add new clinicians
+        const changes = {};
+        if (c.name !== old.name) changes.name = c.name;
+        if ((c.title || null) !== (old.title || null)) changes.title = c.title || null;
+        if ((c.initials || null) !== (old.initials || null)) changes.initials = c.initials || null;
+        if ((c.role || null) !== (old.role || null)) changes.role = c.role || null;
+        if ((c.group || null) !== (old.group || null)) changes.group_id = c.group || null;
+        if ((c.status || 'active') !== (old.status || 'active')) changes.status = c.status || 'active';
+        if ((c.sessions || 0) !== (old.sessions || 0)) changes.sessions = c.sessions || 0;
+        if (!!c.buddyCover !== !!old.buddyCover) changes.buddy_cover = !!c.buddyCover;
+        if ((c.canProvideCover !== false) !== (old.canProvideCover !== false)) {
+          changes.can_provide_cover = c.canProvideCover !== false;
+        }
+        if ((c.showWhosIn !== false) !== (old.showWhosIn !== false)) {
+          changes.show_whos_in = c.showWhosIn !== false;
+        }
+        if (JSON.stringify(c.aliases || []) !== JSON.stringify(old.aliases || [])) {
+          changes.aliases = c.aliases || [];
+        }
+        if (Object.keys(changes).length > 0) {
+          writes.push({ id: c.id, changes });
+        }
       }
+
+      if (writes.length === 0) {
+        // Nothing actually changed since last save — shouldn't normally
+        // happen (isDirty wouldn't have triggered) but it's a no-op,
+        // so just mark saved and exit.
+        lastSavedRef.current = clinicians;
+        setSaveState('saved');
+        return;
+      }
+
+      const results = await Promise.all(
+        writes.map(w => supabase.from('clinicians').update(w.changes).eq('id', w.id))
+      );
+
+      const errors = results
+        .map((r, i) => r.error ? `${writes[i].id}: ${r.error.message}` : null)
+        .filter(Boolean);
+      if (errors.length > 0) {
+        throw new Error(errors.join(' · '));
+      }
+
       lastSavedRef.current = clinicians;
       setSaveState('saved');
-      // Clear the sessionStorage remount-recovery cache — the DB now
-      // matches local state, so on the next mount we can trust
-      // initialClinicians coming from the server.
-      try {
-        if (typeof window !== 'undefined') {
-          sessionStorage.removeItem(`qst:${practiceId}:state`);
-        }
-      } catch {}
-      // NOTE: removed router.refresh() that was added in v4.27.1.
-      // It was diagnosed at the time as a Next.js route-cache issue
-      // making the dashboard show stale data after a save. With the
-      // current bug ("toggle doesn't save AT ALL"), router.refresh
-      // is suspect — it triggers a server re-render that may be
-      // interfering. Removing it to isolate. If the original stale-
-      // dashboard issue resurfaces, a more targeted fix should be
-      // explored than a blanket route refresh.
     } catch (e) {
-      console.error('[QuickSetup save] error', e);
       setSaveState('error');
       setErrorMsg(e.message || 'Save failed — try again');
     } finally {
@@ -280,12 +235,6 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
   }, [isDirty, clinicians, doSave]);
 
   const updateField = (id, field, value) => {
-    // Diagnostic: log every updateField call. Paired with the toggle
-    // click log + the doSave snapshot, we can see whether state is
-    // actually changing.
-    if (field === 'showWhosIn') {
-      console.log('[updateField showWhosIn]', { id, field, value });
-    }
     setClinicians(prev => prev.map(c => {
       if (c.id !== id) return c;
       const updated = { ...c, [field]: value };
@@ -300,13 +249,6 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       // confuses downstream code. Flip it now.
       if (field === 'buddyCover' && value === false) {
         updated.canProvideCover = false;
-      }
-      if (field === 'showWhosIn') {
-        console.log('[updateField showWhosIn → setClinicians]', {
-          id,
-          before: c.showWhosIn,
-          after: updated.showWhosIn,
-        });
       }
       return updated;
     }));
@@ -700,21 +642,7 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPa
       <Td style={{ textAlign: 'center' }}>
         <ToggleSwitch
           on={c.showWhosIn !== false}
-          onClick={() => {
-            const newValue = c.showWhosIn === false;
-            // Diagnostic: prove the click is firing AND show what value
-            // we're about to pass to updateField. If this log appears
-            // but the save snapshot still shows showWhosIn=true, then
-            // updateField → setClinicians isn't sticking (state is
-            // being reverted somehow).
-            console.log('[WhosIn toggle click]', {
-              clinicianId: c.id,
-              name: c.name,
-              currentShowWhosIn: c.showWhosIn,
-              newValue,
-            });
-            onChange('showWhosIn', newValue);
-          }}
+          onClick={() => onChange('showWhosIn', c.showWhosIn === false)}
           colourOn="#14b8a6"
           ariaLabel={`Show ${c.name} on Who's In page`}
         />
