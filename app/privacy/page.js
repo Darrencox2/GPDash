@@ -86,6 +86,30 @@ export default function PrivacyNoticePage() {
           </SubSection>
         </Section>
 
+        <Section title="If your practice enables the public buddy cover page">
+          <p>
+            Practices can optionally publish their daily buddy cover allocations at a public URL of the form{' '}
+            <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: 4, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>
+              gpdash.net/buddy/&lt;practice-slug&gt;
+            </code>{' '}
+            so that reception and admin staff can click through from
+            EMIS without having to sign in. This is opt-in per practice and disabled by default.
+          </p>
+          <p>
+            If your practice owner or administrator enables this option, the following information
+            about you becomes visible at that public URL: your name, initials, role, your
+            present / absent / day-off status for the current day, and the cover allocations between
+            you and your colleagues. No patient data is ever shown.
+          </p>
+          <p>
+            The decision to publish this data is made by your practice (as the data controller for
+            its staff records). GPDash, acting as a processor under the practice&apos;s Data
+            Processing Agreement, displays the data at the public URL only for as long as the
+            practice leaves the feature enabled. If your practice disables the option, the URL
+            returns &quot;not found&quot; immediately.
+          </p>
+        </Section>
+
         <Section title="Where we don't process">
           <ul style={ulStyle}>
             <li>We don&apos;t profile you, target ads, or share your data with advertisers — there are no ads in GPDash.</li>

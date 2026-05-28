@@ -53,7 +53,7 @@ export default async function OnboardingSetupPage({ params }) {
   // there once setup completes.
   const { data: practice } = await supabase
     .from('practices')
-    .select('id, name, slug, postcode, list_size, region, ods_code, latitude, longitude, admin_district, setup_completed_at')
+    .select('id, name, slug, postcode, list_size, region, ods_code, latitude, longitude, admin_district, setup_completed_at, buddy_cover_public')
     .eq('id', practiceId)
     .single();
 
@@ -133,6 +133,7 @@ export default async function OnboardingSetupPage({ params }) {
       hasClinicians={(clinicianCount || 0) > 0}
       hasDemandData={(demandHistoryCount || 0) > 0}
       hasInvites={(pendingInvitesCount || 0) > 0}
+      buddyCoverPublic={!!practice.buddy_cover_public}
       userRole={membership.role}
       autoCompleted={minimumMet}
       initialHuddleSettings={settings?.huddle_settings || {}}

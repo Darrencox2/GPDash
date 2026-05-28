@@ -1,0 +1,263 @@
+'use client';
+
+// PublicBuddyView — the visible component for /buddy/[slug].
+//
+// Fetches from /api/v4/public/buddy/[slug] on mount, then polls every
+// 2 minutes for live updates (matches the v3 page's refresh cadence
+// that Winscombe staff are used to). All data display logic mirrors
+// the v3 /buddy page so existing EMIS-linked traffic sees the same
+// thing on v4.
+
+import { useState, useEffect, useMemo } from 'react';
+import { DAYS, groupAllocationsByCovering, toLocalIso, computeDayStatus } from '@/lib/data';
+import { APP_VERSION } from '@/lib/version';
+
+export default function PublicBuddyView({ slug, practiceName }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const [error, setError] = useState('');
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch(`/api/v4/public/buddy/${slug}`, { cache: 'no-store' });
+      if (res.status === 404) {
+        setError('not-found');
+        setLoading(false);
+        return;
+      }
+      if (!res.ok) {
+        setError(`status-${res.status}`);
+        setLoading(false);
+        return;
+      }
+      const d = await res.json();
+      setData(d);
+      setLastRefresh(new Date());
+      setError('');
+    } catch (e) {
+      console.error('Failed to fetch buddy data:', e);
+      setError('fetch-failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    const t = setInterval(fetchData, 120000); // 2-minute poll
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+
+  if (loading) return <Centered>Loading buddy cover…</Centered>;
+  if (error === 'not-found') return <Centered>Buddy cover not available for this practice.</Centered>;
+  if (error) return <Centered>Unable to load — try refreshing the page.</Centered>;
+
+  return <BuddyCoverView data={data} practiceName={practiceName} lastRefresh={lastRefresh} onRefresh={fetchData} />;
+}
+
+function Centered({ children }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)' }}>
+      <div className="text-slate-500 text-sm">{children}</div>
+    </div>
+  );
+}
+
+function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
+  const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
+
+  const realToday = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
+  const [viewDate, setViewDate] = useState(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
+  const navigateDay = (dir) => { const d = new Date(viewDate); d.setDate(d.getDate() + dir); setViewDate(d); };
+  const isViewingToday = viewDate.getTime() === realToday.getTime();
+
+  const dateKey = toLocalIso(viewDate);
+  const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][viewDate.getDay()];
+  const dateDisplay = viewDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  const getClinicianById = (id) => ensureArray(data.clinicians).find(c => c.id === id);
+
+  const isClosed = data.closedDays?.[dateKey];
+  const isWeekend = viewDate.getDay() === 0 || viewDate.getDay() === 6;
+
+  const status = useMemo(() => {
+    if (isClosed || isWeekend) return null;
+    return computeDayStatus(data, dateKey, dayName);
+  }, [data, dateKey, dayName, isClosed, isWeekend]);
+
+  const alloc = data.allocationHistory?.[dateKey];
+  const hasAlloc = alloc && (Object.keys(alloc.allocations || {}).length > 0 || Object.keys(alloc.dayOffAllocations || {}).length > 0);
+  const grouped = hasAlloc ? groupAllocationsByCovering(alloc.allocations || {}, alloc.dayOffAllocations || {}, alloc.presentIds || []) : {};
+
+  const rows = useMemo(() => {
+    if (!hasAlloc) return [];
+    return ensureArray(alloc.presentIds).map(id => {
+      const c = getClinicianById(id);
+      const t = grouped[id] || { absent: [], dayOff: [] };
+      return c ? { id, clinician: c, tasks: t, canCover: c.canProvideCover !== false, hasAllocs: t.absent.length > 0 || t.dayOff.length > 0 } : null;
+    }).filter(Boolean).sort((a, b) => {
+      if (a.canCover && !b.canCover) return -1;
+      if (!a.canCover && b.canCover) return 1;
+      if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; }
+      return 0;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasAlloc, alloc, grouped]);
+
+  const absentClinicians = useMemo(() => {
+    if (!status) return [];
+    return ensureArray(status.absent).map(id => getClinicianById(id)).filter(Boolean);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  const dayOffClinicians = useMemo(() => {
+    if (!status) return [];
+    return ensureArray(status.dayOff).map(id => getClinicianById(id)).filter(Boolean);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  const presentCount = status ? ensureArray(status.present).length : 0;
+
+  return (
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <div className="max-w-3xl mx-auto px-3 py-4 sm:p-4 lg:p-8 space-y-4 sm:space-y-5">
+
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>Buddy Cover</h1>
+            {practiceName && <div className="text-sm text-slate-500">{practiceName}</div>}
+            <div className="flex items-center gap-2 mt-1">
+              <button onClick={() => navigateDay(-1)} className="rounded text-slate-600 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.06)', padding: '2px 6px', fontSize: 12, lineHeight: 1 }}>‹</button>
+              <span className="text-slate-400 text-sm">{dateDisplay}</span>
+              <button onClick={() => navigateDay(1)} className="rounded text-slate-600 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.06)', padding: '2px 6px', fontSize: 12, lineHeight: 1 }}>›</button>
+              {!isViewingToday && <button onClick={() => setViewDate(new Date(realToday))} className="text-xs text-purple-400 hover:text-purple-300 ml-1">Today</button>}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {lastRefresh && <span className="text-xs text-slate-600">Updated {lastRefresh.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>}
+            <button onClick={onRefresh} className="rounded-lg text-xs text-slate-500 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.08)', padding: '6px 12px' }}>Refresh</button>
+          </div>
+        </div>
+
+        {(isClosed || isWeekend) && (
+          <div className="rounded-xl p-10 text-center" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="text-3xl mb-3">🏠</div>
+            <div className="text-lg font-medium text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>Practice Closed</div>
+            <div className="text-sm text-slate-500 mt-1">{isClosed ? (typeof isClosed === 'string' ? isClosed : 'Closed') : 'Weekend'}</div>
+          </div>
+        )}
+
+        {!isClosed && !isWeekend && !hasAlloc && (
+          <div className="rounded-xl p-10 text-center" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="text-3xl mb-3">📋</div>
+            <div className="text-lg font-medium text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>No Allocations Yet</div>
+            <div className="text-sm text-slate-500 mt-1">Buddy cover for today has not been generated yet</div>
+          </div>
+        )}
+
+        {!isClosed && !isWeekend && status && (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.15)' }}>
+              <div className="text-sm text-slate-500">Present</div>
+              <div className="text-2xl sm:text-3xl font-bold text-emerald-400" style={{ fontFamily: "'Space Mono',monospace" }}>{presentCount}</div>
+            </div>
+            <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.15)' }}>
+              <div className="text-sm text-slate-500">Absent</div>
+              <div className="text-2xl sm:text-3xl font-bold text-red-400" style={{ fontFamily: "'Space Mono',monospace" }}>{absentClinicians.length}</div>
+            </div>
+            <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.15)' }}>
+              <div className="text-sm text-slate-500">Day Off</div>
+              <div className="text-2xl sm:text-3xl font-bold text-amber-400" style={{ fontFamily: "'Space Mono',monospace" }}>{dayOffClinicians.length}</div>
+            </div>
+          </div>
+        )}
+
+        {(absentClinicians.length > 0 || dayOffClinicians.length > 0) && (
+          <div className="flex gap-3 flex-wrap">
+            {absentClinicians.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-slate-600 uppercase tracking-wider">Absent:</span>
+                {absentClinicians.map(c => (
+                  <span key={c.id} className="rounded-md font-bold text-white text-sm" style={{ background: '#ef4444', padding: '3px 10px' }}>{c.initials}</span>
+                ))}
+              </div>
+            )}
+            {dayOffClinicians.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-slate-600 uppercase tracking-wider">Day off:</span>
+                {dayOffClinicians.map(c => (
+                  <span key={c.id} className="rounded-md font-bold text-white text-sm" style={{ background: '#f59e0b', padding: '3px 10px' }}>{c.initials}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {hasAlloc && (
+          <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center justify-between" style={{ background: 'rgba(15,23,42,0.85)', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div>
+                <h2 className="text-base font-semibold text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>Buddy Allocations</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Who is covering for whom today</p>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="overflow-x-auto"><table className="w-full min-w-[480px]">
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide">Covering</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide"><span className="text-red-400">File & Action</span><span className="text-slate-600 font-normal ml-1">(absent)</span></th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide"><span className="text-amber-400">View Only</span><span className="text-slate-600 font-normal ml-1">(day off)</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(({ clinician, tasks, canCover }) => (
+                    <tr key={clinician.id} className={!canCover ? 'opacity-50' : ''} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: '#10b981', fontFamily: "'Outfit',sans-serif" }}>{clinician.initials}</div>
+                          <div>
+                            <div className="text-sm font-medium text-slate-200">{clinician.name}</div>
+                            <div className="text-xs text-slate-500">{clinician.role}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {tasks.absent.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">{tasks.absent.map(id => {
+                            const x = getClinicianById(id);
+                            return x ? <span key={id} className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white" style={{ padding: '4px 10px', background: '#ef4444', minWidth: 36 }}>{x.initials}</span> : null;
+                          })}</div>
+                        ) : <span className="text-slate-600">—</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        {tasks.dayOff.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">{tasks.dayOff.map(id => {
+                            const x = getClinicianById(id);
+                            return x ? <span key={id} className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white" style={{ padding: '4px 10px', background: '#f59e0b', minWidth: 36 }}>{x.initials}</span> : null;
+                          })}</div>
+                        ) : <span className="text-slate-600">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+
+              <div className="mt-5 pt-4 flex gap-5 text-xs text-slate-500 flex-wrap" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <span className="flex items-center gap-1.5"><span className="rounded-md text-xs font-bold text-white" style={{ background: '#10b981', padding: '2px 6px' }}>XX</span>Covering</span>
+                <span className="flex items-center gap-1.5"><span className="rounded-md text-xs font-bold text-white" style={{ background: '#ef4444', padding: '2px 6px' }}>XX</span>File & action (absent)</span>
+                <span className="flex items-center gap-1.5"><span className="rounded-md text-xs font-bold text-white" style={{ background: '#f59e0b', padding: '2px 6px' }}>XX</span>View only (day off)</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="text-center text-xs text-slate-700 pt-4">
+          <span>GPDash {APP_VERSION} · Auto-refreshes every 2 minutes</span>
+        </div>
+      </div>
+    </div>
+  );
+}

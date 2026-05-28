@@ -515,6 +515,16 @@ The Controller instructs the Processor to:
    permanent deletion of Personal Data past its retention period
 8. Make Personal Data available to the Controller for export at any
    time during the term of the Principal Agreement, and on termination
+9. If the Controller enables the "Public buddy cover page" feature in
+   the Service settings, display the buddy cover allocations for the
+   Controller's practice at a public URL of the form
+   `<gpdash-host>/buddy/<practice-slug>`, accessible without
+   authentication, for so long as the Controller leaves the feature
+   enabled. The Controller may disable the feature at any time, on
+   which the public URL immediately returns a "not found" response.
+   The data displayed is limited to: clinicians' names, initials,
+   roles, present/absent/day-off status for the day, and cover
+   allocations for the day. No patient data is included.
 
 ---
 

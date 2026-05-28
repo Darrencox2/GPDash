@@ -71,6 +71,7 @@ const STEPS = [
   { id: 'sites',      title: 'Practice sites',         subtitle: 'Optional · assign colours', optional: true },
   { id: 'demand',     title: 'Demand history',         subtitle: 'Optional · calibrate the model', optional: true },
   { id: 'invites',    title: 'Invite your team',       subtitle: 'Optional · do later if you prefer', optional: true },
+  { id: 'publicbuddy',title: 'Buddy cover EMIS link',  subtitle: 'Optional · public URL for EMIS paste', optional: true },
 ];
 
 // Default colours for sites — picked from the standard practice palette
@@ -106,6 +107,7 @@ export default function SetupWizard({
   hasClinicians: initialHasClinicians,
   hasDemandData: initialHasDemandData,
   hasInvites: initialHasInvites,
+  buddyCoverPublic: initialBuddyCoverPublic = false,
   // Server has already marked setup_completed_at — skip the client-side
   // write. Acts as the initial value of autoMarkedAt so we don't re-fire.
   autoCompleted = false,
@@ -153,6 +155,7 @@ export default function SetupWizard({
       sitesDoneAtMount,                             // 5: sites (optional)
       initialHasDemandData,                         // 6: demand (optional)
       initialHasInvites,                            // 7: invites (optional)
+      initialBuddyCoverPublic,                      // 8: public buddy URL (optional)
     ];
     // Required steps first
     for (let i = 0; i < STEPS.length; i++) {
@@ -178,6 +181,7 @@ export default function SetupWizard({
   const [clinicianCountAdded, setClinicianCountAdded] = useState(0);
   const [hasDemandData, setHasDemandData] = useState(initialHasDemandData);
   const [hasInvites, setHasInvites] = useState(initialHasInvites);
+  const [buddyCoverPublic, setBuddyCoverPublic] = useState(initialBuddyCoverPublic);
   // Tracks whether the clinicians step has been "sorted" — i.e. all
   // active clinicians have working patterns assigned. Lazy state: the
   // ClinicianRolesStep checks the DB on mount and reports back.
@@ -350,6 +354,7 @@ export default function SetupWizard({
     sitesConfigured,                                    // 5: sites (optional)
     hasDemandData,                                      // 6: demand
     hasInvites,                                         // 7: invites
+    buddyCoverPublic,                                   // 8: public buddy URL
   ];
 
   // ─── Live subtitle per step ──────────────────────────────────────────
@@ -388,6 +393,8 @@ export default function SetupWizard({
     hasDemandData ? '✓ Demand model calibrated' : STEPS[6].subtitle,
     // 7: invites
     hasInvites ? '✓ Team invited' : STEPS[7].subtitle,
+    // 8: public buddy URL — surfaces the practice's choice
+    buddyCoverPublic ? '✓ Public URL enabled' : STEPS[8].subtitle,
   ];
 
   const requiredIncomplete = STEPS
@@ -736,6 +743,14 @@ export default function SetupWizard({
                   hasInvites={hasInvites}
                   setHasInvites={setHasInvites}
                   setDirty={setDirty}
+                />
+              )}
+              {currentStep === 8 && (
+                <PublicBuddyStep
+                  practiceId={practice.id}
+                  practiceSlug={practice.slug}
+                  buddyCoverPublic={buddyCoverPublic}
+                  setBuddyCoverPublic={setBuddyCoverPublic}
                 />
               )}
             </div>
@@ -3322,6 +3337,183 @@ function FeatureRow({ on, label, hint }) {
 // Compact stat cell for the EMIS upload summary. Shows a big number
 // plus a small caption. Used in a CSS grid that auto-fits across the
 // available width.
+// ─── Step 8: Public buddy cover link (optional) ────────────────────────
+// Lets the practice opt in to a public-no-auth /buddy/<slug> page so the
+// EMIS clipboard report can include a clickable URL. Default off; flip
+// here or in Buddy Cover settings later.
+//
+// What flows where:
+// - The persisted state lives on practices.buddy_cover_public (added in
+//   migration 20260525120044). Toggle writes there directly via the
+//   client supabase. wizard-side state is mirrored from server props +
+//   updated optimistically on toggle.
+// - The same toggle appears at the top of Buddy Cover settings — both
+//   surfaces share the same DB column, so flipping it in one place is
+//   reflected in the other.
+function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyCoverPublic }) {
+  const supabase = createClient();
+  const trackSave = useStepSave();
+  const [error, setError] = useState('');
+
+  const toggle = async (next) => {
+    setBuddyCoverPublic(next); // optimistic
+    setError('');
+    const promise = supabase
+      .from('practices')
+      .update({ buddy_cover_public: next })
+      .eq('id', practiceId);
+    const { error: err } = await trackSave(promise);
+    if (err) {
+      setBuddyCoverPublic(!next); // revert
+      setError(`Couldn't save: ${err.message}`);
+    }
+  };
+
+  const publicUrl = typeof window !== 'undefined' && practiceSlug
+    ? `${window.location.origin}/buddy/${practiceSlug}`
+    : (practiceSlug ? `/buddy/${practiceSlug}` : '');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <p style={fieldHelp}>
+        EMIS staff can&apos;t see your dashboard, but if you turn this on
+        we&apos;ll give you a public URL you can paste into your EMIS
+        Buddy Cover template. One click and your team sees today&apos;s
+        allocations — no login.
+      </p>
+
+      <div style={{
+        padding: '14px 16px',
+        background: 'rgba(20,184,166,0.10)',
+        border: '1px solid rgba(20,184,166,0.25)',
+        borderRadius: 10,
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 14,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0' }}>
+              {buddyCoverPublic ? 'Public access enabled' : 'Public access disabled'}
+            </div>
+            <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 4, lineHeight: 1.5 }}>
+              {buddyCoverPublic
+                ? 'Anyone with the URL below can view your buddy allocations.'
+                : 'Only signed-in members of this practice can view buddy allocations.'}
+            </div>
+          </div>
+          <button
+            onClick={() => toggle(!buddyCoverPublic)}
+            style={{
+              width: 56,
+              height: 30,
+              borderRadius: 999,
+              border: 'none',
+              background: buddyCoverPublic ? '#14b8a6' : 'rgba(255,255,255,0.12)',
+              position: 'relative',
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+              flexShrink: 0,
+            }}
+            aria-pressed={buddyCoverPublic}
+            aria-label="Toggle public buddy cover access"
+          >
+            <span style={{
+              position: 'absolute',
+              top: 3,
+              left: buddyCoverPublic ? 29 : 3,
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              background: 'white',
+              transition: 'left 0.15s',
+            }} />
+          </button>
+        </div>
+
+        {buddyCoverPublic && publicUrl && (
+          <div style={{
+            marginTop: 14,
+            padding: '10px 14px',
+            background: 'rgba(0,0,0,0.25)',
+            border: '1px solid rgba(20,184,166,0.20)',
+            borderRadius: 8,
+          }}>
+            <div style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>
+              Your public URL
+            </div>
+            <a
+              href={publicUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: '#67e8f9',
+                textDecoration: 'underline',
+                wordBreak: 'break-all',
+                fontFamily: 'ui-monospace, Menlo, monospace',
+                fontSize: 13,
+              }}
+            >
+              {publicUrl}
+            </a>
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        padding: '12px 16px',
+        background: 'rgba(251,191,36,0.08)',
+        border: '1px solid rgba(251,191,36,0.22)',
+        borderRadius: 10,
+        fontSize: 13,
+        color: '#fde68a',
+        lineHeight: 1.65,
+      }}>
+        <strong style={{ color: '#fcd34d' }}>What becomes visible when enabled:</strong>{' '}
+        Your clinicians&apos; names, initials, roles, who is present/absent today,
+        and the cover allocations. No patient data is ever shown. You can switch
+        this off at any time — the URL will immediately return &quot;not found.&quot;
+      </div>
+
+      <div style={{
+        padding: '12px 16px',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 10,
+        fontSize: 13,
+        color: '#cbd5e1',
+        lineHeight: 1.65,
+      }}>
+        <strong style={{ color: '#e2e8f0' }}>Why turn this on?</strong>{' '}
+        It&apos;s the simplest way to give your reception/admin team buddy cover
+        access from EMIS. When enabled, the &quot;Copy week&quot; and &quot;Copy day&quot;
+        buttons in your dashboard include this URL in the clipboard — paste once
+        into your EMIS template and it&apos;s done.
+      </div>
+
+      {error && (
+        <div style={{
+          padding: '10px 14px',
+          background: 'rgba(239,68,68,0.10)',
+          border: '1px solid rgba(239,68,68,0.30)',
+          color: '#fca5a5',
+          borderRadius: 8,
+          fontSize: 13,
+        }}>
+          {error}
+        </div>
+      )}
+
+      <p style={{ ...fieldHelp, fontSize: 13, color: '#64748b' }}>
+        You can change this any time from Practice settings → Buddy cover.
+      </p>
+    </div>
+  );
+}
+
+
 function SummaryStat({ label, value }) {
   return (
     <div>

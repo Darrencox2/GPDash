@@ -114,7 +114,19 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 
     let s = 'BUDDY COVER\n';
     s += `${date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
-    s += 'www.gpdash.net/buddy\n\n';
+    // Public URL line — included only if this practice has opted in to
+    // the public buddy cover page (BuddyCoverSettings → "Public buddy
+    // cover page" toggle). Otherwise the URL would 404 for whoever
+    // clicked it from EMIS, so we omit it. Environment-aware host —
+    // uses window.location.origin so previews don't paste production
+    // URLs into clipboards.
+    const slug = data?._v4?.practiceSlug;
+    if (data?._v4?.practiceBuddyCoverPublic && slug && typeof window !== 'undefined') {
+      const host = window.location.host.replace(/^app\./, ''); // strip app. subdomain if present
+      s += `https://${host}/buddy/${slug}\n\n`;
+    } else {
+      s += '\n';
+    }
 
     const rows = ensureArray(currentAlloc.presentIds).map(id => {
       const c = getClinicianById(id); const t = grouped[id] || { absent: [], dayOff: [] };
@@ -147,7 +159,15 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     let s = 'BUDDY COVER\n';
     const wcDate = new Date(getDateKeyForDay('Monday') + 'T12:00:00');
     s += `Week commencing ${wcDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
-    s += 'www.gpdash.net/buddy\n\n';
+    // See handleCopyDay for the same logic — URL included only when
+    // the practice has opted in to the public buddy cover page.
+    const slug = data?._v4?.practiceSlug;
+    if (data?._v4?.practiceBuddyCoverPublic && slug && typeof window !== 'undefined') {
+      const host = window.location.host.replace(/^app\./, '');
+      s += `https://${host}/buddy/${slug}\n\n`;
+    } else {
+      s += '\n';
+    }
 
     DAYS.forEach(d => {
       const dk = getDateKeyForDay(d);

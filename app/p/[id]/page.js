@@ -195,6 +195,7 @@ export default async function PracticePage({ params }) {
     practiceLongitude: practice.longitude,
     practiceAdminDistrict: practice.admin_district,
     practiceOnlineConsultTool: practice.online_consult_tool,
+    practiceBuddyCoverPublic: !!practice.buddy_cover_public,
     setupCompletedAt: practice.setup_completed_at,
     demandSettings: settings?.demand_settings || null,
     userId: user.id,
