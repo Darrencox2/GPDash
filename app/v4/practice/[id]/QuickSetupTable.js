@@ -86,12 +86,58 @@ function clinicianFieldsEqual(a, b) {
 }
 
 export default function QuickSetupTable({ practiceId, initialClinicians, initialPatterns, sites }) {
-  const [clinicians, setClinicians] = useState(initialClinicians || []);
+  // State init: prefer sessionStorage if it has very recent data for this
+  // practiceId (< 2 seconds old). This is a defensive fix for a remount
+  // bug where the component mounts → unmounts → remounts with DIFFERENT
+  // initialClinicians (mount 1 has fresh DB data, mount 2 has stale
+  // data — root cause is likely RSC streaming or Router Cache). Without
+  // this guard, mount 2's stale data overwrites mount 1's correct data,
+  // and every subsequent save propagates the stale data back to the DB,
+  // losing user toggles.
+  //
+  // By persisting state on every change and reading on init, mount 2
+  // recovers mount 1's data. If the user is opening a fresh page (no
+  // recent storage), we use initialClinicians as normal.
+  const [clinicians, setClinicians] = useState(() => {
+    if (typeof window === 'undefined') return initialClinicians || [];
+    try {
+      const stored = sessionStorage.getItem(`qst:${practiceId}:state`);
+      if (stored) {
+        const { ts, data } = JSON.parse(stored);
+        if (Date.now() - ts < 2000 && Array.isArray(data)) {
+          console.log('[QuickSetupTable] using sessionStorage for remount recovery', {
+            stored_off_count: data.filter(c => c.showWhosIn === false).length,
+            initial_off_count: (initialClinicians || []).filter(c => c.showWhosIn === false).length,
+          });
+          return data;
+        }
+      }
+    } catch {}
+    return initialClinicians || [];
+  });
+
+  // Persist current state to sessionStorage on every change so a remount
+  // can recover it (see comment above).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      sessionStorage.setItem(`qst:${practiceId}:state`, JSON.stringify({
+        ts: Date.now(),
+        data: clinicians,
+      }));
+    } catch {}
+  }, [clinicians, practiceId]);
+
   // Diagnostic: log every mount so we can see if the component is
   // being remounted (state-reset) between toggle clicks.
   useEffect(() => {
     const mountId = Math.random().toString(36).slice(2, 8);
-    console.log('[QuickSetupTable mount]', { mountId, initialClinicianCount: (initialClinicians || []).length });
+    const offCount = (initialClinicians || []).filter(c => c.showWhosIn === false).length;
+    console.log('[QuickSetupTable mount]', {
+      mountId,
+      initialClinicianCount: (initialClinicians || []).length,
+      initial_showWhosIn_false_count: offCount,
+    });
     return () => console.log('[QuickSetupTable unmount]', { mountId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -102,6 +148,21 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
     const offCount = clinicians.filter(c => c.showWhosIn === false).length;
     console.log('[clinicians state change]', { count: clinicians.length, showWhosIn_false_count: offCount });
   }, [clinicians]);
+  // Diagnostic: log whenever the initialClinicians PROP changes
+  // reference (without remount). Lets us see if the parent is passing
+  // new data while keeping this component instance alive.
+  const initialClinsRef = useRef(initialClinicians);
+  useEffect(() => {
+    if (initialClinsRef.current !== initialClinicians) {
+      const oldOff = (initialClinsRef.current || []).filter(c => c.showWhosIn === false).length;
+      const newOff = (initialClinicians || []).filter(c => c.showWhosIn === false).length;
+      console.log('[initialClinicians prop change WITHOUT remount]', {
+        oldShowWhosInFalseCount: oldOff,
+        newShowWhosInFalseCount: newOff,
+      });
+      initialClinsRef.current = initialClinicians;
+    }
+  }, [initialClinicians]);
   const [search, setSearch] = useState('');
   const [showLeft, setShowLeft] = useState(false);
   const [saveState, setSaveState] = useState('idle');
@@ -185,6 +246,14 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       }
       lastSavedRef.current = clinicians;
       setSaveState('saved');
+      // Clear the sessionStorage remount-recovery cache — the DB now
+      // matches local state, so on the next mount we can trust
+      // initialClinicians coming from the server.
+      try {
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem(`qst:${practiceId}:state`);
+        }
+      } catch {}
       // NOTE: removed router.refresh() that was added in v4.27.1.
       // It was diagnosed at the time as a Next.js route-cache issue
       // making the dashboard show stale data after a save. With the
