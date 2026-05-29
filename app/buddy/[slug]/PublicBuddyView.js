@@ -27,7 +27,10 @@ export default function PublicBuddyView({ slug, practiceName }) {
         return;
       }
       if (!res.ok) {
-        setError(`status-${res.status}`);
+        // Try to surface the server's error message if it sent one.
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.error || `HTTP ${res.status}`;
+        setError(msg);
         setLoading(false);
         return;
       }
@@ -37,7 +40,7 @@ export default function PublicBuddyView({ slug, practiceName }) {
       setError('');
     } catch (e) {
       console.error('Failed to fetch buddy data:', e);
-      setError('fetch-failed');
+      setError(`Network error: ${e?.message || 'fetch failed'}`);
     } finally {
       setLoading(false);
     }
@@ -52,7 +55,14 @@ export default function PublicBuddyView({ slug, practiceName }) {
 
   if (loading) return <Centered>Loading buddy cover…</Centered>;
   if (error === 'not-found') return <Centered>Buddy cover not available for this practice.</Centered>;
-  if (error) return <Centered>Unable to load — try refreshing the page.</Centered>;
+  if (error) return (
+    <Centered>
+      <div style={{ textAlign: 'center' }}>
+        <div>Unable to load — try refreshing the page.</div>
+        <div style={{ fontSize: 11, marginTop: 8, opacity: 0.6 }}>{error}</div>
+      </div>
+    </Centered>
+  );
 
   return <BuddyCoverView data={data} practiceName={practiceName} lastRefresh={lastRefresh} onRefresh={fetchData} />;
 }

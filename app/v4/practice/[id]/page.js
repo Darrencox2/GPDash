@@ -138,7 +138,11 @@ export default async function PracticeAdminPage({ params }) {
   const stripeFor = (key) => sectionStatuses[key]
     ? <SectionStatusStripe complete={sectionStatuses[key].complete} hint={sectionStatuses[key].hint} label={sectionStatuses[key].label} />
     : null;
-  const narrow = (children) => <div style={{ maxWidth: 800 }}>{children}</div>;
+  // All tabs now use the same width as the page wrapper (1200px). The
+  // narrow() helper used to wrap forms in a 800px column for readability,
+  // but that left the clinicians tab visually inconsistent with everything
+  // else. Identity wrapper for now so callers don't need to change.
+  const narrow = (children) => <>{children}</>;
 
   const tabContent = {
     details: narrow(

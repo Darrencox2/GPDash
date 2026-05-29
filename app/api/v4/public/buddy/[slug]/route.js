@@ -40,6 +40,12 @@ export async function GET(request, ctx) {
     }
 
     const admin = createAdminClient();
+    if (!admin) {
+      // Will only happen if SUPABASE_SERVICE_ROLE_KEY isn't set in this
+      // environment. Return 503 so the UI can show something more
+      // informative than a bare 500.
+      return NextResponse.json({ error: 'Service not configured — public buddy access unavailable on this environment.' }, { status: 503 });
+    }
 
     // 1. Resolve the practice + check the public flag. Use admin client
     // intentionally — we don't want this gated by any signed-in user's
