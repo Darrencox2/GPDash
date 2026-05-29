@@ -462,8 +462,16 @@ export async function POST(request) {
   }
 
   // ─── Mutation 6: clinicians → clinicians table ───────────────────────
-  // CSV upload sometimes adds new clinicians (source='csv'). Also field
-  // edits (toggleBuddyCover, status changes, etc.) come through here.
+  // INSERTS ONLY. New clinicians (typically from CSV upload) are
+  // inserted here. UPDATES and DELETES via this bulk endpoint are
+  // DISABLED — they previously caused data loss when components on
+  // other pages (e.g. the dashboard's HuddleToday auto-snapshot) fired
+  // saveData({ ...data, ... }) with potentially-stale clinicians and
+  // the server dutifully overwrote freshly-edited DB rows with the
+  // stale incoming values. Existing clinician field edits MUST go
+  // through direct supabase writes from the client (clinicians_update_admin
+  // RLS policy authorises owner/admin to write). See QuickSetupTable
+  // and BuddyCoverSettings for the pattern.
   if (Array.isArray(newData.clinicians)) {
     const oldClins = oldData.clinicians || [];
     const newClins = newData.clinicians;
@@ -471,97 +479,33 @@ export async function POST(request) {
     for (const c of oldClins) oldById[c.id] = c;
 
     // Build a set of initials already taken by ACTIVE existing clinicians
-    // that are NOT in the current request. The database has:
-    //   unique index (practice_id, lower(initials))
-    //   WHERE status='active' AND initials IS NOT NULL
-    // — so we only need to dedupe against active rows with non-null
-    // initials. Anything new we're about to insert that would collide
-    // gets its initials nulled out; the user fixes it in Quick Setup.
-    // (Quick Setup's "needs attention" highlight makes null initials
-    // obvious, so this isn't a silent data loss — it's a deferred ask.)
-    //
-    // CRITICAL: rows in this batch (newClins) have their initials
-    // governed by what they claim in `c.initials`, not by what's in
-    // the database. We must exclude existing initials of those rows
-    // from `takenInitials` so a row updating ITSELF doesn't appear to
-    // collide with its own past state. Without this, every edit of
-    // any field (role, status, sessions, etc.) on a clinician with
-    // non-null initials would call safeInitials with their current
-    // initials, see them in the "taken" set, and nullify them.
-    const idsInBatch = new Set(newClins.map(c => c.id));
+    // so an INSERT doesn't collide with an existing row's initials.
+    // Updates/deletes are skipped, so we don't need the "exclude rows in
+    // this batch" logic any more.
     const takenInitials = new Set();
     for (const old of oldClins) {
-      if (idsInBatch.has(old.id)) continue; // row is in the batch — its initials are governed below
       if (old.status === 'active' && old.initials) {
         takenInitials.add(String(old.initials).toLowerCase());
       }
     }
-
-    // Helper: pick safe initials for an insert/update — drops to null
-    // rather than colliding. Order-dependent: the first row in the
-    // batch to claim a particular initials string wins, subsequent
-    // collisions go to null. Most natural ordering (alphabetical by
-    // CSV column) gives a sensible deterministic result.
     const safeInitials = (requested, status) => {
       const v = (requested || '').trim();
       if (!v) return null;
-      if (status && status !== 'active') return v; // non-active rows ignored by the index
+      if (status && status !== 'active') return v;
       const key = v.toLowerCase();
-      if (takenInitials.has(key)) return null; // collision → null
+      if (takenInitials.has(key)) return null;
       takenInitials.add(key);
       return v;
     };
 
     for (const c of newClins) {
       const old = oldById[c.id];
-      if (!old) {
-        // New clinician (probably from CSV)
-        // Skip auto-generated string IDs that look like 'csv-' or numeric — these
-        // are v3-style IDs. We need a real UUID. For now, generate one and
-        // store the v3 id as an alias. (Better: refactor v3 components to use
-        // server-generated IDs.) For tonight, only persist clinicians that
-        // already have a UUID-shaped id.
-        if (typeof c.id === 'string' && c.id.length === 36 && c.id.includes('-')) {
-          ops.push(supabase.from('clinicians').insert({
-            id: c.id,
-            practice_id: practiceId,
-            name: c.name,
-            title: c.title || null,
-            initials: safeInitials(c.initials, c.status || 'active'),
-            role: c.role || null,
-            group_id: c.group || 'admin',
-            status: c.status || 'active',
-            sessions: c.sessions || 0,
-            buddy_cover: !!c.buddyCover,
-            can_provide_cover: c.canProvideCover !== false,
-            // showWhosIn defaults TRUE — this matches the v3 default for
-            // CSV-discovered clinicians and the column default in
-            // migration 041. Only false if explicitly set false.
-            show_whos_in: c.showWhosIn !== false,
-            aliases: c.aliases || [],
-          }));
-        } else {
-          // Skip — v3 client generated a non-UUID id; component needs updating
-          errors.push(`Skipped new clinician '${c.name}' — non-UUID id (${c.id}). Add via Team Members instead.`);
-        }
-        continue;
-      }
-      // Existing clinician — diff fields and update if any changed
-      const fieldsChanged = (
-        c.name !== old.name ||
-        c.title !== old.title ||
-        c.initials !== old.initials ||
-        c.role !== old.role ||
-        c.group !== old.group ||
-        c.status !== old.status ||
-        (c.sessions || 0) !== (old.sessions || 0) ||
-        !!c.buddyCover !== !!old.buddyCover ||
-        (c.canProvideCover !== false) !== (old.canProvideCover !== false) ||
-        (c.showWhosIn !== false) !== (old.showWhosIn !== false) ||
-        JSON.stringify(c.aliases || []) !== JSON.stringify(old.aliases || [])
-      );
-      if (fieldsChanged) {
-        ops.push(supabase.from('clinicians').update({
+      if (old) continue; // Existing — updates handled via direct supabase writes
+      // New clinician (typically from CSV upload). Insert if UUID-shaped.
+      if (typeof c.id === 'string' && c.id.length === 36 && c.id.includes('-')) {
+        ops.push(supabase.from('clinicians').insert({
+          id: c.id,
+          practice_id: practiceId,
           name: c.name,
           title: c.title || null,
           initials: safeInitials(c.initials, c.status || 'active'),
@@ -573,17 +517,13 @@ export async function POST(request) {
           can_provide_cover: c.canProvideCover !== false,
           show_whos_in: c.showWhosIn !== false,
           aliases: c.aliases || [],
-        }).eq('id', c.id));
+        }));
+      } else {
+        errors.push(`Skipped new clinician '${c.name}' — non-UUID id (${c.id}).`);
       }
     }
-
-    // Detect deletions
-    const newIds = new Set(newClins.map(c => c.id));
-    for (const old of oldClins) {
-      if (!newIds.has(old.id)) {
-        ops.push(supabase.from('clinicians').delete().eq('id', old.id));
-      }
-    }
+    // NB: deletions via missing-from-array are also disabled here.
+    // Explicit clinician deletion should use direct supabase delete.
   }
 
   // ─── Mutation 7: plannedAbsences → absences ──────────────────────────

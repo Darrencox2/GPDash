@@ -1,8 +1,9 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations, getSiteColour } from '@/lib/huddle';
 import { canEditPracticeData } from '@/lib/permissions';
+import { createClient } from '@/utils/supabase/client';
 import { ClinicianDayPanel } from './HuddleShared';
 import SidePanel from './SidePanel';
 
@@ -259,16 +260,40 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   // (Present / Absent / Day Off) is driven by the rota + CSV. Clicking a
   // present clinician opens their slot breakdown instead.
 
+  // hide/show person: write show_whos_in directly to the clinicians
+  // table via the user's authenticated supabase session. The bulk save
+  // path (saveData → /api/v4/data) no longer handles clinician field
+  // updates — only inserts — to prevent stale state from overwriting
+  // recent toggles. The saveData call below stays so the local
+  // dashboard state updates optimistically; the direct supabase write
+  // is the actual DB persistence.
+  const supabaseRef = useRef(null);
+  if (!supabaseRef.current && typeof window !== 'undefined') {
+    supabaseRef.current = createClient();
+  }
+
   const hidePerson = (id) => {
     if (!canEdit) return;
     const updated = allClinicians.map(c => c.id === id ? { ...c, showWhosIn: false } : c);
     saveData({ ...data, clinicians: updated }, false);
+    const sb = supabaseRef.current;
+    if (sb) {
+      sb.from('clinicians').update({ show_whos_in: false }).eq('id', id).then(({ error }) => {
+        if (error) console.error('hidePerson DB write failed', error);
+      });
+    }
   };
 
   const showPerson = (id) => {
     if (!canEdit) return;
     const updated = allClinicians.map(c => c.id === id ? { ...c, showWhosIn: true } : c);
     saveData({ ...data, clinicians: updated }, false);
+    const sb = supabaseRef.current;
+    if (sb) {
+      sb.from('clinicians').update({ show_whos_in: true }).eq('id', id).then(({ error }) => {
+        if (error) console.error('showPerson DB write failed', error);
+      });
+    }
   };
 
   const hiddenPeople = allClinicians.filter(c => c.showWhosIn === false && c.status !== 'left' && c.status !== 'administrative');
