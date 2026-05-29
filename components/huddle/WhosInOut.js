@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations, getSiteColour } from '@/lib/huddle';
 import { canEditPracticeData } from '@/lib/permissions';
@@ -105,6 +105,43 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
 
+  // The dashboard's data.clinicians is loaded once via SSR and doesn't
+  // auto-refresh when the user edits show_whos_in elsewhere (e.g. in
+  // QuickSetupTable on the practice page). To stop this widget showing
+  // people whose Who's-In has just been turned off, fetch a fresh
+  // {id → show_whos_in} map straight from the DB on mount and use it
+  // to override the (possibly stale) c.showWhosIn values from `data`.
+  const supabaseRef = useRef(null);
+  if (!supabaseRef.current && typeof window !== 'undefined') {
+    supabaseRef.current = createClient();
+  }
+  const [freshShowMap, setFreshShowMap] = useState(null);
+  useEffect(() => {
+    const sb = supabaseRef.current;
+    const practiceId = data?._v4?.practiceId;
+    if (!sb || !practiceId) return;
+    let cancelled = false;
+    sb.from('clinicians')
+      .select('id, show_whos_in')
+      .eq('practice_id', practiceId)
+      .then(({ data: rows, error }) => {
+        if (cancelled || error || !rows) return;
+        const map = {};
+        for (const r of rows) map[r.id] = r.show_whos_in !== false;
+        setFreshShowMap(map);
+      });
+    return () => { cancelled = true; };
+  }, [data?._v4?.practiceId]);
+
+  const isShowWhosIn = (c) => {
+    // Prefer the fresh DB value when we have one; fall back to the
+    // dashboard's local state if the fetch hasn't completed yet.
+    if (freshShowMap && Object.prototype.hasOwnProperty.call(freshShowMap, c.id)) {
+      return freshShowMap[c.id];
+    }
+    return c.showWhosIn !== false;
+  };
+
   const vd = viewingDateProp || new Date();
   const dayIndex = vd.getDay();
   const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
@@ -113,7 +150,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   const isViewingToday = useMemo(() => { const n = new Date(); n.setHours(0,0,0,0); const v = new Date(vd); v.setHours(0,0,0,0); return v.getTime() === n.getTime(); }, [vd]);
 
   // Only show people who are visible, not left, not administrative
-  const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');
+  const visibleStaff = allClinicians.filter(c => isShowWhosIn(c) && c.status !== 'left' && c.status !== 'administrative');
   const unconfirmedCount = allClinicians.filter(c => !c.confirmed).length;
 
   // ── Data sources (all hooks MUST be above any early return) ─────
@@ -266,16 +303,15 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   // updates — only inserts — to prevent stale state from overwriting
   // recent toggles. The saveData call below stays so the local
   // dashboard state updates optimistically; the direct supabase write
-  // is the actual DB persistence.
-  const supabaseRef = useRef(null);
-  if (!supabaseRef.current && typeof window !== 'undefined') {
-    supabaseRef.current = createClient();
-  }
+  // is the actual DB persistence. The freshShowMap also gets updated
+  // optimistically so visibleStaff / hiddenPeople reflect the change
+  // immediately even though they read from the map, not local state.
 
   const hidePerson = (id) => {
     if (!canEdit) return;
     const updated = allClinicians.map(c => c.id === id ? { ...c, showWhosIn: false } : c);
     saveData({ ...data, clinicians: updated }, false);
+    setFreshShowMap(prev => ({ ...(prev || {}), [id]: false }));
     const sb = supabaseRef.current;
     if (sb) {
       sb.from('clinicians').update({ show_whos_in: false }).eq('id', id).then(({ error }) => {
@@ -288,6 +324,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
     if (!canEdit) return;
     const updated = allClinicians.map(c => c.id === id ? { ...c, showWhosIn: true } : c);
     saveData({ ...data, clinicians: updated }, false);
+    setFreshShowMap(prev => ({ ...(prev || {}), [id]: true }));
     const sb = supabaseRef.current;
     if (sb) {
       sb.from('clinicians').update({ show_whos_in: true }).eq('id', id).then(({ error }) => {
@@ -296,7 +333,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
     }
   };
 
-  const hiddenPeople = allClinicians.filter(c => c.showWhosIn === false && c.status !== 'left' && c.status !== 'administrative');
+  const hiddenPeople = allClinicians.filter(c => !isShowWhosIn(c) && c.status !== 'left' && c.status !== 'administrative');
 
   return (
     <div className="rounded-xl overflow-hidden glass">
@@ -415,8 +452,8 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
               <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{groupInfo.label}</div>
               <div className="space-y-1">
                 {groupPeople.map(c => (
-                  <button key={c.id} onClick={() => c.showWhosIn !== false ? hidePerson(c.id) : showPerson(c.id)}
-                    className="w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between" style={{background: c.showWhosIn !== false ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: c.showWhosIn !== false ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.06)', color: c.showWhosIn !== false ? '#34d399' : '#64748b'}}>
+                  <button key={c.id} onClick={() => isShowWhosIn(c) ? hidePerson(c.id) : showPerson(c.id)}
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between" style={{background: isShowWhosIn(c) ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: isShowWhosIn(c) ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.06)', color: isShowWhosIn(c) ? '#34d399' : '#64748b'}}>
                     <span>{c.name}</span><span className="text-xs opacity-60">{c.role}</span>
                   </button>
                 ))}

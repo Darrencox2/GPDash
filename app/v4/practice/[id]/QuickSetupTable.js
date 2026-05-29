@@ -206,11 +206,20 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       }
 
       const results = await Promise.all(
-        writes.map(w => supabase.from('clinicians').update(w.changes).eq('id', w.id))
+        writes.map(w => supabase.from('clinicians').update(w.changes).eq('id', w.id).select('id'))
       );
 
+      // Check for explicit errors AND silent zero-row updates (which
+      // typically mean RLS blocked the write — supabase returns no
+      // error in that case, just an empty array).
       const errors = results
-        .map((r, i) => r.error ? `${writes[i].id}: ${r.error.message}` : null)
+        .map((r, i) => {
+          if (r.error) return `${writes[i].id}: ${r.error.message}`;
+          if (!Array.isArray(r.data) || r.data.length === 0) {
+            return `${writes[i].id}: write affected 0 rows (RLS or wrong id?)`;
+          }
+          return null;
+        })
         .filter(Boolean);
       if (errors.length > 0) {
         throw new Error(errors.join(' · '));
