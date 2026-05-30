@@ -1,12 +1,27 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
 import { getCliniciansForDate } from '@/lib/huddle';
 import { canEditPracticeData } from '@/lib/permissions';
+import { createClient } from '@/utils/supabase/client';
+import BuddyOverrideModal from './BuddyOverrideModal';
 
 export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData, setActiveSection }) {
   const canEdit = canEditPracticeData(data);
   const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
+
+  // Lazy supabase client for the manual override audit-log insert.
+  // Allocations themselves still flow through saveData → /api/v4/data
+  // (mutation 4 handles buddy_allocations writes), but the audit
+  // event we write alongside lives on the audit_events table which
+  // doesn't have a bulk-save path.
+  const supabaseRef = useRef(null);
+  if (!supabaseRef.current && typeof window !== 'undefined') {
+    supabaseRef.current = createClient();
+  }
+  // Manual override modal state. When set, the modal renders for that
+  // absent person + covertype combination. Cleared on save or cancel.
+  const [overrideTarget, setOverrideTarget] = useState(null);
 
   const currentAlloc = getCurrentAllocations();
   const presentIds = ensureArray(getPresentClinicians(selectedDay));
@@ -564,13 +579,62 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           return c ? { id, clinician: c, tasks: reclassified, canCover: c.canProvideCover !== false, hasAllocs: reclassified.absent.length > 0 || reclassified.dayOff.length > 0 } : null;
                         }).filter(Boolean);
                         rows.sort((a, b) => { if (a.canCover && !b.canCover) return -1; if (!a.canCover && b.canCover) return 1; if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; } return 0; });
-                        return rows.map(({ clinician, tasks, canCover }) => (
-                          <tr key={clinician.id} style={{borderBottom:"1px solid rgba(255,255,255,0.04)"}} className={!canCover ? "opacity-50" : ""}>
-                            <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{background:"#10b981",fontFamily:"'Outfit',sans-serif"}}>{clinician.initials}</div><div><div className="text-sm font-medium text-slate-200">{clinician.name}</div><div className="text-xs text-slate-500">{clinician.role}</div></div></div></td>
-                            <td className="py-3 px-4">{tasks.absent.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white" style={{padding:'4px 8px',background:'#ef4444',minWidth:32}}>{x.initials}</span> : null; })}</div> : <span className="text-slate-600">—</span>}</td>
-                            <td className="py-3 px-4">{tasks.dayOff.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white" style={{padding:'4px 8px',background:'#f59e0b',minWidth:32}}>{x.initials}</span> : null; })}</div> : <span className="text-slate-600">—</span>}</td>
-                          </tr>
-                        ));
+                        return rows.map(({ clinician, tasks, canCover }) => {
+                          // Build a set of (absent person id) → override info
+                          // for this coverer's badges, so we can mark overridden
+                          // ones visually + show the reason on hover.
+                          const overrideByAbsentId = {};
+                          for (const ov of (currentAlloc?.manualOverrides || [])) {
+                            if (ov.toCovererId === clinician.id) {
+                              overrideByAbsentId[ov.absentId] = ov;
+                            }
+                          }
+                          const renderBadge = (id, type, bg) => {
+                            const x = getClinicianById(id);
+                            if (!x) return null;
+                            const ov = overrideByAbsentId[id];
+                            const title = ov
+                              ? `Manual override: ${ov.reason} — reassigned from previous coverer`
+                              : (canEdit ? 'Click to reassign' : '');
+                            return (
+                              <span
+                                key={id}
+                                onClick={canEdit ? () => setOverrideTarget({
+                                  absentId: id,
+                                  coverType: type,
+                                  currentCovererId: clinician.id,
+                                }) : undefined}
+                                title={title}
+                                className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white"
+                                style={{
+                                  padding: '4px 8px',
+                                  background: bg,
+                                  minWidth: 32,
+                                  cursor: canEdit ? 'pointer' : 'default',
+                                  border: ov ? '1.5px dashed rgba(255,255,255,0.7)' : 'none',
+                                  position: 'relative',
+                                }}
+                              >
+                                {x.initials}
+                                {ov && (
+                                  <span style={{
+                                    position: 'absolute', top: -4, right: -4,
+                                    width: 10, height: 10, borderRadius: '50%',
+                                    background: '#a78bfa',
+                                    border: '1.5px solid #0f172a',
+                                  }} />
+                                )}
+                              </span>
+                            );
+                          };
+                          return (
+                            <tr key={clinician.id} style={{borderBottom:"1px solid rgba(255,255,255,0.04)"}} className={!canCover ? "opacity-50" : ""}>
+                              <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{background:"#10b981",fontFamily:"'Outfit',sans-serif"}}>{clinician.initials}</div><div><div className="text-sm font-medium text-slate-200">{clinician.name}</div><div className="text-xs text-slate-500">{clinician.role}</div></div></div></td>
+                              <td className="py-3 px-4">{tasks.absent.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.absent.map(id => renderBadge(id, 'absent', '#ef4444'))}</div> : <span className="text-slate-600">—</span>}</td>
+                              <td className="py-3 px-4">{tasks.dayOff.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.dayOff.map(id => renderBadge(id, 'dayOff', '#f59e0b'))}</div> : <span className="text-slate-600">—</span>}</td>
+                            </tr>
+                          );
+                        });
                       })()}
                     </tbody>
                   </table></div>
@@ -584,6 +648,55 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             </div>
           </div>
         </>
+      )}
+
+      {overrideTarget && currentAlloc && (
+        <BuddyOverrideModal
+          open={true}
+          onClose={() => setOverrideTarget(null)}
+          dateKey={getDateKey()}
+          allocationEntry={currentAlloc}
+          absentClinicianId={overrideTarget.absentId}
+          coverType={overrideTarget.coverType}
+          currentCovererId={overrideTarget.currentCovererId}
+          cliniciansList={ensureArray(data.clinicians)}
+          onSave={async (newEntry, override) => {
+            try {
+              // Persist the new allocation entry via the bulk save path
+              // — mutation 4 picks up changes to allocationHistory and
+              // upserts buddy_allocations on the changed date.
+              const dk = getDateKey();
+              const newHistory = { ...(data.allocationHistory || {}), [dk]: newEntry };
+              saveData({ ...data, allocationHistory: newHistory });
+
+              // Audit trail — separate insert into audit_events. Direct
+              // supabase call (the bulk endpoint doesn't surface this
+              // table). Best-effort: if it fails we still keep the
+              // allocation change, just log a warning since the user
+              // already got the operational win.
+              const sb = supabaseRef.current;
+              if (sb) {
+                const practiceId = data?._v4?.practiceId;
+                const userId = data?._v4?.userId;
+                if (practiceId) {
+                  const { error: aErr } = await sb.from('audit_events').insert({
+                    practice_id: practiceId,
+                    user_id: userId || null,
+                    event_type: 'buddy_allocations_edited',
+                    description: `Manually reassigned ${override.type === 'dayOff' ? 'day-off' : 'absent'} cover`,
+                    details: { date: dk, override },
+                  });
+                  if (aErr) console.warn('audit_events insert failed', aErr);
+                }
+              }
+
+              if (toast) toast('Buddy cover reassigned', 'success', 2000);
+              return { ok: true };
+            } catch (e) {
+              return { error: e?.message || 'Save failed' };
+            }
+          }}
+        />
       )}
     </div>
     </div>

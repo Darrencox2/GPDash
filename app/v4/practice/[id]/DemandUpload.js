@@ -13,8 +13,9 @@ import { createClient } from '@/utils/supabase/client';
 import { parseDemandFile, SUPPORTED_SOURCES } from '@/lib/demand-parsers';
 import { recalibrateDemandModel } from '@/lib/demand-recalibration';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
+import DemandComparisonPanel from './DemandComparisonPanel';
 
-export default function DemandUpload({ practiceId, demandSettings, history, onUploadSuccess }) {
+export default function DemandUpload({ practiceId, demandSettings, history, onUploadSuccess, listSize }) {
   const supabase = createClient();
   const router = useRouter();
   const fileInput = useRef(null);
@@ -117,6 +118,15 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
         );
       if (settingsErr) throw settingsErr;
 
+      // Snapshot of pre-upload settings for the comparison panel.
+      // We need this BEFORE the upsert + recalibration overwrites
+      // demand_settings, so the comparison answers the honest question
+      // "how well did your existing model predict this new batch?"
+      // rather than the incestuous "how well does the new model
+      // (re-fit to include this batch) fit the batch it was just fit
+      // to?". Captured here as a plain copy.
+      const preUploadSettings = demandSettings ? { ...demandSettings } : null;
+
       setResult({
         rowsInFile: parsed.rows.length,
         rowsTotal: (allRows || []).length,
@@ -131,6 +141,10 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
         totalEvents: parsed.summary.totalEvents,
         proxyEvents: parsed.summary.proxyEvents,
         directEvents: parsed.summary.directEvents,
+        // For the comparison panel
+        uploadedRows: parsed.rows,
+        preUploadSettings,
+        schoolHolidayRanges: holidays,
       });
       // Tell the wizard (or any other parent that cares) we just uploaded
       // demand data — so it can flip its "step done" indicator without
@@ -259,6 +273,17 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
               </ul>
             </details>
           )}
+
+          {/* Predict-vs-actual comparison using the pre-upload model.
+              Skips itself silently on first-ever upload (no prior model
+              to compare against) — DemandComparisonPanel renders an
+              explanatory message in that case. */}
+          <DemandComparisonPanel
+            uploadedRows={result.uploadedRows}
+            preUploadSettings={result.preUploadSettings}
+            schoolHolidayRanges={result.schoolHolidayRanges}
+            listSize={listSize}
+          />
         </div>
       )}
     </div>

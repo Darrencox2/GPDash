@@ -22,7 +22,7 @@ const ROLE_COLOURS = {
   'Medical Student': 'bg-rose-50 border-rose-200 text-rose-800',
 };
 
-function PersonCard({ person, status, reason, onClick, onHide, location, sessionLoc, getSiteCol }) {
+function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, location, sessionLoc, getSiteCol }) {
   const isAbsent = status === 'absent';
   const isDayOff = status === 'dayoff';
   const displayName = person.title ? `${person.title} ${person.name}` : person.name;
@@ -44,6 +44,9 @@ function PersonCard({ person, status, reason, onClick, onHide, location, session
   // Only "present" people have CSV slot data — clicking absent or day-off
   // shouldn't open the panel because there's nothing to show.
   const isClickable = !!onClick && !isAbsent && !isDayOff;
+  // "Off today" only makes sense for someone currently considered
+  // present — you can't mark them off if they're already absent.
+  const canMarkOff = !!onMarkOffToday && !isAbsent;
 
   return (
     <button
@@ -52,11 +55,25 @@ function PersonCard({ person, status, reason, onClick, onHide, location, session
       disabled={!isClickable}
       className={`glass-inner rounded-lg transition-all group relative px-3 py-2 flex items-center justify-between text-left w-full ${isClickable ? 'cursor-pointer hover:bg-white/5' : 'cursor-default'}`}
     >
-      {onHide && (
-        <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
-          role="button"
-          className="opacity-0 group-hover:opacity-100 text-xs text-slate-500 hover:text-red-400 transition-opacity absolute top-1 right-1 z-10 cursor-pointer">✕</span>
-      )}
+      <div className="absolute top-1 right-1 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {canMarkOff && (
+          <span
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onMarkOffToday(); }}
+            role="button"
+            title="Mark off today"
+            className="text-[10px] px-1.5 py-0.5 rounded text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors cursor-pointer"
+            style={{ fontWeight: 500 }}
+          >
+            Off today
+          </span>
+        )}
+        {onHide && (
+          <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
+            role="button"
+            title="Hide from Who's In"
+            className="text-xs text-slate-500 hover:text-red-400 transition-colors cursor-pointer">✕</span>
+        )}
+      </div>
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
           style={{ fontFamily: "'Outfit',sans-serif", background: badgeCol, boxShadow: `0 0 6px ${badgeCol}30` }}>
@@ -102,6 +119,13 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
   // Stores the person object (the team-register entry) so we can look up
   // their CSV name via matchesStaffMember on each cap.am.byClinician row.
   const [selectedPerson, setSelectedPerson] = useState(null);
+  // "Off today" quick action — when set, opens a small modal asking
+  // for an absence reason. Confirming inserts a single-day row into
+  // the absences table so the buddy allocator picks them up as
+  // absent on the next regen (and the rest of the dashboard reflects
+  // the change). Stored as the person object so we can show their
+  // name in the modal.
+  const [offTodayCandidate, setOffTodayCandidate] = useState(null);
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const allClinicians = ensureArray(data?.clinicians);
 
@@ -335,6 +359,35 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
 
   const hiddenPeople = allClinicians.filter(c => !isShowWhosIn(c) && c.status !== 'left' && c.status !== 'administrative');
 
+  // Persist a single-day absence for the candidate clinician. Reason
+  // comes from the modal's dropdown; notes are optional and stored
+  // free-text (no health data per the absences table convention).
+  // Writes directly via the supabase client — same RLS-gated path the
+  // rest of v4 uses. After a successful write we refresh the page so
+  // the buddy allocator + Who's In widget pick the new absence up;
+  // optimistic local update would be nicer but the absence-driven
+  // recalc lives in a server-rendered tree above this component.
+  const markOffToday = async (personId, reason, notes) => {
+    const sb = supabaseRef.current;
+    if (!sb) return { error: 'No supabase client' };
+    const today = toLocalIso(new Date());
+    const { error } = await sb.from('absences').insert({
+      clinician_id: personId,
+      start_date: today,
+      end_date: today,
+      reason,
+      notes: notes || null,
+    });
+    if (error) return { error: error.message };
+    // Trigger a server re-render so the absence flows back into data
+    // (planned absences, who's-in classification, buddy regeneration
+    // if the dashboard auto-regens on absence changes).
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+    return { ok: true };
+  };
+
   return (
     <div className="rounded-xl overflow-hidden glass">
       <div className="glass-header px-4 py-2.5">
@@ -382,7 +435,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
               <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">{section.label} ({section.team.length})</span>
             </div>
             <PeopleGrid isEmpty={section.team.length === 0}>
-              {section.team.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onClick={() => setSelectedPerson({ person: e.person, accent: section.colour })} onHide={() => hidePerson(e.person.id)} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
+              {section.team.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onClick={() => setSelectedPerson({ person: e.person, accent: section.colour })} onHide={() => hidePerson(e.person.id)} onMarkOffToday={canEdit ? () => setOffTodayCandidate(e.person) : null} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
             </PeopleGrid>
           </div>
         ))}
@@ -486,6 +539,158 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           />
         );
       })()}
+
+      {offTodayCandidate && (
+        <OffTodayModal
+          person={offTodayCandidate}
+          onClose={() => setOffTodayCandidate(null)}
+          onConfirm={(reason, notes) => markOffToday(offTodayCandidate.id, reason, notes)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Quick "off today" modal — single-day absence for a clinician the
+// user just learned isn't coming in. Reason is a controlled enum
+// (matches absences.reason type); notes are optional and free-text.
+// On confirm we insert the absence and reload so the rest of the
+// dashboard picks up the change.
+function OffTodayModal({ person, onClose, onConfirm }) {
+  const [reason, setReason] = useState('unwell');
+  const [notes, setNotes] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  const REASONS = [
+    { value: 'unwell', label: 'Unwell' },
+    { value: 'annual_leave', label: 'Annual leave' },
+    { value: 'training', label: 'Training' },
+    { value: 'study_leave', label: 'Study leave' },
+    { value: 'parental_leave', label: 'Parental leave' },
+    { value: 'compassionate', label: 'Compassionate' },
+    { value: 'other', label: 'Other' },
+  ];
+
+  const handle = async () => {
+    setBusy(true);
+    setErr('');
+    const res = await onConfirm(reason, notes.trim() || null);
+    if (res?.error) {
+      setErr(res.error);
+      setBusy(false);
+    }
+    // On success the parent reloads — no need to clean up here.
+  };
+
+  return (
+    <div
+      onClick={busy ? undefined : onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(2px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#0f172a',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 12,
+          padding: 24,
+          maxWidth: 420,
+          width: '100%',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        }}
+      >
+        <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'white', marginBottom: 4 }}>
+          Mark off today
+        </div>
+        <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>
+          {person.title ? `${person.title} ` : ''}{person.name} won&apos;t be in today.
+        </div>
+
+        <label style={{ display: 'block', fontSize: 11, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reason</label>
+        <select
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          disabled={busy}
+          style={{
+            width: '100%', padding: '8px 10px', marginBottom: 14,
+            background: 'rgba(0,0,0,0.3)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 6,
+            color: '#e2e8f0',
+            fontSize: 14,
+          }}
+        >
+          {REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+
+        <label style={{ display: 'block', fontSize: 11, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes (optional)</label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          disabled={busy}
+          rows={2}
+          placeholder="e.g. covering urgent home visit instead"
+          style={{
+            width: '100%', padding: '8px 10px', marginBottom: 16,
+            background: 'rgba(0,0,0,0.3)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 6,
+            color: '#e2e8f0',
+            fontSize: 14,
+            resize: 'vertical',
+            fontFamily: 'inherit',
+          }}
+        />
+
+        {err && (
+          <div style={{ fontSize: 12, color: '#fca5a5', marginBottom: 12 }}>
+            {err}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            style={{
+              padding: '8px 14px',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 6,
+              color: '#94a3b8',
+              fontSize: 13,
+              cursor: busy ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handle}
+            disabled={busy}
+            style={{
+              padding: '8px 14px',
+              background: busy ? 'rgba(245, 158, 11, 0.3)' : '#f59e0b',
+              border: 'none',
+              borderRadius: 6,
+              color: 'white',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: busy ? 'wait' : 'pointer',
+            }}
+          >
+            {busy ? 'Saving…' : 'Mark off today'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

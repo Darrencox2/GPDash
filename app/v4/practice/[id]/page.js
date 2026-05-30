@@ -243,6 +243,7 @@ export default async function PracticeAdminPage({ params }) {
           huddleSettings={huddleSettings}
           history={historySummary || []}
           canManage={canManage}
+          listSize={practice?.list_size || null}
         />
       </>
     ),
@@ -353,7 +354,7 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
   );
 }
 
-function DemandTab({ practiceId, demandSettings, huddleSettings, history, canManage }) {
+function DemandTab({ practiceId, demandSettings, huddleSettings, history, canManage, listSize }) {
   if (!canManage) {
     return <Card title="Demand model"><p style={{ fontSize: 14, color: '#64748b' }}>Admin-only.</p></Card>;
   }
@@ -367,9 +368,9 @@ function DemandTab({ practiceId, demandSettings, huddleSettings, history, canMan
         </p>
         <DemandUpload
           practiceId={practiceId}
-          
           demandSettings={demandSettings}
           history={history}
+          listSize={listSize}
         />
         {demandSettings?.lastCalibratedAt && (
           <div style={{ marginTop: 14, fontSize: 13, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12 }}>
