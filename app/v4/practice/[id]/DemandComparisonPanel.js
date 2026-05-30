@@ -1,21 +1,22 @@
 'use client';
 
-// DemandComparisonPanel — appears in the upload result block to show
-// how the PRE-UPLOAD demand model would have predicted the days the
-// user just uploaded actuals for. Runs the predictor over each date
-// in the uploaded batch using the OLD demand_settings (the calibration
-// state from before this upload), then compares to the actuals just
-// imported.
+// DemandComparisonPanel — runs the predictor over a list of dated
+// actuals and shows how well the model predicted them.
 //
-// Why pre-upload settings: post-upload, recalibration has already
-// re-fit the model to include this very batch, so comparing
-// post-upload predictions to the batch is incestuous — the model will
-// always look good. Pre-upload settings answer the honest question
-// "how well did your existing model anticipate this new data?"
+// Two callers today:
 //
-// First-time upload: we have no pre-upload baseline, so we skip the
-// comparison and surface a message ("calibrating from scratch — next
-// upload will show accuracy").
+//   1. Post-upload (DemandUpload) — passes the PRE-upload demand_settings
+//      so the comparison is genuine ("how well did your existing model
+//      predict the new data?") rather than incestuous ("how well does the
+//      model fit data it was just re-fit to?").
+//
+//   2. Persistent recent-accuracy card (RecentAccuracyCard) — passes the
+//      CURRENT demand_settings as an at-a-glance "is the model still
+//      tracking my practice?" view.
+//
+// First-time path: when settings has no baseline (no prior calibration),
+// surfaces an explanatory message. Caller can also opt to hide the panel
+// entirely via the `firstTimeMode` prop.
 
 import { useMemo } from 'react';
 import { predictDemand } from '@/lib/demandPredictor';
@@ -24,12 +25,17 @@ const DOW_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
 export default function DemandComparisonPanel({
   uploadedRows,
+  settings,
+  // Legacy alias for backwards compat — older callers passed preUploadSettings
   preUploadSettings,
   schoolHolidayRanges,
   listSize,
+  title = 'Model accuracy on this batch',
+  firstTimeMode = 'message', // 'message' shows explanatory text; 'hide' renders nothing
 }) {
+  const effectiveSettings = settings || preUploadSettings || null;
   const analysis = useMemo(() => {
-    if (!preUploadSettings || typeof preUploadSettings.baseline !== 'number') {
+    if (!effectiveSettings || typeof effectiveSettings.baseline !== 'number') {
       return { firstTime: true };
     }
     if (!Array.isArray(uploadedRows) || uploadedRows.length === 0) {
@@ -44,7 +50,7 @@ export default function DemandComparisonPanel({
       const date = row.date;
       const actual = Number(row.count) || 0;
       const out = predictDemand(date, null, {
-        demandSettings: preUploadSettings,
+        demandSettings: effectiveSettings,
         schoolHolidayRanges,
         listSize,
       });
@@ -105,9 +111,10 @@ export default function DemandComparisonPanel({
       dowBias,
       outliers,
     };
-  }, [uploadedRows, preUploadSettings, schoolHolidayRanges, listSize]);
+  }, [uploadedRows, effectiveSettings, schoolHolidayRanges, listSize]);
 
   if (analysis.firstTime) {
+    if (firstTimeMode === 'hide') return null;
     return (
       <div style={{ marginTop: 12, padding: 12, background: 'rgba(34,211,238,0.05)', border: '1px solid rgba(34,211,238,0.15)', borderRadius: 8, fontSize: 12, color: '#94a3b8' }}>
         This is the first calibration for your practice — there&apos;s no prior model to compare against.
@@ -124,7 +131,7 @@ export default function DemandComparisonPanel({
   return (
     <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
       <div style={{ color: '#a78bfa', fontWeight: 500, marginBottom: 8 }}>
-        Model accuracy on this batch
+        {title}
       </div>
 
       {/* Headline stats */}

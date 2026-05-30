@@ -26,6 +26,7 @@ import MembershipChangesCard from './MembershipChangesCard';
 import EmisReportCard from '@/components/EmisReportCard';
 import DeletePracticeButton from './DeletePracticeButton';
 import DemandUpload from './DemandUpload';
+import RecentAccuracyCard from './RecentAccuracyCard';
 import BuddyCoverSettings from './BuddyCoverSettings';
 import TeamNetUrlEditor from './TeamNetUrlEditor';
 import DataCleanupActions from './DataCleanupActions';
@@ -387,6 +388,16 @@ function DemandTab({ practiceId, demandSettings, huddleSettings, history, canMan
             Upload your own AskMyGP history above to refine the model with your real numbers.
           </div>
         )}
+      </Card>
+
+      <Card title="Recent accuracy">
+        <RecentAccuracyCard
+          practiceId={practiceId}
+          demandSettings={demandSettings}
+          schoolHolidayRanges={demandSettings?.schoolHolidayRanges}
+          listSize={listSize}
+          days={60}
+        />
       </Card>
 
       <CapacityTargetsEditor
