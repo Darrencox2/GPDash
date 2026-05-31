@@ -57,6 +57,7 @@ import EmisReportCard from '@/components/EmisReportCard';
 import DemandUpload from '@/app/v4/practice/[id]/DemandUpload';
 import QuickSetupTable from '@/app/v4/practice/[id]/QuickSetupTable';
 import { parseHuddleCSV } from '@/lib/huddle';
+import { buildFacts } from '@/lib/workload-report';
 import { guessGroupFromRole, buddyDefaultsForRole } from '@/lib/data';
 
 // Steps are declared up here so the progress indicator can render them
@@ -2037,6 +2038,171 @@ function suggestDuty(name) {
 //   huddle_settings.savedSlotFilters.urgent  = { slotName: true, ... }
 //   huddle_settings.dutyDoctorSlot           = [slotName, ...]
 // Only true entries are written; slots not in either map are "Other".
+// Compute average urgent OFFERED slots per weekday + session from the
+// uploaded appointment CSV, using the urgent slot types the user just
+// categorised. Returns { Monday: { am, pm }, ... } — a sensible starting
+// point for expected urgent capacity that the practice can then tweak.
+function computeExpectedUrgentFromCsv(parsedCsv, slotFilters) {
+  if (!parsedCsv) return {};
+  const hs = { savedSlotFilters: { urgent: slotFilters?.urgent || {}, routine: slotFilters?.routine || {} } };
+  let facts = [];
+  try { facts = buildFacts(parsedCsv, [], hs).facts || []; } catch { return {}; }
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const perDate = {};
+  for (const f of facts) {
+    if (f.category !== 'urgent') continue;
+    const k = `${f.iso}|${f.session}`;
+    if (!perDate[k]) perDate[k] = { dow: f.dow, urgent: 0 };
+    perDate[k].urgent += (f.count || 0);
+  }
+  const agg = {};
+  for (const k in perDate) {
+    const { dow, urgent } = perDate[k];
+    const session = k.split('|')[1];
+    if (dow < 1 || dow > 5) continue;
+    agg[dow] = agg[dow] || { am: { sum: 0, n: 0 }, pm: { sum: 0, n: 0 } };
+    agg[dow][session].sum += urgent;
+    agg[dow][session].n += 1;
+  }
+  const out = {};
+  for (let dow = 1; dow <= 5; dow++) {
+    const a = agg[dow];
+    if (!a) continue;
+    out[DAY_NAMES[dow]] = {
+      am: a.am.n ? Math.round(a.am.sum / a.am.n) : 0,
+      pm: a.pm.n ? Math.round(a.pm.sum / a.pm.n) : 0,
+    };
+  }
+  return out;
+}
+
+// Optional expected-urgent-capacity setup, shown at the foot of the slot
+// types step (we're right where urgent slots get defined, and the parsed
+// CSV is to hand for autofill). Self-contained: reads + writes
+// huddle_settings.expectedCapacity itself. Three paths — autofill from the
+// appointment data, enter manually, or skip for now.
+function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters }) {
+  const supabase = createClient();
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const [expected, setExpected] = useState(null);
+  const [mode, setMode] = useState('closed');
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState(null);
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    (async () => {
+      const { data } = await supabase.from('practice_settings').select('huddle_settings').eq('practice_id', practiceId).maybeSingle();
+      const ec = data?.huddle_settings?.expectedCapacity;
+      if (ec && Object.keys(ec).length > 0) { setExpected(ec); setMode('set'); }
+    })();
+  }, [practiceId, supabase]);
+
+  const persist = async (ec) => {
+    setSaving(true);
+    const { data: existing } = await supabase.from('practice_settings').select('huddle_settings').eq('practice_id', practiceId).maybeSingle();
+    const merged = { ...(existing?.huddle_settings || {}), expectedCapacity: ec };
+    await supabase.from('practice_settings').upsert({ practice_id: practiceId, huddle_settings: merged }, { onConflict: 'practice_id' });
+    setSaving(false);
+    setSavedAt(new Date());
+  };
+
+  const autofill = () => {
+    const computed = computeExpectedUrgentFromCsv(parsedCsv, slotFilters);
+    const filled = {};
+    for (const d of DAYS) filled[d] = { am: computed[d]?.am ?? 0, pm: computed[d]?.pm ?? 0 };
+    setExpected(filled);
+    setMode('set');
+    persist(filled);
+  };
+  const startManual = () => {
+    const blank = {};
+    for (const d of DAYS) blank[d] = { am: expected?.[d]?.am ?? '', pm: expected?.[d]?.pm ?? '' };
+    setExpected(blank);
+    setMode('manual');
+  };
+  const updateCell = (day, session, value) => {
+    setExpected(prev => {
+      const next = { ...(prev || {}) };
+      next[day] = { ...(next[day] || {}), [session]: value === '' ? '' : (parseInt(value) || 0) };
+      return next;
+    });
+  };
+  const saveManual = () => {
+    const clean = {};
+    for (const d of DAYS) clean[d] = { am: parseInt(expected?.[d]?.am) || 0, pm: parseInt(expected?.[d]?.pm) || 0 };
+    setExpected(clean);
+    setMode('set');
+    persist(clean);
+  };
+
+  const hasUrgent = slotFilters?.urgent && Object.values(slotFilters.urgent).some(Boolean);
+
+  return (
+    <div style={{ padding: 16, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 10 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: '#fdba74', marginBottom: 4 }}>Expected urgent capacity (optional)</div>
+      <p style={{ fontSize: 12.5, color: '#94a3b8', lineHeight: 1.55, margin: '0 0 12px' }}>
+        How many urgent slots you aim to offer per session. Used by Capacity Planning and as a
+        fallback for the Today gauge. You can autofill a starting point from your appointment data,
+        set it by hand, or skip and do it later from the Demand tab.
+      </p>
+
+      {mode === 'closed' && (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button type="button" onClick={autofill} disabled={!hasUrgent} title={hasUrgent ? '' : 'Mark at least one slot type as Urgent above first'} style={{ ...pillButton('#f97316'), opacity: hasUrgent ? 1 : 0.4, cursor: hasUrgent ? 'pointer' : 'not-allowed' }}>
+            ✨ Autofill from my data
+          </button>
+          <button type="button" onClick={startManual} style={pillButton('#6366f1')}>Enter manually</button>
+          <span style={{ fontSize: 12, color: '#64748b', alignSelf: 'center' }}>or skip — it is optional</span>
+        </div>
+      )}
+
+      {(mode === 'manual' || mode === 'set') && expected && (
+        <div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr>
+                  <th style={{ width: 90 }} />
+                  {DAYS.map(d => <th key={d} style={{ textAlign: 'center', padding: '6px 4px', color: '#94a3b8', fontSize: 12, fontWeight: 600 }}>{d.slice(0, 3)}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {['am', 'pm'].map(session => (
+                  <tr key={session} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <td style={{ padding: '8px 4px', fontSize: 12.5, fontWeight: 500, color: session === 'am' ? '#fbbf24' : '#60a5fa' }}>{session === 'am' ? 'Morning' : 'Afternoon'}</td>
+                    {DAYS.map(d => (
+                      <td key={d} style={{ textAlign: 'center', padding: '4px' }}>
+                        {mode === 'manual' ? (
+                          <input type="number" min={0} max={999} value={expected[d]?.[session] ?? ''} onChange={e => updateCell(d, session, e.target.value)} placeholder="–"
+                            style={{ width: 56, padding: '6px 4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#e2e8f0', fontSize: 13, textAlign: 'center', fontFamily: "'Space Mono', monospace" }} />
+                        ) : (
+                          <span style={{ fontFamily: "'Space Mono', monospace", color: '#e2e8f0' }}>{expected[d]?.[session] ?? 0}</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            {mode === 'manual'
+              ? <button type="button" onClick={saveManual} style={{ ...pillButton('#10b981'), background: '#10b981', color: '#06281e', borderColor: '#10b981' }}>{saving ? 'Saving…' : 'Save targets'}</button>
+              : <>
+                  <button type="button" onClick={startManual} style={pillButton('#6366f1')}>Edit</button>
+                  <button type="button" onClick={autofill} disabled={!hasUrgent} style={{ ...pillButton('#f97316'), opacity: hasUrgent ? 1 : 0.4, cursor: hasUrgent ? 'pointer' : 'not-allowed' }}>Re-autofill</button>
+                </>}
+            <span style={{ fontSize: 11, color: savedAt ? '#10b981' : '#64748b' }}>{saving ? 'Saving…' : (savedAt ? '✓ Saved' : '')}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
   const supabase = createClient();
   const trackSave = useTrackedSave();
@@ -2450,6 +2616,8 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
       </div>
 
       {error && <div style={errorText}>{error}</div>}
+
+      <UrgentCapacitySection practiceId={practiceId} parsedCsv={parsedCsv} slotFilters={slotFilters} />
 
       <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
         These can be changed any time from Practice settings → Demand.
