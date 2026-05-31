@@ -314,17 +314,28 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
   // Assign a role to a specific set of clinician ids — used by the
   // QuickRoleWizard (role-by-role quick-fire pass). Same effect as setting
   // the role in the grid: applies the role, its derived group, and the
-  // role's buddy-cover defaults. The save-diff effect then persists it.
-  const assignRole = (ids, role) => {
+  // role's buddy-cover defaults. An optional opts.status lets the wizard's
+  // "non-clinicians" step mark people administrative (which also takes them
+  // out of buddy cover). Moving an administrative person onto a real
+  // clinical role re-activates them. The save-diff effect persists it all.
+  const assignRole = (ids, role, opts = {}) => {
     const idSet = new Set(ids);
+    const makeAdmin = opts.status === 'administrative';
     setClinicians(prev => prev.map(c => {
       if (!idSet.has(c.id)) return c;
       const updated = { ...c, role };
+      if (opts.status) {
+        updated.status = opts.status;
+      } else if (role && c.status === 'administrative') {
+        // A clinical role was just assigned to an admin entry — bring them
+        // back into the active clinician flow.
+        updated.status = 'active';
+      }
       const guessed = guessGroupFromRole(role);
       if (guessed) updated.group = guessed;
       const bd = buddyDefaultsForRole(role);
-      updated.buddyCover = bd.buddyCover;
-      updated.canProvideCover = bd.canProvideCover;
+      updated.buddyCover = makeAdmin ? false : bd.buddyCover;
+      updated.canProvideCover = makeAdmin ? false : bd.canProvideCover;
       return updated;
     }));
   };

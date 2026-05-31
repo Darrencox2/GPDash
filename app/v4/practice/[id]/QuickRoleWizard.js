@@ -22,8 +22,14 @@ import { createPortal } from 'react-dom';
 import { allRoles } from '@/lib/data';
 
 // The pass only steps through the everyday roles. Less common ones (ANP
-// aside) are left for the grid, per product decision — keeps the pass short.
+// The pass steps. The first one pulls out the non-clinicians (telephone
+// triage, care navigators, system / slot-holder pseudo-entries) and marks
+// them administrative + Administrator, so they drop out of the way for the
+// clinical role steps that follow. Less common clinical roles are left for
+// the grid, per product decision — keeps the pass short.
 const COMMON_ROLES = [
+  { role: 'Administrator', admin: true, ico: '☎️', question: 'Who are your non-clinicians?',
+    hint: 'Telephone triage, care navigators, and any system or slot-holder entries that are not real clinicians. These get marked administrative and drop out of buddy cover.' },
   { role: 'GP Partner',     ico: '🩺', hint: 'Partners who own a share of the practice.' },
   { role: 'Salaried GP',    ico: '🩺', hint: 'Employed GPs who are not partners.' },
   { role: 'GP Registrar',   ico: '🎓', hint: 'GPs still in training (registrar / GPST).' },
@@ -61,8 +67,14 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
     (clinicians || []).forEach(c => { if (c.status !== 'left') m[c.id] = c.role || ''; });
     return m;
   }, [clinicians]);
+  const initialStatus = useMemo(() => {
+    const m = {};
+    (clinicians || []).forEach(c => { if (c.status !== 'left') m[c.id] = c.status || 'active'; });
+    return m;
+  }, [clinicians]);
 
   const [roleById, setRoleById] = useState(initialRoles);
+  const [statusById, setStatusById] = useState(initialStatus);
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(() => new Set());
   const [done, setDone] = useState(allPeople.length === 0);
@@ -80,22 +92,35 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
   }, [onClose]);
 
   const current = COMMON_ROLES[step];
+  const isAdminStep = !!current?.admin;
 
-  // On entering a step, pre-tick everyone who currently holds this role.
+  // On entering a step, pre-tick the right people: on the non-clinician
+  // step, everyone already administrative; on a role step, everyone already
+  // on that role (excluding administrative entries).
   useEffect(() => {
     if (done || !current) return;
-    const roleLc = current.role.toLowerCase();
-    const pre = new Set(allPeople.filter(p => (roleById[p.id] || '').toLowerCase() === roleLc).map(p => p.id));
+    let pre;
+    if (current.admin) {
+      pre = new Set(allPeople.filter(p => statusById[p.id] === 'administrative').map(p => p.id));
+    } else {
+      const roleLc = current.role.toLowerCase();
+      pre = new Set(allPeople.filter(p => statusById[p.id] !== 'administrative' && (roleById[p.id] || '').toLowerCase() === roleLc).map(p => p.id));
+    }
     setSelected(pre);
     setQuery('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, done]);
 
   const roleLc = current ? current.role.toLowerCase() : '';
-  // Sync semantics: ticked-but-not-yet-this-role → assign; unticked-but-
-  // currently-this-role → clear. Everyone else is left untouched.
-  const toAssignIds = current ? allPeople.filter(p => selected.has(p.id) && (roleById[p.id] || '').toLowerCase() !== roleLc).map(p => p.id) : [];
-  const toClearIds = current ? allPeople.filter(p => !selected.has(p.id) && (roleById[p.id] || '').toLowerCase() === roleLc).map(p => p.id) : [];
+  // Sync semantics. Non-clinician step works on status; role steps on role.
+  let toAssignIds, toClearIds;
+  if (isAdminStep) {
+    toAssignIds = allPeople.filter(p => selected.has(p.id) && statusById[p.id] !== 'administrative').map(p => p.id);
+    toClearIds = allPeople.filter(p => !selected.has(p.id) && statusById[p.id] === 'administrative').map(p => p.id);
+  } else {
+    toAssignIds = current ? allPeople.filter(p => selected.has(p.id) && (roleById[p.id] || '').toLowerCase() !== roleLc).map(p => p.id) : [];
+    toClearIds = current ? allPeople.filter(p => !selected.has(p.id) && (roleById[p.id] || '').toLowerCase() === roleLc).map(p => p.id) : [];
+  }
   const selCount = current ? allPeople.filter(p => selected.has(p.id)).length : 0;
 
   const toggle = (id) => {
@@ -117,15 +142,41 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
     if (advancing.current) return;
     advancing.current = true;
     setQuery('');
-    // Apply changes in the parent (role + buddy defaults + persist).
-    if (toAssignIds.length) onAssign?.(toAssignIds, current.role);
-    if (toClearIds.length) onAssign?.(toClearIds, '');
-    setRoleById(prev => {
-      const next = { ...prev };
-      toAssignIds.forEach(id => { next[id] = current.role; });
-      toClearIds.forEach(id => { next[id] = ''; });
-      return next;
-    });
+    if (isAdminStep) {
+      // Mark selected as administrative + Administrator; un-mark removes
+      // them (back to active + needing a role).
+      if (toAssignIds.length) onAssign?.(toAssignIds, 'Administrator', { status: 'administrative' });
+      if (toClearIds.length) onAssign?.(toClearIds, '', { status: 'active' });
+      setStatusById(prev => {
+        const next = { ...prev };
+        toAssignIds.forEach(id => { next[id] = 'administrative'; });
+        toClearIds.forEach(id => { next[id] = 'active'; });
+        return next;
+      });
+      setRoleById(prev => {
+        const next = { ...prev };
+        toAssignIds.forEach(id => { next[id] = 'Administrator'; });
+        toClearIds.forEach(id => { next[id] = ''; });
+        return next;
+      });
+    } else {
+      if (toAssignIds.length) onAssign?.(toAssignIds, current.role);
+      if (toClearIds.length) onAssign?.(toClearIds, '');
+      setRoleById(prev => {
+        const next = { ...prev };
+        toAssignIds.forEach(id => { next[id] = current.role; });
+        toClearIds.forEach(id => { next[id] = ''; });
+        return next;
+      });
+      // Assigning a clinical role re-activates any admin entry.
+      if (toAssignIds.length) {
+        setStatusById(prev => {
+          const next = { ...prev };
+          toAssignIds.forEach(id => { if (next[id] === 'administrative') next[id] = 'active'; });
+          return next;
+        });
+      }
+    }
     setTimeout(() => { advancing.current = false; advance(); }, 220);
   };
 
@@ -174,7 +225,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
         {/* Top bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
           <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#818cf8', fontWeight: 600 }}>
-            {done ? 'Done' : `Role ${step + 1} of ${COMMON_ROLES.length}`}
+            {done ? 'Done' : `Step ${step + 1} of ${COMMON_ROLES.length}`}
           </div>
           <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
         </div>
@@ -219,9 +270,9 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
             <div key={headKey} style={{ marginBottom: 16, animation: 'qrwHeadIn 0.35s ease-out' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(129,140,248,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>{current.ico}</div>
-                <div style={{ fontSize: 21, fontWeight: 600, color: '#f1f5f9' }}>Who are your {current.role}s?</div>
+                <div style={{ fontSize: 21, fontWeight: 600, color: '#f1f5f9' }}>{current.question || `Who are your ${current.role}s?`}</div>
               </div>
-              <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6, marginLeft: 44 }}>{current.hint} The people already on this role are ticked — adjust as needed.</div>
+              <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6, marginLeft: 44 }}>{current.hint} {isAdminStep ? 'Anyone already administrative is ticked — adjust as needed.' : 'The people already on this role are ticked — adjust as needed.'}</div>
             </div>
 
             <div style={{ position: 'relative', marginBottom: 14 }}>
@@ -251,13 +302,15 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                 return shown.map((p, i) => {
                   const sel = selected.has(p.id);
                   const cur = roleById[p.id] || '';
-                  const hasRole = cur && cur.toLowerCase() !== '' && !PLACEHOLDER.has(cur.trim().toLowerCase());
+                  const isAdmin = statusById[p.id] === 'administrative';
+                  const hasRole = isAdmin || (cur && cur.toLowerCase() !== '' && !PLACEHOLDER.has(cur.trim().toLowerCase()));
                   // Three tiers: selected for this role (indigo, prominent),
                   // already on another role (dimmed so it recedes), or not yet
                   // allocated (normal — these are the ones still to sort).
                   const allocatedElsewhere = !sel && hasRole;
-                  // Subline: their role if allocated, else the Dr/Mrs title hint.
-                  const subline = hasRole ? cur : (p.tag || '');
+                  // Subline: "Administrative" for non-clinicians, else their
+                  // role if allocated, else the Dr/Mrs title hint.
+                  const subline = isAdmin ? 'Administrative' : (hasRole ? cur : (p.tag || ''));
                   return (
                     <button
                       key={p.id}
@@ -305,10 +358,10 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                 {step + 1 >= COMMON_ROLES.length ? 'Confirm & finish' : 'Confirm & continue'} →
               </button>
               <span style={{ fontSize: 12.5, color: '#94a3b8' }}>
-                {selCount} marked as {current.role}
+                {selCount} marked as {isAdminStep ? 'non-clinician' : current.role}
               </span>
               <span style={{ fontSize: 12, color: '#64748b', marginLeft: 'auto', fontFamily: "'Space Mono', monospace" }}>
-                Role {step + 1} / {COMMON_ROLES.length}
+                Step {step + 1} / {COMMON_ROLES.length}
               </span>
             </div>
           </>
