@@ -2,8 +2,46 @@
 import { useState, useMemo } from 'react';
 import { getHuddleCapacity, getDutyDoctor, parseHuddleDateStr } from '@/lib/huddle';
 import { matchesStaffMember } from '@/lib/data';
+import WorkloadReportBuilder from './WorkloadReportBuilder';
 
+// WorkloadAudit is now a two-mode tool:
+//   • "Report builder" — the flexible, customisable reporting tool
+//     (pick a measure as numerator ÷ denominator, group by any
+//     dimension, chart as bars/trend/table). Default view.
+//   • "Duty & support balance" — the original fixed analysis showing
+//     how duty-doctor and support-doctor sessions are distributed
+//     across clinicians. Preserved verbatim as ClassicWorkloadAudit.
 export default function WorkloadAudit({ data, huddleData }) {
+  const [mode, setMode] = useState('builder');
+  if (!huddleData) return (
+    <div className="rounded-xl p-12 text-center" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}><div className="text-2xl mb-2">📊</div><h3 className="text-sm font-semibold text-slate-300 mb-1">No CSV data</h3><p className="text-xs text-slate-400">Upload a huddle CSV on the Today page to see workload reports.</p></div>
+  );
+  return (
+    <div className="space-y-4">
+      {/* Mode toggle */}
+      <div className="flex" style={{background:"rgba(0,0,0,0.25)",borderRadius:8,padding:3,gap:3,width:'fit-content'}}>
+        {[
+          { id: 'builder', label: 'Report builder' },
+          { id: 'classic', label: 'Duty & support balance' },
+        ].map(o => {
+          const active = mode === o.id;
+          return (
+            <button key={o.id} onClick={() => setMode(o.id)}
+              className="text-xs font-medium px-4 py-2 rounded-md transition-colors"
+              style={{ background: active ? 'rgba(99,102,241,0.9)' : 'transparent', color: active ? 'white' : '#94a3b8', cursor: 'pointer' }}>
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {mode === 'builder'
+        ? <WorkloadReportBuilder data={data} huddleData={huddleData} />
+        : <ClassicWorkloadAudit data={data} huddleData={huddleData} />}
+    </div>
+  );
+}
+
+function ClassicWorkloadAudit({ data, huddleData }) {
   const hs = data?.huddleSettings || {};
   const dutySlots = hs?.dutyDoctorSlot;
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
