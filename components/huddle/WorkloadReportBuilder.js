@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
   buildFacts, buildSessionFacts, runReport, collectGroupFacts, describeMeasure, isTimeDimension,
-  makeConditionalColour, PRESET_GROUPS, groupByOptionsForGrain, splitByOptionsForGrain, RANGE_OPTIONS, rangeLabel,
+  makeConditionalColour, PRESET_GROUPS, PRESETS, groupByOptionsForGrain, splitByOptionsForGrain, RANGE_OPTIONS, rangeLabel,
   buildFilterOptions,
 } from '@/lib/workload-report';
 import { createClient } from '@/utils/supabase/client';
@@ -189,6 +189,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   const [newReportName, setNewReportName] = useState('');
   const [showSaveBox, setShowSaveBox] = useState(false);
   const [drill, setDrill] = useState(null);
+  // Per-user favourites (set of refs like 'preset:busiest-load' / 'saved:<uuid>').
+  const [favourites, setFavourites] = useState(() => new Set());
 
   useEffect(() => {
     if (!practiceId) return;
@@ -202,6 +204,34 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     })();
     return () => { cancelled = true; };
   }, [practiceId]);
+
+  useEffect(() => {
+    if (!practiceId || !userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: rows, error } = await supabase.from('report_favourites').select('ref').eq('practice_id', practiceId).eq('user_id', userId);
+        if (!error && !cancelled && rows) setFavourites(new Set(rows.map(r => r.ref)));
+      } catch { /* table may not exist yet */ }
+    })();
+    return () => { cancelled = true; };
+  }, [practiceId, userId]);
+
+  const toggleFav = async (ref) => {
+    if (!practiceId || !userId) return;
+    const has = favourites.has(ref);
+    // Optimistic update.
+    setFavourites(prev => { const n = new Set(prev); has ? n.delete(ref) : n.add(ref); return n; });
+    try {
+      const supabase = createClient();
+      if (has) await supabase.from('report_favourites').delete().eq('practice_id', practiceId).eq('user_id', userId).eq('ref', ref);
+      else await supabase.from('report_favourites').insert({ practice_id: practiceId, user_id: userId, ref });
+    } catch {
+      // Roll back on failure.
+      setFavourites(prev => { const n = new Set(prev); has ? n.add(ref) : n.delete(ref); return n; });
+    }
+  };
 
   const numMode = (n) => n?.mode || (n?.kinds ? (n.kinds.includes('worked') ? 'worked' : (n.kinds.includes('duty') || n.kinds.includes('support')) ? 'busiest' : 'worked') : 'worked');
   const applyConfig = (c, name) => {
@@ -327,16 +357,32 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
       { bar: '#f59e0b', head: '#fcd34d', ring: 'rgba(245,158,11,0.55)' },  // amber
       { bar: '#ec4899', head: '#f9a8d4', ring: 'rgba(236,72,153,0.55)' },  // pink
     ];
+    const star = (ref) => (
+      <button onClick={(e) => { e.stopPropagation(); toggleFav(ref); }}
+        className="absolute top-2 right-2 transition-colors"
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: favourites.has(ref) ? '#fbbf24' : '#475569', fontSize: 16, lineHeight: 1 }}
+        title={favourites.has(ref) ? 'Remove from favourites' : 'Add to favourites'} aria-label="Toggle favourite">
+        {favourites.has(ref) ? '★' : '☆'}
+      </button>
+    );
     const card = (key, accent, onClick, body, extra) => (
       <div key={key} onClick={onClick}
-        className="group relative rounded-xl p-4 cursor-pointer flex flex-col transition-transform hover:-translate-y-0.5"
+        className="group relative rounded-xl p-4 pr-8 cursor-pointer flex flex-col transition-transform hover:-translate-y-0.5"
         style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.07)', borderLeft: `3px solid ${accent.bar}`, minHeight: 84 }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = accent.ring; e.currentTarget.style.borderLeftColor = accent.bar; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderLeftColor = accent.bar; }}>
         {body}{extra}
       </div>
     );
+    const gold = { bar: '#eab308', head: '#fde047', ring: 'rgba(234,179,8,0.55)' };
     const emerald = { bar: '#10b981', head: '#6ee7b7', ring: 'rgba(16,185,129,0.55)' };
+    // Resolve favourited refs back to a preset or saved report (skipping any
+    // that no longer exist, e.g. a deleted saved report).
+    const favResolved = Array.from(favourites).map(ref => {
+      if (ref.startsWith('preset:')) { const p = PRESETS.find(x => x.id === ref.slice(7)); return p ? { ref, kind: 'preset', item: p } : null; }
+      if (ref.startsWith('saved:')) { const r = savedReports.find(x => x.id === ref.slice(6)); return r ? { ref, kind: 'saved', item: r } : null; }
+      return null;
+    }).filter(Boolean);
     return (
       <div className="space-y-7">
         <div>
@@ -344,7 +390,28 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           <p className="text-sm text-slate-400 mt-1">Pick a report to get started, or build your own. Every report is fully editable once open.</p>
         </div>
 
-        {savedReports.length > 0 && (
+        {favResolved.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="rounded-full" style={{ width: 4, height: 15, background: gold.bar }} />
+              <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: gold.head }}>★ Favourites</h2>
+              <span className="text-xs text-slate-500">Your pinned reports</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {favResolved.map(({ ref, kind, item }) => kind === 'preset'
+                ? card(ref, gold, () => openPreset(item),
+                    <><div className="text-sm font-semibold text-slate-100">{item.label}</div>
+                      <div className="text-xs text-slate-400 mt-0.5 leading-snug">{item.description}</div></>,
+                    star(ref))
+                : card(ref, gold, () => openSaved(item),
+                    <><div className="text-sm font-semibold text-slate-100">{item.name}</div>
+                      <div className="text-xs text-slate-400 mt-0.5 line-clamp-2">{describeMeasure(item.config)}</div></>,
+                    star(ref)))}
+            </div>
+          </div>
+        )}
+
+        {savedReports.filter(r => !favourites.has(`saved:${r.id}`)).length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
               <span className="rounded-full" style={{ width: 4, height: 15, background: emerald.bar }} />
@@ -352,11 +419,12 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               <span className="text-xs text-slate-500">Reports your practice has saved</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {savedReports.map(r => card(
+              {savedReports.filter(r => !favourites.has(`saved:${r.id}`)).map(r => card(
                 r.id, emerald, () => openSaved(r),
                 <><div className="text-sm font-semibold text-slate-100">{r.name}</div>
                   <div className="text-xs text-slate-400 mt-0.5 line-clamp-2">{describeMeasure(r.config)}</div></>,
-                canEdit && <button onClick={(e) => { e.stopPropagation(); deleteReport(r.id); }} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-opacity" style={{ background: 'none', border: 'none', cursor: 'pointer' }} title="Delete report">✕</button>
+                <>{star(`saved:${r.id}`)}
+                  {canEdit && <button onClick={(e) => { e.stopPropagation(); deleteReport(r.id); }} className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-opacity" style={{ background: 'none', border: 'none', cursor: 'pointer' }} title="Delete report">✕</button>}</>
               ))}
             </div>
           </div>
@@ -365,7 +433,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
         {PRESET_GROUPS.map((g, gi) => {
           const accent = GROUP_ACCENTS[gi % GROUP_ACCENTS.length];
           const savedNames = new Set(savedReports.map(r => r.name.toLowerCase()));
-          const presets = g.presets.filter(p => !savedNames.has(p.label.toLowerCase()));
+          const presets = g.presets.filter(p => !savedNames.has(p.label.toLowerCase()) && !favourites.has(`preset:${p.id}`));
           if (presets.length === 0) return null;
           return (
             <div key={g.group}>
@@ -378,7 +446,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 {presets.map(p => card(
                   p.id, accent, () => openPreset(p),
                   <><div className="text-sm font-semibold text-slate-100">{p.label}</div>
-                    <div className="text-xs text-slate-400 mt-0.5 leading-snug">{p.description}</div></>
+                    <div className="text-xs text-slate-400 mt-0.5 leading-snug">{p.description}</div></>,
+                  star(`preset:${p.id}`)
                 ))}
               </div>
             </div>
