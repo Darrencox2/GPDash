@@ -174,7 +174,7 @@ function WeeklyRoutineBullet({ wk, rTarget }) {
     return (
       <div className="h-full flex flex-col justify-center px-2" title={`Routine — ${offered} slots offered, ${booked} booked (${fillPct}% fill)`}>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-base font-bold text-emerald-400 leading-none">{offered}</span>
+          <span className="text-base font-bold text-emerald-400 leading-none font-mono-data">{offered}</span>
           <span className="text-[9px] text-slate-500">offered</span>
         </div>
         <div className="text-[9px] text-slate-500 mt-1">{booked} booked · {fillPct}% fill</div>
@@ -192,7 +192,7 @@ function WeeklyRoutineBullet({ wk, rTarget }) {
   return (
     <div className="h-full flex flex-col justify-center px-2.5" title={`Routine — ${offered} offered vs ${rTarget} target · ${booked} booked (${fillPct}% fill)`}>
       <div className="flex items-baseline gap-1.5 mb-2">
-        <span className="text-base font-bold leading-none" style={{color: band.bg}}>{offered}</span>
+        <span className="text-base font-bold leading-none font-mono-data" style={{color: band.bg}}>{offered}</span>
         <span className="text-[9px] text-slate-500">/ {rTarget} offered</span>
       </div>
       <div className="relative" style={{height: 10}}>
@@ -501,7 +501,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           {/* Calendar header: title + slot filter cogs */}
           <div className="px-5 py-4 flex items-center gap-2 border-b border-white/10">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            <span className="text-sm font-semibold text-white">Capacity planning</span>
+            <span className="text-base font-semibold text-white font-heading">Capacity planning</span>
             <span className="text-xs text-slate-500 ml-2">6-week forward view</span>
             <div className="ml-auto flex items-center gap-2">
               <div className="flex items-center gap-1">
@@ -539,7 +539,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           {weeks.map((wk,wi)=>(
             <div key={wi} className="grid border-b border-white/5" style={{gridTemplateColumns:'62px repeat(5, 1fr) 190px'}}>
               <div className="p-3 border-r border-white/5 flex flex-col justify-center">
-                <div className="text-xs font-bold text-slate-300">Wk {wi+1}</div>
+                <div className="text-xs font-bold text-slate-300 font-mono-data">Wk {wi+1}</div>
                 <div className="text-[10px] text-slate-600">{wk.label}</div>
               </div>
               {wk.days.map((d,di)=>{
@@ -607,20 +607,20 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       }}>
                       <div className="flex items-center justify-between mb-2">
                         {d.isToday
-                          ? <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{background:'#10b981',color:'white',letterSpacing:'0.05em'}}>Today · {d.dayNum}</span>
-                          : <span className="text-xs font-bold text-slate-300">{d.dayNum}</span>}
+                          ? <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider font-mono-data" style={{background:'#10b981',color:'white',letterSpacing:'0.05em'}}>Today · {d.dayNum}</span>
+                          : <span className="text-xs font-bold text-slate-300 font-mono-data">{d.dayNum}</span>}
                         <div className="flex items-center gap-1">
                           {annotations[d.isoKey] && <span title={annotations[d.isoKey].note} className="text-[10px] leading-none cursor-help">📝</span>}
-                          {d.predicted && <span title={demandTip} className="text-[9px] font-bold px-1.5 py-0.5 rounded cursor-help" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
+                          {d.predicted && <span title={demandTip} className="text-[9px] font-bold px-1.5 py-0.5 rounded cursor-help font-mono-data" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
                         </div>
                       </div>
                       <div className="flex gap-1">
                         <div title={amTip} className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg}}>
-                          <div className="text-base font-bold leading-none" style={{color:amV.text}}>{d.amS}</div>
+                          <div className="text-base font-bold leading-none font-mono-data" style={{color:amV.text}}>{d.amS}</div>
                           <div className="text-[8px] font-bold mt-0.5" style={{color:amV.text,opacity:0.8}}>AM</div>
                         </div>
                         <div title={pmTip} className="flex-1 text-center rounded-md py-1.5" style={{background:pmV.bg}}>
-                          <div className="text-base font-bold leading-none" style={{color:pmV.text}}>{d.pmS}</div>
+                          <div className="text-base font-bold leading-none font-mono-data" style={{color:pmV.text}}>{d.pmS}</div>
                           <div className="text-[8px] font-bold mt-0.5" style={{color:pmV.text,opacity:0.8}}>PM</div>
                         </div>
                       </div>
@@ -674,7 +674,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <div className="text-xs font-semibold" style={{color: isActive ? '#fca5a5' : '#e2e8f0'}}>Urgent below target</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">{shortDays.length} day{shortDays.length===1?'':'s'} flagged</div>
                   </div>
-                  <span className="text-base font-bold text-red-400">{shortDays.length}</span>
+                  <span className="text-base font-bold text-red-400 font-mono-data">{shortDays.length}</span>
                 </button>
               );
             })()}
@@ -692,7 +692,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <div className="text-xs font-semibold" style={{color: isActive ? '#fcd34d' : '#e2e8f0'}}>Highest demand days</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">Top {Math.min(topDemand.length,5)} predicted-busiest</div>
                   </div>
-                  <span className="text-base font-bold text-amber-400">{topDemand.length}</span>
+                  <span className="text-base font-bold text-amber-400 font-mono-data">{topDemand.length}</span>
                 </button>
               );
             })()}
@@ -717,7 +717,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <div className="text-xs font-semibold" style={{color: isActive ? '#c4b5fd' : '#e2e8f0'}}>Routine by week</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">{disabled ? 'No target set' : `vs ${rTarget}/wk target`}</div>
                   </div>
-                  <span className="text-base font-bold text-purple-300">{disabled ? '—' : weeks.filter(w=>w.wR>0).length}</span>
+                  <span className="text-base font-bold text-purple-300 font-mono-data">{disabled ? '—' : weeks.filter(w=>w.wR>0).length}</span>
                 </button>
               );
             })()}
@@ -735,7 +735,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <div className="text-xs font-semibold" style={{color: isActive ? '#cbd5e1' : '#e2e8f0'}}>Week-on-week</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">Urgent + routine deltas</div>
                   </div>
-                  <span className="text-base font-bold text-slate-300">{weeks.filter(w=>w.wU>0).length}</span>
+                  <span className="text-base font-bold text-slate-300 font-mono-data">{weeks.filter(w=>w.wU>0).length}</span>
                 </button>
               );
             })()}
@@ -754,7 +754,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <div className="text-xs font-semibold" style={{color: isActive ? '#a5b4fc' : '#e2e8f0'}}>Patterns</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">{patterns.length===0?'Nothing flagged':highCount>0?`${highCount} high · ${patterns.length-highCount} other`:`${patterns.length} insight${patterns.length===1?'':'s'}`}</div>
                   </div>
-                  <span className="text-base font-bold" style={{color:highCount>0?'#fca5a5':'#a5b4fc'}}>{patterns.length}</span>
+                  <span className="text-base font-bold font-mono-data" style={{color:highCount>0?'#fca5a5':'#a5b4fc'}}>{patterns.length}</span>
                 </button>
               );
             })()}
@@ -900,7 +900,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       {detailDay && (
         <div ref={drawerRef} className="hidden lg:flex fixed top-0 right-0 bottom-0 z-40 flex-col animate-in slide-in-from-right" style={{width:'440px',background:'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',borderLeft:'1px solid rgba(255,255,255,0.1)',boxShadow:'-12px 0 32px rgba(0,0,0,0.5)'}}>
           <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
-            <span className="text-sm font-semibold text-white">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</span>
+            <span className="text-sm font-semibold text-white font-heading">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</span>
             <button onClick={closeDay} className="ml-auto text-slate-400 hover:text-white" style={{background:'none',border:'none',cursor:'pointer',padding:'4px 8px'}} aria-label="Close">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
