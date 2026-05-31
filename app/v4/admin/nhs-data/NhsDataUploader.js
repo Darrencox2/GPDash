@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { parseNhsOcBaseline } from '@/lib/nhs-oc-ingest';
 
 export default function NhsDataUploader() {
   const router = useRouter();
@@ -35,23 +36,55 @@ export default function NhsDataUploader() {
     setError('');
     setResult(null);
 
-    const formData = new FormData();
-    formData.append('month', `${month}-01`); // YYYY-MM-01
-    for (const f of files) formData.append('csv', f);
+    // Parse the (potentially very large) CSV files in the browser and send
+    // only the compact aggregated rows as JSON. This avoids hitting the
+    // serverless request-body limit (~4.5MB), which previously returned a
+    // plain-text "Request Entity Too Large" page that broke JSON parsing.
+    let payload;
+    try {
+      const texts = [];
+      for (const f of files) texts.push(await f.text());
+      const { rows, totalRowsParsed } = parseNhsOcBaseline(`${month}-01`, texts);
+      if (!rows || rows.length === 0) {
+        setError('Those files contained no parseable rows. Check you uploaded the NHS OC submissions CSV(s).');
+        setUploading(false);
+        return;
+      }
+      payload = { month: `${month}-01`, rows, totalRowsParsed };
+    } catch (e) {
+      setError(`Could not read the CSV file(s): ${e.message}`);
+      setUploading(false);
+      return;
+    }
 
     try {
       const res = await fetch('/api/admin/upload-nhs-oc-baseline', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      // Guard against non-JSON responses (e.g. a platform 413/502 HTML page)
+      // so we show a clear message instead of a JSON-parse error.
+      const ct = res.headers.get('content-type') || '';
+      let data = null;
+      if (ct.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (!res.ok) {
+          setError(res.status === 413
+            ? 'The upload was too large for the server. This should not happen now files are parsed in your browser — please report it.'
+            : `Upload failed (${res.status}). ${text.slice(0, 120)}`);
+          setUploading(false);
+          return;
+        }
+      }
       if (!res.ok) {
-        setError(data.error || 'Upload failed');
+        setError((data && (data.message || data.error)) || 'Upload failed');
         setResult(data);
       } else {
         setResult(data);
         setFiles([]);
-        // Refresh the parent to show the newly-added month
         router.refresh();
       }
     } catch (e) {

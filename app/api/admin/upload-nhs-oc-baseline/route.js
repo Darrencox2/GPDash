@@ -40,41 +40,62 @@ export async function POST(request) {
   }
 
   // Parse the form data — expect 'month' and 'csv1' (+ optional 'csv2')
-  let formData;
-  try {
-    formData = await request.formData();
-  } catch (e) {
-    return NextResponse.json({ error: 'invalid_form_data', detail: e.message }, { status: 400 });
-  }
+  // Two intake paths:
+  //   - application/json { month, rows, totalRowsParsed } — rows already
+  //     parsed in the browser (the normal path; avoids the body-size limit)
+  //   - multipart/form-data with csv file(s) — legacy/fallback, parsed here
+  const contentType = request.headers.get('content-type') || '';
+  let monthIso, rows, totalRowsParsed, fileCount = 0;
 
-  const monthIso = formData.get('month'); // e.g. '2026-04-01'
-  if (!monthIso || !/^\d{4}-\d{2}-\d{2}$/.test(monthIso)) {
-    return NextResponse.json({ error: 'invalid_month_format', message: 'Expected YYYY-MM-01 e.g. 2026-04-01' }, { status: 400 });
-  }
-
-  const files = formData.getAll('csv').filter(f => f instanceof File);
-  if (files.length === 0) {
-    return NextResponse.json({ error: 'no_csv_files', message: 'Attach one or both region CSV files (csv field)' }, { status: 400 });
-  }
-
-  // Read each file as text
-  const csvTexts = [];
-  for (const file of files) {
-    if (file.size > 200 * 1024 * 1024) { // 200MB hard cap
-      return NextResponse.json({ error: 'file_too_large', message: `${file.name} exceeds 200MB` }, { status: 400 });
+  if (contentType.includes('application/json')) {
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return NextResponse.json({ error: 'invalid_json', detail: e.message }, { status: 400 });
     }
-    const text = await file.text();
-    csvTexts.push(text);
+    monthIso = body?.month;
+    rows = Array.isArray(body?.rows) ? body.rows : [];
+    totalRowsParsed = body?.totalRowsParsed ?? rows.length;
+    if (!monthIso || !/^\d{4}-\d{2}-\d{2}$/.test(monthIso)) {
+      return NextResponse.json({ error: 'invalid_month_format', message: 'Expected YYYY-MM-01 e.g. 2026-04-01' }, { status: 400 });
+    }
+    if (rows.length === 0) {
+      return NextResponse.json({ error: 'no_rows_parsed', message: 'No parseable rows were sent' }, { status: 400 });
+    }
+  } else {
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (e) {
+      return NextResponse.json({ error: 'invalid_form_data', detail: e.message }, { status: 400 });
+    }
+    monthIso = formData.get('month');
+    if (!monthIso || !/^\d{4}-\d{2}-\d{2}$/.test(monthIso)) {
+      return NextResponse.json({ error: 'invalid_month_format', message: 'Expected YYYY-MM-01 e.g. 2026-04-01' }, { status: 400 });
+    }
+    const files = formData.getAll('csv').filter(f => f instanceof File);
+    if (files.length === 0) {
+      return NextResponse.json({ error: 'no_csv_files', message: 'Attach one or both region CSV files (csv field)' }, { status: 400 });
+    }
+    const csvTexts = [];
+    for (const file of files) {
+      if (file.size > 200 * 1024 * 1024) {
+        return NextResponse.json({ error: 'file_too_large', message: `${file.name} exceeds 200MB` }, { status: 400 });
+      }
+      csvTexts.push(await file.text());
+    }
+    const parsed = parseNhsOcBaseline(monthIso, csvTexts);
+    rows = parsed.rows;
+    totalRowsParsed = parsed.totalRowsParsed;
+    fileCount = files.length;
+    if (rows.length === 0) {
+      return NextResponse.json({ error: 'no_rows_parsed', message: 'CSV files contained no parseable rows', totalRowsParsed }, { status: 400 });
+    }
   }
 
-  // Parse + aggregate
   const t0 = Date.now();
-  const { rows, totalRowsParsed } = parseNhsOcBaseline(monthIso, csvTexts);
   const parseElapsedMs = Date.now() - t0;
-
-  if (rows.length === 0) {
-    return NextResponse.json({ error: 'no_rows_parsed', message: 'CSV files contained no parseable rows', totalRowsParsed }, { status: 400 });
-  }
 
   // Bulk upsert to Supabase. Chunk into batches to stay under request size limits.
   const CHUNK = 500;
@@ -107,7 +128,7 @@ export async function POST(request) {
         month: monthIso,
         practices_upserted: upserted,
         total_rows_parsed: totalRowsParsed,
-        files: files.length,
+        files: fileCount,
         parse_elapsed_ms: parseElapsedMs,
       },
       ip_address: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
