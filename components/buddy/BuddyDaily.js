@@ -1,5 +1,6 @@
 'use client';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
 import { getCliniciansForDate } from '@/lib/huddle';
 import { canEditPracticeData } from '@/lib/permissions';
@@ -107,6 +108,48 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     if (csvHasSession) lines.push('⚠ EMIS: Has sessions booked');
     if (isOverridden && hasOverride) lines.push('⚠ Manual override active');
     return lines.join('\n');
+  };
+
+  // ─── Plain-English "why this status" for the hover tooltip ───────────
+  // Mirrors the decision path in computeDayStatus so the explanation is
+  // always faithful to how the conclusion was actually reached: working-
+  // days grid → planned leave today → multi-day leave block → day-off
+  // upgraded for cover → manual override.
+  const [hovered, setHovered] = useState(null); // { id, rect }
+  const explainStatus = (c) => {
+    const dateKey = getDateKey();
+    const status = getClinicianStatus(c.id, selectedDay); // present | absent | dayOff
+    const dayRota = data?.weeklyRota?.[selectedDay] || [];
+    const scheduled = (Array.isArray(dayRota) ? dayRota : Object.values(dayRota)).includes(c.id);
+    const planned = hasPlannedAbsence(c.id, dateKey);
+    const reason = planned ? getPlannedAbsenceReason(c.id, dateKey) : null;
+    const isOverridden = overriddenIds.has(c.id) && currentAlloc?.hasOverride;
+    const lines = [];
+
+    if (c.longTermAbsent) {
+      lines.push('Flagged as long-term absent, so always counted as away until that flag is cleared.');
+    } else if (status === 'present') {
+      lines.push(isOverridden
+        ? `Manually set to present for today — this overrides the usual ${selectedDay} pattern.`
+        : `Works ${selectedDay}s in the working-days grid, and has no leave recorded for today.`);
+    } else if (status === 'dayOff') {
+      lines.push(`Does not work ${selectedDay}s in the working-days grid, so today is a normal day off — no cover needed.`);
+    } else if (status === 'absent') {
+      if (isOverridden) {
+        lines.push('Manually set to absent for today.');
+      } else if (planned) {
+        lines.push(`On planned leave today${reason ? ` — ${reason}` : ''}.`);
+      } else if (!scheduled) {
+        lines.push(`Normally off on ${selectedDay}s, but flagged for cover because an adjacent working day falls inside a leave block.`);
+      } else {
+        lines.push('Counted as away because today sits inside a multi-day leave block (the leave was recorded on a working day either side).');
+      }
+    }
+
+    if (csvMismatches.presentNoCSV.has(c.id)) lines.push('Heads-up: no sessions found for them in the latest EMIS upload.');
+    if (csvMismatches.absentHasCSV.has(c.id)) lines.push('Heads-up: EMIS shows sessions booked for them today.');
+
+    return { status, lines };
   };
 
   const handleGenerate = () => {
@@ -472,7 +515,13 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 const cardBg = status === 'present' ? 'rgba(16,185,129,0.12)' : status === 'absent' ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.08)';
                 const cardBorder = status === 'present' ? '#10b98140' : status === 'absent' ? '#ef444440' : '#f59e0b30';
                 return (
-                  <div key={c.id} className="rounded-lg px-3 py-2.5" title={getDiagnostic(c)} style={{background:cardBg, border:`1px solid ${cardBorder}`, cursor:'help', ...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}>
+                  <div
+                    key={c.id}
+                    className="rounded-lg px-3 py-2.5"
+                    onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHovered({ id: c.id, rect: { top: r.top, left: r.left, width: r.width, height: r.height } }); }}
+                    onMouseLeave={() => setHovered(h => (h?.id === c.id ? null : h))}
+                    style={{background:cardBg, border:`1px solid ${cardBorder}`, cursor:'help', ...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0" style={{
@@ -727,7 +776,63 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           }}
         />
       )}
+
+      <StatusHoverTooltip hovered={hovered} explainStatus={explainStatus} getClinicianById={getClinicianById} />
     </div>
     </div>
   );
+}
+
+// Styled, portaled hover tooltip that explains WHY a clinician shows as
+// Present / Absent / Day off. Portaled to document.body so it is never
+// clipped by the buddy card grid's overflow, and positioned from the
+// hovered card's rect (placed below, or above if there is no room).
+const STATUS_META = {
+  present: { label: 'Present', colour: '#34d399', bg: 'rgba(16,185,129,0.18)', icon: '✓' },
+  absent:  { label: 'Absent',  colour: '#f87171', bg: 'rgba(239,68,68,0.18)',  icon: '✗' },
+  dayOff:  { label: 'Day off', colour: '#fbbf24', bg: 'rgba(251,191,36,0.16)',  icon: '—' },
+};
+function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted || !hovered || typeof document === 'undefined') return null;
+  const c = getClinicianById(hovered.id);
+  if (!c) return null;
+  const { status, lines } = explainStatus(c);
+  const meta = STATUS_META[status] || STATUS_META.dayOff;
+
+  const rect = hovered.rect;
+  const W = 300;
+  const gap = 10;
+  let left = rect.left + rect.width / 2 - W / 2;
+  left = Math.max(10, Math.min(left, window.innerWidth - W - 10));
+  const below = rect.top + rect.height + gap + 150 < window.innerHeight;
+  const top = below ? rect.top + rect.height + gap : null;
+  const bottom = below ? null : window.innerHeight - rect.top + gap;
+
+  const tip = (
+    <div
+      style={{
+        position: 'fixed', zIndex: 1300, width: W, maxWidth: 'calc(100vw - 20px)',
+        left, ...(below ? { top } : { bottom }),
+        background: 'rgba(15,23,42,0.98)', border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: 12, padding: '13px 15px', pointerEvents: 'none',
+        boxShadow: '0 20px 50px -14px rgba(0,0,0,0.7)',
+        animation: 'shtIn 0.16s ease-out',
+      }}
+    >
+      <style>{`@keyframes shtIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 13.5 }}>{c.name}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto', padding: '2px 9px', borderRadius: 999, background: meta.bg, color: meta.colour, fontSize: 11.5, fontWeight: 600 }}>
+          <span>{meta.icon}</span>{meta.label}
+        </span>
+      </div>
+      {lines.map((l, i) => (
+        <div key={i} style={{ fontSize: 12.5, color: i === 0 ? '#cbd5e1' : '#94a3b8', lineHeight: 1.5, marginTop: i === 0 ? 0 : 6 }}>{l}</div>
+      ))}
+      <div style={{ fontSize: 10.5, color: '#475569', marginTop: 9 }}>{c.role}{c.initials ? ` · ${c.initials}` : ''}</div>
+    </div>
+  );
+  return createPortal(tip, document.body);
 }
