@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
   buildFacts, buildSessionFacts, runReport, collectGroupFacts, describeMeasure, isTimeDimension,
-  makeConditionalColour, PRESET_GROUPS, groupByOptionsForGrain, splitByOptionsForGrain, RANGE_OPTIONS,
+  makeConditionalColour, PRESET_GROUPS, groupByOptionsForGrain, splitByOptionsForGrain, RANGE_OPTIONS, rangeLabel,
   buildFilterOptions,
 } from '@/lib/workload-report';
 import { createClient } from '@/utils/supabase/client';
@@ -157,6 +157,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   // reset back to.
   const [loadedSavedId, setLoadedSavedId] = useState(null);
   const [baseConfig, setBaseConfig] = useState(null);
+  // 'preset' | 'saved' | 'scratch' — drives how Save behaves.
+  const [origin, setOrigin] = useState('scratch');
 
   // Config state.
   const [grain, setGrain] = useState('sessions');
@@ -270,10 +272,10 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   };
   const dirty = baseConfig != null && normConfig(config) !== normConfig(baseConfig);
 
-  const openConfig = (cfg, name, savedId = null) => { applyConfig(cfg, name); setBaseConfig(cfg); setLoadedSavedId(savedId); setShowSaveBox(false); setView('builder'); };
-  const openPreset = (p) => openConfig({ ...p.config }, p.label, null);
-  const openSaved = (r) => openConfig(r.config, r.name, r.id);
-  const openBlank = () => openConfig({ grain: 'slots', num: { statuses: ['booked'] }, denomMode: 'none', groupBy: 'clinician', range: 'last8', chart: 'bars', colourMode: 'multi' }, 'Custom report', null);
+  const openConfig = (cfg, name, savedId = null, org = 'scratch') => { applyConfig(cfg, name); setBaseConfig(cfg); setLoadedSavedId(savedId); setOrigin(org); setShowSaveBox(false); setView('builder'); };
+  const openPreset = (p) => openConfig({ ...p.config }, p.label, null, 'preset');
+  const openSaved = (r) => openConfig(r.config, r.name, r.id, 'saved');
+  const openBlank = () => openConfig({ grain: 'slots', num: { statuses: ['booked'] }, denomMode: 'none', groupBy: 'clinician', range: 'last8', chart: 'bars', colourMode: 'multi' }, 'Custom report', null, 'scratch');
   const resetReport = () => { if (baseConfig) applyConfig(baseConfig, reportName); };
 
   // Persist. `asNew` forces the name box (Save as new); otherwise, when
@@ -286,7 +288,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
       const { data: row, error } = await supabase.from('saved_reports').upsert({ practice_id: practiceId, name, config, updated_by: userId }, { onConflict: 'practice_id,name' }).select('id, name, config, updated_at').single();
       if (!error && row) {
         setSavedReports(prev => [...prev.filter(r => r.name !== row.name && r.id !== row.id), row]);
-        setReportName(row.name); setBaseConfig(row.config); setLoadedSavedId(row.id);
+        setReportName(row.name); setBaseConfig(row.config); setLoadedSavedId(row.id); setOrigin('saved');
         return row;
       }
     } catch { /* ignore */ }
@@ -294,6 +296,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     return null;
   };
   const saveChanges = () => persist(reportName);                 // update the open saved report
+  const saveForPractice = () => persist(reportName);             // save a preset under its own name, for this practice
   const saveAsNew = async () => { const n = newReportName.trim(); if (!n) return; const row = await persist(n); if (row) { setNewReportName(''); setShowSaveBox(false); } };
 
   const deleteReport = async (id) => {
@@ -360,6 +363,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
         {PRESET_GROUPS.map((g, gi) => {
           const accent = GROUP_ACCENTS[gi % GROUP_ACCENTS.length];
+          const savedNames = new Set(savedReports.map(r => r.name.toLowerCase()));
+          const presets = g.presets.filter(p => !savedNames.has(p.label.toLowerCase()));
+          if (presets.length === 0) return null;
           return (
             <div key={g.group}>
               <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -368,7 +374,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 <span className="text-xs text-slate-500">{g.blurb}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {g.presets.map(p => card(
+                {presets.map(p => card(
                   p.id, accent, () => openPreset(p),
                   <><div className="text-sm font-semibold text-slate-100">{p.label}</div>
                     <div className="text-xs text-slate-400 mt-0.5 leading-snug">{p.description}</div></>
@@ -458,7 +464,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 <p className="text-sm text-slate-400 mt-1">
                   {describeMeasure(config)} · by <span className="text-indigo-300">{groupByOpts.find(o => o.id === groupBy)?.label.toLowerCase()}</span>
                   {result.hasSplit && <> · split by <span className="text-indigo-300">{splitByOpts.find(o => o.id === splitBy)?.label.toLowerCase()}</span></>}
-                  {' · '}<span className="text-slate-300">{RANGE_OPTIONS.find(o => o.id === range)?.label.toLowerCase()}</span>
+                  {' · '}<span className="text-slate-300">{rangeLabel(range).toLowerCase()}</span>
                   {filterCount > 0 && <> · <span className="text-amber-300">{filterCount} filter{filterCount === 1 ? '' : 's'}</span></>}
                 </p>
               </div>
@@ -476,11 +482,18 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                   {savingReport ? '…' : dirty ? 'Save changes' : 'Saved'}
                 </button>
               )}
-              {canEdit && <button onClick={() => setShowSaveBox(s => !s)} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>{loadedSavedId ? 'Save as new' : 'Save report'}</button>}
+              {canEdit && !loadedSavedId && origin === 'preset' && (
+                <button onClick={saveForPractice} disabled={savingReport} className="text-xs px-2.5 py-1 rounded-md font-medium"
+                  style={{ background: '#10b981', color: '#06281e', border: '1px solid rgba(16,185,129,0.3)', cursor: 'pointer', opacity: savingReport ? 0.6 : 1 }}>
+                  {savingReport ? '…' : 'Save for my practice'}
+                </button>
+              )}
+              {canEdit && <button onClick={() => setShowSaveBox(s => !s)} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>{(loadedSavedId || origin === 'preset') ? 'Save as new' : 'Save report'}</button>}
               {dirty && <button onClick={resetReport} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#cbd5e1' }}>↺ Reset</button>}
               <button onClick={copyTable} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>Copy</button>
               <button onClick={downloadCsv} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>CSV</button>
               {dirty && loadedSavedId && <span className="text-xs text-amber-300/80">Unsaved changes</span>}
+              {origin === 'preset' && !loadedSavedId && <span className="text-xs text-slate-500">Save keeps this report, with your changes, for your whole practice</span>}
             </div>
             {showSaveBox && canEdit && (
               <div className="flex items-center gap-2 mt-2">
@@ -572,7 +585,39 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
           <StepSection n="3" title="View">
             <div className="text-xs text-slate-600">Date range</div>
-            <Segmented options={RANGE_OPTIONS} value={range} onChange={setRange} />
+            <Segmented
+              options={[...RANGE_OPTIONS, { id: 'custom', label: 'Custom' }]}
+              value={typeof range === 'object' ? 'custom' : range}
+              onChange={(id) => setRange(id === 'custom' ? { type: 'relative', backWeeks: 2, fwdWeeks: 4 } : id)} />
+            {typeof range === 'object' && (
+              <div className="pl-3 space-y-2" style={{ borderLeft: '2px solid rgba(99,102,241,0.3)' }}>
+                <Segmented
+                  options={[{ id: 'relative', label: 'Weeks from today' }, { id: 'absolute', label: 'Specific dates' }]}
+                  value={range.type}
+                  onChange={(t) => setRange(t === 'relative' ? { type: 'relative', backWeeks: 2, fwdWeeks: 4 } : { type: 'absolute', from: '', to: '' })} />
+                {range.type === 'relative' ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input type="number" min="0" max="104" value={range.backWeeks}
+                      onChange={e => setRange(r => ({ ...r, backWeeks: Math.max(0, parseInt(e.target.value) || 0) }))}
+                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
+                    <span className="text-xs text-slate-500">weeks back →</span>
+                    <input type="number" min="0" max="104" value={range.fwdWeeks}
+                      onChange={e => setRange(r => ({ ...r, fwdWeeks: Math.max(0, parseInt(e.target.value) || 0) }))}
+                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
+                    <span className="text-xs text-slate-500">weeks ahead</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input type="date" value={range.from || ''} onChange={e => setRange(r => ({ ...r, from: e.target.value }))}
+                      className="text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none', colorScheme: 'dark' }} />
+                    <span className="text-xs text-slate-500">to</span>
+                    <input type="date" value={range.to || ''} onChange={e => setRange(r => ({ ...r, to: e.target.value }))}
+                      className="text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none', colorScheme: 'dark' }} />
+                  </div>
+                )}
+                <div className="text-xs text-slate-500">{rangeLabel(range)}</div>
+              </div>
+            )}
             <div className="text-xs text-slate-600 mt-1">Chart</div>
             <Segmented options={[{ id: 'bars', label: 'Bars' }, { id: 'stacked', label: 'Stacked' }, { id: 'trend', label: 'Trend' }, { id: 'table', label: 'Table' }]} value={chart} onChange={setChart} disabledIds={[...(timeDim(groupBy) ? [] : ['trend']), ...(result.hasSplit ? [] : ['stacked'])]} />
             <div className="text-xs text-slate-600 mt-1">Bar colour</div>
