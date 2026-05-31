@@ -1,10 +1,12 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import {
-  buildFacts, buildSessionFacts, runReport, describeMeasure, isTimeDimension,
+  buildFacts, buildSessionFacts, runReport, collectGroupFacts, describeMeasure, isTimeDimension,
   PRESET_GROUPS, groupByOptionsForGrain, splitByOptionsForGrain, RANGE_OPTIONS,
   buildFilterOptions,
 } from '@/lib/workload-report';
+import { createClient } from '@/utils/supabase/client';
+import { canEditPracticeData } from '@/lib/permissions';
 
 const STATUS_OPTS = [
   { id: 'available', label: 'Available', colour: '#10b981' },
@@ -122,8 +124,11 @@ function PanelSection({ title, children, right }) {
   );
 }
 
-export default function WorkloadReportBuilder({ data, huddleData, initialConfig = null, onConfigChange = null }) {
+export default function WorkloadReportBuilder({ data, huddleData }) {
   const hs = data?.huddleSettings || {};
+  const canEdit = canEditPracticeData(data);
+  const practiceId = data?._v4?.practiceId || null;
+  const userId = data?._v4?.userId || null;
   const clinicians = useMemo(() => {
     if (!data?.clinicians) return [];
     const list = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
@@ -151,6 +156,32 @@ export default function WorkloadReportBuilder({ data, huddleData, initialConfig 
   const [refMode, setRefMode] = useState('auto'); // auto | custom
   const [refCustom, setRefCustom] = useState('');
 
+  // Saved reports (persisted per practice).
+  const [savedReports, setSavedReports] = useState([]);
+  const [savingReport, setSavingReport] = useState(false);
+  const [newReportName, setNewReportName] = useState('');
+  const [showSaveBox, setShowSaveBox] = useState(false);
+
+  // Drill-down modal: { groupKey, groupLabel, seriesKey, facts } | null
+  const [drill, setDrill] = useState(null);
+
+  useEffect(() => {
+    if (!practiceId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: rows, error } = await supabase
+          .from('saved_reports')
+          .select('id, name, config, updated_at')
+          .eq('practice_id', practiceId)
+          .order('created_at', { ascending: true });
+        if (!error && !cancelled && rows) setSavedReports(rows);
+      } catch { /* table may not exist yet — fail silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [practiceId]);
+
   // Apply an external config (from a saved report / preset object).
   const applyConfig = (c) => {
     if (!c) return;
@@ -167,7 +198,7 @@ export default function WorkloadReportBuilder({ data, huddleData, initialConfig 
     if (typeof c.topN === 'number') setTopN(c.topN);
     if (c.sort) setSort(c.sort);
   };
-  useEffect(() => { if (initialConfig) applyConfig(initialConfig); }, [initialConfig]); // eslint-disable-line
+  // applyConfig is also used by saved reports + presets below.
 
   const facts = grain === 'sessions' ? sessionData.facts : slotData.facts;
   const { dateMin, dateMax } = slotData;
@@ -185,7 +216,6 @@ export default function WorkloadReportBuilder({ data, huddleData, initialConfig 
   }), [grain, isSession, num, useDenom, denom, groupBy, splitBy, range, globalFilter, excludeSystem, sort, topN, chart]);
 
   const result = useMemo(() => runReport(facts, config), [facts, config]);
-  useEffect(() => { if (onConfigChange) onConfigChange(config); }, [config]); // eslint-disable-line
 
   // Keep groupBy / splitBy valid for the grain.
   useEffect(() => {
@@ -194,6 +224,45 @@ export default function WorkloadReportBuilder({ data, huddleData, initialConfig 
   }, [grain]); // eslint-disable-line
 
   const applyPreset = (p) => applyConfig({ ...p.config });
+
+  // Save the current config as a named report.
+  const saveReport = async () => {
+    const name = newReportName.trim();
+    if (!name || !practiceId || !canEdit) return;
+    setSavingReport(true);
+    try {
+      const supabase = createClient();
+      const { data: row, error } = await supabase
+        .from('saved_reports')
+        .upsert({ practice_id: practiceId, name, config, updated_by: userId }, { onConflict: 'practice_id,name' })
+        .select('id, name, config, updated_at')
+        .single();
+      if (!error && row) {
+        setSavedReports(prev => {
+          const without = prev.filter(r => r.name !== row.name);
+          return [...without, row];
+        });
+        setNewReportName('');
+        setShowSaveBox(false);
+      }
+    } catch { /* ignore */ }
+    finally { setSavingReport(false); }
+  };
+
+  const deleteReport = async (id) => {
+    if (!practiceId || !canEdit) return;
+    try {
+      const supabase = createClient();
+      await supabase.from('saved_reports').delete().eq('id', id);
+      setSavedReports(prev => prev.filter(r => r.id !== id));
+    } catch { /* ignore */ }
+  };
+
+  // Open the drill-down for a clicked group (and optional series).
+  const openDrill = (groupKey, groupLabel, seriesKey = null, seriesLabel = '') => {
+    const f = collectGroupFacts(facts, config, groupKey, seriesKey);
+    setDrill({ groupKey, groupLabel, seriesKey, seriesLabel, facts: f });
+  };
 
   const timeOk = isTimeDimension(groupBy);
   let effectiveChart = chart;
@@ -302,19 +371,42 @@ export default function WorkloadReportBuilder({ data, huddleData, initialConfig 
         ) : result.groups.length === 0 ? (
           <p className="text-sm text-slate-400 text-center py-8">No data matches. Widen the date range, relax the filters, or turn off &ldquo;exclude system rows&rdquo;.</p>
         ) : effectiveChart === 'table' ? (
-          <TableView result={result} groupLabel={groupByOpts.find(o => o.id === groupBy)?.label} fmt={fmt} />
+          <TableView result={result} groupLabel={groupByOpts.find(o => o.id === groupBy)?.label} fmt={fmt} onPick={openDrill} />
         ) : effectiveChart === 'trend' ? (
-          <TrendView result={result} fmt={fmt} isRatio={result.isRatio} refValue={refValue} refLabel={refLabel} maxVal={maxVal} />
+          <TrendView result={result} fmt={fmt} isRatio={result.isRatio} refValue={refValue} refLabel={refLabel} maxVal={maxVal} onPick={openDrill} />
         ) : effectiveChart === 'stacked' ? (
-          <StackedView result={result} fmt={fmt} />
+          <StackedView result={result} fmt={fmt} onPick={openDrill} />
         ) : (
-          <BarsView result={result} fmt={fmt} maxVal={maxVal} isRatio={result.isRatio} refValue={refValue} refLabel={refLabel} />
+          <BarsView result={result} fmt={fmt} maxVal={maxVal} isRatio={result.isRatio} refValue={refValue} refLabel={refLabel} onPick={openDrill} />
         )}
       </div>
 
       {/* RIGHT CONTROLS */}
       <div className="w-full lg:w-80 lg:flex-shrink-0 rounded-xl p-4 space-y-5" style={{ background: 'rgba(15,23,42,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <PanelSection title="Quick reports">
+        <PanelSection title="Quick reports" right={
+          canEdit ? <button onClick={() => setShowSaveBox(s => !s)} className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>+ Save</button> : null
+        }>
+          {showSaveBox && canEdit && (
+            <div className="flex items-center gap-1 mb-2">
+              <input value={newReportName} onChange={e => setNewReportName(e.target.value)} placeholder="Report name…" className="flex-1 text-[10px] rounded px-2 py-1"
+                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
+              <button onClick={saveReport} disabled={savingReport || !newReportName.trim()} className="text-[10px] px-2 py-1 rounded"
+                style={{ background: '#10b981', color: '#06281e', border: 'none', opacity: (savingReport || !newReportName.trim()) ? 0.5 : 1 }}>{savingReport ? '…' : 'Save'}</button>
+            </div>
+          )}
+          {savedReports.length > 0 && (
+            <div className="mb-2">
+              <div className="text-[9px] uppercase tracking-wide text-emerald-600/80 mb-1">My saved reports</div>
+              <div className="flex flex-wrap gap-1.5">
+                {savedReports.map(r => (
+                  <span key={r.id} className="flex items-center text-[10px] rounded-md overflow-hidden" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                    <button onClick={() => applyConfig(r.config)} className="px-2 py-1" style={{ color: '#6ee7b7', background: 'none', border: 'none' }}>{r.name}</button>
+                    {canEdit && <button onClick={() => deleteReport(r.id)} title="Delete" className="px-1.5 py-1 text-emerald-700/70 hover:text-red-400" style={{ background: 'rgba(0,0,0,0.15)', border: 'none' }}>×</button>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="space-y-3">
             {PRESET_GROUPS.map(g => (
               <div key={g.group}>
@@ -435,12 +527,62 @@ export default function WorkloadReportBuilder({ data, huddleData, initialConfig 
           )}
         </PanelSection>
       </div>
+
+      {/* Drill-down modal */}
+      {drill && <DrillModal drill={drill} isSession={isSession} onClose={() => setDrill(null)} />}
+    </div>
+  );
+}
+
+// ── Drill-down modal ────────────────────────────────────────────────────
+function DrillModal({ drill, isSession, onClose }) {
+  const { groupLabel, seriesLabel, facts } = drill;
+  const totalCount = facts.reduce((s, f) => s + (f.count || 0), 0);
+  // Group facts by date for readability.
+  const byDate = {};
+  facts.forEach(f => { (byDate[f.iso] = byDate[f.iso] || []).push(f); });
+  const dates = Object.keys(byDate).sort();
+  return (
+    <div onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-lg rounded-xl overflow-hidden flex flex-col" style={{ background: 'linear-gradient(180deg,#1e293b,#0f172a)', border: '1px solid rgba(255,255,255,0.1)', maxHeight: '80vh' }}>
+        <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
+          <div>
+            <div className="text-sm font-semibold text-white">{groupLabel}{seriesLabel ? ` · ${seriesLabel}` : ''}</div>
+            <div className="text-[10px] text-slate-500">{totalCount} {isSession ? 'session' : 'slot'}{totalCount === 1 ? '' : 's'} across {dates.length} day{dates.length === 1 ? '' : 's'}</div>
+          </div>
+          <button onClick={onClose} className="ml-auto text-slate-400 hover:text-white" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="overflow-y-auto p-4 space-y-2">
+          {dates.length === 0 && <p className="text-sm text-slate-400 text-center py-6">No underlying records.</p>}
+          {dates.map(iso => {
+            const rows = byDate[iso];
+            const d = new Date(iso + 'T00:00:00');
+            return (
+              <div key={iso} className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="text-[11px] font-medium text-slate-300 mb-1">{d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                <div className="flex flex-wrap gap-1">
+                  {rows.map((f, i) => (
+                    <span key={i} className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+                      {f.session.toUpperCase()}
+                      {isSession
+                        ? ` · ${f.clinicianName}${f.isDuty ? ' · duty' : ''}${f.isSupport ? ' · support' : ''}`
+                        : ` · ${f.clinicianName} · ${f.slotType} · ${f.status}${f.count > 1 ? ` ×${f.count}` : ''}`}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
 
 // ── Bars (single or grouped multi-series) ───────────────────────────────
-function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel }) {
+function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick }) {
   const multi = result.hasSplit && result.series.length > 1;
   return (
     <div className="space-y-2">
@@ -458,7 +600,7 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel }) {
                 {result.series.map((s, si) => {
                   const cell = g.cells[s.key]; const w = (cell.value / maxVal) * 100;
                   return (
-                    <div key={s.key} className="relative h-3.5 rounded overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} className="relative h-3.5 rounded overflow-hidden cursor-pointer" style={{ background: 'rgba(255,255,255,0.05)' }} title="Click to drill down">
                       <div className="absolute left-0 top-0 bottom-0 rounded" style={{ width: `${Math.max(w, 0.5)}%`, background: PALETTE[si % PALETTE.length], opacity: 0.85 }} />
                       <span className="absolute right-1 top-0 bottom-0 flex items-center text-[8px] text-slate-300">{fmt(cell.value)}</span>
                     </div>
@@ -466,7 +608,7 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel }) {
                 })}
               </div>
             ) : (
-              <div className="relative h-7 rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div onClick={() => onPick && onPick(g.key, g.label)} className="relative h-7 rounded-lg overflow-hidden cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }} title="Click to drill down">
                 <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${Math.max((g.value / maxVal) * 100, 1)}%`, background: PALETTE[gi % PALETTE.length], opacity: 0.8 }} />
                 {refValue != null && <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(refValue / maxVal) * 100}%`, background: 'rgba(255,255,255,0.5)' }} title={refLabel} />}
                 <div className="absolute inset-0 flex items-center px-2.5">
@@ -481,7 +623,7 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel }) {
       {refValue != null && !multi && (
         <div className="flex items-center gap-2 pt-2 mt-1 text-[10px] text-slate-500" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <span className="inline-block w-0.5 h-3 align-middle" style={{ background: 'rgba(255,255,255,0.5)' }} />
-          <span>{refLabel} · {result.groups.length} group{result.groups.length === 1 ? '' : 's'}</span>
+          <span>{refLabel} · {result.groups.length} group{result.groups.length === 1 ? '' : 's'} · click a bar to drill down</span>
         </div>
       )}
     </div>
@@ -489,7 +631,7 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel }) {
 }
 
 // ── Stacked bars ────────────────────────────────────────────────────────
-function StackedView({ result, fmt }) {
+function StackedView({ result, fmt, onPick }) {
   const totals = result.groups.map(g => result.series.reduce((s, ser) => s + (g.cells[ser.key]?.value || 0), 0));
   const maxTotal = Math.max(...totals, 1);
   return (
@@ -506,9 +648,9 @@ function StackedView({ result, fmt }) {
               {result.series.map((s, si) => {
                 const v = g.cells[s.key]?.value || 0; const w = (v / maxTotal) * 100;
                 if (w <= 0) return null;
-                return <div key={s.key} title={`${s.label}: ${fmt(v)}`} style={{ width: `${w}%`, background: PALETTE[si % PALETTE.length], opacity: 0.85 }} />;
+                return <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} title={`${s.label}: ${fmt(v)} — click to drill down`} className="cursor-pointer" style={{ width: `${w}%`, background: PALETTE[si % PALETTE.length], opacity: 0.85 }} />;
               })}
-              <span className="absolute right-2 top-0 bottom-0 flex items-center text-[10px] font-bold text-white drop-shadow">{fmt(total)}</span>
+              <span className="absolute right-2 top-0 bottom-0 flex items-center text-[10px] font-bold text-white drop-shadow pointer-events-none">{fmt(total)}</span>
             </div>
           </div>
         );
@@ -518,7 +660,7 @@ function StackedView({ result, fmt }) {
 }
 
 // ── Trend (single or multi-series lines) ────────────────────────────────
-function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal }) {
+function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal, onPick }) {
   const groups = result.groups;
   const W = 720, H = 240, padL = 40, padR = 16, padT = 16, padB = 40;
   const innerW = W - padL - padR, innerH = H - padT - padB;
@@ -543,7 +685,7 @@ function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal }) {
           <g>
             <path d={`${lineFor(g => g.value)} L ${x(groups.length - 1).toFixed(1)} ${(padT + innerH).toFixed(1)} L ${x(0).toFixed(1)} ${(padT + innerH).toFixed(1)} Z`} fill="rgba(99,102,241,0.15)" />
             <path d={lineFor(g => g.value)} fill="none" stroke="#818cf8" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-            {groups.map((g, i) => (<g key={g.key}><circle cx={x(i)} cy={y(g.value)} r="3.5" fill="#818cf8" stroke="#1e293b" strokeWidth="1.5" /><text x={x(i)} y={y(g.value) - 9} textAnchor="middle" fill="#c7d2fe" style={{ fontSize: 9, fontWeight: 700 }}>{fmt(g.value)}</text></g>))}
+            {groups.map((g, i) => (<g key={g.key}><circle cx={x(i)} cy={y(g.value)} r="3.5" fill="#818cf8" stroke="#1e293b" strokeWidth="1.5" style={{ cursor: 'pointer' }} onClick={() => onPick && onPick(g.key, g.label)} /><text x={x(i)} y={y(g.value) - 9} textAnchor="middle" fill="#c7d2fe" style={{ fontSize: 9, fontWeight: 700 }}>{fmt(g.value)}</text></g>))}
           </g>
         )}
         {groups.map((g, i) => <text key={g.key} x={x(i)} y={H - padB + 16} textAnchor="middle" fill="#64748b" style={{ fontSize: 9 }} transform={groups.length > 8 ? `rotate(-35 ${x(i)} ${H - padB + 16})` : undefined}>{g.label.replace('w/c ', '')}</text>)}
@@ -553,7 +695,7 @@ function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal }) {
 }
 
 // ── Table (single or multi-series) ──────────────────────────────────────
-function TableView({ result, groupLabel, fmt }) {
+function TableView({ result, groupLabel, fmt, onPick }) {
   const multi = result.hasSplit && result.series.length > 1;
   return (
     <div className="overflow-x-auto">
@@ -567,7 +709,7 @@ function TableView({ result, groupLabel, fmt }) {
         </thead>
         <tbody>
           {result.groups.map(g => (
-            <tr key={g.key} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <tr key={g.key} onClick={() => onPick && onPick(g.key, g.label)} className="cursor-pointer hover:bg-white/5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               <td className="text-[12px] text-slate-200 py-2 pr-4">{g.label}</td>
               {multi ? result.series.map(s => <td key={s.key} className="text-[12px] text-indigo-300 font-medium py-2 px-3 text-right tabular-nums">{fmt(g.cells[s.key]?.value || 0)}</td>)
                 : (<>{result.isRatio && <td className="text-[12px] text-slate-400 py-2 px-3 text-right tabular-nums">{g.numerator}</td>}{result.isRatio && <td className="text-[12px] text-slate-400 py-2 px-3 text-right tabular-nums">{g.denominator}</td>}<td className="text-[12px] font-bold text-indigo-300 py-2 pl-3 text-right tabular-nums">{fmt(g.value)}</td></>)}
