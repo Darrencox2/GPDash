@@ -331,7 +331,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
   return (
     <div className="-m-4 lg:-m-6 min-h-screen" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
-      <div className="px-3 py-4 sm:p-4 lg:p-6 space-y-4">
+      <div className="max-w-[1500px] mx-auto px-3 py-4 sm:p-4 lg:p-6 space-y-4">
 
       {/* ═══ DESKTOP LAYOUT — calendar (left) + side panel (right) ═══ */}
       {/* Two-column grid. The calendar fills available width on the left;
