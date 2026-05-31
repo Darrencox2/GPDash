@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { getHuddleCapacity, getDateTotals, getDutyDoctor, getSiteColour } from '@/lib/huddle';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
@@ -193,9 +193,22 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   // clears it, clicking a marker clears the day. Mobile uses its own
   // mobileTab state (kept separate so the two views don't fight).
   const [selectedMarker, setSelectedMarker] = useState(null);
-  const pickDay = (isoKey) => { setSelectedDay(isoKey); setSelectedMarker(null); };
-  const pickMarker = (id) => { setSelectedMarker(id); setSelectedDay(null); };
-  const clearSide = () => { setSelectedDay(null); setSelectedMarker(null); };
+  // pickDay / pickMarker no longer clear each other — drawer and insight
+  // expansion can coexist so the user doesn't lose their place when
+  // drilling from a flagged-day list into the detail of one of those days.
+  const pickDay = (isoKey) => setSelectedDay(isoKey);
+  const closeDay = () => setSelectedDay(null);
+  const pickMarker = (id) => setSelectedMarker(id);
+  const closeMarker = () => setSelectedMarker(null);
+  const toggleDay = (isoKey) => setSelectedDay(prev => prev === isoKey ? null : isoKey);
+  const toggleMarker = (id) => setSelectedMarker(prev => prev === id ? null : id);
+  // Refs used by the click-outside-to-close handler. The drawer closes
+  // when the user clicks anywhere that is NOT the drawer itself AND
+  // NOT a day cell (because clicking a different cell should switch
+  // to that day without first closing — the cell's own onClick handles
+  // the swap).
+  const drawerRef = useRef(null);
+  const calendarRef = useRef(null);
   const [weather, setWeather] = useState(null);
   const [mobileTab, setMobileTab] = useState('short');
   const hs = data?.huddleSettings || {};
@@ -231,6 +244,31 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
     const lon = data?._v4?.practiceLongitude;
     getWeatherForecast(16, lat, lon).then(w=>setWeather(w)).catch(()=>{});
   }, [data?._v4?.practiceLatitude, data?._v4?.practiceLongitude]);
+
+  // ESC key closes the day drawer. Listener is only attached while a
+  // day is selected so we don't pollute the global keydown stream when
+  // the drawer isn't open.
+  useEffect(() => {
+    if (!selectedDay) return;
+    const onKey = (e) => { if (e.key === 'Escape') closeDay(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedDay]);
+
+  // Click outside the drawer closes it. We deliberately ALSO exclude
+  // clicks inside the calendar so that clicking a different day cell
+  // doesn't trigger close-then-reopen flicker — the cell's own click
+  // handler swaps selectedDay to the new key in one render.
+  useEffect(() => {
+    if (!selectedDay) return;
+    const onDown = (e) => {
+      const inDrawer = drawerRef.current && drawerRef.current.contains(e.target);
+      const inCalendar = calendarRef.current && calendarRef.current.contains(e.target);
+      if (!inDrawer && !inCalendar) closeDay();
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [selectedDay]);
 
   // Per-practice prediction context (calibrated baseline + LEA holidays)
   const predictionOptions = useMemo(() => {
@@ -344,7 +382,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       <div className="hidden lg:block space-y-4">
 
         {/* ─── LEFT: calendar ─── */}
-        <div className="rounded-2xl overflow-hidden" style={{background:'rgba(15,23,42,0.55)',border:'1px solid rgba(255,255,255,0.06)'}}>
+        <div ref={calendarRef} className="rounded-2xl overflow-hidden" style={{background:'rgba(15,23,42,0.55)',border:'1px solid rgba(255,255,255,0.06)'}}>
           {/* Calendar header: title + slot filter cogs */}
           <div className="px-5 py-4 flex items-center gap-2 border-b border-white/10">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -407,9 +445,40 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 );
                 const amV = vBand(d.amS,d.amT);
                 const pmV = vBand(d.pmS,d.pmT);
+                // Tooltip strings — native browser tooltips (cheap; no popper needed).
+                // AM/PM tip: duty doctor + supplied/target. Demand tip: top
+                // 2 driver factors. teamClin lookup gives the friendly
+                // name when EMIS spells it differently (e.g. "COX, Darren (Dr)"
+                // → "Dr Darren Cox").
+                const dutyLabel = (duty) => {
+                  if (!duty) return null;
+                  const m = teamClin.find(tc=>matchesStaffMember(duty.name,tc));
+                  return m?.name || duty.name;
+                };
+                const amDutyName = dutyLabel(d.amDuty);
+                const pmDutyName = dutyLabel(d.pmDuty);
+                const amTip = `AM urgent · ${d.amS}${d.amT>0?' / '+d.amT:''}${amDutyName?'\nDuty: '+amDutyName:''}`;
+                const pmTip = `PM urgent · ${d.pmS}${d.pmT>0?' / '+d.pmT:''}${pmDutyName?'\nDuty: '+pmDutyName:''}`;
+                const demandTip = d.pred?.factors ? (() => {
+                  const f = d.pred.factors;
+                  const drivers = [];
+                  if (f.dayOfWeek?.effect) drivers.push(`${f.dayOfWeek.day||'Day of week'} ${f.dayOfWeek.effect>0?'+':''}${Math.round(f.dayOfWeek.effect)}`);
+                  if (f.schoolHoliday) drivers.push(`School holiday ${f.schoolHoliday>0?'+':''}${Math.round(f.schoolHoliday)}`);
+                  if (f.firstWeekBack) drivers.push(`First week back ${f.firstWeekBack>0?'+':''}${Math.round(f.firstWeekBack)}`);
+                  if (f.firstDayBack) drivers.push(`First day back ${f.firstDayBack>0?'+':''}${Math.round(f.firstDayBack)}`);
+                  if (f.nearBankHoliday?.effect) drivers.push(`Near BH ${f.nearBankHoliday.effect>0?'+':''}${Math.round(f.nearBankHoliday.effect)}`);
+                  if (f.weather?.effect) drivers.push(`${f.weather.label||'Weather'} ${f.weather.effect>0?'+':''}${Math.round(f.weather.effect)}`);
+                  if (f.month?.effect) drivers.push(`Time of year ${f.month.effect>0?'+':''}${Math.round(f.month.effect)}`);
+                  drivers.sort((a,b)=>{
+                    const na = parseInt(a.match(/-?\d+$/)?.[0]||'0');
+                    const nb = parseInt(b.match(/-?\d+$/)?.[0]||'0');
+                    return Math.abs(nb)-Math.abs(na);
+                  });
+                  return `Predicted ${d.predicted} (${d.dc.label})\n${drivers.slice(0,3).join(' · ')}`;
+                })() : `Predicted ${d.predicted}`;
                 return (
                   <div key={di} className="p-2 border-l border-white/5">
-                    <button onClick={()=>sel?clearSide():pickDay(d.isoKey)}
+                    <button onClick={()=>toggleDay(d.isoKey)}
                       className="rounded-lg h-full w-full cursor-pointer transition-all duration-150 text-left block"
                       style={{
                         padding:'8px',
@@ -422,15 +491,17 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         border: 'none'
                       }}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-slate-300">{d.dayNum}</span>
-                        {d.predicted && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
+                        {d.isToday
+                          ? <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{background:'#10b981',color:'white',letterSpacing:'0.05em'}}>Today · {d.dayNum}</span>
+                          : <span className="text-xs font-bold text-slate-300">{d.dayNum}</span>}
+                        {d.predicted && <span title={demandTip} className="text-[9px] font-bold px-1.5 py-0.5 rounded cursor-help" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
                       </div>
                       <div className="flex gap-1">
-                        <div className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg}}>
+                        <div title={amTip} className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg}}>
                           <div className="text-base font-bold leading-none" style={{color:amV.text}}>{d.amS}</div>
                           <div className="text-[8px] font-bold mt-0.5" style={{color:amV.text,opacity:0.8}}>AM</div>
                         </div>
-                        <div className="flex-1 text-center rounded-md py-1.5" style={{background:pmV.bg}}>
+                        <div title={pmTip} className="flex-1 text-center rounded-md py-1.5" style={{background:pmV.bg}}>
                           <div className="text-base font-bold leading-none" style={{color:pmV.text}}>{d.pmS}</div>
                           <div className="text-[8px] font-bold mt-0.5" style={{color:pmV.text,opacity:0.8}}>PM</div>
                         </div>
@@ -475,7 +546,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             {(() => {
               const isActive = selectedMarker === 'short';
               return (
-                <button onClick={() => isActive ? clearSide() : pickMarker('short')}
+                <button onClick={() => toggleMarker('short')}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{background: isActive ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.04)', border: `1px solid ${isActive ? 'rgba(239,68,68,0.45)' : 'rgba(239,68,68,0.12)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(239,68,68,0.18)'}}>
@@ -493,7 +564,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             {(() => {
               const isActive = selectedMarker === 'demand';
               return (
-                <button onClick={() => isActive ? clearSide() : pickMarker('demand')}
+                <button onClick={() => toggleMarker('demand')}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{background: isActive ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.04)', border: `1px solid ${isActive ? 'rgba(245,158,11,0.45)' : 'rgba(245,158,11,0.12)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(245,158,11,0.18)'}}>
@@ -512,7 +583,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               const isActive = selectedMarker === 'routine';
               const disabled = rTarget <= 0;
               return (
-                <button onClick={() => !disabled && (isActive ? clearSide() : pickMarker('routine'))}
+                <button onClick={() => !disabled && (toggleMarker('routine'))}
                   disabled={disabled}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{
@@ -536,7 +607,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             {(() => {
               const isActive = selectedMarker === 'trend';
               return (
-                <button onClick={() => isActive ? clearSide() : pickMarker('trend')}
+                <button onClick={() => toggleMarker('trend')}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{background: isActive ? 'rgba(148,163,184,0.15)' : 'rgba(148,163,184,0.04)', border: `1px solid ${isActive ? 'rgba(148,163,184,0.45)' : 'rgba(148,163,184,0.12)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(148,163,184,0.18)'}}>
@@ -631,10 +702,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           close. Only shown on lg+ — mobile uses inline expansion as
           before. */}
       {detailDay && (
-        <div className="hidden lg:flex fixed top-0 right-0 bottom-0 z-40 flex-col animate-in slide-in-from-right" style={{width:'440px',background:'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',borderLeft:'1px solid rgba(255,255,255,0.1)',boxShadow:'-12px 0 32px rgba(0,0,0,0.5)'}}>
+        <div ref={drawerRef} className="hidden lg:flex fixed top-0 right-0 bottom-0 z-40 flex-col animate-in slide-in-from-right" style={{width:'440px',background:'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',borderLeft:'1px solid rgba(255,255,255,0.1)',boxShadow:'-12px 0 32px rgba(0,0,0,0.5)'}}>
           <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
             <span className="text-sm font-semibold text-white">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</span>
-            <button onClick={clearSide} className="ml-auto text-slate-400 hover:text-white" style={{background:'none',border:'none',cursor:'pointer',padding:'4px 8px'}} aria-label="Close">
+            <button onClick={closeDay} className="ml-auto text-slate-400 hover:text-white" style={{background:'none',border:'none',cursor:'pointer',padding:'4px 8px'}} aria-label="Close">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
