@@ -331,7 +331,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
   return (
     <div className="-m-4 lg:-m-6 min-h-screen" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
-      <div className="max-w-7xl mx-auto px-3 py-4 sm:p-4 lg:p-6 space-y-4">
+      <div className="px-3 py-4 sm:p-4 lg:p-6 space-y-4">
 
       {/* ═══ DESKTOP LAYOUT — calendar (left) + side panel (right) ═══ */}
       {/* Two-column grid. The calendar fills available width on the left;
@@ -341,7 +341,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           marker buttons is clicked), or the default state with the four
           marker buttons. selectedDay and selectedMarker are mutually
           exclusive — picking one clears the other. */}
-      <div className="hidden lg:grid gap-4 items-start" style={{gridTemplateColumns:'minmax(0,1fr) 380px'}}>
+      <div className="hidden lg:block space-y-4">
 
         {/* ─── LEFT: calendar ─── */}
         <div className="rounded-2xl overflow-hidden" style={{background:'rgba(15,23,42,0.55)',border:'1px solid rgba(255,255,255,0.06)'}}>
@@ -462,232 +462,253 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           </div>
         </div>
 
-        {/* ─── RIGHT: side panel ─── */}
-        {/* Sticky so it stays visible as the user scrolls through weeks.
-            Holds one of three states: day detail (selectedDay set), marker
-            expansion (selectedMarker set), or default (neither). */}
-        <div className="rounded-2xl overflow-hidden" style={{background:'rgba(15,23,42,0.55)',border:'1px solid rgba(255,255,255,0.06)',position:'sticky',top:'1rem',maxHeight:'calc(100vh - 2rem)',display:'flex',flexDirection:'column'}}>
-          {detailDay ? (
-            <>
-              <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
-                <button onClick={clearSide} className="text-slate-400 hover:text-white" style={{background:'none',border:'none',cursor:'pointer'}}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                </button>
-                <span className="text-sm font-semibold text-white">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</span>
-                <button onClick={clearSide} className="ml-auto text-slate-500 hover:text-white text-sm" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
-              </div>
-              <PredictionBand day={detailDay} convRate={convRate} />
-              <div className="overflow-y-auto p-4 space-y-3" style={{flex:1}}>
-                {/* AM urgent section */}
-                <div className="rounded-lg p-3" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">AM urgent</span>
-                    <span className="text-base font-bold text-red-400 ml-auto">{detailDay.amS}</span>
-                    {detailDay.amT>0 && <span className="text-[10px] text-slate-400">/ {detailDay.amT}</span>}
-                  </div>
-                  {detailDay.amDuty && (
-                    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded mb-2" style={{background:'rgba(239,68,68,0.12)',border:'1px solid rgba(239,68,68,0.25)'}}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="#fca5a5" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
-                      <span className="text-[11px] font-semibold text-red-300">{(teamClin.find(tc=>matchesStaffMember(detailDay.amDuty.name,tc))?.name)||detailDay.amDuty.name} (duty)</span>
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    {detailClin.am.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return(
-                      <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'rgba(255,255,255,0.03)'}}>
-                        {lc && <div className="w-1 h-3.5 rounded-sm flex-shrink-0" style={{background:lc}}/>}
-                        <span className="text-[11px] text-slate-300 flex-1 truncate">{c.name}</span>
-                        <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
-                      </div>
-                    );})}
-                    {detailClin.am.length===0 && <div className="text-[11px] text-slate-500 py-2 text-center">No slots</div>}
-                  </div>
-                </div>
-                {/* PM urgent section */}
-                <div className="rounded-lg p-3" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">PM urgent</span>
-                    <span className="text-base font-bold text-blue-400 ml-auto">{detailDay.pmS}</span>
-                    {detailDay.pmT>0 && <span className="text-[10px] text-slate-400">/ {detailDay.pmT}</span>}
-                  </div>
-                  {detailDay.pmDuty && (
-                    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded mb-2" style={{background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.25)'}}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="#93c5fd" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
-                      <span className="text-[11px] font-semibold text-blue-300">{(teamClin.find(tc=>matchesStaffMember(detailDay.pmDuty.name,tc))?.name)||detailDay.pmDuty.name} (duty)</span>
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    {detailClin.pm.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return(
-                      <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'rgba(255,255,255,0.03)'}}>
-                        {lc && <div className="w-1 h-3.5 rounded-sm flex-shrink-0" style={{background:lc}}/>}
-                        <span className="text-[11px] text-slate-300 flex-1 truncate">{c.name}</span>
-                        <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
-                      </div>
-                    );})}
-                    {detailClin.pm.length===0 && <div className="text-[11px] text-slate-500 py-2 text-center">No slots</div>}
-                  </div>
-                </div>
-                {/* Routine section */}
-                <div className="rounded-lg p-3" style={{background:'rgba(167,139,250,0.05)',border:'1px solid rgba(167,139,250,0.15)'}}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300">Routine</span>
-                    <span className="text-base font-bold text-purple-300 ml-auto">{detailDay.rTotal}</span>
-                  </div>
-                  <div className="mb-3"><DonutGauge avail={detailDay.rA} emb={detailDay.rE} booked={detailDay.rB}/></div>
-                  <div className="space-y-1">
-                    {detailClin.rout.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return(
-                      <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'rgba(255,255,255,0.03)'}}>
-                        {lc && <div className="w-1 h-3.5 rounded-sm flex-shrink-0" style={{background:lc}}/>}
-                        <span className="text-[11px] text-slate-300 flex-1 truncate">{c.name}</span>
-                        <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
-                      </div>
-                    );})}
-                    {detailClin.rout.length===0 && <div className="text-[11px] text-slate-500 py-2 text-center">No slots</div>}
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : selectedMarker ? (
-            <>
-              <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
-                <button onClick={clearSide} className="text-slate-400 hover:text-white" style={{background:'none',border:'none',cursor:'pointer'}}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                </button>
-                <span className="text-sm font-semibold text-white">{
-                  selectedMarker==='short'?'Urgent capacity below target' :
-                  selectedMarker==='demand'?'Highest demand days' :
-                  selectedMarker==='routine'?'Routine by week' :
-                  selectedMarker==='trend'?'Week-on-week' : 'Insight'
-                }</span>
-                <button onClick={clearSide} className="ml-auto text-slate-500 hover:text-white text-sm" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
-              </div>
-              <div className="overflow-y-auto p-4 space-y-2" style={{flex:1}}>
-                {selectedMarker==='short' && (
-                  shortDays.length===0
-                    ? <p className="text-sm text-slate-400 text-center py-6">All days are meeting their urgent capacity target.</p>
-                    : shortDays.map((d,i)=>{const u=d.amS+d.pmS,t=d.amT+d.pmT;return(
-                        <button key={i} onClick={()=>pickDay(d.isoKey)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
-                          <span className="text-xs font-semibold text-slate-300 w-20 flex-shrink-0">{d.dayShort} {d.dayNum} {d.monthStr}</span>
-                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,0.08)'}}>
-                            <div className="h-full rounded-full" style={{width:`${Math.min((u/t)*100,100)}%`,background:u<t*0.8?'#ef4444':'#f59e0b'}}/>
-                          </div>
-                          <span className="text-xs font-bold text-red-400">{u}</span>
-                          <span className="text-[10px] text-slate-400">/ {t}</span>
-                        </button>
-                      );})
-                )}
-                {selectedMarker==='demand' && (
-                  topDemand.length===0
-                    ? <p className="text-sm text-slate-400 text-center py-6">No demand prediction data yet.</p>
-                    : topDemand.map((d,i)=>{
-                        const u = d.amS+d.pmS;
-                        const cov = d.needed>0?Math.round((u/d.needed)*100):100;
-                        const col = cov>=90?'#10b981':cov>=80?'#f59e0b':'#ef4444';
-                        const verdict = cov>=90?'OK':cov>=80?'Tight':'Short';
-                        return (
-                          <button key={i} onClick={()=>pickDay(d.isoKey)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
-                            <span className="text-xs font-semibold text-slate-300 w-20 flex-shrink-0">{d.dayShort} {d.dayNum} {d.monthStr}</span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>
-                            <span className="text-[10px] text-slate-500 flex-1">need {d.needed}</span>
-                            <div className="text-right flex-shrink-0">
-                              <div className="text-xs font-bold" style={{color:col}}>{verdict}</div>
-                              <div className="text-[10px] text-slate-400">{u} / {d.needed}</div>
-                            </div>
-                          </button>
-                        );
-                      })
-                )}
-                {selectedMarker==='routine' && (
-                  rTarget<=0
-                    ? <p className="text-sm text-slate-400 text-center py-6">Set a weekly routine target in the calendar footer to enable this.</p>
-                    : weeks.filter(w=>w.wR>0).length===0
-                      ? <p className="text-sm text-slate-400 text-center py-6">No routine slot data uploaded yet.</p>
-                      : weeks.filter(w=>w.wR>0).map((w,i)=>{const vb=vBand(w.wR,rTarget);return(
-                          <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
-                            <span className="text-xs font-semibold text-slate-300 w-12 flex-shrink-0">Wk {weeks.indexOf(w)+1}</span>
-                            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,0.08)'}}>
-                              <div className="h-full rounded-full" style={{width:`${Math.min((w.wR/rTarget)*100,100)}%`,background:vb.bg}}/>
-                            </div>
-                            <span className="text-xs font-bold" style={{color:vb.bg}}>{w.wR}</span>
-                            <span className="text-[10px] text-slate-400">/ {rTarget}</span>
-                          </div>
-                        );})
-                )}
-                {selectedMarker==='trend' && (
-                  weeks.filter(w=>w.wU>0).length===0
-                    ? <p className="text-sm text-slate-400 text-center py-6">No urgent data uploaded yet.</p>
-                    : weeks.filter(w=>w.wU>0).map((w,i,arr)=>{const delta=i>0?w.wU-arr[i-1].wU:0;return(
-                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
-                          <span className="text-xs font-semibold text-slate-300 w-12 flex-shrink-0">Wk {weeks.indexOf(w)+1}</span>
-                          <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[10px] text-slate-400">urg</span></div>
-                          <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'#a78bfa'}}>{w.wR}</span><span className="text-[10px] text-slate-400">rout</span></div>
-                          {delta!==0 && <span className={`text-xs font-bold ml-auto ${delta>0?'text-emerald-500':'text-red-500'}`}>{delta>0?'↑':'↓'}{Math.abs(delta)} urg</span>}
-                        </div>
-                      );})
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="px-4 py-3 border-b border-white/10 flex-shrink-0">
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Insights</div>
-                <div className="text-[11px] text-slate-600 mt-0.5">Click any day for who&apos;s working · click an insight to expand</div>
-              </div>
-              <div className="overflow-y-auto p-3 space-y-2" style={{flex:1}}>
-                {/* Marker button: urgent below target */}
-                <button onClick={()=>pickMarker('short')} className="w-full px-3 py-3 rounded-lg flex items-center gap-3 text-left transition-colors" style={{background:'rgba(239,68,68,0.06)',border:'1px solid rgba(239,68,68,0.15)'}}>
+
+        {/* ─── Insights bar (below calendar) ─── */}
+        {/* Four tab-style buttons that each open one insight in the
+            expansion area below. Click again to collapse. Mutually
+            exclusive with the day detail drawer — picking a marker
+            clears any selected day. Days inside an expanded list are
+            clickable and switch to the day drawer. */}
+        <div className="rounded-2xl overflow-hidden" style={{background:'rgba(15,23,42,0.55)',border:'1px solid rgba(255,255,255,0.06)'}}>
+          <div className="grid grid-cols-4 gap-2 p-3" style={{borderBottom: selectedMarker ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
+            {/* Urgent below target */}
+            {(() => {
+              const isActive = selectedMarker === 'short';
+              return (
+                <button onClick={() => isActive ? clearSide() : pickMarker('short')}
+                  className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
+                  style={{background: isActive ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.04)', border: `1px solid ${isActive ? 'rgba(239,68,68,0.45)' : 'rgba(239,68,68,0.12)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(239,68,68,0.18)'}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-slate-200">Urgent capacity below target</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? '#fca5a5' : '#e2e8f0'}}>Urgent below target</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">{shortDays.length} day{shortDays.length===1?'':'s'} flagged</div>
                   </div>
                   <span className="text-base font-bold text-red-400">{shortDays.length}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
-                {/* Marker button: highest demand */}
-                <button onClick={()=>pickMarker('demand')} className="w-full px-3 py-3 rounded-lg flex items-center gap-3 text-left transition-colors" style={{background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.15)'}}>
+              );
+            })()}
+            {/* Highest demand */}
+            {(() => {
+              const isActive = selectedMarker === 'demand';
+              return (
+                <button onClick={() => isActive ? clearSide() : pickMarker('demand')}
+                  className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
+                  style={{background: isActive ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.04)', border: `1px solid ${isActive ? 'rgba(245,158,11,0.45)' : 'rgba(245,158,11,0.12)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(245,158,11,0.18)'}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-slate-200">Highest demand days</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? '#fcd34d' : '#e2e8f0'}}>Highest demand days</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">Top {Math.min(topDemand.length,5)} predicted-busiest</div>
                   </div>
                   <span className="text-base font-bold text-amber-400">{topDemand.length}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
-                {/* Marker button: routine by week */}
-                {rTarget>0 && (
-                  <button onClick={()=>pickMarker('routine')} className="w-full px-3 py-3 rounded-lg flex items-center gap-3 text-left transition-colors" style={{background:'rgba(167,139,250,0.06)',border:'1px solid rgba(167,139,250,0.18)'}}>
-                    <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(167,139,250,0.18)'}}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold text-slate-200">Routine by week</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">vs {rTarget}/wk target</div>
-                    </div>
-                    <span className="text-base font-bold text-purple-300">{weeks.filter(w=>w.wR>0).length}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                  </button>
-                )}
-                {/* Marker button: week-on-week */}
-                <button onClick={()=>pickMarker('trend')} className="w-full px-3 py-3 rounded-lg flex items-center gap-3 text-left transition-colors" style={{background:'rgba(148,163,184,0.06)',border:'1px solid rgba(148,163,184,0.15)'}}>
+              );
+            })()}
+            {/* Routine by week */}
+            {(() => {
+              const isActive = selectedMarker === 'routine';
+              const disabled = rTarget <= 0;
+              return (
+                <button onClick={() => !disabled && (isActive ? clearSide() : pickMarker('routine'))}
+                  disabled={disabled}
+                  className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
+                  style={{
+                    background: disabled ? 'rgba(255,255,255,0.02)' : (isActive ? 'rgba(167,139,250,0.15)' : 'rgba(167,139,250,0.04)'),
+                    border: `1px solid ${disabled ? 'rgba(255,255,255,0.04)' : (isActive ? 'rgba(167,139,250,0.45)' : 'rgba(167,139,250,0.12)')}`,
+                    opacity: disabled ? 0.5 : 1,
+                    cursor: disabled ? 'not-allowed' : 'pointer'
+                  }}>
+                  <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(167,139,250,0.18)'}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold" style={{color: isActive ? '#c4b5fd' : '#e2e8f0'}}>Routine by week</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">{disabled ? 'No target set' : `vs ${rTarget}/wk target`}</div>
+                  </div>
+                  <span className="text-base font-bold text-purple-300">{disabled ? '—' : weeks.filter(w=>w.wR>0).length}</span>
+                </button>
+              );
+            })()}
+            {/* Week-on-week */}
+            {(() => {
+              const isActive = selectedMarker === 'trend';
+              return (
+                <button onClick={() => isActive ? clearSide() : pickMarker('trend')}
+                  className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
+                  style={{background: isActive ? 'rgba(148,163,184,0.15)' : 'rgba(148,163,184,0.04)', border: `1px solid ${isActive ? 'rgba(148,163,184,0.45)' : 'rgba(148,163,184,0.12)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(148,163,184,0.18)'}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-slate-200">Week-on-week</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? '#cbd5e1' : '#e2e8f0'}}>Week-on-week</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">Urgent + routine deltas</div>
                   </div>
                   <span className="text-base font-bold text-slate-300">{weeks.filter(w=>w.wU>0).length}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
-              </div>
-            </>
+              );
+            })()}
+          </div>
+
+          {/* Expansion area — only renders when a marker is selected */}
+          {selectedMarker && (
+            <div className="p-4 space-y-2">
+              {selectedMarker==='short' && (
+                shortDays.length===0
+                  ? <p className="text-sm text-slate-400 text-center py-6">All days are meeting their urgent capacity target.</p>
+                  : <div className="grid grid-cols-2 gap-2">{shortDays.map((d,i)=>{const u=d.amS+d.pmS,t=d.amT+d.pmT;return(
+                      <button key={i} onClick={()=>pickDay(d.isoKey)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                        <span className="text-xs font-semibold text-slate-300 w-20 flex-shrink-0">{d.dayShort} {d.dayNum} {d.monthStr}</span>
+                        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,0.08)'}}>
+                          <div className="h-full rounded-full" style={{width:`${Math.min((u/t)*100,100)}%`,background:u<t*0.8?'#ef4444':'#f59e0b'}}/>
+                        </div>
+                        <span className="text-xs font-bold text-red-400 flex-shrink-0">{u}</span>
+                        <span className="text-[10px] text-slate-400 flex-shrink-0">/ {t}</span>
+                      </button>
+                    );})}</div>
+              )}
+              {selectedMarker==='demand' && (
+                topDemand.length===0
+                  ? <p className="text-sm text-slate-400 text-center py-6">No demand prediction data yet.</p>
+                  : <div className="grid grid-cols-2 gap-2">{topDemand.map((d,i)=>{
+                      const u = d.amS+d.pmS;
+                      const cov = d.needed>0?Math.round((u/d.needed)*100):100;
+                      const col = cov>=90?'#10b981':cov>=80?'#f59e0b':'#ef4444';
+                      const verdict = cov>=90?'OK':cov>=80?'Tight':'Short';
+                      return (
+                        <button key={i} onClick={()=>pickDay(d.isoKey)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                          <span className="text-xs font-semibold text-slate-300 w-20 flex-shrink-0">{d.dayShort} {d.dayNum} {d.monthStr}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>
+                          <span className="text-[10px] text-slate-500 flex-1">need {d.needed}</span>
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-xs font-bold" style={{color:col}}>{verdict}</div>
+                            <div className="text-[10px] text-slate-400">{u} / {d.needed}</div>
+                          </div>
+                        </button>
+                      );
+                    })}</div>
+              )}
+              {selectedMarker==='routine' && (
+                rTarget<=0
+                  ? <p className="text-sm text-slate-400 text-center py-6">Set a weekly routine target in the calendar footer to enable this.</p>
+                  : weeks.filter(w=>w.wR>0).length===0
+                    ? <p className="text-sm text-slate-400 text-center py-6">No routine slot data uploaded yet.</p>
+                    : <div className="grid grid-cols-2 gap-2">{weeks.filter(w=>w.wR>0).map((w,i)=>{const vb=vBand(w.wR,rTarget);return(
+                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                          <span className="text-xs font-semibold text-slate-300 w-12 flex-shrink-0">Wk {weeks.indexOf(w)+1}</span>
+                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,0.08)'}}>
+                            <div className="h-full rounded-full" style={{width:`${Math.min((w.wR/rTarget)*100,100)}%`,background:vb.bg}}/>
+                          </div>
+                          <span className="text-xs font-bold flex-shrink-0" style={{color:vb.bg}}>{w.wR}</span>
+                          <span className="text-[10px] text-slate-400 flex-shrink-0">/ {rTarget}</span>
+                        </div>
+                      );})}</div>
+              )}
+              {selectedMarker==='trend' && (
+                weeks.filter(w=>w.wU>0).length===0
+                  ? <p className="text-sm text-slate-400 text-center py-6">No urgent data uploaded yet.</p>
+                  : <div className="grid grid-cols-2 gap-2">{weeks.filter(w=>w.wU>0).map((w,i,arr)=>{const delta=i>0?w.wU-arr[i-1].wU:0;return(
+                      <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                        <span className="text-xs font-semibold text-slate-300 w-12 flex-shrink-0">Wk {weeks.indexOf(w)+1}</span>
+                        <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[10px] text-slate-400">urg</span></div>
+                        <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'#a78bfa'}}>{w.wR}</span><span className="text-[10px] text-slate-400">rout</span></div>
+                        {delta!==0 && <span className={`text-xs font-bold ml-auto ${delta>0?'text-emerald-500':'text-red-500'}`}>{delta>0?'↑':'↓'}{Math.abs(delta)} urg</span>}
+                      </div>
+                    );})}</div>
+              )}
+            </div>
           )}
         </div>
       </div>
+
+      {/* ═══ DAY DETAIL DRAWER (desktop) ═══ */}
+      {/* Fixed-position drawer that slides in from the right when a day
+          is selected. Doesn't push the calendar — overlays the rightmost
+          ~440px of the screen. Calendar behind it stays at full width and
+          is partially obscured. Click the ✕ (or click any other day) to
+          close. Only shown on lg+ — mobile uses inline expansion as
+          before. */}
+      {detailDay && (
+        <div className="hidden lg:flex fixed top-0 right-0 bottom-0 z-40 flex-col animate-in slide-in-from-right" style={{width:'440px',background:'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',borderLeft:'1px solid rgba(255,255,255,0.1)',boxShadow:'-12px 0 32px rgba(0,0,0,0.5)'}}>
+          <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
+            <span className="text-sm font-semibold text-white">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</span>
+            <button onClick={clearSide} className="ml-auto text-slate-400 hover:text-white" style={{background:'none',border:'none',cursor:'pointer',padding:'4px 8px'}} aria-label="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <PredictionBand day={detailDay} convRate={convRate} />
+          <div className="overflow-y-auto p-4 space-y-3" style={{flex:1}}>
+            {/* AM urgent section */}
+            <div className="rounded-lg p-3" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">AM urgent</span>
+                <span className="text-base font-bold text-red-400 ml-auto">{detailDay.amS}</span>
+                {detailDay.amT>0 && <span className="text-[10px] text-slate-400">/ {detailDay.amT}</span>}
+              </div>
+              {detailDay.amDuty && (
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded mb-2" style={{background:'rgba(239,68,68,0.12)',border:'1px solid rgba(239,68,68,0.25)'}}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#fca5a5" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                  <span className="text-[11px] font-semibold text-red-300">{(teamClin.find(tc=>matchesStaffMember(detailDay.amDuty.name,tc))?.name)||detailDay.amDuty.name} (duty)</span>
+                </div>
+              )}
+              <div className="space-y-1">
+                {detailClin.am.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return(
+                  <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'rgba(255,255,255,0.03)'}}>
+                    {lc && <div className="w-1 h-3.5 rounded-sm flex-shrink-0" style={{background:lc}}/>}
+                    <span className="text-[11px] text-slate-300 flex-1 truncate">{c.name}</span>
+                    <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
+                  </div>
+                );})}
+                {detailClin.am.length===0 && <div className="text-[11px] text-slate-500 py-2 text-center">No slots</div>}
+              </div>
+            </div>
+            {/* PM urgent section */}
+            <div className="rounded-lg p-3" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">PM urgent</span>
+                <span className="text-base font-bold text-blue-400 ml-auto">{detailDay.pmS}</span>
+                {detailDay.pmT>0 && <span className="text-[10px] text-slate-400">/ {detailDay.pmT}</span>}
+              </div>
+              {detailDay.pmDuty && (
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded mb-2" style={{background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.25)'}}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#93c5fd" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                  <span className="text-[11px] font-semibold text-blue-300">{(teamClin.find(tc=>matchesStaffMember(detailDay.pmDuty.name,tc))?.name)||detailDay.pmDuty.name} (duty)</span>
+                </div>
+              )}
+              <div className="space-y-1">
+                {detailClin.pm.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return(
+                  <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'rgba(255,255,255,0.03)'}}>
+                    {lc && <div className="w-1 h-3.5 rounded-sm flex-shrink-0" style={{background:lc}}/>}
+                    <span className="text-[11px] text-slate-300 flex-1 truncate">{c.name}</span>
+                    <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
+                  </div>
+                );})}
+                {detailClin.pm.length===0 && <div className="text-[11px] text-slate-500 py-2 text-center">No slots</div>}
+              </div>
+            </div>
+            {/* Routine section */}
+            <div className="rounded-lg p-3" style={{background:'rgba(167,139,250,0.05)',border:'1px solid rgba(167,139,250,0.15)'}}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300">Routine</span>
+                <span className="text-base font-bold text-purple-300 ml-auto">{detailDay.rTotal}</span>
+              </div>
+              <div className="mb-3"><DonutGauge avail={detailDay.rA} emb={detailDay.rE} booked={detailDay.rB}/></div>
+              <div className="space-y-1">
+                {detailClin.rout.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return(
+                  <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'rgba(255,255,255,0.03)'}}>
+                    {lc && <div className="w-1 h-3.5 rounded-sm flex-shrink-0" style={{background:lc}}/>}
+                    <span className="text-[11px] text-slate-300 flex-1 truncate">{c.name}</span>
+                    <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
+                  </div>
+                );})}
+                {detailClin.rout.length===0 && <div className="text-[11px] text-slate-500 py-2 text-center">No slots</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ MOBILE LAYOUT ═══ */}
       <div className="lg:hidden space-y-4">
