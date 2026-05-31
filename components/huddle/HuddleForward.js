@@ -136,49 +136,69 @@ function DonutGauge({ avail, emb, booked }) {
   );
 }
 
-// WeeklyRoutineBullet — sits in the right column of each week row in the
-// desktop calendar. Renders a horizontal bullet chart: thin track, comfort
-// band (±10% of target) overlaid, filled bar (offered slots vs target),
-// purple target tick. Bar colour comes from vBand() — same green/amber/red
-// language used everywhere else on the page so the eye links a "tight"
-// week here to a "tight" day in the cells. If no target is set we just
-// show the raw offered number.
+// WeeklyRoutineBullet — right column of each week row in the desktop
+// calendar. Renders a layered bullet chart:
+//   - thin track (background)
+//   - comfort band (target ±10%) overlay
+//   - faint outer bar = slots OFFERED for the week (capacity)
+//   - solid inner bar = slots BOOKED so far (fill)
+//   - purple tick at target
+// The two-bar layering lets the eye answer "is there enough capacity?"
+// (outer bar reaches the target band) and "how full is it?" (inner bar
+// reaches the outer bar) simultaneously. Past weeks: booked = final
+// number. Current week: booked = bookings so far. Future weeks: booked
+// = advance bookings (will be small for far-future weeks, which is
+// honest — patients haven't booked yet).
 //
-// Future enhancement: add a hashed projected tail for the current week
-// once we have a booking-pace coefficient (needs a few weeks of CSV
-// uploads to learn the practice's advance booking curve).
+// Colour of the booked bar comes from vBand(booked, rTarget) — same
+// green/amber/red language used everywhere else on the page, so a
+// "tight" week here reads the same as a "tight" day in the cells.
 function WeeklyRoutineBullet({ wk, rTarget }) {
   const offered = wk.wR || 0;
+  const booked = wk.wRB || 0;
   if (offered <= 0) return <div className="h-full flex items-center justify-center"><span className="text-[10px] text-slate-600">—</span></div>;
   if (rTarget <= 0) {
     return (
       <div className="h-full flex flex-col justify-center px-2">
-        <div className="text-base font-bold text-emerald-400 leading-none">{offered}</div>
-        <div className="text-[9px] text-slate-500 mt-1">slots offered</div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-base font-bold text-emerald-400 leading-none">{booked}</span>
+          <span className="text-[9px] text-slate-500">/ {offered}</span>
+        </div>
+        <div className="text-[9px] text-slate-500 mt-1">booked / offered</div>
       </div>
     );
   }
-  const band = vBand(offered, rTarget);
+  const band = vBand(booked, rTarget);
   const maxScale = rTarget * 1.3;
-  const valuePct = Math.min(100, (offered / maxScale) * 100);
+  const offeredPct = Math.min(100, (offered / maxScale) * 100);
+  const bookedPct = Math.min(100, (booked / maxScale) * 100);
   const targetPct = (rTarget / maxScale) * 100;       // 76.92%
   const comfortLowPct = (rTarget * 0.9 / maxScale) * 100;  // 69.23%
   const comfortHighPct = (rTarget * 1.1 / maxScale) * 100; // 84.62%
-  const delta = offered - rTarget;
+  const delta = booked - rTarget;
+  const fillPct = offered > 0 ? Math.round((booked / offered) * 100) : 0;
   return (
-    <div className="h-full flex flex-col justify-center px-2.5">
+    <div className="h-full flex flex-col justify-center px-2.5" title={`Routine — booked ${booked} of ${offered} offered (${fillPct}% fill) · target ${rTarget}`}>
       <div className="flex items-baseline gap-1.5 mb-2">
-        <span className="text-base font-bold leading-none" style={{color: band.bg}}>{offered}</span>
+        <span className="text-base font-bold leading-none" style={{color: band.bg}}>{booked}</span>
         <span className="text-[9px] text-slate-500">/ {rTarget}</span>
+        <span className="text-[8px] text-slate-600 ml-auto">of {offered}</span>
       </div>
-      <div className="relative" style={{height: 8}}>
+      <div className="relative" style={{height: 10}}>
+        {/* Track */}
         <div className="absolute inset-0 rounded-sm" style={{background: 'rgba(255,255,255,0.06)'}}/>
+        {/* Comfort band — dashed-edge tinted zone around target */}
         <div className="absolute top-0 bottom-0" style={{left: `${comfortLowPct}%`, right: `${100 - comfortHighPct}%`, background: 'rgba(16,185,129,0.13)', borderLeft: '1px dashed rgba(16,185,129,0.35)', borderRight: '1px dashed rgba(16,185,129,0.35)'}}/>
-        <div className="absolute left-0 rounded-sm" style={{width: `${valuePct}%`, top: 1.5, bottom: 1.5, background: band.bg}}/>
+        {/* Outer bar = OFFERED (faint, tall) */}
+        <div className="absolute left-0 rounded-sm" style={{width: `${offeredPct}%`, top: 1, bottom: 1, background: `${band.bg}33`, border: `1px solid ${band.bg}66`}}/>
+        {/* Inner bar = BOOKED (solid, narrower so it reads as inside the offered bar) */}
+        <div className="absolute left-0 rounded-sm" style={{width: `${bookedPct}%`, top: 3, bottom: 3, background: band.bg}}/>
+        {/* Target tick */}
         <div className="absolute" style={{left: `${targetPct}%`, top: -2, bottom: -2, width: 2, background: '#a78bfa', transform: 'translateX(-1px)', borderRadius: 1}}/>
       </div>
-      <div className="text-[9px] mt-1.5" style={{color: band.bg, opacity: 0.85}}>
-        {delta >= 0 ? '+' : ''}{delta} vs target
+      <div className="text-[9px] mt-1.5 flex items-center gap-2">
+        <span style={{color: band.bg, opacity: 0.85}}>{delta >= 0 ? '+' : ''}{delta} vs target</span>
+        <span className="text-slate-600 ml-auto">{fillPct}% fill</span>
       </div>
     </div>
   );
