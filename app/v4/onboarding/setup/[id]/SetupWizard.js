@@ -735,6 +735,7 @@ export default function SetupWizard({
                   practiceSlug={practice.slug}
                   hasDemandData={hasDemandData}
                   setHasDemandData={setHasDemandData}
+                  onContinue={goNext}
                 />
               )}
               {currentStep === 7 && (
@@ -2880,9 +2881,10 @@ function ColourPicker({ value, onChange }) {
 
 
 // ─── Step 6: Demand history (optional) ─────────────────────────────────
-function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData }) {
+function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData, onContinue }) {
   const supabase = createClient();
   const [howToOpen, setHowToOpen] = useState(null); // 'askmygp' | 'anima' | null
+  const [addingMore, setAddingMore] = useState(false);
   // History summary per source. Fetched on mount + refetched after upload
   // so the "what's unlocked" panel updates immediately.
   // Shape: [{ source, row_count, earliest_date, latest_date }]
@@ -2984,8 +2986,34 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData 
               </div>
             </div>
           )}
-          <div style={{ marginTop: 14, fontSize: 11, color: '#64748b' }}>
-            Want to add more history? Drop another export onto the upload area on the Demand tab in your practice settings.
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 10 }}>
+              {totalSpanDays >= 270
+                ? 'You have enough history to unlock every model feature. Add more any time, or carry on.'
+                : 'More history unlocks more of the model (90+ days for the growth trend, 270+ for full-year seasonality). You can add more now, or carry on and top it up later from the Demand tab.'}
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {!addingMore && (
+                <button type="button" onClick={() => setAddingMore(true)} style={pillButton('#6366f1')}>
+                  + Add more history
+                </button>
+              )}
+              {onContinue && (
+                <button type="button" onClick={onContinue} style={{ ...pillButton('#10b981'), background: '#10b981', color: '#06281e', borderColor: '#10b981' }}>
+                  Looks good — continue
+                </button>
+              )}
+            </div>
+            {addingMore && (
+              <div style={{ marginTop: 14 }}>
+                <DemandUpload
+                  practiceId={practiceId}
+                  demandSettings={null}
+                  history={[]}
+                  onUploadSuccess={() => { loadHistory(); setAddingMore(false); }}
+                />
+              </div>
+            )}
           </div>
         </div>
       ) : (
