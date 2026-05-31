@@ -315,8 +315,26 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
   // ─── GALLERY ───────────────────────────────────────────────────────────
   if (view === 'gallery') {
+    // Per-group accent colours (Design A): a left bar + coloured heading,
+    // cards otherwise calm and dark. Cycles if more groups are added.
+    const GROUP_ACCENTS = [
+      { bar: '#6366f1', head: '#a5b4fc', ring: 'rgba(99,102,241,0.55)' },  // indigo
+      { bar: '#14b8a6', head: '#5eead4', ring: 'rgba(20,184,166,0.55)' },  // teal
+      { bar: '#f59e0b', head: '#fcd34d', ring: 'rgba(245,158,11,0.55)' },  // amber
+      { bar: '#ec4899', head: '#f9a8d4', ring: 'rgba(236,72,153,0.55)' },  // pink
+    ];
+    const card = (key, accent, onClick, body, extra) => (
+      <div key={key} onClick={onClick}
+        className="group relative rounded-xl p-4 cursor-pointer flex flex-col transition-transform hover:-translate-y-0.5"
+        style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.07)', borderLeft: `3px solid ${accent.bar}`, minHeight: 84 }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = accent.ring; e.currentTarget.style.borderLeftColor = accent.bar; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderLeftColor = accent.bar; }}>
+        {body}{extra}
+      </div>
+    );
+    const emerald = { bar: '#10b981', head: '#6ee7b7', ring: 'rgba(16,185,129,0.55)' };
     return (
-      <div className="space-y-6">
+      <div className="space-y-7">
         <div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">Reporting</h1>
           <p className="text-sm text-slate-400 mt-1">Pick a report to get started, or build your own. Every report is fully editable once open.</p>
@@ -324,48 +342,51 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
         {savedReports.length > 0 && (
           <div>
-            <div className="flex items-baseline gap-2 mb-3"><h2 className="text-sm font-bold text-emerald-300 uppercase tracking-wide">Your saved reports</h2></div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="rounded-full" style={{ width: 4, height: 15, background: emerald.bar }} />
+              <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: emerald.head }}>Your saved reports</h2>
+              <span className="text-xs text-slate-500">Reports your practice has saved</span>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {savedReports.map(r => (
-                <div key={r.id} className="group relative rounded-xl p-4 cursor-pointer transition-all hover:scale-[1.02]" onClick={() => openSaved(r)}
-                  style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                  <div className="text-sm font-semibold text-slate-100">{r.name}</div>
-                  <div className="text-xs text-slate-400 mt-0.5 line-clamp-2">{describeMeasure(r.config)}</div>
-                  {canEdit && <button onClick={(e) => { e.stopPropagation(); deleteReport(r.id); }} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-opacity" style={{ background: 'none', border: 'none', cursor: 'pointer' }} title="Delete">✕</button>}
-                </div>
+              {savedReports.map(r => card(
+                r.id, emerald, () => openSaved(r),
+                <><div className="text-sm font-semibold text-slate-100">{r.name}</div>
+                  <div className="text-xs text-slate-400 mt-0.5 line-clamp-2">{describeMeasure(r.config)}</div></>,
+                canEdit && <button onClick={(e) => { e.stopPropagation(); deleteReport(r.id); }} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-opacity" style={{ background: 'none', border: 'none', cursor: 'pointer' }} title="Delete report">✕</button>
               ))}
             </div>
           </div>
         )}
 
-        {PRESET_GROUPS.map(g => (
-          <div key={g.group}>
-            <div className="flex items-baseline gap-2 mb-3">
-              <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wide">{g.group}</h2>
-              <span className="text-xs text-slate-500">{g.blurb}</span>
+        {PRESET_GROUPS.map((g, gi) => {
+          const accent = GROUP_ACCENTS[gi % GROUP_ACCENTS.length];
+          return (
+            <div key={g.group}>
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <span className="rounded-full" style={{ width: 4, height: 15, background: accent.bar }} />
+                <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: accent.head }}>{g.group}</h2>
+                <span className="text-xs text-slate-500">{g.blurb}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {g.presets.map(p => card(
+                  p.id, accent, () => openPreset(p),
+                  <><div className="text-sm font-semibold text-slate-100">{p.label}</div>
+                    <div className="text-xs text-slate-400 mt-0.5 leading-snug">{p.description}</div></>
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {g.presets.map(p => (
-                <div key={p.id} className="rounded-xl p-4 cursor-pointer transition-all hover:scale-[1.02]" onClick={() => openPreset(p)}
-                  style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.07)' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'}>
-                  <div className="text-sm font-semibold text-slate-100">{p.label}</div>
-                  <div className="text-xs text-slate-400 mt-0.5 leading-snug">{p.description}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
-        <div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="rounded-xl p-4 cursor-pointer transition-all hover:scale-[1.02] flex items-center gap-3" onClick={openBlank}
-              style={{ background: 'rgba(99,102,241,0.1)', border: '1px dashed rgba(99,102,241,0.4)' }}>
-              <div className="text-2xl">🛠️</div>
-              <div><div className="text-sm font-semibold text-indigo-200">Build from scratch</div><div className="text-xs text-slate-400">Start with a blank report and configure everything yourself.</div></div>
-            </div>
-          </div>
+        <div className="pt-1">
+          <button onClick={openBlank}
+            className="w-full sm:w-auto rounded-xl px-4 py-3 cursor-pointer flex items-center gap-3 transition-colors"
+            style={{ background: 'rgba(99,102,241,0.1)', border: '1px dashed rgba(99,102,241,0.4)' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.18)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.1)'}>
+            <span className="flex items-center justify-center rounded-lg text-lg font-bold" style={{ width: 34, height: 34, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>+</span>
+            <span className="text-left"><span className="block text-sm font-semibold text-indigo-200">Build from scratch</span><span className="block text-xs text-slate-400">Start with a blank report and configure everything yourself.</span></span>
+          </button>
         </div>
       </div>
     );
