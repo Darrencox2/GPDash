@@ -31,6 +31,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { guessGroupFromRole, buddyDefaultsForRole, allRoles, canonicaliseRole } from '@/lib/data';
+import QuickRoleWizard from './QuickRoleWizard';
 import WorkingDaysGrid from './WorkingDaysGrid';
 import ClinicianDetailsPanel from './ClinicianDetailsPanel';
 
@@ -97,6 +98,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
   // days grid" button); we strip the param after opening so the modal
   // doesn't reopen if the user closes it then refreshes.
   const [showWorkingGrid, setShowWorkingGrid] = useState(false);
+  const [showQuickRole, setShowQuickRole] = useState(false);
   // Let a parent (e.g. the setup wizard) react to edits live — used to
   // recompute "step complete" as roles are assigned, rather than only at
   // load time. Held in a ref so the effect fires only on real clinician
@@ -308,7 +310,23 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
     setSelectedIds(new Set());
   };
 
-  // ─── Selection helpers ───────────────────────────────────────────────
+  // Assign a role to a specific set of clinician ids — used by the
+  // QuickRoleWizard (role-by-role quick-fire pass). Same effect as setting
+  // the role in the grid: applies the role, its derived group, and the
+  // role's buddy-cover defaults. The save-diff effect then persists it.
+  const assignRole = (ids, role) => {
+    const idSet = new Set(ids);
+    setClinicians(prev => prev.map(c => {
+      if (!idSet.has(c.id)) return c;
+      const updated = { ...c, role };
+      const guessed = guessGroupFromRole(role);
+      if (guessed) updated.group = guessed;
+      const bd = buddyDefaultsForRole(role);
+      updated.buddyCover = bd.buddyCover;
+      updated.canProvideCover = bd.canProvideCover;
+      return updated;
+    }));
+  };
   const toggleSelect = (id) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -412,6 +430,18 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
             whiteSpace: 'nowrap',
           }}
         >Working days grid</button>
+        <button
+          type="button"
+          onClick={() => setShowQuickRole(true)}
+          style={{
+            padding: '8px 14px', fontSize: 12, fontWeight: 600,
+            background: 'rgba(99,102,241,0.16)',
+            border: '1px solid rgba(129,140,248,0.45)',
+            borderRadius: 6, color: '#a5b4fc',
+            cursor: 'pointer', fontFamily: 'inherit',
+            whiteSpace: 'nowrap',
+          }}
+        >✨ Quick role setup</button>
         <SaveIndicator state={saveState} errorMsg={errorMsg} onRetry={doSave} />
       </div>
 
@@ -424,8 +454,13 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
           fontSize: 12, color: '#fde68a', lineHeight: 1.5,
         }}>
           <strong style={{ color: '#fbbf24' }}>{attentionCount} clinician{attentionCount === 1 ? '' : 's'} need{attentionCount === 1 ? 's' : ''} attention.</strong>{' '}
-          Highlighted rows are missing initials or have a placeholder role.
-          Tip: tick multiple rows and use the bulk actions toolbar to set them all at once.
+          Highlighted rows are missing initials or have a placeholder role.{' '}
+          <button
+            type="button"
+            onClick={() => setShowQuickRole(true)}
+            style={{ background: 'none', border: 'none', padding: 0, color: '#a5b4fc', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline', fontFamily: 'inherit', fontSize: 12 }}
+          >Sort roles fast →</button>
+          {' '}or tick multiple rows and use the bulk actions toolbar.
         </div>
       )}
 
@@ -534,6 +569,14 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
           clinicians={clinicians}
           initialPatterns={initialPatterns || {}}
           onClose={() => setShowWorkingGrid(false)}
+        />
+      )}
+
+      {showQuickRole && (
+        <QuickRoleWizard
+          clinicians={clinicians}
+          onAssign={assignRole}
+          onClose={() => setShowQuickRole(false)}
         />
       )}
 
