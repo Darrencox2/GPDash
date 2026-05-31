@@ -2318,10 +2318,6 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         nextUrgent[slot] = true;
         appliedAny = true;
       }
-      if (suggestDuty(slot)) {
-        nextDuty.push(slot);
-        appliedAny = true;
-      }
     }
     if (!appliedAny) {
       autoAppliedRef.current = true;
@@ -2410,20 +2406,6 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
     debouncedSave(next);
   };
 
-  const applyDutySuggestions = () => {
-    const cur = new Set(slotFilters.dutyDoctorSlot || []);
-    for (const slot of slotTypes) {
-      if (suggestDuty(slot)) cur.add(slot);
-    }
-    const next = {
-      routine: slotFilters.routine || {},
-      urgent: slotFilters.urgent || {},
-      dutyDoctorSlot: Array.from(cur),
-    };
-    setSlotFilters(next);
-    debouncedSave(next);
-  };
-
   if (!parsedCsv || slotTypes.length === 0) {
     return <UploadFirstPrompt message="Once you've uploaded your EMIS appointment CSV, we'll list every slot type we found here." />;
   }
@@ -2437,7 +2419,6 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
 
   // Are there pending suggestions the user hasn't acted on?
   const pendingCategorySuggestions = slotTypes.some(s => categoryOf(s) === 'other' && suggestSlotCategory(s) !== null);
-  const pendingDutySuggestions = slotTypes.some(s => suggestDuty(s) && !isDuty(s));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -2492,11 +2473,6 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          {pendingDutySuggestions && (
-            <button type="button" onClick={applyDutySuggestions} style={pillButton('#a855f7')}>
-              Add suggested ({slotTypes.filter(s => suggestDuty(s) && !isDuty(s)).length})
-            </button>
-          )}
         </div>
       </div>
 
@@ -2550,20 +2526,15 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         </div>
         {slotTypes.map((slot, i) => {
           const cat = categoryOf(slot);
-          const duty = isDuty(slot);
           const sug = suggestSlotCategoryWithConfidence(slot);
           const suggested = sug?.category || null;
           const confidence = sug?.confidence || null;
-          const suggestedDuty = suggestDuty(slot);
           // Auto-applied indicator: the current value matches what the
           // suggestion would say AND the user hasn't explicitly clicked
           // this row. Once they click, userTouched gains the slot and
           // the indicator disappears.
           const touched = userTouched.has(slot);
-          const isAutoApplied = !touched && (
-            (suggested && cat === suggested)
-            || (suggestedDuty && duty)
-          );
+          const isAutoApplied = !touched && (suggested && cat === suggested);
           const showCategorySuggestion = cat === 'other' && suggested !== null;
           return (
             <div

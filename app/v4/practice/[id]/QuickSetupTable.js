@@ -32,6 +32,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { guessGroupFromRole, buddyDefaultsForRole, allRoles, canonicaliseRole } from '@/lib/data';
 import QuickRoleWizard from './QuickRoleWizard';
+import ClinicianTour from './ClinicianTour';
 import WorkingDaysGrid from './WorkingDaysGrid';
 import ClinicianDetailsPanel from './ClinicianDetailsPanel';
 
@@ -399,6 +400,61 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
   const attentionCount = useMemo(() => clinicians.filter(c => c.status !== 'left' && needsAttention(c)).length, [clinicians]);
   const selectedCount = selectedIds.size;
 
+  // ─── First-visit guided tour ─────────────────────────────────────────
+  // Gentle coach-marks that walk a new owner through: run quick role setup
+  // → sort the stragglers → check working days → confirm buddy toggles.
+  // Shows once per browser per practice; "Skip tour" or finishing marks it
+  // done. Non-blocking — clicks always pass through to the page.
+  const quickRoleBtnRef = useRef(null);
+  const workingGridBtnRef = useRef(null);
+  const attnBannerRef = useRef(null);
+  const buddyColRef = useRef(null);
+  const [tourStep, setTourStep] = useState(null);
+  const tourKey = `gpdash:clinicianTourDone:${practiceId}`;
+  const tourInit = useRef(false);
+
+  useEffect(() => {
+    if (tourInit.current) return;
+    tourInit.current = true;
+    let alreadyDone = false;
+    try { alreadyDone = localStorage.getItem(tourKey) === '1'; } catch {}
+    if (alreadyDone) return;
+    setTourStep(attentionCount > 0 ? 'quick' : 'days');
+  }, [tourKey, attentionCount]);
+
+  // Auto-advance the "sort the rest" step once everyone has a role.
+  useEffect(() => {
+    if (tourStep === 'sort' && attentionCount === 0) setTourStep('days');
+  }, [tourStep, attentionCount]);
+
+  // On the working-days step, advance to the buddy step only once the grid
+  // has been opened AND closed again — so the buddy coach-mark doesn't try
+  // to point at a column hidden behind the open grid modal.
+  const daysGridOpenedRef = useRef(false);
+  useEffect(() => {
+    if (tourStep !== 'days') return;
+    if (showWorkingGrid) daysGridOpenedRef.current = true;
+    else if (daysGridOpenedRef.current) { daysGridOpenedRef.current = false; setTourStep('buddy'); }
+  }, [tourStep, showWorkingGrid]);
+
+  const finishTour = () => {
+    try { localStorage.setItem(tourKey, '1'); } catch {}
+    setTourStep(null);
+  };
+
+  const closeQuickRole = () => {
+    setShowQuickRole(false);
+    if (tourStep === 'quick') setTourStep(attentionCount > 0 ? 'sort' : 'days');
+  };
+
+  const TOUR_INDEX = { quick: 1, sort: 2, days: 3, buddy: 4 };
+  const tourPrimary = {
+    quick: { label: 'Run quick setup', fn: () => setShowQuickRole(true) },
+    sort:  null,
+    days:  { label: 'Open working days grid', fn: () => setShowWorkingGrid(true) },
+    buddy: { label: 'Got it, finish', fn: finishTour },
+  }[tourStep] || null;
+
   return (
     <div>
       {/* Header strip: search, show-left toggle, save status,
@@ -420,6 +476,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
         </label>
         <button
           type="button"
+          ref={workingGridBtnRef}
           onClick={() => setShowWorkingGrid(true)}
           style={{
             padding: '8px 14px', fontSize: 12, fontWeight: 500,
@@ -432,6 +489,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
         >Working days grid</button>
         <button
           type="button"
+          ref={quickRoleBtnRef}
           onClick={() => setShowQuickRole(true)}
           style={{
             padding: '8px 14px', fontSize: 12, fontWeight: 600,
@@ -446,7 +504,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       </div>
 
       {attentionCount > 0 && selectedCount === 0 && (
-        <div style={{
+        <div ref={attnBannerRef} style={{
           padding: '10px 14px', marginBottom: 12,
           background: 'rgba(245,158,11,0.08)',
           border: '1px solid rgba(245,158,11,0.2)',
@@ -500,7 +558,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
                 <Th width={80}>Initials</Th>
                 <Th width={170}>Role</Th>
                 <Th width={140}>Status</Th>
-                <Th width={100} style={{ textAlign: 'center' }}>In buddy system</Th>
+                <Th width={100} style={{ textAlign: 'center' }}><span ref={buddyColRef}>In buddy system</span></Th>
                 <Th width={100} style={{ textAlign: 'center' }}>Can cover</Th>
                 <Th width={100} style={{ textAlign: 'center' }}>Who's In</Th>
               </tr>
@@ -576,7 +634,19 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
         <QuickRoleWizard
           clinicians={clinicians}
           onAssign={assignRole}
-          onClose={() => setShowQuickRole(false)}
+          onClose={closeQuickRole}
+        />
+      )}
+
+      {tourStep && !showQuickRole && !showWorkingGrid && (
+        <ClinicianTour
+          step={tourStep}
+          targets={{ quick: quickRoleBtnRef, days: workingGridBtnRef, grid: attnBannerRef, buddy: buddyColRef }}
+          stepIndex={TOUR_INDEX[tourStep]}
+          totalSteps={4}
+          primaryLabel={tourPrimary?.label}
+          onPrimary={tourPrimary?.fn}
+          onSkip={finishTour}
         />
       )}
 

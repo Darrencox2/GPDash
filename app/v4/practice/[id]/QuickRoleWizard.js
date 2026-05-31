@@ -18,6 +18,7 @@
 // celebration (spring pop, lift-in, confetti burst).
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { allRoles } from '@/lib/data';
 
 // The pass only steps through the everyday roles. Less common ones (ANP
@@ -58,6 +59,9 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
   const [assignedCount, setAssignedCount] = useState(0);
   const [done, setDone] = useState(initialPool.length === 0);
   const [headKey, setHeadKey] = useState(0);
+  const [query, setQuery] = useState('');
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const total = initialPool.length;
   const advancing = useRef(false);
 
@@ -80,6 +84,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
 
   const advance = () => {
     setSelected(new Set());
+    setQuery('');
     setHeadKey(k => k + 1);
     if (step + 1 >= COMMON_ROLES.length || pool.length === 0) {
       setDone(true);
@@ -93,6 +98,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
     const ids = pool.filter(p => selected.has(p.id)).map(p => p.id);
     if (ids.length === 0) return;
     advancing.current = true;
+    setQuery('');
     // Apply in the parent (role + buddy defaults + persist).
     onAssign?.(ids, current.role);
     setAssignedCount(c => c + ids.length);
@@ -118,7 +124,9 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
     });
   }, []);
 
-  return (
+  if (!mounted || typeof document === 'undefined') return null;
+
+  const overlay = (
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       style={{
@@ -142,9 +150,9 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
 
       <div
         style={{
-          width: 540, maxWidth: '100%', maxHeight: '88vh', overflowY: 'auto',
+          width: 'min(1080px, 96vw)', maxWidth: '96vw', maxHeight: '90vh', overflowY: 'auto',
           background: 'rgba(15,23,42,0.96)', border: '1px solid rgba(129,140,248,0.28)',
-          borderRadius: 18, padding: '26px 28px 22px',
+          borderRadius: 18, padding: '26px 32px 24px',
           boxShadow: '0 40px 90px -20px rgba(0,0,0,0.75)',
           animation: 'qrwPop 0.55s cubic-bezier(0.34,1.56,0.64,1)',
         }}
@@ -194,34 +202,56 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6, marginLeft: 44 }}>{current.hint} Tap everyone who fits.</div>
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginBottom: 22, minHeight: 96 }}>
+            <div style={{ position: 'relative', marginBottom: 14 }}>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: 13 }}>🔍</span>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search for a name…"
+                style={{
+                  width: '100%', padding: '9px 12px 9px 34px', fontSize: 14,
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 10, color: '#e2e8f0', outline: 'none', fontFamily: 'inherit',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginBottom: 22, minHeight: 96, maxHeight: '52vh', overflowY: 'auto' }}>
               {pool.length === 0 ? (
                 <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px' }}>Everyone has a role — finishing up…</div>
-              ) : pool.map((p, i) => {
-                const sel = selected.has(p.id);
-                const isLeaving = leaving.has(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => !isLeaving && toggle(p.id)}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 7,
-                      padding: '8px 13px', borderRadius: 999, fontSize: 14, cursor: 'pointer',
-                      border: `1px solid ${sel ? '#818cf8' : 'rgba(255,255,255,0.12)'}`,
-                      background: sel ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.03)',
-                      color: sel ? '#c7d2fe' : '#e2e8f0',
-                      transition: 'background 0.14s, border 0.14s, color 0.14s',
-                      animation: isLeaving
-                        ? `qrwChipOut 0.4s cubic-bezier(0.4,0,0.6,1) ${i * 0.05}s both`
-                        : `qrwChipIn 0.3s ease-out ${Math.min(i, 12) * 0.018}s both`,
-                    }}
-                  >
-                    {sel && <span style={{ color: '#818cf8' }}>✓</span>}
-                    <span>{p.name}</span>
-                    {p.tag && <span style={{ fontSize: 11, color: '#64748b' }}>{p.tag}</span>}
-                  </button>
-                );
-              })}
+              ) : (() => {
+                const q = query.trim().toLowerCase();
+                const shown = q ? pool.filter(p => p.name.toLowerCase().includes(q)) : pool;
+                if (shown.length === 0) {
+                  return <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px' }}>No matches for “{query}”.</div>;
+                }
+                return shown.map((p, i) => {
+                  const sel = selected.has(p.id);
+                  const isLeaving = leaving.has(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => !isLeaving && toggle(p.id)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 7,
+                        padding: '8px 13px', borderRadius: 999, fontSize: 14, cursor: 'pointer',
+                        border: `1px solid ${sel ? '#818cf8' : 'rgba(255,255,255,0.12)'}`,
+                        background: sel ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.03)',
+                        color: sel ? '#c7d2fe' : '#e2e8f0',
+                        transition: 'background 0.14s, border 0.14s, color 0.14s',
+                        animation: isLeaving
+                          ? `qrwChipOut 0.4s cubic-bezier(0.4,0,0.6,1) ${i * 0.05}s both`
+                          : `qrwChipIn 0.3s ease-out ${Math.min(i, 12) * 0.018}s both`,
+                      }}
+                    >
+                      {sel && <span style={{ color: '#818cf8' }}>✓</span>}
+                      <span>{p.name}</span>
+                      {p.tag && <span style={{ fontSize: 11, color: '#64748b' }}>{p.tag}</span>}
+                    </button>
+                  );
+                });
+              })()}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -249,4 +279,6 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
       </div>
     </div>
   );
+
+  return createPortal(overlay, document.body);
 }
