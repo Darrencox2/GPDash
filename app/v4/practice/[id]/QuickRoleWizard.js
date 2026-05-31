@@ -131,8 +131,8 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'radial-gradient(120% 120% at 50% 0%, rgba(30,41,59,0.72) 0%, rgba(8,12,22,0.82) 70%)',
-        backdropFilter: 'blur(3px)',
+        background: 'radial-gradient(120% 120% at 50% 0%, rgba(30,41,59,0.78) 0%, rgba(8,12,22,0.9) 70%)',
+        backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 20, animation: 'qrwFade 0.25s ease-out',
       }}

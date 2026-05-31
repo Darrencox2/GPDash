@@ -78,12 +78,27 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   }, []);
   const fileRef = useRef(null);
   const hs = data?.huddleSettings || {};
-  const knownSlotTypes = hs?.knownSlotTypes || [];
-  // Slot types that actually have count data in the current huddleData
-  // (vs the permanent union in hs.knownSlotTypes). Used by SlotFilter to
-  // visually distinguish stale entries — see getActiveSlotTypes docstring.
-  const activeSlotTypes = useMemo(() => getActiveSlotTypes(huddleData), [huddleData]);
   const saved = hs?.savedSlotFilters || {};
+  // The universe of slot types the filter picker can show. Historically this
+  // was just hs.knownSlotTypes (the permanent union built on CSV upload via
+  // the Today page). But practices set up through the onboarding wizard get
+  // their slot filters saved without hs.knownSlotTypes ever being populated,
+  // which left the picker empty ("24 of 0 selected"). So build the union of
+  // every source we have: the stored known list, the live CSV's slot types,
+  // and any slot names already present in the saved routine/urgent filters.
+  const knownSlotTypes = useMemo(() => {
+    const set = new Set();
+    (hs?.knownSlotTypes || []).forEach(s => set.add(s));
+    (huddleData?.allSlotTypes || []).forEach(s => set.add(s));
+    Object.keys(saved.routine || {}).forEach(s => set.add(s));
+    Object.keys(saved.urgent || {}).forEach(s => set.add(s));
+    (Array.isArray(hs?.dutyDoctorSlot) ? hs.dutyDoctorSlot : (hs?.dutyDoctorSlot ? [hs.dutyDoctorSlot] : [])).forEach(s => set.add(s));
+    return Array.from(set);
+  }, [hs?.knownSlotTypes, huddleData?.allSlotTypes, saved.routine, saved.urgent, hs?.dutyDoctorSlot]);
+  // Slot types that actually have count data in the current huddleData
+  // (vs the permanent union above). Used by SlotFilter to visually
+  // distinguish stale entries — see getActiveSlotTypes docstring.
+  const activeSlotTypes = useMemo(() => getActiveSlotTypes(huddleData), [huddleData]);
 
   // Initialise overrides from persisted settings
   const [urgentOverrides, setUrgentOverridesLocal] = useState(() => saved.urgent || null);

@@ -49,7 +49,17 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
       });
       const json = await r.json();
       if (!r.ok) throw new Error(json.error || `HTTP ${r.status}`);
-      setSyncStatus(`Synced — imported ${json.imported || 0} absences`);
+      if ((json.imported || 0) === 0) {
+        const ev = json.eventsParsed ?? null;
+        const cl = json.cliniciansConsidered ?? null;
+        let why = '';
+        if (ev === 0) why = ' — the calendar feed returned no events, so the URL may be wrong or expired';
+        else if (cl === 0) why = ' — no clinicians loaded to match against';
+        else why = ` — ${ev} calendar event${ev === 1 ? '' : 's'} found, but none matched a clinician name`;
+        setSyncStatus(`Synced, but imported 0 absences${why}`);
+      } else {
+        setSyncStatus(`Synced — imported ${json.imported} absence${json.imported === 1 ? '' : 's'}`);
+      }
     } catch (err) {
       setSyncStatus(`Sync failed: ${err.message}`);
     } finally {

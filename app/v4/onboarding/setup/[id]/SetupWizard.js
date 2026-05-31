@@ -433,7 +433,8 @@ export default function SetupWizard({
       {showWelcome && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 900,
-          background: 'radial-gradient(ellipse at center, rgba(8,145,178,0.18) 0%, rgba(15,23,42,0.97) 70%)',
+          background: 'radial-gradient(ellipse at center, rgba(8,145,178,0.16) 0%, rgba(8,12,22,0.97) 70%)',
+          backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '24px',
           animation: 'wizardCelebrateFade 0.4s ease-out',
@@ -851,7 +852,8 @@ export default function SetupWizard({
       {celebrating && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
-          background: 'radial-gradient(ellipse at center, rgba(16,185,129,0.2) 0%, rgba(15,23,42,0.95) 65%)',
+          background: 'radial-gradient(ellipse at center, rgba(16,185,129,0.18) 0%, rgba(8,12,22,0.97) 60%)',
+          backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           animation: 'wizardCelebrateFade 0.35s ease-out',
         }}>
@@ -1378,10 +1380,21 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
       const r = await fetch(`/api/v4/sync-teamnet?practice=${practiceId}`, { method: 'POST' });
       const json = await r.json();
       if (!r.ok) throw new Error(json.error || `HTTP ${r.status}`);
-      setSyncStatus({
-        ok: true,
-        text: `Synced — imported ${json.imported || 0} absence${json.imported === 1 ? '' : 's'}`,
-      });
+      if ((json.imported || 0) === 0) {
+        // Explain the zero rather than just reporting it.
+        const ev = json.eventsParsed ?? null;
+        const cl = json.cliniciansConsidered ?? null;
+        let why = '';
+        if (ev === 0) why = ' The calendar feed returned no events — the URL may be wrong or expired.';
+        else if (cl === 0) why = ' No clinicians are loaded yet — import your team first.';
+        else why = ` ${ev} calendar event${ev === 1 ? '' : 's'} found but none matched a clinician name.`;
+        setSyncStatus({ ok: false, text: `Synced, but imported 0 absences.${why}` });
+      } else {
+        setSyncStatus({
+          ok: true,
+          text: `Synced — imported ${json.imported} absence${json.imported === 1 ? '' : 's'}`,
+        });
+      }
     } catch (err) {
       setSyncStatus({ ok: false, text: `Sync failed: ${err.message}` });
     } finally {

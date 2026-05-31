@@ -104,7 +104,7 @@ export async function POST(request) {
         .from('clinicians')
         .select('id, name, initials')
         .eq('practice_id', practiceId)
-        .eq('status', 'active'),
+        .neq('status', 'left'),
     ]);
 
     const calUrl = settings?.teamnet_url;
@@ -192,7 +192,17 @@ export async function POST(request) {
       // ignore
     }
 
-    return NextResponse.json({ imported, removed });
+    return NextResponse.json({
+      imported,
+      removed,
+      // Diagnostics — let the UI explain a zero result without guessing:
+      // how many calendar events were in the feed, and how many clinicians
+      // we tried to match against. 0 events → URL/feed problem; events but
+      // 0 clinicians → no team loaded; events + clinicians but 0 imported →
+      // names in the calendar are not matching the clinician list.
+      eventsParsed: (icsText.match(/BEGIN:VEVENT/g) || []).length,
+      cliniciansConsidered: (clinicians || []).length,
+    });
   }
 
   // ─── PARSE-ONLY: legacy mode ───────────────────────────────────────
