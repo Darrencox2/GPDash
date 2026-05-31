@@ -148,59 +148,68 @@ function DonutGauge({ avail, emb, booked }) {
 // The two-bar layering lets the eye answer "is there enough capacity?"
 // (outer bar reaches the target band) and "how full is it?" (inner bar
 // reaches the outer bar) simultaneously. Past weeks: booked = final
-// number. Current week: booked = bookings so far. Future weeks: booked
-// = advance bookings (will be small for far-future weeks, which is
-// honest — patients haven't booked yet).
+// WeeklyRoutineBullet — right column of each week row in the desktop
+// calendar. The PRIMARY metric is slots OFFERED vs the weekly target —
+// the capacity-planning question "are we putting enough routine slots
+// out there?". This is stable across past, current and future weeks
+// (the rota offers roughly the same capacity regardless of how far away
+// the week is), so it doesn't make future weeks look alarmingly short.
 //
-// Colour of the booked bar comes from vBand(booked, rTarget) — same
-// green/amber/red language used everywhere else on the page, so a
-// "tight" week here reads the same as a "tight" day in the cells.
+// BOOKED is shown as supplementary info: a darker fill inside the
+// offered bar, plus a small "X booked (Y% fill)" line. For past weeks
+// the fill is final; for the current week it's bookings so far; for
+// future weeks it's small (advance bookings only) — which reads
+// naturally as "this week is filling up" rather than "this week is
+// broken".
+//
+// Layers: track → comfort band (target ±10%) → offered bar (lighter,
+// coloured by offered-vs-target) → booked fill (darker, inside) →
+// purple target tick.
 function WeeklyRoutineBullet({ wk, rTarget }) {
   const offered = wk.wR || 0;
   const booked = wk.wRB || 0;
   if (offered <= 0) return <div className="h-full flex items-center justify-center"><span className="text-[10px] text-slate-600">—</span></div>;
+  const fillPct = offered > 0 ? Math.round((booked / offered) * 100) : 0;
   if (rTarget <= 0) {
     return (
-      <div className="h-full flex flex-col justify-center px-2">
+      <div className="h-full flex flex-col justify-center px-2" title={`Routine — ${offered} slots offered, ${booked} booked (${fillPct}% fill)`}>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-base font-bold text-emerald-400 leading-none">{booked}</span>
-          <span className="text-[9px] text-slate-500">/ {offered}</span>
+          <span className="text-base font-bold text-emerald-400 leading-none">{offered}</span>
+          <span className="text-[9px] text-slate-500">offered</span>
         </div>
-        <div className="text-[9px] text-slate-500 mt-1">booked / offered</div>
+        <div className="text-[9px] text-slate-500 mt-1">{booked} booked · {fillPct}% fill</div>
       </div>
     );
   }
-  const band = vBand(booked, rTarget);
+  const band = vBand(offered, rTarget);          // colour by offered vs target
   const maxScale = rTarget * 1.3;
   const offeredPct = Math.min(100, (offered / maxScale) * 100);
   const bookedPct = Math.min(100, (booked / maxScale) * 100);
   const targetPct = (rTarget / maxScale) * 100;       // 76.92%
   const comfortLowPct = (rTarget * 0.9 / maxScale) * 100;  // 69.23%
   const comfortHighPct = (rTarget * 1.1 / maxScale) * 100; // 84.62%
-  const delta = booked - rTarget;
-  const fillPct = offered > 0 ? Math.round((booked / offered) * 100) : 0;
+  const delta = offered - rTarget;
   return (
-    <div className="h-full flex flex-col justify-center px-2.5" title={`Routine — booked ${booked} of ${offered} offered (${fillPct}% fill) · target ${rTarget}`}>
+    <div className="h-full flex flex-col justify-center px-2.5" title={`Routine — ${offered} offered vs ${rTarget} target · ${booked} booked (${fillPct}% fill)`}>
       <div className="flex items-baseline gap-1.5 mb-2">
-        <span className="text-base font-bold leading-none" style={{color: band.bg}}>{booked}</span>
-        <span className="text-[9px] text-slate-500">/ {rTarget}</span>
-        <span className="text-[8px] text-slate-600 ml-auto">of {offered}</span>
+        <span className="text-base font-bold leading-none" style={{color: band.bg}}>{offered}</span>
+        <span className="text-[9px] text-slate-500">/ {rTarget} offered</span>
       </div>
       <div className="relative" style={{height: 10}}>
         {/* Track */}
         <div className="absolute inset-0 rounded-sm" style={{background: 'rgba(255,255,255,0.06)'}}/>
         {/* Comfort band — dashed-edge tinted zone around target */}
         <div className="absolute top-0 bottom-0" style={{left: `${comfortLowPct}%`, right: `${100 - comfortHighPct}%`, background: 'rgba(16,185,129,0.13)', borderLeft: '1px dashed rgba(16,185,129,0.35)', borderRight: '1px dashed rgba(16,185,129,0.35)'}}/>
-        {/* Outer bar = OFFERED (faint, tall) */}
-        <div className="absolute left-0 rounded-sm" style={{width: `${offeredPct}%`, top: 1, bottom: 1, background: `${band.bg}33`, border: `1px solid ${band.bg}66`}}/>
-        {/* Inner bar = BOOKED (solid, narrower so it reads as inside the offered bar) */}
+        {/* Offered bar — primary, lighter fill of the band colour */}
+        <div className="absolute left-0 rounded-sm" style={{width: `${offeredPct}%`, top: 1, bottom: 1, background: `${band.bg}55`, border: `1px solid ${band.bg}`}}/>
+        {/* Booked fill — darker solid portion inside the offered bar */}
         <div className="absolute left-0 rounded-sm" style={{width: `${bookedPct}%`, top: 3, bottom: 3, background: band.bg}}/>
         {/* Target tick */}
         <div className="absolute" style={{left: `${targetPct}%`, top: -2, bottom: -2, width: 2, background: '#a78bfa', transform: 'translateX(-1px)', borderRadius: 1}}/>
       </div>
       <div className="text-[9px] mt-1.5 flex items-center gap-2">
         <span style={{color: band.bg, opacity: 0.85}}>{delta >= 0 ? '+' : ''}{delta} vs target</span>
-        <span className="text-slate-600 ml-auto">{fillPct}% fill</span>
+        <span className="text-slate-600 ml-auto">{booked} booked · {fillPct}%</span>
       </div>
     </div>
   );
