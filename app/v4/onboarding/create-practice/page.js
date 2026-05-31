@@ -65,13 +65,20 @@ export default function CreatePracticePage() {
     }
     setSearching(true);
     searchTimer.current = setTimeout(async () => {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), 12000);
       try {
-        const res = await fetch(`/api/practice-lookup?q=${encodeURIComponent(query.trim())}`);
+        const res = await fetch(`/api/practice-lookup?q=${encodeURIComponent(query.trim())}`, { signal: ctrl.signal });
         const json = await res.json();
         setSearchResults(json.practices || []);
+        setError('');
       } catch (e) {
         setSearchResults([]);
+        setError(e?.name === 'AbortError'
+          ? 'The NHS practice lookup is taking too long to respond right now. Please try again in a moment, or use the ODS code option.'
+          : 'Could not reach the NHS practice lookup. Please try again in a moment.');
       } finally {
+        clearTimeout(to);
         setSearching(false);
       }
     }, 300);
@@ -88,8 +95,10 @@ export default function CreatePracticePage() {
     if (!code) return;
     setError('');
     setOdsLookupBusy(true);
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 12000);
     try {
-      const res = await fetch(`/api/practice-lookup?q=${encodeURIComponent(code)}`);
+      const res = await fetch(`/api/practice-lookup?q=${encodeURIComponent(code)}`, { signal: ctrl.signal });
       const json = await res.json();
       const exact = (json.practices || []).find(p => p.odsCode?.toUpperCase() === code);
       if (!exact) {
@@ -98,8 +107,11 @@ export default function CreatePracticePage() {
         await pickPractice(exact);
       }
     } catch (e) {
-      setError('Lookup failed. Try again or use the name search.');
+      setError(e?.name === 'AbortError'
+        ? 'The NHS practice lookup is taking too long to respond right now. Please try again in a moment.'
+        : 'Lookup failed. Try again or use the name search.');
     } finally {
+      clearTimeout(to);
       setOdsLookupBusy(false);
     }
   };

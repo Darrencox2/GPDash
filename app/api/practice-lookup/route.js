@@ -20,6 +20,11 @@ import { checkRateLimit, RATE_LIMITS, getRateLimitIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// Give the function room to try the query variants + list-size enrichment
+// against a slow upstream without the platform killing it mid-flight (which
+// would surface as an HTML 504 and a generic client error). The client caps
+// its own wait at 12s and shows a retry message, so this is just a ceiling.
+export const maxDuration = 30;
 
 const OPENPRESCRIBING_BASE = 'https://openprescribing.net/api/1.0';
 const MAX_PRACTICES = 10;
