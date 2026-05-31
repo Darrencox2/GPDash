@@ -32,12 +32,6 @@ const COMMON_ROLES = [
   { role: 'HCA',            ico: '🤝', hint: 'Healthcare assistants and phlebotomists.' },
 ];
 
-const PLACEHOLDER = new Set(['', 'staff', 'unknown', 'unknow', 'none', 'n/a', 'na', 'tbc']);
-function needsRole(c) {
-  if (c.status === 'left') return false;
-  const r = (c.role || '').trim().toLowerCase();
-  return PLACEHOLDER.has(r) || !allRoles().some(x => x.toLowerCase() === r);
-}
 // Pull a title hint (Dr, Mrs…) from the original CSV name kept in aliases.
 function titleHint(c) {
   const alias = (c.aliases && c.aliases[0]) || '';
@@ -48,21 +42,33 @@ function titleHint(c) {
 }
 
 export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
-  const initialPool = useMemo(
-    () => (clinicians || []).filter(needsRole).map(c => ({ id: c.id, name: c.name || '—', tag: titleHint(c) })),
+  // Everyone on the team (not left) — shown on every step. Stable for the
+  // session, sorted by name for easy scanning.
+  const allPeople = useMemo(
+    () => (clinicians || [])
+      .filter(c => c.status !== 'left')
+      .map(c => ({ id: c.id, name: c.name || '—', tag: titleHint(c) }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
     [clinicians]
   );
-  const [pool, setPool] = useState(initialPool);
+  // Live role per clinician, seeded from their current stored role. Updated
+  // as the user assigns, so each step can pre-tick the people already on
+  // that role (including ones assigned earlier in this same run).
+  const initialRoles = useMemo(() => {
+    const m = {};
+    (clinicians || []).forEach(c => { if (c.status !== 'left') m[c.id] = c.role || ''; });
+    return m;
+  }, [clinicians]);
+
+  const [roleById, setRoleById] = useState(initialRoles);
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(() => new Set());
-  const [leaving, setLeaving] = useState(() => new Set());
-  const [assignedCount, setAssignedCount] = useState(0);
-  const [done, setDone] = useState(initialPool.length === 0);
+  const [done, setDone] = useState(allPeople.length === 0);
   const [headKey, setHeadKey] = useState(0);
+  const [poolKey, setPoolKey] = useState(0);
   const [query, setQuery] = useState('');
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-  const total = initialPool.length;
   const advancing = useRef(false);
 
   useEffect(() => {
@@ -72,7 +78,23 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
   }, [onClose]);
 
   const current = COMMON_ROLES[step];
-  const selCount = pool.filter(p => selected.has(p.id)).length;
+
+  // On entering a step, pre-tick everyone who currently holds this role.
+  useEffect(() => {
+    if (done || !current) return;
+    const roleLc = current.role.toLowerCase();
+    const pre = new Set(allPeople.filter(p => (roleById[p.id] || '').toLowerCase() === roleLc).map(p => p.id));
+    setSelected(pre);
+    setQuery('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, done]);
+
+  const roleLc = current ? current.role.toLowerCase() : '';
+  // Sync semantics: ticked-but-not-yet-this-role → assign; unticked-but-
+  // currently-this-role → clear. Everyone else is left untouched.
+  const toAssignIds = current ? allPeople.filter(p => selected.has(p.id) && (roleById[p.id] || '').toLowerCase() !== roleLc).map(p => p.id) : [];
+  const toClearIds = current ? allPeople.filter(p => !selected.has(p.id) && (roleById[p.id] || '').toLowerCase() === roleLc).map(p => p.id) : [];
+  const selCount = current ? allPeople.filter(p => selected.has(p.id)).length : 0;
 
   const toggle = (id) => {
     setSelected(prev => {
@@ -83,36 +105,27 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
   };
 
   const advance = () => {
-    setSelected(new Set());
-    setQuery('');
     setHeadKey(k => k + 1);
-    if (step + 1 >= COMMON_ROLES.length || pool.length === 0) {
-      setDone(true);
-    } else {
-      setStep(s => s + 1);
-    }
+    setPoolKey(k => k + 1);
+    if (step + 1 >= COMMON_ROLES.length) setDone(true);
+    else setStep(s => s + 1);
   };
 
-  const assign = () => {
+  const confirm = () => {
     if (advancing.current) return;
-    const ids = pool.filter(p => selected.has(p.id)).map(p => p.id);
-    if (ids.length === 0) return;
     advancing.current = true;
     setQuery('');
-    // Apply in the parent (role + buddy defaults + persist).
-    onAssign?.(ids, current.role);
-    setAssignedCount(c => c + ids.length);
-    // Animate the chosen chips out, then drop them from the pool + advance.
-    setLeaving(new Set(ids));
-    setTimeout(() => {
-      setPool(prev => prev.filter(p => !selected.has(p.id)));
-      setLeaving(new Set());
-      advancing.current = false;
-      advance();
-    }, 360 + ids.length * 45);
+    // Apply changes in the parent (role + buddy defaults + persist).
+    if (toAssignIds.length) onAssign?.(toAssignIds, current.role);
+    if (toClearIds.length) onAssign?.(toClearIds, '');
+    setRoleById(prev => {
+      const next = { ...prev };
+      toAssignIds.forEach(id => { next[id] = current.role; });
+      toClearIds.forEach(id => { next[id] = ''; });
+      return next;
+    });
+    setTimeout(() => { advancing.current = false; advance(); }, 220);
   };
-
-  const skip = () => { if (!advancing.current) advance(); };
 
   // ─── Confetti for the finish screen ─────────────────────────────────
   const confetti = useMemo(() => {
@@ -141,7 +154,6 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
         @keyframes qrwFade { from { opacity: 0; } to { opacity: 1; } }
         @keyframes qrwPop { 0% { transform: scale(0.92) translateY(12px); opacity: 0; } 60% { transform: scale(1.015) translateY(0); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes qrwChipIn { from { transform: scale(0.8) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-        @keyframes qrwChipOut { 0% { transform: scale(1); opacity: 1; } 30% { transform: scale(1.12); } 100% { transform: scale(0.5) translateY(-42px); opacity: 0; } }
         @keyframes qrwHeadIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes qrwCheck { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes qrwLift { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -168,7 +180,14 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
           <div style={{ height: '100%', width: `${done ? 100 : Math.round((step / COMMON_ROLES.length) * 100)}%`, background: 'linear-gradient(90deg,#6366f1,#818cf8)', borderRadius: 999, transition: 'width 0.45s cubic-bezier(0.2,0.8,0.2,1)' }} />
         </div>
 
-        {done ? (
+        {done ? (() => {
+          const known = allRoles();
+          const withRole = allPeople.filter(p => {
+            const r = (roleById[p.id] || '').toLowerCase();
+            return r && known.some(x => x.toLowerCase() === r);
+          }).length;
+          const leftover = allPeople.length - withRole;
+          return (
           <div style={{ textAlign: 'center', padding: '4px 0 12px' }}>
             <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 14px' }}>
               {confetti.map((c, i) => (
@@ -179,11 +198,11 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               </div>
             </div>
             <div style={{ fontSize: 22, fontWeight: 600, color: '#f1f5f9', animation: 'qrwLift 0.45s ease-out 0.15s both' }}>
-              {assignedCount} clinician{assignedCount === 1 ? '' : 's'} sorted
+              {withRole} of {allPeople.length} have a role
             </div>
             <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6, animation: 'qrwLift 0.45s ease-out 0.25s both' }}>
-              {pool.length > 0
-                ? `${pool.length} left — they're waiting in the grid below for you to finish off.`
+              {leftover > 0
+                ? `${leftover} still need a role — they're waiting in the grid below for you to finish off.`
                 : 'Everyone has a role. Nice work.'}
             </div>
             <div style={{ marginTop: 20, animation: 'qrwLift 0.45s ease-out 0.35s both' }}>
@@ -192,14 +211,15 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               </button>
             </div>
           </div>
-        ) : (
+          );
+        })() : (
           <>
             <div key={headKey} style={{ marginBottom: 16, animation: 'qrwHeadIn 0.35s ease-out' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(129,140,248,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>{current.ico}</div>
                 <div style={{ fontSize: 21, fontWeight: 600, color: '#f1f5f9' }}>Who are your {current.role}s?</div>
               </div>
-              <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6, marginLeft: 44 }}>{current.hint} Tap everyone who fits.</div>
+              <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6, marginLeft: 44 }}>{current.hint} The people already on this role are ticked — adjust as needed.</div>
             </div>
 
             <div style={{ position: 'relative', marginBottom: 14 }}>
@@ -217,22 +237,25 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               />
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginBottom: 22, minHeight: 96, maxHeight: '52vh', overflowY: 'auto' }}>
-              {pool.length === 0 ? (
-                <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px' }}>Everyone has a role — finishing up…</div>
+            <div key={poolKey} style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginBottom: 22, minHeight: 96, maxHeight: '52vh', overflowY: 'auto' }}>
+              {allPeople.length === 0 ? (
+                <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px' }}>No clinicians to sort.</div>
               ) : (() => {
                 const q = query.trim().toLowerCase();
-                const shown = q ? pool.filter(p => p.name.toLowerCase().includes(q)) : pool;
+                const shown = q ? allPeople.filter(p => p.name.toLowerCase().includes(q)) : allPeople;
                 if (shown.length === 0) {
                   return <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px' }}>No matches for “{query}”.</div>;
                 }
                 return shown.map((p, i) => {
                   const sel = selected.has(p.id);
-                  const isLeaving = leaving.has(p.id);
+                  // Context: if this person currently holds a *different* role,
+                  // show it dimmed so you do not reassign them by accident.
+                  const cur = roleById[p.id] || '';
+                  const showOther = cur && cur.toLowerCase() !== roleLc;
                   return (
                     <button
                       key={p.id}
-                      onClick={() => !isLeaving && toggle(p.id)}
+                      onClick={() => toggle(p.id)}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 7,
                         padding: '8px 13px', borderRadius: 999, fontSize: 14, cursor: 'pointer',
@@ -240,14 +263,13 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                         background: sel ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.03)',
                         color: sel ? '#c7d2fe' : '#e2e8f0',
                         transition: 'background 0.14s, border 0.14s, color 0.14s',
-                        animation: isLeaving
-                          ? `qrwChipOut 0.4s cubic-bezier(0.4,0,0.6,1) ${i * 0.05}s both`
-                          : `qrwChipIn 0.3s ease-out ${Math.min(i, 12) * 0.018}s both`,
+                        animation: `qrwChipIn 0.3s ease-out ${Math.min(i, 16) * 0.016}s both`,
                       }}
                     >
                       {sel && <span style={{ color: '#818cf8' }}>✓</span>}
                       <span>{p.name}</span>
                       {p.tag && <span style={{ fontSize: 11, color: '#64748b' }}>{p.tag}</span>}
+                      {showOther && <span style={{ fontSize: 10.5, color: '#475569' }}>· {cur}</span>}
                     </button>
                   );
                 });
@@ -256,22 +278,20 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <button
-                onClick={assign}
-                disabled={selCount === 0}
+                onClick={confirm}
                 style={{
                   border: 'none', padding: '9px 16px', borderRadius: 10, fontSize: 14, fontWeight: 500,
                   background: '#6366f1', color: 'white', display: 'inline-flex', alignItems: 'center', gap: 7,
-                  cursor: selCount === 0 ? 'default' : 'pointer', opacity: selCount === 0 ? 0.45 : 1,
-                  transition: 'opacity 0.15s',
+                  cursor: 'pointer', transition: 'opacity 0.15s',
                 }}
               >
-                Assign {selCount} →
+                {step + 1 >= COMMON_ROLES.length ? 'Confirm & finish' : 'Confirm & continue'} →
               </button>
-              <button onClick={skip} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.14)', color: '#cbd5e1', padding: '9px 14px', borderRadius: 10, fontSize: 13, cursor: 'pointer' }}>
-                Skip
-              </button>
+              <span style={{ fontSize: 12.5, color: '#94a3b8' }}>
+                {selCount} marked as {current.role}
+              </span>
               <span style={{ fontSize: 12, color: '#64748b', marginLeft: 'auto', fontFamily: "'Space Mono', monospace" }}>
-                {assignedCount} / {total} sorted
+                Role {step + 1} / {COMMON_ROLES.length}
               </span>
             </div>
           </>
