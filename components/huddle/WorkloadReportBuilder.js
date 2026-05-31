@@ -151,6 +151,12 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   // View: 'gallery' (pick a report) | 'builder' (work on one).
   const [view, setView] = useState('gallery');
   const [reportName, setReportName] = useState('Custom report');
+  // Tracks the report currently open so editing + saving works in place.
+  // loadedSavedId: the saved_reports row id when editing a saved report
+  // (null for a preset or a scratch report). baseConfig: the snapshot to
+  // reset back to.
+  const [loadedSavedId, setLoadedSavedId] = useState(null);
+  const [baseConfig, setBaseConfig] = useState(null);
 
   // Config state.
   const [grain, setGrain] = useState('sessions');
@@ -240,21 +246,56 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     if (!splitByOpts.map(o => o.id).includes(splitBy)) setSplitBy('none');
   }, [grain]); // eslint-disable-line
 
-  const openPreset = (p) => { applyConfig({ ...p.config }, p.label); setView('builder'); };
-  const openSaved = (r) => { applyConfig(r.config, r.name); setView('builder'); };
-  const openBlank = () => { applyConfig({ grain: 'slots', num: { statuses: ['booked'] }, denomMode: 'none', groupBy: 'clinician', range: 'last8', chart: 'bars', colourMode: 'multi' }, 'Custom report'); setView('builder'); };
+  // Normalise a config to a comparable shape (defaults applied) so we can
+  // tell whether the current report differs from the one that was loaded.
+  const normConfig = (c) => {
+    if (!c) return '';
+    const mode = c.denomMode || (c.denom ? 'custom' : 'none');
+    return JSON.stringify({
+      grain: c.grain || 'slots',
+      num: c.num || {},
+      denomMode: mode,
+      denom: mode === 'custom' ? (c.denom || {}) : null,
+      groupBy: c.groupBy || 'clinician',
+      splitBy: c.splitBy || 'none',
+      range: c.range || 'last8next8',
+      globalFilter: { clinicianIds: c.globalFilter?.clinicianIds || [], roles: c.globalFilter?.roles || [], locations: c.globalFilter?.locations || [], slotTypes: c.globalFilter?.slotTypes || [], sessions: c.globalFilter?.sessions || [] },
+      excludeSystem: typeof c.excludeSystem === 'boolean' ? c.excludeSystem : true,
+      sort: c.sort || 'value',
+      topN: typeof c.topN === 'number' ? c.topN : 0,
+      chart: c.chart || 'bars',
+      colourMode: c.colourMode || 'multi',
+      colourInvert: !!c.colourInvert,
+    });
+  };
+  const dirty = baseConfig != null && normConfig(config) !== normConfig(baseConfig);
 
-  const saveReport = async () => {
-    const name = newReportName.trim();
-    if (!name || !practiceId || !canEdit) return;
+  const openConfig = (cfg, name, savedId = null) => { applyConfig(cfg, name); setBaseConfig(cfg); setLoadedSavedId(savedId); setShowSaveBox(false); setView('builder'); };
+  const openPreset = (p) => openConfig({ ...p.config }, p.label, null);
+  const openSaved = (r) => openConfig(r.config, r.name, r.id);
+  const openBlank = () => openConfig({ grain: 'slots', num: { statuses: ['booked'] }, denomMode: 'none', groupBy: 'clinician', range: 'last8', chart: 'bars', colourMode: 'multi' }, 'Custom report', null);
+  const resetReport = () => { if (baseConfig) applyConfig(baseConfig, reportName); };
+
+  // Persist. `asNew` forces the name box (Save as new); otherwise, when
+  // editing a saved report, save in place under the same name.
+  const persist = async (name) => {
+    if (!name || !practiceId || !canEdit) return null;
     setSavingReport(true);
     try {
       const supabase = createClient();
       const { data: row, error } = await supabase.from('saved_reports').upsert({ practice_id: practiceId, name, config, updated_by: userId }, { onConflict: 'practice_id,name' }).select('id, name, config, updated_at').single();
-      if (!error && row) { setSavedReports(prev => [...prev.filter(r => r.name !== row.name), row]); setNewReportName(''); setShowSaveBox(false); setReportName(row.name); }
+      if (!error && row) {
+        setSavedReports(prev => [...prev.filter(r => r.name !== row.name && r.id !== row.id), row]);
+        setReportName(row.name); setBaseConfig(row.config); setLoadedSavedId(row.id);
+        return row;
+      }
     } catch { /* ignore */ }
     finally { setSavingReport(false); }
+    return null;
   };
+  const saveChanges = () => persist(reportName);                 // update the open saved report
+  const saveAsNew = async () => { const n = newReportName.trim(); if (!n) return; const row = await persist(n); if (row) { setNewReportName(''); setShowSaveBox(false); } };
+
   const deleteReport = async (id) => {
     if (!practiceId || !canEdit) return;
     try { const supabase = createClient(); await supabase.from('saved_reports').delete().eq('id', id); setSavedReports(prev => prev.filter(r => r.id !== id)); }
@@ -288,7 +329,6 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               {savedReports.map(r => (
                 <div key={r.id} className="group relative rounded-xl p-4 cursor-pointer transition-all hover:scale-[1.02]" onClick={() => openSaved(r)}
                   style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                  <div className="text-xl mb-1.5">💾</div>
                   <div className="text-sm font-semibold text-slate-100">{r.name}</div>
                   <div className="text-xs text-slate-400 mt-0.5 line-clamp-2">{describeMeasure(r.config)}</div>
                   {canEdit && <button onClick={(e) => { e.stopPropagation(); deleteReport(r.id); }} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-opacity" style={{ background: 'none', border: 'none', cursor: 'pointer' }} title="Delete">✕</button>}
@@ -310,7 +350,6 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                   style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.07)' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'}>
-                  <div className="text-xl mb-1.5">{p.icon || '📈'}</div>
                   <div className="text-sm font-semibold text-slate-100">{p.label}</div>
                   <div className="text-xs text-slate-400 mt-0.5 leading-snug">{p.description}</div>
                 </div>
@@ -409,16 +448,24 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-3">
-              {canEdit && <button onClick={() => setShowSaveBox(s => !s)} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>💾 Save</button>}
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              {canEdit && loadedSavedId && (
+                <button onClick={saveChanges} disabled={savingReport || !dirty} className="text-xs px-2.5 py-1 rounded-md font-medium"
+                  style={{ background: dirty ? '#10b981' : 'rgba(16,185,129,0.12)', color: dirty ? '#06281e' : '#6ee7b7', border: '1px solid rgba(16,185,129,0.3)', cursor: dirty ? 'pointer' : 'default', opacity: savingReport ? 0.6 : 1 }}>
+                  {savingReport ? '…' : dirty ? 'Save changes' : 'Saved'}
+                </button>
+              )}
+              {canEdit && <button onClick={() => setShowSaveBox(s => !s)} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>{loadedSavedId ? 'Save as new' : 'Save report'}</button>}
+              {dirty && <button onClick={resetReport} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#cbd5e1' }}>↺ Reset</button>}
               <button onClick={copyTable} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>Copy</button>
               <button onClick={downloadCsv} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>CSV</button>
+              {dirty && loadedSavedId && <span className="text-xs text-amber-300/80">Unsaved changes</span>}
             </div>
             {showSaveBox && canEdit && (
               <div className="flex items-center gap-2 mt-2">
                 <input value={newReportName} onChange={e => setNewReportName(e.target.value)} placeholder="Name this report…" className="flex-1 max-w-xs text-xs rounded px-2 py-1.5"
                   style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
-                <button onClick={saveReport} disabled={savingReport || !newReportName.trim()} className="text-xs px-3 py-1.5 rounded" style={{ background: '#10b981', color: '#06281e', border: 'none', opacity: (savingReport || !newReportName.trim()) ? 0.5 : 1 }}>{savingReport ? '…' : 'Save report'}</button>
+                <button onClick={saveAsNew} disabled={savingReport || !newReportName.trim()} className="text-xs px-3 py-1.5 rounded" style={{ background: '#10b981', color: '#06281e', border: 'none', opacity: (savingReport || !newReportName.trim()) ? 0.5 : 1 }}>{savingReport ? '…' : 'Save'}</button>
               </div>
             )}
           </div>
