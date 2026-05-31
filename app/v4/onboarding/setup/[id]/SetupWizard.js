@@ -576,7 +576,7 @@ export default function SetupWizard({
           button right there). */}
       {canComplete && currentStep < STEPS.length - 1 && (
         <div style={{
-          maxWidth: 720, margin: '0 auto 16px',
+          maxWidth: 860, margin: '0 auto 16px',
           padding: '10px 16px',
           background: 'rgba(16,185,129,0.08)',
           border: '1px solid rgba(16,185,129,0.25)',
@@ -1029,7 +1029,7 @@ const topStripStyle = {
   position: 'relative', zIndex: 1,
 };
 const cardWrapperStyle = {
-  maxWidth: 720, margin: '0 auto',
+  maxWidth: 860, margin: '0 auto',
   position: 'relative', zIndex: 1,
 };
 const cardAnimWrapperStyle = {
@@ -1044,7 +1044,7 @@ const cardStyle = {
   backdropFilter: 'blur(8px)',
 };
 const footerStyle = {
-  maxWidth: 720, margin: '24px auto 0',
+  maxWidth: 860, margin: '24px auto 0',
   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
   position: 'relative', zIndex: 1,
 };
@@ -1981,11 +1981,14 @@ function UploadFirstPrompt({ message }) {
 //     in the wizard so users know which auto-fills to double-check.
 function suggestSlotCategoryWithConfidence(name) {
   const n = (name || '').toLowerCase();
-  // HIGH-confidence urgent — distinctive keywords with little ambiguity
+  // HIGH-confidence urgent — distinctive keywords with little ambiguity.
+  // Note: "triage" and "call back" are deliberately NOT treated as urgent —
+  // they are usually administrative/triage contacts rather than bookable
+  // urgent appointments, so they default to "other" (uncategorised) and the
+  // practice can opt them in manually if they really use them as urgent.
   if (/\bsame[\s-]?day\b/.test(n) || /\burgent\b/.test(n) || /\bontd\b/.test(n)
       || /\bon[\s-]?the[\s-]?day\b/.test(n) || /\bacute\b/.test(n)
-      || /\bemergency\b/.test(n) || /\btriage\b/.test(n)
-      || /\bcall[\s-]?back\b/.test(n)) {
+      || /\bemergency\b/.test(n)) {
     return { category: 'urgent', confidence: 'high' };
   }
   // HIGH-confidence routine — explicit "routine" or "pre-book"
@@ -2270,16 +2273,19 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           Click any picker to override; uncertain slots default to <strong>Other</strong>.
         </p>
         <p style={{ margin: '8px 0 0' }}>
-          <strong>Routine</strong> = booked in advance · <strong>Urgent</strong> =
-          same-day / acute work · <strong>Other</strong> = excluded from the demand model
-          (admin, nursing, HCA, phlebotomy, vaccinations — these don't form part of the
-          routine-vs-urgent capacity model). A slot can also be flagged as the{' '}
-          <strong>duty doctor</strong> slot, independent of its category.
+          This is about <strong>routine and urgent GP consultation slots</strong> — the
+          bookable appointments where a clinician sees a patient. <strong style={{ color: '#6ee7b7' }}>Routine</strong> =
+          consultations booked in advance · <strong style={{ color: '#fdba74' }}>Urgent</strong> =
+          same-day / acute consultations. Everything else should be <strong>Other</strong>:
+          nursing and HCA clinics, phlebotomy, vaccinations, procedures, and admin/triage
+          contacts are not patient consultations and are excluded from the routine-vs-urgent
+          demand model. A slot can also be flagged as the <strong>duty doctor</strong> slot,
+          independent of its category.
         </p>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12 }}>
-        <SummaryPill colour="#64748b" label="Routine" count={summary.routine} />
+        <SummaryPill colour="#10b981" label="Routine" count={summary.routine} />
         <SummaryPill colour="#f97316" label="Urgent" count={summary.urgent} />
         <SummaryPill colour="#475569" label="Other" count={summary.other} />
         <SummaryPill colour="#8b5cf6" label="Duty doctor" count={summary.duty} />
@@ -2481,7 +2487,7 @@ function pillButton(colour) {
 
 function SlotCategoryPicker({ value, onChange }) {
   const options = [
-    { id: 'routine', label: 'Routine', colour: '#64748b' },
+    { id: 'routine', label: 'Routine', colour: '#10b981' },
     { id: 'urgent',  label: 'Urgent',  colour: '#f97316' },
     { id: 'other',   label: 'Other',   colour: '#475569' },
   ];

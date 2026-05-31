@@ -591,7 +591,7 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPa
       }}
     >
       <Td style={{ textAlign: 'center', paddingLeft: 12, paddingRight: 4 }}>
-        <input type="checkbox" checked={selected} onChange={onToggleSelect} aria-label={`Select ${c.name}`} style={{ cursor: 'pointer' }} />
+        <input type="checkbox" checked={selected} onChange={onToggleSelect} aria-label={`Select ${c.name}`} style={{ cursor: 'pointer', width: 18, height: 18, accentColor: '#6366f1' }} />
       </Td>
       <Td sticky stickyLeft={36} bg={stickyBg}>
         <input
@@ -684,8 +684,8 @@ function ToggleSwitch({ on, onClick, colourOn, ariaLabel, disabled }) {
       disabled={disabled}
       style={{
         position: 'relative',
-        width: 36,
-        height: 20,
+        width: 48,
+        height: 26,
         padding: 0,
         background: on ? colourOn : 'rgba(255,255,255,0.10)',
         border: `1px solid ${on ? colourOn : 'rgba(255,255,255,0.14)'}`,
@@ -694,16 +694,17 @@ function ToggleSwitch({ on, onClick, colourOn, ariaLabel, disabled }) {
         transition: 'background 0.15s, border 0.15s, opacity 0.15s',
         boxShadow: on && !disabled ? `0 0 8px ${colourOn}55` : 'none',
         opacity: disabled ? 0.35 : 1,
+        flexShrink: 0,
       }}
     >
       <span
         aria-hidden
         style={{
           position: 'absolute',
-          top: 1,
-          left: on ? 17 : 1,
-          width: 16,
-          height: 16,
+          top: 2,
+          left: on ? 24 : 2,
+          width: 20,
+          height: 20,
           background: 'white',
           borderRadius: '50%',
           boxShadow: '0 1px 2px rgba(0,0,0,0.35)',
