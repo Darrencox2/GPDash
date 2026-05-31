@@ -68,6 +68,7 @@ const STEPS = [
   { id: 'teamnet',    title: 'TeamNet calendar',       subtitle: 'Optional · sync absences', optional: true },
   { id: 'emis',       title: 'Appointment data',       subtitle: 'EMIS report · build your team', required: true },
   { id: 'slots',      title: 'Slot types',             subtitle: 'Routine, urgent, duty doctor', optional: true },
+  { id: 'capacity',   title: 'Urgent capacity',        subtitle: 'Optional · expected urgent slots', optional: true },
   { id: 'clinicians', title: 'Your clinicians',        subtitle: 'Confirm roles + working pattern', optional: true },
   { id: 'sites',      title: 'Practice sites',         subtitle: 'Optional · assign colours', optional: true },
   { id: 'demand',     title: 'Demand history',         subtitle: 'Optional · calibrate the model', optional: true },
@@ -149,6 +150,7 @@ export default function SetupWizard({
   // active clinicians have working patterns assigned. Lazy state: the
   // ClinicianRolesStep checks the DB on mount and reports back.
   const [cliniciansSorted, setCliniciansSorted] = useState(false);
+  const [expectedCapacitySet, setExpectedCapacitySet] = useState(false);
 
   // ─── CSV data + derived setup ─────────────────────────────────────
   // The EMIS step parses the CSV and pushes the rich data up to the
@@ -313,11 +315,12 @@ export default function SetupWizard({
     teamnetUrl.length > 0,                              // 1: teamnet (optional, but tick if set)
     hasClinicians,                                      // 2: emis
     slotsConfigured,                                    // 3: slots (optional)
-    cliniciansSorted,                                   // 4: clinicians (optional)
-    sitesConfigured,                                    // 5: sites (optional)
-    hasDemandData,                                      // 6: demand
-    hasInvites,                                         // 7: invites
-    buddyCoverPublic,                                   // 8: public buddy URL
+    expectedCapacitySet,                                // 4: urgent capacity (optional)
+    cliniciansSorted,                                   // 5: clinicians (optional)
+    sitesConfigured,                                    // 6: sites (optional)
+    hasDemandData,                                      // 7: demand
+    hasInvites,                                         // 8: invites
+    buddyCoverPublic,                                   // 9: public buddy URL
   ];
 
   // ─── Live subtitle per step ──────────────────────────────────────────
@@ -345,19 +348,21 @@ export default function SetupWizard({
     slotsConfigured
       ? `${slotCount} slot type${slotCount === 1 ? '' : 's'} categorised${dutyCount > 0 ? ` · duty doctor set` : ''}`
       : STEPS[3].subtitle,
-    // 4: clinicians (the actual count needs a fetch the step does
+    // 4: urgent capacity
+    expectedCapacitySet ? '✓ Urgent capacity set' : STEPS[4].subtitle,
+    // 5: clinicians (the actual count needs a fetch the step does
     //    internally; just show "✓ Reviewed" when sorted)
-    cliniciansSorted ? '✓ Roles + patterns reviewed' : STEPS[4].subtitle,
-    // 5: sites
+    cliniciansSorted ? '✓ Roles + patterns reviewed' : STEPS[5].subtitle,
+    // 6: sites
     sitesConfigured
       ? `${sites.length} site${sites.length === 1 ? '' : 's'} configured`
-      : STEPS[5].subtitle,
-    // 6: demand
-    hasDemandData ? '✓ Demand model calibrated' : STEPS[6].subtitle,
-    // 7: invites
-    hasInvites ? '✓ Team invited' : STEPS[7].subtitle,
-    // 8: public buddy URL — surfaces the practice's choice
-    buddyCoverPublic ? '✓ Public URL enabled' : STEPS[8].subtitle,
+      : STEPS[6].subtitle,
+    // 7: demand
+    hasDemandData ? '✓ Demand model calibrated' : STEPS[7].subtitle,
+    // 8: invites
+    hasInvites ? '✓ Team invited' : STEPS[8].subtitle,
+    // 9: public buddy URL — surfaces the practice's choice
+    buddyCoverPublic ? '✓ Public URL enabled' : STEPS[9].subtitle,
   ];
 
   const requiredIncomplete = STEPS
@@ -679,12 +684,21 @@ export default function SetupWizard({
                 />
               )}
               {currentStep === 4 && (
+                <CapacityStep
+                  practiceId={practice.id}
+                  parsedCsv={parsedCsv}
+                  slotFilters={slotFilters}
+                  onSetChange={setExpectedCapacitySet}
+                  onContinue={goNext}
+                />
+              )}
+              {currentStep === 5 && (
                 <ClinicianRolesStep
                   practiceId={practice.id}
                   onSortedChange={setCliniciansSorted}
                 />
               )}
-              {currentStep === 5 && (
+              {currentStep === 6 && (
                 <SitesStep
                   practiceId={practice.id}
                   parsedCsv={parsedCsv}
@@ -692,7 +706,7 @@ export default function SetupWizard({
                   setSites={setSites}
                 />
               )}
-              {currentStep === 6 && (
+              {currentStep === 7 && (
                 <DemandStep
                   practiceId={practice.id}
                   practiceSlug={practice.slug}
@@ -701,7 +715,7 @@ export default function SetupWizard({
                   onContinue={goNext}
                 />
               )}
-              {currentStep === 7 && (
+              {currentStep === 8 && (
                 <InvitesStep
                   practiceId={practice.id}
                   hasInvites={hasInvites}
@@ -709,7 +723,7 @@ export default function SetupWizard({
                   setDirty={setDirty}
                 />
               )}
-              {currentStep === 8 && (
+              {currentStep === 9 && (
                 <PublicBuddyStep
                   practiceId={practice.id}
                   practiceSlug={practice.slug}
@@ -2054,12 +2068,34 @@ function computeExpectedUrgentFromCsv(parsedCsv, slotFilters) {
   return out;
 }
 
-// Optional expected-urgent-capacity setup, shown at the foot of the slot
-// types step (we're right where urgent slots get defined, and the parsed
-// CSV is to hand for autofill). Self-contained: reads + writes
+// ─── Step 4: Expected urgent capacity ──────────────────────────────────
+// Its own step (was previously tucked under slot types). Lets the practice
+// set how many urgent slots they aim to offer per session — autofilled from
+// their appointment data, entered by hand, or skipped.
+function CapacityStep({ practiceId, parsedCsv, slotFilters, onSetChange }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <p style={fieldHelp}>
+        Set your <strong style={{ color: '#fdba74' }}>expected urgent capacity</strong> — the number of
+        urgent (same-day) slots you aim to offer each morning and afternoon. The Today gauge and
+        Capacity Planning use this to show whether a given day is over or under target. You can
+        autofill a starting point from your appointment data, enter it by hand, or skip and set it
+        later from Practice settings → Demand.
+      </p>
+      <UrgentCapacitySection
+        practiceId={practiceId}
+        parsedCsv={parsedCsv}
+        slotFilters={slotFilters}
+        onSet={onSetChange}
+      />
+    </div>
+  );
+}
+
+// Optional expected-urgent-capacity controls. Self-contained: reads + writes
 // huddle_settings.expectedCapacity itself. Three paths — autofill from the
 // appointment data, enter manually, or skip for now.
-function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters }) {
+function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
   const supabase = createClient();
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const [expected, setExpected] = useState(null);
@@ -2074,9 +2110,9 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters }) {
     (async () => {
       const { data } = await supabase.from('practice_settings').select('huddle_settings').eq('practice_id', practiceId).maybeSingle();
       const ec = data?.huddle_settings?.expectedCapacity;
-      if (ec && Object.keys(ec).length > 0) { setExpected(ec); setMode('set'); }
+      if (ec && Object.keys(ec).length > 0) { setExpected(ec); setMode('set'); onSet?.(true); }
     })();
-  }, [practiceId, supabase]);
+  }, [practiceId, supabase, onSet]);
 
   const persist = async (ec) => {
     setSaving(true);
@@ -2085,6 +2121,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters }) {
     await supabase.from('practice_settings').upsert({ practice_id: practiceId, huddle_settings: merged }, { onConflict: 'practice_id' });
     setSaving(false);
     setSavedAt(new Date());
+    onSet?.(true);
   };
 
   const autofill = () => {
@@ -2424,9 +2461,43 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           same-day / acute consultations. Everything else should be <strong>Other</strong>:
           nursing and HCA clinics, phlebotomy, vaccinations, procedures, and admin/triage
           contacts are not patient consultations and are excluded from the routine-vs-urgent
-          demand model. A slot can also be flagged as the <strong>duty doctor</strong> slot,
-          independent of its category.
+          demand model. Your <strong>duty doctor</strong> slot(s) are set separately in the box
+          just below.
         </p>
+      </div>
+
+      {/* Duty doctor slot(s) — separate box. Usually only 1–2 slots, so it
+          doesn't belong as a per-row toggle on every slot type. Pick from
+          the dropdown; selected slots show as removable chips. */}
+      <div style={{ padding: 14, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#c4b5fd', marginBottom: 4 }}>Duty doctor slot(s)</div>
+        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, lineHeight: 1.5 }}>
+          Which slot type(s) are your duty / on-call doctor slots? Usually just 1–2. The huddle and
+          Today views highlight these separately.
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          {(slotFilters.dutyDoctorSlot || []).map(slot => (
+            <span key={slot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'rgba(139,92,246,0.18)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 999, fontSize: 12, color: '#ddd6fe', fontFamily: "'Space Mono', monospace" }}>
+              {slot}
+              <button type="button" onClick={() => toggleDuty(slot)} title="Remove" style={{ background: 'none', border: 'none', color: '#c4b5fd', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+            </span>
+          ))}
+          <select
+            value=""
+            onChange={(e) => { if (e.target.value) toggleDuty(e.target.value); }}
+            style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 8, color: '#e2e8f0', fontSize: 12, cursor: 'pointer', maxWidth: 320 }}
+          >
+            <option value="">+ Add a duty slot…</option>
+            {slotTypes.filter(s => !(slotFilters.dutyDoctorSlot || []).includes(s)).map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          {pendingDutySuggestions && (
+            <button type="button" onClick={applyDutySuggestions} style={pillButton('#a855f7')}>
+              Add suggested ({slotTypes.filter(s => suggestDuty(s) && !isDuty(s)).length})
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12 }}>
@@ -2439,7 +2510,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         </span>
       </div>
 
-      {(pendingCategorySuggestions || pendingDutySuggestions) && (
+      {pendingCategorySuggestions && (
         <div style={{
           padding: 12,
           background: 'rgba(168,85,247,0.08)',
@@ -2449,21 +2520,14 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           fontSize: 12, color: '#cbd5e1',
         }}>
           <span>
-            <strong style={{ color: '#c4b5fd' }}>Suggestions available</strong> — we\'ve
+            <strong style={{ color: '#c4b5fd' }}>Suggestions available</strong> — we have
             guessed categories based on slot names. Apply them all in one go or click
             through individually.
           </span>
           <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-            {pendingCategorySuggestions && (
-              <button type="button" onClick={applyCategorySuggestions} style={pillButton('#a855f7')}>
-                Apply category suggestions
-              </button>
-            )}
-            {pendingDutySuggestions && (
-              <button type="button" onClick={applyDutySuggestions} style={pillButton('#a855f7')}>
-                Apply duty suggestions
-              </button>
-            )}
+            <button type="button" onClick={applyCategorySuggestions} style={pillButton('#a855f7')}>
+              Apply category suggestions
+            </button>
           </span>
         </div>
       )}
@@ -2475,7 +2539,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 240px 100px',
+          gridTemplateColumns: '1fr 300px',
           padding: '8px 14px',
           background: 'rgba(255,255,255,0.03)',
           fontSize: 11, fontWeight: 600, color: '#94a3b8',
@@ -2483,7 +2547,6 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         }}>
           <div>Slot type</div>
           <div style={{ textAlign: 'center' }}>Category</div>
-          <div style={{ textAlign: 'center' }}>Duty doctor</div>
         </div>
         {slotTypes.map((slot, i) => {
           const cat = categoryOf(slot);
@@ -2507,7 +2570,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
               key={slot}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 240px 100px',
+                gridTemplateColumns: '1fr 300px',
                 alignItems: 'center', gap: 8,
                 padding: '10px 14px',
                 background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
@@ -2538,55 +2601,16 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
                       color: '#fbbf24', letterSpacing: 0.4, fontFamily: 'inherit',
                     }}>~ CHECK</span>
                   )}
-                  {isAutoApplied && cat === 'other' && suggestedDuty && duty && (
-                    <span title="Auto-flagged as duty doctor based on the slot name" style={{
-                      fontSize: 9.5, padding: '1px 7px', borderRadius: 999,
-                      background: 'rgba(139,92,246,0.12)',
-                      border: '1px solid rgba(139,92,246,0.3)',
-                      color: '#c4b5fd', letterSpacing: 0.4, fontFamily: 'inherit',
-                    }}>✓ AUTO</span>
-                  )}
                 </div>
                 {showCategorySuggestion && (
                   <div style={{ marginTop: 2, fontSize: 10.5, color: '#a78bfa' }}>
                     Suggested: <strong style={{ color: suggested === 'urgent' ? '#fdba74' : '#cbd5e1' }}>{suggested}</strong>
                     {confidence === 'medium' && <span style={{ color: '#94a3b8' }}> (medium confidence)</span>}
-                    {suggestedDuty && !duty && <span style={{ color: '#c4b5fd' }}> + duty doctor</span>}
-                  </div>
-                )}
-                {!showCategorySuggestion && suggestedDuty && !duty && (
-                  <div style={{ marginTop: 2, fontSize: 10.5, color: '#a78bfa' }}>
-                    Suggested: <strong style={{ color: '#c4b5fd' }}>duty doctor</strong>
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <SlotCategoryPicker value={cat} onChange={(c) => setCategory(slot, c)} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => toggleDuty(slot)}
-                  role="switch"
-                  aria-checked={duty}
-                  aria-label={`Mark ${slot} as duty doctor slot`}
-                  style={{
-                    position: 'relative',
-                    width: 36, height: 20, padding: 0,
-                    background: duty ? '#8b5cf6' : 'rgba(255,255,255,0.10)',
-                    border: `1px solid ${duty ? '#8b5cf6' : 'rgba(255,255,255,0.14)'}`,
-                    borderRadius: 999, cursor: 'pointer',
-                    transition: 'background 0.15s, border 0.15s',
-                    boxShadow: duty ? '0 0 8px #8b5cf655' : 'none',
-                  }}
-                >
-                  <span aria-hidden style={{
-                    position: 'absolute', top: 1, left: duty ? 17 : 1,
-                    width: 16, height: 16, background: 'white',
-                    borderRadius: '50%', boxShadow: '0 1px 2px rgba(0,0,0,0.35)',
-                    transition: 'left 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }} />
-                </button>
               </div>
             </div>
           );
@@ -2594,8 +2618,6 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
       </div>
 
       {error && <div style={errorText}>{error}</div>}
-
-      <UrgentCapacitySection practiceId={practiceId} parsedCsv={parsedCsv} slotFilters={slotFilters} />
 
       <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
         These can be changed any time from Practice settings → Demand.
