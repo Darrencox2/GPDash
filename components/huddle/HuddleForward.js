@@ -4,6 +4,7 @@ import { getHuddleCapacity, getDateTotals, getDutyDoctor, getSiteColour } from '
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
+import { detectPatterns } from '@/lib/capacity-patterns';
 import ClinicianCapacity from './ClinicianCapacity';
 import SlotFilter from './SlotFilter';
 import { canEditPracticeData } from '@/lib/permissions';
@@ -358,6 +359,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
   const shortDays = useMemo(()=>weeks.flatMap(w=>w.days).filter(d=>d.hasData&&!d.isBH&&(d.amT+d.pmT)>0&&(d.amS+d.pmS)<(d.amT+d.pmT)*0.8).sort((a,b)=>a.date-b.date),[weeks]);
   const topDemand = useMemo(()=>weeks.flatMap(w=>w.days).filter(d=>!d.isBH&&d.predicted).sort((a,b)=>b.predicted-a.predicted).slice(0,5),[weeks]);
+  // Pattern detection — runs over the same `weeks` data used by the
+  // calendar. See lib/capacity-patterns.js for the rules.
+  const patterns = useMemo(()=>detectPatterns(weeks, hs, teamClin, huddleData), [weeks, hs, teamClin, huddleData]);
 
   const detailDay = selectedDay?weeks.flatMap(w=>w.days).find(d=>d.isoKey===selectedDay):null;
   const detailClin = useMemo(()=>{
@@ -561,7 +565,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             clears any selected day. Days inside an expanded list are
             clickable and switch to the day drawer. */}
         <div className="rounded-2xl overflow-hidden" style={{background:'rgba(15,23,42,0.55)',border:'1px solid rgba(255,255,255,0.06)'}}>
-          <div className="grid grid-cols-4 gap-2 p-3" style={{borderBottom: selectedMarker ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
+          <div className="grid grid-cols-5 gap-2 p-3" style={{borderBottom: selectedMarker ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
             {/* Urgent below target */}
             {(() => {
               const isActive = selectedMarker === 'short';
@@ -641,6 +645,25 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 </button>
               );
             })()}
+            {/* Patterns — automated rule-based insights */}
+            {(() => {
+              const isActive = selectedMarker === 'patterns';
+              const highCount = patterns.filter(p => p.severity === 'high').length;
+              return (
+                <button onClick={() => toggleMarker('patterns')}
+                  className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
+                  style={{background: isActive ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.04)', border: `1px solid ${isActive ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.12)'}`}}>
+                  <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(99,102,241,0.18)'}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold" style={{color: isActive ? '#a5b4fc' : '#e2e8f0'}}>Patterns</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">{patterns.length===0?'Nothing flagged':highCount>0?`${highCount} high · ${patterns.length-highCount} other`:`${patterns.length} insight${patterns.length===1?'':'s'}`}</div>
+                  </div>
+                  <span className="text-base font-bold" style={{color:highCount>0?'#fca5a5':'#a5b4fc'}}>{patterns.length}</span>
+                </button>
+              );
+            })()}
           </div>
 
           {/* Expansion area — only renders when a marker is selected */}
@@ -708,6 +731,65 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         {delta!==0 && <span className={`text-xs font-bold ml-auto ${delta>0?'text-emerald-500':'text-red-500'}`}>{delta>0?'↑':'↓'}{Math.abs(delta)} urg</span>}
                       </div>
                     );})}</div>
+              )}
+              {selectedMarker==='patterns' && (
+                patterns.length===0
+                  ? <div className="text-center py-8">
+                      <div className="text-sm text-slate-300 mb-2">Nothing flagged.</div>
+                      <div className="text-[11px] text-slate-500 max-w-md mx-auto">No recurring capacity issues detected in the current data. Patterns become more reliable once you have several weeks of CSV uploads — the detector looks across all available data to spot weekday-level imbalances, single-clinician concentration risk, routine target streaks, and a handful of other things.</div>
+                    </div>
+                  : <div className="grid grid-cols-1 gap-3">
+                      {patterns.map((p, i) => {
+                        const sevColour = p.severity === 'high' ? '#ef4444' : p.severity === 'medium' ? '#f59e0b' : '#64748b';
+                        const sevBg = p.severity === 'high' ? 'rgba(239,68,68,0.06)' : p.severity === 'medium' ? 'rgba(245,158,11,0.06)' : 'rgba(148,163,184,0.04)';
+                        const sevBorder = p.severity === 'high' ? 'rgba(239,68,68,0.2)' : p.severity === 'medium' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.15)';
+                        const sevLabel = p.severity === 'high' ? 'HIGH' : p.severity === 'medium' ? 'MEDIUM' : 'INFO';
+                        return (
+                          <div key={p.id} className="rounded-lg overflow-hidden" style={{background: sevBg, border: `1px solid ${sevBorder}`}}>
+                            {/* Header row */}
+                            <div className="px-4 py-3 flex items-start gap-3" style={{borderBottom: `1px solid ${sevBorder}`}}>
+                              <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{background: `${p.iconColor}22`}}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={p.iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={p.icon}/></svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{background: sevColour, color: 'white'}}>{sevLabel}</span>
+                                </div>
+                                <div className="text-sm font-semibold text-slate-100 leading-snug">{p.title}</div>
+                              </div>
+                              {p.affectedDates.length > 0 && (
+                                <button onClick={()=>pickDay(p.affectedDates[0])} className="text-[10px] px-2 py-1 rounded text-slate-400 hover:text-white hover:bg-white/5 flex-shrink-0" style={{background:'none',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer'}}>
+                                  See day →
+                                </button>
+                              )}
+                            </div>
+                            {/* Body */}
+                            <div className="px-4 py-3 space-y-3">
+                              <p className="text-[12px] text-slate-300 leading-relaxed">{p.detail}</p>
+                              {p.evidence && p.evidence.length > 0 && (
+                                <div>
+                                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Evidence</div>
+                                  <div className="space-y-1">
+                                    {p.evidence.map((ev, j) => (
+                                      <div key={j} className="flex items-center gap-3 px-2.5 py-1.5 rounded text-[11px]" style={{background:'rgba(255,255,255,0.03)'}}>
+                                        <span className="text-slate-400 flex-shrink-0">{ev.label}</span>
+                                        <span className="text-slate-200 font-medium ml-auto text-right">{ev.value}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {p.suggestion && (
+                                <div className="rounded p-2.5" style={{background:'rgba(255,255,255,0.03)', borderLeft: `2px solid ${p.iconColor}`}}>
+                                  <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color: p.iconColor}}>Suggestion</div>
+                                  <p className="text-[12px] text-slate-300 leading-relaxed">{p.suggestion}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
               )}
             </div>
           )}
