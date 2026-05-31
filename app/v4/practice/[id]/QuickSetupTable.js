@@ -30,7 +30,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { guessGroupFromRole } from '@/lib/data';
+import { guessGroupFromRole, buddyDefaultsForRole } from '@/lib/data';
 import WorkingDaysGrid from './WorkingDaysGrid';
 import ClinicianDetailsPanel from './ClinicianDetailsPanel';
 
@@ -250,6 +250,15 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       if (field === 'role') {
         const guessed = guessGroupFromRole(value);
         if (guessed) updated.group = guessed;
+        // Assigning a role also sets sensible buddy-cover defaults for that
+        // role (GP partners / salaried GPs in and able to cover; registrars
+        // and ANPs in but not covering; everyone else out). This is what
+        // makes "set the role and the right people switch on" work even
+        // when the imported CSV had no role info, so nobody starts in the
+        // pool. Users can still override the toggles afterwards.
+        const bd = buddyDefaultsForRole(value);
+        updated.buddyCover = bd.buddyCover;
+        updated.canProvideCover = bd.canProvideCover;
       }
       // Cascade: turning buddy off forces can-cover off too. If they're
       // not in the buddy system, they logically can't cover, and the
@@ -283,6 +292,12 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       if (effectiveChanges.role !== undefined) {
         const guessed = guessGroupFromRole(effectiveChanges.role);
         if (guessed && effectiveChanges.group === undefined) updated.group = guessed;
+        // Apply role-based buddy defaults too, unless the same bulk action
+        // also explicitly set the buddy/cover toggles (then the explicit
+        // choice wins).
+        const bd = buddyDefaultsForRole(effectiveChanges.role);
+        if (effectiveChanges.buddyCover === undefined) updated.buddyCover = bd.buddyCover;
+        if (effectiveChanges.canProvideCover === undefined) updated.canProvideCover = bd.canProvideCover;
       }
       return updated;
     }));
