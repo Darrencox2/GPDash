@@ -24,6 +24,14 @@ import Link from 'next/link';
 
 const GREEN = '#10b981';
 const AMBER = '#f59e0b';
+const NEUTRAL = '#64748b';
+
+// Per-state styling for the completeness strip cards.
+const STATE_STYLE = {
+  done:     { bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.25)',  text: '#6ee7b7', dot: GREEN },
+  todo:     { bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.30)',  text: '#fcd34d', dot: AMBER },
+  optional: { bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.18)', text: '#94a3b8', dot: NEUTRAL },
+};
 
 /* ─── Per-section header stripe ──────────────────────────────────────── */
 
@@ -94,13 +102,13 @@ export function DashboardCompletenessStrip({ statuses, practicePath }) {
     { key: 'team',       tab: 'users',       ...statuses.team },
   ];
 
-  const completeCount = items.filter(i => i.complete).length;
-  const allComplete = completeCount === items.length;
+  const doneCount = items.filter(i => i.state === 'done').length;
+  const todoCount = items.filter(i => i.state === 'todo').length;
 
-  // If everything's complete, render nothing — keeps the dashboard clean
-  // once setup is fully resolved. The strip is only visible while
-  // there's something the user could improve.
-  if (allComplete) return null;
+  // Hide the strip once nothing needs attention (all required sections
+  // done). Optional-and-empty sections never count as "to do", so they
+  // don't keep the strip alive or nag the user.
+  if (todoCount === 0) return null;
 
   return (
     <div style={{
@@ -119,10 +127,10 @@ export function DashboardCompletenessStrip({ statuses, practicePath }) {
         gap: 8,
       }}>
         <div style={{ fontSize: 13, color: '#fcd34d', fontWeight: 500 }}>
-          Setup completeness — {completeCount} of {items.length} sections ready
+          Setup completeness — {todoCount} thing{todoCount === 1 ? '' : 's'} to finish
         </div>
         <div style={{ fontSize: 11, color: '#94a3b8' }}>
-          Amber = something to do · Green = looks good
+          Amber = needs attention · Grey = optional · Green = done
         </div>
       </div>
       <div style={{
@@ -131,19 +139,21 @@ export function DashboardCompletenessStrip({ statuses, practicePath }) {
         gap: 6,
       }}>
         {items.map((it) => {
+          const st = STATE_STYLE[it.state] || STATE_STYLE.optional;
           const inner = (
             <div style={{
               padding: '8px 10px',
-              background: it.complete ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.10)',
-              border: `1px solid ${it.complete ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.30)'}`,
+              background: st.bg,
+              border: `1px solid ${st.border}`,
               borderRadius: 6,
               cursor: practicePath ? 'pointer' : 'default',
               transition: 'background 0.15s',
+              height: '100%',
             }}>
               <div style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: it.complete ? '#6ee7b7' : '#fcd34d',
+                color: st.text,
                 letterSpacing: 0.3,
                 marginBottom: 4,
                 display: 'flex',
@@ -152,7 +162,7 @@ export function DashboardCompletenessStrip({ statuses, practicePath }) {
               }}>
                 <span style={{
                   display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
-                  background: it.complete ? GREEN : AMBER,
+                  background: st.dot,
                 }} />
                 {it.label}
               </div>

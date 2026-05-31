@@ -1,33 +1,46 @@
 'use client';
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 // ─── Toast System ────────────────────────────────────────────────
 const ToastContext = createContext(null);
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
-  
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const addToast = useCallback((message, type = 'success', duration = 3000) => {
     const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration);
   }, []);
 
+  // Rendered through a portal straight onto document.body so the toasts
+  // can never be clipped by an ancestor's overflow:hidden, transform or
+  // backdrop-filter (which were causing alerts to get cut off). A high
+  // z-index keeps them above sidebars and sticky headers.
+  const toastLayer = (
+    <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 2147483647, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none', maxWidth: 'min(420px, calc(100vw - 32px))' }}>
+      {toasts.map(t => (
+        <div key={t.id} className={`pointer-events-auto px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium animate-slide-up ${
+          t.type === 'success' ? 'bg-slate-900 text-white' :
+          t.type === 'error' ? 'bg-red-600 text-white' :
+          t.type === 'warning' ? 'bg-amber-500 text-white' :
+          'bg-slate-900 text-white'
+        }`} style={{ wordBreak: 'break-word' }}>
+          {t.type === 'success' && '✓ '}{t.type === 'error' && '✕ '}{t.type === 'warning' && '⚠ '}{t.message}
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <ToastContext.Provider value={addToast}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
-        {toasts.map(t => (
-          <div key={t.id} className={`pointer-events-auto px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium animate-slide-up ${
-            t.type === 'success' ? 'bg-slate-900 text-white' :
-            t.type === 'error' ? 'bg-red-600 text-white' :
-            t.type === 'warning' ? 'bg-amber-500 text-white' :
-            'bg-slate-900 text-white'
-          }`}>
-            {t.type === 'success' && '✓ '}{t.type === 'error' && '✕ '}{t.type === 'warning' && '⚠ '}{t.message}
-          </div>
-        ))}
-      </div>
+      {mounted && typeof document !== 'undefined'
+        ? createPortal(toastLayer, document.body)
+        : null}
     </ToastContext.Provider>
   );
 }
