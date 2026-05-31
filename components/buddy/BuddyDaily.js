@@ -619,13 +619,16 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                             const x = getClinicianById(id);
                             if (!x) return null;
                             const ov = overrideByAbsentId[id];
+                            // Past days are read-only: you can't rewrite who
+                            // covered whom on a day that has already happened.
+                            const canReassign = canEdit && !isPastDate(getDateKey());
                             const title = ov
                               ? `Manual override: ${ov.reason} — reassigned from previous coverer`
-                              : (canEdit ? 'Click to reassign' : '');
+                              : (canReassign ? 'Click to reassign' : '');
                             return (
                               <span
                                 key={id}
-                                onClick={canEdit ? () => setOverrideTarget({
+                                onClick={canReassign ? () => setOverrideTarget({
                                   absentId: id,
                                   coverType: type,
                                   currentCovererId: clinician.id,
@@ -636,7 +639,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                                   padding: '4px 8px',
                                   background: bg,
                                   minWidth: 32,
-                                  cursor: canEdit ? 'pointer' : 'default',
+                                  cursor: canReassign ? 'pointer' : 'default',
                                   border: ov ? '1.5px dashed rgba(255,255,255,0.7)' : 'none',
                                   position: 'relative',
                                 }}
