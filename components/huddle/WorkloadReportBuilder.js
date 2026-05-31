@@ -124,6 +124,37 @@ function PanelSection({ title, children, right }) {
   );
 }
 
+// Numbered step header — gives the panel a guided, top-to-bottom feel.
+function StepSection({ n, title, children, right }) {
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center justify-center text-[9px] font-bold rounded-full" style={{ width: 16, height: 16, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{n}</span>
+          <span className="text-[11px] font-semibold text-slate-200">{title}</span>
+        </div>
+        {right}
+      </div>
+      <div className="pl-[24px] space-y-2">{children}</div>
+    </div>
+  );
+}
+
+// Collapsible block with a count badge — keeps the panel from feeling dense.
+function Collapsible({ title, badge, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 text-[11px] font-semibold text-slate-300" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+        <span className="text-slate-500">{open ? '▾' : '▸'}</span>
+        <span>{title}</span>
+        {badge ? <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{badge}</span> : null}
+      </button>
+      {open && <div className="mt-2 pl-[18px] space-y-2.5">{children}</div>}
+    </div>
+  );
+}
+
 export default function WorkloadReportBuilder({ data, huddleData }) {
   const hs = data?.huddleSettings || {};
   const canEdit = canEditPracticeData(data);
@@ -142,7 +173,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   // Config state.
   const [grain, setGrain] = useState('sessions');
   const [num, setNum] = useState({ statuses: [], categories: [], kinds: ['duty'], sessions: [] });
-  const [useDenom, setUseDenom] = useState(true);
+  const [denomMode, setDenomMode] = useState('group');   // none | group | total | custom
   const [denom, setDenom] = useState({ statuses: ['available','embargoed','booked'], categories: [], kinds: ['worked'], sessions: [] });
   const [groupBy, setGroupBy] = useState('clinician');
   const [splitBy, setSplitBy] = useState('none');
@@ -187,7 +218,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     if (!c) return;
     setGrain(c.grain || 'slots');
     setNum({ statuses: c.num?.statuses || [], categories: c.num?.categories || [], kinds: c.num?.kinds || ['worked'], sessions: c.num?.sessions || [] });
-    setUseDenom(!!c.denom);
+    // Back-compat: older configs used { denom: filter|null }; new ones use denomMode.
+    const mode = c.denomMode || (c.denom ? 'custom' : 'none');
+    setDenomMode(mode);
     if (c.denom) setDenom({ statuses: c.denom.statuses || ['available','embargoed','booked'], categories: c.denom.categories || [], kinds: c.denom.kinds || ['worked'], sessions: c.denom.sessions || [] });
     setGroupBy(c.groupBy || 'clinician');
     setSplitBy(c.splitBy || 'none');
@@ -209,11 +242,12 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   const config = useMemo(() => ({
     grain,
     num: isSession ? { kinds: num.kinds, sessions: num.sessions } : { statuses: num.statuses, categories: num.categories },
-    denom: useDenom ? (isSession ? { kinds: denom.kinds, sessions: denom.sessions } : { statuses: denom.statuses, categories: denom.categories }) : null,
+    denomMode,
+    denom: denomMode === 'custom' ? (isSession ? { kinds: denom.kinds, sessions: denom.sessions } : { statuses: denom.statuses, categories: denom.categories }) : null,
     groupBy, splitBy, range,
     globalFilter, excludeSystem, sort, topN,
     chart,
-  }), [grain, isSession, num, useDenom, denom, groupBy, splitBy, range, globalFilter, excludeSystem, sort, topN, chart]);
+  }), [grain, isSession, num, denomMode, denom, groupBy, splitBy, range, globalFilter, excludeSystem, sort, topN, chart]);
 
   const result = useMemo(() => runReport(facts, config), [facts, config]);
 
@@ -295,8 +329,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   }
   const maxVal = Math.max(...result.groups.map(g => g.value), result.isRatio ? 100 : 1, refValue || 0);
 
-  const usesDutySupport = isSession && ((num.kinds || []).some(k => k === 'duty' || k === 'support') || (useDenom && (denom.kinds || []).some(k => k === 'duty' || k === 'support')));
+  const usesDutySupport = isSession && ((num.kinds || []).some(k => k === 'duty' || k === 'support') || (denomMode === 'custom' && (denom.kinds || []).some(k => k === 'duty' || k === 'support')));
   const dutyMissing = usesDutySupport && !sessionData.hasDuty;
+  const filterCount = ['clinicianIds','roles','locations','slotTypes','sessions'].reduce((n, k) => n + (globalFilter[k]?.length || 0), 0);
 
   // Auto-insight: a one-line takeaway.
   const insight = useMemo(() => {
@@ -346,22 +381,23 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     <div className="flex flex-col lg:flex-row gap-4 items-start">
       {/* MAIN */}
       <div className="flex-1 min-w-0 w-full rounded-xl p-5" style={{ background: 'rgba(15,23,42,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
-          <div className="text-sm font-semibold text-slate-200">
-            {describeMeasure(config)} by {groupByOpts.find(o => o.id === groupBy)?.label.toLowerCase()}
-            {result.hasSplit && <span className="text-slate-500"> · split by {splitByOpts.find(o => o.id === splitBy)?.label.toLowerCase()}</span>}
+        <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="text-[15px] font-semibold text-slate-100 leading-snug">
+              {describeMeasure(config)}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-0.5">
+              by <span className="text-indigo-300">{groupByOpts.find(o => o.id === groupBy)?.label.toLowerCase()}</span>
+              {result.hasSplit && <> · split by <span className="text-indigo-300">{splitByOpts.find(o => o.id === splitBy)?.label.toLowerCase()}</span></>}
+              {' · '}<span className="text-slate-300">{RANGE_OPTIONS.find(o => o.id === range)?.label.toLowerCase()}</span>
+              {filterCount > 0 && <> · <span className="text-amber-300">{filterCount} filter{filterCount === 1 ? '' : 's'} applied</span></>}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="text-right mr-1"><div className="text-[10px] text-slate-500 leading-none">Overall</div><div className="text-lg font-bold text-indigo-300 leading-tight">{fmt(result.totalValue)}</div></div>
             <button onClick={copyTable} className="text-[10px] px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>Copy</button>
             <button onClick={downloadCsv} className="text-[10px] px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>CSV</button>
           </div>
-        </div>
-        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
-          <div className="text-[10px] text-slate-500">
-            {RANGE_OPTIONS.find(o => o.id === range)?.label}
-            {dateMin && dateMax ? ` · spans ${dateMin.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}–${dateMax.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}` : ''}
-          </div>
-          <div className="text-right"><span className="text-xs text-slate-500 mr-2">Overall</span><span className="text-lg font-bold text-indigo-300">{fmt(result.totalValue)}</span></div>
         </div>
 
         {insight && <div className="mb-4 text-[11px] text-amber-200/90 rounded-lg px-3 py-2" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>💡 {insight}</div>}
@@ -424,37 +460,42 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
 
-        <PanelSection title="Count">
+        {/* ① Measure */}
+        <StepSection n="1" title="Measure">
           <Segmented options={[{ id: 'slots', label: 'Slots' }, { id: 'sessions', label: 'Sessions' }]} value={grain} onChange={setGrain} />
-          <p className="text-[9px] text-slate-600 leading-snug">{isSession ? 'A session = one clinician working an AM or PM. For duty / support balance.' : 'A slot = one appointment slot. For capacity, fill and slot-type analysis.'}</p>
-        </PanelSection>
-
-        <PanelSection title="Measure — count…">
+          <p className="text-[9px] text-slate-600 leading-snug">{isSession ? 'A session = one clinician working an AM or PM.' : 'A slot = one appointment slot.'}</p>
+          <div className="text-[9px] text-slate-500 font-medium mt-1">Count {isSession ? 'sessions' : 'slots'} that are…</div>
           {isSession ? (
             <>
-              <div className="text-[9px] text-slate-600">Session type</div>
               <ChipGroup options={KIND_OPTS} selected={num.kinds} onChange={(v) => setNum(n => ({ ...n, kinds: v.length ? v : ['worked'] }))} allowAll={false} />
-              <div className="text-[9px] text-slate-600 mt-1">Session</div>
               <ChipGroup options={SESSION_OPTS} selected={num.sessions} onChange={(v) => setNum(n => ({ ...n, sessions: v }))} allLabel="AM+PM" />
             </>
           ) : (
             <>
               <div className="text-[9px] text-slate-600">Status</div>
               <ChipGroup options={STATUS_OPTS} selected={num.statuses} onChange={(v) => setNum(n => ({ ...n, statuses: v }))} />
-              <div className="text-[9px] text-slate-600 mt-1">Category</div>
+              <div className="text-[9px] text-slate-600">Category</div>
               <ChipGroup options={CATEGORY_OPTS} selected={num.categories} onChange={(v) => setNum(n => ({ ...n, categories: v }))} />
             </>
           )}
-        </PanelSection>
-
-        <PanelSection title="Percentage">
-          <label className="flex items-center gap-2 cursor-pointer w-fit">
-            <input type="checkbox" checked={useDenom} onChange={e => setUseDenom(e.target.checked)} className="accent-indigo-500" />
-            <span className="text-[10px] text-slate-300">Show as a % (÷ denominator)</span>
-          </label>
-          {useDenom && (
+          {/* Show as — the denominator */}
+          <div className="text-[9px] text-slate-500 font-medium mt-2">Show as</div>
+          <select value={denomMode} onChange={e => setDenomMode(e.target.value)} className="w-full text-[11px] rounded-md px-2 py-1.5"
+            style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
+            <option value="none" style={{ background: '#1e293b' }}>Count (raw number)</option>
+            <option value="group" style={{ background: '#1e293b' }}>% of each group&rsquo;s total</option>
+            <option value="total" style={{ background: '#1e293b' }}>% of overall total (share)</option>
+            <option value="custom" style={{ background: '#1e293b' }}>% of a custom subset…</option>
+          </select>
+          <p className="text-[9px] text-slate-600 leading-snug">
+            {denomMode === 'group' && `Each ${isSession ? 'clinician/group' : 'group'} as a rate — e.g. booked ÷ all that group's slots = fill rate.`}
+            {denomMode === 'total' && 'Each group as a share of the whole report. Shares add up to 100%.'}
+            {denomMode === 'custom' && 'Divide by your own subset, defined below.'}
+            {denomMode === 'none' && 'Plain counts.'}
+          </p>
+          {denomMode === 'custom' && (
             <div className="mt-1 pl-3 space-y-2" style={{ borderLeft: '2px solid rgba(99,102,241,0.3)' }}>
-              <div className="text-[9px] text-slate-600">…as a % of:</div>
+              <div className="text-[9px] text-slate-600">…as a % of {isSession ? 'sessions' : 'slots'} that are:</div>
               {isSession ? (
                 <>
                   <ChipGroup options={KIND_OPTS} selected={denom.kinds} onChange={(v) => setDenom(d => ({ ...d, kinds: v.length ? v : ['worked'] }))} allowAll={false} />
@@ -470,62 +511,69 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               )}
             </div>
           )}
-        </PanelSection>
+        </StepSection>
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
 
-        <PanelSection title="Group by">
+        {/* ② Break down */}
+        <StepSection n="2" title="Break down">
+          <div className="text-[9px] text-slate-600">Group by (bars / rows)</div>
           <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="w-full text-[11px] rounded-md px-2 py-1.5"
             style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
             {groupByOpts.map(o => <option key={o.id} value={o.id} style={{ background: '#1e293b' }}>{o.label}</option>)}
           </select>
-        </PanelSection>
-
-        <PanelSection title="Compare by (multi-series)">
+          <div className="text-[9px] text-slate-600 mt-1">Compare by (splits into series)</div>
           <select value={splitBy} onChange={e => setSplitBy(e.target.value)} className="w-full text-[11px] rounded-md px-2 py-1.5"
             style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
             {splitByOpts.filter(o => o.id !== groupBy).map(o => <option key={o.id} value={o.id} style={{ background: '#1e293b' }}>{o.label}</option>)}
           </select>
-        </PanelSection>
-
-        <PanelSection title="Filters">
-          <MultiSelect label="Clinicians" options={filterOpts.clinicians} selected={globalFilter.clinicianIds} onChange={(v) => setGlobalFilter(f => ({ ...f, clinicianIds: v }))} />
-          {filterOpts.roles.length > 1 && (<><div className="text-[9px] text-slate-600">Role</div><ChipGroup options={filterOpts.roles.map((r, i) => ({ ...r, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.roles} onChange={(v) => setGlobalFilter(f => ({ ...f, roles: v }))} /></>)}
-          {!isSession && filterOpts.locations.length > 1 && (<><div className="text-[9px] text-slate-600">Site</div><ChipGroup options={filterOpts.locations.map((l, i) => ({ ...l, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.locations} onChange={(v) => setGlobalFilter(f => ({ ...f, locations: v }))} /></>)}
-          {!isSession && <MultiSelect label="Slot types" options={filterOpts.slotTypes} selected={globalFilter.slotTypes} onChange={(v) => setGlobalFilter(f => ({ ...f, slotTypes: v }))} />}
-          <div className="text-[9px] text-slate-600">Session</div>
-          <ChipGroup options={SESSION_OPTS} selected={globalFilter.sessions} onChange={(v) => setGlobalFilter(f => ({ ...f, sessions: v }))} allLabel="AM+PM" />
-        </PanelSection>
+        </StepSection>
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
 
-        <PanelSection title="Display">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400">Date range</span>
-          </div>
+        {/* ③ Filter (collapsible) */}
+        <StepSection n="3" title="Filter">
+          <Collapsible title="Narrow the data" badge={filterCount || null} defaultOpen={filterCount > 0}>
+            <MultiSelect label="Clinicians" options={filterOpts.clinicians} selected={globalFilter.clinicianIds} onChange={(v) => setGlobalFilter(f => ({ ...f, clinicianIds: v }))} />
+            {filterOpts.roles.length > 1 && (<><div className="text-[9px] text-slate-600">Role</div><ChipGroup options={filterOpts.roles.map((r, i) => ({ ...r, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.roles} onChange={(v) => setGlobalFilter(f => ({ ...f, roles: v }))} /></>)}
+            {!isSession && filterOpts.locations.length > 1 && (<><div className="text-[9px] text-slate-600">Site</div><ChipGroup options={filterOpts.locations.map((l, i) => ({ ...l, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.locations} onChange={(v) => setGlobalFilter(f => ({ ...f, locations: v }))} /></>)}
+            {!isSession && <MultiSelect label="Slot types" options={filterOpts.slotTypes} selected={globalFilter.slotTypes} onChange={(v) => setGlobalFilter(f => ({ ...f, slotTypes: v }))} />}
+            <div className="text-[9px] text-slate-600">Session</div>
+            <ChipGroup options={SESSION_OPTS} selected={globalFilter.sessions} onChange={(v) => setGlobalFilter(f => ({ ...f, sessions: v }))} allLabel="AM+PM" />
+            {filterCount > 0 && <button onClick={() => setGlobalFilter({ clinicianIds: [], roles: [], locations: [], slotTypes: [], sessions: [] })} className="text-[10px] text-slate-400 hover:text-white mt-1" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear all filters</button>}
+          </Collapsible>
+        </StepSection>
+
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+
+        {/* ④ View */}
+        <StepSection n="4" title="View">
+          <div className="text-[9px] text-slate-600">Date range</div>
           <Segmented options={RANGE_OPTIONS} value={range} onChange={setRange} />
-          <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-400">Chart</span></div>
+          <div className="text-[9px] text-slate-600 mt-1">Chart</div>
           <Segmented options={[{ id: 'bars', label: 'Bars' }, { id: 'stacked', label: 'Stacked' }, { id: 'trend', label: 'Trend' }, { id: 'table', label: 'Table' }]} value={chart} onChange={setChart}
             disabledIds={[...(timeOk ? [] : ['trend']), ...(result.hasSplit ? [] : ['stacked'])]} />
-          <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-400">Sort</span>
-            <Segmented options={[{ id: 'value', label: 'Value' }, { id: 'alpha', label: 'A–Z' }]} value={sort} onChange={setSort} /></div>
-          <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-400">Show</span>
-            <Segmented options={[{ id: '0', label: 'All' }, { id: '10', label: 'Top 10' }, { id: '5', label: 'Top 5' }]} value={String(topN)} onChange={(v) => setTopN(parseInt(v))} /></div>
-          <label className="flex items-center gap-2 cursor-pointer mt-1">
-            <input type="checkbox" checked={excludeSystem} onChange={e => setExcludeSystem(e.target.checked)} className="accent-indigo-500" />
-            <span className="text-[10px] text-slate-300">Exclude system rows (TRIAGE, CCAS…)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={refOn} onChange={e => setRefOn(e.target.checked)} className="accent-indigo-500" />
-            <span className="text-[10px] text-slate-300">Reference line</span>
-          </label>
-          {refOn && (
-            <div className="pl-5 flex items-center gap-2">
-              <Segmented options={[{ id: 'auto', label: result.isRatio ? 'Fair share' : 'Average' }, { id: 'custom', label: 'Custom' }]} value={refMode} onChange={setRefMode} />
-              {refMode === 'custom' && <input value={refCustom} onChange={e => setRefCustom(e.target.value)} placeholder="value" className="w-16 text-[10px] rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />}
-            </div>
-          )}
-        </PanelSection>
+          <Collapsible title="More options">
+            <div className="flex items-center justify-between"><span className="text-[10px] text-slate-400">Sort</span>
+              <Segmented options={[{ id: 'value', label: 'Value' }, { id: 'alpha', label: 'A–Z' }]} value={sort} onChange={setSort} /></div>
+            <div className="flex items-center justify-between"><span className="text-[10px] text-slate-400">Show</span>
+              <Segmented options={[{ id: '0', label: 'All' }, { id: '10', label: 'Top 10' }, { id: '5', label: 'Top 5' }]} value={String(topN)} onChange={(v) => setTopN(parseInt(v))} /></div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={excludeSystem} onChange={e => setExcludeSystem(e.target.checked)} className="accent-indigo-500" />
+              <span className="text-[10px] text-slate-300">Exclude system rows (TRIAGE, CCAS…)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={refOn} onChange={e => setRefOn(e.target.checked)} className="accent-indigo-500" />
+              <span className="text-[10px] text-slate-300">Reference line</span>
+            </label>
+            {refOn && (
+              <div className="pl-5 flex items-center gap-2">
+                <Segmented options={[{ id: 'auto', label: result.isRatio ? 'Fair share' : 'Average' }, { id: 'custom', label: 'Custom' }]} value={refMode} onChange={setRefMode} />
+                {refMode === 'custom' && <input value={refCustom} onChange={e => setRefCustom(e.target.value)} placeholder="value" className="w-16 text-[10px] rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />}
+              </div>
+            )}
+          </Collapsible>
+        </StepSection>
       </div>
 
       {/* Drill-down modal */}
