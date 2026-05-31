@@ -8,6 +8,7 @@ import { detectPatterns } from '@/lib/capacity-patterns';
 import ClinicianCapacity from './ClinicianCapacity';
 import SlotFilter from './SlotFilter';
 import { canEditPracticeData } from '@/lib/permissions';
+import { createClient } from '@/utils/supabase/client';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -291,6 +292,87 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
     return () => document.removeEventListener('mousedown', onDown);
   }, [selectedDay]);
 
+  // ─── Day annotations ───────────────────────────────────────────────
+  // Per-date sticky notes. Loaded once on mount (and on practice switch).
+  // Map keyed by isoKey (YYYY-MM-DD) → { id, note, updated_at }. Admins
+  // can edit via the drawer; everyone can read. Persisted in the
+  // day_annotations table (migration 045).
+  const practiceId = data?._v4?.practiceId || null;
+  const userId = data?._v4?.userId || null;
+  const [annotations, setAnnotations] = useState({});
+  const [annDraft, setAnnDraft] = useState('');      // textarea contents while editing
+  const [annEditing, setAnnEditing] = useState(false);
+  const [annSaving, setAnnSaving] = useState(false);
+
+  useEffect(() => {
+    if (!practiceId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: rows, error } = await supabase
+          .from('day_annotations')
+          .select('id, date, note, updated_at')
+          .eq('practice_id', practiceId);
+        if (error || cancelled || !rows) return;
+        const map = {};
+        for (const r of rows) map[r.date] = { id: r.id, note: r.note, updated_at: r.updated_at };
+        setAnnotations(map);
+      } catch { /* table may not exist yet on older DBs — fail silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [practiceId]);
+
+  // When the selected day changes, reset the annotation editor to view mode
+  // and seed the draft with whatever note exists for that day.
+  useEffect(() => {
+    setAnnEditing(false);
+    setAnnDraft(selectedDay ? (annotations[selectedDay]?.note || '') : '');
+  }, [selectedDay]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveAnnotation = async (isoKey) => {
+    if (!practiceId || !canEdit) return;
+    const note = annDraft.trim();
+    setAnnSaving(true);
+    try {
+      const supabase = createClient();
+      if (!note) {
+        // Empty note = delete any existing annotation for this day.
+        const existing = annotations[isoKey];
+        if (existing?.id) {
+          await supabase.from('day_annotations').delete().eq('id', existing.id);
+        }
+        setAnnotations(prev => { const n = { ...prev }; delete n[isoKey]; return n; });
+      } else {
+        const { data: row, error } = await supabase
+          .from('day_annotations')
+          .upsert({ practice_id: practiceId, date: isoKey, note, updated_by: userId },
+                  { onConflict: 'practice_id,date' })
+          .select('id, date, note, updated_at')
+          .single();
+        if (!error && row) {
+          setAnnotations(prev => ({ ...prev, [isoKey]: { id: row.id, note: row.note, updated_at: row.updated_at } }));
+        }
+      }
+      setAnnEditing(false);
+    } catch { /* surface nothing — the note just won't persist */ }
+    finally { setAnnSaving(false); }
+  };
+
+  const deleteAnnotation = async (isoKey) => {
+    if (!practiceId || !canEdit) return;
+    const existing = annotations[isoKey];
+    setAnnSaving(true);
+    try {
+      const supabase = createClient();
+      if (existing?.id) await supabase.from('day_annotations').delete().eq('id', existing.id);
+      setAnnotations(prev => { const n = { ...prev }; delete n[isoKey]; return n; });
+      setAnnDraft('');
+      setAnnEditing(false);
+    } catch { /* ignore */ }
+    finally { setAnnSaving(false); }
+  };
+
   // Per-practice prediction context (calibrated baseline + LEA holidays)
   const predictionOptions = useMemo(() => {
     const opts = {};
@@ -518,7 +600,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         {d.isToday
                           ? <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{background:'#10b981',color:'white',letterSpacing:'0.05em'}}>Today · {d.dayNum}</span>
                           : <span className="text-xs font-bold text-slate-300">{d.dayNum}</span>}
-                        {d.predicted && <span title={demandTip} className="text-[9px] font-bold px-1.5 py-0.5 rounded cursor-help" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
+                        <div className="flex items-center gap-1">
+                          {annotations[d.isoKey] && <span title={annotations[d.isoKey].note} className="text-[10px] leading-none cursor-help">📝</span>}
+                          {d.predicted && <span title={demandTip} className="text-[9px] font-bold px-1.5 py-0.5 rounded cursor-help" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
+                        </div>
                       </div>
                       <div className="flex gap-1">
                         <div title={amTip} className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg}}>
@@ -813,6 +898,42 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           </div>
           <PredictionBand day={detailDay} convRate={convRate} />
           <div className="overflow-y-auto p-4 space-y-3" style={{flex:1}}>
+            {/* Annotation — sticky note for this day */}
+            <div className="rounded-lg p-3" style={{background:'rgba(251,191,36,0.06)',border:'1px solid rgba(251,191,36,0.18)'}}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300">📝 Note</span>
+                {!annEditing && canEdit && (
+                  <button onClick={()=>{setAnnDraft(annotations[detailDay.isoKey]?.note||'');setAnnEditing(true);}} className="ml-auto text-[10px] text-amber-300/70 hover:text-amber-300" style={{background:'none',border:'none',cursor:'pointer'}}>
+                    {annotations[detailDay.isoKey] ? 'Edit' : 'Add note'}
+                  </button>
+                )}
+              </div>
+              {annEditing ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={annDraft}
+                    onChange={e=>setAnnDraft(e.target.value)}
+                    maxLength={1000}
+                    rows={3}
+                    autoFocus
+                    placeholder="e.g. Dr Smith locum AM · training pm · expecting surge"
+                    className="w-full text-[12px] text-slate-200 rounded p-2 resize-none"
+                    style={{background:'rgba(0,0,0,0.25)',border:'1px solid rgba(251,191,36,0.25)',outline:'none'}}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button onClick={()=>saveAnnotation(detailDay.isoKey)} disabled={annSaving} className="text-[11px] font-semibold px-3 py-1.5 rounded" style={{background:'#f59e0b',color:'#1e293b',border:'none',cursor:annSaving?'default':'pointer',opacity:annSaving?0.6:1}}>
+                      {annSaving?'Saving…':'Save'}
+                    </button>
+                    <button onClick={()=>{setAnnEditing(false);setAnnDraft(annotations[detailDay.isoKey]?.note||'');}} className="text-[11px] text-slate-400 hover:text-white px-2 py-1.5" style={{background:'none',border:'none',cursor:'pointer'}}>Cancel</button>
+                    {annotations[detailDay.isoKey] && <button onClick={()=>deleteAnnotation(detailDay.isoKey)} disabled={annSaving} className="text-[11px] text-red-400 hover:text-red-300 px-2 py-1.5 ml-auto" style={{background:'none',border:'none',cursor:'pointer'}}>Delete</button>}
+                  </div>
+                </div>
+              ) : annotations[detailDay.isoKey] ? (
+                <p className="text-[12px] text-slate-200 leading-relaxed whitespace-pre-wrap">{annotations[detailDay.isoKey].note}</p>
+              ) : (
+                <p className="text-[11px] text-slate-500 italic">{canEdit ? 'No note for this day. Click "Add note" to jot down context (locum cover, training, expected surge, etc).' : 'No note for this day.'}</p>
+              )}
+            </div>
             {/* AM urgent section */}
             <div className="rounded-lg p-3" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
               <div className="flex items-center gap-2 mb-2">
