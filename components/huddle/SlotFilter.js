@@ -37,7 +37,7 @@ export function SlotFilterButton({ overrides, setOverrides, knownSlotTypes, show
       </svg>
       {hasFilter && !show && (
         <span
-          className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center"
           style={{ background: '#06b6d4', color: '#0f172a' }}
         >
           {selectedCount}
@@ -167,7 +167,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
           >
             {/* Title */}
             <div>
-              <label className="text-[11px] text-slate-500 uppercase tracking-wider">Title</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wider">Title</label>
               <input
                 type="text"
                 value={cardSettings.card.title}
@@ -179,7 +179,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
 
             {/* Colour */}
             <div>
-              <label className="text-[11px] text-slate-500 uppercase tracking-wider">Accent colour</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wider">Accent colour</label>
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 {cardSettings.palette.map(c => {
                   const isActive = cardSettings.card.colour === c.key;
@@ -201,7 +201,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
 
             {/* Period */}
             <div>
-              <label className="text-[11px] text-slate-500 uppercase tracking-wider">Period</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wider">Period</label>
               <div className="flex gap-1 mt-1.5">
                 {[7, 14, 21, 28].map(d => {
                   const isActive = (cardSettings.card.days || 14) === d;
@@ -227,7 +227,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
               <label className="flex items-center justify-between cursor-pointer text-sm text-slate-300">
                 <span>
                   <span className="block">Full-width card</span>
-                  <span className="block text-[11px] text-slate-500 mt-0.5">Spans the full row instead of half</span>
+                  <span className="block text-xs text-slate-500 mt-0.5">Spans the full row instead of half</span>
                 </span>
                 <input
                   type="checkbox"
@@ -282,7 +282,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                 appears in current CSV data. */}
             {staleSelectedDuty.length > 0 && (
               <div
-                className="text-[11px] mb-2 px-2.5 py-2 rounded-md leading-relaxed"
+                className="text-xs mb-2 px-2.5 py-2 rounded-md leading-relaxed"
                 style={{
                   background: 'rgba(239,68,68,0.10)',
                   border: '1px solid rgba(239,68,68,0.30)',
@@ -330,7 +330,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                     <span className="truncate flex-1" title={s} style={stale ? { textDecoration: 'line-through' } : undefined}>{s}</span>
                     {stale && (
                       <span
-                        className="text-[9px] px-1 py-0.5 rounded uppercase tracking-wider flex-shrink-0"
+                        className="text-[10px] px-1 py-0.5 rounded uppercase tracking-wider flex-shrink-0"
                         style={{ background: 'rgba(100,116,139,0.20)', color: '#94a3b8' }}
                         title="This slot type isn't in your current CSV data. Selecting it has no effect."
                       >
@@ -341,7 +341,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                 );
               })}
             </div>
-            <div className="text-[11px] text-amber-500/70 mt-2 leading-relaxed">
+            <div className="text-xs text-amber-500/70 mt-2 leading-relaxed">
               Slot types that identify the duty doctor — used in the session breakdown
             </div>
           </div>

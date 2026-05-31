@@ -61,7 +61,7 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); onMarkOffToday(); }}
             role="button"
             title="Mark off today"
-            className="text-[10px] px-1.5 py-0.5 rounded text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors cursor-pointer"
+            className="text-[11px] px-1.5 py-0.5 rounded text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors cursor-pointer"
             style={{ fontWeight: 500 }}
           >
             Off today
@@ -88,8 +88,8 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
       </div>
       {hasLoc && (
         <div className="flex flex-col gap-px flex-shrink-0">
-          <div className="rounded-t-sm flex items-center justify-center text-[9px] font-bold text-white" style={{ width: 22, height: 13, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
-          <div className="rounded-b-sm flex items-center justify-center text-[9px] font-bold text-white" style={{ width: 22, height: 13, background: isSplit ? pC : aC }}>{pLoc?.charAt(0) || aLoc?.charAt(0) || '?'}</div>
+          <div className="rounded-t-sm flex items-center justify-center text-[10px] font-bold text-white" style={{ width: 22, height: 13, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
+          <div className="rounded-b-sm flex items-center justify-center text-[10px] font-bold text-white" style={{ width: 22, height: 13, background: isSplit ? pC : aC }}>{pLoc?.charAt(0) || aLoc?.charAt(0) || '?'}</div>
         </div>
       )}
     </button>
@@ -465,7 +465,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           <div className="flex items-center justify-center flex-wrap gap-x-3 gap-y-1 pt-2 text-xs">
             {sites.map(s => (
               <span key={s.name} className="flex items-center gap-1">
-                <span className="rounded-sm flex items-center justify-center text-[8px] font-bold text-white" style={{width:14,height:14,background:s.colour||'#64748b'}}>{(s.name || '?').charAt(0).toUpperCase()}</span>
+                <span className="rounded-sm flex items-center justify-center text-[9px] font-bold text-white" style={{width:14,height:14,background:s.colour||'#64748b'}}>{(s.name || '?').charAt(0).toUpperCase()}</span>
                 <span className="text-slate-500">{s.name}</span>
               </span>
             ))}
@@ -486,7 +486,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
       >
         {hiddenPeople.length > 0 && (
           <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Hidden — click to restore</div>
+            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Hidden — click to restore</div>
             <div className="space-y-1">
               {hiddenPeople.map(c => (
                 <button key={c.id} onClick={() => showPerson(c.id)}
@@ -502,7 +502,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           if (groupPeople.length === 0) return null;
           return (
             <div key={groupKey} className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{groupInfo.label}</div>
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{groupInfo.label}</div>
               <div className="space-y-1">
                 {groupPeople.map(c => (
                   <button key={c.id} onClick={() => isShowWhosIn(c) ? hidePerson(c.id) : showPerson(c.id)}

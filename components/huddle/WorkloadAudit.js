@@ -223,31 +223,31 @@ function ClassicWorkloadAudit({ data, huddleData }) {
             <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${(ratio / max) * 100}%`, background: isHigh ? '#ef4444' : isLow ? '#3b82f6' : colour, opacity: 0.75 }} />
             <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(avg / max) * 100}%`, background: '#1e293b', zIndex: 1 }} title={`Average: ${avg.toFixed(2)}`} />
             <div className="absolute inset-0 flex items-center px-2">
-              <span className="text-[10px] font-bold text-white drop-shadow-sm" style={{marginLeft: `${Math.min((ratio / max) * 100 - 8, 92)}%`}}>{ratio.toFixed(2)}</span>
+              <span className="text-[11px] font-bold text-white drop-shadow-sm" style={{marginLeft: `${Math.min((ratio / max) * 100 - 8, 92)}%`}}>{ratio.toFixed(2)}</span>
             </div>
           </div>
           <div className="w-16 text-right">
-            {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>Fair</span>
-              : isHigh ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
-              : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
+            {absDelta < 0.03 ? <span className="text-[11px] px-1.5 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>Fair</span>
+              : isHigh ? <span className="text-[11px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
+              : <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
           </div>
-          <div className="w-14 text-[11px] text-slate-500 text-right font-medium">{count}/{c.sessions}</div>
+          <div className="w-14 text-xs text-slate-500 text-right font-medium">{count}/{c.sessions}</div>
           {audit.showProjection && (
             <div className="w-20 text-right">
               {projRatio !== null && projRatio !== undefined ? (
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{
+                <span className="text-[11px] px-1.5 py-0.5 rounded font-medium" style={{
                   background: projDelta > 0.02 ? '#fef2f2' : projDelta < -0.02 ? '#eff6ff' : '#f0fdf4',
                   color: projDelta > 0.02 ? '#dc2626' : projDelta < -0.02 ? '#2563eb' : '#16a34a'
                 }}>→ {projRatio.toFixed(2)}</span>
               ) : null}
             </div>
           )}
-          <span className="text-[10px] text-slate-400 w-4">{expanded ? '▲' : '▼'}</span>
+          <span className="text-[11px] text-slate-400 w-4">{expanded ? '▲' : '▼'}</span>
         </div>
         {expanded && dates && dates.length > 0 && (
           <div className="ml-36 mt-1 mb-2 flex flex-wrap gap-1">
             {dates.map((d, i) => (
-              <span key={i} className="text-[10px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#94a3b8"}}>{d.date} <span className="text-slate-400">{d.session.toUpperCase()}</span></span>
+              <span key={i} className="text-[11px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#94a3b8"}}>{d.date} <span className="text-slate-400">{d.session.toUpperCase()}</span></span>
             ))}
           </div>
         )}
@@ -329,7 +329,7 @@ function ClassicWorkloadAudit({ data, huddleData }) {
             );
           })}
         </div>
-        <span className="text-[11px] text-slate-500 ml-auto">{audit.earliestDate} — {audit.latestDate}</span>
+        <span className="text-xs text-slate-500 ml-auto">{audit.earliestDate} — {audit.latestDate}</span>
       </div>
 
       <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
@@ -340,15 +340,15 @@ function ClassicWorkloadAudit({ data, huddleData }) {
         <div className="p-5">
           <div className="flex items-center gap-2 mb-1">
             <div className="text-sm font-semibold text-slate-300">Duty doctor ratio</div>
-            <span className="text-[10px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>avg {audit.avgDutyRatio.toFixed(2)}</span>
+            <span className="text-[11px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>avg {audit.avgDutyRatio.toFixed(2)}</span>
           </div>
           <div className="text-xs text-slate-400 mb-4">Duty sessions ÷ total sessions worked. Black line = average. Everyone should be similar.</div>
           <div className="flex items-center gap-3 mb-1 px-1">
-            <div className="w-32 text-[9px] text-slate-400 text-right">Clinician</div>
-            <div className="flex-1 text-[9px] text-slate-400">Ratio</div>
-            <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
-            <div className="w-14 text-[9px] text-slate-400 text-right">count</div>
-            {audit.showProjection && <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>}
+            <div className="w-32 text-[10px] text-slate-400 text-right">Clinician</div>
+            <div className="flex-1 text-[10px] text-slate-400">Ratio</div>
+            <div className="w-16 text-[10px] text-slate-400 text-right">vs avg</div>
+            <div className="w-14 text-[10px] text-slate-400 text-right">count</div>
+            {audit.showProjection && <div className="w-20 text-[10px] text-slate-400 text-right">+8wk</div>}
             <div className="w-4"></div>
           </div>
           <div className="space-y-2">
@@ -363,15 +363,15 @@ function ClassicWorkloadAudit({ data, huddleData }) {
         <div className="p-5 border-t" style={{borderColor:"rgba(255,255,255,0.06)"}}>
           <div className="flex items-center gap-2 mb-1">
             <div className="text-sm font-semibold text-slate-300">Duty support ratio</div>
-            <span className="text-[10px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>avg {audit.avgSupportRatio.toFixed(2)}</span>
+            <span className="text-[11px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>avg {audit.avgSupportRatio.toFixed(2)}</span>
           </div>
           <div className="text-xs text-slate-400 mb-4">Support sessions ÷ total sessions worked. Clinician with most urgent slots (excl. duty doctor).</div>
           <div className="flex items-center gap-3 mb-1 px-1">
-            <div className="w-32 text-[9px] text-slate-400 text-right">Clinician</div>
-            <div className="flex-1 text-[9px] text-slate-400">Ratio</div>
-            <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
-            <div className="w-14 text-[9px] text-slate-400 text-right">count</div>
-            {audit.showProjection && <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>}
+            <div className="w-32 text-[10px] text-slate-400 text-right">Clinician</div>
+            <div className="flex-1 text-[10px] text-slate-400">Ratio</div>
+            <div className="w-16 text-[10px] text-slate-400 text-right">vs avg</div>
+            <div className="w-14 text-[10px] text-slate-400 text-right">count</div>
+            {audit.showProjection && <div className="w-20 text-[10px] text-slate-400 text-right">+8wk</div>}
             <div className="w-4"></div>
           </div>
           <div className="space-y-2">
@@ -384,16 +384,16 @@ function ClassicWorkloadAudit({ data, huddleData }) {
         <div className="p-5 border-t" style={{borderColor:"rgba(255,255,255,0.06)"}}>
           <div className="flex items-center gap-2 mb-1">
             <div className="text-sm font-semibold text-slate-300">Combined duty burden</div>
-            <span className="text-[10px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>avg {((audit.avgDutyRatio || 0) + (audit.avgSupportRatio || 0)).toFixed(2)}</span>
+            <span className="text-[11px] px-2 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>avg {((audit.avgDutyRatio || 0) + (audit.avgSupportRatio || 0)).toFixed(2)}</span>
           </div>
           <div className="text-xs text-slate-400 mb-4">Total duty + support sessions ÷ total sessions worked. Shows overall on-call burden per clinician.</div>
           <div className="flex items-center gap-3 mb-1 px-1">
-            <div className="w-32 text-[9px] text-slate-400 text-right">Clinician</div>
-            <div className="flex-1 text-[9px] text-slate-400">Combined ratio</div>
-            <div className="w-16 text-[9px] text-slate-400 text-right">vs avg</div>
-            <div className="w-14 text-[9px] text-slate-400 text-right">duty</div>
-            <div className="w-14 text-[9px] text-slate-400 text-right">support</div>
-            <div className="w-20 text-[9px] text-slate-400 text-right">+8wk</div>
+            <div className="w-32 text-[10px] text-slate-400 text-right">Clinician</div>
+            <div className="flex-1 text-[10px] text-slate-400">Combined ratio</div>
+            <div className="w-16 text-[10px] text-slate-400 text-right">vs avg</div>
+            <div className="w-14 text-[10px] text-slate-400 text-right">duty</div>
+            <div className="w-14 text-[10px] text-slate-400 text-right">support</div>
+            <div className="w-20 text-[10px] text-slate-400 text-right">+8wk</div>
           </div>
           <div className="space-y-2">
             {(() => {
@@ -428,19 +428,19 @@ function ClassicWorkloadAudit({ data, huddleData }) {
                       </div>
                       <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(avgCombined / maxCombined) * 100}%`, background: '#1e293b', zIndex: 1 }} />
                       <div className="absolute inset-0 flex items-center px-2">
-                        <span className="text-[10px] font-bold text-white drop-shadow-sm" style={{marginLeft: `${Math.min((c.combinedRatio / maxCombined) * 100 - 8, 92)}%`}}>{c.combinedRatio.toFixed(2)}</span>
+                        <span className="text-[11px] font-bold text-white drop-shadow-sm" style={{marginLeft: `${Math.min((c.combinedRatio / maxCombined) * 100 - 8, 92)}%`}}>{c.combinedRatio.toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="w-16 text-right">
-                      {absDelta < 0.03 ? <span className="text-[10px] px-1.5 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>Fair</span>
-                        : isHigh ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
-                        : <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
+                      {absDelta < 0.03 ? <span className="text-[11px] px-1.5 py-0.5 rounded " style={{background:"rgba(255,255,255,0.06)",color:"#64748b"}}>Fair</span>
+                        : isHigh ? <span className="text-[11px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">+{delta.toFixed(2)}</span>
+                        : <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">{delta.toFixed(2)}</span>}
                     </div>
-                    <div className="w-14 text-[11px] text-right"><span className="text-red-500 font-medium">{c.dutySessions}</span></div>
-                    <div className="w-14 text-[11px] text-right"><span className="text-blue-500 font-medium">{c.supportSessions}</span></div>
+                    <div className="w-14 text-xs text-right"><span className="text-red-500 font-medium">{c.dutySessions}</span></div>
+                    <div className="w-14 text-xs text-right"><span className="text-blue-500 font-medium">{c.supportSessions}</span></div>
                     <div className="w-20 text-right">
                       {projCombined !== null ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{
+                        <span className="text-[11px] px-1.5 py-0.5 rounded font-medium" style={{
                           background: projDelta > 0.02 ? '#fef2f2' : projDelta < -0.02 ? '#eff6ff' : '#f0fdf4',
                           color: projDelta > 0.02 ? '#dc2626' : projDelta < -0.02 ? '#2563eb' : '#16a34a'
                         }}>→ {projCombined.toFixed(2)}</span>
@@ -464,7 +464,7 @@ function ClassicWorkloadAudit({ data, huddleData }) {
         <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
           <div className="bg-gradient-to-r from-indigo-700 to-violet-600 px-5 py-3">
             <div className="text-base font-semibold text-white">Weekly capacity trend</div>
-            <div className="text-[11px] text-white/60">Urgent vs routine slots offered per week (available + embargoed + booked)</div>
+            <div className="text-xs text-white/60">Urgent vs routine slots offered per week (available + embargoed + booked)</div>
           </div>
           <div className="p-5">
             <div className="flex items-end gap-1" style={{height: 180}}>
@@ -480,10 +480,10 @@ function ClassicWorkloadAudit({ data, huddleData }) {
                         {w.urgent > 0 && <div style={{height: `${urgentPct}%`, background: '#ef4444'}} />}
                       </div>
                     </div>
-                    <div className="text-[8px] text-slate-400 text-center leading-tight mt-0.5">{w.weekKey}</div>
+                    <div className="text-[9px] text-slate-400 text-center leading-tight mt-0.5">{w.weekKey}</div>
                     <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" style={{background:'#1e293b',border:'1px solid #334155',minWidth:'110px'}}>
                       <div className="text-xs font-bold text-slate-200 mb-0.5">w/c {w.weekKey}</div>
-                      <div className="space-y-0.5 text-[11px]">
+                      <div className="space-y-0.5 text-xs">
                         <div className="flex justify-between gap-3"><span className="text-slate-400">Urgent</span><span className="font-semibold text-red-400">{w.urgent}</span></div>
                         <div className="flex justify-between gap-3"><span className="text-slate-400">Routine</span><span className="font-semibold text-emerald-400">{w.routine}</span></div>
                         <div className="flex justify-between gap-3 border-t border-slate-600 pt-0.5"><span className="text-slate-400">Total</span><span className="font-semibold text-slate-200">{w.total}</span></div>
@@ -522,7 +522,7 @@ function ClassicWorkloadAudit({ data, huddleData }) {
               <div className="p-5 border-t" style={{borderColor:"rgba(255,255,255,0.06)"}}>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="text-sm font-semibold text-slate-300">Urgent capacity %</div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-red-50 text-red-600">avg {avgPct}%</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-red-50 text-red-600">avg {avgPct}%</span>
                 </div>
                 <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full">
                   {gridLines.map(v => {

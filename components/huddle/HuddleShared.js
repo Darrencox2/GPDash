@@ -61,8 +61,8 @@ export function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#1
         )}
         {children}
       </svg>
-      {label && <div className="text-[10px] text-slate-500 font-medium mt-0.5">{label}</div>}
-      {sublabel && <div className="text-[9px] text-slate-400">{sublabel}</div>}
+      {label && <div className="text-[11px] text-slate-500 font-medium mt-0.5">{label}</div>}
+      {sublabel && <div className="text-[10px] text-slate-400">{sublabel}</div>}
     </div>
   );
 }
@@ -123,21 +123,21 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
         <div className="flex flex-col items-center py-3" style={{ background: 'rgba(15,23,42,0.5)' }}>
           <div className="flex items-center gap-1 mb-0.5">
             <div className="w-2 h-2 rounded-full" style={{ background: accent }} />
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Available</span>
+            <span className="text-[11px] text-slate-500 uppercase tracking-wider">Available</span>
           </div>
           <span className="font-mono-data text-xl font-bold" style={{ color: accent }}>{totalAvail}</span>
         </div>
         <div className="flex flex-col items-center py-3" style={{ background: 'rgba(15,23,42,0.5)' }}>
           <div className="flex items-center gap-1 mb-0.5">
             <div className="w-2 h-2 rounded-full bg-amber-400" />
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Embargoed</span>
+            <span className="text-[11px] text-slate-500 uppercase tracking-wider">Embargoed</span>
           </div>
           <span className="font-mono-data text-xl font-bold text-amber-400">{totalEmb}</span>
         </div>
         <div className="flex flex-col items-center py-3" style={{ background: 'rgba(15,23,42,0.5)' }}>
           <div className="flex items-center gap-1 mb-0.5">
             <div className="w-2 h-2 rounded-full bg-red-400" />
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Booked</span>
+            <span className="text-[11px] text-slate-500 uppercase tracking-wider">Booked</span>
           </div>
           <span className="font-mono-data text-xl font-bold text-red-400">{totalBooked}</span>
         </div>
@@ -145,14 +145,14 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
 
       {/* Column headers + click-through hint */}
       <div className="px-4 py-2 flex items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="flex-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="flex-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
           Clinician
-          <span className="ml-2 text-[9px] text-slate-600 normal-case tracking-normal italic">(click for slots)</span>
+          <span className="ml-2 text-[10px] text-slate-600 normal-case tracking-normal italic">(click for slots)</span>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="w-9 text-center text-[9px] font-semibold uppercase tracking-wider" style={{ color: accent }}>Avail</span>
-          <span className="w-9 text-center text-[9px] font-semibold text-amber-400 uppercase tracking-wider">Emb</span>
-          <span className="w-9 text-center text-[9px] font-semibold text-red-400 uppercase tracking-wider">Bkd</span>
+          <span className="w-9 text-center text-[10px] font-semibold uppercase tracking-wider" style={{ color: accent }}>Avail</span>
+          <span className="w-9 text-center text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Emb</span>
+          <span className="w-9 text-center text-[10px] font-semibold text-red-400 uppercase tracking-wider">Bkd</span>
         </div>
       </div>
 
@@ -176,7 +176,7 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
             >
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-slate-200 truncate">{title ? `${title} ` : ''}{displayName}</div>
-                {role && <div className="text-[10px] text-slate-500 truncate">{role}</div>}
+                {role && <div className="text-[11px] text-slate-500 truncate">{role}</div>}
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <span className="w-9 text-center text-sm font-mono-data tabular-nums rounded py-0.5" style={{ color: accent, background: `${accent}15` }}>{c.available}</span>
@@ -193,7 +193,7 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
       {/* Slot type breakdown — only when we have type data */}
       {cap.bySlotType.length > 0 && (
         <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">By slot type</div>
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">By slot type</div>
           <div className="space-y-1">
             {cap.bySlotType.map((s, i) => (
               <div key={i} className="flex items-center justify-between py-1 text-xs">
@@ -278,7 +278,7 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
           <span className="text-xs text-slate-500">available</span>
           {totals.book > 0 && <span className="text-xs text-slate-600 ml-1">· {totals.book} booked</span>}
         </div>
-        <div className="text-[10px] text-slate-600 uppercase tracking-wider">{dayCount} days</div>
+        <div className="text-[11px] text-slate-600 uppercase tracking-wider">{dayCount} days</div>
       </div>
       <div className="flex items-end relative" style={{ height: 100, gap: dayCount > 14 ? 2 : 6 }}>
         {days.map((d, i) => {
@@ -304,7 +304,7 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {showCountLabel && hasData && total > 0 && (
-                <div className="text-[10px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? availColour : '#64748b'}}>
+                <div className="text-[11px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? availColour : '#64748b'}}>
                   {avail + emb}{book > 0 && <span style={{color:'#ef4444'}}>+{book}</span>}
                 </div>
               )}
@@ -323,14 +323,14 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
               </div>
               {showDayLabel ? (
                 <div className="mt-0.5 text-center">
-                  <div className="text-[9px] leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
-                  <div className="text-[8px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
+                  <div className="text-[10px] leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+                  <div className="text-[9px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
                 </div>
               ) : <div style={{height:18}} />}
               {isHovered && hasData && total > 0 && (
                 <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap pointer-events-none" style={{background:'#0f172a',border:'1px solid #334155',minWidth:'100px'}}>
                   <div className="text-xs font-bold mb-0.5 text-slate-200">{d.dayName} {d.dayNum}</div>
-                  <div className="space-y-0.5 text-[11px]">
+                  <div className="space-y-0.5 text-xs">
                     <div className="flex justify-between gap-3"><span className="text-slate-400">Available</span><span className="font-semibold" style={{color:availColour}}>{avail}</span></div>
                     {emb > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
                     {book > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
@@ -449,12 +449,12 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
       <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
         <span className="text-xs text-slate-300 truncate flex-1">{row.slotType}</span>
         {row.count > 1 && (
-          <span className="font-mono-data text-[10px] text-slate-400 flex-shrink-0 px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          <span className="font-mono-data text-[11px] text-slate-400 flex-shrink-0 px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.04)' }}>
             ×{row.count}
           </span>
         )}
         <span
-          className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-semibold flex-shrink-0"
+          className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded font-semibold flex-shrink-0"
           style={{ background: style.bg, border: `1px solid ${style.border}`, color: style.text }}
         >
           {style.label}
@@ -473,20 +473,20 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
     return (
       <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
           <span className="font-mono-data text-sm font-bold text-slate-300">{t} slots</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: `${accent}10`, border: `1px solid ${accent}25` }}>
-            <div className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: accent }}>Avail</div>
+            <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: accent }}>Avail</div>
             <div className="font-mono-data text-base font-bold" style={{ color: accent }}>{row.available || 0}</div>
           </div>
           <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-            <div className="text-[9px] uppercase tracking-wider text-amber-400 mb-0.5">Emb</div>
+            <div className="text-[10px] uppercase tracking-wider text-amber-400 mb-0.5">Emb</div>
             <div className="font-mono-data text-base font-bold text-amber-400">{row.embargoed || 0}</div>
           </div>
           <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <div className="text-[9px] uppercase tracking-wider text-red-400 mb-0.5">Bkd</div>
+            <div className="text-[10px] uppercase tracking-wider text-red-400 mb-0.5">Bkd</div>
             <div className="font-mono-data text-base font-bold text-red-400">{row.booked || 0}</div>
           </div>
         </div>
@@ -527,8 +527,8 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
             {amRows.length > 0 && (
               <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Morning</span>
-                  <span className="text-[10px] text-slate-600">{amRows.reduce((s, r) => s + r.count, 0)} slots</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Morning</span>
+                  <span className="text-[11px] text-slate-600">{amRows.reduce((s, r) => s + r.count, 0)} slots</span>
                 </div>
                 <div className="space-y-1">
                   {amRows.map((r, i) => <SlotRow key={`am-${i}`} row={r} i={i} />)}
@@ -538,8 +538,8 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
             {pmRows.length > 0 && (
               <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Afternoon</span>
-                  <span className="text-[10px] text-slate-600">{pmRows.reduce((s, r) => s + r.count, 0)} slots</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Afternoon</span>
+                  <span className="text-[11px] text-slate-600">{pmRows.reduce((s, r) => s + r.count, 0)} slots</span>
                 </div>
                 <div className="space-y-1">
                   {pmRows.map((r, i) => <SlotRow key={`pm-${i}`} row={r} i={i} />)}
@@ -555,7 +555,7 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
           <SessionTileBlock label="Morning" row={amRow} />
           <SessionTileBlock label="Afternoon" row={pmRow} />
           {(amRow || pmRow) && (
-            <div className="px-4 py-3 text-[11px] text-slate-600 italic" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="px-4 py-3 text-xs text-slate-600 italic" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
               Per-slot times appear after the next CSV upload.
             </div>
           )}
@@ -603,7 +603,7 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
               const pct = (flexBefore / totalFlex) * 100;
               return <div key={`t${ti}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{ left: `${pct}%` }}>
                 <div className="absolute top-0 bottom-0 w-px" style={{ background: '#475569', opacity: 0.6 }} />
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-500 whitespace-nowrap" style={{background:'#1e293b',border:'1px solid #334155'}}>{t}d</div>
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-500 whitespace-nowrap" style={{background:'#1e293b',border:'1px solid #334155'}}>{t}d</div>
               </div>;
             })}
           </>;
@@ -626,7 +626,7 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {hasData && total > 0 && (
-                <div className="text-[10px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? '#34d399' : '#64748b'}}>
+                <div className="text-[11px] font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? '#34d399' : '#64748b'}}>
                   {avail}{emb > 0 && <span style={{color:'#fbbf24'}}>+{emb}</span>}
                 </div>
               )}
@@ -648,10 +648,10 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
                 <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-3 py-2 shadow-xl whitespace-nowrap pointer-events-none" style={{background:'#0f172a',border:'1px solid #334155',minWidth:'120px'}}>
                   <div className="text-xs font-bold mb-1 text-slate-200">{d.dayName} {d.dayNum} {d.monthShort}</div>
                   <div className="space-y-0.5">
-                    <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#10b981'}} />Available</span><span className="font-semibold text-emerald-400">{avail}</span></div>
-                    {emb > 0 && <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f59e0b'}} />Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
-                    {book > 0 && <div className="flex items-center justify-between gap-3 text-[11px]"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#ef4444'}} />Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
-                    <div className="flex items-center justify-between gap-3 text-[11px] pt-0.5" style={{borderTop:'1px solid #334155'}}><span className="text-slate-400">Total</span><span className="font-bold text-white">{total}</span></div>
+                    <div className="flex items-center justify-between gap-3 text-xs"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#10b981'}} />Available</span><span className="font-semibold text-emerald-400">{avail}</span></div>
+                    {emb > 0 && <div className="flex items-center justify-between gap-3 text-xs"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f59e0b'}} />Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
+                    {book > 0 && <div className="flex items-center justify-between gap-3 text-xs"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#ef4444'}} />Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
+                    <div className="flex items-center justify-between gap-3 text-xs pt-0.5" style={{borderTop:'1px solid #334155'}}><span className="text-slate-400">Total</span><span className="font-bold text-white">{total}</span></div>
                   </div>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid #334155'}} />
                 </div>
@@ -665,8 +665,8 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
           if (d.isWeekend) return <div key={i} className="flex-[0.3]" />;
           const isToday = i === 0;
           return <div key={i} className={`flex-1 text-center ${d.isMonday && i > 0 ? 'ml-1 pl-1' : ''}`}>
-            <div className="text-[9px] leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
-            <div className="text-[8px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
+            <div className="text-[10px] leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+            <div className="text-[9px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
           </div>;
         })}
       </div>

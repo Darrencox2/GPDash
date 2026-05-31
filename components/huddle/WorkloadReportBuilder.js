@@ -39,13 +39,13 @@ function ChipGroup({ options, selected, onChange, allLabel = 'Any', allowAll = t
   return (
     <div className="flex items-center gap-1 flex-wrap">
       {allowAll && (
-        <button onClick={() => onChange([])} className="text-[10px] px-2 py-1 rounded-md"
+        <button onClick={() => onChange([])} className="text-[11px] px-2 py-1 rounded-md"
           style={{ background: none ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${none ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`, color: none ? '#c7d2fe' : '#94a3b8' }}>{allLabel}</button>
       )}
       {options.map(o => {
         const on = (selected || []).includes(o.id);
         return (
-          <button key={o.id} onClick={() => toggle(o.id)} className="text-[10px] px-2 py-1 rounded-md flex items-center gap-1"
+          <button key={o.id} onClick={() => toggle(o.id)} className="text-[11px] px-2 py-1 rounded-md flex items-center gap-1"
             style={{ background: on ? `${o.colour}28` : 'rgba(255,255,255,0.04)', border: `1px solid ${on ? `${o.colour}88` : 'rgba(255,255,255,0.08)'}`, color: on ? '#e2e8f0' : '#94a3b8' }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: o.colour, opacity: on ? 1 : 0.4 }} />{o.label}
           </button>
@@ -61,7 +61,7 @@ function Segmented({ options, value, onChange, disabledIds = [] }) {
       {options.map(o => {
         const active = value === o.id, disabled = disabledIds.includes(o.id);
         return (
-          <button key={o.id} disabled={disabled} onClick={() => !disabled && onChange(o.id)} className="text-[11px] font-medium px-2.5 py-1 rounded"
+          <button key={o.id} disabled={disabled} onClick={() => !disabled && onChange(o.id)} className="text-xs font-medium px-2.5 py-1 rounded"
             style={{ background: active ? 'rgba(99,102,241,0.9)' : 'transparent', color: disabled ? '#475569' : active ? 'white' : '#94a3b8', cursor: disabled ? 'not-allowed' : 'pointer' }}>{o.label}</button>
         );
       })}
@@ -82,7 +82,7 @@ function MultiSelect({ label, options, selected, onChange }) {
   };
   return (
     <div>
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between text-[11px] rounded-md px-2 py-1.5"
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between text-xs rounded-md px-2 py-1.5"
         style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${sel.length ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'}`, color: '#e2e8f0' }}>
         <span>{label}{sel.length ? ` · ${sel.length}` : ''}</span>
         <span className="text-slate-500">{open ? '▲' : '▼'}</span>
@@ -90,9 +90,9 @@ function MultiSelect({ label, options, selected, onChange }) {
       {open && (
         <div className="mt-1 rounded-md p-2 space-y-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-1">
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" className="flex-1 text-[10px] rounded px-2 py-1"
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" className="flex-1 text-[11px] rounded px-2 py-1"
               style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
-            {sel.length > 0 && <button onClick={() => onChange([])} className="text-[10px] text-slate-400 px-1">Clear</button>}
+            {sel.length > 0 && <button onClick={() => onChange([])} className="text-[11px] text-slate-400 px-1">Clear</button>}
           </div>
           <div className="max-h-40 overflow-y-auto space-y-0.5">
             {filtered.map(o => {
@@ -100,11 +100,11 @@ function MultiSelect({ label, options, selected, onChange }) {
               return (
                 <label key={o.id} className="flex items-center gap-2 cursor-pointer px-1 py-0.5 rounded hover:bg-white/5">
                   <input type="checkbox" checked={on} onChange={() => toggle(o.id)} className="accent-indigo-500" />
-                  <span className="text-[10px] text-slate-300 truncate">{o.label}</span>
+                  <span className="text-[11px] text-slate-300 truncate">{o.label}</span>
                 </label>
               );
             })}
-            {filtered.length === 0 && <div className="text-[10px] text-slate-600 px-1 py-1">No matches</div>}
+            {filtered.length === 0 && <div className="text-[11px] text-slate-600 px-1 py-1">No matches</div>}
           </div>
         </div>
       )}
@@ -116,7 +116,7 @@ function PanelSection({ title, children, right }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{title}</div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</div>
         {right}
       </div>
       {children}
@@ -130,8 +130,8 @@ function StepSection({ n, title, children, right }) {
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center text-[9px] font-bold rounded-full" style={{ width: 16, height: 16, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{n}</span>
-          <span className="text-[11px] font-semibold text-slate-200">{title}</span>
+          <span className="flex items-center justify-center text-[10px] font-bold rounded-full" style={{ width: 16, height: 16, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{n}</span>
+          <span className="text-xs font-semibold text-slate-200">{title}</span>
         </div>
         {right}
       </div>
@@ -145,10 +145,10 @@ function Collapsible({ title, badge, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div>
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 text-[11px] font-semibold text-slate-300" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 text-xs font-semibold text-slate-300" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
         <span className="text-slate-500">{open ? '▾' : '▸'}</span>
         <span>{title}</span>
-        {badge ? <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{badge}</span> : null}
+        {badge ? <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{badge}</span> : null}
       </button>
       {open && <div className="mt-2 pl-[18px] space-y-2.5">{children}</div>}
     </div>
@@ -386,7 +386,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             <div className="text-[15px] font-semibold text-slate-100 leading-snug">
               {describeMeasure(config)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
+            <div className="text-xs text-slate-400 mt-0.5">
               by <span className="text-indigo-300">{groupByOpts.find(o => o.id === groupBy)?.label.toLowerCase()}</span>
               {result.hasSplit && <> · split by <span className="text-indigo-300">{splitByOpts.find(o => o.id === splitBy)?.label.toLowerCase()}</span></>}
               {' · '}<span className="text-slate-300">{RANGE_OPTIONS.find(o => o.id === range)?.label.toLowerCase()}</span>
@@ -394,13 +394,13 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="text-right mr-1"><div className="text-[10px] text-slate-500 leading-none">Overall</div><div className="text-lg font-bold text-indigo-300 leading-tight">{fmt(result.totalValue)}</div></div>
-            <button onClick={copyTable} className="text-[10px] px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>Copy</button>
-            <button onClick={downloadCsv} className="text-[10px] px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>CSV</button>
+            <div className="text-right mr-1"><div className="text-[11px] text-slate-500 leading-none">Overall</div><div className="text-lg font-bold text-indigo-300 leading-tight">{fmt(result.totalValue)}</div></div>
+            <button onClick={copyTable} className="text-[11px] px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>Copy</button>
+            <button onClick={downloadCsv} className="text-[11px] px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>CSV</button>
           </div>
         </div>
 
-        {insight && <div className="mb-4 text-[11px] text-amber-200/90 rounded-lg px-3 py-2" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>💡 {insight}</div>}
+        {insight && <div className="mb-4 text-xs text-amber-200/90 rounded-lg px-3 py-2" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>💡 {insight}</div>}
 
         {dutyMissing ? (
           <p className="text-sm text-slate-400 text-center py-8">Duty doctor slot not configured. Set a duty slot type in the Today page filter to enable duty &amp; support session reports.</p>
@@ -420,22 +420,22 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
       {/* RIGHT CONTROLS */}
       <div className="w-full lg:w-80 lg:flex-shrink-0 rounded-xl p-4 space-y-5" style={{ background: 'rgba(15,23,42,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
         <PanelSection title="Quick reports" right={
-          canEdit ? <button onClick={() => setShowSaveBox(s => !s)} className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>+ Save</button> : null
+          canEdit ? <button onClick={() => setShowSaveBox(s => !s)} className="text-[11px] px-2 py-0.5 rounded" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>+ Save</button> : null
         }>
           {showSaveBox && canEdit && (
             <div className="flex items-center gap-1 mb-2">
-              <input value={newReportName} onChange={e => setNewReportName(e.target.value)} placeholder="Report name…" className="flex-1 text-[10px] rounded px-2 py-1"
+              <input value={newReportName} onChange={e => setNewReportName(e.target.value)} placeholder="Report name…" className="flex-1 text-[11px] rounded px-2 py-1"
                 style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
-              <button onClick={saveReport} disabled={savingReport || !newReportName.trim()} className="text-[10px] px-2 py-1 rounded"
+              <button onClick={saveReport} disabled={savingReport || !newReportName.trim()} className="text-[11px] px-2 py-1 rounded"
                 style={{ background: '#10b981', color: '#06281e', border: 'none', opacity: (savingReport || !newReportName.trim()) ? 0.5 : 1 }}>{savingReport ? '…' : 'Save'}</button>
             </div>
           )}
           {savedReports.length > 0 && (
             <div className="mb-2">
-              <div className="text-[9px] uppercase tracking-wide text-emerald-600/80 mb-1">My saved reports</div>
+              <div className="text-[10px] uppercase tracking-wide text-emerald-600/80 mb-1">My saved reports</div>
               <div className="flex flex-wrap gap-1.5">
                 {savedReports.map(r => (
-                  <span key={r.id} className="flex items-center text-[10px] rounded-md overflow-hidden" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                  <span key={r.id} className="flex items-center text-[11px] rounded-md overflow-hidden" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
                     <button onClick={() => applyConfig(r.config)} className="px-2 py-1" style={{ color: '#6ee7b7', background: 'none', border: 'none' }}>{r.name}</button>
                     {canEdit && <button onClick={() => deleteReport(r.id)} title="Delete" className="px-1.5 py-1 text-emerald-700/70 hover:text-red-400" style={{ background: 'rgba(0,0,0,0.15)', border: 'none' }}>×</button>}
                   </span>
@@ -446,10 +446,10 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           <div className="space-y-3">
             {PRESET_GROUPS.map(g => (
               <div key={g.group}>
-                <div className="text-[9px] uppercase tracking-wide text-slate-600 mb-1">{g.group}</div>
+                <div className="text-[10px] uppercase tracking-wide text-slate-600 mb-1">{g.group}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {g.presets.map(p => (
-                    <button key={p.id} onClick={() => applyPreset(p)} className="text-[10px] px-2 py-1 rounded-md text-left"
+                    <button key={p.id} onClick={() => applyPreset(p)} className="text-[11px] px-2 py-1 rounded-md text-left"
                       style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', color: '#c7d2fe' }}>{p.label}</button>
                   ))}
                 </div>
@@ -463,8 +463,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
         {/* ① Measure */}
         <StepSection n="1" title="Measure">
           <Segmented options={[{ id: 'slots', label: 'Slots' }, { id: 'sessions', label: 'Sessions' }]} value={grain} onChange={setGrain} />
-          <p className="text-[9px] text-slate-600 leading-snug">{isSession ? 'A session = one clinician working an AM or PM.' : 'A slot = one appointment slot.'}</p>
-          <div className="text-[9px] text-slate-500 font-medium mt-1">Count {isSession ? 'sessions' : 'slots'} that are…</div>
+          <p className="text-[10px] text-slate-600 leading-snug">{isSession ? 'A session = one clinician working an AM or PM.' : 'A slot = one appointment slot.'}</p>
+          <div className="text-[10px] text-slate-500 font-medium mt-1">Count {isSession ? 'sessions' : 'slots'} that are…</div>
           {isSession ? (
             <>
               <ChipGroup options={KIND_OPTS} selected={num.kinds} onChange={(v) => setNum(n => ({ ...n, kinds: v.length ? v : ['worked'] }))} allowAll={false} />
@@ -472,22 +472,22 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             </>
           ) : (
             <>
-              <div className="text-[9px] text-slate-600">Status</div>
+              <div className="text-[10px] text-slate-600">Status</div>
               <ChipGroup options={STATUS_OPTS} selected={num.statuses} onChange={(v) => setNum(n => ({ ...n, statuses: v }))} />
-              <div className="text-[9px] text-slate-600">Category</div>
+              <div className="text-[10px] text-slate-600">Category</div>
               <ChipGroup options={CATEGORY_OPTS} selected={num.categories} onChange={(v) => setNum(n => ({ ...n, categories: v }))} />
             </>
           )}
           {/* Show as — the denominator */}
-          <div className="text-[9px] text-slate-500 font-medium mt-2">Show as</div>
-          <select value={denomMode} onChange={e => setDenomMode(e.target.value)} className="w-full text-[11px] rounded-md px-2 py-1.5"
+          <div className="text-[10px] text-slate-500 font-medium mt-2">Show as</div>
+          <select value={denomMode} onChange={e => setDenomMode(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5"
             style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
             <option value="none" style={{ background: '#1e293b' }}>Count (raw number)</option>
             <option value="group" style={{ background: '#1e293b' }}>% of each group&rsquo;s total</option>
             <option value="total" style={{ background: '#1e293b' }}>% of overall total (share)</option>
             <option value="custom" style={{ background: '#1e293b' }}>% of a custom subset…</option>
           </select>
-          <p className="text-[9px] text-slate-600 leading-snug">
+          <p className="text-[10px] text-slate-600 leading-snug">
             {denomMode === 'group' && `Each ${isSession ? 'clinician/group' : 'group'} as a rate — e.g. booked ÷ all that group's slots = fill rate.`}
             {denomMode === 'total' && 'Each group as a share of the whole report. Shares add up to 100%.'}
             {denomMode === 'custom' && 'Divide by your own subset, defined below.'}
@@ -495,7 +495,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           </p>
           {denomMode === 'custom' && (
             <div className="mt-1 pl-3 space-y-2" style={{ borderLeft: '2px solid rgba(99,102,241,0.3)' }}>
-              <div className="text-[9px] text-slate-600">…as a % of {isSession ? 'sessions' : 'slots'} that are:</div>
+              <div className="text-[10px] text-slate-600">…as a % of {isSession ? 'sessions' : 'slots'} that are:</div>
               {isSession ? (
                 <>
                   <ChipGroup options={KIND_OPTS} selected={denom.kinds} onChange={(v) => setDenom(d => ({ ...d, kinds: v.length ? v : ['worked'] }))} allowAll={false} />
@@ -503,9 +503,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 </>
               ) : (
                 <>
-                  <div className="text-[9px] text-slate-600">Status</div>
+                  <div className="text-[10px] text-slate-600">Status</div>
                   <ChipGroup options={STATUS_OPTS} selected={denom.statuses} onChange={(v) => setDenom(d => ({ ...d, statuses: v }))} />
-                  <div className="text-[9px] text-slate-600">Category</div>
+                  <div className="text-[10px] text-slate-600">Category</div>
                   <ChipGroup options={CATEGORY_OPTS} selected={denom.categories} onChange={(v) => setDenom(d => ({ ...d, categories: v }))} />
                 </>
               )}
@@ -517,13 +517,13 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
         {/* ② Break down */}
         <StepSection n="2" title="Break down">
-          <div className="text-[9px] text-slate-600">Group by (bars / rows)</div>
-          <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="w-full text-[11px] rounded-md px-2 py-1.5"
+          <div className="text-[10px] text-slate-600">Group by (bars / rows)</div>
+          <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5"
             style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
             {groupByOpts.map(o => <option key={o.id} value={o.id} style={{ background: '#1e293b' }}>{o.label}</option>)}
           </select>
-          <div className="text-[9px] text-slate-600 mt-1">Compare by (splits into series)</div>
-          <select value={splitBy} onChange={e => setSplitBy(e.target.value)} className="w-full text-[11px] rounded-md px-2 py-1.5"
+          <div className="text-[10px] text-slate-600 mt-1">Compare by (splits into series)</div>
+          <select value={splitBy} onChange={e => setSplitBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5"
             style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
             {splitByOpts.filter(o => o.id !== groupBy).map(o => <option key={o.id} value={o.id} style={{ background: '#1e293b' }}>{o.label}</option>)}
           </select>
@@ -535,12 +535,12 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
         <StepSection n="3" title="Filter">
           <Collapsible title="Narrow the data" badge={filterCount || null} defaultOpen={filterCount > 0}>
             <MultiSelect label="Clinicians" options={filterOpts.clinicians} selected={globalFilter.clinicianIds} onChange={(v) => setGlobalFilter(f => ({ ...f, clinicianIds: v }))} />
-            {filterOpts.roles.length > 1 && (<><div className="text-[9px] text-slate-600">Role</div><ChipGroup options={filterOpts.roles.map((r, i) => ({ ...r, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.roles} onChange={(v) => setGlobalFilter(f => ({ ...f, roles: v }))} /></>)}
-            {!isSession && filterOpts.locations.length > 1 && (<><div className="text-[9px] text-slate-600">Site</div><ChipGroup options={filterOpts.locations.map((l, i) => ({ ...l, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.locations} onChange={(v) => setGlobalFilter(f => ({ ...f, locations: v }))} /></>)}
+            {filterOpts.roles.length > 1 && (<><div className="text-[10px] text-slate-600">Role</div><ChipGroup options={filterOpts.roles.map((r, i) => ({ ...r, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.roles} onChange={(v) => setGlobalFilter(f => ({ ...f, roles: v }))} /></>)}
+            {!isSession && filterOpts.locations.length > 1 && (<><div className="text-[10px] text-slate-600">Site</div><ChipGroup options={filterOpts.locations.map((l, i) => ({ ...l, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.locations} onChange={(v) => setGlobalFilter(f => ({ ...f, locations: v }))} /></>)}
             {!isSession && <MultiSelect label="Slot types" options={filterOpts.slotTypes} selected={globalFilter.slotTypes} onChange={(v) => setGlobalFilter(f => ({ ...f, slotTypes: v }))} />}
-            <div className="text-[9px] text-slate-600">Session</div>
+            <div className="text-[10px] text-slate-600">Session</div>
             <ChipGroup options={SESSION_OPTS} selected={globalFilter.sessions} onChange={(v) => setGlobalFilter(f => ({ ...f, sessions: v }))} allLabel="AM+PM" />
-            {filterCount > 0 && <button onClick={() => setGlobalFilter({ clinicianIds: [], roles: [], locations: [], slotTypes: [], sessions: [] })} className="text-[10px] text-slate-400 hover:text-white mt-1" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear all filters</button>}
+            {filterCount > 0 && <button onClick={() => setGlobalFilter({ clinicianIds: [], roles: [], locations: [], slotTypes: [], sessions: [] })} className="text-[11px] text-slate-400 hover:text-white mt-1" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear all filters</button>}
           </Collapsible>
         </StepSection>
 
@@ -548,28 +548,28 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
         {/* ④ View */}
         <StepSection n="4" title="View">
-          <div className="text-[9px] text-slate-600">Date range</div>
+          <div className="text-[10px] text-slate-600">Date range</div>
           <Segmented options={RANGE_OPTIONS} value={range} onChange={setRange} />
-          <div className="text-[9px] text-slate-600 mt-1">Chart</div>
+          <div className="text-[10px] text-slate-600 mt-1">Chart</div>
           <Segmented options={[{ id: 'bars', label: 'Bars' }, { id: 'stacked', label: 'Stacked' }, { id: 'trend', label: 'Trend' }, { id: 'table', label: 'Table' }]} value={chart} onChange={setChart}
             disabledIds={[...(timeOk ? [] : ['trend']), ...(result.hasSplit ? [] : ['stacked'])]} />
           <Collapsible title="More options">
-            <div className="flex items-center justify-between"><span className="text-[10px] text-slate-400">Sort</span>
+            <div className="flex items-center justify-between"><span className="text-[11px] text-slate-400">Sort</span>
               <Segmented options={[{ id: 'value', label: 'Value' }, { id: 'alpha', label: 'A–Z' }]} value={sort} onChange={setSort} /></div>
-            <div className="flex items-center justify-between"><span className="text-[10px] text-slate-400">Show</span>
+            <div className="flex items-center justify-between"><span className="text-[11px] text-slate-400">Show</span>
               <Segmented options={[{ id: '0', label: 'All' }, { id: '10', label: 'Top 10' }, { id: '5', label: 'Top 5' }]} value={String(topN)} onChange={(v) => setTopN(parseInt(v))} /></div>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={excludeSystem} onChange={e => setExcludeSystem(e.target.checked)} className="accent-indigo-500" />
-              <span className="text-[10px] text-slate-300">Exclude system rows (TRIAGE, CCAS…)</span>
+              <span className="text-[11px] text-slate-300">Exclude system rows (TRIAGE, CCAS…)</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={refOn} onChange={e => setRefOn(e.target.checked)} className="accent-indigo-500" />
-              <span className="text-[10px] text-slate-300">Reference line</span>
+              <span className="text-[11px] text-slate-300">Reference line</span>
             </label>
             {refOn && (
               <div className="pl-5 flex items-center gap-2">
                 <Segmented options={[{ id: 'auto', label: result.isRatio ? 'Fair share' : 'Average' }, { id: 'custom', label: 'Custom' }]} value={refMode} onChange={setRefMode} />
-                {refMode === 'custom' && <input value={refCustom} onChange={e => setRefCustom(e.target.value)} placeholder="value" className="w-16 text-[10px] rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />}
+                {refMode === 'custom' && <input value={refCustom} onChange={e => setRefCustom(e.target.value)} placeholder="value" className="w-16 text-[11px] rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />}
               </div>
             )}
           </Collapsible>
@@ -596,7 +596,7 @@ function DrillModal({ drill, isSession, onClose }) {
         <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
           <div>
             <div className="text-sm font-semibold text-white">{groupLabel}{seriesLabel ? ` · ${seriesLabel}` : ''}</div>
-            <div className="text-[10px] text-slate-500">{totalCount} {isSession ? 'session' : 'slot'}{totalCount === 1 ? '' : 's'} across {dates.length} day{dates.length === 1 ? '' : 's'}</div>
+            <div className="text-[11px] text-slate-500">{totalCount} {isSession ? 'session' : 'slot'}{totalCount === 1 ? '' : 's'} across {dates.length} day{dates.length === 1 ? '' : 's'}</div>
           </div>
           <button onClick={onClose} className="ml-auto text-slate-400 hover:text-white" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }} aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
@@ -609,10 +609,10 @@ function DrillModal({ drill, isSession, onClose }) {
             const d = new Date(iso + 'T00:00:00');
             return (
               <div key={iso} className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div className="text-[11px] font-medium text-slate-300 mb-1">{d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                <div className="text-xs font-medium text-slate-300 mb-1">{d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div>
                 <div className="flex flex-wrap gap-1">
                   {rows.map((f, i) => (
-                    <span key={i} className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+                    <span key={i} className="text-[11px] px-2 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
                       {f.session.toUpperCase()}
                       {isSession
                         ? ` · ${f.clinicianName}${f.isDuty ? ' · duty' : ''}${f.isSupport ? ' · support' : ''}`
@@ -636,12 +636,12 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick }) 
     <div className="space-y-2">
       {multi && (
         <div className="flex flex-wrap gap-3 mb-2">
-          {result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}
+          {result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-[11px] text-slate-400"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}
         </div>
       )}
       {result.groups.map((g, gi) => (
         <div key={g.key} className="flex items-center gap-3">
-          <div className="w-32 lg:w-36 text-[11px] font-medium text-slate-300 truncate text-right" title={g.label}>{g.label}</div>
+          <div className="w-32 lg:w-36 text-xs font-medium text-slate-300 truncate text-right" title={g.label}>{g.label}</div>
           <div className="flex-1 min-w-0">
             {multi ? (
               <div className="space-y-0.5">
@@ -650,7 +650,7 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick }) 
                   return (
                     <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} className="relative h-3.5 rounded overflow-hidden cursor-pointer" style={{ background: 'rgba(255,255,255,0.05)' }} title="Click to drill down">
                       <div className="absolute left-0 top-0 bottom-0 rounded" style={{ width: `${Math.max(w, 0.5)}%`, background: PALETTE[si % PALETTE.length], opacity: 0.85 }} />
-                      <span className="absolute right-1 top-0 bottom-0 flex items-center text-[8px] text-slate-300">{fmt(cell.value)}</span>
+                      <span className="absolute right-1 top-0 bottom-0 flex items-center text-[9px] text-slate-300">{fmt(cell.value)}</span>
                     </div>
                   );
                 })}
@@ -660,8 +660,8 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick }) 
                 <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${Math.max((g.value / maxVal) * 100, 1)}%`, background: PALETTE[gi % PALETTE.length], opacity: 0.8 }} />
                 {refValue != null && <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(refValue / maxVal) * 100}%`, background: 'rgba(255,255,255,0.5)' }} title={refLabel} />}
                 <div className="absolute inset-0 flex items-center px-2.5">
-                  <span className="text-[11px] font-bold text-white drop-shadow">{fmt(g.value)}</span>
-                  {isRatio && <span className="text-[9px] text-white/70 ml-2">{g.numerator}/{g.denominator}</span>}
+                  <span className="text-xs font-bold text-white drop-shadow">{fmt(g.value)}</span>
+                  {isRatio && <span className="text-[10px] text-white/70 ml-2">{g.numerator}/{g.denominator}</span>}
                 </div>
               </div>
             )}
@@ -669,7 +669,7 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick }) 
         </div>
       ))}
       {refValue != null && !multi && (
-        <div className="flex items-center gap-2 pt-2 mt-1 text-[10px] text-slate-500" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-2 pt-2 mt-1 text-[11px] text-slate-500" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <span className="inline-block w-0.5 h-3 align-middle" style={{ background: 'rgba(255,255,255,0.5)' }} />
           <span>{refLabel} · {result.groups.length} group{result.groups.length === 1 ? '' : 's'} · click a bar to drill down</span>
         </div>
@@ -685,20 +685,20 @@ function StackedView({ result, fmt, onPick }) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-3 mb-2">
-        {result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}
+        {result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-[11px] text-slate-400"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}
       </div>
       {result.groups.map((g, gi) => {
         const total = totals[gi];
         return (
           <div key={g.key} className="flex items-center gap-3">
-            <div className="w-32 lg:w-36 text-[11px] font-medium text-slate-300 truncate text-right" title={g.label}>{g.label}</div>
+            <div className="w-32 lg:w-36 text-xs font-medium text-slate-300 truncate text-right" title={g.label}>{g.label}</div>
             <div className="flex-1 relative h-7 rounded-lg overflow-hidden flex" style={{ background: 'rgba(255,255,255,0.06)' }}>
               {result.series.map((s, si) => {
                 const v = g.cells[s.key]?.value || 0; const w = (v / maxTotal) * 100;
                 if (w <= 0) return null;
                 return <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} title={`${s.label}: ${fmt(v)} — click to drill down`} className="cursor-pointer" style={{ width: `${w}%`, background: PALETTE[si % PALETTE.length], opacity: 0.85 }} />;
               })}
-              <span className="absolute right-2 top-0 bottom-0 flex items-center text-[10px] font-bold text-white drop-shadow pointer-events-none">{fmt(total)}</span>
+              <span className="absolute right-2 top-0 bottom-0 flex items-center text-[11px] font-bold text-white drop-shadow pointer-events-none">{fmt(total)}</span>
             </div>
           </div>
         );
@@ -720,7 +720,7 @@ function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal, onPick })
   const lineFor = (valFn) => groups.map((g, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(valFn(g)).toFixed(1)}`).join(' ');
   return (
     <div className="w-full overflow-x-auto">
-      {multi && <div className="flex flex-wrap gap-3 mb-2">{result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-3 h-0.5" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}</div>}
+      {multi && <div className="flex flex-wrap gap-3 mb-2">{result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-[11px] text-slate-400"><span className="w-3 h-0.5" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}</div>}
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: 480 }}>
         {grid.map((gl, i) => (<g key={i}><line x1={padL} y1={gl.yy} x2={W - padR} y2={gl.yy} stroke="rgba(255,255,255,0.06)" /><text x={padL - 6} y={gl.yy + 3} textAnchor="end" fill="#64748b" style={{ fontSize: 9 }}>{isRatio ? `${Math.round(gl.v)}%` : Math.round(gl.v)}</text></g>))}
         {refValue != null && <g><line x1={padL} y1={y(refValue)} x2={W - padR} y2={y(refValue)} stroke="rgba(248,250,252,0.4)" strokeDasharray="4 3" /><text x={W - padR} y={y(refValue) - 3} textAnchor="end" fill="#cbd5e1" style={{ fontSize: 8 }}>{refLabel}</text></g>}
@@ -750,9 +750,9 @@ function TableView({ result, groupLabel, fmt, onPick }) {
       <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 py-2 pr-4">{groupLabel}</th>
-            {multi ? result.series.map(s => <th key={s.key} className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 py-2 px-3 text-right">{s.label}</th>)
-              : (<>{result.isRatio && <th className="text-[10px] text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Num</th>}{result.isRatio && <th className="text-[10px] text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Denom</th>}<th className="text-[10px] text-slate-500 py-2 pl-3 text-right uppercase tracking-wider font-semibold">{result.isRatio ? '%' : 'Count'}</th></>)}
+            <th className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2 pr-4">{groupLabel}</th>
+            {multi ? result.series.map(s => <th key={s.key} className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2 px-3 text-right">{s.label}</th>)
+              : (<>{result.isRatio && <th className="text-[11px] text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Num</th>}{result.isRatio && <th className="text-[11px] text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Denom</th>}<th className="text-[11px] text-slate-500 py-2 pl-3 text-right uppercase tracking-wider font-semibold">{result.isRatio ? '%' : 'Count'}</th></>)}
           </tr>
         </thead>
         <tbody>
@@ -766,9 +766,9 @@ function TableView({ result, groupLabel, fmt, onPick }) {
         </tbody>
         {!multi && (
           <tfoot><tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-            <td className="text-[11px] font-semibold text-slate-300 py-2 pr-4">Total / overall</td>
-            {result.isRatio && <td className="text-[11px] text-slate-300 py-2 px-3 text-right tabular-nums">{result.totalNum}</td>}
-            {result.isRatio && <td className="text-[11px] text-slate-300 py-2 px-3 text-right tabular-nums">{result.totalDenom}</td>}
+            <td className="text-xs font-semibold text-slate-300 py-2 pr-4">Total / overall</td>
+            {result.isRatio && <td className="text-xs text-slate-300 py-2 px-3 text-right tabular-nums">{result.totalNum}</td>}
+            {result.isRatio && <td className="text-xs text-slate-300 py-2 px-3 text-right tabular-nums">{result.totalDenom}</td>}
             <td className="text-[12px] font-bold text-indigo-200 py-2 pl-3 text-right tabular-nums">{fmt(result.totalValue)}</td>
           </tr></tfoot>
         )}
