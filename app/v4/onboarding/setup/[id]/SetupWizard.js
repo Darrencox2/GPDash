@@ -123,53 +123,15 @@ export default function SetupWizard({
 
   // Step state. Animation key is bumped on every step change so the
   // content remounts and the CSS keyframes replay.
-  const [currentStep, setCurrentStep] = useState(() => {
-    // Resume hint: land on the FIRST incomplete step. Required steps
-    // win over optional ones — if details isn't set, you start there
-    // no matter what's done elsewhere. After that, the first incomplete
-    // optional step. If everything's done, land on the final step so
-    // the user can see the dashboard button.
-    //
-    // Initial done-state per step, computed from server-passed props
-    // (we don't have access to the client-only stepDone array yet —
-    // that depends on huddle settings that are mutated in this
-    // component). Mirrors the logic in stepDone further down, but
-    // for the moment-in-time values we know at mount.
-    const slotsDoneAtMount = !!(
-      Object.values(initialHuddleSettings?.savedSlotFilters?.routine || {}).some(Boolean) ||
-      Object.values(initialHuddleSettings?.savedSlotFilters?.urgent || {}).some(Boolean) ||
-      (initialHuddleSettings?.dutyDoctorSlot || []).length > 0
-    );
-    const sitesDoneAtMount = (initialSites?.length || 0) > 0;
-    const doneAtMount = [
-      !!practice.postcode && !!practice.list_size,  // 0: details (required)
-      !!initialTeamnetUrl,                          // 1: teamnet (optional)
-      initialHasClinicians,                         // 2: emis (required)
-      slotsDoneAtMount,                             // 3: slots (optional)
-      initialHasClinicians,                         // 4: clinicians (optional; the
-                                                    //    actual "every clinician has a
-                                                    //    pattern" check needs a fetch
-                                                    //    inside the step — use
-                                                    //    "any clinicians exist" as
-                                                    //    a coarse proxy for the
-                                                    //    resume hint only)
-      sitesDoneAtMount,                             // 5: sites (optional)
-      initialHasDemandData,                         // 6: demand (optional)
-      initialHasInvites,                            // 7: invites (optional)
-      initialBuddyCoverPublic,                      // 8: public buddy URL (optional)
-    ];
-    // Required steps first
-    for (let i = 0; i < STEPS.length; i++) {
-      if (STEPS[i].required && !doneAtMount[i]) return i;
-    }
-    // Then first incomplete optional
-    for (let i = 0; i < STEPS.length; i++) {
-      if (!doneAtMount[i]) return i;
-    }
-    // Everything's done — land on the final step (invites) so the
-    // dashboard button is visible.
-    return STEPS.length - 1;
-  });
+  //
+  // Always start at step 0 (Details). Onboarding should begin by confirming
+  // the practice details and walking through the optional intro steps
+  // (TeamNet etc.) rather than jumping ahead to the first technically-
+  // incomplete step — that previously skipped people past details and the
+  // TeamNet calendar when those were pre-filled at creation. Returning users
+  // can jump to any step via the progress dots, and every step auto-saves,
+  // so nothing is lost by starting at the beginning.
+  const [currentStep, setCurrentStep] = useState(0);
   const [animKey, setAnimKey] = useState(0);
 
   // Per-step persisted state. Source of truth for the wizard, mirrored
@@ -1302,6 +1264,9 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
   const saveTimer = useRef(null);
+  // Tracks the last value we successfully persisted, so the onBlur save
+  // doesn't re-write/re-sync an unchanged URL.
+  const savedUrlRef = useRef(teamnetUrl);
 
   // Refetch the URL on mount. The wizard's initial prop is captured at
   // server-render time, but the URL can change between visits (e.g. user
@@ -1325,6 +1290,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
       if (cancelled) return;
       if (data?.teamnet_url && data.teamnet_url !== teamnetUrl) {
         setTeamnetUrl(data.teamnet_url);
+        savedUrlRef.current = data.teamnet_url;
       }
     })();
     return () => { cancelled = true; };
@@ -1365,6 +1331,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
       return false;
     }
     setSavedAt(new Date());
+    savedUrlRef.current = url || '';
     return true;
   };
 
@@ -1422,6 +1389,13 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           type="url"
           value={teamnetUrl}
           onChange={e => onChange(e.target.value)}
+          onBlur={() => {
+            // Persist immediately on blur (e.g. clicking Continue) so the
+            // URL is never lost to the debounce window if the user moves on
+            // within 600ms of pasting it.
+            if (saveTimer.current) clearTimeout(saveTimer.current);
+            if (teamnetUrl && teamnetUrl !== savedUrlRef.current) save(teamnetUrl);
+          }}
           placeholder="https://teamnet.clarity.co.uk/Diary/Sync/..."
           style={{
             ...inputStyle,
@@ -2709,6 +2683,14 @@ function SlotCategoryPicker({ value, onChange }) {
 // users who don't want to fix patterns now can skip and come back
 // later via Practice → Clinicians.
 
+// "Reviewed" = there are active clinicians and each has a role assigned.
+// Role is the meaningful per-clinician decision on this step (and drives
+// buddy-cover defaults). Used both at load and live as the table is edited.
+function isCliniciansReviewed(list) {
+  const active = (list || []).filter(c => c.status === 'active');
+  return active.length > 0 && active.every(c => c.role && String(c.role).trim());
+}
+
 function ClinicianRolesStep({ practiceId, onSortedChange }) {
   const supabase = createClient();
   const [initialClinicians, setInitialClinicians] = useState(null);
@@ -2783,14 +2765,12 @@ function ClinicianRolesStep({ practiceId, onSortedChange }) {
     setInitialPatterns(patternByClinician);
     setSites(settingsRow?.room_allocation?.sites || []);
     setLoading(false);
-    // Report "sorted" status — every active clinician has a non-empty
-    // working pattern. QuickSetupTable saves edits to the DB but doesn't
-    // emit a change callback, so this reflects the load-time state; the
-    // user can navigate away and back to refresh, or just skip if they
-    // know they'll come back to it via Practice → Clinicians.
-    const activeCount = adapted.filter(c => c.status === 'active').length;
-    const activeWithPattern = adapted.filter(c => c.status === 'active' && patternByClinician[c.id] && Object.keys(patternByClinician[c.id].pattern || {}).length > 0).length;
-    onSortedChange?.(activeCount > 0 && activeWithPattern === activeCount);
+    // Report "reviewed" status — the core task of this step is assigning a
+    // role to every active clinician (which also drives their buddy-cover
+    // defaults). Working patterns are a bonus set elsewhere, so we don't
+    // gate completion on them. This is recomputed live as the user edits,
+    // via onCliniciansChange below.
+    onSortedChange?.(isCliniciansReviewed(adapted));
   }, [practiceId, supabase, onSortedChange]);
 
   useEffect(() => {
@@ -2837,6 +2817,7 @@ function ClinicianRolesStep({ practiceId, onSortedChange }) {
         initialClinicians={initialClinicians}
         initialPatterns={initialPatterns}
         sites={sites}
+        onCliniciansChange={(list) => onSortedChange?.(isCliniciansReviewed(list))}
       />
     </div>
   );
@@ -3554,7 +3535,7 @@ function FeatureRow({ on, label, hint }) {
 //   reflected in the other.
 function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyCoverPublic }) {
   const supabase = createClient();
-  const trackSave = useStepSave();
+  const trackSave = useTrackedSave();
   const [error, setError] = useState('');
 
   const toggle = async (next) => {

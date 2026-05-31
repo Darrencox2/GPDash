@@ -89,7 +89,7 @@ function clinicianFieldsEqual(a, b) {
   );
 }
 
-export default function QuickSetupTable({ practiceId, initialClinicians, initialPatterns, sites }) {
+export default function QuickSetupTable({ practiceId, initialClinicians, initialPatterns, sites, onCliniciansChange }) {
   const [clinicians, setClinicians] = useState(initialClinicians || []);
   const [search, setSearch] = useState('');
   const [showLeft, setShowLeft] = useState(false);
@@ -102,6 +102,15 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
   // days grid" button); we strip the param after opening so the modal
   // doesn't reopen if the user closes it then refreshes.
   const [showWorkingGrid, setShowWorkingGrid] = useState(false);
+  // Let a parent (e.g. the setup wizard) react to edits live — used to
+  // recompute "step complete" as roles are assigned, rather than only at
+  // load time. Held in a ref so the effect fires only on real clinician
+  // changes, not on every parent re-render.
+  const onCliniciansChangeRef = useRef(onCliniciansChange);
+  onCliniciansChangeRef.current = onCliniciansChange;
+  useEffect(() => {
+    onCliniciansChangeRef.current?.(clinicians);
+  }, [clinicians]);
   const searchParams = useSearchParams();
   const router = useRouter();
   useEffect(() => {
