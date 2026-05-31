@@ -314,6 +314,32 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         </div>
       </div>
 
+      {/* First-visit prompt: if no clinicians are in the buddy-cover pool
+          yet, the schedule below will be empty and confusing. Point the
+          user straight to clinician setup so they can opt people in. */}
+      {cliniciansList.length === 0 && (
+        <div className="rounded-xl p-5" style={{ background: 'rgba(124,58,237,0.10)', border: '1px solid rgba(124,58,237,0.3)' }}>
+          <div className="flex items-start gap-3">
+            <div className="text-2xl leading-none">👋</div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-white">No one is in the buddy-cover pool yet</h3>
+              <p className="text-sm text-slate-300 mt-1 leading-relaxed">
+                Buddy cover works out who covers absent colleagues, but first you need to choose which clinicians are part of the pool. Head to clinician setup and switch on &ldquo;in buddy system&rdquo; for the GPs and other clinicians who take part. GP partners and salaried GPs are switched on by default.
+              </p>
+              {data?._v4?.practiceSlug && (
+                <a
+                  href={`/v4/practice/${data._v4.practiceSlug}?tab=clinicians&grid=open`}
+                  className="inline-flex items-center gap-1.5 mt-3 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors hover:brightness-110"
+                  style={{ background: 'rgba(124,58,237,0.8)', border: '1px solid rgba(124,58,237,0.4)' }}
+                >
+                  Set up clinicians →
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ WEEK STRIP ═══ */}
       <div className="rounded-xl overflow-hidden" style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)'}}>
         <div className="flex items-center justify-between px-4 py-2.5" style={{background:'rgba(15,23,42,0.85)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
