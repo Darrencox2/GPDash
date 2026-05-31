@@ -58,7 +58,7 @@ import DemandUpload from '@/app/v4/practice/[id]/DemandUpload';
 import QuickSetupTable from '@/app/v4/practice/[id]/QuickSetupTable';
 import { parseHuddleCSV } from '@/lib/huddle';
 import { buildFacts } from '@/lib/workload-report';
-import { guessGroupFromRole, buddyDefaultsForRole } from '@/lib/data';
+import { guessGroupFromRole, buddyDefaultsForRole, canonicaliseRole } from '@/lib/data';
 
 // Steps are declared up here so the progress indicator can render them
 // before the content. `optional: true` means Continue can advance even
@@ -1627,7 +1627,11 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         }).join(' ');
         const roleMatch = csvName.match(/\(([^)]+)\)/);
         const rawRole = roleMatch ? roleMatch[1].trim() : '';
-        const role = (!rawRole || TITLE_LIKE.has(rawRole.toLowerCase())) ? '' : rawRole;
+        // Canonicalise: maps "PracticeNurse" → "Practice Nurse", drops
+        // titles (Dr, Mrs) and junk (Unknow) to no-role, keeps genuine
+        // custom roles. (In this EMIS export the parenthetical is the
+        // title, so most resolve to no role and the user assigns it.)
+        const role = canonicaliseRole(rawRole);
         const guessedGroup = guessGroupFromRole(role) || 'admin';
         // Role-based buddy defaults: GP Partners and Salaried GPs default
         // in AND can cover; Registrars and ANPs default in but can't

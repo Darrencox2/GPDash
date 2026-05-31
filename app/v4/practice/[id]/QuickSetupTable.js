@@ -30,16 +30,11 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { guessGroupFromRole, buddyDefaultsForRole } from '@/lib/data';
+import { guessGroupFromRole, buddyDefaultsForRole, allRoles, canonicaliseRole } from '@/lib/data';
 import WorkingDaysGrid from './WorkingDaysGrid';
 import ClinicianDetailsPanel from './ClinicianDetailsPanel';
 
-const ROLES = [
-  'GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum',
-  'ANP', 'Paramedic Practitioner', 'Pharmacist', 'Physiotherapist',
-  'Practice Nurse', 'Nurse Associate', 'HCA',
-  'Medical Student', 'Admin',
-];
+const ROLES = allRoles();
 // Group is auto-derived from role via guessGroupFromRole. No UI for it
 // anymore — exposing it as a separate field just let users put a row
 // into a state where role and group disagreed. The four groups
@@ -62,7 +57,7 @@ const STATUSES = [
 // "Smith, Jane (Mrs)" — old imports may have these stored. Showing
 // them in the dropdown as "(custom)" was misleading.
 const TITLE_LIKE = new Set(['mr', 'mrs', 'ms', 'miss', 'mx', 'dr', 'doctor', 'prof', 'professor', 'rev', 'sir', 'dame', 'lord', 'lady']);
-const PLACEHOLDER_ROLES = new Set(['', 'staff', 'unknown']);
+const PLACEHOLDER_ROLES = new Set(['', 'staff', 'unknown', 'unknow', 'none', 'n/a', 'na', 'tbc']);
 function isPlaceholderOrTitle(role) {
   const r = (role || '').trim().toLowerCase();
   return PLACEHOLDER_ROLES.has(r) || TITLE_LIKE.has(r);
