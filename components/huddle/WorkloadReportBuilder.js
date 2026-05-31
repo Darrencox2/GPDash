@@ -18,10 +18,10 @@ const CATEGORY_OPTS = [
   { id: 'routine', label: 'Routine', colour: '#10b981' },
   { id: 'other', label: 'Other', colour: '#64748b' },
 ];
-const KIND_OPTS = [
-  { id: 'worked', label: 'Worked', colour: '#6366f1' },
-  { id: 'duty', label: 'Duty', colour: '#ef4444' },
-  { id: 'support', label: 'Support', colour: '#0ea5e9' },
+const SESSION_MODE_OPTS = [
+  { id: 'worked', label: 'Worked' },
+  { id: 'slottype', label: 'Includes slot type(s)' },
+  { id: 'busiest', label: 'Most urgent slots' },
 ];
 const SESSION_OPTS = [
   { id: 'am', label: 'AM', colour: '#f59e0b' },
@@ -145,7 +145,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   }, [data?.clinicians]);
 
   const slotData = useMemo(() => buildFacts(huddleData, clinicians, hs), [huddleData, clinicians, hs]);
-  const sessionData = useMemo(() => buildSessionFacts(huddleData, clinicians, hs), [huddleData, clinicians, hs]);
+  const sessionData = useMemo(() => buildSessionFacts(slotData.facts), [slotData]);
   const filterOpts = useMemo(() => buildFilterOptions(clinicians, slotData), [clinicians, slotData]);
 
   // View: 'gallery' (pick a report) | 'builder' (work on one).
@@ -162,9 +162,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
   // Config state.
   const [grain, setGrain] = useState('sessions');
-  const [num, setNum] = useState({ statuses: [], categories: [], kinds: ['duty'], sessions: [] });
+  const [num, setNum] = useState({ statuses: [], categories: [], mode: 'busiest', slotTypes: [], sessions: [] });
   const [denomMode, setDenomMode] = useState('group');
-  const [denom, setDenom] = useState({ statuses: ['available','embargoed','booked'], categories: [], kinds: ['worked'], sessions: [] });
+  const [denom, setDenom] = useState({ statuses: ['available','embargoed','booked'], categories: [], mode: 'worked', slotTypes: [], sessions: [] });
   const [groupBy, setGroupBy] = useState('clinician');
   const [splitBy, setSplitBy] = useState('none');
   const [range, setRange] = useState('last8next8');
@@ -203,13 +203,14 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     return () => { cancelled = true; };
   }, [practiceId]);
 
+  const numMode = (n) => n?.mode || (n?.kinds ? (n.kinds.includes('worked') ? 'worked' : (n.kinds.includes('duty') || n.kinds.includes('support')) ? 'busiest' : 'worked') : 'worked');
   const applyConfig = (c, name) => {
     if (!c) return;
     setGrain(c.grain || 'slots');
-    setNum({ statuses: c.num?.statuses || [], categories: c.num?.categories || [], kinds: c.num?.kinds || ['worked'], sessions: c.num?.sessions || [] });
+    setNum({ statuses: c.num?.statuses || [], categories: c.num?.categories || [], mode: numMode(c.num), slotTypes: c.num?.slotTypes || [], sessions: c.num?.sessions || [] });
     const mode = c.denomMode || (c.denom ? 'custom' : 'none');
     setDenomMode(mode);
-    if (c.denom) setDenom({ statuses: c.denom.statuses || ['available','embargoed','booked'], categories: c.denom.categories || [], kinds: c.denom.kinds || ['worked'], sessions: c.denom.sessions || [] });
+    if (c.denom) setDenom({ statuses: c.denom.statuses || ['available','embargoed','booked'], categories: c.denom.categories || [], mode: numMode(c.denom), slotTypes: c.denom.slotTypes || [], sessions: c.denom.sessions || [] });
     setGroupBy(c.groupBy || 'clinician');
     setSplitBy(c.splitBy || 'none');
     setRange(c.range || 'last8next8');
@@ -234,9 +235,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
   const config = useMemo(() => ({
     grain,
-    num: isSession ? { kinds: num.kinds, sessions: num.sessions } : { statuses: num.statuses, categories: num.categories },
+    num: isSession ? { mode: num.mode, slotTypes: num.slotTypes, sessions: num.sessions } : { statuses: num.statuses, categories: num.categories },
     denomMode,
-    denom: denomMode === 'custom' ? (isSession ? { kinds: denom.kinds, sessions: denom.sessions } : { statuses: denom.statuses, categories: denom.categories }) : null,
+    denom: denomMode === 'custom' ? (isSession ? { mode: denom.mode, slotTypes: denom.slotTypes, sessions: denom.sessions } : { statuses: denom.statuses, categories: denom.categories }) : null,
     groupBy, splitBy, range, globalFilter, excludeSystem, sort, topN, chart,
     colourMode, colourInvert: condInvert, condMode, condLow, condHigh,
   }), [grain, isSession, num, denomMode, denom, groupBy, splitBy, range, globalFilter, excludeSystem, sort, topN, chart, colourMode, condInvert, condMode, condLow, condHigh]);
@@ -413,8 +414,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   const condColour = makeConditionalColour({ result, refValue, mode: condMode, low: condLow === '' ? null : parseFloat(condLow), high: condHigh === '' ? null : parseFloat(condHigh), invert: condInvert });
   const colourFor = (value, index) => colourMode === 'single' ? SINGLE : colourMode === 'conditional' ? condColour(value) : PALETTE[index % PALETTE.length];
 
-  const usesDutySupport = isSession && ((num.kinds || []).some(k => k === 'duty' || k === 'support') || (denomMode === 'custom' && (denom.kinds || []).some(k => k === 'duty' || k === 'support')));
-  const dutyMissing = usesDutySupport && !sessionData.hasDuty;
+  const usesBusiest = isSession && (num.mode === 'busiest' || (denomMode === 'custom' && denom.mode === 'busiest'));
+  const dutyMissing = usesBusiest && !sessionData.hasUrgent;
   const filterCount = ['clinicianIds','roles','locations','slotTypes','sessions'].reduce((n, k) => n + (globalFilter[k]?.length || 0), 0);
 
   const insight = (() => {
@@ -508,7 +509,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           <div className="px-5 pb-5 pt-1">
             {insight && <div className="mb-4 text-sm text-amber-200/90 rounded-lg px-3 py-2" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>💡 {insight}</div>}
             {dutyMissing ? (
-              <p className="text-base text-slate-400 text-center py-10">Duty doctor slot not configured. Set a duty slot type in the Today page filter to enable duty &amp; support reports.</p>
+              <p className="text-base text-slate-400 text-center py-10">No urgent slots found in this data. The &ldquo;most urgent slots&rdquo; measure needs an urgent slot category — set which slot types count as urgent in the Today page filter.</p>
             ) : result.groups.length === 0 ? (
               <p className="text-base text-slate-400 text-center py-10">No data matches. Widen the date range, relax the filters, or turn off &ldquo;exclude system rows&rdquo;.</p>
             ) : (chart === 'table') ? (
@@ -527,15 +528,22 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
         <div className="w-full lg:w-80 lg:flex-shrink-0 rounded-xl p-4 space-y-4" style={{ background: 'rgba(15,23,42,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <StepSection n="1" title="Measure">
             <Segmented options={[{ id: 'slots', label: 'Slots' }, { id: 'sessions', label: 'Sessions' }]} value={grain} onChange={setGrain} />
-            <div className="text-xs text-slate-500 font-medium mt-1">Count {isSession ? 'sessions' : 'slots'} that are…</div>
+            <div className="text-xs text-slate-500 font-medium mt-1">{isSession ? 'Count sessions that are…' : 'Count slots…'}</div>
             {isSession ? (
               <>
-                <ChipGroup options={KIND_OPTS} selected={num.kinds} onChange={(v) => setNum(n => ({ ...n, kinds: v.length ? v : ['worked'] }))} allowAll={false} />
+                <Segmented options={SESSION_MODE_OPTS} value={num.mode} onChange={(m) => setNum(n => ({ ...n, mode: m }))} />
+                {num.mode === 'slottype' && (
+                  <MultiSelect label="Slot types to include" options={filterOpts.slotTypes} selected={num.slotTypes} onChange={(v) => setNum(n => ({ ...n, slotTypes: v }))} />
+                )}
+                {num.mode === 'busiest' && <div className="text-xs text-slate-500">The session each day with the most urgent slots — the de-facto on-call.</div>}
+                <div className="text-xs text-slate-600 mt-1">Restrict to</div>
                 <ChipGroup options={SESSION_OPTS} selected={num.sessions} onChange={(v) => setNum(n => ({ ...n, sessions: v }))} allLabel="AM+PM" />
               </>
             ) : (
               <>
-                <div className="text-xs text-slate-600">Status</div>
+                <div className="text-xs text-slate-600">Slot types</div>
+                <MultiSelect label="All slot types" options={filterOpts.slotTypes} selected={globalFilter.slotTypes} onChange={(v) => setGlobalFilter(f => ({ ...f, slotTypes: v }))} />
+                <div className="text-xs text-slate-600 mt-1">Status</div>
                 <ChipGroup options={STATUS_OPTS} selected={num.statuses} onChange={(v) => setNum(n => ({ ...n, statuses: v }))} />
                 <div className="text-xs text-slate-600">Category</div>
                 <ChipGroup options={CATEGORY_OPTS} selected={num.categories} onChange={(v) => setNum(n => ({ ...n, categories: v }))} />
@@ -553,7 +561,10 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 <div className="text-xs text-slate-600">…as a % of {isSession ? 'sessions' : 'slots'} that are:</div>
                 {isSession ? (
                   <>
-                    <ChipGroup options={KIND_OPTS} selected={denom.kinds} onChange={(v) => setDenom(d => ({ ...d, kinds: v.length ? v : ['worked'] }))} allowAll={false} />
+                    <Segmented options={SESSION_MODE_OPTS} value={denom.mode} onChange={(m) => setDenom(d => ({ ...d, mode: m }))} />
+                    {denom.mode === 'slottype' && (
+                      <MultiSelect label="Slot types to include" options={filterOpts.slotTypes} selected={denom.slotTypes} onChange={(v) => setDenom(d => ({ ...d, slotTypes: v }))} />
+                    )}
                     <ChipGroup options={SESSION_OPTS} selected={denom.sessions} onChange={(v) => setDenom(d => ({ ...d, sessions: v }))} allLabel="AM+PM" />
                   </>
                 ) : (
@@ -648,7 +659,6 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               <MultiSelect label="Clinicians" options={filterOpts.clinicians} selected={globalFilter.clinicianIds} onChange={(v) => setGlobalFilter(f => ({ ...f, clinicianIds: v }))} />
               {filterOpts.roles.length > 1 && (<><div className="text-xs text-slate-600">Role</div><ChipGroup options={filterOpts.roles.map((r, i) => ({ ...r, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.roles} onChange={(v) => setGlobalFilter(f => ({ ...f, roles: v }))} /></>)}
               {!isSession && filterOpts.locations.length > 1 && (<><div className="text-xs text-slate-600">Site</div><ChipGroup options={filterOpts.locations.map((l, i) => ({ ...l, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.locations} onChange={(v) => setGlobalFilter(f => ({ ...f, locations: v }))} /></>)}
-              {!isSession && <MultiSelect label="Slot types" options={filterOpts.slotTypes} selected={globalFilter.slotTypes} onChange={(v) => setGlobalFilter(f => ({ ...f, slotTypes: v }))} />}
               <div className="text-xs text-slate-600">Session</div>
               <ChipGroup options={SESSION_OPTS} selected={globalFilter.sessions} onChange={(v) => setGlobalFilter(f => ({ ...f, sessions: v }))} allLabel="AM+PM" />
               {filterCount > 0 && <button onClick={() => setGlobalFilter({ clinicianIds: [], roles: [], locations: [], slotTypes: [], sessions: [] })} className="text-xs text-slate-400 hover:text-white mt-1" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear all filters</button>}
@@ -834,7 +844,7 @@ function DrillModal({ drill, isSession, onClose }) {
               <div key={iso} className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div className="text-xs font-medium text-slate-300 mb-1">{d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div>
                 <div className="flex flex-wrap gap-1">
-                  {rows.map((f, i) => <span key={i} className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>{f.session.toUpperCase()}{isSession ? ` · ${f.clinicianName}${f.isDuty ? ' · duty' : ''}${f.isSupport ? ' · support' : ''}` : ` · ${f.clinicianName} · ${f.slotType} · ${f.status}${f.count > 1 ? ` ×${f.count}` : ''}`}</span>)}
+                  {rows.map((f, i) => <span key={i} className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>{f.session.toUpperCase()}{isSession ? ` · ${f.clinicianName}${f.isBusiestUrgent ? ' · most urgent' : ''}${f.urgentCount ? ` · ${f.urgentCount} urgent` : ''}` : ` · ${f.clinicianName} · ${f.slotType} · ${f.status}${f.count > 1 ? ` ×${f.count}` : ''}`}</span>)}
                 </div>
               </div>
             ); })}
