@@ -2,7 +2,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
   buildFacts, buildSessionFacts, runReport, describeMeasure, isTimeDimension,
-  PRESET_GROUPS, GROUP_BY_OPTIONS, groupByOptionsForGrain, RANGE_OPTIONS,
+  PRESET_GROUPS, groupByOptionsForGrain, splitByOptionsForGrain, RANGE_OPTIONS,
+  buildFilterOptions,
 } from '@/lib/workload-report';
 
 const STATUS_OPTS = [
@@ -24,34 +25,27 @@ const SESSION_OPTS = [
   { id: 'am', label: 'AM', colour: '#f59e0b' },
   { id: 'pm', label: 'PM', colour: '#6366f1' },
 ];
-
 const PALETTE = ['#6366f1','#10b981','#f59e0b','#ef4444','#0ea5e9','#a78bfa','#ec4899','#14b8a6','#f97316','#84cc16'];
 
-// Multi-select chip group.
 function ChipGroup({ options, selected, onChange, allLabel = 'Any', allowAll = true }) {
   const toggle = (id) => {
     const set = new Set(selected || []);
     if (set.has(id)) set.delete(id); else set.add(id);
     onChange(Array.from(set));
   };
-  const noneSelected = !selected || selected.length === 0;
+  const none = !selected || selected.length === 0;
   return (
     <div className="flex items-center gap-1 flex-wrap">
       {allowAll && (
-        <button onClick={() => onChange([])}
-          className="text-[10px] px-2 py-1 rounded-md transition-colors"
-          style={{ background: noneSelected ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${noneSelected ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`, color: noneSelected ? '#c7d2fe' : '#94a3b8' }}>
-          {allLabel}
-        </button>
+        <button onClick={() => onChange([])} className="text-[10px] px-2 py-1 rounded-md"
+          style={{ background: none ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${none ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`, color: none ? '#c7d2fe' : '#94a3b8' }}>{allLabel}</button>
       )}
       {options.map(o => {
         const on = (selected || []).includes(o.id);
         return (
-          <button key={o.id} onClick={() => toggle(o.id)}
-            className="text-[10px] px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+          <button key={o.id} onClick={() => toggle(o.id)} className="text-[10px] px-2 py-1 rounded-md flex items-center gap-1"
             style={{ background: on ? `${o.colour}28` : 'rgba(255,255,255,0.04)', border: `1px solid ${on ? `${o.colour}88` : 'rgba(255,255,255,0.08)'}`, color: on ? '#e2e8f0' : '#94a3b8' }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: o.colour, opacity: on ? 1 : 0.4 }} />
-            {o.label}
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: o.colour, opacity: on ? 1 : 0.4 }} />{o.label}
           </button>
         );
       })}
@@ -63,88 +57,148 @@ function Segmented({ options, value, onChange, disabledIds = [] }) {
   return (
     <div className="flex flex-wrap" style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 6, padding: 2, gap: 2 }}>
       {options.map(o => {
-        const active = value === o.id;
-        const disabled = disabledIds.includes(o.id);
+        const active = value === o.id, disabled = disabledIds.includes(o.id);
         return (
-          <button key={o.id} disabled={disabled} onClick={() => !disabled && onChange(o.id)}
-            className="text-[11px] font-medium px-2.5 py-1 rounded transition-colors"
-            style={{ background: active ? 'rgba(99,102,241,0.9)' : 'transparent', color: disabled ? '#475569' : active ? 'white' : '#94a3b8', cursor: disabled ? 'not-allowed' : 'pointer' }}>
-            {o.label}
-          </button>
+          <button key={o.id} disabled={disabled} onClick={() => !disabled && onChange(o.id)} className="text-[11px] font-medium px-2.5 py-1 rounded"
+            style={{ background: active ? 'rgba(99,102,241,0.9)' : 'transparent', color: disabled ? '#475569' : active ? 'white' : '#94a3b8', cursor: disabled ? 'not-allowed' : 'pointer' }}>{o.label}</button>
         );
       })}
     </div>
   );
 }
 
-function PanelSection({ title, children }) {
+// Collapsible searchable multi-select for large lists (clinicians, slot types).
+function MultiSelect({ label, options, selected, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const sel = selected || [];
+  const filtered = q ? options.filter(o => o.label.toLowerCase().includes(q.toLowerCase())) : options;
+  const toggle = (id) => {
+    const s = new Set(sel);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    onChange(Array.from(s));
+  };
+  return (
+    <div>
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between text-[11px] rounded-md px-2 py-1.5"
+        style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${sel.length ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'}`, color: '#e2e8f0' }}>
+        <span>{label}{sel.length ? ` · ${sel.length}` : ''}</span>
+        <span className="text-slate-500">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="mt-1 rounded-md p-2 space-y-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-center gap-1">
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" className="flex-1 text-[10px] rounded px-2 py-1"
+              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
+            {sel.length > 0 && <button onClick={() => onChange([])} className="text-[10px] text-slate-400 px-1">Clear</button>}
+          </div>
+          <div className="max-h-40 overflow-y-auto space-y-0.5">
+            {filtered.map(o => {
+              const on = sel.includes(o.id);
+              return (
+                <label key={o.id} className="flex items-center gap-2 cursor-pointer px-1 py-0.5 rounded hover:bg-white/5">
+                  <input type="checkbox" checked={on} onChange={() => toggle(o.id)} className="accent-indigo-500" />
+                  <span className="text-[10px] text-slate-300 truncate">{o.label}</span>
+                </label>
+              );
+            })}
+            {filtered.length === 0 && <div className="text-[10px] text-slate-600 px-1 py-1">No matches</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PanelSection({ title, children, right }) {
   return (
     <div className="space-y-2">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{title}</div>
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{title}</div>
+        {right}
+      </div>
       {children}
     </div>
   );
 }
 
-export default function WorkloadReportBuilder({ data, huddleData }) {
+export default function WorkloadReportBuilder({ data, huddleData, initialConfig = null, onConfigChange = null }) {
   const hs = data?.huddleSettings || {};
   const clinicians = useMemo(() => {
     if (!data?.clinicians) return [];
     const list = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians);
-    return list.filter(c => c.status !== 'left');
+    return list.filter(c => c.status !== 'left').map(c => ({ id: c.id, name: c.name, role: c.role || 'Unspecified' }));
   }, [data?.clinicians]);
 
   const slotData = useMemo(() => buildFacts(huddleData, clinicians, hs), [huddleData, clinicians, hs]);
   const sessionData = useMemo(() => buildSessionFacts(huddleData, clinicians, hs), [huddleData, clinicians, hs]);
+  const filterOpts = useMemo(() => buildFilterOptions(clinicians, slotData), [clinicians, slotData]);
 
   // Config state.
-  const [grain, setGrain] = useState('sessions');     // default to sessions so duty/support is front-and-centre
+  const [grain, setGrain] = useState('sessions');
   const [num, setNum] = useState({ statuses: [], categories: [], kinds: ['duty'], sessions: [] });
   const [useDenom, setUseDenom] = useState(true);
   const [denom, setDenom] = useState({ statuses: ['available','embargoed','booked'], categories: [], kinds: ['worked'], sessions: [] });
   const [groupBy, setGroupBy] = useState('clinician');
+  const [splitBy, setSplitBy] = useState('none');
   const [range, setRange] = useState('last8next8');
   const [chart, setChart] = useState('bars');
+  const [globalFilter, setGlobalFilter] = useState({ clinicianIds: [], roles: [], locations: [], slotTypes: [], sessions: [] });
+  const [excludeSystem, setExcludeSystem] = useState(true);
+  const [sort, setSort] = useState('value');
+  const [topN, setTopN] = useState(0);          // 0 = all
+  const [refOn, setRefOn] = useState(true);
+  const [refMode, setRefMode] = useState('auto'); // auto | custom
+  const [refCustom, setRefCustom] = useState('');
+
+  // Apply an external config (from a saved report / preset object).
+  const applyConfig = (c) => {
+    if (!c) return;
+    setGrain(c.grain || 'slots');
+    setNum({ statuses: c.num?.statuses || [], categories: c.num?.categories || [], kinds: c.num?.kinds || ['worked'], sessions: c.num?.sessions || [] });
+    setUseDenom(!!c.denom);
+    if (c.denom) setDenom({ statuses: c.denom.statuses || ['available','embargoed','booked'], categories: c.denom.categories || [], kinds: c.denom.kinds || ['worked'], sessions: c.denom.sessions || [] });
+    setGroupBy(c.groupBy || 'clinician');
+    setSplitBy(c.splitBy || 'none');
+    setRange(c.range || 'last8next8');
+    setChart(c.chart || 'bars');
+    setGlobalFilter({ clinicianIds: c.globalFilter?.clinicianIds || [], roles: c.globalFilter?.roles || [], locations: c.globalFilter?.locations || [], slotTypes: c.globalFilter?.slotTypes || [], sessions: c.globalFilter?.sessions || [] });
+    if (typeof c.excludeSystem === 'boolean') setExcludeSystem(c.excludeSystem);
+    if (typeof c.topN === 'number') setTopN(c.topN);
+    if (c.sort) setSort(c.sort);
+  };
+  useEffect(() => { if (initialConfig) applyConfig(initialConfig); }, [initialConfig]); // eslint-disable-line
 
   const facts = grain === 'sessions' ? sessionData.facts : slotData.facts;
   const { dateMin, dateMax } = slotData;
+  const isSession = grain === 'sessions';
+  const groupByOpts = groupByOptionsForGrain(grain);
+  const splitByOpts = splitByOptionsForGrain(grain);
 
   const config = useMemo(() => ({
     grain,
-    num: grain === 'sessions' ? { kinds: num.kinds, sessions: num.sessions } : { statuses: num.statuses, categories: num.categories },
-    denom: useDenom ? (grain === 'sessions' ? { kinds: denom.kinds, sessions: denom.sessions } : { statuses: denom.statuses, categories: denom.categories }) : null,
-    groupBy, range,
-  }), [grain, num, useDenom, denom, groupBy, range]);
+    num: isSession ? { kinds: num.kinds, sessions: num.sessions } : { statuses: num.statuses, categories: num.categories },
+    denom: useDenom ? (isSession ? { kinds: denom.kinds, sessions: denom.sessions } : { statuses: denom.statuses, categories: denom.categories }) : null,
+    groupBy, splitBy, range,
+    globalFilter, excludeSystem, sort, topN,
+    chart,
+  }), [grain, isSession, num, useDenom, denom, groupBy, splitBy, range, globalFilter, excludeSystem, sort, topN, chart]);
 
   const result = useMemo(() => runReport(facts, config), [facts, config]);
+  useEffect(() => { if (onConfigChange) onConfigChange(config); }, [config]); // eslint-disable-line
 
-  // When grain changes, make sure groupBy is still valid for it.
+  // Keep groupBy / splitBy valid for the grain.
   useEffect(() => {
-    const valid = groupByOptionsForGrain(grain).map(o => o.id);
-    if (!valid.includes(groupBy)) setGroupBy('clinician');
-  }, [grain]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!groupByOpts.map(o => o.id).includes(groupBy)) setGroupBy('clinician');
+    if (!splitByOpts.map(o => o.id).includes(splitBy)) setSplitBy('none');
+  }, [grain]); // eslint-disable-line
 
-  const applyPreset = (preset) => {
-    const c = preset.config;
-    setGrain(c.grain || 'slots');
-    setNum({
-      statuses: c.num?.statuses || [], categories: c.num?.categories || [],
-      kinds: c.num?.kinds || ['worked'], sessions: c.num?.sessions || [],
-    });
-    setUseDenom(!!c.denom);
-    if (c.denom) setDenom({
-      statuses: c.denom.statuses || ['available','embargoed','booked'], categories: c.denom.categories || [],
-      kinds: c.denom.kinds || ['worked'], sessions: c.denom.sessions || [],
-    });
-    setGroupBy(c.groupBy);
-    setRange(c.range);
-    setChart(c.chart || 'bars');
-  };
+  const applyPreset = (p) => applyConfig({ ...p.config });
 
   const timeOk = isTimeDimension(groupBy);
-  const effectiveChart = (chart === 'trend' && !timeOk) ? 'bars' : chart;
-  const isSession = grain === 'sessions';
-  const groupByOpts = groupByOptionsForGrain(grain);
+  let effectiveChart = chart;
+  if (effectiveChart === 'trend' && !timeOk) effectiveChart = 'bars';
+  if (effectiveChart === 'stacked' && !result.hasSplit) effectiveChart = 'bars';
 
   if (!huddleData) {
     return (
@@ -158,51 +212,108 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
   const fmt = (v) => result.isRatio ? `${v.toFixed(1)}%` : `${Math.round(v)}`;
   const avg = result.groups.length ? result.groups.reduce((s, g) => s + g.value, 0) / result.groups.length : 0;
-  const maxVal = Math.max(...result.groups.map(g => g.value), result.isRatio ? 100 : 1);
-  // Only warn about missing duty config when the measure actually references
-  // duty or support sessions — a plain "sessions worked" report is fine.
-  const usesDutySupport = isSession && (
-    (num.kinds || []).some(k => k === 'duty' || k === 'support') ||
-    (useDenom && (denom.kinds || []).some(k => k === 'duty' || k === 'support'))
-  );
+
+  // Reference line.
+  let refValue = null, refLabel = '';
+  if (refOn) {
+    if (refMode === 'custom' && refCustom !== '' && !isNaN(parseFloat(refCustom))) {
+      refValue = parseFloat(refCustom); refLabel = `Target ${fmt(refValue)}`;
+    } else if (result.isRatio) {
+      refValue = result.totalValue; refLabel = `Fair share ${fmt(refValue)}`;
+    } else {
+      refValue = avg; refLabel = `Average ${fmt(avg)}`;
+    }
+  }
+  const maxVal = Math.max(...result.groups.map(g => g.value), result.isRatio ? 100 : 1, refValue || 0);
+
+  const usesDutySupport = isSession && ((num.kinds || []).some(k => k === 'duty' || k === 'support') || (useDenom && (denom.kinds || []).some(k => k === 'duty' || k === 'support')));
   const dutyMissing = usesDutySupport && !sessionData.hasDuty;
+
+  // Auto-insight: a one-line takeaway.
+  const insight = useMemo(() => {
+    if (!result.groups.length || result.hasSplit) return null;
+    const sorted = [...result.groups].sort((a, b) => b.value - a.value);
+    const top = sorted[0];
+    if (!top || top.value <= 0) return null;
+    if (result.isRatio) {
+      const ratio = avg > 0 ? top.value / avg : 0;
+      if (ratio >= 1.4) return `${top.label} carries the highest ${describeMeasure(config).split(' ÷')[0]} at ${fmt(top.value)} — about ${ratio.toFixed(1)}× the group average of ${fmt(avg)}.`;
+    } else {
+      const share = result.totalNum > 0 ? (top.numerator / result.totalNum) * 100 : 0;
+      if (share >= 25) return `${top.label} accounts for ${share.toFixed(0)}% of the total (${fmt(top.value)} of ${result.totalNum}).`;
+    }
+    return null;
+  }, [result, avg, config]); // eslint-disable-line
+
+  // Export.
+  const buildRows = () => {
+    const header = ['Group'];
+    if (result.hasSplit) result.series.forEach(s => header.push(s.label || 'Series'));
+    else header.push(result.isRatio ? 'Percentage' : 'Count');
+    if (result.isRatio && !result.hasSplit) { header.push('Numerator', 'Denominator'); }
+    const rows = result.groups.map(g => {
+      const r = [g.label];
+      if (result.hasSplit) result.series.forEach(s => r.push(result.isRatio ? g.cells[s.key].value.toFixed(1) : g.cells[s.key].value));
+      else { r.push(result.isRatio ? g.value.toFixed(1) : g.value); if (result.isRatio) r.push(g.numerator, g.denominator); }
+      return r;
+    });
+    return [header, ...rows];
+  };
+  const copyTable = () => {
+    const tsv = buildRows().map(r => r.join('\t')).join('\n');
+    navigator.clipboard?.writeText(tsv);
+  };
+  const downloadCsv = () => {
+    const csv = buildRows().map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `workload-report-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 items-start">
-      {/* MAIN — chart */}
+      {/* MAIN */}
       <div className="flex-1 min-w-0 w-full rounded-xl p-5" style={{ background: 'rgba(15,23,42,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
-          <div>
-            <div className="text-sm font-semibold text-slate-200">
-              {describeMeasure(config)} by {groupByOpts.find(o => o.id === groupBy)?.label.toLowerCase()}
-            </div>
-            <div className="text-[10px] text-slate-500 mt-0.5">
-              {RANGE_OPTIONS.find(o => o.id === range)?.label}
-              {dateMin && dateMax ? ` · data spans ${dateMin.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}–${dateMax.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}` : ''}
-            </div>
+        <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
+          <div className="text-sm font-semibold text-slate-200">
+            {describeMeasure(config)} by {groupByOpts.find(o => o.id === groupBy)?.label.toLowerCase()}
+            {result.hasSplit && <span className="text-slate-500"> · split by {splitByOpts.find(o => o.id === splitBy)?.label.toLowerCase()}</span>}
           </div>
-          <div className="text-right">
-            <div className="text-xs text-slate-500">Total / overall</div>
-            <div className="text-lg font-bold text-indigo-300">{fmt(result.totalValue)}</div>
+          <div className="flex items-center gap-2">
+            <button onClick={copyTable} className="text-[10px] px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>Copy</button>
+            <button onClick={downloadCsv} className="text-[10px] px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>CSV</button>
           </div>
         </div>
+        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
+          <div className="text-[10px] text-slate-500">
+            {RANGE_OPTIONS.find(o => o.id === range)?.label}
+            {dateMin && dateMax ? ` · spans ${dateMin.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}–${dateMax.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}` : ''}
+          </div>
+          <div className="text-right"><span className="text-xs text-slate-500 mr-2">Overall</span><span className="text-lg font-bold text-indigo-300">{fmt(result.totalValue)}</span></div>
+        </div>
+
+        {insight && <div className="mb-4 text-[11px] text-amber-200/90 rounded-lg px-3 py-2" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>💡 {insight}</div>}
 
         {dutyMissing ? (
           <p className="text-sm text-slate-400 text-center py-8">Duty doctor slot not configured. Set a duty slot type in the Today page filter to enable duty &amp; support session reports.</p>
         ) : result.groups.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-8">No data matches this measure and range. Try widening the date range or relaxing the filters.</p>
+          <p className="text-sm text-slate-400 text-center py-8">No data matches. Widen the date range, relax the filters, or turn off &ldquo;exclude system rows&rdquo;.</p>
         ) : effectiveChart === 'table' ? (
           <TableView result={result} groupLabel={groupByOpts.find(o => o.id === groupBy)?.label} fmt={fmt} />
         ) : effectiveChart === 'trend' ? (
-          <TrendView result={result} fmt={fmt} isRatio={result.isRatio} />
+          <TrendView result={result} fmt={fmt} isRatio={result.isRatio} refValue={refValue} refLabel={refLabel} maxVal={maxVal} />
+        ) : effectiveChart === 'stacked' ? (
+          <StackedView result={result} fmt={fmt} />
         ) : (
-          <BarsView result={result} fmt={fmt} avg={avg} maxVal={maxVal} isRatio={result.isRatio} />
+          <BarsView result={result} fmt={fmt} maxVal={maxVal} isRatio={result.isRatio} refValue={refValue} refLabel={refLabel} />
         )}
       </div>
 
-      {/* RIGHT — controls */}
+      {/* RIGHT CONTROLS */}
       <div className="w-full lg:w-80 lg:flex-shrink-0 rounded-xl p-4 space-y-5" style={{ background: 'rgba(15,23,42,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        {/* Presets */}
         <PanelSection title="Quick reports">
           <div className="space-y-3">
             {PRESET_GROUPS.map(g => (
@@ -210,11 +321,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 <div className="text-[9px] uppercase tracking-wide text-slate-600 mb-1">{g.group}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {g.presets.map(p => (
-                    <button key={p.id} onClick={() => applyPreset(p)}
-                      className="text-[10px] px-2 py-1 rounded-md transition-colors text-left"
-                      style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', color: '#c7d2fe' }}>
-                      {p.label}
-                    </button>
+                    <button key={p.id} onClick={() => applyPreset(p)} className="text-[10px] px-2 py-1 rounded-md text-left"
+                      style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', color: '#c7d2fe' }}>{p.label}</button>
                   ))}
                 </div>
               </div>
@@ -224,23 +332,17 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
 
-        {/* Grain */}
         <PanelSection title="Count">
           <Segmented options={[{ id: 'slots', label: 'Slots' }, { id: 'sessions', label: 'Sessions' }]} value={grain} onChange={setGrain} />
-          <p className="text-[9px] text-slate-600 leading-snug">
-            {isSession
-              ? 'A session = one clinician working an AM or PM. Use this for duty / support balance.'
-              : 'A slot = one appointment slot. Use this for capacity, fill and slot-type analysis.'}
-          </p>
+          <p className="text-[9px] text-slate-600 leading-snug">{isSession ? 'A session = one clinician working an AM or PM. For duty / support balance.' : 'A slot = one appointment slot. For capacity, fill and slot-type analysis.'}</p>
         </PanelSection>
 
-        {/* Numerator */}
         <PanelSection title="Measure — count…">
           {isSession ? (
             <>
               <div className="text-[9px] text-slate-600">Session type</div>
               <ChipGroup options={KIND_OPTS} selected={num.kinds} onChange={(v) => setNum(n => ({ ...n, kinds: v.length ? v : ['worked'] }))} allowAll={false} />
-              <div className="text-[9px] text-slate-600 mt-1">Session (optional)</div>
+              <div className="text-[9px] text-slate-600 mt-1">Session</div>
               <ChipGroup options={SESSION_OPTS} selected={num.sessions} onChange={(v) => setNum(n => ({ ...n, sessions: v }))} allLabel="AM+PM" />
             </>
           ) : (
@@ -253,7 +355,6 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           )}
         </PanelSection>
 
-        {/* Denominator */}
         <PanelSection title="Percentage">
           <label className="flex items-center gap-2 cursor-pointer w-fit">
             <input type="checkbox" checked={useDenom} onChange={e => setUseDenom(e.target.checked)} className="accent-indigo-500" />
@@ -281,125 +382,206 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
 
-        {/* Group by */}
         <PanelSection title="Group by">
-          <select value={groupBy} onChange={e => setGroupBy(e.target.value)}
-            className="w-full text-[11px] rounded-md px-2 py-1.5"
+          <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="w-full text-[11px] rounded-md px-2 py-1.5"
             style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
             {groupByOpts.map(o => <option key={o.id} value={o.id} style={{ background: '#1e293b' }}>{o.label}</option>)}
           </select>
         </PanelSection>
 
-        {/* Range */}
-        <PanelSection title="Date range">
-          <Segmented options={RANGE_OPTIONS} value={range} onChange={setRange} />
+        <PanelSection title="Compare by (multi-series)">
+          <select value={splitBy} onChange={e => setSplitBy(e.target.value)} className="w-full text-[11px] rounded-md px-2 py-1.5"
+            style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
+            {splitByOpts.filter(o => o.id !== groupBy).map(o => <option key={o.id} value={o.id} style={{ background: '#1e293b' }}>{o.label}</option>)}
+          </select>
         </PanelSection>
 
-        {/* Chart */}
-        <PanelSection title="Chart">
-          <Segmented
-            options={[{ id: 'bars', label: 'Bars' }, { id: 'trend', label: 'Trend' }, { id: 'table', label: 'Table' }]}
-            value={chart} onChange={setChart} disabledIds={timeOk ? [] : ['trend']} />
+        <PanelSection title="Filters">
+          <MultiSelect label="Clinicians" options={filterOpts.clinicians} selected={globalFilter.clinicianIds} onChange={(v) => setGlobalFilter(f => ({ ...f, clinicianIds: v }))} />
+          {filterOpts.roles.length > 1 && (<><div className="text-[9px] text-slate-600">Role</div><ChipGroup options={filterOpts.roles.map((r, i) => ({ ...r, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.roles} onChange={(v) => setGlobalFilter(f => ({ ...f, roles: v }))} /></>)}
+          {!isSession && filterOpts.locations.length > 1 && (<><div className="text-[9px] text-slate-600">Site</div><ChipGroup options={filterOpts.locations.map((l, i) => ({ ...l, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.locations} onChange={(v) => setGlobalFilter(f => ({ ...f, locations: v }))} /></>)}
+          {!isSession && <MultiSelect label="Slot types" options={filterOpts.slotTypes} selected={globalFilter.slotTypes} onChange={(v) => setGlobalFilter(f => ({ ...f, slotTypes: v }))} />}
+          <div className="text-[9px] text-slate-600">Session</div>
+          <ChipGroup options={SESSION_OPTS} selected={globalFilter.sessions} onChange={(v) => setGlobalFilter(f => ({ ...f, sessions: v }))} allLabel="AM+PM" />
+        </PanelSection>
+
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+
+        <PanelSection title="Display">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-400">Date range</span>
+          </div>
+          <Segmented options={RANGE_OPTIONS} value={range} onChange={setRange} />
+          <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-400">Chart</span></div>
+          <Segmented options={[{ id: 'bars', label: 'Bars' }, { id: 'stacked', label: 'Stacked' }, { id: 'trend', label: 'Trend' }, { id: 'table', label: 'Table' }]} value={chart} onChange={setChart}
+            disabledIds={[...(timeOk ? [] : ['trend']), ...(result.hasSplit ? [] : ['stacked'])]} />
+          <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-400">Sort</span>
+            <Segmented options={[{ id: 'value', label: 'Value' }, { id: 'alpha', label: 'A–Z' }]} value={sort} onChange={setSort} /></div>
+          <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-400">Show</span>
+            <Segmented options={[{ id: '0', label: 'All' }, { id: '10', label: 'Top 10' }, { id: '5', label: 'Top 5' }]} value={String(topN)} onChange={(v) => setTopN(parseInt(v))} /></div>
+          <label className="flex items-center gap-2 cursor-pointer mt-1">
+            <input type="checkbox" checked={excludeSystem} onChange={e => setExcludeSystem(e.target.checked)} className="accent-indigo-500" />
+            <span className="text-[10px] text-slate-300">Exclude system rows (TRIAGE, CCAS…)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={refOn} onChange={e => setRefOn(e.target.checked)} className="accent-indigo-500" />
+            <span className="text-[10px] text-slate-300">Reference line</span>
+          </label>
+          {refOn && (
+            <div className="pl-5 flex items-center gap-2">
+              <Segmented options={[{ id: 'auto', label: result.isRatio ? 'Fair share' : 'Average' }, { id: 'custom', label: 'Custom' }]} value={refMode} onChange={setRefMode} />
+              {refMode === 'custom' && <input value={refCustom} onChange={e => setRefCustom(e.target.value)} placeholder="value" className="w-16 text-[10px] rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />}
+            </div>
+          )}
         </PanelSection>
       </div>
     </div>
   );
 }
 
-// ── Horizontal ranked bars ──────────────────────────────────────────────
-function BarsView({ result, fmt, avg, maxVal, isRatio }) {
+// ── Bars (single or grouped multi-series) ───────────────────────────────
+function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel }) {
+  const multi = result.hasSplit && result.series.length > 1;
   return (
-    <div className="space-y-1.5">
-      {result.groups.map((g, i) => {
-        const widthPct = (g.value / maxVal) * 100;
-        const colour = PALETTE[i % PALETTE.length];
+    <div className="space-y-2">
+      {multi && (
+        <div className="flex flex-wrap gap-3 mb-2">
+          {result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}
+        </div>
+      )}
+      {result.groups.map((g, gi) => (
+        <div key={g.key} className="flex items-center gap-3">
+          <div className="w-32 lg:w-36 text-[11px] font-medium text-slate-300 truncate text-right" title={g.label}>{g.label}</div>
+          <div className="flex-1 min-w-0">
+            {multi ? (
+              <div className="space-y-0.5">
+                {result.series.map((s, si) => {
+                  const cell = g.cells[s.key]; const w = (cell.value / maxVal) * 100;
+                  return (
+                    <div key={s.key} className="relative h-3.5 rounded overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <div className="absolute left-0 top-0 bottom-0 rounded" style={{ width: `${Math.max(w, 0.5)}%`, background: PALETTE[si % PALETTE.length], opacity: 0.85 }} />
+                      <span className="absolute right-1 top-0 bottom-0 flex items-center text-[8px] text-slate-300">{fmt(cell.value)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="relative h-7 rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <div className="absolute left-0 top-0 bottom-0 rounded-lg" style={{ width: `${Math.max((g.value / maxVal) * 100, 1)}%`, background: PALETTE[gi % PALETTE.length], opacity: 0.8 }} />
+                {refValue != null && <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(refValue / maxVal) * 100}%`, background: 'rgba(255,255,255,0.5)' }} title={refLabel} />}
+                <div className="absolute inset-0 flex items-center px-2.5">
+                  <span className="text-[11px] font-bold text-white drop-shadow">{fmt(g.value)}</span>
+                  {isRatio && <span className="text-[9px] text-white/70 ml-2">{g.numerator}/{g.denominator}</span>}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+      {refValue != null && !multi && (
+        <div className="flex items-center gap-2 pt-2 mt-1 text-[10px] text-slate-500" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <span className="inline-block w-0.5 h-3 align-middle" style={{ background: 'rgba(255,255,255,0.5)' }} />
+          <span>{refLabel} · {result.groups.length} group{result.groups.length === 1 ? '' : 's'}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Stacked bars ────────────────────────────────────────────────────────
+function StackedView({ result, fmt }) {
+  const totals = result.groups.map(g => result.series.reduce((s, ser) => s + (g.cells[ser.key]?.value || 0), 0));
+  const maxTotal = Math.max(...totals, 1);
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-3 mb-2">
+        {result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}
+      </div>
+      {result.groups.map((g, gi) => {
+        const total = totals[gi];
         return (
           <div key={g.key} className="flex items-center gap-3">
             <div className="w-32 lg:w-36 text-[11px] font-medium text-slate-300 truncate text-right" title={g.label}>{g.label}</div>
-            <div className="flex-1 relative h-7 rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-              <div className="absolute left-0 top-0 bottom-0 rounded-lg transition-all" style={{ width: `${Math.max(widthPct, 1)}%`, background: colour, opacity: 0.8 }} />
-              <div className="absolute top-0 bottom-0 w-0.5" style={{ left: `${(avg / maxVal) * 100}%`, background: 'rgba(255,255,255,0.45)' }} title={`Average ${fmt(avg)}`} />
-              <div className="absolute inset-0 flex items-center px-2.5">
-                <span className="text-[11px] font-bold text-white drop-shadow">{fmt(g.value)}</span>
-                {isRatio && <span className="text-[9px] text-white/70 ml-2">{g.numerator}/{g.denominator}</span>}
-              </div>
+            <div className="flex-1 relative h-7 rounded-lg overflow-hidden flex" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              {result.series.map((s, si) => {
+                const v = g.cells[s.key]?.value || 0; const w = (v / maxTotal) * 100;
+                if (w <= 0) return null;
+                return <div key={s.key} title={`${s.label}: ${fmt(v)}`} style={{ width: `${w}%`, background: PALETTE[si % PALETTE.length], opacity: 0.85 }} />;
+              })}
+              <span className="absolute right-2 top-0 bottom-0 flex items-center text-[10px] font-bold text-white drop-shadow">{fmt(total)}</span>
             </div>
           </div>
         );
       })}
-      <div className="flex items-center gap-2 pt-2 mt-1 text-[10px] text-slate-500" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <span className="inline-block w-0.5 h-3 align-middle" style={{ background: 'rgba(255,255,255,0.45)' }} />
-        <span>Average line at {fmt(avg)} · {result.groups.length} group{result.groups.length === 1 ? '' : 's'}</span>
-      </div>
     </div>
   );
 }
 
-// ── Trend over time ─────────────────────────────────────────────────────
-function TrendView({ result, fmt, isRatio }) {
+// ── Trend (single or multi-series lines) ────────────────────────────────
+function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal }) {
   const groups = result.groups;
   const W = 720, H = 240, padL = 40, padR = 16, padT = 16, padB = 40;
-  const maxVal = Math.max(...groups.map(g => g.value), isRatio ? 100 : 1);
   const innerW = W - padL - padR, innerH = H - padT - padB;
+  const multi = result.hasSplit && result.series.length > 1;
+  const localMax = Math.max(maxVal, ...groups.flatMap(g => multi ? result.series.map(s => g.cells[s.key]?.value || 0) : [g.value]), isRatio ? 100 : 1);
   const x = (i) => padL + (groups.length === 1 ? innerW / 2 : (i / (groups.length - 1)) * innerW);
-  const y = (v) => padT + innerH - (v / maxVal) * innerH;
-  const pathD = groups.map((g, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(g.value).toFixed(1)}`).join(' ');
-  const areaD = `${pathD} L ${x(groups.length - 1).toFixed(1)} ${(padT + innerH).toFixed(1)} L ${x(0).toFixed(1)} ${(padT + innerH).toFixed(1)} Z`;
-  const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => ({ v: maxVal * f, yy: y(maxVal * f) }));
+  const y = (v) => padT + innerH - (v / localMax) * innerH;
+  const grid = [0, 0.25, 0.5, 0.75, 1].map(f => ({ v: localMax * f, yy: y(localMax * f) }));
+  const lineFor = (valFn) => groups.map((g, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(valFn(g)).toFixed(1)}`).join(' ');
   return (
     <div className="w-full overflow-x-auto">
+      {multi && <div className="flex flex-wrap gap-3 mb-2">{result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-[10px] text-slate-400"><span className="w-3 h-0.5" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}</div>}
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: 480 }}>
-        {gridLines.map((gl, i) => (
-          <g key={i}>
-            <line x1={padL} y1={gl.yy} x2={W - padR} y2={gl.yy} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-            <text x={padL - 6} y={gl.yy + 3} textAnchor="end" fill="#64748b" style={{ fontSize: 9 }}>{isRatio ? `${Math.round(gl.v)}%` : Math.round(gl.v)}</text>
+        {grid.map((gl, i) => (<g key={i}><line x1={padL} y1={gl.yy} x2={W - padR} y2={gl.yy} stroke="rgba(255,255,255,0.06)" /><text x={padL - 6} y={gl.yy + 3} textAnchor="end" fill="#64748b" style={{ fontSize: 9 }}>{isRatio ? `${Math.round(gl.v)}%` : Math.round(gl.v)}</text></g>))}
+        {refValue != null && <g><line x1={padL} y1={y(refValue)} x2={W - padR} y2={y(refValue)} stroke="rgba(248,250,252,0.4)" strokeDasharray="4 3" /><text x={W - padR} y={y(refValue) - 3} textAnchor="end" fill="#cbd5e1" style={{ fontSize: 8 }}>{refLabel}</text></g>}
+        {multi ? result.series.map((s, si) => (
+          <g key={s.key}>
+            <path d={lineFor(g => g.cells[s.key]?.value || 0)} fill="none" stroke={PALETTE[si % PALETTE.length]} strokeWidth="2.5" strokeLinejoin="round" />
+            {groups.map((g, i) => <circle key={g.key} cx={x(i)} cy={y(g.cells[s.key]?.value || 0)} r="3" fill={PALETTE[si % PALETTE.length]} stroke="#1e293b" strokeWidth="1.5" />)}
           </g>
-        ))}
-        <path d={areaD} fill="rgba(99,102,241,0.15)" />
-        <path d={pathD} fill="none" stroke="#818cf8" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-        {groups.map((g, i) => (
-          <g key={g.key}>
-            <circle cx={x(i)} cy={y(g.value)} r="3.5" fill="#818cf8" stroke="#1e293b" strokeWidth="1.5" />
-            <text x={x(i)} y={y(g.value) - 9} textAnchor="middle" fill="#c7d2fe" style={{ fontSize: 9, fontWeight: 700 }}>{fmt(g.value)}</text>
-            <text x={x(i)} y={H - padB + 16} textAnchor="middle" fill="#64748b" style={{ fontSize: 9 }} transform={groups.length > 8 ? `rotate(-35 ${x(i)} ${H - padB + 16})` : undefined}>{g.label.replace('w/c ', '')}</text>
+        )) : (
+          <g>
+            <path d={`${lineFor(g => g.value)} L ${x(groups.length - 1).toFixed(1)} ${(padT + innerH).toFixed(1)} L ${x(0).toFixed(1)} ${(padT + innerH).toFixed(1)} Z`} fill="rgba(99,102,241,0.15)" />
+            <path d={lineFor(g => g.value)} fill="none" stroke="#818cf8" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+            {groups.map((g, i) => (<g key={g.key}><circle cx={x(i)} cy={y(g.value)} r="3.5" fill="#818cf8" stroke="#1e293b" strokeWidth="1.5" /><text x={x(i)} y={y(g.value) - 9} textAnchor="middle" fill="#c7d2fe" style={{ fontSize: 9, fontWeight: 700 }}>{fmt(g.value)}</text></g>))}
           </g>
-        ))}
+        )}
+        {groups.map((g, i) => <text key={g.key} x={x(i)} y={H - padB + 16} textAnchor="middle" fill="#64748b" style={{ fontSize: 9 }} transform={groups.length > 8 ? `rotate(-35 ${x(i)} ${H - padB + 16})` : undefined}>{g.label.replace('w/c ', '')}</text>)}
       </svg>
     </div>
   );
 }
 
-// ── Data table ──────────────────────────────────────────────────────────
+// ── Table (single or multi-series) ──────────────────────────────────────
 function TableView({ result, groupLabel, fmt }) {
+  const multi = result.hasSplit && result.series.length > 1;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 py-2 pr-4">{groupLabel}</th>
-            {result.isRatio && <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 py-2 px-3 text-right">Num</th>}
-            {result.isRatio && <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 py-2 px-3 text-right">Denom</th>}
-            <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 py-2 pl-3 text-right">{result.isRatio ? 'Percentage' : 'Count'}</th>
+            {multi ? result.series.map(s => <th key={s.key} className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 py-2 px-3 text-right">{s.label}</th>)
+              : (<>{result.isRatio && <th className="text-[10px] text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Num</th>}{result.isRatio && <th className="text-[10px] text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Denom</th>}<th className="text-[10px] text-slate-500 py-2 pl-3 text-right uppercase tracking-wider font-semibold">{result.isRatio ? '%' : 'Count'}</th></>)}
           </tr>
         </thead>
         <tbody>
-          {result.groups.map((g) => (
+          {result.groups.map(g => (
             <tr key={g.key} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               <td className="text-[12px] text-slate-200 py-2 pr-4">{g.label}</td>
-              {result.isRatio && <td className="text-[12px] text-slate-400 py-2 px-3 text-right tabular-nums">{g.numerator}</td>}
-              {result.isRatio && <td className="text-[12px] text-slate-400 py-2 px-3 text-right tabular-nums">{g.denominator}</td>}
-              <td className="text-[12px] font-bold text-indigo-300 py-2 pl-3 text-right tabular-nums">{fmt(g.value)}</td>
+              {multi ? result.series.map(s => <td key={s.key} className="text-[12px] text-indigo-300 font-medium py-2 px-3 text-right tabular-nums">{fmt(g.cells[s.key]?.value || 0)}</td>)
+                : (<>{result.isRatio && <td className="text-[12px] text-slate-400 py-2 px-3 text-right tabular-nums">{g.numerator}</td>}{result.isRatio && <td className="text-[12px] text-slate-400 py-2 px-3 text-right tabular-nums">{g.denominator}</td>}<td className="text-[12px] font-bold text-indigo-300 py-2 pl-3 text-right tabular-nums">{fmt(g.value)}</td></>)}
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        {!multi && (
+          <tfoot><tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             <td className="text-[11px] font-semibold text-slate-300 py-2 pr-4">Total / overall</td>
             {result.isRatio && <td className="text-[11px] text-slate-300 py-2 px-3 text-right tabular-nums">{result.totalNum}</td>}
             {result.isRatio && <td className="text-[11px] text-slate-300 py-2 px-3 text-right tabular-nums">{result.totalDenom}</td>}
             <td className="text-[12px] font-bold text-indigo-200 py-2 pl-3 text-right tabular-nums">{fmt(result.totalValue)}</td>
-          </tr>
-        </tfoot>
+          </tr></tfoot>
+        )}
       </table>
     </div>
   );
