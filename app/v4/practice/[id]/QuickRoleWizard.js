@@ -32,6 +32,8 @@ const COMMON_ROLES = [
   { role: 'HCA',            ico: '🤝', hint: 'Healthcare assistants and phlebotomists.' },
 ];
 
+// Role values that mean "not really set" — treated as needing a role.
+const PLACEHOLDER = new Set(['', 'staff', 'unknown', 'unknow', 'none', 'n/a', 'na', 'tbc']);
 // Pull a title hint (Dr, Mrs…) from the original CSV name kept in aliases.
 function titleHint(c) {
   const alias = (c.aliases && c.aliases[0]) || '';
@@ -237,39 +239,54 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               />
             </div>
 
-            <div key={poolKey} style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginBottom: 22, minHeight: 96, maxHeight: '52vh', overflowY: 'auto' }}>
+            <div key={poolKey} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 8, marginBottom: 22, minHeight: 96, maxHeight: '52vh', overflowY: 'auto', alignContent: 'start' }}>
               {allPeople.length === 0 ? (
                 <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px' }}>No clinicians to sort.</div>
               ) : (() => {
                 const q = query.trim().toLowerCase();
                 const shown = q ? allPeople.filter(p => p.name.toLowerCase().includes(q)) : allPeople;
                 if (shown.length === 0) {
-                  return <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px' }}>No matches for “{query}”.</div>;
+                  return <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px', gridColumn: '1 / -1' }}>No matches for “{query}”.</div>;
                 }
                 return shown.map((p, i) => {
                   const sel = selected.has(p.id);
-                  // Context: if this person currently holds a *different* role,
-                  // show it dimmed so you do not reassign them by accident.
                   const cur = roleById[p.id] || '';
-                  const showOther = cur && cur.toLowerCase() !== roleLc;
+                  const hasRole = cur && cur.toLowerCase() !== '' && !PLACEHOLDER.has(cur.trim().toLowerCase());
+                  // Three tiers: selected for this role (indigo, prominent),
+                  // already on another role (dimmed so it recedes), or not yet
+                  // allocated (normal — these are the ones still to sort).
+                  const allocatedElsewhere = !sel && hasRole;
+                  // Subline: their role if allocated, else the Dr/Mrs title hint.
+                  const subline = hasRole ? cur : (p.tag || '');
                   return (
                     <button
                       key={p.id}
                       onClick={() => toggle(p.id)}
+                      title={p.name}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 7,
-                        padding: '8px 13px', borderRadius: 999, fontSize: 14, cursor: 'pointer',
-                        border: `1px solid ${sel ? '#818cf8' : 'rgba(255,255,255,0.12)'}`,
-                        background: sel ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.03)',
-                        color: sel ? '#c7d2fe' : '#e2e8f0',
-                        transition: 'background 0.14s, border 0.14s, color 0.14s',
-                        animation: `qrwChipIn 0.3s ease-out ${Math.min(i, 16) * 0.016}s both`,
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1,
+                        padding: '7px 11px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                        minHeight: 46,
+                        border: `1px solid ${sel ? '#818cf8' : 'rgba(255,255,255,0.10)'}`,
+                        background: sel ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.03)',
+                        opacity: allocatedElsewhere ? 0.45 : 1,
+                        transition: 'background 0.14s, border 0.14s, opacity 0.14s',
+                        animation: `qrwChipIn 0.3s ease-out ${Math.min(i, 16) * 0.014}s both`,
                       }}
                     >
-                      {sel && <span style={{ color: '#818cf8' }}>✓</span>}
-                      <span>{p.name}</span>
-                      {p.tag && <span style={{ fontSize: 11, color: '#64748b' }}>{p.tag}</span>}
-                      {showOther && <span style={{ fontSize: 10.5, color: '#475569' }}>· {cur}</span>}
+                      <span style={{
+                        display: 'flex', alignItems: 'center', gap: 5, width: '100%',
+                        fontSize: 13.5, fontWeight: sel ? 600 : 500,
+                        color: sel ? '#c7d2fe' : '#e2e8f0',
+                      }}>
+                        {sel && <span style={{ color: '#818cf8', flexShrink: 0 }}>✓</span>}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                      </span>
+                      {subline && (
+                        <span style={{ fontSize: 10.5, color: hasRole ? '#94a3b8' : '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                          {subline}
+                        </span>
+                      )}
                     </button>
                   );
                 });

@@ -65,11 +65,11 @@ import { guessGroupFromRole, buddyDefaultsForRole, canonicaliseRole } from '@/li
 // without action; `required: true` means setup can't complete without it.
 const STEPS = [
   { id: 'details',    title: 'Your practice',          subtitle: 'A few key details', required: true },
-  { id: 'teamnet',    title: 'TeamNet calendar',       subtitle: 'Optional · sync absences', optional: true },
   { id: 'emis',       title: 'Appointment data',       subtitle: 'EMIS report · build your team', required: true },
   { id: 'slots',      title: 'Slot types',             subtitle: 'Routine, urgent, duty doctor', optional: true },
   { id: 'capacity',   title: 'Urgent capacity',        subtitle: 'Optional · expected urgent slots', optional: true },
   { id: 'clinicians', title: 'Your clinicians',        subtitle: 'Confirm roles + working pattern', optional: true },
+  { id: 'teamnet',    title: 'TeamNet calendar',       subtitle: 'Optional · sync absences', optional: true },
   { id: 'sites',      title: 'Practice sites',         subtitle: 'Optional · assign colours', optional: true },
   { id: 'demand',     title: 'Demand history',         subtitle: 'Optional · calibrate the model', optional: true },
   { id: 'invites',    title: 'Invite your team',       subtitle: 'Optional · do later if you prefer', optional: true },
@@ -312,11 +312,11 @@ export default function SetupWizard({
   const sitesConfigured = (sites?.length || 0) > 0;
   const stepDone = [
     !!postcode && !!listSize,                           // 0: details
-    teamnetUrl.length > 0,                              // 1: teamnet (optional, but tick if set)
-    hasClinicians,                                      // 2: emis
-    slotsConfigured,                                    // 3: slots (optional)
-    expectedCapacitySet,                                // 4: urgent capacity (optional)
-    cliniciansSorted,                                   // 5: clinicians (optional)
+    hasClinicians,                                      // 1: emis
+    slotsConfigured,                                    // 2: slots (optional)
+    expectedCapacitySet,                                // 3: urgent capacity (optional)
+    cliniciansSorted,                                   // 4: clinicians (optional)
+    teamnetUrl.length > 0,                              // 5: teamnet (optional, tick if set)
     sitesConfigured,                                    // 6: sites (optional)
     hasDemandData,                                      // 7: demand
     hasInvites,                                         // 8: invites
@@ -340,19 +340,19 @@ export default function SetupWizard({
     (postcode && listSize)
       ? `${postcode} · ${Number(listSize).toLocaleString()} patients${region ? ` · ${region}` : ''}`
       : STEPS[0].subtitle,
-    // 1: teamnet
-    teamnetUrl ? '✓ Calendar URL saved' : STEPS[1].subtitle,
-    // 2: emis (count not easily available client-side — use a generic done line)
-    hasClinicians ? '✓ Team imported from CSV' : STEPS[2].subtitle,
-    // 3: slots
+    // 1: emis (count not easily available client-side — use a generic done line)
+    hasClinicians ? '✓ Team imported from CSV' : STEPS[1].subtitle,
+    // 2: slots
     slotsConfigured
       ? `${slotCount} slot type${slotCount === 1 ? '' : 's'} categorised${dutyCount > 0 ? ` · duty doctor set` : ''}`
-      : STEPS[3].subtitle,
-    // 4: urgent capacity
-    expectedCapacitySet ? '✓ Urgent capacity set' : STEPS[4].subtitle,
-    // 5: clinicians (the actual count needs a fetch the step does
+      : STEPS[2].subtitle,
+    // 3: urgent capacity
+    expectedCapacitySet ? '✓ Urgent capacity set' : STEPS[3].subtitle,
+    // 4: clinicians (the actual count needs a fetch the step does
     //    internally; just show "✓ Reviewed" when sorted)
-    cliniciansSorted ? '✓ Roles + patterns reviewed' : STEPS[5].subtitle,
+    cliniciansSorted ? '✓ Roles + patterns reviewed' : STEPS[4].subtitle,
+    // 5: teamnet
+    teamnetUrl ? '✓ Calendar URL saved' : STEPS[5].subtitle,
     // 6: sites
     sitesConfigured
       ? `${sites.length} site${sites.length === 1 ? '' : 's'} configured`
@@ -660,13 +660,6 @@ export default function SetupWizard({
                 />
               )}
               {currentStep === 1 && (
-                <TeamNetStep
-                  practiceId={practice.id}
-                  teamnetUrl={teamnetUrl}
-                  setTeamnetUrl={setTeamnetUrl}
-                />
-              )}
-              {currentStep === 2 && (
                 <EmisStep
                   practiceId={practice.id}
                   hasClinicians={hasClinicians}
@@ -676,7 +669,7 @@ export default function SetupWizard({
                   setParsedCsv={setParsedCsv}
                 />
               )}
-              {currentStep === 3 && (
+              {currentStep === 2 && (
                 <SlotTypesStep
                   practiceId={practice.id}
                   parsedCsv={parsedCsv}
@@ -684,7 +677,7 @@ export default function SetupWizard({
                   setSlotFilters={setSlotFilters}
                 />
               )}
-              {currentStep === 4 && (
+              {currentStep === 3 && (
                 <CapacityStep
                   practiceId={practice.id}
                   parsedCsv={parsedCsv}
@@ -693,10 +686,17 @@ export default function SetupWizard({
                   onContinue={goNext}
                 />
               )}
-              {currentStep === 5 && (
+              {currentStep === 4 && (
                 <ClinicianRolesStep
                   practiceId={practice.id}
                   onSortedChange={setCliniciansSorted}
+                />
+              )}
+              {currentStep === 5 && (
+                <TeamNetStep
+                  practiceId={practice.id}
+                  teamnetUrl={teamnetUrl}
+                  setTeamnetUrl={setTeamnetUrl}
                 />
               )}
               {currentStep === 6 && (
