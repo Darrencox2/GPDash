@@ -151,7 +151,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
       <div className="flex items-center justify-between" style={{ background: 'rgba(15,23,42,0.85)', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px 12px 0 0' }}>
         <div>
           <div className="font-heading text-base font-medium text-slate-200">Clinician capacity</div>
-          <div className="text-xs text-slate-600">Routine slots · 28-day forward view</div>
+          <div className="text-sm text-slate-600">Routine slots · 28-day forward view</div>
         </div>
       </div>
 
@@ -161,7 +161,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
           type="text" value={search}
           onChange={e => { setSearch(e.target.value); setSelectedId(null); }}
           placeholder="Search clinician..."
-          className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+          className="w-full px-3 py-2.5 rounded-lg text-base focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#e2e8f0' }}
         />
 
@@ -171,14 +171,14 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
               const d = clinicianData[c.id];
               return (
                 <button key={c.id} onClick={() => selectClinician(c)} className="w-full text-left px-3 py-2.5 flex items-center gap-2.5 hover:bg-white/5 transition-colors">
-                  <div className="w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", background: c.group === 'gp' ? '#3b82f6' : c.group === 'nursing' ? '#10b981' : '#a855f7' }}>{c.initials}</div>
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", background: c.group === 'gp' ? '#3b82f6' : c.group === 'nursing' ? '#10b981' : '#a855f7' }}>{c.initials}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-slate-200 truncate">{c.name}</div>
-                    <div className="text-[11px] text-slate-500">{c.role}</div>
+                    <div className="text-sm text-slate-200 truncate">{c.name}</div>
+                    <div className="text-sm text-slate-500">{c.role}</div>
                   </div>
                   {d && <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-bold text-emerald-400" style={{ fontFamily: "'Space Mono',monospace" }}>{d.total}</div>
-                    <div className="text-[11px] text-slate-600">available</div>
+                    <div className="text-base font-bold text-emerald-400" style={{ fontFamily: "'Space Mono',monospace" }}>{d.total}</div>
+                    <div className="text-sm text-slate-600">available</div>
                   </div>}
                 </button>
               );
@@ -192,46 +192,46 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
         <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
           {/* Clinician header */}
           <div className="flex items-center gap-3 pt-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", background: selected.group === 'gp' ? '#3b82f6' : selected.group === 'nursing' ? '#10b981' : '#a855f7' }}>{selected.initials}</div>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-base font-bold text-white flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", background: selected.group === 'gp' ? '#3b82f6' : selected.group === 'nursing' ? '#10b981' : '#a855f7' }}>{selected.initials}</div>
             <div className="flex-1">
-              <div className="text-sm font-medium text-slate-200">{selected.title ? `${selected.title} ${selected.name}` : selected.name}</div>
-              <div className="text-xs text-slate-500">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>
+              <div className="text-base font-medium text-slate-200">{selected.title ? `${selected.title} ${selected.name}` : selected.name}</div>
+              <div className="text-sm text-slate-500">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>
             </div>
-            <button onClick={clearSelection} className="text-xs text-slate-600 hover:text-slate-300 transition-colors">✕</button>
+            <button onClick={clearSelection} className="text-sm text-slate-600 hover:text-slate-300 transition-colors">✕</button>
           </div>
 
           {/* 28-day summary */}
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">28-day summary</div>
+          <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">28-day summary</div>
           <div className="grid grid-cols-3 gap-2">
             <div className="glass-inner rounded-xl p-3">
-              <div className="text-xs text-slate-500 mb-1">Available</div>
+              <div className="text-sm text-slate-500 mb-1">Available</div>
               <div className="font-mono-data text-2xl font-bold text-emerald-400 leading-none">{cd.total}</div>
-              <div className="text-[11px] text-slate-600 mt-1">routine slots</div>
+              <div className="text-sm text-slate-600 mt-1">routine slots</div>
             </div>
             <div className="glass-inner rounded-xl p-3">
-              <div className="text-xs text-slate-500 mb-1">Embargoed</div>
+              <div className="text-sm text-slate-500 mb-1">Embargoed</div>
               <div className="font-mono-data text-2xl font-bold text-amber-400 leading-none">{cd.totalEmb}</div>
-              <div className="text-[11px] text-slate-600 mt-1">routine slots</div>
+              <div className="text-sm text-slate-600 mt-1">routine slots</div>
             </div>
             <div className="glass-inner rounded-xl p-3">
-              <div className="text-xs text-slate-500 mb-1">Booking rate</div>
+              <div className="text-sm text-slate-500 mb-1">Booking rate</div>
               <div className="font-mono-data text-2xl font-bold leading-none" style={{ color: bookingRate > 85 ? '#f87171' : bookingRate > 70 ? '#fbbf24' : '#60a5fa' }}>{bookingRate}%</div>
-              <div className="text-[11px] text-slate-600 mt-1">{cd.totalBooked} of {totalSlots} filled</div>
+              <div className="text-sm text-slate-600 mt-1">{cd.totalBooked} of {totalSlots} filled</div>
             </div>
           </div>
 
           {/* Next 3 available */}
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Next available routine slots</div>
+          <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">Next available routine slots</div>
           <div className="space-y-1.5">
-            {nextAll.length === 0 && <div className="text-sm text-slate-600 text-center py-4">No available slots in the next 28 days</div>}
+            {nextAll.length === 0 && <div className="text-base text-slate-600 text-center py-4">No available slots in the next 28 days</div>}
             {nextAll.map((slot, i) => (
               <div key={i} className="glass-inner rounded-lg flex items-center gap-3 px-3 py-2.5">
-                <div className="font-mono-data text-sm font-bold flex-shrink-0 w-5 text-center" style={{ color: slot.type === 'available' ? '#34d399' : '#fbbf24' }}>{i + 1}</div>
+                <div className="font-mono-data text-base font-bold flex-shrink-0 w-5 text-center" style={{ color: slot.type === 'available' ? '#34d399' : '#fbbf24' }}>{i + 1}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-slate-200">{slot.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                  <div className="text-xs text-slate-500">{slot.slotType} · {slot.session.toUpperCase()}{slot.loc ? ` · ${slot.loc}` : ''}</div>
+                  <div className="text-base font-medium text-slate-200">{slot.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                  <div className="text-sm text-slate-500">{slot.slotType} · {slot.session.toUpperCase()}{slot.loc ? ` · ${slot.loc}` : ''}</div>
                 </div>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{
                   background: slot.type === 'available' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
                   color: slot.type === 'available' ? '#34d399' : '#fbbf24'
                 }}>{slot.type === 'available' ? 'Available' : 'Embargoed'}</span>
@@ -240,7 +240,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
           </div>
 
           {/* Weekly availability */}
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Weekly availability</div>
+          <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">Weekly availability</div>
           <div className="glass-inner rounded-xl p-3">
             <div className="flex gap-2 items-end" style={{ height: 56 }}>
               {cd.weeks.map((avail, i) => {
@@ -254,25 +254,25 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
                     <div className="flex-1" />
                     {embH > 0 && <div style={{ height: `${embH}%`, background: '#f59e0b', opacity: 0.6, width: '100%', borderRadius: '3px 3px 0 0' }} />}
                     {availH > 0 && <div style={{ height: `${availH}%`, background: '#10b981', width: '100%', borderRadius: embH > 0 ? 0 : '3px 3px 0 0' }} />}
-                    <div className="text-[11px] text-slate-600 mt-1">Wk {i + 1}</div>
+                    <div className="text-sm text-slate-600 mt-1">Wk {i + 1}</div>
                   </div>
                 );
               })}
             </div>
             <div className="flex gap-3 justify-center mt-2">
-              <span className="flex items-center gap-1 text-[11px] text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#10b981' }} />Available</span>
-              <span className="flex items-center gap-1 text-[11px] text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#f59e0b', opacity: 0.6 }} />Embargoed</span>
+              <span className="flex items-center gap-1 text-sm text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#10b981' }} />Available</span>
+              <span className="flex items-center gap-1 text-sm text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#f59e0b', opacity: 0.6 }} />Embargoed</span>
             </div>
           </div>
 
           {/* Practice comparison */}
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Compared to practice</div>
+          <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">Compared to practice</div>
           <div className="glass-inner rounded-xl p-3">
             {rank > 0 && (
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-medium text-slate-300">Ranked</span>
+                <span className="text-sm font-medium text-slate-300">Ranked</span>
                 <span className="font-mono-data text-lg font-bold text-emerald-400">{rank}{rank === 1 ? 'st' : rank === 2 ? 'nd' : rank === 3 ? 'rd' : 'th'}</span>
-                <span className="text-xs text-slate-500">of {comparison.entries.length} clinicians by routine availability</span>
+                <span className="text-sm text-slate-500">of {comparison.entries.length} clinicians by routine availability</span>
               </div>
             )}
             <div className="space-y-0.5">
@@ -283,17 +283,17 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
                 const avgW = comparison.max > 0 ? (comparison.avg / comparison.max) * 100 : 0;
                 return (
                   <div key={e.id} className="flex items-center gap-2 py-1 px-2 rounded-md" style={{ background: isSel ? 'rgba(16,185,129,0.06)' : 'transparent' }}>
-                    <span className="text-xs font-bold w-7 text-right flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", color: isSel ? '#34d399' : '#64748b' }}>{e.initials}</span>
+                    <span className="text-sm font-bold w-7 text-right flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", color: isSel ? '#34d399' : '#64748b' }}>{e.initials}</span>
                     <div className="flex-1 h-4 rounded overflow-hidden relative" style={{ background: 'rgba(255,255,255,0.04)' }}>
                       <div className="h-full rounded" style={{ width: `${barW}%`, background: aboveAvg ? 'rgba(16,185,129,0.4)' : 'rgba(245,158,11,0.4)' }} />
                       <div className="absolute top-0 bottom-0 w-px" style={{ left: `${avgW}%`, background: '#e2e8f0' }} />
                     </div>
-                    <span className="text-xs font-bold w-7 text-right flex-shrink-0 font-mono-data" style={{ color: aboveAvg ? '#34d399' : '#fbbf24' }}>{e.total}</span>
+                    <span className="text-sm font-bold w-7 text-right flex-shrink-0 font-mono-data" style={{ color: aboveAvg ? '#34d399' : '#fbbf24' }}>{e.total}</span>
                   </div>
                 );
               })}
             </div>
-            <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-600">
+            <div className="flex items-center gap-3 mt-2 text-sm text-slate-600">
               <span className="flex items-center gap-1"><span className="w-2 h-px" style={{ background: '#e2e8f0' }} />Avg ({comparison.avg})</span>
               <span style={{ color: '#34d399' }}>Above avg</span>
               <span style={{ color: '#fbbf24' }}>Below avg</span>
@@ -304,7 +304,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
           {insight && (
             <div className="rounded-lg px-3 py-2.5 flex flex-wrap gap-2" style={{ background: 'rgba(255,255,255,0.03)', borderLeft: '3px solid #10b981' }}>
               {insight.map((p, i) => (
-                <span key={i} className="text-xs" style={{ color: p.colour, fontWeight: 500 }}>{p.text}{i < insight.length - 1 ? ' · ' : ''}</span>
+                <span key={i} className="text-sm" style={{ color: p.colour, fontWeight: 500 }}>{p.text}{i < insight.length - 1 ? ' · ' : ''}</span>
               ))}
             </div>
           )}
@@ -314,7 +314,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
       {/* Empty state */}
       {!selected && !showList && (
         <div className="py-8 px-4 text-center">
-          <div className="text-sm text-slate-500">Search for a clinician to view their routine capacity</div>
+          <div className="text-base text-slate-500">Search for a clinician to view their routine capacity</div>
         </div>
       )}
     </div>

@@ -61,7 +61,7 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); onMarkOffToday(); }}
             role="button"
             title="Mark off today"
-            className="text-[11px] px-1.5 py-0.5 rounded text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors cursor-pointer"
+            className="text-sm px-1.5 py-0.5 rounded text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors cursor-pointer"
             style={{ fontWeight: 500 }}
           >
             Off today
@@ -71,25 +71,25 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
           <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
             role="button"
             title="Hide from Who's In"
-            className="text-xs text-slate-500 hover:text-red-400 transition-colors cursor-pointer">✕</span>
+            className="text-sm text-slate-500 hover:text-red-400 transition-colors cursor-pointer">✕</span>
         )}
       </div>
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+        <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
           style={{ fontFamily: "'Outfit',sans-serif", background: badgeCol, boxShadow: `0 0 6px ${badgeCol}30` }}>
           {person.initials || '?'}
         </div>
         <div className="min-w-0">
-          <div className={`text-sm font-medium leading-tight truncate ${isAbsent ? 'text-slate-500' : 'text-slate-200'}`}>{displayName}</div>
-          <div className="text-xs leading-tight mt-0.5" style={{ color: isAbsent ? '#f87171' : isDayOff ? '#fbbf24' : '#64748b' }}>
+          <div className={`text-base font-medium leading-tight truncate ${isAbsent ? 'text-slate-500' : 'text-slate-200'}`}>{displayName}</div>
+          <div className="text-sm leading-tight mt-0.5" style={{ color: isAbsent ? '#f87171' : isDayOff ? '#fbbf24' : '#64748b' }}>
             {reason || person.role || 'Staff'}
           </div>
         </div>
       </div>
       {hasLoc && (
         <div className="flex flex-col gap-px flex-shrink-0">
-          <div className="rounded-t-sm flex items-center justify-center text-[10px] font-bold text-white" style={{ width: 22, height: 13, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
-          <div className="rounded-b-sm flex items-center justify-center text-[10px] font-bold text-white" style={{ width: 22, height: 13, background: isSplit ? pC : aC }}>{pLoc?.charAt(0) || aLoc?.charAt(0) || '?'}</div>
+          <div className="rounded-t-sm flex items-center justify-center text-xs font-bold text-white" style={{ width: 22, height: 13, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
+          <div className="rounded-b-sm flex items-center justify-center text-xs font-bold text-white" style={{ width: 22, height: 13, background: isSplit ? pC : aC }}>{pLoc?.charAt(0) || aLoc?.charAt(0) || '?'}</div>
         </div>
       )}
     </button>
@@ -103,7 +103,7 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
 function PeopleGrid({ children, isEmpty }) {
   return (
     <div className="min-h-[40px] p-1.5">
-      {isEmpty && <div className="flex items-center justify-center py-2 text-xs text-slate-600">None</div>}
+      {isEmpty && <div className="flex items-center justify-center py-2 text-sm text-slate-600">None</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">{children}</div>
     </div>
   );
@@ -394,7 +394,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="font-heading text-base font-medium text-slate-200">{isViewingToday ? "Who's in today" : `Who's in — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</span>
-            <span className="text-xs text-slate-600">{categories.inPractice.length} in · {categories.leaveAbsent.length + categories.dayOff.length} off</span>
+            <span className="text-sm text-slate-600">{categories.inPractice.length} in · {categories.leaveAbsent.length + categories.dayOff.length} off</span>
           </div>
           <button onClick={() => setShowSettings(true)}
             className="glass-cog w-8 h-8 rounded-lg flex items-center justify-center"
@@ -413,11 +413,11 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         {unconfirmedCount > 0 && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.15)'}}>
             <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
-            <span className="text-xs text-amber-400">{unconfirmedCount} unconfirmed from CSV</span>
+            <span className="text-sm text-amber-400">{unconfirmedCount} unconfirmed from CSV</span>
             {data?._v4?.practiceSlug && (
               <a
                 href={`/v4/practice/${data._v4.practiceSlug}?tab=clinicians`}
-                className="ml-auto text-xs font-medium text-amber-300 hover:text-amber-100 underline"
+                className="ml-auto text-sm font-medium text-amber-300 hover:text-amber-100 underline"
               >Review</a>
             )}
           </div>
@@ -432,7 +432,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           <div key={section.label}>
             <div className="flex items-center gap-2 mb-2 px-1">
               <div className="w-1 h-3.5 rounded-full" style={{background:section.colour}} />
-              <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">{section.label} ({section.team.length})</span>
+              <span className="text-sm font-medium text-slate-500 uppercase tracking-wider">{section.label} ({section.team.length})</span>
             </div>
             <PeopleGrid isEmpty={section.team.length === 0}>
               {section.team.map(e => <PersonCard key={e.person.id} person={e.person} status="present" onClick={() => setSelectedPerson({ person: e.person, accent: section.colour })} onHide={() => hidePerson(e.person.id)} onMarkOffToday={canEdit ? () => setOffTodayCandidate(e.person) : null} location={personLocationMap[e.person.id]} sessionLoc={personSessionLocMap[e.person.id]} getSiteCol={siteCol} />)}
@@ -445,8 +445,8 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           <div>
             <button onClick={() => setShowAbsent(!showAbsent)}
               className="flex items-center gap-2 w-full text-left py-1 group">
-              <span className={`text-xs text-slate-500 transition-transform ${showAbsent ? 'rotate-90' : ''}`}>▶</span>
-              <div className="flex items-center gap-3 text-xs text-slate-500">
+              <span className={`text-sm text-slate-500 transition-transform ${showAbsent ? 'rotate-90' : ''}`}>▶</span>
+              <div className="flex items-center gap-3 text-sm text-slate-500">
                 {categories.leaveAbsent.length > 0 && <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" />{categories.leaveAbsent.length} absent</span>}
                 {categories.dayOff.length > 0 && <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f59e0b'}} />{categories.dayOff.length} day off</span>}
               </div>
@@ -462,10 +462,10 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
 
         {/* Location legend — built from configured sites */}
         {sites.length > 0 && (
-          <div className="flex items-center justify-center flex-wrap gap-x-3 gap-y-1 pt-2 text-xs">
+          <div className="flex items-center justify-center flex-wrap gap-x-3 gap-y-1 pt-2 text-sm">
             {sites.map(s => (
               <span key={s.name} className="flex items-center gap-1">
-                <span className="rounded-sm flex items-center justify-center text-[9px] font-bold text-white" style={{width:14,height:14,background:s.colour||'#64748b'}}>{(s.name || '?').charAt(0).toUpperCase()}</span>
+                <span className="rounded-sm flex items-center justify-center text-[11px] font-bold text-white" style={{width:14,height:14,background:s.colour||'#64748b'}}>{(s.name || '?').charAt(0).toUpperCase()}</span>
                 <span className="text-slate-500">{s.name}</span>
               </span>
             ))}
@@ -486,12 +486,12 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
       >
         {hiddenPeople.length > 0 && (
           <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Hidden — click to restore</div>
+            <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Hidden — click to restore</div>
             <div className="space-y-1">
               {hiddenPeople.map(c => (
                 <button key={c.id} onClick={() => showPerson(c.id)}
-                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-emerald-400 transition-colors flex items-center justify-between" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)"}}>
-                  <span>{c.name}</span><span className="text-xs text-slate-500">restore</span>
+                  className="w-full text-left px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-emerald-400 transition-colors flex items-center justify-between" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)"}}>
+                  <span>{c.name}</span><span className="text-sm text-slate-500">restore</span>
                 </button>
               ))}
             </div>
@@ -502,12 +502,12 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           if (groupPeople.length === 0) return null;
           return (
             <div key={groupKey} className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{groupInfo.label}</div>
+              <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">{groupInfo.label}</div>
               <div className="space-y-1">
                 {groupPeople.map(c => (
                   <button key={c.id} onClick={() => isShowWhosIn(c) ? hidePerson(c.id) : showPerson(c.id)}
-                    className="w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between" style={{background: isShowWhosIn(c) ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: isShowWhosIn(c) ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.06)', color: isShowWhosIn(c) ? '#34d399' : '#64748b'}}>
-                    <span>{c.name}</span><span className="text-xs opacity-60">{c.role}</span>
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center justify-between" style={{background: isShowWhosIn(c) ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: isShowWhosIn(c) ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.06)', color: isShowWhosIn(c) ? '#34d399' : '#64748b'}}>
+                    <span>{c.name}</span><span className="text-sm opacity-60">{c.role}</span>
                   </button>
                 ))}
               </div>
@@ -523,7 +523,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         const csvName = todayCsvClinicians.find(n => matchesStaffMember(n, selectedPerson.person));
         if (!csvName) return (
           <SidePanel open={true} onClose={() => setSelectedPerson(null)} title={selectedPerson.person.name} accent={selectedPerson.accent}>
-            <div className="px-4 py-8 text-center text-sm text-slate-500">No CSV slot data found for this person on this date.</div>
+            <div className="px-4 py-8 text-center text-base text-slate-500">No CSV slot data found for this person on this date.</div>
           </SidePanel>
         );
         return (
