@@ -80,6 +80,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
   const [done, setDone] = useState(allPeople.length === 0);
   const [headKey, setHeadKey] = useState(0);
   const [poolKey, setPoolKey] = useState(0);
+  const [fading, setFading] = useState(() => new Set());
   const [query, setQuery] = useState('');
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -132,6 +133,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
   };
 
   const advance = () => {
+    setFading(new Set());
     setHeadKey(k => k + 1);
     setPoolKey(k => k + 1);
     if (step + 1 >= COMMON_ROLES.length) setDone(true);
@@ -142,6 +144,11 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
     if (advancing.current) return;
     advancing.current = true;
     setQuery('');
+    // Fade out the people who just got this step's role/admin status, so
+    // there's clear "sorted" feedback before we move on (they then appear
+    // greyed on later steps). Only the freshly-assigned fade — not the
+    // ones being un-assigned.
+    if (toAssignIds.length) setFading(new Set(toAssignIds));
     if (isAdminStep) {
       // Mark selected as administrative + Administrator; un-mark removes
       // them (back to active + needing a role).
@@ -177,7 +184,9 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
         });
       }
     }
-    setTimeout(() => { advancing.current = false; advance(); }, 220);
+    // Hold long enough for the fade-out to play (or advance promptly if
+    // nothing was assigned).
+    setTimeout(() => { advancing.current = false; advance(); }, toAssignIds.length ? 480 : 160);
   };
 
   // ─── Confetti for the finish screen ─────────────────────────────────
@@ -207,6 +216,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
         @keyframes qrwFade { from { opacity: 0; } to { opacity: 1; } }
         @keyframes qrwPop { 0% { transform: scale(0.92) translateY(12px); opacity: 0; } 60% { transform: scale(1.015) translateY(0); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes qrwChipIn { from { transform: scale(0.8) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+        @keyframes qrwFadeOut { 0% { opacity: 1; transform: scale(1); } 30% { transform: scale(1.08); } 100% { opacity: 0; transform: scale(0.6) translateY(-22px); } }
         @keyframes qrwHeadIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes qrwCheck { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes qrwLift { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -303,6 +313,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                   const sel = selected.has(p.id);
                   const cur = roleById[p.id] || '';
                   const isAdmin = statusById[p.id] === 'administrative';
+                  const isFading = fading.has(p.id);
                   const hasRole = isAdmin || (cur && cur.toLowerCase() !== '' && !PLACEHOLDER.has(cur.trim().toLowerCase()));
                   // Three tiers: selected for this role (indigo, prominent),
                   // already on another role (dimmed so it recedes), or not yet
@@ -314,7 +325,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                   return (
                     <button
                       key={p.id}
-                      onClick={() => toggle(p.id)}
+                      onClick={() => !isFading && toggle(p.id)}
                       title={p.name}
                       style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1,
@@ -324,7 +335,9 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                         background: sel ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.03)',
                         opacity: allocatedElsewhere ? 0.45 : 1,
                         transition: 'background 0.14s, border 0.14s, opacity 0.14s',
-                        animation: `qrwChipIn 0.3s ease-out ${Math.min(i, 16) * 0.014}s both`,
+                        animation: isFading
+                          ? `qrwFadeOut 0.42s cubic-bezier(0.4,0,0.6,1) ${Math.min(i, 16) * 0.03}s both`
+                          : `qrwChipIn 0.3s ease-out ${Math.min(i, 16) * 0.014}s both`,
                       }}
                     >
                       <span style={{
