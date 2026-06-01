@@ -28,7 +28,7 @@ import { AuthCard, formStyles as f } from '../../_lib/auth-ui';
 export default function CreatePracticePage() {
   const router = useRouter();
   const supabase = createClient();
-  const [mode, setMode] = useState('name'); // 'name' | 'ods'
+  const [mode, setMode] = useState('name'); // 'name' | 'ods' | 'manual'
   const [error, setError] = useState('');
 
   // Search-by-name state
@@ -39,6 +39,13 @@ export default function CreatePracticePage() {
   // Search-by-ODS state (single result, lookup on submit)
   const [odsInput, setOdsInput] = useState('');
   const [odsLookupBusy, setOdsLookupBusy] = useState(false);
+
+  // Manual-entry state — the fallback when the NHS lookup is unavailable
+  // or a practice cannot be found. Name is required; ODS code and list
+  // size are optional (the setup wizard can fill the rest later).
+  const [manualName, setManualName] = useState('');
+  const [manualOds, setManualOds] = useState('');
+  const [manualListSize, setManualListSize] = useState('');
 
   // Selected practice (after the user picks one from results or
   // completes an ODS lookup). null = nothing picked yet.
@@ -168,6 +175,26 @@ export default function CreatePracticePage() {
       });
   };
 
+  // ─── Manual entry ────────────────────────────────────────────────────
+  // Fallback path: the user types their own details, and we hand them to
+  // the same pickPractice flow. If they supply an ODS code we still run
+  // the duplicate check and best-effort postcode lookup; without one we
+  // skip both (pickPractice handles that) and the setup wizard asks later.
+  const submitManual = () => {
+    const name = manualName.trim();
+    if (!name) { setError('Please enter your practice name.'); return; }
+    const ods = manualOds.trim().toUpperCase();
+    const sizeNum = parseInt(manualListSize.replace(/[^0-9]/g, ''), 10);
+    setError('');
+    pickPractice({
+      name,
+      odsCode: ods || null,
+      listSize: Number.isFinite(sizeNum) && sizeNum > 0 ? sizeNum : null,
+      existsInDatabase: false,
+      manualEntry: true,
+    });
+  };
+
   const reset = () => {
     setPicked(null);
     setDupCheck(null);
@@ -219,9 +246,10 @@ export default function CreatePracticePage() {
         <div style={{ display: 'flex', gap: 4, padding: 4, background: 'rgba(0,0,0,0.3)', borderRadius: 8, marginBottom: 16 }}>
           <ModeButton active={mode === 'name'} onClick={() => setMode('name')}>Search by name</ModeButton>
           <ModeButton active={mode === 'ods'} onClick={() => setMode('ods')}>Enter ODS code</ModeButton>
+          <ModeButton active={mode === 'manual'} onClick={() => setMode('manual')}>Enter manually</ModeButton>
         </div>
 
-        {mode === 'name' ? (
+        {mode === 'name' && (
           <div>
             <input
               type="text"
@@ -234,7 +262,8 @@ export default function CreatePracticePage() {
             {searching && <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>Searching NHS Digital…</div>}
             {!searching && query.trim().length >= 2 && searchResults.length === 0 && (
               <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
-                No NHS practices match "{query}". Try a different spelling.
+                No NHS practices match "{query}". Try a different spelling, or{' '}
+                <button type="button" onClick={() => { setManualName(query.trim()); setMode('manual'); }} style={{ background: 'none', border: 'none', padding: 0, color: '#34d399', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>enter details manually</button>.
               </div>
             )}
             {searchResults.length > 0 && (
@@ -245,7 +274,9 @@ export default function CreatePracticePage() {
               </div>
             )}
           </div>
-        ) : (
+        )}
+
+        {mode === 'ods' && (
           <div>
             <input
               type="text"
@@ -273,6 +304,52 @@ export default function CreatePracticePage() {
               Don't know your ODS code? Switch to "Search by name" above, or find it on{' '}
               <a href="https://www.odsportal.digital.nhs.uk/" target="_blank" rel="noopener noreferrer" style={{ color: '#34d399' }}>NHS ODS Portal</a>.
             </div>
+          </div>
+        )}
+
+        {mode === 'manual' && (
+          <div>
+            <div style={{ fontSize: 11.5, color: '#94a3b8', marginBottom: 12, lineHeight: 1.5 }}>
+              Use this if the NHS lookup is not finding your practice or is unavailable. Only the
+              name is required — you can add or correct the rest later in settings.
+            </div>
+            <label style={f.label}>Practice name <span style={{ color: '#f87171' }}>*</span></label>
+            <input
+              type="text"
+              value={manualName}
+              onChange={(e) => setManualName(e.target.value)}
+              placeholder="e.g. Winscombe & Banwell Family Practice"
+              style={f.input}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') submitManual(); }}
+            />
+            <label style={{ ...f.label, marginTop: 12 }}>ODS code <span style={{ color: '#64748b' }}>(optional)</span></label>
+            <input
+              type="text"
+              value={manualOds}
+              onChange={(e) => setManualOds(e.target.value.toUpperCase())}
+              placeholder="e.g. L83012"
+              style={f.input}
+              maxLength={10}
+            />
+            <label style={{ ...f.label, marginTop: 12 }}>List size <span style={{ color: '#64748b' }}>(optional)</span></label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={manualListSize}
+              onChange={(e) => setManualListSize(e.target.value)}
+              placeholder="e.g. 11000"
+              style={f.input}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitManual(); }}
+            />
+            <button
+              type="button"
+              onClick={submitManual}
+              disabled={!manualName.trim()}
+              style={{ ...f.button, marginTop: 14, opacity: manualName.trim() ? 1 : 0.5 }}
+            >
+              Continue
+            </button>
           </div>
         )}
 
