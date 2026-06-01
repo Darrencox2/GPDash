@@ -40,6 +40,7 @@ const BuddySettings = lazy(() => import('@/components/buddy/BuddySettings'));
 const HuddleToday = lazy(() => import('@/components/huddle/HuddleToday'));
 const HuddleForward = lazy(() => import('@/components/huddle/HuddleForward'));
 const WorkloadAudit = lazy(() => import('@/components/huddle/WorkloadAudit'));
+const WorkforcePlanner = lazy(() => import('@/components/workforce/WorkforcePlanner'));
 const MyRota = lazy(() => import('@/components/huddle/MyRota'));
 const RoomSettings = lazy(() => import('@/components/room/RoomSettings'));
 const RoomDashboard = lazy(() => import('@/components/room/RoomDashboard'));
@@ -695,6 +696,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           {activeSection === 'huddle-rota' && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'reporting' && <WorkloadAudit data={data} huddleData={huddleData} />}
+          {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
           {/* team-members section retired in v4.14.0 — Clinicians lives at
               Practice → Clinicians now. If something still navigates to
               this section ID (deep links from older URLs, third-party

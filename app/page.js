@@ -11,6 +11,7 @@ import TeamRota from '@/components/buddy/TeamRota';
 import BuddySettings from '@/components/buddy/BuddySettings';
 import HuddleToday from '@/components/huddle/HuddleToday';
 import HuddleForward from '@/components/huddle/HuddleForward';
+import WorkforcePlanner from '@/components/workforce/WorkforcePlanner';
 import WorkloadAudit from '@/components/huddle/WorkloadAudit';
 import MyRota from '@/components/huddle/MyRota';
 import RoomSettings from '@/components/room/RoomSettings';
@@ -305,6 +306,7 @@ function AppContent() {
           {activeSection === 'huddle-rota' && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'reporting' && <WorkloadAudit data={data} huddleData={huddleData} />}
+          {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
           {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} />}
           {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} huddleData={huddleData} />}
           {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} huddleData={huddleData} />}
