@@ -216,7 +216,6 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
         @keyframes qrwFade { from { opacity: 0; } to { opacity: 1; } }
         @keyframes qrwPop { 0% { transform: scale(0.92) translateY(12px); opacity: 0; } 60% { transform: scale(1.015) translateY(0); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes qrwChipIn { from { transform: scale(0.8) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-        @keyframes qrwFadeOut { 0% { opacity: 1; transform: scale(1); } 30% { transform: scale(1.08); } 100% { opacity: 0; transform: scale(0.6) translateY(-22px); } }
         @keyframes qrwHeadIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes qrwCheck { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes qrwLift { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -329,15 +328,19 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                       title={p.name}
                       style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1,
-                        padding: '7px 11px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                        padding: '7px 11px', borderRadius: 10, cursor: isFading ? 'default' : 'pointer', textAlign: 'left',
                         minHeight: 46,
                         border: `1px solid ${sel ? '#818cf8' : 'rgba(255,255,255,0.10)'}`,
                         background: sel ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.03)',
-                        opacity: allocatedElsewhere ? 0.45 : 1,
-                        transition: 'background 0.14s, border 0.14s, opacity 0.14s',
-                        animation: isFading
-                          ? `qrwFadeOut 0.42s cubic-bezier(0.4,0,0.6,1) ${Math.min(i, 16) * 0.03}s both`
-                          : `qrwChipIn 0.3s ease-out ${Math.min(i, 16) * 0.014}s both`,
+                        // Fade driven by a transition (reliable across re-renders),
+                        // not an animation-name swap. The entrance animation is
+                        // switched off while fading so it cannot hold the element
+                        // at full opacity and fight the transition.
+                        opacity: isFading ? 0 : (allocatedElsewhere ? 0.45 : 1),
+                        transform: isFading ? 'scale(0.6) translateY(-22px)' : 'scale(1)',
+                        pointerEvents: isFading ? 'none' : 'auto',
+                        transition: 'opacity 0.4s ease, transform 0.4s ease, background 0.14s, border 0.14s',
+                        animation: isFading ? 'none' : `qrwChipIn 0.3s ease-out ${Math.min(i, 16) * 0.014}s backwards`,
                       }}
                     >
                       <span style={{
