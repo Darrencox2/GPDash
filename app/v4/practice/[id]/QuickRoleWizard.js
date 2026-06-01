@@ -336,7 +336,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                         // not an animation-name swap. The entrance animation is
                         // switched off while fading so it cannot hold the element
                         // at full opacity and fight the transition.
-                        opacity: isFading ? 0 : (allocatedElsewhere ? 0.45 : 1),
+                        opacity: isFading ? 0 : (allocatedElsewhere ? 0.3 : 1),
                         transform: isFading ? 'scale(0.6) translateY(-22px)' : 'scale(1)',
                         pointerEvents: isFading ? 'none' : 'auto',
                         transition: 'opacity 0.4s ease, transform 0.4s ease, background 0.14s, border 0.14s',
@@ -345,14 +345,14 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                     >
                       <span style={{
                         display: 'flex', alignItems: 'center', gap: 5, width: '100%',
-                        fontSize: 13.5, fontWeight: sel ? 600 : 500,
-                        color: sel ? '#c7d2fe' : '#e2e8f0',
+                        fontSize: 13.5, fontWeight: sel ? 600 : (allocatedElsewhere ? 400 : 500),
+                        color: sel ? '#c7d2fe' : (allocatedElsewhere ? '#5b6675' : '#e2e8f0'),
                       }}>
                         {sel && <span style={{ color: '#818cf8', flexShrink: 0 }}>✓</span>}
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                       </span>
                       {subline && (
-                        <span style={{ fontSize: 10.5, color: hasRole ? '#94a3b8' : '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                        <span style={{ fontSize: 10.5, color: allocatedElsewhere ? '#3f4856' : (hasRole ? '#94a3b8' : '#64748b'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
                           {subline}
                         </span>
                       )}
