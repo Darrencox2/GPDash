@@ -24,7 +24,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import {
   buildContracted, cloneAllocation, pruneAllocation, detectAnomalies,
-  allocatedCount, contractedCount, isIncluded, rolesInTeam,
+  allocatedCount, contractedCount, isIncluded, rolesInTeam, demandModel,
   WF_DAYS, WF_DAY_NAMES, WF_SESSIONS, cellKey,
 } from '@/lib/workforce';
 
@@ -48,6 +48,8 @@ export default function WorkforcePlanner({ data, toast }) {
   const supabase = useMemo(() => createClient(), []);
   const v4 = data?._v4 || {};
   const practiceId = v4.practiceId;
+  const listSize = v4.practiceListSize;
+  const demandSettings = v4.demandSettings;
 
   const clinicians = useMemo(() => {
     const raw = data?.clinicians;
@@ -63,6 +65,7 @@ export default function WorkforcePlanner({ data, toast }) {
   const [includedRoles, setIncludedRoles] = useState(null); // null = all
   const [allocation, setAllocation] = useState(null);
   const [activities, setActivities] = useState([]);
+  const [showDemand, setShowDemand] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
@@ -104,6 +107,7 @@ export default function WorkforcePlanner({ data, toast }) {
       const contracted = buildContracted(clinicians, patternById);
       setIncludedRoles(Array.isArray(wf.includedRoles) ? wf.includedRoles : null);
       setActivities(Array.isArray(wf.activities) ? wf.activities : []);
+      if (typeof wf.showDemand === 'boolean') setShowDemand(wf.showDemand);
       setAllocation(wf.allocation ? pruneAllocation(wf.allocation, validIds) : contracted);
     })();
   }, [patternById, clinicians, practiceId, supabase]);
@@ -177,7 +181,7 @@ export default function WorkforcePlanner({ data, toast }) {
   const save = async () => {
     if (!practiceId) return;
     setSaving(true);
-    const blob = { includedRoles, allocation, activities };
+    const blob = { includedRoles, allocation, activities, showDemand };
     const { error: err } = await supabase.from('practice_settings')
       .upsert({ practice_id: practiceId, workforce: blob }, { onConflict: 'practice_id' });
     setSaving(false);
@@ -219,6 +223,22 @@ export default function WorkforcePlanner({ data, toast }) {
   })).sort((a, b) => b.allocated - a.allocated || a.c.name.localeCompare(b.c.name));
 
   const cleanCount = anomalies.items.length;
+
+  // Demand overlay: per-day demand vs contracted capacity (the contracting target).
+  const dm = demandModel({ allocation, includedIds, demandSettings, listSize });
+  const ratios = WF_DAYS.map(d => dm.perDay[d].ratio).filter(r => r != null);
+  const rMin = ratios.length ? Math.min(...ratios) : 0;
+  const rMax = ratios.length ? Math.max(...ratios) : 1;
+  const ratioColour = (r) => {
+    if (r == null) return '#64748b';
+    if (rMax <= rMin) return '#0ea5e9';
+    const t = (r - rMin) / (rMax - rMin);
+    return t <= 0.34 ? '#10b981' : t <= 0.67 ? '#f59e0b' : '#ef4444';
+  };
+  const peakDay = WF_DAYS.reduce((a, b) => dm.perDay[b].demand > dm.perDay[a].demand ? b : a, WF_DAYS[0]);
+  const stretchedDay = ratios.length
+    ? WF_DAYS.reduce((a, b) => ((dm.perDay[b].ratio ?? -1) > (dm.perDay[a].ratio ?? -1) ? b : a), WF_DAYS[0])
+    : null;
 
   const Chip = ({ clinId, day, session, activityId, onContract }) => {
     const c = byId[clinId];
@@ -284,11 +304,35 @@ export default function WorkforcePlanner({ data, toast }) {
       {/* Grid + side panel */}
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <div style={{ ...S.card, flex: '1 1 560px', minWidth: 320, overflowX: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+            <button onClick={() => { setShowDemand(v => !v); markDirty(); }} style={{
+              padding: '5px 11px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+              border: `1px solid ${showDemand ? '#818cf8' : 'rgba(255,255,255,0.12)'}`,
+              background: showDemand ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)',
+              color: showDemand ? '#c7d2fe' : '#94a3b8',
+            }}>{showDemand ? '✓ ' : ''}Demand overlay</button>
+            {showDemand && (
+              <span style={{ fontSize: 11, color: '#94a3b8', flex: '1 1 240px', textAlign: 'right' }}>
+                Demand peaks {WF_DAY_NAMES[peakDay]} ({dm.perDay[peakDay].demand}/day){stretchedDay ? <>; cover thinnest vs demand on <span style={{ color: ratioColour(dm.perDay[stretchedDay].ratio) }}>{WF_DAY_NAMES[stretchedDay]}</span></> : null}. Number per day is requests per contracted session.
+              </span>
+            )}
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '46px repeat(5, minmax(120px, 1fr))', gap: 6 }}>
             <div />
-            {WF_DAYS.map(day => (
-              <div key={day} style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#cbd5e1', paddingBottom: 2 }}>{WF_DAY_NAMES[day].slice(0, 3)}</div>
-            ))}
+            {WF_DAYS.map(day => {
+              const info = dm.perDay[day];
+              return (
+                <div key={day} style={{ textAlign: 'center', paddingBottom: 2 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>{WF_DAY_NAMES[day].slice(0, 3)}</div>
+                  {showDemand && (
+                    <div style={{ fontSize: 10, marginTop: 1 }}>
+                      <span style={{ color: '#64748b' }}>{info.demand} req</span>
+                      {info.ratio != null && <span style={{ color: ratioColour(info.ratio), marginLeft: 4, fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>{info.ratio.toFixed(0)}/s</span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {WF_SESSIONS.map(session => (
               <FragmentRow key={session}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, color: '#94a3b8' }}>{SESSION_LABEL[session]}</div>
