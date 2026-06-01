@@ -695,7 +695,6 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           {activeSection === 'huddle-rota' && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'reporting' && <WorkloadAudit data={data} huddleData={huddleData} />}
-          {activeSection === 'qof-tracker' && <div className="card p-12 text-center"><div className="text-3xl mb-3">📋</div><h2 className="text-lg font-semibold text-slate-900">QOF Tracker</h2><p className="text-sm text-slate-500 mt-2">Coming soon — track QOF indicators and achievement rates.</p></div>}
           {/* team-members section retired in v4.14.0 — Clinicians lives at
               Practice → Clinicians now. If something still navigates to
               this section ID (deep links from older URLs, third-party
