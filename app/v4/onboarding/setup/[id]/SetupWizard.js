@@ -74,6 +74,7 @@ const STEPS = [
   { id: 'demand',     title: 'Demand history',         subtitle: 'Optional · calibrate the model', optional: true },
   { id: 'invites',    title: 'Invite your team',       subtitle: 'Optional · do later if you prefer', optional: true },
   { id: 'publicbuddy',title: 'Buddy cover EMIS link',  subtitle: 'Optional · public URL for EMIS paste', optional: true },
+  { id: 'review',     title: 'Review & finish',         subtitle: 'Check what is set up, then finish' },
 ];
 
 // Default colours for sites — picked from the standard practice palette
@@ -321,6 +322,10 @@ export default function SetupWizard({
     hasDemandData,                                      // 7: demand
     hasInvites,                                         // 8: invites
     buddyCoverPublic,                                   // 9: public buddy URL
+    // 10: review — "done" once the required steps (details + emis) are in,
+    // i.e. the practice is genuinely ready to finish. Mirrors canComplete,
+    // computed inline because canComplete is derived further down.
+    (!!postcode && !!listSize) && hasClinicians,
   ];
 
   // ─── Live subtitle per step ──────────────────────────────────────────
@@ -363,6 +368,8 @@ export default function SetupWizard({
     hasInvites ? '✓ Team invited' : STEPS[8].subtitle,
     // 9: public buddy URL — surfaces the practice's choice
     buddyCoverPublic ? '✓ Public URL enabled' : STEPS[9].subtitle,
+    // 10: review
+    STEPS[10].subtitle,
   ];
 
   const requiredIncomplete = STEPS
@@ -596,56 +603,6 @@ export default function SetupWizard({
               'rgba(255,255,255,0.08)',
           }}>
             <StepHeader step={STEPS[currentStep]} index={currentStep} done={stepDone[currentStep]} liveSubtitle={liveSubtitles[currentStep]} />
-            {/* Skipped-step reminder — only on the final (invites) step.
-                Lists any optional steps that haven't been completed with
-                quick-jump buttons. Lets the user spot what they skipped
-                in one place rather than scrolling back through the
-                progress dots. Hidden when there's nothing skipped. */}
-            {currentStep === STEPS.length - 1 && (() => {
-              const skipped = STEPS
-                .map((s, i) => ({ step: s, idx: i }))
-                .filter(({ step, idx }) => step.optional && !stepDone[idx]);
-              if (skipped.length === 0) return null;
-              return (
-                <div style={{
-                  marginTop: 24, padding: 16,
-                  background: 'rgba(251,191,36,0.06)',
-                  border: '1px solid rgba(251,191,36,0.2)',
-                  borderRadius: 10,
-                }}>
-                  <div style={{ fontSize: 12, color: '#fbbf24', fontWeight: 600, marginBottom: 10, letterSpacing: 0.5 }}>
-                    OPTIONAL STEPS YOU SKIPPED
-                  </div>
-                  <p style={{ fontSize: 13, color: '#cbd5e1', margin: '0 0 12px', lineHeight: 1.5 }}>
-                    No problem — you can finish setup without these. If you'd like to
-                    fill them in now, jump straight there:
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {skipped.map(({ step, idx }) => (
-                      <button
-                        key={step.id}
-                        onClick={() => goToStep(idx)}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: 6,
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          color: '#e2e8f0',
-                          fontSize: 12, fontWeight: 500,
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          display: 'inline-flex', alignItems: 'center', gap: 6,
-                        }}
-                      >
-                        <span style={{ color: '#94a3b8', fontSize: 11 }}>{idx + 1}.</span>
-                        {step.title}
-                        <span style={{ color: '#64748b' }}>→</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
             <div style={{ marginTop: 28 }}>
               {currentStep === 0 && (
                 <DetailsStep
@@ -730,6 +687,15 @@ export default function SetupWizard({
                   practiceSlug={practice.slug}
                   buddyCoverPublic={buddyCoverPublic}
                   setBuddyCoverPublic={setBuddyCoverPublic}
+                />
+              )}
+              {currentStep === 10 && (
+                <ReviewStep
+                  steps={STEPS}
+                  stepDone={stepDone}
+                  canComplete={canComplete}
+                  requiredIncomplete={requiredIncomplete}
+                  goToStep={goToStep}
                 />
               )}
             </div>
@@ -2699,6 +2665,56 @@ function SlotCategoryPicker({ value, onChange }) {
 function isCliniciansReviewed(list) {
   const active = (list || []).filter(c => c.status === 'active');
   return active.length > 0 && active.every(c => c.role && String(c.role).trim());
+}
+
+// Final step: a summary of everything before finishing. Shows each step's
+// status (done / needs attention / skipped) with a jump button so the user
+// can fill in anything optional before completing. Crucially this is its
+// own step, so it never reports the step you are currently on as "skipped".
+function ReviewStep({ steps, stepDone, canComplete, requiredIncomplete, goToStep }) {
+  const rows = steps.slice(0, -1).map((s, i) => ({ s, i, done: !!stepDone[i] }));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <p style={fieldHelp}>
+        {canComplete
+          ? "Here's everything. You can finish now and head to your dashboard, or jump back to fill in anything optional first."
+          : 'Almost there — finish the required step(s) highlighted below, then you can complete setup.'}
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map(({ s, i, done }) => {
+          const state = done ? 'done' : (s.required ? 'todo' : 'optional');
+          const colour = state === 'done' ? '#10b981' : state === 'todo' ? '#f59e0b' : '#64748b';
+          const label = state === 'done' ? 'Done' : state === 'todo' ? 'Needs attention' : 'Skipped (optional)';
+          return (
+            <div key={s.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 14px',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 10,
+              opacity: state === 'optional' ? 0.75 : 1,
+            }}>
+              <span style={{ width: 9, height: 9, borderRadius: '50%', background: colour, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, color: '#e2e8f0' }}>{s.title}</div>
+                <div style={{ fontSize: 11.5, color: colour }}>{label}</div>
+              </div>
+              {!done && (
+                <button type="button" onClick={() => goToStep(i)} style={pillButton(state === 'todo' ? '#f59e0b' : '#64748b')}>
+                  {state === 'todo' ? 'Complete' : 'Add now'} →
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {!canComplete && (
+        <div style={{ fontSize: 12.5, color: '#fbbf24', lineHeight: 1.5 }}>
+          You still need to finish {requiredIncomplete.map(s => s.title).join(' and ')} before you can complete setup.
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ClinicianRolesStep({ practiceId, onSortedChange }) {
