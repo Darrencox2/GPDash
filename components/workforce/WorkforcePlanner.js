@@ -404,7 +404,7 @@ export default function WorkforcePlanner({ data, toast }) {
         const cut = holidayOn ? holidayAllowance : 0;
         const working = Math.max(0, allIds.length - cut);
         const generalAdj = Math.max(0, general - cut);
-        const duty = allIds.filter(id => dutySet.has(id) && !assignedSet.has(id)).length;
+        const duty = Math.max(0, allIds.filter(id => dutySet.has(id) && !assignedSet.has(id)).length - cut);
         g[day][s] = { allIds, acts, general: generalAdj, freeIds, working, duty, demandHalf, ratio: generalAdj > 0 ? demandHalf / generalAdj : null };
       }
     }
@@ -438,6 +438,7 @@ export default function WorkforcePlanner({ data, toast }) {
   const editedCount = Object.keys(contractOverrides).filter(id => realClinicians.some(c => c.id === id)).length;
   const diverged = addedStaff.length + removedIds.length + editedCount;
   const togglePanel = (k) => setPanel(p => ({ ...p, [k]: !p[k] }));
+  const anyPanel = panel.clinicians || panel.anomalies || panel.settings || panel.scenarios;
   const tabBtn = (on) => ({ ...S.btnGhost, background: on ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${on ? '#818cf8' : 'rgba(255,255,255,0.12)'}`, color: on ? '#c7d2fe' : '#e2e8f0' });
 
   const Chip = ({ clinId, day, session, activityId }) => {
@@ -458,7 +459,7 @@ export default function WorkforcePlanner({ data, toast }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', maxWidth: 1360, paddingRight: anyPanel ? 352 : 0, transition: 'padding 0.18s ease' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
