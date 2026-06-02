@@ -137,7 +137,7 @@ export default function WorkforcePlanner({ data, toast }) {
       const removed = Array.isArray(wf.removedIds) ? wf.removedIds : [];
       setAddedStaff(added); setRemovedIds(removed);
       setIncludedRoles(Array.isArray(wf.includedRoles) ? wf.includedRoles : null);
-      setActivities(Array.isArray(wf.activities) ? wf.activities : []);
+      setActivities((Array.isArray(wf.activities) ? wf.activities : []).map(a => ({ duration: 'one', week: 'all', assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' })));
       setThresholds({ ...DEFAULT_THRESHOLDS, ...(wf.thresholds || {}) });
       const valid = [...realClinicians.filter(c => !removed.includes(c.id)).map(c => c.id), ...added.map(a => a.id)];
       const eff = { ...patternById }; for (const a of added) eff[a.id] = a.pattern || {};
@@ -309,10 +309,10 @@ export default function WorkforcePlanner({ data, toast }) {
     return (
       <div onPointerDown={startDrag({ clinId, fromDay: day, fromSession: session, fromActivityId: activityId || null })}
         title={`${c.name}${c.role ? ' · ' + c.role : ''}${c._added ? ' · added' : ''}${off ? ' · off contract' : ''}`}
-        style={{ touchAction: 'none', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '4px 11px 4px 4px', borderRadius: 999, cursor: 'grab',
-          background: off ? 'rgba(239,68,68,0.18)' : 'rgba(99,102,241,0.18)', border: `1px ${c._added ? 'dashed' : 'solid'} ${off ? '#ef4444' : 'rgba(129,140,248,0.5)'}`, maxWidth: 170 }}>
+        style={{ touchAction: 'none', display: 'flex', alignItems: 'center', gap: 7, padding: '4px 11px 4px 4px', borderRadius: 999, cursor: 'grab', width: '100%', boxSizing: 'border-box',
+          background: off ? 'rgba(239,68,68,0.18)' : 'rgba(99,102,241,0.18)', border: `1px ${c._added ? 'dashed' : 'solid'} ${off ? '#ef4444' : 'rgba(129,140,248,0.5)'}` }}>
         <span style={{ width: 26, height: 26, borderRadius: 999, background: off ? '#ef4444' : '#6366f1', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials(c.name)}</span>
-        <span style={{ fontSize: 13, color: off ? '#fecaca' : '#c7d2fe', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name.split(' ')[0]}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: off ? '#fecaca' : '#c7d2fe', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
       </div>
     );
   };
@@ -389,7 +389,7 @@ export default function WorkforcePlanner({ data, toast }) {
                               background: assigned ? 'rgba(16,185,129,0.14)' : 'rgba(245,158,11,0.14)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
                               <span style={{ fontSize: 13, color: assigned ? '#6ee7b7' : '#fcd34d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label || 'Activity'}</span>
-                              <span style={{ fontSize: 10, color: assigned ? '#6ee7b7' : '#fcd34d', flexShrink: 0 }}>{durLbl}{a.week !== 'all' ? ` · Wk ${a.week.toUpperCase()}` : ''}</span>
+                              <span style={{ fontSize: 10, color: assigned ? '#6ee7b7' : '#fcd34d', flexShrink: 0 }}>{durLbl}{(a.week || 'all') !== 'all' ? ` · Wk ${(a.week || 'all').toUpperCase()}` : ''}</span>
                             </div>
                             <div style={{ marginTop: 5 }} onPointerDown={e => e.stopPropagation()}>
                               {assigned ? <Chip clinId={assigned} day={day} session={session} activityId={a.id} /> : <span style={{ fontSize: 12, color: '#fbbf24' }}>Drop a clinician</span>}
@@ -397,7 +397,7 @@ export default function WorkforcePlanner({ data, toast }) {
                           </div>
                         );
                       })}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{cd.freeIds.map(id => <Chip key={id} clinId={id} day={day} session={session} />)}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>{cd.freeIds.map(id => <Chip key={id} clinId={id} day={day} session={session} />)}</div>
                       {/* Option C summary */}
                       <div style={{ marginTop: 'auto', paddingTop: 8 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5, marginBottom: 6 }}>
