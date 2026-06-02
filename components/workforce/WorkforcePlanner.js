@@ -74,6 +74,19 @@ function healAlloc(alloc, acts) {
   }
   return alloc;
 }
+// Count every clinician-session placed on the grid (a full-day activity person counts in both
+// AM and PM since they occupy both), excluding any removed/invalid ids. Activity assignees are
+// included because they sit in the allocation like anyone else.
+function totalSessions(data, realClinicians) {
+  if (!data?.allocation) return 0;
+  const removed = new Set(data.removedIds || []);
+  const validReal = new Set(realClinicians.filter(c => !removed.has(c.id)).map(c => c.id));
+  const added = new Set((data.addedStaff || []).map(a => a.id));
+  const ok = (id) => validReal.has(id) || added.has(id);
+  let n = 0;
+  for (const day of WF_DAYS) for (const s of WF_SESSIONS) n += (data.allocation?.[day]?.[s] || []).filter(ok).length;
+  return n;
+}
 
 export default function WorkforcePlanner({ data, toast }) {
   const supabase = useMemo(() => createClient(), []);
@@ -439,6 +452,11 @@ export default function WorkforcePlanner({ data, toast }) {
   const diverged = addedStaff.length + removedIds.length + editedCount;
   const togglePanel = (k) => setPanel(p => ({ ...p, [k]: !p[k] }));
   const anyPanel = panel.clinicians || panel.anomalies || panel.settings || panel.scenarios;
+  const totalCount = totalSessions({ allocation, addedStaff, removedIds }, realClinicians);
+  const pinnedScenario = scenarios.find(s => s.pinned);
+  const onCurrent = pinnedScenario ? activeScenarioId === pinnedScenario.id : true;
+  const currentTotal = onCurrent ? totalCount : (pinnedScenario ? totalSessions(pinnedScenario.data, realClinicians) : totalCount);
+  const totalDelta = totalCount - currentTotal;
   const tabBtn = (on) => ({ ...S.btnGhost, background: on ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${on ? '#818cf8' : 'rgba(255,255,255,0.12)'}`, color: on ? '#c7d2fe' : '#e2e8f0' });
 
   const Chip = ({ clinId, day, session, activityId }) => {
@@ -480,6 +498,25 @@ export default function WorkforcePlanner({ data, toast }) {
           <button onClick={() => togglePanel('scenarios')} style={tabBtn(panel.scenarios)}>Scenarios · {activeName}</button>
           <button onClick={resetToContract} style={S.btnGhost}>Reset plan to contract</button>
         </div>
+      </div>
+
+      {/* Headline: total sessions + comparison to Current */}
+      <div style={{ ...S.card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: 34, fontWeight: 700, color: '#f1f5f9', fontFamily: "'Space Mono', monospace", lineHeight: 1 }}>{totalCount}</span>
+            <span style={{ fontSize: 14, color: '#94a3b8' }}>total sessions / week</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Every clinician-session on the grid, including those on activities · editing {activeName}</div>
+        </div>
+        {!onCurrent && (
+          <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: totalDelta < 0 ? '#f87171' : totalDelta > 0 ? '#38bdf8' : '#94a3b8' }}>
+              {totalDelta > 0 ? '+' : ''}{totalDelta} vs Current
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Current has {currentTotal} · this scenario has {totalCount}</div>
+          </div>
+        )}
       </div>
 
       {/* Banners */}
