@@ -62,6 +62,7 @@ function patternEmpty(pat) {
 }
 const fmt = (n) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
 const CURRENT_ID = 'sc_current';
+const COMMON_ROLES = ['GP', 'GP Partner', 'Salaried GP', 'GP Registrar', 'ANP', 'Nurse', 'Practice Nurse', 'Pharmacist', 'Paramedic', 'Physician Associate', 'HCA', 'Other'];
 function normalizeActivities(arr) {
   return (Array.isArray(arr) ? arr : []).map(a => ({ duration: 'one', week: 'all', assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' }));
 }
@@ -263,6 +264,15 @@ export default function WorkforcePlanner({ data, toast }) {
     const nextPat = { ...cur, [day]: { ...(cur[day] || { am: 'off', pm: 'off' }), [session]: nextVal } };
     if (isAdded) setAddedStaff(prev => prev.map(a => a.id === id ? { ...a, pattern: nextPat } : a));
     else setContractOverrides(prev => ({ ...prev, [id]: nextPat }));
+    // Keep the allocation in step with the contract edit: ticking a session on rosters them
+    // there, ticking it off takes them out of that session entirely (and off the counts).
+    setAllocation(prev => {
+      const next = cloneAllocation(prev);
+      if (nextVal === 'in') { if (!next[day][session].includes(id)) next[day][session].push(id); }
+      else next[day][session] = next[day][session].filter(x => x !== id);
+      return next;
+    });
+    if (nextVal === 'off') setActivities(prev => prev.map(a => (a.day === day && a.assignedClinicianId === id && (a.duration === 'fullday' || a.session === session)) ? { ...a, assignedClinicianId: null } : a));
     markDirty();
   };
   const allocatedPattern = (id) => {
@@ -707,7 +717,7 @@ export default function WorkforcePlanner({ data, toast }) {
       })()}
 
       {/* Add staff modal */}
-      {addOpen && <AddStaffModal roles={allRoles} onClose={() => setAddOpen(false)} onAdd={addStaff} />}
+      {addOpen && <AddStaffModal roles={Array.from(new Set([...COMMON_ROLES, ...allRoles]))} onClose={() => setAddOpen(false)} onAdd={addStaff} />}
 
       {/* Drag ghost */}
       {ghost && <div style={{ position: 'fixed', left: ghost.x + 10, top: ghost.y + 10, pointerEvents: 'none', zIndex: 200, background: '#6366f1', color: '#fff', padding: '4px 10px', borderRadius: 999, fontSize: 12, boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>{ghost.name.split(' ')[0]}</div>}
@@ -761,8 +771,9 @@ function AddStaffModal({ roles, onClose, onAdd }) {
       <p style={{ ...S.modalLabel, marginTop: 0 }}>Name</p>
       <input type="text" value={name} placeholder="e.g. Dr Locum" autoFocus onChange={e => setName(e.target.value)} style={S.input} />
       <p style={S.modalLabel}>Role</p>
-      <input type="text" value={role} onChange={e => setRole(e.target.value)} style={S.input} list="wf-roles" />
-      <datalist id="wf-roles">{roles.map(r => <option key={r} value={r} />)}</datalist>
+      <select value={role} onChange={e => setRole(e.target.value)} style={{ ...S.input, appearance: 'auto' }}>
+        {roles.map(r => <option key={r} value={r} style={{ background: '#1e293b' }}>{r}</option>)}
+      </select>
       <p style={S.modalLabel}>Contracted sessions <span style={{ color: '#64748b', textTransform: 'none', letterSpacing: 0 }}>(leave blank for ad-hoc / locum)</span></p>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 1fr)', gap: 4, alignItems: 'center', marginBottom: 6 }}>
         <span />{WF_DAYS.map(d => <span key={d} style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center' }}>{WF_DAY_NAMES[d].slice(0, 3)}</span>)}
