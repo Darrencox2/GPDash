@@ -143,13 +143,21 @@ export default function WorkforcePlanner({ data, toast }) {
       const overrides = (wf.contractOverrides && typeof wf.contractOverrides === 'object') ? wf.contractOverrides : {};
       setContractOverrides(overrides);
       setIncludedRoles(Array.isArray(wf.includedRoles) ? wf.includedRoles : null);
-      setActivities((Array.isArray(wf.activities) ? wf.activities : []).map(a => ({ duration: 'one', week: 'all', assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' })));
+      const acts = (Array.isArray(wf.activities) ? wf.activities : []).map(a => ({ duration: 'one', week: 'all', assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' }));
+      setActivities(acts);
       setThresholds({ ...DEFAULT_THRESHOLDS, ...(wf.thresholds || {}) });
       setScenarios(Array.isArray(wf.scenarios) ? wf.scenarios : []);
       const valid = [...realClinicians.filter(c => !removed.includes(c.id)).map(c => c.id), ...added.map(a => a.id)];
       const eff = {}; for (const c of realClinicians) eff[c.id] = overrides[c.id] || patternById[c.id] || {}; for (const a of added) eff[a.id] = a.pattern || {};
       const effClin = [...realClinicians.filter(c => !removed.includes(c.id)), ...added];
-      setAllocation(wf.allocation ? pruneAllocation(wf.allocation, valid) : buildContracted(effClin, eff));
+      const alloc = wf.allocation ? pruneAllocation(wf.allocation, valid) : buildContracted(effClin, eff);
+      // Heal any activity assignee who isn't allocated to all sessions their activity occupies (e.g. legacy full-day).
+      for (const a of acts) {
+        if (!a.assignedClinicianId) continue;
+        const occ = a.duration === 'fullday' ? ['am', 'pm'] : [a.session];
+        for (const s of occ) if (alloc[a.day] && !alloc[a.day][s].includes(a.assignedClinicianId)) alloc[a.day][s].push(a.assignedClinicianId);
+      }
+      setAllocation(alloc);
     })();
   }, [patternById, realClinicians, practiceId, supabase]);
 
@@ -188,10 +196,12 @@ export default function WorkforcePlanner({ data, toast }) {
   }, []);
   const assignToActivity = useCallback((info, activity) => {
     const { clinId, fromDay, fromSession, fromActivityId } = info;
+    const occupies = activity.duration === 'fullday' ? ['am', 'pm'] : [activity.session];
     setAllocation(prev => {
       const next = cloneAllocation(prev);
-      if (fromDay && !(fromDay === activity.day && fromSession === activity.session)) next[fromDay][fromSession] = next[fromDay][fromSession].filter(id => id !== clinId);
-      if (!next[activity.day][activity.session].includes(clinId)) next[activity.day][activity.session].push(clinId);
+      // Only pull them out of the source cell if it isn't one of the cells this activity occupies.
+      if (fromDay && !(fromDay === activity.day && occupies.includes(fromSession))) next[fromDay][fromSession] = next[fromDay][fromSession].filter(id => id !== clinId);
+      for (const s of occupies) if (!next[activity.day][s].includes(clinId)) next[activity.day][s].push(clinId);
       return next;
     });
     setActivities(prev => prev.map(a => a.id === activity.id ? { ...a, assignedClinicianId: clinId } : (a.id === fromActivityId ? { ...a, assignedClinicianId: null } : a)));
@@ -420,6 +430,7 @@ export default function WorkforcePlanner({ data, toast }) {
         <div style={{ display: 'flex', gap: 4, padding: 4, background: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
           {['a', 'b'].map(w => <button key={w} onClick={() => setViewWeek(w)} style={{ ...S.toggle, background: viewWeek === w ? '#6366f1' : 'transparent', color: viewWeek === w ? '#fff' : '#94a3b8' }}>Week {w.toUpperCase()}</button>)}
         </div>
+        <span style={{ fontSize: 12, color: '#64748b' }}>only activities alternate — staff work the same each week</span>
         {expandedClin && byId[expandedClin] && (
           <span style={{ fontSize: 12.5, color: '#c7d2fe', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(129,140,248,0.4)', borderRadius: 999, padding: '4px 10px', display: 'inline-flex', gap: 8, alignItems: 'center' }}>
             Highlighting {byId[expandedClin].name}
