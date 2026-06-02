@@ -88,7 +88,9 @@ export default function WorkforcePlanner({ data, toast }) {
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState('saved');
-  const [panel, setPanel] = useState({ clinicians: false, anomalies: false, settings: false });
+  const [panel, setPanel] = useState({ clinicians: false, anomalies: false, settings: false, scenarios: false });
+  const [scenarios, setScenarios] = useState([]);
+  const [scenarioName, setScenarioName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
   const [expandedClin, setExpandedClin] = useState(null);
@@ -143,6 +145,7 @@ export default function WorkforcePlanner({ data, toast }) {
       setIncludedRoles(Array.isArray(wf.includedRoles) ? wf.includedRoles : null);
       setActivities((Array.isArray(wf.activities) ? wf.activities : []).map(a => ({ duration: 'one', week: 'all', assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' })));
       setThresholds({ ...DEFAULT_THRESHOLDS, ...(wf.thresholds || {}) });
+      setScenarios(Array.isArray(wf.scenarios) ? wf.scenarios : []);
       const valid = [...realClinicians.filter(c => !removed.includes(c.id)).map(c => c.id), ...added.map(a => a.id)];
       const eff = {}; for (const c of realClinicians) eff[c.id] = overrides[c.id] || patternById[c.id] || {}; for (const a of added) eff[a.id] = a.pattern || {};
       const effClin = [...realClinicians.filter(c => !removed.includes(c.id)), ...added];
@@ -154,16 +157,16 @@ export default function WorkforcePlanner({ data, toast }) {
   const markDirty = () => { setDirty(true); setSaveState('saving'); };
   const save = useCallback(async () => {
     if (!practiceId || !allocation) return;
-    const blob = { includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides };
+    const blob = { includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, scenarios };
     const { error: err } = await supabase.from('practice_settings').upsert({ practice_id: practiceId, workforce: blob }, { onConflict: 'practice_id' });
     if (err) { setSaveState('error'); toast?.(`Couldn't save: ${err.message}`, 'error'); return; }
     setSaveState('saved'); setDirty(false);
-  }, [practiceId, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, supabase, toast]);
+  }, [practiceId, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, scenarios, supabase, toast]);
   useEffect(() => {
     if (!dirty) return;
     const t = setTimeout(() => save(), 700);
     return () => clearTimeout(t);
-  }, [dirty, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, save]);
+  }, [dirty, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, scenarios, save]);
 
   // ─── Mutators ──────────────────────────────────────────────────────
   const moveToCell = useCallback((info, toDay, toSession) => {
@@ -243,6 +246,23 @@ export default function WorkforcePlanner({ data, toast }) {
   };
   const resetAllContractsToEmis = () => { setContractOverrides({}); markDirty(); toast?.('Contracts reset to EMIS position', 'success'); };
   const contractEdited = (id) => byId[id]?._added ? false : !!contractOverrides[id];
+
+  // Scenario snapshots — save/load the whole plan under a name.
+  const saveScenario = () => {
+    const name = scenarioName.trim(); if (!name) return;
+    const snap = { allocation: cloneAllocation(allocation), activities: JSON.parse(JSON.stringify(activities)), contractOverrides: JSON.parse(JSON.stringify(contractOverrides)), addedStaff: JSON.parse(JSON.stringify(addedStaff)), removedIds: [...removedIds], includedRoles: includedRoles ? [...includedRoles] : null, thresholds: { ...thresholds } };
+    setScenarios(prev => [...prev, { id: `sc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, name, savedAt: new Date().toISOString(), data: snap }]);
+    setScenarioName(''); markDirty(); toast?.(`Saved scenario "${name}"`, 'success');
+  };
+  const loadScenario = (id) => {
+    const sc = scenarios.find(x => x.id === id); if (!sc) return;
+    const d = sc.data;
+    setAllocation(d.allocation); setActivities(d.activities || []); setContractOverrides(d.contractOverrides || {});
+    setAddedStaff(d.addedStaff || []); setRemovedIds(d.removedIds || []); setIncludedRoles(d.includedRoles ?? null);
+    setThresholds({ ...DEFAULT_THRESHOLDS, ...(d.thresholds || {}) });
+    markDirty(); toast?.(`Loaded "${sc.name}"`, 'success');
+  };
+  const deleteScenario = (id) => { setScenarios(prev => prev.filter(x => x.id !== id)); markDirty(); };
 
   const addStaff = (name, role, pattern) => {
     const id = `wf_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -348,10 +368,13 @@ export default function WorkforcePlanner({ data, toast }) {
   const Chip = ({ clinId, day, session, activityId }) => {
     const c = byId[clinId]; if (!c) return null;
     const off = !additiveIds.has(clinId) && effPattern[clinId]?.[day]?.[session] !== 'in';
+    const lit = expandedClin === clinId;
+    const dimmed = expandedClin && !lit;
     return (
       <div onPointerDown={startDrag({ clinId, fromDay: day, fromSession: session, fromActivityId: activityId || null })}
         title={`${c.name}${c.role ? ' · ' + c.role : ''}${c._added ? ' · added' : ''}${off ? ' · off contract' : ''}`}
         style={{ touchAction: 'none', display: 'flex', alignItems: 'center', gap: 7, padding: '4px 11px 4px 4px', borderRadius: 999, cursor: 'grab', width: '100%', boxSizing: 'border-box',
+          opacity: dimmed ? 0.3 : 1, boxShadow: lit ? '0 0 0 2px #818cf8' : 'none', transition: 'opacity 0.12s',
           background: off ? 'rgba(239,68,68,0.18)' : 'rgba(99,102,241,0.18)', border: `1px ${c._added ? 'dashed' : 'solid'} ${off ? '#ef4444' : 'rgba(129,140,248,0.5)'}` }}>
         <span style={{ width: 26, height: 26, borderRadius: 999, background: off ? '#ef4444' : '#6366f1', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials(c.name)}</span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: off ? '#fecaca' : '#c7d2fe', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
@@ -374,6 +397,7 @@ export default function WorkforcePlanner({ data, toast }) {
           <button onClick={() => togglePanel('clinicians')} style={tabBtn(panel.clinicians)}>Clinicians</button>
           <button onClick={() => togglePanel('anomalies')} style={tabBtn(panel.anomalies)}>Anomalies{anomCount ? ` (${anomCount})` : ''}</button>
           <button onClick={() => togglePanel('settings')} style={tabBtn(panel.settings)}>Settings</button>
+          <button onClick={() => togglePanel('scenarios')} style={tabBtn(panel.scenarios)}>Scenarios{scenarios.length ? ` (${scenarios.length})` : ''}</button>
           <button onClick={resetToContract} style={S.btnGhost}>Reset plan to contract</button>
         </div>
       </div>
@@ -396,6 +420,12 @@ export default function WorkforcePlanner({ data, toast }) {
         <div style={{ display: 'flex', gap: 4, padding: 4, background: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
           {['a', 'b'].map(w => <button key={w} onClick={() => setViewWeek(w)} style={{ ...S.toggle, background: viewWeek === w ? '#6366f1' : 'transparent', color: viewWeek === w ? '#fff' : '#94a3b8' }}>Week {w.toUpperCase()}</button>)}
         </div>
+        {expandedClin && byId[expandedClin] && (
+          <span style={{ fontSize: 12.5, color: '#c7d2fe', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(129,140,248,0.4)', borderRadius: 999, padding: '4px 10px', display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+            Highlighting {byId[expandedClin].name}
+            <button onClick={() => setExpandedClin(null)} style={{ ...S.linkBtn, color: '#c7d2fe' }}>clear</button>
+          </span>
+        )}
       </div>
 
       {/* Grid */}
@@ -473,7 +503,7 @@ export default function WorkforcePlanner({ data, toast }) {
       </div>
 
       {/* Floating popouts */}
-      {(panel.clinicians || panel.anomalies || panel.settings) && (
+      {(panel.clinicians || panel.anomalies || panel.settings || panel.scenarios) && (
         <div data-drop={panel.clinicians ? 'bench' : undefined} style={{ position: 'fixed', top: 90, right: 24, width: 320, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, zIndex: 60 }}>
           {panel.clinicians && (
             <Popout title="Clinicians" onClose={() => togglePanel('clinicians')} highlight={overKey === 'bench'}>
@@ -546,6 +576,26 @@ export default function WorkforcePlanner({ data, toast }) {
                 <ThRow label="Tight above" value={thresholds.tight} onChange={v => setThreshold('tight', v)} colour={RC.amber.solid} />
                 <ThRow label="Short above" value={thresholds.short} onChange={v => setThreshold('short', v)} colour={RC.red.solid} />
               </div>
+            </Popout>
+          )}
+          {panel.scenarios && (
+            <Popout title="Scenarios" onClose={() => togglePanel('scenarios')}>
+              <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 8px' }}>Save the whole plan under a name, then load it back any time to compare options.</p>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                <input type="text" value={scenarioName} placeholder="e.g. School holidays" onChange={e => setScenarioName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveScenario(); }} style={{ ...S.input, flex: 1 }} />
+                <button disabled={!scenarioName.trim()} onClick={saveScenario} style={{ ...S.btnGhost, background: scenarioName.trim() ? '#6366f1' : 'rgba(99,102,241,0.4)', border: 'none', color: '#fff' }}>Save</button>
+              </div>
+              {scenarios.length === 0 ? <span style={S.muted}>No saved scenarios yet.</span> : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {scenarios.map(sc => (
+                    <div key={sc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '5px 6px', borderRadius: 8, background: 'rgba(255,255,255,0.03)' }}>
+                      <span style={{ flex: 1, fontSize: 13.5, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}</span>
+                      <button onClick={() => loadScenario(sc.id)} style={S.linkBtn}>load</button>
+                      <button onClick={() => deleteScenario(sc.id)} style={S.xBtn}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Popout>
           )}
         </div>
