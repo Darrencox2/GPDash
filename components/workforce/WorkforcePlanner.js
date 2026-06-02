@@ -81,6 +81,7 @@ export default function WorkforcePlanner({ data, toast }) {
   const [activities, setActivities] = useState([]);
   const [addedStaff, setAddedStaff] = useState([]);
   const [removedIds, setRemovedIds] = useState([]);
+  const [contractOverrides, setContractOverrides] = useState({});
   const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
   const [viewWeek, setViewWeek] = useState('a');
   const [loading, setLoading] = useState(true);
@@ -102,10 +103,11 @@ export default function WorkforcePlanner({ data, toast }) {
   }, [realClinicians, removedIds, addedStaff]);
   const byId = useMemo(() => { const m = {}; for (const c of effClinicians) m[c.id] = c; return m; }, [effClinicians]);
   const effPattern = useMemo(() => {
-    const m = { ...(patternById || {}) };
+    const m = {};
+    for (const c of realClinicians) m[c.id] = contractOverrides[c.id] || patternById?.[c.id] || {};
     for (const a of addedStaff) m[a.id] = a.pattern || {};
     return m;
-  }, [patternById, addedStaff]);
+  }, [patternById, addedStaff, contractOverrides, realClinicians]);
   const additiveIds = useMemo(() => new Set(addedStaff.filter(a => patternEmpty(a.pattern)).map(a => a.id)), [addedStaff]);
   const allRoles = useMemo(() => rolesInTeam(effClinicians), [effClinicians]);
 
@@ -136,11 +138,13 @@ export default function WorkforcePlanner({ data, toast }) {
       const added = Array.isArray(wf.addedStaff) ? wf.addedStaff : [];
       const removed = Array.isArray(wf.removedIds) ? wf.removedIds : [];
       setAddedStaff(added); setRemovedIds(removed);
+      const overrides = (wf.contractOverrides && typeof wf.contractOverrides === 'object') ? wf.contractOverrides : {};
+      setContractOverrides(overrides);
       setIncludedRoles(Array.isArray(wf.includedRoles) ? wf.includedRoles : null);
       setActivities((Array.isArray(wf.activities) ? wf.activities : []).map(a => ({ duration: 'one', week: 'all', assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' })));
       setThresholds({ ...DEFAULT_THRESHOLDS, ...(wf.thresholds || {}) });
       const valid = [...realClinicians.filter(c => !removed.includes(c.id)).map(c => c.id), ...added.map(a => a.id)];
-      const eff = { ...patternById }; for (const a of added) eff[a.id] = a.pattern || {};
+      const eff = {}; for (const c of realClinicians) eff[c.id] = overrides[c.id] || patternById[c.id] || {}; for (const a of added) eff[a.id] = a.pattern || {};
       const effClin = [...realClinicians.filter(c => !removed.includes(c.id)), ...added];
       setAllocation(wf.allocation ? pruneAllocation(wf.allocation, valid) : buildContracted(effClin, eff));
     })();
@@ -150,16 +154,16 @@ export default function WorkforcePlanner({ data, toast }) {
   const markDirty = () => { setDirty(true); setSaveState('saving'); };
   const save = useCallback(async () => {
     if (!practiceId || !allocation) return;
-    const blob = { includedRoles, allocation, activities, addedStaff, removedIds, thresholds };
+    const blob = { includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides };
     const { error: err } = await supabase.from('practice_settings').upsert({ practice_id: practiceId, workforce: blob }, { onConflict: 'practice_id' });
     if (err) { setSaveState('error'); toast?.(`Couldn't save: ${err.message}`, 'error'); return; }
     setSaveState('saved'); setDirty(false);
-  }, [practiceId, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, supabase, toast]);
+  }, [practiceId, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, supabase, toast]);
   useEffect(() => {
     if (!dirty) return;
     const t = setTimeout(() => save(), 700);
     return () => clearTimeout(t);
-  }, [dirty, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, save]);
+  }, [dirty, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, save]);
 
   // ─── Mutators ──────────────────────────────────────────────────────
   const moveToCell = useCallback((info, toDay, toSession) => {
@@ -202,6 +206,43 @@ export default function WorkforcePlanner({ data, toast }) {
   const toggleRole = (role) => { setIncludedRoles(prev => { const base = prev == null ? [...allRoles] : [...prev]; const i = base.indexOf(role); if (i >= 0) base.splice(i, 1); else base.push(role); return base; }); markDirty(); };
   const setThreshold = (k, v) => { setThresholds(prev => ({ ...prev, [k]: Math.max(0, parseFloat(v) || 0) })); markDirty(); };
   const resetToContract = () => { setAllocation(buildContracted(effClinicians, effPattern)); markDirty(); toast?.('Allocation reset to contracted pattern', 'success'); };
+
+  // Contract editing (planner-only overlay; never touches working_patterns).
+  const togglePattern = (id, day, session) => {
+    const c = byId[id]; const isAdded = !!c?._added;
+    const cur = effPattern[id] || {};
+    const nextVal = cur?.[day]?.[session] === 'in' ? 'off' : 'in';
+    const nextPat = { ...cur, [day]: { ...(cur[day] || { am: 'off', pm: 'off' }), [session]: nextVal } };
+    if (isAdded) setAddedStaff(prev => prev.map(a => a.id === id ? { ...a, pattern: nextPat } : a));
+    else setContractOverrides(prev => ({ ...prev, [id]: nextPat }));
+    markDirty();
+  };
+  const allocatedPattern = (id) => {
+    const p = {};
+    for (const d of WF_DAYS) p[d] = { am: (allocation?.[d]?.am || []).includes(id) ? 'in' : 'off', pm: (allocation?.[d]?.pm || []).includes(id) ? 'in' : 'off' };
+    return p;
+  };
+  const acceptAllocAsContract = (id) => {
+    const pat = allocatedPattern(id); const c = byId[id];
+    if (c?._added) setAddedStaff(prev => prev.map(a => a.id === id ? { ...a, pattern: pat } : a));
+    else setContractOverrides(prev => ({ ...prev, [id]: pat }));
+    markDirty();
+  };
+  const resetContractToEmis = (id) => {
+    const c = byId[id];
+    if (c?._added) setAddedStaff(prev => prev.map(a => a.id === id ? { ...a, pattern: {} } : a));
+    else setContractOverrides(prev => { const n = { ...prev }; delete n[id]; return n; });
+    markDirty();
+  };
+  const acceptAllAsContract = () => {
+    const ov = {}; const addPat = {};
+    for (const c of effClinicians) { if (c._added) addPat[c.id] = allocatedPattern(c.id); else ov[c.id] = allocatedPattern(c.id); }
+    setContractOverrides(ov);
+    setAddedStaff(prev => prev.map(a => ({ ...a, pattern: addPat[a.id] || a.pattern })));
+    markDirty(); toast?.('Current plan accepted as the contract', 'success');
+  };
+  const resetAllContractsToEmis = () => { setContractOverrides({}); markDirty(); toast?.('Contracts reset to EMIS position', 'success'); };
+  const contractEdited = (id) => byId[id]?._added ? false : !!contractOverrides[id];
 
   const addStaff = (name, role, pattern) => {
     const id = `wf_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -299,7 +340,8 @@ export default function WorkforcePlanner({ data, toast }) {
   const tracker = included.map(c => ({ c, allocated: allocatedCount(allocation, c.id), contracted: contractedCount(effPattern, c.id) }))
     .sort((a, b) => b.allocated - a.allocated || a.c.name.localeCompare(b.c.name));
   const anomCount = anomalies.items.length;
-  const diverged = addedStaff.length + removedIds.length;
+  const editedCount = Object.keys(contractOverrides).filter(id => realClinicians.some(c => c.id === id)).length;
+  const diverged = addedStaff.length + removedIds.length + editedCount;
   const togglePanel = (k) => setPanel(p => ({ ...p, [k]: !p[k] }));
   const tabBtn = (on) => ({ ...S.btnGhost, background: on ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${on ? '#818cf8' : 'rgba(255,255,255,0.12)'}`, color: on ? '#c7d2fe' : '#e2e8f0' });
 
@@ -332,7 +374,7 @@ export default function WorkforcePlanner({ data, toast }) {
           <button onClick={() => togglePanel('clinicians')} style={tabBtn(panel.clinicians)}>Clinicians</button>
           <button onClick={() => togglePanel('anomalies')} style={tabBtn(panel.anomalies)}>Anomalies{anomCount ? ` (${anomCount})` : ''}</button>
           <button onClick={() => togglePanel('settings')} style={tabBtn(panel.settings)}>Settings</button>
-          <button onClick={resetToContract} style={S.btnGhost}>Reset to contract</button>
+          <button onClick={resetToContract} style={S.btnGhost}>Reset plan to contract</button>
         </div>
       </div>
 
@@ -343,7 +385,7 @@ export default function WorkforcePlanner({ data, toast }) {
         </div>
         {diverged > 0 && (
           <div style={{ ...S.card, padding: '10px 14px', flex: '1 1 240px', borderColor: 'rgba(129,140,248,0.5)', background: 'rgba(99,102,241,0.08)' }}>
-            <span style={{ fontSize: 14, color: '#c7d2fe' }}>Planner roster differs from live records: {addedStaff.length > 0 ? `+${addedStaff.length} added` : ''}{addedStaff.length > 0 && removedIds.length > 0 ? ' · ' : ''}{removedIds.length > 0 ? `−${removedIds.length} removed` : ''}</span>
+            <span style={{ fontSize: 14, color: '#c7d2fe' }}>Planner differs from live records: {[addedStaff.length > 0 ? `+${addedStaff.length} added` : '', removedIds.length > 0 ? `−${removedIds.length} removed` : '', editedCount > 0 ? `${editedCount} contract${editedCount === 1 ? '' : 's'} edited` : ''].filter(Boolean).join(' · ')}</span>
           </div>
         )}
       </div>
@@ -445,11 +487,20 @@ export default function WorkforcePlanner({ data, toast }) {
                     <div key={c.id} style={{ borderRadius: 8, background: open ? 'rgba(255,255,255,0.04)' : 'transparent' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px' }}>
                         <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 999, background: c._added ? 'transparent' : '#6366f1', border: c._added ? '1px dashed #818cf8' : 'none', color: c._added ? '#c7d2fe' : '#fff', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials(c.name)}</span>
-                        <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 13.5, color: '#e2e8f0', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: '#818cf8', fontSize: 10, marginLeft: 5 }}>new</span>}</span>
+                        <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 13.5, color: '#e2e8f0', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: '#818cf8', fontSize: 10, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize: 10, marginLeft: 5 }}>edited</span>}</span>
                         <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 12.5, color: mismatch ? '#f87171' : '#94a3b8' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
                         {c._added ? <button onClick={() => deleteAdded(c.id)} title="Delete" style={S.xBtn}>×</button> : <button onClick={() => removeReal(c.id)} title="Mark as leaving" style={S.xBtn}>×</button>}
                       </div>
-                      {open && <div style={{ padding: '4px 6px 8px 38px' }}><MiniWeek pattern={effPattern[c.id]} /></div>}
+                      {open && (
+                        <div style={{ padding: '4px 6px 10px 38px' }}>
+                          <p style={{ fontSize: 10.5, color: '#64748b', margin: '0 0 5px' }}>Tick a clinician's contracted sessions:</p>
+                          <MiniWeek pattern={effPattern[c.id]} onToggle={(d, s) => togglePattern(c.id, d, s)} />
+                          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                            <button onClick={() => acceptAllocAsContract(c.id)} style={S.linkBtn} title="Set their contract to where they're currently allocated">Use allocation</button>
+                            {!c._added && contractEdited(c.id) && <button onClick={() => resetContractToEmis(c.id)} style={S.linkBtn} title="Revert to the EMIS working pattern">Reset to EMIS</button>}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -460,6 +511,11 @@ export default function WorkforcePlanner({ data, toast }) {
                   {removedIds.map(id => { const c = realClinicians.find(x => x.id === id); if (!c) return null; return (<div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 6px' }}><span style={{ fontSize: 13, color: '#64748b', textDecoration: 'line-through' }}>{c.name}</span><button onClick={() => restoreReal(id)} style={S.linkBtn}>undo</button></div>); })}
                 </div>
               )}
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <p style={{ fontSize: 10.5, color: '#64748b', margin: 0 }}>Contracts (planner overlay — never changes EMIS)</p>
+                <button onClick={acceptAllAsContract} style={{ ...S.btnGhost, width: '100%', fontSize: 12.5 }}>Accept whole plan as contract</button>
+                {editedCount > 0 && <button onClick={resetAllContractsToEmis} style={{ ...S.btnGhost, width: '100%', fontSize: 12.5 }}>Reset all contracts to EMIS</button>}
+              </div>
             </Popout>
           )}
           {panel.anomalies && (
@@ -526,11 +582,11 @@ function FragmentRow({ children }) { return <>{children}</>; }
 function Metric({ label, value, bg }) {
   return (<div style={{ background: bg, borderRadius: 7, padding: '5px 4px', textAlign: 'center' }}><div style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9', fontFamily: "'Space Mono', monospace" }}>{value}</div><div style={{ fontSize: 10, color: '#94a3b8' }}>{label}</div></div>);
 }
-function MiniWeek({ pattern }) {
+function MiniWeek({ pattern, onToggle }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 16px)', gap: 3, alignItems: 'center' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 18px)', gap: 3, alignItems: 'center' }}>
       <span />{WF_DAYS.map(d => <span key={d} style={{ fontSize: 9, color: '#64748b', textAlign: 'center' }}>{WF_DAY_NAMES[d][0]}</span>)}
-      {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize: 9, color: '#64748b' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern?.[d]?.[s] === 'in'; return <span key={d} style={{ width: 14, height: 14, borderRadius: 3, background: on ? '#6366f1' : 'rgba(255,255,255,0.06)' }} />; })}</FragmentRow>))}
+      {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize: 9, color: '#64748b' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern?.[d]?.[s] === 'in'; return <span key={d} onClick={onToggle ? () => onToggle(d, s) : undefined} style={{ width: 16, height: 16, borderRadius: 3, background: on ? '#6366f1' : 'rgba(255,255,255,0.06)', cursor: onToggle ? 'pointer' : 'default', border: onToggle ? '1px solid rgba(255,255,255,0.12)' : 'none' }} />; })}</FragmentRow>))}
     </div>
   );
 }
