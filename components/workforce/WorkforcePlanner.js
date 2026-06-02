@@ -371,6 +371,8 @@ export default function WorkforcePlanner({ data, toast }) {
       for (const d of WF_DAYS) for (const s of WF_SESSIONS) if (pattern?.[d]?.[s] === 'in') next[d][s].push(id);
       return next;
     });
+    // If a role filter is active and does not include this role, the new person would be hidden — keep them visible.
+    setIncludedRoles(prev => (prev && !prev.includes(role)) ? [...prev, role] : prev);
     markDirty(); setAddOpen(false); logAction(`Added ${name} (${role})`);
   };
   const removeReal = (id) => { logAction(`Marked ${nameOf(id)} as leaving`); setRemovedIds(prev => [...new Set([...prev, id])]); markDirty(); };
