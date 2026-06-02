@@ -467,7 +467,6 @@ export default function WorkforcePlanner({ data, toast }) {
   const editedCount = Object.keys(contractOverrides).filter(id => realClinicians.some(c => c.id === id)).length;
   const diverged = addedStaff.length + removedIds.length + editedCount;
   const togglePanel = (k) => setPanel(p => ({ ...p, [k]: !p[k] }));
-  const anyPanel = panel.clinicians || panel.anomalies || panel.settings || panel.scenarios;
   const totalCount = totalSessions({ allocation, addedStaff, removedIds }, realClinicians);
   const pinnedScenario = scenarios.find(s => s.pinned);
   const onCurrent = pinnedScenario ? activeScenarioId === pinnedScenario.id : true;
@@ -493,7 +492,7 @@ export default function WorkforcePlanner({ data, toast }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', maxWidth: 1360, margin: '0 auto', paddingRight: anyPanel ? 352 : 0, transition: 'padding 0.18s ease' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', maxWidth: 1360, margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
