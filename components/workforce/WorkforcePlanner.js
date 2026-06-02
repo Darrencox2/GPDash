@@ -61,6 +61,18 @@ function patternEmpty(pat) {
   return true;
 }
 const fmt = (n) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
+const CURRENT_ID = 'sc_current';
+function normalizeActivities(arr) {
+  return (Array.isArray(arr) ? arr : []).map(a => ({ duration: 'one', week: 'all', assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' }));
+}
+function healAlloc(alloc, acts) {
+  for (const a of acts || []) {
+    if (!a.assignedClinicianId) continue;
+    const occ = a.duration === 'fullday' ? ['am', 'pm'] : [a.session];
+    for (const s of occ) if (alloc?.[a.day] && !alloc[a.day][s].includes(a.assignedClinicianId)) alloc[a.day][s].push(a.assignedClinicianId);
+  }
+  return alloc;
+}
 
 export default function WorkforcePlanner({ data, toast }) {
   const supabase = useMemo(() => createClient(), []);
@@ -90,6 +102,7 @@ export default function WorkforcePlanner({ data, toast }) {
   const [saveState, setSaveState] = useState('saved');
   const [panel, setPanel] = useState({ clinicians: false, anomalies: false, settings: false, scenarios: false });
   const [scenarios, setScenarios] = useState([]);
+  const [activeScenarioId, setActiveScenarioId] = useState(CURRENT_ID);
   const [scenarioName, setScenarioName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -137,44 +150,62 @@ export default function WorkforcePlanner({ data, toast }) {
     (async () => {
       const { data: row } = await supabase.from('practice_settings').select('workforce').eq('practice_id', practiceId).maybeSingle();
       const wf = row?.workforce || {};
-      const added = Array.isArray(wf.addedStaff) ? wf.addedStaff : [];
-      const removed = Array.isArray(wf.removedIds) ? wf.removedIds : [];
-      setAddedStaff(added); setRemovedIds(removed);
-      const overrides = (wf.contractOverrides && typeof wf.contractOverrides === 'object') ? wf.contractOverrides : {};
-      setContractOverrides(overrides);
-      setIncludedRoles(Array.isArray(wf.includedRoles) ? wf.includedRoles : null);
-      const acts = (Array.isArray(wf.activities) ? wf.activities : []).map(a => ({ duration: 'one', week: 'all', assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' }));
-      setActivities(acts);
-      setThresholds({ ...DEFAULT_THRESHOLDS, ...(wf.thresholds || {}) });
-      setScenarios(Array.isArray(wf.scenarios) ? wf.scenarios : []);
-      const valid = [...realClinicians.filter(c => !removed.includes(c.id)).map(c => c.id), ...added.map(a => a.id)];
-      const eff = {}; for (const c of realClinicians) eff[c.id] = overrides[c.id] || patternById[c.id] || {}; for (const a of added) eff[a.id] = a.pattern || {};
-      const effClin = [...realClinicians.filter(c => !removed.includes(c.id)), ...added];
-      const alloc = wf.allocation ? pruneAllocation(wf.allocation, valid) : buildContracted(effClin, eff);
-      // Heal any activity assignee who isn't allocated to all sessions their activity occupies (e.g. legacy full-day).
-      for (const a of acts) {
-        if (!a.assignedClinicianId) continue;
-        const occ = a.duration === 'fullday' ? ['am', 'pm'] : [a.session];
-        for (const s of occ) if (alloc[a.day] && !alloc[a.day][s].includes(a.assignedClinicianId)) alloc[a.day][s].push(a.assignedClinicianId);
+
+      // Build the data shape for one scenario from raw fields, healing + defaulting.
+      const shape = (src) => {
+        const overrides = (src.contractOverrides && typeof src.contractOverrides === 'object') ? src.contractOverrides : {};
+        const added = Array.isArray(src.addedStaff) ? src.addedStaff : [];
+        const removed = Array.isArray(src.removedIds) ? src.removedIds : [];
+        const acts = normalizeActivities(src.activities);
+        const eff = {}; for (const c of realClinicians) eff[c.id] = overrides[c.id] || patternById[c.id] || {}; for (const a of added) eff[a.id] = a.pattern || {};
+        const effClin = [...realClinicians.filter(c => !removed.includes(c.id)), ...added];
+        const vIds = [...effClin.map(c => c.id)];
+        const alloc = src.allocation ? pruneAllocation(src.allocation, vIds) : buildContracted(effClin, eff);
+        return { allocation: healAlloc(alloc, acts), activities: acts, contractOverrides: overrides, addedStaff: added, removedIds: removed, includedRoles: Array.isArray(src.includedRoles) ? src.includedRoles : null, thresholds: { ...DEFAULT_THRESHOLDS, ...(src.thresholds || {}) } };
+      };
+
+      let list = [];
+      const rawScenarios = Array.isArray(wf.scenarios) ? wf.scenarios : [];
+      const hasNewShape = rawScenarios.some(s => s && s.pinned);
+      if (hasNewShape) {
+        // Already migrated: normalise each scenario's data through shape().
+        list = rawScenarios.map(s => ({ id: s.id, name: s.name, pinned: !!s.pinned, data: shape(s.data || {}) }));
+        if (!list.some(s => s.pinned)) list.unshift({ id: CURRENT_ID, name: 'Current', pinned: true, data: shape(wf) });
+      } else {
+        // Legacy: top-level fields are the Current plan; old scenarios (if any) become alternates.
+        list = [{ id: CURRENT_ID, name: 'Current', pinned: true, data: shape(wf) }];
+        for (const s of rawScenarios) if (s && s.data) list.push({ id: s.id || `sc_${Math.random().toString(36).slice(2, 8)}`, name: s.name || 'Scenario', pinned: false, data: shape(s.data) });
       }
-      setAllocation(alloc);
+
+      const current = list.find(s => s.pinned) || list[0];
+      setScenarios(list);
+      setActiveScenarioId(current.id);
+      const d = current.data;
+      setAllocation(d.allocation); setActivities(d.activities); setContractOverrides(d.contractOverrides);
+      setAddedStaff(d.addedStaff); setRemovedIds(d.removedIds); setIncludedRoles(d.includedRoles); setThresholds(d.thresholds);
     })();
   }, [patternById, realClinicians, practiceId, supabase]);
 
   // ─── Auto-save ─────────────────────────────────────────────────────
   const markDirty = () => { setDirty(true); setSaveState('saving'); };
+  const snapshotWorking = useCallback(() => ({
+    allocation: cloneAllocation(allocation), activities: JSON.parse(JSON.stringify(activities)),
+    contractOverrides: JSON.parse(JSON.stringify(contractOverrides)), addedStaff: JSON.parse(JSON.stringify(addedStaff)),
+    removedIds: [...removedIds], includedRoles: includedRoles ? [...includedRoles] : null, thresholds: { ...thresholds },
+  }), [allocation, activities, contractOverrides, addedStaff, removedIds, includedRoles, thresholds]);
   const save = useCallback(async () => {
     if (!practiceId || !allocation) return;
-    const blob = { includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, scenarios };
+    const merged = scenarios.map(s => s.id === activeScenarioId ? { ...s, data: snapshotWorking() } : s);
+    const blob = { scenarios: merged, activeScenarioId };
     const { error: err } = await supabase.from('practice_settings').upsert({ practice_id: practiceId, workforce: blob }, { onConflict: 'practice_id' });
     if (err) { setSaveState('error'); toast?.(`Couldn't save: ${err.message}`, 'error'); return; }
     setSaveState('saved'); setDirty(false);
-  }, [practiceId, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, scenarios, supabase, toast]);
+  }, [practiceId, allocation, scenarios, activeScenarioId, snapshotWorking, supabase, toast]);
   useEffect(() => {
     if (!dirty) return;
     const t = setTimeout(() => save(), 700);
     return () => clearTimeout(t);
-  }, [dirty, includedRoles, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, scenarios, save]);
+  }, [dirty, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, includedRoles, scenarios, activeScenarioId, save]);
 
   // ─── Mutators ──────────────────────────────────────────────────────
   const moveToCell = useCallback((info, toDay, toSession) => {
@@ -257,22 +288,36 @@ export default function WorkforcePlanner({ data, toast }) {
   const resetAllContractsToEmis = () => { setContractOverrides({}); markDirty(); toast?.('Contracts reset to EMIS position', 'success'); };
   const contractEdited = (id) => byId[id]?._added ? false : !!contractOverrides[id];
 
-  // Scenario snapshots — save/load the whole plan under a name.
-  const saveScenario = () => {
+  // ─── Scenarios (Current is pinned; one scenario is always active) ──
+  const activeScenario = scenarios.find(s => s.id === activeScenarioId) || scenarios.find(s => s.pinned) || scenarios[0];
+  const activeName = activeScenario?.name || 'Current';
+  const loadData = (d) => {
+    setAllocation(healAlloc(cloneAllocation(d.allocation), d.activities)); setActivities(normalizeActivities(d.activities));
+    setContractOverrides(d.contractOverrides || {}); setAddedStaff(d.addedStaff || []); setRemovedIds(d.removedIds || []);
+    setIncludedRoles(d.includedRoles ?? null); setThresholds({ ...DEFAULT_THRESHOLDS, ...(d.thresholds || {}) });
+  };
+  const saveAsNewScenario = () => {
     const name = scenarioName.trim(); if (!name) return;
-    const snap = { allocation: cloneAllocation(allocation), activities: JSON.parse(JSON.stringify(activities)), contractOverrides: JSON.parse(JSON.stringify(contractOverrides)), addedStaff: JSON.parse(JSON.stringify(addedStaff)), removedIds: [...removedIds], includedRoles: includedRoles ? [...includedRoles] : null, thresholds: { ...thresholds } };
-    setScenarios(prev => [...prev, { id: `sc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, name, savedAt: new Date().toISOString(), data: snap }]);
-    setScenarioName(''); markDirty(); toast?.(`Saved scenario "${name}"`, 'success');
+    const id = `sc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const snap = snapshotWorking();
+    // Freeze the working state into the current active scenario, add the new one, and switch to it.
+    setScenarios(prev => prev.map(s => s.id === activeScenarioId ? { ...s, data: snapshotWorking() } : s).concat([{ id, name, pinned: false, data: snap }]));
+    setActiveScenarioId(id); setScenarioName(''); markDirty();
+    toast?.(`Saved "${name}" — now editing it. ${activeName} is untouched.`, 'success');
   };
-  const loadScenario = (id) => {
-    const sc = scenarios.find(x => x.id === id); if (!sc) return;
-    const d = sc.data;
-    setAllocation(d.allocation); setActivities(d.activities || []); setContractOverrides(d.contractOverrides || {});
-    setAddedStaff(d.addedStaff || []); setRemovedIds(d.removedIds || []); setIncludedRoles(d.includedRoles ?? null);
-    setThresholds({ ...DEFAULT_THRESHOLDS, ...(d.thresholds || {}) });
-    markDirty(); toast?.(`Loaded "${sc.name}"`, 'success');
+  const switchScenario = (id) => {
+    if (id === activeScenarioId) return;
+    const target = scenarios.find(s => s.id === id); if (!target) return;
+    setScenarios(prev => prev.map(s => s.id === activeScenarioId ? { ...s, data: snapshotWorking() } : s));
+    setActiveScenarioId(id); loadData(target.data); markDirty();
+    toast?.(`Now editing "${target.name}"`, 'success');
   };
-  const deleteScenario = (id) => { setScenarios(prev => prev.filter(x => x.id !== id)); markDirty(); };
+  const deleteScenario = (id) => {
+    const sc = scenarios.find(s => s.id === id); if (!sc || sc.pinned) return;
+    setScenarios(prev => prev.filter(s => s.id !== id));
+    if (id === activeScenarioId) { const cur = scenarios.find(s => s.pinned); if (cur) { setActiveScenarioId(cur.id); loadData(cur.data); } }
+    markDirty();
+  };
 
   const addStaff = (name, role, pattern) => {
     const id = `wf_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -399,7 +444,11 @@ export default function WorkforcePlanner({ data, toast }) {
         <div>
           <h2 style={{ margin: 0, fontSize: 25, fontWeight: 600, color: '#f1f5f9', fontFamily: "'Outfit', sans-serif" }}>Workforce planner</h2>
           <p style={{ margin: '6px 0 0', fontSize: 15, color: '#94a3b8', maxWidth: 680, lineHeight: 1.55 }}>
-            Drag clinicians across the week, allocate activities, and see where each session sits against demand.
+            Drag clinicians across the week, allocate activities, and see where each session sits against demand. Use it to plan recruitment: spot the gaps against demand and work out how many sessions, and which role, to hire.
+          </p>
+          <p style={{ margin: '8px 0 0', fontSize: 13, color: '#64748b', maxWidth: 680, lineHeight: 1.5 }}>
+            The base contract comes from your live working patterns (set in Buddy Cover / staff settings). Changes here are a planning overlay and never affect them — to change the underlying contract, edit it under{' '}
+            <a href={`/v4/practice/${data?._v4?.practiceSlug || practiceId}?tab=clinicians`} style={{ color: '#818cf8', textDecoration: 'underline' }}>Manage practice → Clinicians</a>.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -407,7 +456,7 @@ export default function WorkforcePlanner({ data, toast }) {
           <button onClick={() => togglePanel('clinicians')} style={tabBtn(panel.clinicians)}>Clinicians</button>
           <button onClick={() => togglePanel('anomalies')} style={tabBtn(panel.anomalies)}>Anomalies{anomCount ? ` (${anomCount})` : ''}</button>
           <button onClick={() => togglePanel('settings')} style={tabBtn(panel.settings)}>Settings</button>
-          <button onClick={() => togglePanel('scenarios')} style={tabBtn(panel.scenarios)}>Scenarios{scenarios.length ? ` (${scenarios.length})` : ''}</button>
+          <button onClick={() => togglePanel('scenarios')} style={tabBtn(panel.scenarios)}>Scenarios · {activeName}</button>
           <button onClick={resetToContract} style={S.btnGhost}>Reset plan to contract</button>
         </div>
       </div>
@@ -591,22 +640,24 @@ export default function WorkforcePlanner({ data, toast }) {
           )}
           {panel.scenarios && (
             <Popout title="Scenarios" onClose={() => togglePanel('scenarios')}>
-              <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 8px' }}>Save the whole plan under a name, then load it back any time to compare options.</p>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                <input type="text" value={scenarioName} placeholder="e.g. School holidays" onChange={e => setScenarioName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveScenario(); }} style={{ ...S.input, flex: 1 }} />
-                <button disabled={!scenarioName.trim()} onClick={saveScenario} style={{ ...S.btnGhost, background: scenarioName.trim() ? '#6366f1' : 'rgba(99,102,241,0.4)', border: 'none', color: '#fff' }}>Save</button>
-              </div>
-              {scenarios.length === 0 ? <span style={S.muted}>No saved scenarios yet.</span> : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  {scenarios.map(sc => (
-                    <div key={sc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '5px 6px', borderRadius: 8, background: 'rgba(255,255,255,0.03)' }}>
-                      <span style={{ flex: 1, fontSize: 13.5, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}</span>
-                      <button onClick={() => loadScenario(sc.id)} style={S.linkBtn}>load</button>
-                      <button onClick={() => deleteScenario(sc.id)} style={S.xBtn}>×</button>
+              <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 10px' }}>Current is your live plan and loads by default. Save a copy to explore a what-if (for example losing a clinician), then switch back to Current any time.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                {scenarios.map(sc => {
+                  const active = sc.id === activeScenarioId;
+                  return (
+                    <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', borderRadius: 8, background: active ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)', border: `1px solid ${active ? '#818cf8' : 'transparent'}` }}>
+                      <span style={{ flex: 1, fontSize: 13.5, color: active ? '#c7d2fe' : '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}{sc.pinned && <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 6 }}>live</span>}{active && <span style={{ fontSize: 10, color: '#818cf8', marginLeft: 6 }}>editing</span>}</span>
+                      {!active && <button onClick={() => switchScenario(sc.id)} style={S.linkBtn}>edit</button>}
+                      {!sc.pinned && <button onClick={() => deleteScenario(sc.id)} title="Delete" style={S.xBtn}>×</button>}
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: 10.5, color: '#64748b', margin: '0 0 5px' }}>Save current plan as a new scenario</p>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input type="text" value={scenarioName} placeholder="e.g. If Dr X leaves" onChange={e => setScenarioName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveAsNewScenario(); }} style={{ ...S.input, flex: 1 }} />
+                <button disabled={!scenarioName.trim()} onClick={saveAsNewScenario} style={{ ...S.btnGhost, background: scenarioName.trim() ? '#6366f1' : 'rgba(99,102,241,0.4)', border: 'none', color: '#fff' }}>Save</button>
+              </div>
             </Popout>
           )}
         </div>
