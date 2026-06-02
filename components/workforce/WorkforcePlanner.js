@@ -281,7 +281,16 @@ export default function WorkforcePlanner({ data, toast }) {
 
   const toggleRole = (role) => { setIncludedRoles(prev => { const base = prev == null ? [...allRoles] : [...prev]; const i = base.indexOf(role); if (i >= 0) base.splice(i, 1); else base.push(role); return base; }); markDirty(); };
   const setThreshold = (k, v) => { setThresholds(prev => ({ ...prev, [k]: Math.max(0, parseFloat(v) || 0) })); markDirty(); };
-  const resetToContract = () => { setAllocation(buildContracted(effClinicians, effPattern)); logAction('Reset the plan back to the contracted pattern'); markDirty(); toast?.('Allocation reset to contracted pattern', 'success'); };
+  const resetToContract = () => {
+    const live = realClinicians.filter(c => !removedIds.includes(c.id));
+    const eff = {};
+    for (const c of live) eff[c.id] = patternById?.[c.id] || {};
+    for (const a of addedStaff) eff[a.id] = a.pattern || {};
+    setContractOverrides({});
+    setAllocation(buildContracted([...live, ...addedStaff], eff));
+    logAction('Reset the plan and contracts back to your working patterns');
+    markDirty(); toast?.('Reset to your working patterns', 'success');
+  };
 
   // Contract editing (planner-only overlay; never touches working_patterns).
   const togglePattern = (id, day, session) => {
@@ -514,7 +523,7 @@ export default function WorkforcePlanner({ data, toast }) {
           <button onClick={() => togglePanel('audit')} style={tabBtn(panel.audit)}>Audit</button>
           <button onClick={() => togglePanel('settings')} style={tabBtn(panel.settings)}>Settings</button>
           <button onClick={() => togglePanel('scenarios')} style={tabBtn(panel.scenarios)}>Scenarios · {activeName}</button>
-          <button onClick={resetToContract} style={S.btnGhost}>Reset plan to contract</button>
+          <button onClick={resetToContract} style={S.btnGhost}>Reset to working patterns</button>
         </div>
       </div>
 
