@@ -3,39 +3,50 @@
 //
 // Workforce planner — interactive session allocator.
 //
-//   • Role filter      → choose which roles appear in the grid
-//   • Grid             → Mon–Fri × AM/PM, each cell holds draggable clinician
-//                        chips for whoever is working that session
-//   • Activities       → per-cell "+ activity" creates an amber box; drop a
-//                        clinician on it to assign (turns green)
-//   • Drag & drop      → move clinicians between cells to re-roster
-//   • Session tracker  → live count of sessions worked per clinician, against
-//                        their contracted total
-//   • Anomaly flag     → compares the planned allocation against the live
-//                        working_patterns contract (off-contract, missing,
-//                        unassigned activity, total mismatch) — banner +
-//                        per-cell badge + side list
-//
-// Contracted baseline is read live from working_patterns (the same grid used
-// elsewhere in GPdash), so there is no separate baseline to keep in sync.
-// State persists to practice_settings.workforce.
+//   • Drag clinician chips across a Mon–Fri × AM/PM grid to plan sessions.
+//   • Activities sit at the top of each cell; drop a clinician on one to
+//     assign them (amber → green).
+//   • Each session shows a live summary (working / general / demand / ratio)
+//     and its header is colour-coded by the demand ratio.
+//   • Role filter, session tracker and anomaly list live in floating popouts
+//     so the grid has room to breathe.
+//   • Everything auto-saves to practice_settings.workforce.
+//   • Anomalies compare the planned allocation against the live contracted
+//     working pattern (the same grid used elsewhere in GPdash).
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import {
   buildContracted, cloneAllocation, pruneAllocation, detectAnomalies,
-  allocatedCount, contractedCount, isIncluded, rolesInTeam, demandModel,
+  allocatedCount, contractedCount, isIncluded, rolesInTeam, typicalWeekdayDemand,
   WF_DAYS, WF_DAY_NAMES, WF_SESSIONS, cellKey,
 } from '@/lib/workforce';
 
 const SESSION_LABEL = { am: 'AM', pm: 'PM' };
-
 const ANOM_LABEL = {
   off_contract: 'Off contract',
   missing: 'Contracted but not allocated',
   unassigned_activity: 'Activity unassigned',
   total: 'Sessions ≠ contract',
 };
+
+// Demand-ratio colour bands (requests per general clinician per session).
+// Tunable — these are sensible starting points.
+const RATIO_TIGHT = 20, RATIO_SHORT = 28, RATIO_OVER = 12;
+const RC = {
+  blue:  { solid: '#0ea5e9', tint: 'rgba(14,165,233,0.16)', text: '#7dd3fc', label: 'Overstaffed' },
+  green: { solid: '#10b981', tint: 'rgba(16,185,129,0.16)', text: '#6ee7b7', label: 'Good' },
+  amber: { solid: '#f59e0b', tint: 'rgba(245,158,11,0.16)', text: '#fcd34d', label: 'Tight' },
+  red:   { solid: '#ef4444', tint: 'rgba(239,68,68,0.18)', text: '#fca5a5', label: 'Short' },
+};
+function ratioColour(general, demandHalf) {
+  if (general <= 0) return RC.red;
+  const r = demandHalf / general;
+  if (r < RATIO_OVER) return RC.blue;
+  if (r <= RATIO_TIGHT) return RC.green;
+  if (r <= RATIO_SHORT) return RC.amber;
+  return RC.red;
+}
 
 function initials(name) {
   if (!name) return '??';
@@ -56,45 +67,41 @@ export default function WorkforcePlanner({ data, toast }) {
     const arr = Array.isArray(raw) ? raw : (raw ? Object.values(raw) : []);
     return arr.filter(c => c && c.status !== 'left');
   }, [data?.clinicians]);
-
-  const byId = useMemo(() => {
-    const m = {}; for (const c of clinicians) m[c.id] = c; return m;
-  }, [clinicians]);
+  const byId = useMemo(() => { const m = {}; for (const c of clinicians) m[c.id] = c; return m; }, [clinicians]);
+  const allRoles = useMemo(() => rolesInTeam(clinicians), [clinicians]);
+  const demand = useMemo(() => typicalWeekdayDemand(demandSettings, listSize), [demandSettings, listSize]);
 
   const [patternById, setPatternById] = useState(null);
-  const [includedRoles, setIncludedRoles] = useState(null); // null = all
+  const [includedRoles, setIncludedRoles] = useState(null);
   const [allocation, setAllocation] = useState(null);
   const [activities, setActivities] = useState([]);
-  const [showDemand, setShowDemand] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [dragOver, setDragOver] = useState(null); // cellKey or `act_<id>`
-  const dragRef = useRef(null); // { clinId, fromDay, fromSession, fromActivityId }
+  const [saveState, setSaveState] = useState('saved'); // 'saved'|'saving'|'error'
+  const [dragOver, setDragOver] = useState(null);
+  const [panel, setPanel] = useState({ roles: false, sessions: false, anomalies: false });
+  const dragRef = useRef(null);
 
-  const allRoles = useMemo(() => rolesInTeam(clinicians), [clinicians]);
-
-  // ─── Load ──────────────────────────────────────────────────────────
+  // ─── Load working patterns ─────────────────────────────────────────
   useEffect(() => {
     if (!practiceId) { setError('No practice selected.'); setLoading(false); return; }
     let cancelled = false;
     (async () => {
       setLoading(true); setError('');
-      const patternsRes = await supabase.from('working_patterns')
+      const res = await supabase.from('working_patterns')
         .select('clinician_id, pattern, clinicians!inner(practice_id)')
         .eq('clinicians.practice_id', practiceId).is('effective_to', null);
       if (cancelled) return;
-      if (patternsRes.error) { setError(patternsRes.error.message); setLoading(false); return; }
+      if (res.error) { setError(res.error.message); setLoading(false); return; }
       const pat = {};
-      for (const r of patternsRes.data || []) pat[r.clinician_id] = r.pattern || {};
-      setPatternById(pat);
-      setLoading(false);
+      for (const r of res.data || []) pat[r.clinician_id] = r.pattern || {};
+      setPatternById(pat); setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [practiceId, supabase]);
 
-  // Initialise allocation/activities/roles once patterns + clinicians are ready.
+  // ─── Initialise from saved config (once) ───────────────────────────
   const initRef = useRef(false);
   useEffect(() => {
     if (initRef.current || !patternById || clinicians.length === 0) return;
@@ -104,11 +111,9 @@ export default function WorkforcePlanner({ data, toast }) {
         .eq('practice_id', practiceId).maybeSingle();
       const wf = row?.workforce || {};
       const validIds = clinicians.map(c => c.id);
-      const contracted = buildContracted(clinicians, patternById);
       setIncludedRoles(Array.isArray(wf.includedRoles) ? wf.includedRoles : null);
       setActivities(Array.isArray(wf.activities) ? wf.activities : []);
-      if (typeof wf.showDemand === 'boolean') setShowDemand(wf.showDemand);
-      setAllocation(wf.allocation ? pruneAllocation(wf.allocation, validIds) : contracted);
+      setAllocation(wf.allocation ? pruneAllocation(wf.allocation, validIds) : buildContracted(clinicians, patternById));
     })();
   }, [patternById, clinicians, practiceId, supabase]);
 
@@ -119,7 +124,7 @@ export default function WorkforcePlanner({ data, toast }) {
   }, [allocation, patternById, activities, clinicians, includedRoles]);
 
   // ─── Mutators ──────────────────────────────────────────────────────
-  const markDirty = () => setDirty(true);
+  const markDirty = () => { setDirty(true); setSaveState('saving'); };
 
   const moveToCell = useCallback((clinId, fromDay, fromSession, fromActivityId, toDay, toSession) => {
     setAllocation(prev => {
@@ -128,9 +133,7 @@ export default function WorkforcePlanner({ data, toast }) {
       if (!next[toDay][toSession].includes(clinId)) next[toDay][toSession].push(clinId);
       return next;
     });
-    if (fromActivityId) {
-      setActivities(prev => prev.map(a => a.id === fromActivityId ? { ...a, assignedClinicianId: null } : a));
-    }
+    if (fromActivityId) setActivities(prev => prev.map(a => a.id === fromActivityId ? { ...a, assignedClinicianId: null } : a));
     markDirty();
   }, []);
 
@@ -151,13 +154,7 @@ export default function WorkforcePlanner({ data, toast }) {
     markDirty();
   }, []);
 
-  const addActivity = (day, session) => {
-    setActivities(prev => [...prev, {
-      id: `a_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      day, session, label: '', assignedClinicianId: null,
-    }]);
-    markDirty();
-  };
+  const addActivity = (day, session) => { setActivities(prev => [...prev, { id: `a_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, day, session, label: '', assignedClinicianId: null }]); markDirty(); };
   const renameActivity = (id, label) => { setActivities(prev => prev.map(a => a.id === id ? { ...a, label } : a)); markDirty(); };
   const releaseActivity = (id) => { setActivities(prev => prev.map(a => a.id === id ? { ...a, assignedClinicianId: null } : a)); markDirty(); };
   const deleteActivity = (id) => { setActivities(prev => prev.filter(a => a.id !== id)); markDirty(); };
@@ -165,48 +162,37 @@ export default function WorkforcePlanner({ data, toast }) {
   const toggleRole = (role) => {
     setIncludedRoles(prev => {
       const base = prev == null ? [...allRoles] : [...prev];
-      const i = base.indexOf(role);
-      if (i >= 0) base.splice(i, 1); else base.push(role);
+      const i = base.indexOf(role); if (i >= 0) base.splice(i, 1); else base.push(role);
       return base;
     });
     markDirty();
   };
 
-  const resetToContract = () => {
-    setAllocation(buildContracted(clinicians, patternById));
-    markDirty();
-    toast?.('Allocation reset to contracted pattern', 'success');
-  };
+  const resetToContract = () => { setAllocation(buildContracted(clinicians, patternById)); markDirty(); toast?.('Allocation reset to contracted pattern', 'success'); };
 
-  const save = async () => {
-    if (!practiceId) return;
-    setSaving(true);
-    const blob = { includedRoles, allocation, activities, showDemand };
+  // ─── Auto-save (debounced) ─────────────────────────────────────────
+  const save = useCallback(async () => {
+    if (!practiceId || !allocation) return;
+    const blob = { includedRoles, allocation, activities };
     const { error: err } = await supabase.from('practice_settings')
       .upsert({ practice_id: practiceId, workforce: blob }, { onConflict: 'practice_id' });
-    setSaving(false);
-    if (err) { toast?.(`Couldn't save: ${err.message}`, 'error'); return; }
-    setDirty(false);
-    toast?.('Workforce plan saved', 'success');
-  };
+    if (err) { setSaveState('error'); toast?.(`Couldn't save: ${err.message}`, 'error'); return; }
+    setSaveState('saved'); setDirty(false);
+  }, [practiceId, includedRoles, allocation, activities, supabase, toast]);
 
-  // ─── DnD helpers ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!dirty) return;
+    const t = setTimeout(() => { save(); }, 700);
+    return () => clearTimeout(t);
+  }, [dirty, includedRoles, allocation, activities, save]);
+
+  // ─── DnD ───────────────────────────────────────────────────────────
   const onChipDragStart = (clinId, fromDay, fromSession, fromActivityId) => (e) => {
     dragRef.current = { clinId, fromDay, fromSession, fromActivityId: fromActivityId || null };
     try { e.dataTransfer.setData('text/plain', clinId); e.dataTransfer.effectAllowed = 'move'; } catch (_) {}
   };
-  const onCellDrop = (day, session) => (e) => {
-    e.preventDefault(); setDragOver(null);
-    const d = dragRef.current; dragRef.current = null;
-    if (!d) return;
-    moveToCell(d.clinId, d.fromDay, d.fromSession, d.fromActivityId, day, session);
-  };
-  const onActivityDrop = (activity) => (e) => {
-    e.preventDefault(); e.stopPropagation(); setDragOver(null);
-    const d = dragRef.current; dragRef.current = null;
-    if (!d) return;
-    assignToActivity(d.clinId, d.fromDay, d.fromSession, d.fromActivityId, activity);
-  };
+  const onCellDrop = (day, session) => (e) => { e.preventDefault(); setDragOver(null); const d = dragRef.current; dragRef.current = null; if (d) moveToCell(d.clinId, d.fromDay, d.fromSession, d.fromActivityId, day, session); };
+  const onActivityDrop = (activity) => (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(null); const d = dragRef.current; dragRef.current = null; if (d) assignToActivity(d.clinId, d.fromDay, d.fromSession, d.fromActivityId, activity); };
   const allow = (key) => (e) => { e.preventDefault(); if (dragOver !== key) setDragOver(key); };
 
   // ─── Render ────────────────────────────────────────────────────────
@@ -214,164 +200,101 @@ export default function WorkforcePlanner({ data, toast }) {
 
   const included = clinicians.filter(c => isIncluded(c, includedRoles));
   const includedIds = new Set(included.map(c => c.id));
-
   const tracker = included.map(c => ({
-    c,
-    allocated: allocatedCount(allocation, c.id),
-    contracted: contractedCount(patternById, c.id),
+    c, allocated: allocatedCount(allocation, c.id), contracted: contractedCount(patternById, c.id),
     activityLabels: activities.filter(a => a.assignedClinicianId === c.id).map(a => a.label || 'Activity'),
   })).sort((a, b) => b.allocated - a.allocated || a.c.name.localeCompare(b.c.name));
-
-  const cleanCount = anomalies.items.length;
-
-  // Demand overlay: per-day demand vs contracted capacity (the contracting target).
-  const dm = demandModel({ allocation, includedIds, demandSettings, listSize });
-  const ratios = WF_DAYS.map(d => dm.perDay[d].ratio).filter(r => r != null);
-  const rMin = ratios.length ? Math.min(...ratios) : 0;
-  const rMax = ratios.length ? Math.max(...ratios) : 1;
-  const ratioColour = (r) => {
-    if (r == null) return '#64748b';
-    if (rMax <= rMin) return '#0ea5e9';
-    const t = (r - rMin) / (rMax - rMin);
-    return t <= 0.34 ? '#10b981' : t <= 0.67 ? '#f59e0b' : '#ef4444';
-  };
-  const peakDay = WF_DAYS.reduce((a, b) => dm.perDay[b].demand > dm.perDay[a].demand ? b : a, WF_DAYS[0]);
-  const stretchedDay = ratios.length
-    ? WF_DAYS.reduce((a, b) => ((dm.perDay[b].ratio ?? -1) > (dm.perDay[a].ratio ?? -1) ? b : a), WF_DAYS[0])
-    : null;
+  const anomCount = anomalies.items.length;
+  const togglePanel = (k) => setPanel(p => ({ ...p, [k]: !p[k] }));
 
   const Chip = ({ clinId, day, session, activityId, onContract }) => {
-    const c = byId[clinId];
-    if (!c) return null;
+    const c = byId[clinId]; if (!c) return null;
     const off = onContract === false;
     return (
       <div draggable onDragStart={onChipDragStart(clinId, day, session, activityId)} title={`${c.name}${c.role ? ' · ' + c.role : ''}${off ? ' · off contract' : ''}`}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '4px 11px 4px 4px', borderRadius: 999, cursor: 'grab',
-          background: off ? 'rgba(239,68,68,0.18)' : 'rgba(99,102,241,0.18)',
-          border: `1px solid ${off ? '#ef4444' : 'rgba(129,140,248,0.5)'}`, maxWidth: 170,
-        }}>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '4px 11px 4px 4px', borderRadius: 999, cursor: 'grab',
+          background: off ? 'rgba(239,68,68,0.18)' : 'rgba(99,102,241,0.18)', border: `1px solid ${off ? '#ef4444' : 'rgba(129,140,248,0.5)'}`, maxWidth: 170 }}>
         <span style={{ width: 28, height: 28, borderRadius: 999, background: off ? '#ef4444' : '#6366f1', color: '#fff', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials(c.name)}</span>
         <span style={{ fontSize: 13.5, color: off ? '#fecaca' : '#c7d2fe', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name.split(' ')[0]}</span>
       </div>
     );
   };
 
+  const tabBtn = (on) => ({ ...S.btnGhost, background: on ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${on ? '#818cf8' : 'rgba(255,255,255,0.12)'}`, color: on ? '#c7d2fe' : '#e2e8f0' });
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 25, fontWeight: 600, color: '#f1f5f9', fontFamily: "'Outfit', sans-serif" }}>Workforce planner</h2>
           <p style={{ margin: '6px 0 0', fontSize: 15, color: '#94a3b8', maxWidth: 680, lineHeight: 1.55 }}>
-            Drag clinicians across the week to plan sessions and allocate activities. Drift from the contracted working
-            pattern is flagged as an anomaly.
+            Drag clinicians across the week to plan sessions and allocate activities. Each session is colour-coded by how
+            its demand compares to the clinicians left for general work.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 12.5, color: saveState === 'error' ? '#f87171' : saveState === 'saving' ? '#fbbf24' : '#34d399', minWidth: 58 }}>
+            {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Save failed' : '✓ Saved'}
+          </span>
+          <button onClick={() => togglePanel('roles')} style={tabBtn(panel.roles)}>Roles</button>
+          <button onClick={() => togglePanel('sessions')} style={tabBtn(panel.sessions)}>Sessions</button>
+          <button onClick={() => togglePanel('anomalies')} style={tabBtn(panel.anomalies)}>Anomalies{anomCount ? ` (${anomCount})` : ''}</button>
           <button onClick={resetToContract} style={S.btnGhost}>Reset to contract</button>
-          <button onClick={save} disabled={!dirty || saving} style={{ ...S.btnPrimary, opacity: dirty && !saving ? 1 : 0.45, cursor: dirty && !saving ? 'pointer' : 'default' }}>
-            {saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}
-          </button>
         </div>
       </div>
 
       {/* Anomaly banner */}
-      <div style={{ ...S.card, padding: '10px 14px', borderColor: cleanCount ? 'rgba(245,158,11,0.5)' : 'rgba(16,185,129,0.5)', background: cleanCount ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)' }}>
-        <span style={{ fontSize: 15.5, color: cleanCount ? '#fbbf24' : '#34d399', fontWeight: 500 }}>
-          {cleanCount ? `⚠ ${cleanCount} anomal${cleanCount === 1 ? 'y' : 'ies'} vs contracted pattern` : '✓ Allocation matches the contracted pattern'}
+      <div style={{ ...S.card, padding: '10px 14px', borderColor: anomCount ? 'rgba(245,158,11,0.5)' : 'rgba(16,185,129,0.5)', background: anomCount ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)' }}>
+        <span style={{ fontSize: 15.5, color: anomCount ? '#fbbf24' : '#34d399', fontWeight: 500 }}>
+          {anomCount ? `⚠ ${anomCount} anomal${anomCount === 1 ? 'y' : 'ies'} vs contracted pattern` : '✓ Allocation matches the contracted pattern'}
         </span>
       </div>
 
-      {/* Role filter */}
-      <div style={{ ...S.card, padding: 12 }}>
-        <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10, fontSize: 12.5 }}>Include roles</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {allRoles.map(role => {
-            const on = includedRoles == null || includedRoles.includes(role);
-            return (
-              <button key={role} onClick={() => toggleRole(role)} style={{
-                padding: '7px 14px', borderRadius: 999, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
-                border: `1px solid ${on ? '#818cf8' : 'rgba(255,255,255,0.12)'}`,
-                background: on ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)',
-                color: on ? '#c7d2fe' : '#64748b',
-              }}>{on ? '✓ ' : ''}{role}</button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Grid + side panel */}
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div style={{ ...S.card, flex: '1 1 560px', minWidth: 320, overflowX: 'auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-            <button onClick={() => { setShowDemand(v => !v); markDirty(); }} style={{
-              padding: '5px 11px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-              border: `1px solid ${showDemand ? '#818cf8' : 'rgba(255,255,255,0.12)'}`,
-              background: showDemand ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)',
-              color: showDemand ? '#c7d2fe' : '#94a3b8',
-            }}>{showDemand ? '✓ ' : ''}Demand overlay</button>
-            {showDemand && (
-              <span style={{ fontSize: 11, color: '#94a3b8', flex: '1 1 240px', textAlign: 'right' }}>
-                Demand peaks {WF_DAY_NAMES[peakDay]} ({dm.perDay[peakDay].demand}/day){stretchedDay ? <>; cover thinnest vs demand on <span style={{ color: ratioColour(dm.perDay[stretchedDay].ratio) }}>{WF_DAY_NAMES[stretchedDay]}</span></> : null}. Number per day is requests per contracted session.
-              </span>
-            )}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '64px repeat(5, minmax(160px, 1fr))', gap: 9 }}>
-            <div />
-            {WF_DAYS.map(day => {
-              const info = dm.perDay[day];
-              return (
-                <div key={day} style={{ textAlign: 'center', paddingBottom: 2 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1', paddingBottom: 4 }}>{WF_DAY_NAMES[day].slice(0, 3)}</div>
-                  {showDemand && (
-                    <div style={{ fontSize: 10, marginTop: 1 }}>
-                      <span style={{ color: '#64748b' }}>{info.demand} req</span>
-                      {info.ratio != null && <span style={{ color: ratioColour(info.ratio), marginLeft: 4, fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>{info.ratio.toFixed(0)}/s</span>}
+      {/* Grid (full width) */}
+      <div style={{ ...S.card, overflowX: 'auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '64px repeat(5, minmax(170px, 1fr))', gap: 9 }}>
+          <div />
+          {WF_DAYS.map(day => (
+            <div key={day} style={{ textAlign: 'center', fontSize: 15, fontWeight: 600, color: '#cbd5e1', paddingBottom: 4 }}>
+              {WF_DAY_NAMES[day].slice(0, 3)}
+              <span style={{ fontSize: 11, fontWeight: 400, color: '#64748b', marginLeft: 6 }}>~{demand[day] || 0}/day</span>
+            </div>
+          ))}
+          {WF_SESSIONS.map(session => (
+            <FragmentRow key={session}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#94a3b8' }}>{SESSION_LABEL[session]}</div>
+              {WF_DAYS.map(day => {
+                const key = cellKey(day, session);
+                const all = (allocation[day][session] || []).filter(id => includedIds.has(id));
+                const cellActs = activities.filter(a => a.day === day && a.session === session);
+                const assignedIds = new Set(cellActs.map(a => a.assignedClinicianId).filter(Boolean));
+                const free = all.filter(id => !assignedIds.has(id));
+                const anomN = anomalies.cellCount[key] || 0;
+                const over = dragOver === key;
+                const demandHalf = Math.round((demand[day] || 0) / 2);
+                const ratio = free.length > 0 ? demandHalf / free.length : null;
+                const rc = ratioColour(free.length, demandHalf);
+                return (
+                  <div key={day} onDragOver={allow(key)} onDrop={onCellDrop(day, session)}
+                    style={{ minHeight: 150, borderRadius: 12, position: 'relative', overflow: 'hidden',
+                      background: over ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${over ? '#818cf8' : anomN ? 'rgba(239,68,68,0.45)' : 'rgba(255,255,255,0.07)'}`,
+                      display: 'flex', flexDirection: 'column' }}>
+                    {/* coloured header strip */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', background: rc.tint, borderBottom: `2px solid ${rc.solid}` }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: rc.text }}>{rc.label}{anomN ? <span style={{ color: '#ef4444', marginLeft: 5 }}>⚠{anomN}</span> : null}</span>
+                      <button onClick={() => addActivity(day, session)} title="Add activity" style={{ background: 'none', border: 'none', color: rc.text, cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>+</button>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-            {WF_SESSIONS.map(session => (
-              <FragmentRow key={session}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#94a3b8' }}>{SESSION_LABEL[session]}</div>
-                {WF_DAYS.map(day => {
-                  const key = cellKey(day, session);
-                  const all = (allocation[day][session] || []).filter(id => includedIds.has(id));
-                  const cellActs = activities.filter(a => a.day === day && a.session === session);
-                  const assignedIds = new Set(cellActs.map(a => a.assignedClinicianId).filter(Boolean));
-                  const free = all.filter(id => !assignedIds.has(id));
-                  const anomN = anomalies.cellCount[key] || 0;
-                  const over = dragOver === key;
-                  return (
-                    <div key={day} onDragOver={allow(key)} onDrop={onCellDrop(day, session)}
-                      style={{
-                        minHeight: 124, borderRadius: 12, padding: 9, position: 'relative',
-                        background: over ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.02)',
-                        border: `1px solid ${over ? '#818cf8' : anomN ? 'rgba(239,68,68,0.45)' : 'rgba(255,255,255,0.07)'}`,
-                        display: 'flex', flexDirection: 'column', gap: 6,
-                      }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#64748b' }}>
-                          {all.length}{anomN ? <span style={{ color: '#ef4444', marginLeft: 4 }}>⚠{anomN}</span> : null}
-                        </span>
-                        <button onClick={() => addActivity(day, session)} title="Add activity" style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>+</button>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {free.map(id => <Chip key={id} clinId={id} day={day} session={session} onContract={patternById[id]?.[day]?.[session] === 'in'} />)}
-                      </div>
+                    <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                      {/* activities at top */}
                       {cellActs.map(a => {
-                        const akey = `act_${a.id}`;
-                        const aover = dragOver === akey;
-                        const assigned = a.assignedClinicianId;
+                        const akey = `act_${a.id}`; const aover = dragOver === akey; const assigned = a.assignedClinicianId;
                         return (
                           <div key={a.id} onDragOver={allow(akey)} onDrop={onActivityDrop(a)}
-                            style={{
-                              borderRadius: 9, padding: 8, border: `1px dashed ${assigned ? '#10b981' : '#f59e0b'}`,
+                            style={{ borderRadius: 9, padding: 8, border: `1px dashed ${assigned ? '#10b981' : '#f59e0b'}`,
                               background: aover ? 'rgba(99,102,241,0.15)' : assigned ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                              display: 'flex', flexDirection: 'column', gap: 6,
-                            }}>
+                              display: 'flex', flexDirection: 'column', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               <input value={a.label} placeholder="activity…" onChange={e => renameActivity(a.id, e.target.value)}
                                 style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', color: assigned ? '#6ee7b7' : '#fcd34d', fontSize: 13, fontFamily: 'inherit', padding: 0, outline: 'none' }} />
@@ -383,67 +306,100 @@ export default function WorkforcePlanner({ data, toast }) {
                           </div>
                         );
                       })}
+                      {/* general work chips */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {free.map(id => <Chip key={id} clinId={id} day={day} session={session} onContract={patternById[id]?.[day]?.[session] === 'in'} />)}
+                      </div>
+                      {/* summary */}
+                      <div style={{ marginTop: 'auto', paddingTop: 6, fontSize: 11.5, color: '#94a3b8', fontFamily: "'Space Mono', monospace", borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        {all.length} working · {free.length} general · demand ~{demandHalf} · ratio {ratio != null ? ratio.toFixed(1) : '–'}
+                      </div>
                     </div>
-                  );
-                })}
-              </FragmentRow>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 12 }}>
-            {[['On contract', 'rgba(99,102,241,0.6)'], ['Off contract', '#ef4444'], ['Activity unassigned', '#f59e0b'], ['Activity assigned', '#10b981']].map(([l, col]) => (
-              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#94a3b8' }}><span style={{ width: 14, height: 14, borderRadius: 4, background: col }} />{l}</div>
-            ))}
-          </div>
-        </div>
-
-        {/* Side panel */}
-        <div style={{ flex: '1 1 260px', minWidth: 240, maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {anomalies.items.length > 0 && (
-            <div style={S.card}>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10, fontSize: 12.5 }}>Anomalies ({anomalies.items.length})</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 240, overflowY: 'auto' }}>
-                {anomalies.items.map((it, i) => (
-                  <div key={i} style={{ fontSize: 13.5, color: '#cbd5e1', lineHeight: 1.4 }}>
-                    <span style={{ color: it.type === 'unassigned_activity' ? '#fbbf24' : '#f87171' }}>•</span>{' '}
-                    {it.type === 'unassigned_activity'
-                      ? <>{ANOM_LABEL[it.type]}: {it.label || 'Activity'} ({WF_DAY_NAMES[it.day].slice(0, 3)} {SESSION_LABEL[it.session]})</>
-                      : it.type === 'total'
-                        ? <>{byId[it.clinicianId]?.name}: {ANOM_LABEL[it.type]} ({it.allocated} vs {it.contracted})</>
-                        : <>{byId[it.clinicianId]?.name}: {ANOM_LABEL[it.type]} ({WF_DAY_NAMES[it.day].slice(0, 3)} {SESSION_LABEL[it.session]})</>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div style={S.card}>
-            <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10, fontSize: 12.5 }}>Sessions worked</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 420, overflowY: 'auto' }}>
-              {tracker.map(({ c, allocated, contracted, activityLabels }) => {
-                const mismatch = allocated !== contracted;
-                return (
-                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}>
-                    <span style={{ fontSize: 14, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.name}
-                      {activityLabels.length > 0 && <span style={{ color: '#6ee7b7', fontSize: 12, marginLeft: 6 }}>{activityLabels.join(', ')}</span>}
-                    </span>
-                    <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13.5, color: mismatch ? '#f87171' : '#94a3b8', flexShrink: 0 }}>{allocated}/{contracted}</span>
                   </div>
                 );
               })}
-              {tracker.length === 0 && <span style={S.muted}>No clinicians in the selected roles.</span>}
-            </div>
-          </div>
+            </FragmentRow>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 14 }}>
+          {[['Overstaffed', RC.blue.solid], ['Good', RC.green.solid], ['Tight', RC.amber.solid], ['Short', RC.red.solid]].map(([l, col]) => (
+            <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#94a3b8' }}><span style={{ width: 14, height: 14, borderRadius: 4, background: col }} />{l}</div>
+          ))}
         </div>
       </div>
+
+      {/* Floating popouts */}
+      {(panel.roles || panel.sessions || panel.anomalies) && (
+        <div style={{ position: 'fixed', top: 90, right: 24, width: 312, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, zIndex: 60 }}>
+          {panel.roles && (
+            <Popout title="Include roles" onClose={() => togglePanel('roles')}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {allRoles.map(role => {
+                  const on = includedRoles == null || includedRoles.includes(role);
+                  return (
+                    <button key={role} onClick={() => toggleRole(role)} style={{ padding: '7px 14px', borderRadius: 999, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1px solid ${on ? '#818cf8' : 'rgba(255,255,255,0.12)'}`, background: on ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)', color: on ? '#c7d2fe' : '#64748b' }}>{on ? '✓ ' : ''}{role}</button>
+                  );
+                })}
+              </div>
+            </Popout>
+          )}
+          {panel.sessions && (
+            <Popout title="Sessions worked" onClose={() => togglePanel('sessions')}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {tracker.map(({ c, allocated, contracted, activityLabels }) => {
+                  const mismatch = allocated !== contracted;
+                  return (
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}>
+                      <span style={{ fontSize: 14, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {c.name}{activityLabels.length > 0 && <span style={{ color: '#6ee7b7', fontSize: 12, marginLeft: 6 }}>{activityLabels.join(', ')}</span>}
+                      </span>
+                      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13.5, color: mismatch ? '#f87171' : '#94a3b8', flexShrink: 0 }}>{allocated}/{contracted}</span>
+                    </div>
+                  );
+                })}
+                {tracker.length === 0 && <span style={S.muted}>No clinicians in the selected roles.</span>}
+              </div>
+            </Popout>
+          )}
+          {panel.anomalies && (
+            <Popout title={`Anomalies (${anomCount})`} onClose={() => togglePanel('anomalies')}>
+              {anomCount === 0 ? <span style={S.muted}>No anomalies — allocation matches the contract.</span> : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {anomalies.items.map((it, i) => (
+                    <div key={i} style={{ fontSize: 13.5, color: '#cbd5e1', lineHeight: 1.4 }}>
+                      <span style={{ color: it.type === 'unassigned_activity' ? '#fbbf24' : '#f87171' }}>•</span>{' '}
+                      {it.type === 'unassigned_activity' ? <>{ANOM_LABEL[it.type]}: {it.label || 'Activity'} ({WF_DAY_NAMES[it.day].slice(0, 3)} {SESSION_LABEL[it.session]})</>
+                        : it.type === 'total' ? <>{byId[it.clinicianId]?.name}: {ANOM_LABEL[it.type]} ({it.allocated} vs {it.contracted})</>
+                          : <>{byId[it.clinicianId]?.name}: {ANOM_LABEL[it.type]} ({WF_DAY_NAMES[it.day].slice(0, 3)} {SESSION_LABEL[it.session]})</>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Popout>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 function FragmentRow({ children }) { return <>{children}</>; }
 
+function Popout({ title, onClose, children }) {
+  return (
+    <div style={{ ...S.card, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', background: 'rgba(20,28,46,0.97)', backdropFilter: 'blur(8px)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 12.5, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4 }}>{title}</span>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 const S = {
   card: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 16 },
   muted: { fontSize: 13, color: '#94a3b8', margin: 0 },
-  btnPrimary: { background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 14.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  btnGhost: { background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '10px 16px', fontSize: 14.5, cursor: 'pointer', fontFamily: 'inherit' },
+  btnGhost: { background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 14px', fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' },
 };
