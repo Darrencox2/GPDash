@@ -117,7 +117,8 @@ export default function WorkforcePlanner({ data, toast }) {
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState('saved');
-  const [panel, setPanel] = useState({ clinicians: false, anomalies: false, settings: false, scenarios: false });
+  const [panel, setPanel] = useState({ clinicians: false, anomalies: false, settings: false, scenarios: false, audit: false });
+  const [auditLog, setAuditLog] = useState([]);
   const [scenarios, setScenarios] = useState([]);
   const [activeScenarioId, setActiveScenarioId] = useState(CURRENT_ID);
   const [scenarioName, setScenarioName] = useState('');
@@ -134,6 +135,9 @@ export default function WorkforcePlanner({ data, toast }) {
     return [...real, ...addedStaff.map(a => ({ ...a, _added: true }))];
   }, [realClinicians, removedIds, addedStaff]);
   const byId = useMemo(() => { const m = {}; for (const c of effClinicians) m[c.id] = c; return m; }, [effClinicians]);
+  const byIdRef = useRef({}); byIdRef.current = byId;
+  const nameOf = useCallback((id) => byIdRef.current[id]?.name || 'Someone', []);
+  const logAction = useCallback((text) => { if (text) setAuditLog(prev => [...prev, { t: Date.now(), text }].slice(-300)); }, []);
   const effPattern = useMemo(() => {
     const m = {};
     for (const c of realClinicians) m[c.id] = contractOverrides[c.id] || patternById?.[c.id] || {};
@@ -178,7 +182,7 @@ export default function WorkforcePlanner({ data, toast }) {
         const effClin = [...realClinicians.filter(c => !removed.includes(c.id)), ...added];
         const vIds = [...effClin.map(c => c.id)];
         const alloc = src.allocation ? pruneAllocation(src.allocation, vIds) : buildContracted(effClin, eff);
-        return { allocation: healAlloc(alloc, acts), activities: acts, contractOverrides: overrides, addedStaff: added, removedIds: removed, includedRoles: Array.isArray(src.includedRoles) ? src.includedRoles : null, thresholds: { ...DEFAULT_THRESHOLDS, ...(src.thresholds || {}) }, holidayAllowance: Number.isFinite(src.holidayAllowance) ? src.holidayAllowance : 2 };
+        return { allocation: healAlloc(alloc, acts), activities: acts, contractOverrides: overrides, addedStaff: added, removedIds: removed, includedRoles: Array.isArray(src.includedRoles) ? src.includedRoles : null, thresholds: { ...DEFAULT_THRESHOLDS, ...(src.thresholds || {}) }, holidayAllowance: Number.isFinite(src.holidayAllowance) ? src.holidayAllowance : 2, auditLog: Array.isArray(src.auditLog) ? src.auditLog : [] };
       };
 
       let list = [];
@@ -194,13 +198,20 @@ export default function WorkforcePlanner({ data, toast }) {
         for (const s of rawScenarios) if (s && s.data) list.push({ id: s.id || `sc_${Math.random().toString(36).slice(2, 8)}`, name: s.name || 'Scenario', pinned: false, data: shape(s.data) });
       }
 
+      // Seed a starting audit entry where a scenario has none, so the log always begins with its origin.
+      for (const s of list) {
+        if (!Array.isArray(s.data.auditLog) || s.data.auditLog.length === 0) {
+          s.data.auditLog = [{ t: Date.now(), text: s.pinned ? 'Started from your live working patterns' : 'Starting point' }];
+        }
+      }
+
       const current = list.find(s => s.pinned) || list[0];
       setScenarios(list);
       setActiveScenarioId(current.id);
       setDutyCapableIds(Array.isArray(wf.dutyCapableIds) ? wf.dutyCapableIds : []);
       const d = current.data;
       setAllocation(d.allocation); setActivities(d.activities); setContractOverrides(d.contractOverrides);
-      setAddedStaff(d.addedStaff); setRemovedIds(d.removedIds); setIncludedRoles(d.includedRoles); setThresholds(d.thresholds); setHolidayAllowance(d.holidayAllowance ?? 2);
+      setAddedStaff(d.addedStaff); setRemovedIds(d.removedIds); setIncludedRoles(d.includedRoles); setThresholds(d.thresholds); setHolidayAllowance(d.holidayAllowance ?? 2); setAuditLog(d.auditLog || []);
     })();
   }, [patternById, realClinicians, practiceId, supabase]);
 
@@ -209,8 +220,8 @@ export default function WorkforcePlanner({ data, toast }) {
   const snapshotWorking = useCallback(() => ({
     allocation: cloneAllocation(allocation), activities: JSON.parse(JSON.stringify(activities)),
     contractOverrides: JSON.parse(JSON.stringify(contractOverrides)), addedStaff: JSON.parse(JSON.stringify(addedStaff)),
-    removedIds: [...removedIds], includedRoles: includedRoles ? [...includedRoles] : null, thresholds: { ...thresholds }, holidayAllowance,
-  }), [allocation, activities, contractOverrides, addedStaff, removedIds, includedRoles, thresholds, holidayAllowance]);
+    removedIds: [...removedIds], includedRoles: includedRoles ? [...includedRoles] : null, thresholds: { ...thresholds }, holidayAllowance, auditLog: [...auditLog],
+  }), [allocation, activities, contractOverrides, addedStaff, removedIds, includedRoles, thresholds, holidayAllowance, auditLog]);
   const save = useCallback(async () => {
     if (!practiceId || !allocation) return;
     const merged = scenarios.map(s => s.id === activeScenarioId ? { ...s, data: snapshotWorking() } : s);
@@ -223,7 +234,7 @@ export default function WorkforcePlanner({ data, toast }) {
     if (!dirty) return;
     const t = setTimeout(() => save(), 700);
     return () => clearTimeout(t);
-  }, [dirty, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, includedRoles, holidayAllowance, dutyCapableIds, scenarios, activeScenarioId, save]);
+  }, [dirty, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, includedRoles, holidayAllowance, dutyCapableIds, auditLog, scenarios, activeScenarioId, save]);
 
   // ─── Mutators ──────────────────────────────────────────────────────
   const moveToCell = useCallback((info, toDay, toSession) => {
@@ -235,14 +246,16 @@ export default function WorkforcePlanner({ data, toast }) {
       return next;
     });
     if (fromActivityId) setActivities(prev => prev.map(a => a.id === fromActivityId ? { ...a, assignedClinicianId: null } : a));
+    logAction(`Moved ${nameOf(clinId)} to ${WF_DAY_NAMES[toDay].slice(0, 3)} ${SESSION_LABEL[toSession]}`);
     markDirty();
-  }, []);
+  }, [logAction, nameOf]);
   const benchClinician = useCallback((info) => {
     const { clinId, fromDay, fromSession, fromActivityId } = info;
     if (fromDay) setAllocation(prev => { const next = cloneAllocation(prev); next[fromDay][fromSession] = next[fromDay][fromSession].filter(id => id !== clinId); return next; });
     if (fromActivityId) setActivities(prev => prev.map(a => a.id === fromActivityId ? { ...a, assignedClinicianId: null } : a));
+    if (fromDay) logAction(`Took ${nameOf(clinId)} off ${WF_DAY_NAMES[fromDay].slice(0, 3)} ${SESSION_LABEL[fromSession]}`);
     markDirty();
-  }, []);
+  }, [logAction, nameOf]);
   const assignToActivity = useCallback((info, activity) => {
     const { clinId, fromDay, fromSession, fromActivityId } = info;
     const occupies = activity.duration === 'fullday' ? ['am', 'pm'] : [activity.session];
@@ -254,8 +267,9 @@ export default function WorkforcePlanner({ data, toast }) {
       return next;
     });
     setActivities(prev => prev.map(a => a.id === activity.id ? { ...a, assignedClinicianId: clinId } : (a.id === fromActivityId ? { ...a, assignedClinicianId: null } : a)));
+    logAction(`Assigned ${nameOf(clinId)} to ${activity.label || 'an activity'} (${WF_DAY_NAMES[activity.day].slice(0, 3)} ${SESSION_LABEL[activity.session]})`);
     markDirty();
-  }, []);
+  }, [logAction, nameOf]);
 
   const addActivity = (day, session) => {
     const id = `act_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -263,11 +277,11 @@ export default function WorkforcePlanner({ data, toast }) {
     setEditingId(id); markDirty();
   };
   const updateActivity = (id, patch) => { setActivities(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a)); markDirty(); };
-  const deleteActivity = (id) => { setActivities(prev => prev.filter(a => a.id !== id)); setEditingId(null); markDirty(); };
+  const deleteActivity = (id) => { const a = activities.find(x => x.id === id); setActivities(prev => prev.filter(a => a.id !== id)); setEditingId(null); logAction(`Removed activity "${a?.label || 'Activity'}"`); markDirty(); };
 
   const toggleRole = (role) => { setIncludedRoles(prev => { const base = prev == null ? [...allRoles] : [...prev]; const i = base.indexOf(role); if (i >= 0) base.splice(i, 1); else base.push(role); return base; }); markDirty(); };
   const setThreshold = (k, v) => { setThresholds(prev => ({ ...prev, [k]: Math.max(0, parseFloat(v) || 0) })); markDirty(); };
-  const resetToContract = () => { setAllocation(buildContracted(effClinicians, effPattern)); markDirty(); toast?.('Allocation reset to contracted pattern', 'success'); };
+  const resetToContract = () => { setAllocation(buildContracted(effClinicians, effPattern)); logAction('Reset the plan back to the contracted pattern'); markDirty(); toast?.('Allocation reset to contracted pattern', 'success'); };
 
   // Contract editing (planner-only overlay; never touches working_patterns).
   const togglePattern = (id, day, session) => {
@@ -286,6 +300,7 @@ export default function WorkforcePlanner({ data, toast }) {
       return next;
     });
     if (nextVal === 'off') setActivities(prev => prev.map(a => (a.day === day && a.assignedClinicianId === id && (a.duration === 'fullday' || a.session === session)) ? { ...a, assignedClinicianId: null } : a));
+    logAction(`${nextVal === 'in' ? 'Added' : 'Removed'} ${nameOf(id)} contract ${WF_DAY_NAMES[day].slice(0, 3)} ${SESSION_LABEL[session]}`);
     markDirty();
   };
   const allocatedPattern = (id) => {
@@ -297,22 +312,22 @@ export default function WorkforcePlanner({ data, toast }) {
     const pat = allocatedPattern(id); const c = byId[id];
     if (c?._added) setAddedStaff(prev => prev.map(a => a.id === id ? { ...a, pattern: pat } : a));
     else setContractOverrides(prev => ({ ...prev, [id]: pat }));
-    markDirty();
+    logAction(`Set ${nameOf(id)} contract to their current allocation`); markDirty();
   };
   const resetContractToEmis = (id) => {
     const c = byId[id];
     if (c?._added) setAddedStaff(prev => prev.map(a => a.id === id ? { ...a, pattern: {} } : a));
     else setContractOverrides(prev => { const n = { ...prev }; delete n[id]; return n; });
-    markDirty();
+    logAction(`Reset ${nameOf(id)} contract to EMIS`); markDirty();
   };
   const acceptAllAsContract = () => {
     const ov = {}; const addPat = {};
     for (const c of effClinicians) { if (c._added) addPat[c.id] = allocatedPattern(c.id); else ov[c.id] = allocatedPattern(c.id); }
     setContractOverrides(ov);
     setAddedStaff(prev => prev.map(a => ({ ...a, pattern: addPat[a.id] || a.pattern })));
-    markDirty(); toast?.('Current plan accepted as the contract', 'success');
+    logAction('Accepted the whole plan as the contract'); markDirty(); toast?.('Current plan accepted as the contract', 'success');
   };
-  const resetAllContractsToEmis = () => { setContractOverrides({}); markDirty(); toast?.('Contracts reset to EMIS position', 'success'); };
+  const resetAllContractsToEmis = () => { setContractOverrides({}); logAction('Reset all contracts to EMIS'); markDirty(); toast?.('Contracts reset to EMIS position', 'success'); };
   const contractEdited = (id) => byId[id]?._added ? false : !!contractOverrides[id];
   const dutySet = useMemo(() => new Set(dutyCapableIds), [dutyCapableIds]);
   const toggleDuty = (id) => { setDutyCapableIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]); markDirty(); };
@@ -323,15 +338,15 @@ export default function WorkforcePlanner({ data, toast }) {
   const loadData = (d) => {
     setAllocation(healAlloc(cloneAllocation(d.allocation), d.activities)); setActivities(normalizeActivities(d.activities));
     setContractOverrides(d.contractOverrides || {}); setAddedStaff(d.addedStaff || []); setRemovedIds(d.removedIds || []);
-    setIncludedRoles(d.includedRoles ?? null); setThresholds({ ...DEFAULT_THRESHOLDS, ...(d.thresholds || {}) }); setHolidayAllowance(d.holidayAllowance ?? 2);
+    setIncludedRoles(d.includedRoles ?? null); setThresholds({ ...DEFAULT_THRESHOLDS, ...(d.thresholds || {}) }); setHolidayAllowance(d.holidayAllowance ?? 2); setAuditLog(Array.isArray(d.auditLog) ? d.auditLog : []);
   };
   const saveAsNewScenario = () => {
     const name = scenarioName.trim(); if (!name) return;
     const id = `sc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const snap = snapshotWorking();
+    const snap = { ...snapshotWorking(), auditLog: [{ t: Date.now(), text: `Started from ${activeName}` }] };
     // Freeze the working state into the current active scenario, add the new one, and switch to it.
     setScenarios(prev => prev.map(s => s.id === activeScenarioId ? { ...s, data: snapshotWorking() } : s).concat([{ id, name, pinned: false, data: snap }]));
-    setActiveScenarioId(id); setScenarioName(''); markDirty();
+    setActiveScenarioId(id); setAuditLog(snap.auditLog); setScenarioName(''); markDirty();
     toast?.(`Saved "${name}" — now editing it. ${activeName} is untouched.`, 'success');
   };
   const switchScenario = (id) => {
@@ -356,11 +371,12 @@ export default function WorkforcePlanner({ data, toast }) {
       for (const d of WF_DAYS) for (const s of WF_SESSIONS) if (pattern?.[d]?.[s] === 'in') next[d][s].push(id);
       return next;
     });
-    markDirty(); setAddOpen(false);
+    markDirty(); setAddOpen(false); logAction(`Added ${name} (${role})`);
   };
-  const removeReal = (id) => { setRemovedIds(prev => [...new Set([...prev, id])]); markDirty(); };
-  const restoreReal = (id) => { setRemovedIds(prev => prev.filter(x => x !== id)); markDirty(); };
+  const removeReal = (id) => { logAction(`Marked ${nameOf(id)} as leaving`); setRemovedIds(prev => [...new Set([...prev, id])]); markDirty(); };
+  const restoreReal = (id) => { logAction(`Restored ${nameOf(id)}`); setRemovedIds(prev => prev.filter(x => x !== id)); markDirty(); };
   const deleteAdded = (id) => {
+    logAction(`Deleted ${nameOf(id)}`);
     setAddedStaff(prev => prev.filter(a => a.id !== id));
     setAllocation(prev => { const next = cloneAllocation(prev); for (const d of WF_DAYS) for (const s of WF_SESSIONS) next[d][s] = next[d][s].filter(x => x !== id); return next; });
     setActivities(prev => prev.map(a => a.assignedClinicianId === id ? { ...a, assignedClinicianId: null } : a));
@@ -477,7 +493,7 @@ export default function WorkforcePlanner({ data, toast }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', maxWidth: 1360, paddingRight: anyPanel ? 352 : 0, transition: 'padding 0.18s ease' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', maxWidth: 1360, margin: '0 auto', paddingRight: anyPanel ? 352 : 0, transition: 'padding 0.18s ease' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
@@ -494,6 +510,7 @@ export default function WorkforcePlanner({ data, toast }) {
           <span style={{ fontSize: 12.5, color: saveState === 'error' ? '#f87171' : saveState === 'saving' ? '#fbbf24' : '#34d399', minWidth: 58 }}>{saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Save failed' : '✓ Saved'}</span>
           <button onClick={() => togglePanel('clinicians')} style={tabBtn(panel.clinicians)}>Clinicians</button>
           <button onClick={() => togglePanel('anomalies')} style={tabBtn(panel.anomalies)}>Anomalies{anomCount ? ` (${anomCount})` : ''}</button>
+          <button onClick={() => togglePanel('audit')} style={tabBtn(panel.audit)}>Audit</button>
           <button onClick={() => togglePanel('settings')} style={tabBtn(panel.settings)}>Settings</button>
           <button onClick={() => togglePanel('scenarios')} style={tabBtn(panel.scenarios)}>Scenarios · {activeName}</button>
           <button onClick={resetToContract} style={S.btnGhost}>Reset plan to contract</button>
@@ -626,7 +643,7 @@ export default function WorkforcePlanner({ data, toast }) {
       </div>
 
       {/* Floating popouts */}
-      {(panel.clinicians || panel.anomalies || panel.settings || panel.scenarios) && (
+      {(panel.clinicians || panel.anomalies || panel.settings || panel.scenarios || panel.audit) && (
         <div data-drop={panel.clinicians ? 'bench' : undefined} style={{ position: 'fixed', top: 90, right: 24, width: 320, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, zIndex: 60 }}>
           {panel.clinicians && (
             <Popout title="Clinicians" onClose={() => togglePanel('clinicians')} highlight={overKey === 'bench'}>
@@ -733,10 +750,26 @@ export default function WorkforcePlanner({ data, toast }) {
               </div>
             </Popout>
           )}
+          {panel.audit && (
+            <Popout title={`Audit · ${activeName}`} onClose={() => togglePanel('audit')}>
+              <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 10px' }}>Every change made to reach this scenario, starting from its origin. Newest at the top.</p>
+              {auditLog.length === 0 ? <span style={S.muted}>No changes recorded yet.</span> : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {[...auditLog].reverse().map((e, i) => {
+                    const start = i === auditLog.length - 1;
+                    return (
+                      <div key={`${e.t}-${i}`} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i === auditLog.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ flexShrink: 0, width: 56, fontSize: 11, color: '#64748b', fontFamily: "'Space Mono', monospace" }}>{e.t ? new Date(e.t).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : ''}</span>
+                        <span style={{ fontSize: 13, color: start ? '#94a3b8' : '#e2e8f0', fontStyle: start ? 'italic' : 'normal', lineHeight: 1.4 }}>{e.text}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Popout>
+          )}
         </div>
       )}
-
-      {/* Activity editor modal */}
       {editingId && (() => {
         const a = activities.find(x => x.id === editingId); if (!a) return null;
         return (
