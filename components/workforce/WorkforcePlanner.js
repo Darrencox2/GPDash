@@ -95,6 +95,8 @@ export default function WorkforcePlanner({ data, toast }) {
   const [removedIds, setRemovedIds] = useState([]);
   const [contractOverrides, setContractOverrides] = useState({});
   const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
+  const [holidayAllowance, setHolidayAllowance] = useState(2);
+  const [holidayOn, setHolidayOn] = useState(false);
   const [viewWeek, setViewWeek] = useState('a');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -161,7 +163,7 @@ export default function WorkforcePlanner({ data, toast }) {
         const effClin = [...realClinicians.filter(c => !removed.includes(c.id)), ...added];
         const vIds = [...effClin.map(c => c.id)];
         const alloc = src.allocation ? pruneAllocation(src.allocation, vIds) : buildContracted(effClin, eff);
-        return { allocation: healAlloc(alloc, acts), activities: acts, contractOverrides: overrides, addedStaff: added, removedIds: removed, includedRoles: Array.isArray(src.includedRoles) ? src.includedRoles : null, thresholds: { ...DEFAULT_THRESHOLDS, ...(src.thresholds || {}) } };
+        return { allocation: healAlloc(alloc, acts), activities: acts, contractOverrides: overrides, addedStaff: added, removedIds: removed, includedRoles: Array.isArray(src.includedRoles) ? src.includedRoles : null, thresholds: { ...DEFAULT_THRESHOLDS, ...(src.thresholds || {}) }, holidayAllowance: Number.isFinite(src.holidayAllowance) ? src.holidayAllowance : 2 };
       };
 
       let list = [];
@@ -182,7 +184,7 @@ export default function WorkforcePlanner({ data, toast }) {
       setActiveScenarioId(current.id);
       const d = current.data;
       setAllocation(d.allocation); setActivities(d.activities); setContractOverrides(d.contractOverrides);
-      setAddedStaff(d.addedStaff); setRemovedIds(d.removedIds); setIncludedRoles(d.includedRoles); setThresholds(d.thresholds);
+      setAddedStaff(d.addedStaff); setRemovedIds(d.removedIds); setIncludedRoles(d.includedRoles); setThresholds(d.thresholds); setHolidayAllowance(d.holidayAllowance ?? 2);
     })();
   }, [patternById, realClinicians, practiceId, supabase]);
 
@@ -191,8 +193,8 @@ export default function WorkforcePlanner({ data, toast }) {
   const snapshotWorking = useCallback(() => ({
     allocation: cloneAllocation(allocation), activities: JSON.parse(JSON.stringify(activities)),
     contractOverrides: JSON.parse(JSON.stringify(contractOverrides)), addedStaff: JSON.parse(JSON.stringify(addedStaff)),
-    removedIds: [...removedIds], includedRoles: includedRoles ? [...includedRoles] : null, thresholds: { ...thresholds },
-  }), [allocation, activities, contractOverrides, addedStaff, removedIds, includedRoles, thresholds]);
+    removedIds: [...removedIds], includedRoles: includedRoles ? [...includedRoles] : null, thresholds: { ...thresholds }, holidayAllowance,
+  }), [allocation, activities, contractOverrides, addedStaff, removedIds, includedRoles, thresholds, holidayAllowance]);
   const save = useCallback(async () => {
     if (!practiceId || !allocation) return;
     const merged = scenarios.map(s => s.id === activeScenarioId ? { ...s, data: snapshotWorking() } : s);
@@ -205,7 +207,7 @@ export default function WorkforcePlanner({ data, toast }) {
     if (!dirty) return;
     const t = setTimeout(() => save(), 700);
     return () => clearTimeout(t);
-  }, [dirty, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, includedRoles, scenarios, activeScenarioId, save]);
+  }, [dirty, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, includedRoles, holidayAllowance, scenarios, activeScenarioId, save]);
 
   // ─── Mutators ──────────────────────────────────────────────────────
   const moveToCell = useCallback((info, toDay, toSession) => {
@@ -294,7 +296,7 @@ export default function WorkforcePlanner({ data, toast }) {
   const loadData = (d) => {
     setAllocation(healAlloc(cloneAllocation(d.allocation), d.activities)); setActivities(normalizeActivities(d.activities));
     setContractOverrides(d.contractOverrides || {}); setAddedStaff(d.addedStaff || []); setRemovedIds(d.removedIds || []);
-    setIncludedRoles(d.includedRoles ?? null); setThresholds({ ...DEFAULT_THRESHOLDS, ...(d.thresholds || {}) });
+    setIncludedRoles(d.includedRoles ?? null); setThresholds({ ...DEFAULT_THRESHOLDS, ...(d.thresholds || {}) }); setHolidayAllowance(d.holidayAllowance ?? 2);
   };
   const saveAsNewScenario = () => {
     const name = scenarioName.trim(); if (!name) return;
@@ -385,11 +387,14 @@ export default function WorkforcePlanner({ data, toast }) {
         const general = allIds.reduce((sum, id) => sum + Math.max(0, 1 - Math.min(1, consumed[id] || 0)), 0);
         const freeIds = allIds.filter(id => !assignedSet.has(id) || (consumed[id] || 0) < 1);
         const demandHalf = Math.round((demand[day] || 0) / 2);
-        g[day][s] = { allIds, acts, general, freeIds, working: allIds.length, demandHalf, ratio: general > 0 ? demandHalf / general : null };
+        const cut = holidayOn ? holidayAllowance : 0;
+        const working = Math.max(0, allIds.length - cut);
+        const generalAdj = Math.max(0, general - cut);
+        g[day][s] = { allIds, acts, general: generalAdj, freeIds, working, demandHalf, ratio: generalAdj > 0 ? demandHalf / generalAdj : null };
       }
     }
     return g;
-  }, [allocation, activities, viewWeek, includedEffIds, demand]);
+  }, [allocation, activities, viewWeek, includedEffIds, demand, holidayOn, holidayAllowance]);
 
   const scale = useMemo(() => {
     let gMin = Infinity, gMax = -Infinity, dMin = Infinity, dMax = -Infinity;
@@ -480,6 +485,10 @@ export default function WorkforcePlanner({ data, toast }) {
           {['a', 'b'].map(w => <button key={w} onClick={() => setViewWeek(w)} style={{ ...S.toggle, background: viewWeek === w ? '#6366f1' : 'transparent', color: viewWeek === w ? '#fff' : '#94a3b8' }}>Week {w.toUpperCase()}</button>)}
         </div>
         <span style={{ fontSize: 12, color: '#64748b' }}>only activities alternate — staff work the same each week</span>
+        <button onClick={() => setHolidayOn(v => !v)} title={`Reduce each session by ${holidayAllowance} to model maximum staff on holiday`}
+          style={{ ...S.btnGhost, marginLeft: 'auto', background: holidayOn ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${holidayOn ? '#f59e0b' : 'rgba(255,255,255,0.12)'}`, color: holidayOn ? '#fcd34d' : '#e2e8f0' }}>
+          {holidayOn ? `✓ Holiday cover (−${holidayAllowance}/session)` : 'Holiday cover'}
+        </button>
         {expandedClin && byId[expandedClin] && (
           <span style={{ fontSize: 12.5, color: '#c7d2fe', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(129,140,248,0.4)', borderRadius: 999, padding: '4px 10px', display: 'inline-flex', gap: 8, alignItems: 'center' }}>
             Highlighting {byId[expandedClin].name}
@@ -636,6 +645,13 @@ export default function WorkforcePlanner({ data, toast }) {
                 <ThRow label="Tight above" value={thresholds.tight} onChange={v => setThreshold('tight', v)} colour={RC.amber.solid} />
                 <ThRow label="Short above" value={thresholds.short} onChange={v => setThreshold('short', v)} colour={RC.red.solid} />
               </div>
+              <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '16px 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Holiday cover</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 11, height: 11, borderRadius: 3, background: '#f59e0b', flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: 13, color: '#cbd5e1' }}>Staff allowed off per day</span>
+                <input type="number" min={0} value={holidayAllowance} onChange={e => { setHolidayAllowance(Math.max(0, parseInt(e.target.value, 10) || 0)); markDirty(); }} style={{ width: 60, ...S.numInput }} />
+              </div>
+              <p style={{ fontSize: 11, color: '#64748b', margin: '6px 0 0' }}>The Holiday cover toggle on the grid reduces each session by this many to show capacity when the most staff are away.</p>
             </Popout>
           )}
           {panel.scenarios && (
