@@ -247,12 +247,12 @@ export default function WorkforcePlanner({ data, toast }) {
     return (
       <div draggable onDragStart={onChipDragStart(clinId, day, session, activityId)} title={`${c.name}${c.role ? ' · ' + c.role : ''}${off ? ' · off contract' : ''}`}
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px 3px 3px', borderRadius: 999, cursor: 'grab',
+          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '4px 11px 4px 4px', borderRadius: 999, cursor: 'grab',
           background: off ? 'rgba(239,68,68,0.18)' : 'rgba(99,102,241,0.18)',
-          border: `1px solid ${off ? '#ef4444' : 'rgba(129,140,248,0.5)'}`, maxWidth: 132,
+          border: `1px solid ${off ? '#ef4444' : 'rgba(129,140,248,0.5)'}`, maxWidth: 170,
         }}>
-        <span style={{ width: 20, height: 20, borderRadius: 999, background: off ? '#ef4444' : '#6366f1', color: '#fff', fontSize: 9.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials(c.name)}</span>
-        <span style={{ fontSize: 11, color: off ? '#fecaca' : '#c7d2fe', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name.split(' ')[0]}</span>
+        <span style={{ width: 28, height: 28, borderRadius: 999, background: off ? '#ef4444' : '#6366f1', color: '#fff', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials(c.name)}</span>
+        <span style={{ fontSize: 13.5, color: off ? '#fecaca' : '#c7d2fe', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name.split(' ')[0]}</span>
       </div>
     );
   };
@@ -262,8 +262,8 @@ export default function WorkforcePlanner({ data, toast }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#f1f5f9', fontFamily: "'Outfit', sans-serif" }}>Workforce planner</h2>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#94a3b8', maxWidth: 640, lineHeight: 1.5 }}>
+          <h2 style={{ margin: 0, fontSize: 25, fontWeight: 600, color: '#f1f5f9', fontFamily: "'Outfit', sans-serif" }}>Workforce planner</h2>
+          <p style={{ margin: '6px 0 0', fontSize: 15, color: '#94a3b8', maxWidth: 680, lineHeight: 1.55 }}>
             Drag clinicians across the week to plan sessions and allocate activities. Drift from the contracted working
             pattern is flagged as an anomaly.
           </p>
@@ -278,20 +278,20 @@ export default function WorkforcePlanner({ data, toast }) {
 
       {/* Anomaly banner */}
       <div style={{ ...S.card, padding: '10px 14px', borderColor: cleanCount ? 'rgba(245,158,11,0.5)' : 'rgba(16,185,129,0.5)', background: cleanCount ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)' }}>
-        <span style={{ fontSize: 13, color: cleanCount ? '#fbbf24' : '#34d399', fontWeight: 500 }}>
+        <span style={{ fontSize: 15.5, color: cleanCount ? '#fbbf24' : '#34d399', fontWeight: 500 }}>
           {cleanCount ? `⚠ ${cleanCount} anomal${cleanCount === 1 ? 'y' : 'ies'} vs contracted pattern` : '✓ Allocation matches the contracted pattern'}
         </span>
       </div>
 
       {/* Role filter */}
       <div style={{ ...S.card, padding: 12 }}>
-        <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Include roles</div>
+        <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10, fontSize: 12.5 }}>Include roles</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {allRoles.map(role => {
             const on = includedRoles == null || includedRoles.includes(role);
             return (
               <button key={role} onClick={() => toggleRole(role)} style={{
-                padding: '5px 11px', borderRadius: 999, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                padding: '7px 14px', borderRadius: 999, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
                 border: `1px solid ${on ? '#818cf8' : 'rgba(255,255,255,0.12)'}`,
                 background: on ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)',
                 color: on ? '#c7d2fe' : '#64748b',
@@ -317,13 +317,13 @@ export default function WorkforcePlanner({ data, toast }) {
               </span>
             )}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '46px repeat(5, minmax(120px, 1fr))', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '64px repeat(5, minmax(160px, 1fr))', gap: 9 }}>
             <div />
             {WF_DAYS.map(day => {
               const info = dm.perDay[day];
               return (
                 <div key={day} style={{ textAlign: 'center', paddingBottom: 2 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>{WF_DAY_NAMES[day].slice(0, 3)}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1', paddingBottom: 4 }}>{WF_DAY_NAMES[day].slice(0, 3)}</div>
                   {showDemand && (
                     <div style={{ fontSize: 10, marginTop: 1 }}>
                       <span style={{ color: '#64748b' }}>{info.demand} req</span>
@@ -335,7 +335,7 @@ export default function WorkforcePlanner({ data, toast }) {
             })}
             {WF_SESSIONS.map(session => (
               <FragmentRow key={session}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, color: '#94a3b8' }}>{SESSION_LABEL[session]}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#94a3b8' }}>{SESSION_LABEL[session]}</div>
                 {WF_DAYS.map(day => {
                   const key = cellKey(day, session);
                   const all = (allocation[day][session] || []).filter(id => includedIds.has(id));
@@ -347,18 +347,18 @@ export default function WorkforcePlanner({ data, toast }) {
                   return (
                     <div key={day} onDragOver={allow(key)} onDrop={onCellDrop(day, session)}
                       style={{
-                        minHeight: 86, borderRadius: 10, padding: 6, position: 'relative',
+                        minHeight: 124, borderRadius: 12, padding: 9, position: 'relative',
                         background: over ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.02)',
                         border: `1px solid ${over ? '#818cf8' : anomN ? 'rgba(239,68,68,0.45)' : 'rgba(255,255,255,0.07)'}`,
-                        display: 'flex', flexDirection: 'column', gap: 4,
+                        display: 'flex', flexDirection: 'column', gap: 6,
                       }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", color: '#64748b' }}>
+                        <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#64748b' }}>
                           {all.length}{anomN ? <span style={{ color: '#ef4444', marginLeft: 4 }}>⚠{anomN}</span> : null}
                         </span>
-                        <button onClick={() => addActivity(day, session)} title="Add activity" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 0, fontFamily: 'inherit' }}>+</button>
+                        <button onClick={() => addActivity(day, session)} title="Add activity" style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>+</button>
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {free.map(id => <Chip key={id} clinId={id} day={day} session={session} onContract={patternById[id]?.[day]?.[session] === 'in'} />)}
                       </div>
                       {cellActs.map(a => {
@@ -368,18 +368,18 @@ export default function WorkforcePlanner({ data, toast }) {
                         return (
                           <div key={a.id} onDragOver={allow(akey)} onDrop={onActivityDrop(a)}
                             style={{
-                              borderRadius: 8, padding: 5, border: `1px dashed ${assigned ? '#10b981' : '#f59e0b'}`,
+                              borderRadius: 9, padding: 8, border: `1px dashed ${assigned ? '#10b981' : '#f59e0b'}`,
                               background: aover ? 'rgba(99,102,241,0.15)' : assigned ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                              display: 'flex', flexDirection: 'column', gap: 4,
+                              display: 'flex', flexDirection: 'column', gap: 6,
                             }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               <input value={a.label} placeholder="activity…" onChange={e => renameActivity(a.id, e.target.value)}
-                                style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', color: assigned ? '#6ee7b7' : '#fcd34d', fontSize: 10.5, fontFamily: 'inherit', padding: 0, outline: 'none' }} />
-                              {assigned && <button onClick={() => releaseActivity(a.id)} title="Release" style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 11, padding: 0 }}>↩</button>}
-                              <button onClick={() => deleteActivity(a.id)} title="Delete activity" style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 11, padding: 0 }}>×</button>
+                                style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', color: assigned ? '#6ee7b7' : '#fcd34d', fontSize: 13, fontFamily: 'inherit', padding: 0, outline: 'none' }} />
+                              {assigned && <button onClick={() => releaseActivity(a.id)} title="Release" style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 14, padding: 0 }}>↩</button>}
+                              <button onClick={() => deleteActivity(a.id)} title="Delete activity" style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 15, padding: 0 }}>×</button>
                             </div>
                             {assigned ? <Chip clinId={assigned} day={day} session={session} activityId={a.id} onContract={patternById[assigned]?.[day]?.[session] === 'in'} />
-                              : <span style={{ fontSize: 9.5, color: '#fbbf24' }}>needs a clinician</span>}
+                              : <span style={{ fontSize: 12, color: '#fbbf24' }}>needs a clinician</span>}
                           </div>
                         );
                       })}
@@ -391,7 +391,7 @@ export default function WorkforcePlanner({ data, toast }) {
           </div>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 12 }}>
             {[['On contract', 'rgba(99,102,241,0.6)'], ['Off contract', '#ef4444'], ['Activity unassigned', '#f59e0b'], ['Activity assigned', '#10b981']].map(([l, col]) => (
-              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8' }}><span style={{ width: 11, height: 11, borderRadius: 3, background: col }} />{l}</div>
+              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#94a3b8' }}><span style={{ width: 14, height: 14, borderRadius: 4, background: col }} />{l}</div>
             ))}
           </div>
         </div>
@@ -400,10 +400,10 @@ export default function WorkforcePlanner({ data, toast }) {
         <div style={{ flex: '1 1 260px', minWidth: 240, maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {anomalies.items.length > 0 && (
             <div style={S.card}>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Anomalies ({anomalies.items.length})</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10, fontSize: 12.5 }}>Anomalies ({anomalies.items.length})</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 240, overflowY: 'auto' }}>
                 {anomalies.items.map((it, i) => (
-                  <div key={i} style={{ fontSize: 11.5, color: '#cbd5e1', lineHeight: 1.35 }}>
+                  <div key={i} style={{ fontSize: 13.5, color: '#cbd5e1', lineHeight: 1.4 }}>
                     <span style={{ color: it.type === 'unassigned_activity' ? '#fbbf24' : '#f87171' }}>•</span>{' '}
                     {it.type === 'unassigned_activity'
                       ? <>{ANOM_LABEL[it.type]}: {it.label || 'Activity'} ({WF_DAY_NAMES[it.day].slice(0, 3)} {SESSION_LABEL[it.session]})</>
@@ -416,17 +416,17 @@ export default function WorkforcePlanner({ data, toast }) {
             </div>
           )}
           <div style={S.card}>
-            <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Sessions worked</div>
+            <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10, fontSize: 12.5 }}>Sessions worked</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 420, overflowY: 'auto' }}>
               {tracker.map(({ c, allocated, contracted, activityLabels }) => {
                 const mismatch = allocated !== contracted;
                 return (
                   <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}>
-                    <span style={{ fontSize: 12, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 14, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {c.name}
-                      {activityLabels.length > 0 && <span style={{ color: '#6ee7b7', fontSize: 10, marginLeft: 5 }}>{activityLabels.join(', ')}</span>}
+                      {activityLabels.length > 0 && <span style={{ color: '#6ee7b7', fontSize: 12, marginLeft: 6 }}>{activityLabels.join(', ')}</span>}
                     </span>
-                    <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 11.5, color: mismatch ? '#f87171' : '#94a3b8', flexShrink: 0 }}>{allocated}/{contracted}</span>
+                    <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13.5, color: mismatch ? '#f87171' : '#94a3b8', flexShrink: 0 }}>{allocated}/{contracted}</span>
                   </div>
                 );
               })}
@@ -444,6 +444,6 @@ function FragmentRow({ children }) { return <>{children}</>; }
 const S = {
   card: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 16 },
   muted: { fontSize: 13, color: '#94a3b8', margin: 0 },
-  btnPrimary: { background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  btnGhost: { background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' },
+  btnPrimary: { background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 14.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  btnGhost: { background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '10px 16px', fontSize: 14.5, cursor: 'pointer', fontFamily: 'inherit' },
 };
