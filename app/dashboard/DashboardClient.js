@@ -627,7 +627,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     <div className={`min-h-screen flex ${'bg-[#0f172a]'}`}>
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} data={data} />
       <main className={`flex-1 min-h-screen min-w-0 ${'bg-[#0f172a]'}`}>
-        <div className={`${activeSection === 'huddle-forward' ? '' : 'max-w-6xl mx-auto '}p-4 lg:p-6 animate-in`}>
+        <div className={`${(activeSection === 'huddle-forward' || activeSection === 'workforce-planner') ? '' : 'max-w-6xl mx-auto '}p-4 lg:p-6 animate-in`}>
           {/* "Is this you?" — auto-suggest matching clinician records when
               the signed-in user has a surname but isn't yet linked. */}
           <LinkClinicianSuggest data={data} />

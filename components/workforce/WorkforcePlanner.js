@@ -44,12 +44,12 @@ function ratioColour(general, demandHalf, th) {
 }
 // Relative shade across the week: t=0 → red, 0.5 → amber, 1 → green.
 function scaleTint(t) {
-  if (t == null || Number.isNaN(t)) return 'transparent';
+  if (t == null || Number.isNaN(t)) return 'rgba(255,255,255,0.04)';
   const stops = [[239, 68, 68], [245, 158, 11], [16, 185, 129]];
   const seg = t <= 0.5 ? 0 : 1; const lt = t <= 0.5 ? t / 0.5 : (t - 0.5) / 0.5;
   const a = stops[seg], b = stops[seg + 1];
   const c = a.map((v, i) => Math.round(v + (b[i] - v) * lt));
-  return `rgba(${c[0]},${c[1]},${c[2]},0.20)`;
+  return `rgba(${c[0]},${c[1]},${c[2]},0.42)`;
 }
 function initials(name) {
   if (!name) return '??';
@@ -97,6 +97,7 @@ export default function WorkforcePlanner({ data, toast }) {
   const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
   const [holidayAllowance, setHolidayAllowance] = useState(2);
   const [holidayOn, setHolidayOn] = useState(false);
+  const [dutyCapableIds, setDutyCapableIds] = useState([]);
   const [viewWeek, setViewWeek] = useState('a');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -182,6 +183,7 @@ export default function WorkforcePlanner({ data, toast }) {
       const current = list.find(s => s.pinned) || list[0];
       setScenarios(list);
       setActiveScenarioId(current.id);
+      setDutyCapableIds(Array.isArray(wf.dutyCapableIds) ? wf.dutyCapableIds : []);
       const d = current.data;
       setAllocation(d.allocation); setActivities(d.activities); setContractOverrides(d.contractOverrides);
       setAddedStaff(d.addedStaff); setRemovedIds(d.removedIds); setIncludedRoles(d.includedRoles); setThresholds(d.thresholds); setHolidayAllowance(d.holidayAllowance ?? 2);
@@ -198,16 +200,16 @@ export default function WorkforcePlanner({ data, toast }) {
   const save = useCallback(async () => {
     if (!practiceId || !allocation) return;
     const merged = scenarios.map(s => s.id === activeScenarioId ? { ...s, data: snapshotWorking() } : s);
-    const blob = { scenarios: merged, activeScenarioId };
+    const blob = { scenarios: merged, activeScenarioId, dutyCapableIds };
     const { error: err } = await supabase.from('practice_settings').upsert({ practice_id: practiceId, workforce: blob }, { onConflict: 'practice_id' });
     if (err) { setSaveState('error'); toast?.(`Couldn't save: ${err.message}`, 'error'); return; }
     setSaveState('saved'); setDirty(false);
-  }, [practiceId, allocation, scenarios, activeScenarioId, snapshotWorking, supabase, toast]);
+  }, [practiceId, allocation, scenarios, activeScenarioId, dutyCapableIds, snapshotWorking, supabase, toast]);
   useEffect(() => {
     if (!dirty) return;
     const t = setTimeout(() => save(), 700);
     return () => clearTimeout(t);
-  }, [dirty, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, includedRoles, holidayAllowance, scenarios, activeScenarioId, save]);
+  }, [dirty, allocation, activities, addedStaff, removedIds, thresholds, contractOverrides, includedRoles, holidayAllowance, dutyCapableIds, scenarios, activeScenarioId, save]);
 
   // ─── Mutators ──────────────────────────────────────────────────────
   const moveToCell = useCallback((info, toDay, toSession) => {
@@ -289,6 +291,8 @@ export default function WorkforcePlanner({ data, toast }) {
   };
   const resetAllContractsToEmis = () => { setContractOverrides({}); markDirty(); toast?.('Contracts reset to EMIS position', 'success'); };
   const contractEdited = (id) => byId[id]?._added ? false : !!contractOverrides[id];
+  const dutySet = useMemo(() => new Set(dutyCapableIds), [dutyCapableIds]);
+  const toggleDuty = (id) => { setDutyCapableIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]); markDirty(); };
 
   // ─── Scenarios (Current is pinned; one scenario is always active) ──
   const activeScenario = scenarios.find(s => s.id === activeScenarioId) || scenarios.find(s => s.pinned) || scenarios[0];
@@ -390,11 +394,12 @@ export default function WorkforcePlanner({ data, toast }) {
         const cut = holidayOn ? holidayAllowance : 0;
         const working = Math.max(0, allIds.length - cut);
         const generalAdj = Math.max(0, general - cut);
-        g[day][s] = { allIds, acts, general: generalAdj, freeIds, working, demandHalf, ratio: generalAdj > 0 ? demandHalf / generalAdj : null };
+        const duty = allIds.filter(id => dutySet.has(id) && !assignedSet.has(id)).length;
+        g[day][s] = { allIds, acts, general: generalAdj, freeIds, working, duty, demandHalf, ratio: generalAdj > 0 ? demandHalf / generalAdj : null };
       }
     }
     return g;
-  }, [allocation, activities, viewWeek, includedEffIds, demand, holidayOn, holidayAllowance]);
+  }, [allocation, activities, viewWeek, includedEffIds, demand, holidayOn, holidayAllowance, dutySet]);
 
   const scale = useMemo(() => {
     let gMin = Infinity, gMax = -Infinity, dMin = Infinity, dMax = -Infinity;
@@ -436,7 +441,7 @@ export default function WorkforcePlanner({ data, toast }) {
         style={{ touchAction: 'none', display: 'flex', alignItems: 'center', gap: 7, padding: '4px 11px 4px 4px', borderRadius: 999, cursor: 'grab', width: '100%', boxSizing: 'border-box',
           opacity: dimmed ? 0.3 : 1, boxShadow: lit ? '0 0 0 2px #818cf8' : 'none', transition: 'opacity 0.12s',
           background: off ? 'rgba(239,68,68,0.18)' : 'rgba(99,102,241,0.18)', border: `1px ${c._added ? 'dashed' : 'solid'} ${off ? '#ef4444' : 'rgba(129,140,248,0.5)'}` }}>
-        <span style={{ width: 26, height: 26, borderRadius: 999, background: off ? '#ef4444' : '#6366f1', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials(c.name)}</span>
+        <span style={{ width: 26, height: 26, borderRadius: 999, background: off ? '#ef4444' : '#6366f1', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(clinId) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: off ? '#fecaca' : '#c7d2fe', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
       </div>
     );
@@ -526,11 +531,11 @@ export default function WorkforcePlanner({ data, toast }) {
                         const durLbl = a.duration === 'quarter' ? '¼ sess' : a.duration === 'half' ? '½ sess' : a.duration === 'fullday' ? 'full day' : '1 sess';
                         return (
                           <div key={a.id} data-drop={`act:${a.id}`} onClick={() => setEditingId(a.id)}
-                            style={{ borderRadius: 9, padding: '6px 8px', cursor: 'pointer', border: aover ? '1px solid #818cf8' : '1px solid transparent',
-                              background: assigned ? 'rgba(16,185,129,0.14)' : 'rgba(245,158,11,0.14)' }}>
+                            style={{ borderRadius: 9, padding: '6px 8px', cursor: 'pointer', border: aover ? '1px solid #818cf8' : `1px solid ${assigned ? 'rgba(56,189,248,0.35)' : 'rgba(245,158,11,0.3)'}`,
+                              background: assigned ? 'rgba(56,189,248,0.16)' : 'rgba(245,158,11,0.14)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 13, color: assigned ? '#6ee7b7' : '#fcd34d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label || 'Activity'}</span>
-                              <span style={{ fontSize: 10, color: assigned ? '#6ee7b7' : '#fcd34d', flexShrink: 0 }}>{durLbl}{(a.week || 'all') !== 'all' ? ` · Wk ${(a.week || 'all').toUpperCase()}` : ''}</span>
+                              <span style={{ fontSize: 13, color: assigned ? '#7dd3fc' : '#fcd34d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label || 'Activity'}</span>
+                              <span style={{ fontSize: 10, color: assigned ? '#7dd3fc' : '#fcd34d', flexShrink: 0 }}>{durLbl}{(a.week || 'all') !== 'all' ? ` · Wk ${(a.week || 'all').toUpperCase()}` : ''}</span>
                             </div>
                             <div style={{ marginTop: 5 }} onPointerDown={e => e.stopPropagation()}>
                               {assigned ? <Chip clinId={assigned} day={day} session={session} activityId={a.id} /> : <span style={{ fontSize: 12, color: '#fbbf24' }}>Drop a clinician</span>}
@@ -541,10 +546,11 @@ export default function WorkforcePlanner({ data, toast }) {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>{cd.freeIds.map(id => <Chip key={id} clinId={id} day={day} session={session} />)}</div>
                       {/* Option C summary */}
                       <div style={{ marginTop: 'auto', paddingTop: 8 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5, marginBottom: 6 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5, marginBottom: 6 }}>
                           <Metric label="working" value={cd.working} bg="rgba(255,255,255,0.04)" />
                           <Metric label="general" value={fmt(cd.general)} bg={scaleTint(genT(cd.general))} />
                           <Metric label="demand" value={`~${cd.demandHalf}`} bg={scaleTint(demT(cd.demandHalf))} />
+                          <Metric label="duty" value={cd.duty} bg="rgba(248,113,113,0.16)" />
                         </div>
                         <div style={{ background: rc.tint, color: rc.text, borderRadius: 7, padding: '4px 8px', fontSize: 12, fontWeight: 500, display: 'flex', justifyContent: 'space-between' }}>
                           <span>{rc.label}</span><span>{cd.ratio != null ? `${cd.ratio.toFixed(1)} / clin` : '–'}</span>
@@ -577,7 +583,7 @@ export default function WorkforcePlanner({ data, toast }) {
           {panel.clinicians && (
             <Popout title="Clinicians" onClose={() => togglePanel('clinicians')} highlight={overKey === 'bench'}>
               <button onClick={() => setAddOpen(true)} style={{ ...S.btnGhost, width: '100%', marginBottom: 10 }}>+ Add person</button>
-              <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 10px' }}>Drag a name onto the grid to roster them; drag a chip here to bench them.</p>
+              <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 10px' }}>Drag a name onto the grid to roster them; drag a chip here to bench them. Tap D to mark someone duty-capable (red ring).</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {tracker.map(({ c, allocated, contracted }) => {
                   const mismatch = !additiveIds.has(c.id) && allocated !== contracted;
@@ -585,8 +591,11 @@ export default function WorkforcePlanner({ data, toast }) {
                   return (
                     <div key={c.id} style={{ borderRadius: 8, background: open ? 'rgba(255,255,255,0.04)' : 'transparent' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px' }}>
-                        <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 999, background: c._added ? 'transparent' : '#6366f1', border: c._added ? '1px dashed #818cf8' : 'none', color: c._added ? '#c7d2fe' : '#fff', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials(c.name)}</span>
+                        <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 999, background: c._added ? 'transparent' : '#6366f1', border: c._added ? '1px dashed #818cf8' : 'none', color: c._added ? '#c7d2fe' : '#fff', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(c.id) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
                         <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 13.5, color: '#e2e8f0', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: '#818cf8', fontSize: 10, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize: 10, marginLeft: 5 }}>edited</span>}</span>
+                        <button onClick={() => toggleDuty(c.id)} title={dutySet.has(c.id) ? 'Duty-capable — click to unset' : 'Mark as duty-capable'}
+                          style={{ width: 22, height: 22, borderRadius: 999, cursor: 'pointer', fontSize: 10, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
+                            background: dutySet.has(c.id) ? 'rgba(248,113,113,0.18)' : 'transparent', border: `1px solid ${dutySet.has(c.id) ? 'rgba(248,113,113,0.7)' : 'rgba(255,255,255,0.18)'}`, color: dutySet.has(c.id) ? '#fca5a5' : '#64748b' }}>D</button>
                         <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 12.5, color: mismatch ? '#f87171' : '#94a3b8' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
                         {c._added ? <button onClick={() => deleteAdded(c.id)} title="Delete" style={S.xBtn}>×</button> : <button onClick={() => removeReal(c.id)} title="Mark as leaving" style={S.xBtn}>×</button>}
                       </div>
