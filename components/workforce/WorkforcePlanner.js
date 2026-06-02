@@ -424,7 +424,7 @@ export default function WorkforcePlanner({ data, toast }) {
                     <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                       {cd.acts.map(a => {
                         const aover = overKey === `act:${a.id}`; const assigned = a.assignedClinicianId;
-                        const durLbl = a.duration === 'half' ? '½ sess' : a.duration === 'fullday' ? 'full day' : '1 sess';
+                        const durLbl = a.duration === 'quarter' ? '¼ sess' : a.duration === 'half' ? '½ sess' : a.duration === 'fullday' ? 'full day' : '1 sess';
                         return (
                           <div key={a.id} data-drop={`act:${a.id}`} onClick={() => setEditingId(a.id)}
                             style={{ borderRadius: 9, padding: '6px 8px', cursor: 'pointer', border: aover ? '1px solid #818cf8' : '1px solid transparent',
@@ -558,7 +558,7 @@ export default function WorkforcePlanner({ data, toast }) {
           <Modal onClose={() => setEditingId(null)}>
             <input type="text" value={a.label} placeholder="Activity name (e.g. Duty doctor)" autoFocus onChange={e => updateActivity(a.id, { label: e.target.value })} style={S.input} />
             <p style={S.modalLabel}>Duration</p>
-            <Segmented options={[['half', '½ session'], ['one', '1 session'], ['fullday', 'Full day']]} value={a.duration} onChange={v => updateActivity(a.id, { duration: v })} />
+            <Segmented options={[['quarter', '¼'], ['half', '½'], ['one', '1 sess'], ['fullday', 'Full day']]} value={a.duration} onChange={v => updateActivity(a.id, { duration: v })} />
             <p style={S.modalLabel}>Repeats</p>
             <Segmented options={[['all', 'Every week'], ['a', 'Week A'], ['b', 'Week B']]} value={a.week} onChange={v => updateActivity(a.id, { week: v })} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
