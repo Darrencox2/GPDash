@@ -390,7 +390,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
 
   return (
     <div className="rounded-xl overflow-hidden glass">
-      <div className="glass-header px-4 py-2.5">
+      <div className="glass-header hdr-violet px-4 py-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="font-heading text-base font-medium text-slate-200">{isViewingToday ? "Who's in today" : `Who's in — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</span>

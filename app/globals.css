@@ -75,7 +75,7 @@
     --c-red: #b91c1c; --c-amber: #b45309; --c-green: #15803d; --c-cyan: #0e7490;
     --c-blue: #1d4ed8; --c-indigo: #4338ca; --c-purple: #7c3aed; --c-pink: #be185d;
     --card-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08);
-    --header-bg: linear-gradient(100deg, rgba(124,58,237,0.30) 0%, rgba(217,70,160,0.24) 52%, rgba(56,189,248,0.26) 100%);
+    --header-bg: rgba(99,102,241,0.14);
     --sidebar-bg: #ffffff;
     --sidebar-border: rgba(15,23,42,0.08);
     --sidebar-divider: rgba(15,23,42,0.10);
@@ -239,4 +239,17 @@
   [data-theme="light"] .text-slate-200 { color: #334155 !important; }
   [data-theme="light"] .text-slate-300 { color: #475569 !important; }
   [data-theme="light"] .text-slate-400 { color: #64748b !important; }
+
+  /* Coloured transparent header windows — each a single flat translucent
+     colour (no gradients); applied per panel so headers vary in colour like
+     the translucent panes in the inspiration. Light theme only; in dark the
+     hue classes do nothing and headers keep their neutral tone. */
+  [data-theme="light"] .glass-header.hdr-violet { background: rgba(139,92,246,0.18); }
+  [data-theme="light"] .glass-header.hdr-blue   { background: rgba(59,130,246,0.17); }
+  [data-theme="light"] .glass-header.hdr-cyan   { background: rgba(34,211,238,0.20); }
+  [data-theme="light"] .glass-header.hdr-teal   { background: rgba(20,184,166,0.18); }
+  [data-theme="light"] .glass-header.hdr-green  { background: rgba(16,185,129,0.17); }
+  [data-theme="light"] .glass-header.hdr-amber  { background: rgba(245,158,11,0.20); }
+  [data-theme="light"] .glass-header.hdr-pink   { background: rgba(236,72,153,0.17); }
+  [data-theme="light"] .glass-header.hdr-red    { background: rgba(239,68,68,0.16); }
 

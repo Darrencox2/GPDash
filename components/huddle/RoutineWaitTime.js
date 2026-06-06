@@ -73,7 +73,7 @@ export default function RoutineWaitTime({ data, huddleData, routineOverrides }) 
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--card-shadow)' }}>
-      <div className="px-4 py-2.5" style={{ background: 'var(--header-bg)', borderBottom: '1px solid var(--border)' }}>
+      <div className="px-4 py-2.5 glass-header hdr-blue">
         <div className="flex items-center justify-between">
           <div>
             <div className="font-heading text-base font-medium text-slate-200">Routine GP wait times</div>

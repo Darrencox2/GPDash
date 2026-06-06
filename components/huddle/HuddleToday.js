@@ -1021,7 +1021,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
             return (
               <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
-                <div className="glass-header px-4 py-3">
+                <div className="glass-header hdr-cyan px-4 py-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span className="font-heading text-base font-medium text-slate-200">Urgent on the day</span>
                     <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} activeSlotTypes={activeSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} readOnly={!canEdit} />
@@ -1039,7 +1039,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 ) : (<>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
                   <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
-                    <div className="glass-header px-4 py-2.5 rounded-t-xl">
+                    <div className="glass-header hdr-amber px-4 py-2.5 rounded-t-xl">
                       <span className="font-heading text-sm font-medium text-slate-400">Morning</span>
                     </div>
                     <div style={{background:'var(--surface)'}}>
@@ -1047,7 +1047,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                   </div>
                   <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
-                    <div className="glass-header px-4 py-2.5 rounded-t-xl">
+                    <div className="glass-header hdr-teal px-4 py-2.5 rounded-t-xl">
                       <span className="font-heading text-sm font-medium text-slate-400">Afternoon</span>
                     </div>
                     <div style={{background:'var(--surface)'}}>
@@ -1126,7 +1126,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
             return (
               <div className="rounded-xl overflow-hidden glass-dark">
-                <div className="glass-header px-4 py-2.5">
+                <div className="glass-header hdr-green px-4 py-2.5">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-heading text-base font-medium text-slate-200">Routine Capacity</div>
@@ -1262,7 +1262,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       card's accent colour without making the whole header
                       garish. */}
                   <div style={{height:3,background:accentBar,borderTopLeftRadius:12,borderTopRightRadius:12}} />
-                  <div className="glass-header px-4 py-2.5">
+                  <div className="glass-header hdr-pink px-4 py-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 min-w-0">
                         {/* Drag handle — only visible on hover, only for editors */}
