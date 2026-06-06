@@ -1042,7 +1042,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="glass-header hdr-amber px-4 py-2.5 rounded-t-xl">
                       <span className="font-heading text-sm font-medium text-slate-400">Morning</span>
                     </div>
-                    <div style={{background:'var(--surface)'}}>
+                    <div>
                       <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutyDocDiag={hasDutySlot ? getDutyDoctorDiagnostic(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutySlotNames={Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])} />
                     </div>
                   </div>
@@ -1050,7 +1050,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="glass-header hdr-teal px-4 py-2.5 rounded-t-xl">
                       <span className="font-heading text-sm font-medium text-slate-400">Afternoon</span>
                     </div>
-                    <div style={{background:'var(--surface)'}}>
+                    <div>
                       <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} dutyDocDiag={hasDutySlot ? getDutyDoctorDiagnostic(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} dutySlotNames={Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])} />
                     </div>
                   </div>

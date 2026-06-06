@@ -72,7 +72,7 @@ export default function RoutineWaitTime({ data, huddleData, routineOverrides }) 
   ];
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--card-shadow)' }}>
+    <div className="rounded-xl overflow-hidden glass">
       <div className="px-4 py-2.5 glass-header hdr-blue">
         <div className="flex items-center justify-between">
           <div>

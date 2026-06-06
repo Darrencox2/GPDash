@@ -75,7 +75,7 @@
     --c-red: #b91c1c; --c-amber: #b45309; --c-green: #15803d; --c-cyan: #0e7490;
     --c-blue: #1d4ed8; --c-indigo: #4338ca; --c-purple: #7c3aed; --c-pink: #be185d;
     --card-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08);
-    --header-bg: rgba(99,102,241,0.32);
+    --header-bg: rgba(99,102,241,0.42);
     --sidebar-bg: #ffffff;
     --sidebar-border: rgba(15,23,42,0.08);
     --sidebar-divider: rgba(15,23,42,0.10);
@@ -244,12 +244,22 @@
      colour (no gradients); applied per panel so headers vary in colour like
      the translucent panes in the inspiration. Light theme only; in dark the
      hue classes do nothing and headers keep their neutral tone. */
-  [data-theme="light"] .glass-header.hdr-violet { background: rgba(124,58,237,0.42); }
-  [data-theme="light"] .glass-header.hdr-blue   { background: rgba(37,99,235,0.40); }
-  [data-theme="light"] .glass-header.hdr-cyan   { background: rgba(6,182,212,0.42); }
-  [data-theme="light"] .glass-header.hdr-teal   { background: rgba(13,148,136,0.40); }
-  [data-theme="light"] .glass-header.hdr-green  { background: rgba(5,150,105,0.38); }
-  [data-theme="light"] .glass-header.hdr-amber  { background: rgba(245,158,11,0.46); }
-  [data-theme="light"] .glass-header.hdr-pink   { background: rgba(219,39,119,0.40); }
-  [data-theme="light"] .glass-header.hdr-red    { background: rgba(220,38,38,0.36); }
+  /* Colour-glass panes: each card carries its hue across the whole pane — a
+     soft wash in the body, a coloured edge, and a vivid header band of the
+     same colour. The hue is declared on the header class; the card tint
+     follows it via :has(). Light theme only; dark keeps neutral cards/headers. */
+  [data-theme="light"] .glass:has(.glass-header.hdr-violet), [data-theme="light"] .glass-dark:has(.glass-header.hdr-violet) { background: rgba(124,58,237,0.10); border-color: rgba(124,58,237,0.30); }
+  [data-theme="light"] .glass-header.hdr-violet { background: rgba(124,58,237,0.58); }
+  [data-theme="light"] .glass:has(.glass-header.hdr-blue), [data-theme="light"] .glass-dark:has(.glass-header.hdr-blue) { background: rgba(37,99,235,0.10); border-color: rgba(37,99,235,0.30); }
+  [data-theme="light"] .glass-header.hdr-blue { background: rgba(37,99,235,0.55); }
+  [data-theme="light"] .glass:has(.glass-header.hdr-cyan), [data-theme="light"] .glass-dark:has(.glass-header.hdr-cyan) { background: rgba(6,182,212,0.11); border-color: rgba(6,182,212,0.32); }
+  [data-theme="light"] .glass-header.hdr-cyan { background: rgba(6,182,212,0.55); }
+  [data-theme="light"] .glass:has(.glass-header.hdr-teal), [data-theme="light"] .glass-dark:has(.glass-header.hdr-teal) { background: rgba(13,148,136,0.10); border-color: rgba(13,148,136,0.30); }
+  [data-theme="light"] .glass-header.hdr-teal { background: rgba(13,148,136,0.52); }
+  [data-theme="light"] .glass:has(.glass-header.hdr-green), [data-theme="light"] .glass-dark:has(.glass-header.hdr-green) { background: rgba(5,150,105,0.10); border-color: rgba(5,150,105,0.30); }
+  [data-theme="light"] .glass-header.hdr-green { background: rgba(5,150,105,0.50); }
+  [data-theme="light"] .glass:has(.glass-header.hdr-amber), [data-theme="light"] .glass-dark:has(.glass-header.hdr-amber) { background: rgba(245,158,11,0.11); border-color: rgba(245,158,11,0.34); }
+  [data-theme="light"] .glass-header.hdr-amber { background: rgba(245,158,11,0.58); }
+  [data-theme="light"] .glass:has(.glass-header.hdr-pink), [data-theme="light"] .glass-dark:has(.glass-header.hdr-pink) { background: rgba(219,39,119,0.10); border-color: rgba(219,39,119,0.30); }
+  [data-theme="light"] .glass-header.hdr-pink { background: rgba(219,39,119,0.55); }
 
