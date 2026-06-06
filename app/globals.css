@@ -55,7 +55,7 @@
     --header-bg: rgba(255,255,255,0.05);
   }
   [data-theme="light"] {
-    --app-bg: #eef1f7;
+    --app-bg: #f4f6fc;
     --app-text: #1e293b;
     --surface: #ffffff;
     --surface-2: #f1f5f9;
@@ -75,7 +75,7 @@
     --c-red: #b91c1c; --c-amber: #b45309; --c-green: #15803d; --c-cyan: #0e7490;
     --c-blue: #1d4ed8; --c-indigo: #4338ca; --c-purple: #7c3aed; --c-pink: #be185d;
     --card-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08);
-    --header-bg: linear-gradient(95deg, rgba(99,102,241,0.16) 0%, rgba(139,92,246,0.13) 45%, rgba(217,70,160,0.10) 100%);
+    --header-bg: linear-gradient(100deg, rgba(124,58,237,0.30) 0%, rgba(217,70,160,0.24) 52%, rgba(56,189,248,0.26) 100%);
     --sidebar-bg: #ffffff;
     --sidebar-border: rgba(15,23,42,0.08);
     --sidebar-divider: rgba(15,23,42,0.10);
