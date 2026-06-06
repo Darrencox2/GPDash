@@ -142,10 +142,10 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
       <aside className={`
         fixed lg:sticky top-0 left-0 h-screen z-40 lg:z-auto
-        ${sidebarOpen ? 'w-60' : 'w-0 lg:w-14'}
+        ${sidebarOpen ? 'w-[360px]' : 'w-0 lg:w-14'}
         flex-shrink-0 transition-all duration-200 overflow-hidden
       `} style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}>
-        <div className="h-full flex flex-col w-60 lg:w-auto">
+        <div className="h-full flex flex-col w-[360px] lg:w-auto">
           {/* Logo */}
           <div className="px-3 pt-4 pb-2">
             {sidebarOpen ? (
@@ -216,13 +216,13 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
           {practiceName && (
             <div className="p-2.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
               {sidebarOpen ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '6px 6px' }}>
                   <div style={{
-                    width: 30, height: 30, borderRadius: 7,
+                    width: 40, height: 40, borderRadius: 9,
                     background: 'linear-gradient(135deg, #0891b2, #0e7490)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
-                    fontSize: 10, color: 'white', fontWeight: 500,
+                    fontSize: 13, color: 'white', fontWeight: 500,
                     letterSpacing: 0.5,
                     fontFamily: "'Outfit', sans-serif",
                   }}>
@@ -230,7 +230,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{
-                      fontSize: 11.5, color: 'var(--text-1)', fontWeight: 500,
+                      fontSize: 15, color: 'var(--text-1)', fontWeight: 500,
                       lineHeight: 1.25,
                       overflow: 'hidden', textOverflow: 'ellipsis',
                       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
@@ -238,7 +238,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                       {practiceName}
                     </div>
                     {roleLabel && (
-                      <div style={{ fontSize: 9.5, color: '#64748b', marginTop: 2 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>
                         {roleLabel}
                       </div>
                     )}
@@ -247,10 +247,10 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0' }} title={practiceName}>
                   <div style={{
-                    width: 30, height: 30, borderRadius: 7,
+                    width: 40, height: 40, borderRadius: 9,
                     background: 'linear-gradient(135deg, #0891b2, #0e7490)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, color: 'white', fontWeight: 500,
+                    fontSize: 13, color: 'white', fontWeight: 500,
                     letterSpacing: 0.5,
                     fontFamily: "'Outfit', sans-serif",
                   }}>{initials}</div>
@@ -261,19 +261,19 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
           {/* Version (practice logo removed — will be re-added per-practice later) */}
           <div className="p-2.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-            <button onClick={handleVersionClick} className="block w-full text-center pb-1 hover:text-slate-400 transition-colors" style={{fontFamily:"'Space Mono',monospace",fontSize:sidebarOpen?10:9,color:'#334155'}}>{APP_VERSION}</button>
+            <button onClick={handleVersionClick} className="block w-full text-center pb-1 hover:text-slate-400 transition-colors" style={{fontFamily:"'Space Mono',monospace",fontSize:sidebarOpen?12:10,color:'var(--text-3)'}}>{APP_VERSION}</button>
           </div>
 
           {/* Theme toggle */}
           <div className="p-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
             <button onClick={toggleTheme}
-              className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs transition-colors"
+              className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-lg text-sm transition-colors"
               style={{ color: 'var(--text-3)' }}
               title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
               {theme === 'dark' ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
               ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
               )}
               {sidebarOpen && <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
             </button>

@@ -270,4 +270,16 @@
       linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 70%),
       rgba(var(--h),0.52);
   }
+  /* Headerless hero/gauge panes — same lit colour-glass treatment, hue set directly. */
+  [data-theme="light"] .panefx-violet { --h: 124,58,237; }
+  [data-theme="light"] .panefx-blue   { --h: 37,99,235; }
+  [data-theme="light"] .panefx-cyan   { --h: 6,182,212; }
+  [data-theme="light"] .panefx-violet, [data-theme="light"] .panefx-blue, [data-theme="light"] .panefx-cyan {
+    background:
+      radial-gradient(130% 95% at 8% -20%, rgba(255,255,255,0.45), rgba(255,255,255,0) 46%),
+      radial-gradient(135% 130% at 108% 125%, rgba(var(--h),0.26), rgba(var(--h),0) 55%),
+      rgba(var(--h),0.06);
+    border-color: rgba(var(--h),0.32);
+    box-shadow: 0 14px 32px -12px rgba(var(--h),0.45), 0 2px 8px rgba(var(--h),0.15);
+  }
 

@@ -510,14 +510,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           {canEdit && (
             <button onClick={() => fileRef.current?.click()}
               className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
-              style={{ background: isUploadedToday ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.6)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}
+              style={{ background: isUploadedToday ? 'rgba(16,185,129,0.92)' : 'rgba(239,68,68,0.88)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}
               title={data?.huddleCsvUploadedAt ? `Uploaded ${new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : 'No CSV uploaded'}>
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
               <span className="hidden sm:inline">{isUploadedToday ? 'CSV uploaded' : 'Upload CSV'}</span>
             </button>
           )}
           <button onClick={() => setIsFullscreen(true)} className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
-            style={{ background: 'rgba(124,58,237,0.7)', border: '1px solid rgba(124,58,237,0.3)' }}>
+            style={{ background: 'rgba(124,58,237,0.92)', border: '1px solid rgba(124,58,237,0.3)' }}>
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
             <span className="hidden sm:inline">Huddle board</span>
           </button>
@@ -648,7 +648,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             {/* NOTICEBOARD — message-thread style (Option B from the design pass).
                 Avatars use a deterministic colour per author so the same
                 person always looks the same. No more random rainbow rotation. */}
-            <div className="glass rounded-xl overflow-hidden flex flex-col md:order-2">
+            <div className="glass rounded-xl overflow-hidden flex flex-col md:order-2 panefx-cyan">
               <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
@@ -719,7 +719,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               )}
             </div>
             {/* SUMMARY — spans first 3 cols */}
-            <div className="glass rounded-xl p-5 md:col-span-3 md:order-1">
+            <div className="glass rounded-xl p-5 md:col-span-3 md:order-1 panefx-violet">
               <div className="flex flex-col md:flex-row gap-5 items-stretch">
                 <div className="flex-shrink-0 flex items-center justify-center">
                   <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[300px]" width={null} viewBox="0 0 300 145" slots={urgTotal} target={targetTotal} />
