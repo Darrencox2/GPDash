@@ -489,7 +489,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             {showCalendar && (
               <div className="absolute top-full left-0 mt-2 z-50 rounded-xl shadow-2xl p-3" style={{background:"var(--surface-solid)",border:"1px solid var(--border)"}} onClick={e => e.stopPropagation()}>
                 <input type="date" value={toLocalIso(viewingDate)} min={toLocalIso(minDate)} max={toLocalIso(maxDate)} onChange={(e) => goToDate(e.target.value)}
-                  className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",color:"#e2e8f0"}} />
+                  className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" style={{background:"var(--surface-2)",border:"1px solid var(--border)",color:"var(--text-1)"}} />
               </div>
             )}
           </div>
@@ -563,7 +563,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             </div>
             <h2 className="font-heading text-xl font-medium text-slate-300 mb-2">Practice closed</h2>
             <p className="text-sm text-slate-500">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-            {viewingPrediction?.isBankHoliday && <span className="inline-block mt-3 text-xs font-medium px-3 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.1)' }}>Bank Holiday</span>}
+            {viewingPrediction?.isBankHoliday && <span className="inline-block mt-3 text-xs font-medium px-3 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--c-amber)', border: '1px solid rgba(245,158,11,0.1)' }}>Bank Holiday</span>}
           </div>
         </div>
       ) : (
@@ -666,11 +666,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   // muted accent colours so the same person is always shown
                   // with the same avatar tint.
                   const palette = [
-                    { bg: 'rgba(59,130,246,0.18)', fg: '#93c5fd' },   // blue
-                    { bg: 'rgba(16,185,129,0.18)', fg: '#6ee7b7' },   // green
-                    { bg: 'rgba(168,85,247,0.18)', fg: '#d8b4fe' },   // purple
-                    { bg: 'rgba(245,158,11,0.18)', fg: '#fcd34d' },   // amber
-                    { bg: 'rgba(236,72,153,0.18)', fg: '#f9a8d4' },   // pink
+                    { bg: 'rgba(59,130,246,0.18)', fg: 'var(--c-blue)' },   // blue
+                    { bg: 'rgba(16,185,129,0.18)', fg: 'var(--c-green)' },   // green
+                    { bg: 'rgba(168,85,247,0.18)', fg: 'var(--c-purple)' },   // purple
+                    { bg: 'rgba(245,158,11,0.18)', fg: 'var(--c-amber)' },   // amber
+                    { bg: 'rgba(236,72,153,0.18)', fg: 'var(--c-pink)' },   // pink
                   ];
                   const authorKey = msg.author || 'anon';
                   let h = 0; for (let k = 0; k < authorKey.length; k++) h = (h * 31 + authorKey.charCodeAt(k)) | 0;
@@ -711,7 +711,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     onClick={addMessage}
                     disabled={!newMsg.trim()}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{background:'rgba(34,211,238,0.15)',border:'1px solid rgba(34,211,238,0.3)',color:'#67e8f9'}}
+                    style={{background:'rgba(34,211,238,0.15)',border:'1px solid rgba(34,211,238,0.3)',color:'var(--c-cyan)'}}
                   >
                     Post
                   </button>
@@ -732,7 +732,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         <span
                           title="Estimated from list size — calibrate by uploading an AskMyGP CSV in Practice → Demand model"
                           className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                          style={{ background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}
+                          style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--c-amber)', border: '1px solid rgba(245,158,11,0.3)' }}
                         >
                           est
                         </span>
@@ -917,7 +917,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <div className="flex items-center justify-between mt-1.5">
                         <div className="flex items-center gap-2">
                           <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{background:`${band.colour}20`,color:band.colour}}>{band.label} · {Math.round(band.pct)}%</span>
-                          <span className="text-sm text-slate-400">{avail} available{booked > 0 ? <span> · {booked} booked</span> : ''}{added > 0 ? <span style={{color:'#818cf8'}}> · +{added} since 8am</span> : ''}</span>
+                          <span className="text-sm text-slate-400">{avail} available{booked > 0 ? <span> · {booked} booked</span> : ''}{added > 0 ? <span style={{color:'var(--c-indigo)'}}> · +{added} since 8am</span> : ''}</span>
                         </div>
                         {target > 0 && <span className="text-sm text-slate-500">target {target}</span>}
                       </div>
@@ -948,9 +948,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <div className="rounded-lg mb-2 px-3 py-2.5 text-xs" style={{
                       background: 'rgba(239,68,68,0.08)',
                       border: '1px dashed rgba(239,68,68,0.30)',
-                      color: '#fca5a5',
+                      color: 'var(--c-red)',
                     }}>
-                      <div className="font-semibold mb-1" style={{ color: '#fecaca' }}>
+                      <div className="font-semibold mb-1" style={{ color: 'var(--c-red)' }}>
                         Duty doctor not detected — diagnostic
                       </div>
                       <div className="opacity-80 mb-1">
@@ -972,9 +972,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                                 <span className="opacity-70">({c.count} slot{c.count === 1 ? '' : 's'})</span>
                                 <span className="opacity-70 ml-auto flex-shrink-0">
                                   {c.matchesStaff ? (
-                                    <span style={{ color: '#86efac' }}>→ {c.matchedTo}</span>
+                                    <span style={{ color: 'var(--c-green)' }}>→ {c.matchedTo}</span>
                                   ) : (
-                                    <span style={{ color: '#fca5a5' }}>no match in staff register</span>
+                                    <span style={{ color: 'var(--c-red)' }}>no match in staff register</span>
                                   )}
                                 </span>
                               </li>
@@ -1151,7 +1151,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   {periodGauges.map(g => (
                     <div key={g.label} className="flex flex-col items-center py-4 px-2">
                       <MiniGauge value={g.avail} max={g.total} size={100} strokeWidth={8} colour={g.colour}>
-                        <text x="50" y="44" textAnchor="middle" fill="#e2e8f0" style={{ fontSize: '22px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
+                        <text x="50" y="44" textAnchor="middle" fill="var(--text-1)" style={{ fontSize: '22px', fontWeight: 700 }}>{Math.round(g.pct)}%</text>
                         <text x="50" y="58" textAnchor="middle" fill="#64748b" style={{ fontSize: '10px' }}>available</text>
                       </MiniGauge>
                       <div className="text-[13px] font-semibold text-slate-300 mt-1">{g.label}</div>
@@ -1194,7 +1194,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </p>
                   {canEdit ? (
                     !showAddCard ? (
-                      <button onClick={() => setShowAddCard(true)} className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors" style={{background:'rgba(139,92,246,0.15)',border:'1px solid rgba(139,92,246,0.3)',color:'#c4b5fd'}}>+ Create your first card</button>
+                      <button onClick={() => setShowAddCard(true)} className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors" style={{background:'rgba(139,92,246,0.15)',border:'1px solid rgba(139,92,246,0.3)',color:'var(--c-purple)'}}>+ Create your first card</button>
                     ) : (
                       <div className="flex gap-2 mb-2">
                         <input type="text" value={newCardTitle} onChange={e => setNewCardTitle(e.target.value)}
