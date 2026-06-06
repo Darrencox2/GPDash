@@ -19,7 +19,16 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head>
+        {/* Apply the saved theme before first paint so there's no flash of
+            the wrong theme on load. Defaults to dark when nothing is saved. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('gpdash-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-screen">
         {/* ImpersonationBanner is a server component that returns null
             unless a valid gpdash_imp cookie is present. Sticky-positioned

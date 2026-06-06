@@ -297,9 +297,9 @@ function AppContent() {
   const helpers = { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, syncTeamNet, toggleRotaDay, removeClinician, updateClinicianField, dataVersion, setDataVersion, setData };
 
   return (
-    <div className={`min-h-screen flex ${'bg-[#0f172a]'}`}>
+    <div className="min-h-screen flex" style={{ background: 'var(--app-bg)' }}>
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-      <main className={`flex-1 min-h-screen min-w-0 ${'bg-[#0f172a]'}`}>
+      <main className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)' }}>
         <div className={`${(activeSection === 'workforce-planner' || activeSection === 'huddle-forward') ? '' : 'max-w-6xl mx-auto '}p-4 lg:p-6 animate-in`}>
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}

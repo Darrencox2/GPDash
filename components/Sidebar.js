@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import GPDashLogo from './GPDashLogo';
 import { APP_VERSION } from '@/lib/version';
@@ -65,6 +65,21 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen, data, onNavigate }) {
+  // Theme toggle. The actual data-theme attribute is applied pre-paint by a
+  // script in the root layout (reading localStorage) to avoid a flash; here we
+  // just read the current value on mount and flip it on click.
+  const [theme, setTheme] = useState('dark');
+  useEffect(() => {
+    setTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+  }, []);
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    try {
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('gpdash-theme', next);
+    } catch (e) {}
+  };
   const router = useRouter();
   const practiceSlug = data?._v4?.practiceSlug;
   const practiceName = data?._v4?.practiceName || null;
@@ -128,10 +143,8 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
       <aside className={`
         fixed lg:sticky top-0 left-0 h-screen z-40 lg:z-auto
         ${sidebarOpen ? 'w-60' : 'w-0 lg:w-14'}
-        bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800
         flex-shrink-0 transition-all duration-200 overflow-hidden
-        border-r border-white/5
-      `}>
+      `} style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}>
         <div className="h-full flex flex-col w-60 lg:w-auto">
           {/* Logo */}
           <div className="px-3 pt-4 pb-2">
@@ -149,12 +162,12 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
             {filteredNav.map(item => {
               // Section divider
               if (item.id.startsWith('_')) {
-                if (!sidebarOpen) return <div key={item.id} className="mx-2 my-2" style={{height:1,background:'#1e293b'}} />;
+                if (!sidebarOpen) return <div key={item.id} className="mx-2 my-2" style={{height:1,background:'var(--sidebar-divider)'}} />;
                 return (
                   <div key={item.id} className="flex items-center gap-2 mx-3 mt-4 mb-1.5">
-                    <div className="flex-1 h-px" style={{background:'#1e293b'}} />
+                    <div className="flex-1 h-px" style={{background:'var(--sidebar-divider)'}} />
                     <span style={{fontSize:10,color:'#334155',letterSpacing:'1.5px'}}>{item.section}</span>
-                    <div className="flex-1 h-px" style={{background:'#1e293b'}} />
+                    <div className="flex-1 h-px" style={{background:'var(--sidebar-divider)'}} />
                   </div>
                 );
               }
@@ -189,7 +202,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                   <svg width="18" height="18" viewBox="0 0 24 24" fill={item.colour} style={{opacity: isActive ? 1 : 0.5, flexShrink: 0}}>
                     <path d={item.icon} />
                   </svg>
-                  <span style={{fontSize:13, color: isActive ? '#e2e8f0' : '#64748b', fontWeight: isActive ? 500 : 400}}>{item.label}</span>
+                  <span style={{fontSize:13, color: isActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: isActive ? 500 : 400}}>{item.label}</span>
                   {item.badge && <span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:`${item.colour}20`,color:item.colour,marginLeft:'auto'}}>{item.badge}</span>}
                 </button>
               );
@@ -201,7 +214,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               future multi-practice switcher. When sidebar is collapsed,
               the avatar alone shows centred. */}
           {practiceName && (
-            <div className="p-2.5 border-t border-white/5">
+            <div className="p-2.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
               {sidebarOpen ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 6px' }}>
                   <div style={{
@@ -217,7 +230,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{
-                      fontSize: 11.5, color: '#e2e8f0', fontWeight: 500,
+                      fontSize: 11.5, color: 'var(--text-1)', fontWeight: 500,
                       lineHeight: 1.25,
                       overflow: 'hidden', textOverflow: 'ellipsis',
                       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
@@ -247,12 +260,27 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
           )}
 
           {/* Version (practice logo removed — will be re-added per-practice later) */}
-          <div className="p-2.5 border-t border-white/5">
+          <div className="p-2.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
             <button onClick={handleVersionClick} className="block w-full text-center pb-1 hover:text-slate-400 transition-colors" style={{fontFamily:"'Space Mono',monospace",fontSize:sidebarOpen?10:9,color:'#334155'}}>{APP_VERSION}</button>
           </div>
 
+          {/* Theme toggle */}
+          <div className="p-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
+            <button onClick={toggleTheme}
+              className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs transition-colors"
+              style={{ color: 'var(--text-3)' }}
+              title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
+              {theme === 'dark' ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+              )}
+              {sidebarOpen && <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
+            </button>
+          </div>
+
           {/* Collapse toggle */}
-          <div className="p-1.5 border-t border-white/5">
+          <div className="p-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
             <button onClick={() => setSidebarOpen(!sidebarOpen)}
               className="w-full flex items-center justify-center py-1.5 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-white/5 text-xs transition-colors">
               {sidebarOpen ? '◂' : '▸'}
