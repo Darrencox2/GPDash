@@ -51,27 +51,29 @@
     --sidebar-bg: linear-gradient(to bottom, #0f172a, #0f172a, #1e293b);
     --sidebar-border: rgba(255,255,255,0.05);
     --sidebar-divider: #1e293b;
+    --card-shadow: none;
   }
   [data-theme="light"] {
-    --app-bg: #f5f6fb;
+    --app-bg: #eef1f7;
     --app-text: #1e293b;
     --surface: #ffffff;
     --surface-2: #f1f5f9;
     --surface-3: #e7ebf2;
     --surface-solid: #ffffff;
     --panel: #ffffff;
-    --border: rgba(15,23,42,0.10);
-    --border-2: rgba(15,23,42,0.16);
+    --border: rgba(15,23,42,0.06);
+    --border-2: rgba(15,23,42,0.10);
     --text-1: #0f172a;
     --text-2: #334155;
     --text-3: #64748b;
     --text-4: #94a3b8;
     --accent: #6366f1;
     --accent-2: #6366f1;
-    --accent-soft: rgba(99,102,241,0.10);
+    --accent-soft: rgba(99,102,241,0.12);
     --accent-text: #4f46e5;
     --c-red: #b91c1c; --c-amber: #b45309; --c-green: #15803d; --c-cyan: #0e7490;
     --c-blue: #1d4ed8; --c-indigo: #4338ca; --c-purple: #7c3aed; --c-pink: #be185d;
+    --card-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08);
     --sidebar-bg: #ffffff;
     --sidebar-border: rgba(15,23,42,0.08);
     --sidebar-divider: rgba(15,23,42,0.10);
@@ -95,6 +97,7 @@
   .glass {
     background: var(--surface);
     border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
   }
   .glass-header {
     background: var(--surface-2);
@@ -153,10 +156,12 @@
   .glass-dark {
     background: var(--surface);
     border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
   }
   .glass-panel {
     background: var(--surface-2);
     border: 1px solid var(--border-2);
+    box-shadow: var(--card-shadow);
   }
 
   /* Setting cog icon — used throughout for tucked-away, secondary-action

@@ -404,7 +404,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         </div>
       </div>
 
-      <div className="p-3 space-y-3" style={{background:'var(--surface)'}}>
+      <div className="p-3 space-y-3">
         {/* Unconfirmed staff banner. Link goes to Practice → Clinicians
             (which replaced the old in-dashboard "Clinicians" page in
             v4.14.0). The link is rendered as a real anchor — full page
