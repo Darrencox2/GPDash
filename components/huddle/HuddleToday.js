@@ -1020,7 +1020,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             };
 
             return (
-              <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
+              <div className="rounded-xl overflow-hidden glass">
                 <div className="glass-header hdr-cyan px-4 py-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span className="font-heading text-base font-medium text-slate-200">Urgent on the day</span>
@@ -1038,7 +1038,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 ) : (<>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-                  <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
+                  <div className="rounded-xl overflow-hidden glass">
                     <div className="glass-header hdr-amber px-4 py-2.5 rounded-t-xl">
                       <span className="font-heading text-sm font-medium text-slate-400">Morning</span>
                     </div>
@@ -1046,7 +1046,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutyDocDiag={hasDutySlot ? getDutyDoctorDiagnostic(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutySlotNames={Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])} />
                     </div>
                   </div>
-                  <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
+                  <div className="rounded-xl overflow-hidden glass">
                     <div className="glass-header hdr-teal px-4 py-2.5 rounded-t-xl">
                       <span className="font-heading text-sm font-medium text-slate-400">Afternoon</span>
                     </div>

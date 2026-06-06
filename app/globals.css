@@ -75,7 +75,7 @@
     --c-red: #b91c1c; --c-amber: #b45309; --c-green: #15803d; --c-cyan: #0e7490;
     --c-blue: #1d4ed8; --c-indigo: #4338ca; --c-purple: #7c3aed; --c-pink: #be185d;
     --card-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08);
-    --header-bg: rgba(99,102,241,0.14);
+    --header-bg: rgba(99,102,241,0.32);
     --sidebar-bg: #ffffff;
     --sidebar-border: rgba(15,23,42,0.08);
     --sidebar-divider: rgba(15,23,42,0.10);
@@ -244,12 +244,12 @@
      colour (no gradients); applied per panel so headers vary in colour like
      the translucent panes in the inspiration. Light theme only; in dark the
      hue classes do nothing and headers keep their neutral tone. */
-  [data-theme="light"] .glass-header.hdr-violet { background: rgba(139,92,246,0.18); }
-  [data-theme="light"] .glass-header.hdr-blue   { background: rgba(59,130,246,0.17); }
-  [data-theme="light"] .glass-header.hdr-cyan   { background: rgba(34,211,238,0.20); }
-  [data-theme="light"] .glass-header.hdr-teal   { background: rgba(20,184,166,0.18); }
-  [data-theme="light"] .glass-header.hdr-green  { background: rgba(16,185,129,0.17); }
-  [data-theme="light"] .glass-header.hdr-amber  { background: rgba(245,158,11,0.20); }
-  [data-theme="light"] .glass-header.hdr-pink   { background: rgba(236,72,153,0.17); }
-  [data-theme="light"] .glass-header.hdr-red    { background: rgba(239,68,68,0.16); }
+  [data-theme="light"] .glass-header.hdr-violet { background: rgba(124,58,237,0.42); }
+  [data-theme="light"] .glass-header.hdr-blue   { background: rgba(37,99,235,0.40); }
+  [data-theme="light"] .glass-header.hdr-cyan   { background: rgba(6,182,212,0.42); }
+  [data-theme="light"] .glass-header.hdr-teal   { background: rgba(13,148,136,0.40); }
+  [data-theme="light"] .glass-header.hdr-green  { background: rgba(5,150,105,0.38); }
+  [data-theme="light"] .glass-header.hdr-amber  { background: rgba(245,158,11,0.46); }
+  [data-theme="light"] .glass-header.hdr-pink   { background: rgba(219,39,119,0.40); }
+  [data-theme="light"] .glass-header.hdr-red    { background: rgba(220,38,38,0.36); }
 
