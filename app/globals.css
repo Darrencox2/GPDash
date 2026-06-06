@@ -52,18 +52,10 @@
     --sidebar-border: rgba(255,255,255,0.05);
     --sidebar-divider: #1e293b;
     --card-shadow: none;
+    --header-bg: rgba(255,255,255,0.05);
   }
   [data-theme="light"] {
-    /* Soft, airy colour washes in the corners (echoing the WWDC palette),
-       fading to a clean centre where the content sits. Low opacity so it
-       reads as ambient atmosphere, not decoration; white cards stay clean
-       on top. Tune the alphas to taste. */
-    --app-bg:
-      radial-gradient(55% 45% at 0% 0%, rgba(139,92,246,0.12), transparent 60%),
-      radial-gradient(52% 45% at 100% 0%, rgba(236,72,153,0.09), transparent 60%),
-      radial-gradient(58% 52% at 100% 100%, rgba(56,189,248,0.11), transparent 62%),
-      radial-gradient(52% 50% at 0% 100%, rgba(20,184,166,0.10), transparent 60%),
-      #eef1f7;
+    --app-bg: #eef1f7;
     --app-text: #1e293b;
     --surface: #ffffff;
     --surface-2: #f1f5f9;
@@ -83,6 +75,7 @@
     --c-red: #b91c1c; --c-amber: #b45309; --c-green: #15803d; --c-cyan: #0e7490;
     --c-blue: #1d4ed8; --c-indigo: #4338ca; --c-purple: #7c3aed; --c-pink: #be185d;
     --card-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08);
+    --header-bg: linear-gradient(95deg, rgba(99,102,241,0.16) 0%, rgba(139,92,246,0.13) 45%, rgba(217,70,160,0.10) 100%);
     --sidebar-bg: #ffffff;
     --sidebar-border: rgba(15,23,42,0.08);
     --sidebar-divider: rgba(15,23,42,0.10);
@@ -109,7 +102,7 @@
     box-shadow: var(--card-shadow);
   }
   .glass-header {
-    background: var(--surface-2);
+    background: var(--header-bg);
     border-bottom: 1px solid var(--border);
   }
   .glass-inner {
