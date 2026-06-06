@@ -457,7 +457,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   }, [viewingDate]);
 
   return (
-    <div className="-m-4 lg:-m-6 min-h-screen animate-in" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)'}}
+    <div className="-m-4 lg:-m-6 min-h-screen animate-in" style={{background:'var(--app-bg)'}}
       onDragOver={canEdit ? e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragging(true); } } : undefined}
       onDragLeave={canEdit ? e => { e.preventDefault(); setIsDragging(false); } : undefined}
       onDrop={canEdit ? e => { if (e.dataTransfer.types.includes('Files')) { onDrop(e); } } : undefined}>
@@ -480,14 +480,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
             <div className="text-center px-1">
-              <div className="font-mono-data text-2xl sm:text-3xl font-bold text-white leading-none">{viewingDate.getDate()}</div>
+              <div className="font-mono-data text-2xl sm:text-3xl font-bold text-slate-900 leading-none">{viewingDate.getDate()}</div>
               <div className="text-[10px] sm:text-sm text-slate-500 uppercase tracking-wider">{viewingDate.toLocaleDateString('en-GB', { month: 'short' })}</div>
             </div>
             <button onClick={(e) => { e.stopPropagation(); navigateDay(1); }} className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
               <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
             </button>
             {showCalendar && (
-              <div className="absolute top-full left-0 mt-2 z-50 rounded-xl shadow-2xl p-3" style={{background:"#1e293b",border:"1px solid rgba(255,255,255,0.1)"}} onClick={e => e.stopPropagation()}>
+              <div className="absolute top-full left-0 mt-2 z-50 rounded-xl shadow-2xl p-3" style={{background:"var(--surface-solid)",border:"1px solid var(--border)"}} onClick={e => e.stopPropagation()}>
                 <input type="date" value={toLocalIso(viewingDate)} min={toLocalIso(minDate)} max={toLocalIso(maxDate)} onChange={(e) => goToDate(e.target.value)}
                   className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",color:"#e2e8f0"}} />
               </div>
@@ -495,7 +495,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="font-heading text-lg sm:text-2xl font-medium text-white truncate">
+              <h1 className="font-heading text-lg sm:text-2xl font-medium text-slate-900 truncate">
                 {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'short' })}
               </h1>
               {!isViewingToday && <button onClick={goToToday} className="text-[10px] text-emerald-400 hover:text-emerald-300 font-medium underline flex-shrink-0">today</button>}
@@ -555,7 +555,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       ) : isPracticeClosed ? (
         <div className="glass rounded-xl overflow-hidden">
           <div className="py-16 px-6 text-center">
-            <div className="mx-auto mb-4" style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="mx-auto mb-4" style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 <path d="M9 22V12h6v10" />
@@ -705,7 +705,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     onKeyDown={e => { if (e.key === 'Enter') addMessage(); }}
                     placeholder="Add a notice…"
                     className="flex-1 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500"
-                    style={{background:'rgba(0,0,0,0.3)',border:'1px solid rgba(255,255,255,0.08)',color:'#e2e8f0'}}
+                    style={{background:'var(--surface-2)',border:'1px solid var(--border)',color:'var(--text-1)'}}
                   />
                   <button
                     onClick={addMessage}
@@ -754,7 +754,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-500 mb-1">Clinicians today</div>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-mono-data text-3xl md:text-5xl font-bold text-white leading-none">{inCount}</span>
+                      <span className="font-mono-data text-3xl md:text-5xl font-bold text-slate-900 leading-none">{inCount}</span>
                       
                     </div>
                     <div className="text-sm text-slate-600 mt-1">of {visibleClinicians.length} active</div>
@@ -817,7 +817,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         <span className="font-bold font-mono-data" style={{color: f.impact > 0 ? '#ef4444' : f.impact < 0 ? '#10b981' : '#475569'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between text-sm pt-1.5 mt-1.5" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                    <div className="flex justify-between text-sm pt-1.5 mt-1.5" style={{borderTop:'1px solid var(--border)'}}>
                       <span className="text-slate-300 font-medium">Predicted total</span>
                       <span className="font-bold text-amber-400 font-mono-data">{predTotal}</span>
                     </div>
@@ -912,7 +912,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                             {booked > 0 && <div style={{flex: booked, background: '#f59e0b'}} />}
                           </div>
                         </div>
-                        {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '50%', transform: 'translate(-50%, -50%)' }}><div style={{width:14,height:14,borderRadius:'50%',border:`2.5px solid ${band.colour}`,background:'#0f172a',boxShadow:`0 0 8px ${band.colour}`}} /></div>}
+                        {target > 0 && <div className="absolute z-[2]" style={{ left: `${Math.min(bar.markerPct, 100)}%`, top: '50%', transform: 'translate(-50%, -50%)' }}><div style={{width:14,height:14,borderRadius:'50%',border:`2.5px solid ${band.colour}`,background:'var(--app-bg)',boxShadow:`0 0 8px ${band.colour}`}} /></div>}
                       </div>
                       <div className="flex items-center justify-between mt-1.5">
                         <div className="flex items-center gap-2">
@@ -1020,7 +1020,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             };
 
             return (
-              <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
+              <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
                 <div className="glass-header px-4 py-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span className="font-heading text-base font-medium text-slate-200">Urgent on the day</span>
@@ -1038,19 +1038,19 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                 ) : (<>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-                  <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
+                  <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
                     <div className="glass-header px-4 py-2.5 rounded-t-xl">
                       <span className="font-heading text-sm font-medium text-slate-400">Morning</span>
                     </div>
-                    <div style={{background:'rgba(15,23,42,0.4)'}}>
+                    <div style={{background:'var(--surface)'}}>
                       <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutyDocDiag={hasDutySlot ? getDutyDoctorDiagnostic(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutySlotNames={Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])} />
                     </div>
                   </div>
-                  <div className="rounded-xl overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.06)'}}>
+                  <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
                     <div className="glass-header px-4 py-2.5 rounded-t-xl">
                       <span className="font-heading text-sm font-medium text-slate-400">Afternoon</span>
                     </div>
-                    <div style={{background:'rgba(15,23,42,0.4)'}}>
+                    <div style={{background:'var(--surface)'}}>
                       <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} dutyDocDiag={hasDutySlot ? getDutyDoctorDiagnostic(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} dutySlotNames={Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])} />
                     </div>
                   </div>
@@ -1084,7 +1084,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         return (
                           <div key={i} className="flex items-center gap-2">
                             <div className="text-xs text-slate-400 truncate" style={{width:130,textAlign:'right',flexShrink:0}} title={s.name}>{s.name}</div>
-                            <div style={{flex:1,height:10,borderRadius:3,overflow:'hidden',background:'rgba(255,255,255,0.06)',display:'flex'}}>
+                            <div style={{flex:1,height:10,borderRadius:3,overflow:'hidden',background:'var(--border)',display:'flex'}}>
                               {locEntries.map((l,j) => <div key={j} style={{width:(l.count/locTotal)*100+'%',height:10,background:l.col,minWidth:2}} title={`${l.loc}: ${l.count}`} />)}
                             </div>
                             <span className="font-mono-data text-xs font-bold text-slate-300" style={{minWidth:20,textAlign:'right'}}>{slotTotal}</span>
@@ -1200,7 +1200,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         <input type="text" value={newCardTitle} onChange={e => setNewCardTitle(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') addCapacityCard(); }}
                           placeholder="e.g. Diabetes review"
-                          className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800/50 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500" autoFocus />
+                          className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-100 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500" autoFocus />
                         <Button onClick={addCapacityCard} size="sm" disabled={!newCardTitle.trim()}>Add</Button>
                         <button onClick={() => { setShowAddCard(false); setNewCardTitle(''); }} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
                       </div>
@@ -1317,7 +1317,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <input type="text" value={newCardTitle} onChange={e => setNewCardTitle(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') addCapacityCard(); }}
                     placeholder="Card title..."
-                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500" autoFocus />
+                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-100 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500" autoFocus />
                   <Button onClick={addCapacityCard} size="sm" disabled={!newCardTitle.trim()}>Add</Button>
                   <button onClick={() => { setShowAddCard(false); setNewCardTitle(''); }} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
                 </div>

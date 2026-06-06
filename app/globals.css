@@ -216,3 +216,7 @@
   [data-theme="dark"] select option { background: #1e293b !important; color: #e2e8f0 !important; padding: 8px !important; }
   [data-theme="dark"] select option:checked, [data-theme="dark"] select option:hover { background: #334155 !important; }
 
+  /* Light-mode: elements authored to brighten to white on hover (assuming a
+     dark page) should instead darken, so they don't vanish on the light bg. */
+  [data-theme="light"] .hover\:text-white:hover { color: #0f172a !important; }
+
