@@ -244,22 +244,30 @@
      colour (no gradients); applied per panel so headers vary in colour like
      the translucent panes in the inspiration. Light theme only; in dark the
      hue classes do nothing and headers keep their neutral tone. */
-  /* Colour-glass panes: each card carries its hue across the whole pane — a
-     soft wash in the body, a coloured edge, and a vivid header band of the
-     same colour. The hue is declared on the header class; the card tint
-     follows it via :has(). Light theme only; dark keeps neutral cards/headers. */
-  [data-theme="light"] .glass:has(.glass-header.hdr-violet), [data-theme="light"] .glass-dark:has(.glass-header.hdr-violet) { background: rgba(124,58,237,0.10); border-color: rgba(124,58,237,0.30); }
-  [data-theme="light"] .glass-header.hdr-violet { background: rgba(124,58,237,0.58); }
-  [data-theme="light"] .glass:has(.glass-header.hdr-blue), [data-theme="light"] .glass-dark:has(.glass-header.hdr-blue) { background: rgba(37,99,235,0.10); border-color: rgba(37,99,235,0.30); }
-  [data-theme="light"] .glass-header.hdr-blue { background: rgba(37,99,235,0.55); }
-  [data-theme="light"] .glass:has(.glass-header.hdr-cyan), [data-theme="light"] .glass-dark:has(.glass-header.hdr-cyan) { background: rgba(6,182,212,0.11); border-color: rgba(6,182,212,0.32); }
-  [data-theme="light"] .glass-header.hdr-cyan { background: rgba(6,182,212,0.55); }
-  [data-theme="light"] .glass:has(.glass-header.hdr-teal), [data-theme="light"] .glass-dark:has(.glass-header.hdr-teal) { background: rgba(13,148,136,0.10); border-color: rgba(13,148,136,0.30); }
-  [data-theme="light"] .glass-header.hdr-teal { background: rgba(13,148,136,0.52); }
-  [data-theme="light"] .glass:has(.glass-header.hdr-green), [data-theme="light"] .glass-dark:has(.glass-header.hdr-green) { background: rgba(5,150,105,0.10); border-color: rgba(5,150,105,0.30); }
-  [data-theme="light"] .glass-header.hdr-green { background: rgba(5,150,105,0.50); }
-  [data-theme="light"] .glass:has(.glass-header.hdr-amber), [data-theme="light"] .glass-dark:has(.glass-header.hdr-amber) { background: rgba(245,158,11,0.11); border-color: rgba(245,158,11,0.34); }
-  [data-theme="light"] .glass-header.hdr-amber { background: rgba(245,158,11,0.58); }
-  [data-theme="light"] .glass:has(.glass-header.hdr-pink), [data-theme="light"] .glass-dark:has(.glass-header.hdr-pink) { background: rgba(219,39,119,0.10); border-color: rgba(219,39,119,0.30); }
-  [data-theme="light"] .glass-header.hdr-pink { background: rgba(219,39,119,0.55); }
+  /* Colour-glass panes: each card is a translucent pane of its hue, lit like
+     glass — a light highlight in the top corner, a deeper pool of colour in
+     the opposite corner, a faint sheen on the header band, and a soft glow in
+     the same colour. The hue is set per panel (--h) from the header class;
+     the rest is one shared treatment. Light theme only; dark unchanged. */
+  [data-theme="light"] .glass:has(.glass-header.hdr-violet), [data-theme="light"] .glass-dark:has(.glass-header.hdr-violet) { --h: 124,58,237; }
+  [data-theme="light"] .glass:has(.glass-header.hdr-blue),   [data-theme="light"] .glass-dark:has(.glass-header.hdr-blue)   { --h: 37,99,235; }
+  [data-theme="light"] .glass:has(.glass-header.hdr-cyan),   [data-theme="light"] .glass-dark:has(.glass-header.hdr-cyan)   { --h: 6,182,212; }
+  [data-theme="light"] .glass:has(.glass-header.hdr-teal),   [data-theme="light"] .glass-dark:has(.glass-header.hdr-teal)   { --h: 13,148,136; }
+  [data-theme="light"] .glass:has(.glass-header.hdr-green),  [data-theme="light"] .glass-dark:has(.glass-header.hdr-green)  { --h: 5,150,105; }
+  [data-theme="light"] .glass:has(.glass-header.hdr-amber),  [data-theme="light"] .glass-dark:has(.glass-header.hdr-amber)  { --h: 245,158,11; }
+  [data-theme="light"] .glass:has(.glass-header.hdr-pink),   [data-theme="light"] .glass-dark:has(.glass-header.hdr-pink)   { --h: 219,39,119; }
+  [data-theme="light"] .glass:has(.glass-header[class*="hdr-"]),
+  [data-theme="light"] .glass-dark:has(.glass-header[class*="hdr-"]) {
+    background:
+      radial-gradient(130% 95% at 8% -20%, rgba(255,255,255,0.45), rgba(255,255,255,0) 46%),
+      radial-gradient(135% 130% at 108% 125%, rgba(var(--h),0.26), rgba(var(--h),0) 55%),
+      rgba(var(--h),0.06);
+    border-color: rgba(var(--h),0.32);
+    box-shadow: 0 14px 32px -12px rgba(var(--h),0.45), 0 2px 8px rgba(var(--h),0.15);
+  }
+  [data-theme="light"] .glass-header[class*="hdr-"] {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 70%),
+      rgba(var(--h),0.52);
+  }
 
