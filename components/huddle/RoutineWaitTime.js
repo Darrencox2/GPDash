@@ -60,9 +60,9 @@ export default function RoutineWaitTime({ data, huddleData, routineOverrides }) 
   const formatWait = (w) => {
     if (!w) return { num: '—', label: 'none in 60d', colour: '#64748b' };
     const days = w.days;
-    if (days === 0) return { num: 'Today', label: '', colour: '#34d399' };
-    if (days === 1) return { num: '1', label: 'working day', colour: '#34d399' };
-    return { num: `${days}`, label: 'working days', colour: days <= 3 ? '#34d399' : days <= 7 ? '#fbbf24' : '#f87171' };
+    if (days === 0) return { num: 'Today', label: '', colour: 'var(--c-green)' };
+    if (days === 1) return { num: '1', label: 'working day', colour: 'var(--c-green)' };
+    return { num: `${days}`, label: 'working days', colour: days <= 3 ? 'var(--c-green)' : days <= 7 ? 'var(--c-amber)' : 'var(--c-red)' };
   };
 
   const cards = [
@@ -72,8 +72,8 @@ export default function RoutineWaitTime({ data, huddleData, routineOverrides }) 
   ];
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="px-4 py-2.5" style={{ background: 'rgba(15,23,42,0.85)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <div className="px-4 py-2.5" style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between">
           <div>
             <div className="font-heading text-base font-medium text-slate-200">Routine GP wait times</div>

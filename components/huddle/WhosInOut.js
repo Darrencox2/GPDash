@@ -404,7 +404,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         </div>
       </div>
 
-      <div className="p-3 space-y-3" style={{background:'rgba(15,23,42,0.5)'}}>
+      <div className="p-3 space-y-3" style={{background:'var(--surface)'}}>
         {/* Unconfirmed staff banner. Link goes to Practice → Clinicians
             (which replaced the old in-dashboard "Clinicians" page in
             v4.14.0). The link is rendered as a real anchor — full page
@@ -485,12 +485,12 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         width="md"
       >
         {hiddenPeople.length > 0 && (
-          <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Hidden — click to restore</div>
             <div className="space-y-1">
               {hiddenPeople.map(c => (
                 <button key={c.id} onClick={() => showPerson(c.id)}
-                  className="w-full text-left px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-emerald-400 transition-colors flex items-center justify-between" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)"}}>
+                  className="w-full text-left px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-emerald-400 transition-colors flex items-center justify-between" style={{background:"var(--surface-2)",border:"1px solid var(--border)"}}>
                   <span>{c.name}</span><span className="text-sm text-slate-500">restore</span>
                 </button>
               ))}
@@ -506,7 +506,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
               <div className="space-y-1">
                 {groupPeople.map(c => (
                   <button key={c.id} onClick={() => isShowWhosIn(c) ? hidePerson(c.id) : showPerson(c.id)}
-                    className="w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center justify-between" style={{background: isShowWhosIn(c) ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: isShowWhosIn(c) ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.06)', color: isShowWhosIn(c) ? '#34d399' : '#64748b'}}>
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center justify-between" style={{background: isShowWhosIn(c) ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: isShowWhosIn(c) ? '1px solid rgba(16,185,129,0.2)' : '1px solid var(--border)', color: isShowWhosIn(c) ? '#34d399' : '#64748b'}}>
                     <span>{c.name}</span><span className="text-sm opacity-60">{c.role}</span>
                   </button>
                 ))}
@@ -597,8 +597,8 @@ function OffTodayModal({ person, onClose, onConfirm }) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#0f172a',
-          border: '1px solid rgba(255,255,255,0.12)',
+          background: 'var(--surface-solid)',
+          border: '1px solid var(--border-2)',
           borderRadius: 12,
           padding: 24,
           maxWidth: 420,
@@ -606,10 +606,10 @@ function OffTodayModal({ person, onClose, onConfirm }) {
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
         }}
       >
-        <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'white', marginBottom: 4 }}>
+        <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>
           Mark off today
         </div>
-        <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 16 }}>
           {person.title ? `${person.title} ` : ''}{person.name} won&apos;t be in today.
         </div>
 
@@ -620,10 +620,10 @@ function OffTodayModal({ person, onClose, onConfirm }) {
           disabled={busy}
           style={{
             width: '100%', padding: '8px 10px', marginBottom: 14,
-            background: 'rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
             borderRadius: 6,
-            color: '#e2e8f0',
+            color: 'var(--text-1)',
             fontSize: 14,
           }}
         >
@@ -639,10 +639,10 @@ function OffTodayModal({ person, onClose, onConfirm }) {
           placeholder="e.g. covering urgent home visit instead"
           style={{
             width: '100%', padding: '8px 10px', marginBottom: 16,
-            background: 'rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
             borderRadius: 6,
-            color: '#e2e8f0',
+            color: 'var(--text-1)',
             fontSize: 14,
             resize: 'vertical',
             fontFamily: 'inherit',
@@ -650,7 +650,7 @@ function OffTodayModal({ person, onClose, onConfirm }) {
         />
 
         {err && (
-          <div style={{ fontSize: 12, color: '#fca5a5', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: 'var(--c-red)', marginBottom: 12 }}>
             {err}
           </div>
         )}
@@ -663,9 +663,9 @@ function OffTodayModal({ person, onClose, onConfirm }) {
             style={{
               padding: '8px 14px',
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.15)',
+              border: '1px solid var(--border-2)',
               borderRadius: 6,
-              color: '#94a3b8',
+              color: 'var(--text-3)',
               fontSize: 13,
               cursor: busy ? 'not-allowed' : 'pointer',
             }}
