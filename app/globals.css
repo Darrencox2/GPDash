@@ -54,7 +54,16 @@
     --card-shadow: none;
   }
   [data-theme="light"] {
-    --app-bg: #eef1f7;
+    /* Soft, airy colour washes in the corners (echoing the WWDC palette),
+       fading to a clean centre where the content sits. Low opacity so it
+       reads as ambient atmosphere, not decoration; white cards stay clean
+       on top. Tune the alphas to taste. */
+    --app-bg:
+      radial-gradient(55% 45% at 0% 0%, rgba(139,92,246,0.12), transparent 60%),
+      radial-gradient(52% 45% at 100% 0%, rgba(236,72,153,0.09), transparent 60%),
+      radial-gradient(58% 52% at 100% 100%, rgba(56,189,248,0.11), transparent 62%),
+      radial-gradient(52% 50% at 0% 100%, rgba(20,184,166,0.10), transparent 60%),
+      #eef1f7;
     --app-text: #1e293b;
     --surface: #ffffff;
     --surface-2: #f1f5f9;
