@@ -111,33 +111,33 @@ export default function BuddyOverrideModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#0f172a',
-          border: '1px solid rgba(255,255,255,0.12)',
+          background: 'var(--surface-solid)',
+          border: '1px solid var(--border)',
           borderRadius: 12,
           padding: 24,
           maxWidth: 480, width: '100%',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
         }}
       >
-        <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'white', marginBottom: 4 }}>
+        <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>
           Reassign buddy cover
         </div>
-        <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18, lineHeight: 1.5 }}>
-          <strong style={{ color: '#cbd5e1' }}>{currentCoverer?.name || '—'}</strong> is currently covering{' '}
-          <strong style={{ color: '#cbd5e1' }}>{absent?.name || '—'}</strong>
+        <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 18, lineHeight: 1.5 }}>
+          <strong style={{ color: 'var(--text-2)' }}>{currentCoverer?.name || '—'}</strong> is currently covering{' '}
+          <strong style={{ color: 'var(--text-2)' }}>{absent?.name || '—'}</strong>
           {' '}({coverType === 'dayOff' ? 'view-only — day off' : 'absent — file & action'}).
         </div>
 
-        <label style={{ display: 'block', fontSize: 11, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reassign to</label>
+        <label style={{ display: 'block', fontSize: 11, color: 'var(--text-3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reassign to</label>
         <select
           value={newCovererId}
           onChange={(e) => setNewCovererId(e.target.value)}
           disabled={busy}
           style={{
             width: '100%', padding: '8px 10px', marginBottom: 14,
-            background: 'rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 6, color: '#e2e8f0', fontSize: 14,
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            borderRadius: 6, color: 'var(--text-1)', fontSize: 14,
           }}
         >
           <option value="">— pick someone present today —</option>
@@ -151,7 +151,7 @@ export default function BuddyOverrideModal({
           </div>
         )}
 
-        <label style={{ display: 'block', fontSize: 11, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reason</label>
+        <label style={{ display: 'block', fontSize: 11, color: 'var(--text-3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reason</label>
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
@@ -160,9 +160,9 @@ export default function BuddyOverrideModal({
           placeholder="e.g. Sarah is already covering a separate clinic — swap to Tom"
           style={{
             width: '100%', padding: '8px 10px', marginBottom: 16,
-            background: 'rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 6, color: '#e2e8f0', fontSize: 14,
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            borderRadius: 6, color: 'var(--text-1)', fontSize: 14,
             resize: 'vertical', fontFamily: 'inherit',
           }}
         />
@@ -179,8 +179,8 @@ export default function BuddyOverrideModal({
             style={{
               padding: '8px 14px',
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 6, color: '#94a3b8', fontSize: 13,
+              border: '1px solid var(--border)',
+              borderRadius: 6, color: 'var(--text-3)', fontSize: 13,
               cursor: busy ? 'not-allowed' : 'pointer',
             }}
           >

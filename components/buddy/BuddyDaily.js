@@ -520,7 +520,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                     className="rounded-lg px-3 py-2.5"
                     onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHovered({ id: c.id, rect: { top: r.top, left: r.left, width: r.width, height: r.height } }); }}
                     onMouseLeave={() => setHovered(h => (h?.id === c.id ? null : h))}
-                    style={{background:cardBg, border:`1px solid ${cardBorder}`, cursor:'help', ...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}
+                    onClick={canEdit && !past ? () => togglePresence(c.id, selectedDay) : undefined}
+                    style={{background:cardBg, border:`1px solid ${cardBorder}`, cursor: canEdit && !past ? 'pointer' : 'help', ...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -547,7 +548,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           <span style={{fontSize:11, fontWeight:500, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}</span>
                         </span>
                       ) : (
-                        <button onClick={canEdit ? () => togglePresence(c.id, selectedDay) : undefined} className="flex items-center gap-1.5 rounded-full flex-shrink-0 transition-all duration-150" style={{
+                        <button onClick={canEdit ? (e) => { e.stopPropagation(); togglePresence(c.id, selectedDay); } : undefined} className="flex items-center gap-1.5 rounded-full flex-shrink-0 transition-all duration-150" style={{
                           padding: '5px 14px',
                           background: status === 'present' ? '#10b98130' : status === 'absent' ? '#ef444430' : '#f59e0b20',
                           border: `1px solid ${status === 'present' ? '#10b98160' : status === 'absent' ? '#ef444460' : '#f59e0b40'}`,

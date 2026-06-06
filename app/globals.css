@@ -236,6 +236,8 @@
   /* Light-mode: text-slate-200/300/400 are light greys authored for the dark
      page; on a light background they are near-invisible, so darken them to a
      readable hierarchy. (700/800/900 are handled in the dark block above.) */
+  [data-theme="light"] .text-slate-50  { color: #0f172a !important; }
+  [data-theme="light"] .text-slate-100 { color: #1e293b !important; }
   [data-theme="light"] .text-slate-200 { color: #334155 !important; }
   [data-theme="light"] .text-slate-300 { color: #475569 !important; }
   [data-theme="light"] .text-slate-400 { color: #64748b !important; }

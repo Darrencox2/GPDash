@@ -72,8 +72,8 @@ export default function SidePanel({ open, onClose, onBack, title, subtitle, acce
         className="flex flex-col h-full outline-none relative"
         style={{
           width: widthPx,
-          background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.98) 100%)',
-          borderLeft: `1px solid rgba(255,255,255,0.08)`,
+          background: 'var(--surface-solid)',
+          borderLeft: '1px solid var(--border)',
           boxShadow: '-8px 0 32px rgba(0,0,0,0.4)',
           backdropFilter: 'blur(24px) saturate(180%)',
           animation: 'sp-slide-in 0.2s cubic-bezier(0.32, 0.72, 0, 1)',
@@ -86,7 +86,7 @@ export default function SidePanel({ open, onClose, onBack, title, subtitle, acce
         {/* Header */}
         <div
           className="px-5 pt-4 pb-3 flex items-start justify-between flex-shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderBottom: '1px solid var(--border)' }}
         >
           {/* Optional back-arrow — when onBack is provided this renders
               before the title so the panel can act like a stage in a
