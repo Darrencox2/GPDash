@@ -82,7 +82,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
       )}
 
       <Card title="Public buddy cover page" status={fieldStatus('public', savingField, savedField)}>
-        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+        <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
           A public page anyone can view without signing in — for pasting into EMIS
           so staff can click through to today&apos;s allocations from there.
         </p>
@@ -98,10 +98,10 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
           marginBottom: 12,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--g-text-hi)' }}>
               {publicEnabled ? 'Public access enabled' : 'Public access disabled'}
             </div>
-            <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 2 }}>
               {publicEnabled
                 ? 'Anyone with the URL can view your buddy allocations.'
                 : 'Only signed-in members of this practice can view buddy allocations.'}
@@ -115,7 +115,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
               height: 28,
               borderRadius: 999,
               border: 'none',
-              background: publicEnabled ? '#14b8a6' : 'rgba(255,255,255,0.1)',
+              background: publicEnabled ? '#14b8a6' : 'var(--g-line)',
               position: 'relative',
               cursor: savingField === 'public' ? 'wait' : 'pointer',
               transition: 'background 0.15s',
@@ -146,7 +146,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
             marginBottom: 12,
             fontSize: 13,
           }}>
-            <div style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>Public URL</div>
+            <div style={{ color: 'var(--g-text-mid)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>Public URL</div>
             <a
               href={publicUrl}
               target="_blank"
@@ -175,7 +175,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
       </Card>
 
       <Card title="Workload weights" status={fieldStatus('weights', savingField, savedField)}>
-        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 18 }}>
+        <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 18 }}>
           Adjust how workload is calculated when balancing buddy cover allocations.
           Higher values make that type of cover count more towards a clinician's load.
         </p>
@@ -202,13 +202,13 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
       </Card>
 
       <Card title="How the algorithm works">
-        <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.7 }}>
-          <strong style={{ color: 'white' }}>Round-robin first.</strong> Everyone gets one allocation
+        <p style={{ fontSize: 14, color: 'var(--g-text-hi)', lineHeight: 1.7 }}>
+          <strong style={{ color: 'var(--g-text-hi)' }}>Round-robin first.</strong> Everyone gets one allocation
           before anyone gets two. Primary buddy is tried first, then secondary, then any eligible
           clinician.
         </p>
-        <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.7, marginTop: 12 }}>
-          <strong style={{ color: 'white' }}>Weighted tiebreaking.</strong> When multiple clinicians
+        <p style={{ fontSize: 14, color: 'var(--g-text-hi)', lineHeight: 1.7, marginTop: 12 }}>
+          <strong style={{ color: 'var(--g-text-hi)' }}>Weighted tiebreaking.</strong> When multiple clinicians
           have the same allocation count, the lowest weighted load wins.
         </p>
         <div style={{
@@ -239,8 +239,8 @@ function Slider({ label, description, value, min, max, step, onChange }) {
       marginBottom: 10,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>{label}</div>
-        <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{description}</div>
+        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--g-text-hi)' }}>{label}</div>
+        <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 2 }}>{description}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <input
@@ -254,15 +254,15 @@ function Slider({ label, description, value, min, max, step, onChange }) {
             width: 70,
             padding: '6px 10px',
             background: 'rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--g-line)',
             borderRadius: 6,
-            color: '#e2e8f0',
+            color: 'var(--g-text-hi)',
             fontSize: 15,
             fontWeight: 600,
             textAlign: 'center',
           }}
         />
-        <span style={{ fontSize: 13, color: '#64748b' }}>× sessions</span>
+        <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>× sessions</span>
       </div>
     </div>
   );
@@ -271,14 +271,14 @@ function Slider({ label, description, value, min, max, step, onChange }) {
 function Card({ title, status, children }) {
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--g-tile-2)',
+      border: '1px solid var(--g-border-2)',
       borderRadius: 12,
       padding: 18,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1' }}>{title}</h3>
-        {status === 'saving' && <span style={{ fontSize: 13, color: '#64748b' }}>Saving…</span>}
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)' }}>{title}</h3>
+        {status === 'saving' && <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>Saving…</span>}
         {status === 'saved' && <span style={{ fontSize: 13, color: '#34d399' }}>✓ Saved</span>}
       </div>
       {children}

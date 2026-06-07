@@ -60,9 +60,9 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
         style={{
           padding: '7px 14px',
           fontSize: 12,
-          color: '#cbd5e1',
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          color: 'var(--g-text-hi)',
+          background: 'var(--g-tile)',
+          border: '1px solid var(--g-line)',
           borderRadius: 6,
           cursor: 'pointer',
           fontWeight: 500,
@@ -93,7 +93,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
               </div>
             ) : (
               <>
-                <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
                   New owner
                 </label>
                 <select
@@ -102,10 +102,10 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--g-tile)',
+                    border: '1px solid var(--g-line)',
                     borderRadius: 8,
-                    color: '#e2e8f0',
+                    color: 'var(--g-text-hi)',
                     fontSize: 14,
                     marginBottom: 16,
                   }}
@@ -134,8 +134,8 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                   </div>
                 )}
 
-                <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-                  Type <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: 4, color: '#fde68a' }}>transfer</code> to confirm
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+                  Type <code style={{ background: 'var(--g-border)', padding: '1px 6px', borderRadius: 4, color: '#fde68a' }}>transfer</code> to confirm
                 </label>
                 <input
                   value={confirmText}
@@ -143,10 +143,10 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--g-tile)',
+                    border: '1px solid var(--g-line)',
                     borderRadius: 8,
-                    color: '#e2e8f0',
+                    color: 'var(--g-text-hi)',
                     fontSize: 14,
                     marginBottom: 16,
                     fontFamily: 'ui-monospace, Menlo, monospace',
@@ -191,8 +191,8 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
 }
 
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 };
-const modal = { background: '#0f172a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' };
-const closeBtn = { position: 'absolute', top: 14, right: 14, background: 'transparent', border: 'none', color: '#64748b', fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 4 };
-const modalTitle = { fontSize: 16, fontWeight: 600, color: 'white', marginBottom: 8, fontFamily: "'Outfit', sans-serif" };
-const modalDesc = { fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 };
-const btnSubtle = { padding: '8px 16px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const modal = { background: 'var(--surface-solid)', border: '1px solid var(--g-line)', borderRadius: 12, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' };
+const closeBtn = { position: 'absolute', top: 14, right: 14, background: 'transparent', border: 'none', color: 'var(--g-text-mid)', fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 4 };
+const modalTitle = { fontSize: 16, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 8, fontFamily: "'Outfit', sans-serif" };
+const modalDesc = { fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 };
+const btnSubtle = { padding: '8px 16px', background: 'var(--g-border)', color: 'var(--g-text-hi)', border: '1px solid var(--g-border-2)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };

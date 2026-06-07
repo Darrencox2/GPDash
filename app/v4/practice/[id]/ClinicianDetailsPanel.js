@@ -168,9 +168,9 @@ export default function ClinicianDetailsPanel({
         style={{
           width: 'min(540px, 100vw)',
           height: '100vh',
-          background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-          borderLeft: '1px solid rgba(255,255,255,0.08)',
-          color: '#cbd5e1',
+          background: 'linear-gradient(135deg, var(--g-ink), var(--g-ink-2))',
+          borderLeft: '1px solid var(--g-border-2)',
+          color: 'var(--g-text-hi)',
           fontFamily: "'DM Sans', sans-serif",
           overflowY: 'auto',
           animation: 'slideIn 0.18s ease-out',
@@ -180,9 +180,9 @@ export default function ClinicianDetailsPanel({
 
         <div style={{
           position: 'sticky', top: 0,
-          background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+          background: 'linear-gradient(135deg, var(--g-ink), var(--g-ink-2))',
           padding: '18px 22px 14px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid var(--g-border)',
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
           zIndex: 1,
         }}>
@@ -190,25 +190,25 @@ export default function ClinicianDetailsPanel({
             <div style={{
               width: 44, height: 44, borderRadius: '50%',
               background: 'rgba(148,163,184,0.15)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--g-line)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 600, fontSize: 14, color: '#e2e8f0',
+              fontWeight: 600, fontSize: 14, color: 'var(--g-text-hi)',
               flexShrink: 0,
             }}>
               {(local.initials || '?').toUpperCase()}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'var(--g-text-hi)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {local.title ? `${local.title} ${local.name}` : local.name}
               </div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 2 }}>
                 {local.role || 'Unassigned'} · {local.status === 'active' ? 'Active' : (local.status || 'active')}
               </div>
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" style={{
-            background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
-            color: '#94a3b8', borderRadius: 6,
+            background: 'transparent', border: '1px solid var(--g-line)',
+            color: 'var(--g-text-mid)', borderRadius: 6,
             fontSize: 18, padding: '4px 10px',
             cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
           }}>×</button>
@@ -257,7 +257,7 @@ export default function ClinicianDetailsPanel({
             <div style={{
               padding: 12,
               background: 'rgba(0,0,0,0.2)',
-              border: '1px solid rgba(255,255,255,0.05)',
+              border: '1px solid var(--g-tile)',
               borderRadius: 8,
               display: 'flex', flexDirection: 'column', gap: 8,
             }}>
@@ -266,7 +266,7 @@ export default function ClinicianDetailsPanel({
                   const row = workingPattern?.pattern?.[d.key] || {};
                   return (
                     <div key={d.key} style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{d.label}</div>
+                      <div style={{ fontSize: 10, color: 'var(--g-text-mid)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{d.label}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
                         <ReadOnlyHalf on={row.am === 'in'} label="AM" />
                         <ReadOnlyHalf on={row.pm === 'in'} label="PM" />
@@ -343,15 +343,15 @@ export default function ClinicianDetailsPanel({
                   return (
                     <div key={site.id} style={siteRowStyle}>
                       <SiteDot colour={site.colour} />
-                      <span style={{ fontSize: 12, color: '#cbd5e1', minWidth: 80 }}>{site.name}</span>
-                      <span style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>No clinical rooms configured</span>
+                      <span style={{ fontSize: 12, color: 'var(--g-text-hi)', minWidth: 80 }}>{site.name}</span>
+                      <span style={{ fontSize: 11, color: 'var(--g-text-mid)', fontStyle: 'italic' }}>No clinical rooms configured</span>
                     </div>
                   );
                 }
                 return (
                   <div key={site.id} style={siteRowStyle}>
                     <SiteDot colour={site.colour} />
-                    <span style={{ fontSize: 12, color: '#cbd5e1', minWidth: 80 }}>{site.name}</span>
+                    <span style={{ fontSize: 12, color: 'var(--g-text-hi)', minWidth: 80 }}>{site.name}</span>
                     <select value={prefs.preferred || ''} onChange={e => updateRoomPref(site.id, 'preferred', e.target.value)} style={{ ...selectStyle, flex: 1, fontSize: 11 }}>
                       <option value="">No preferred room</option>
                       {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -382,7 +382,7 @@ export default function ClinicianDetailsPanel({
           </Section>
 
           {/* Save indicator */}
-          <div style={{ fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b'), textAlign: 'right' }}>
+          <div style={{ fontSize: 11, color: saving ? 'var(--g-text-mid)' : (savedAt ? '#10b981' : 'var(--g-text-mid)'), textAlign: 'right' }}>
             {error
               ? <span style={{ color: '#fca5a5' }}>{error}</span>
               : (saving ? 'Saving…' : (savedAt ? '✓ All changes saved' : 'Edits save automatically'))
@@ -400,14 +400,14 @@ const inputStyle = {
   padding: '7px 10px',
   fontSize: 13,
   background: 'rgba(0,0,0,0.25)',
-  border: '1px solid rgba(255,255,255,0.1)',
+  border: '1px solid var(--g-line)',
   borderRadius: 5,
-  color: '#e2e8f0',
+  color: 'var(--g-text-hi)',
   outline: 'none',
   fontFamily: 'inherit',
 };
 const selectStyle = { ...inputStyle, cursor: 'pointer' };
-const hint = { margin: 0, fontSize: 11, color: '#64748b', lineHeight: 1.5 };
+const hint = { margin: 0, fontSize: 11, color: 'var(--g-text-mid)', lineHeight: 1.5 };
 const siteRowStyle = {
   display: 'flex', alignItems: 'center', gap: 8,
   padding: '6px 10px',
@@ -420,7 +420,7 @@ function Section({ label, children }) {
     <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <h3 style={{
         margin: 0,
-        fontSize: 11, fontWeight: 600, color: '#94a3b8',
+        fontSize: 11, fontWeight: 600, color: 'var(--g-text-mid)',
         textTransform: 'uppercase', letterSpacing: 0.6,
       }}>{label}</h3>
       {children}
@@ -430,7 +430,7 @@ function Section({ label, children }) {
 function Field({ label, children }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 11, color: '#64748b' }}>{label}</span>
+      <span style={{ fontSize: 11, color: 'var(--g-text-mid)' }}>{label}</span>
       {children}
     </label>
   );
@@ -439,7 +439,7 @@ function SiteDot({ colour }) {
   return (
     <span style={{
       width: 10, height: 10, borderRadius: '50%',
-      background: colour || '#94a3b8',
+      background: colour || 'var(--g-text-mid)',
       flexShrink: 0,
     }} />
   );
@@ -451,7 +451,7 @@ function ReadOnlyHalf({ on, label }) {
       style={{
         width: 22, height: 14,
         background: on ? '#10b981' : 'transparent',
-        border: `1.5px solid ${on ? '#10b981' : 'rgba(255,255,255,0.18)'}`,
+        border: `1.5px solid ${on ? '#10b981' : 'var(--g-line)'}`,
         borderRadius: 3,
         boxShadow: on ? '0 0 4px rgba(16,185,129,0.4)' : 'none',
       }}
@@ -472,7 +472,7 @@ function AliasEditor({ aliases, onAdd, onRemove }) {
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
         {aliases.length === 0 && (
-          <span style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>No aliases yet</span>
+          <span style={{ fontSize: 11, color: 'var(--g-text-mid)', fontStyle: 'italic' }}>No aliases yet</span>
         )}
         {aliases.map(a => (
           <span key={a} style={{
@@ -501,10 +501,10 @@ function AliasEditor({ aliases, onAdd, onRemove }) {
         />
         <button onClick={submit} disabled={!draft.trim()} style={{
           padding: '6px 14px',
-          background: draft.trim() ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
-          border: '1px solid ' + (draft.trim() ? 'rgba(34,211,238,0.30)' : 'rgba(255,255,255,0.1)'),
+          background: draft.trim() ? 'rgba(34,211,238,0.15)' : 'var(--g-tile)',
+          border: '1px solid ' + (draft.trim() ? 'rgba(34,211,238,0.30)' : 'var(--g-line)'),
           borderRadius: 5,
-          color: draft.trim() ? '#67e8f9' : '#64748b',
+          color: draft.trim() ? '#67e8f9' : 'var(--g-text-mid)',
           fontSize: 12, fontWeight: 500,
           cursor: draft.trim() ? 'pointer' : 'not-allowed',
           fontFamily: 'inherit',
