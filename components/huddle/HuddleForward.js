@@ -927,7 +927,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     autoFocus
                     placeholder="e.g. Dr Smith locum AM · training pm · expecting surge"
                     className="w-full text-[12px] text-slate-200 rounded p-2 resize-none"
-                    style={{background:'rgba(0,0,0,0.25)',border:'1px solid rgba(251,191,36,0.25)',outline:'none'}}
+                    style={{background:'var(--g-field)',border:'1px solid rgba(251,191,36,0.25)',outline:'none'}}
                   />
                   <div className="flex items-center gap-2">
                     <button onClick={()=>saveAnnotation(detailDay.isoKey)} disabled={annSaving} className="text-[11px] font-semibold px-3 py-1.5 rounded" style={{background:'#f59e0b',color:'#1e293b',border:'none',cursor:annSaving?'default':'pointer',opacity:annSaving?0.6:1}}>

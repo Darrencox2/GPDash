@@ -731,7 +731,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                                   onChange={e => setNoteDraft(e.target.value)}
                                   placeholder="Note for this day..."
                                   className="w-full rounded-md p-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                                  style={{background:'rgba(0,0,0,0.2)',border:'1px solid var(--g-border)',color:'var(--g-text-hi)',minHeight:50}}
+                                  style={{background:'var(--g-field)',border:'1px solid var(--g-border)',color:'var(--g-text-hi)',minHeight:50}}
                                   autoFocus
                                 />
                                 <div className="flex gap-1.5 mt-1.5">

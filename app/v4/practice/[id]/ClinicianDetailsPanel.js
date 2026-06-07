@@ -256,7 +256,7 @@ export default function ClinicianDetailsPanel({
           <Section label={`Working pattern (${sessionsFromPattern} session${sessionsFromPattern === 1 ? '' : 's'}/week)`}>
             <div style={{
               padding: 12,
-              background: 'rgba(0,0,0,0.2)',
+              background: 'var(--g-field)',
               border: '1px solid var(--g-tile)',
               borderRadius: 8,
               display: 'flex', flexDirection: 'column', gap: 8,
@@ -399,7 +399,7 @@ const inputStyle = {
   width: '100%',
   padding: '7px 10px',
   fontSize: 13,
-  background: 'rgba(0,0,0,0.25)',
+  background: 'var(--g-field)',
   border: '1px solid var(--g-line)',
   borderRadius: 5,
   color: 'var(--g-text-hi)',
@@ -411,7 +411,7 @@ const hint = { margin: 0, fontSize: 11, color: 'var(--g-text-mid)', lineHeight: 
 const siteRowStyle = {
   display: 'flex', alignItems: 'center', gap: 8,
   padding: '6px 10px',
-  background: 'rgba(0,0,0,0.15)',
+  background: 'var(--g-field)',
   borderRadius: 6,
 };
 

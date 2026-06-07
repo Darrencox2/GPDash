@@ -60,7 +60,7 @@ export default function SidePanel({ open, onClose, onBack, title, subtitle, acce
       {/* Scrim — click anywhere outside to close */}
       <div
         className="flex-1"
-        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}
+        style={{ background: 'var(--g-field)', backdropFilter: 'blur(2px)' }}
         onClick={onClose}
       />
       {/* Panel */}

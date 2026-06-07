@@ -93,7 +93,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
           justifyContent: 'space-between',
           gap: 14,
           padding: 14,
-          background: 'rgba(0,0,0,0.2)',
+          background: 'var(--g-field)',
           borderRadius: 8,
           marginBottom: 12,
         }}>
@@ -214,7 +214,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
         <div style={{
           marginTop: 14,
           padding: 12,
-          background: 'rgba(0,0,0,0.25)',
+          background: 'var(--g-field)',
           borderRadius: 8,
           fontSize: 14,
           color: '#a5b4fc',
@@ -234,7 +234,7 @@ function Slider({ label, description, value, min, max, step, onChange }) {
       alignItems: 'center',
       gap: 14,
       padding: 14,
-      background: 'rgba(0,0,0,0.2)',
+      background: 'var(--g-field)',
       borderRadius: 8,
       marginBottom: 10,
     }}>
@@ -253,7 +253,7 @@ function Slider({ label, description, value, min, max, step, onChange }) {
           style={{
             width: 70,
             padding: '6px 10px',
-            background: 'rgba(0,0,0,0.3)',
+            background: 'var(--g-field)',
             border: '1px solid var(--g-line)',
             borderRadius: 6,
             color: 'var(--g-text-hi)',

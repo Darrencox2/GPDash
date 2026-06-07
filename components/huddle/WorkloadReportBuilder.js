@@ -58,7 +58,7 @@ function ChipGroup({ options, selected, onChange, allLabel = 'Any', allowAll = t
 
 function Segmented({ options, value, onChange, disabledIds = [] }) {
   return (
-    <div className="flex flex-wrap" style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 6, padding: 2, gap: 2 }}>
+    <div className="flex flex-wrap" style={{ background: 'var(--g-field)', borderRadius: 6, padding: 2, gap: 2 }}>
       {options.map(o => {
         const active = value === o.id, disabled = disabledIds.includes(o.id);
         return (
@@ -79,14 +79,14 @@ function MultiSelect({ label, options, selected, onChange }) {
   return (
     <div>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between text-xs rounded-md px-2 py-1.5"
-        style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${sel.length ? 'rgba(99,102,241,0.5)' : 'var(--g-line)'}`, color: 'var(--g-text-hi)' }}>
+        style={{ background: 'var(--g-field)', border: `1px solid ${sel.length ? 'rgba(99,102,241,0.5)' : 'var(--g-line)'}`, color: 'var(--g-text-hi)' }}>
         <span>{label}{sel.length ? ` · ${sel.length}` : ''}</span><span className="text-slate-500">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="mt-1 rounded-md p-2 space-y-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-border-2)' }}>
+        <div className="mt-1 rounded-md p-2 space-y-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)' }}>
           <div className="flex items-center gap-1">
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" className="flex-1 text-xs rounded px-2 py-1"
-              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
+              style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
             {sel.length > 0 && <button onClick={() => onChange([])} className="text-xs text-slate-400 px-1">Clear</button>}
           </div>
           <div className="max-h-40 overflow-y-auto space-y-0.5">
@@ -568,7 +568,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             {showSaveBox && canEdit && (
               <div className="flex items-center gap-2 mt-2">
                 <input value={newReportName} onChange={e => setNewReportName(e.target.value)} placeholder="Name this report…" className="flex-1 max-w-xs text-xs rounded px-2 py-1.5"
-                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
+                  style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
                 <button onClick={saveAsNew} disabled={savingReport || !newReportName.trim()} className="text-xs px-3 py-1.5 rounded" style={{ background: '#10b981', color: '#06281e', border: 'none', opacity: (savingReport || !newReportName.trim()) ? 0.5 : 1 }}>{savingReport ? '…' : 'Save'}</button>
               </div>
             )}
@@ -619,7 +619,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               </>
             )}
             <div className="text-xs text-slate-500 font-medium mt-2">Show as</div>
-            <select value={denomMode} onChange={e => setDenomMode(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
+            <select value={denomMode} onChange={e => setDenomMode(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
               <option value="none" style={{ background: 'var(--surface-2)' }}>Count (raw number)</option>
               <option value="group" style={{ background: 'var(--surface-2)' }}>% of each group&rsquo;s total</option>
               <option value="total" style={{ background: 'var(--surface-2)' }}>% of overall total (share)</option>
@@ -652,11 +652,11 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
           <StepSection n="2" title="Break down">
             <div className="text-xs text-slate-600">Group by</div>
-            <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
+            <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
               {groupByOpts.map(o => <option key={o.id} value={o.id} style={{ background: 'var(--surface-2)' }}>{o.label}</option>)}
             </select>
             <div className="text-xs text-slate-600 mt-1">Compare by (series)</div>
-            <select value={splitBy} onChange={e => setSplitBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
+            <select value={splitBy} onChange={e => setSplitBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
               {splitByOpts.filter(o => o.id !== groupBy).map(o => <option key={o.id} value={o.id} style={{ background: 'var(--surface-2)' }}>{o.label}</option>)}
             </select>
           </StepSection>
@@ -679,20 +679,20 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <input type="number" min="0" max="104" value={range.backWeeks}
                       onChange={e => setRange(r => ({ ...r, backWeeks: Math.max(0, parseInt(e.target.value) || 0) }))}
-                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
+                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
                     <span className="text-xs text-slate-500">weeks back →</span>
                     <input type="number" min="0" max="104" value={range.fwdWeeks}
                       onChange={e => setRange(r => ({ ...r, fwdWeeks: Math.max(0, parseInt(e.target.value) || 0) }))}
-                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
+                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
                     <span className="text-xs text-slate-500">weeks ahead</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 flex-wrap">
                     <input type="date" value={range.from || ''} onChange={e => setRange(r => ({ ...r, from: e.target.value }))}
-                      className="text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none', colorScheme: 'dark' }} />
+                      className="text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none', colorScheme: 'dark' }} />
                     <span className="text-xs text-slate-500">to</span>
                     <input type="date" value={range.to || ''} onChange={e => setRange(r => ({ ...r, to: e.target.value }))}
-                      className="text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none', colorScheme: 'dark' }} />
+                      className="text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none', colorScheme: 'dark' }} />
                   </div>
                 )}
                 <div className="text-xs text-slate-500">{rangeLabel(range)}</div>
@@ -708,9 +708,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 {condMode === 'custom' && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500">Red ≤</span>
-                    <input value={condLow} onChange={e => setCondLow(e.target.value)} placeholder="low" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--g-text-hi)', outline: 'none' }} />
+                    <input value={condLow} onChange={e => setCondLow(e.target.value)} placeholder="low" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--g-text-hi)', outline: 'none' }} />
                     <span className="text-xs text-slate-500">Green ≥</span>
-                    <input value={condHigh} onChange={e => setCondHigh(e.target.value)} placeholder="high" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(16,185,129,0.4)', color: 'var(--g-text-hi)', outline: 'none' }} />
+                    <input value={condHigh} onChange={e => setCondHigh(e.target.value)} placeholder="high" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid rgba(16,185,129,0.4)', color: 'var(--g-text-hi)', outline: 'none' }} />
                   </div>
                 )}
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -740,7 +740,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               {refOn && (
                 <div className="pl-5 flex items-center gap-2">
                   <Segmented options={[{ id: 'auto', label: result.isRatio ? 'Fair share' : 'Average' }, { id: 'custom', label: 'Custom' }]} value={refMode} onChange={setRefMode} />
-                  {refMode === 'custom' && <input value={refCustom} onChange={e => setRefCustom(e.target.value)} placeholder="value" className="w-16 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />}
+                  {refMode === 'custom' && <input value={refCustom} onChange={e => setRefCustom(e.target.value)} placeholder="value" className="w-16 text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />}
                 </div>
               )}
             </Collapsible>
