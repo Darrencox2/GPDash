@@ -561,7 +561,7 @@ export default function WorkforcePlanner({ data, toast }) {
       {/* Week toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 13, color: 'var(--text-3)' }}>Showing</span>
-        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
+        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--g-field)', borderRadius: 8 }}>
           {['a', 'b'].map(w => <button key={w} onClick={() => setViewWeek(w)} style={{ ...S.toggle, background: viewWeek === w ? 'var(--accent)' : 'transparent', color: viewWeek === w ? '#fff' : 'var(--text-3)' }}>Week {w.toUpperCase()}</button>)}
         </div>
         <span style={{ fontSize: 12, color: 'var(--text-4)' }}>only activities alternate — staff work the same each week</span>
@@ -853,7 +853,7 @@ function AddStaffModal({ roles, onClose, onAdd }) {
       <input type="text" value={name} placeholder="e.g. Dr Locum" autoFocus onChange={e => setName(e.target.value)} style={S.input} />
       <p style={S.modalLabel}>Role</p>
       <select value={role} onChange={e => setRole(e.target.value)} style={{ ...S.input, appearance: 'auto' }}>
-        {roles.map(r => <option key={r} value={r} style={{ background: '#1e293b' }}>{r}</option>)}
+        {roles.map(r => <option key={r} value={r} style={{ background: 'var(--surface-solid)' }}>{r}</option>)}
       </select>
       <p style={S.modalLabel}>Contracted sessions <span style={{ color: 'var(--text-4)', textTransform: 'none', letterSpacing: 0 }}>(leave blank for ad-hoc / locum)</span></p>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 1fr)', gap: 4, alignItems: 'center', marginBottom: 6 }}>
