@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
+import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
 import { getCliniciansForDate } from '@/lib/huddle';
 import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
@@ -389,8 +389,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
           <div className="text-sm font-semibold text-white">{formatWeekRange(selectedWeek)}</div>
           <div className="flex items-center gap-2">
-            {selectedWeek.getTime() !== getWeekStart(new Date()).getTime() && (
-              <button onClick={() => { setSelectedWeek(getWeekStart(new Date())); setSelectedDay(getCurrentDay()); }} className="text-xs text-white/70 hover:text-white font-medium">This week</button>
+            {selectedWeek.getTime() !== getActiveWeekStart().getTime() && (
+              <button onClick={() => { setSelectedWeek(getActiveWeekStart()); setSelectedDay(getCurrentDay()); }} className="text-xs text-white/70 hover:text-white font-medium">This week</button>
             )}
             <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
           </div>

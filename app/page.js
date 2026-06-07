@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { DAYS, getWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
+import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LoginScreen from '@/components/LoginScreen';
@@ -35,7 +35,7 @@ function AppContent() {
   const [data, setData] = useState(null);
   const [dataVersion, setDataVersion] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [selectedWeek, setSelectedWeek] = useState(() => getWeekStart(new Date()));
+  const [selectedWeek, setSelectedWeek] = useState(() => getActiveWeekStart());
   const [selectedDay, setSelectedDay] = useState(() => getCurrentDay());
   const [activeSection, setActiveSection] = useState(() => typeof window !== 'undefined' && window.location.hash.startsWith('#rota-') ? 'huddle-rota' : 'huddle-today');
   const [syncStatus, setSyncStatus] = useState('');

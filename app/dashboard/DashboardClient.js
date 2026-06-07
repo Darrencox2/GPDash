@@ -18,7 +18,7 @@
 import { Suspense, lazy } from 'react';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DAYS, getWeekStart, getCurrentDay, generateBuddyAllocations, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
+import { DAYS, getWeekStart, getActiveWeekStart, getCurrentDay, generateBuddyAllocations, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { ToastProvider, useToast, PageSkeleton } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
@@ -138,7 +138,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   const [allPractices, setAllPractices] = useState(() => initialData?._v4?.practices || []);
   const [dataVersion, setDataVersion] = useState(0);
   const [loading, setLoading] = useState(!initialData);
-  const [selectedWeek, setSelectedWeek] = useState(() => getWeekStart(new Date()));
+  const [selectedWeek, setSelectedWeek] = useState(() => getActiveWeekStart());
   const [selectedDay, setSelectedDay] = useState(() => getCurrentDay());
   const [activeSection, setActiveSection] = useState('huddle-today');
   // Pick up `?section=X` after hydration. The previous useState initializer
