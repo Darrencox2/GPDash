@@ -103,7 +103,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
     return { entries, avg, max };
   }, [clinicians, clinicianData]);
 
-  const filtered = search.length > 0 ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || (c.initials && c.initials.toLowerCase().includes(search.toLowerCase()))) : [];
+  const filtered = search.length > 0 ? clinicians.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || (c.initials && c.initials.toLowerCase().includes(search.toLowerCase()))).sort((a, b) => a.name.localeCompare(b.name)) : [];
   const showList = search.length > 0 && !selected && filtered.length > 0;
 
   const selectClinician = (c) => { setSelectedId(c.id); setSearch(''); };
@@ -127,7 +127,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
     const diff = comparison.avg > 0 ? Math.round(((cd.total - comparison.avg) / comparison.avg) * 100) : 0;
     if (diff > 5) parts.push({ text: `+${diff}% above average`, colour: '#34d399' });
     else if (diff < -5) parts.push({ text: `${diff}% below average`, colour: '#f87171' });
-    else parts.push({ text: 'Near average', colour: '#94a3b8' });
+    else parts.push({ text: 'Near average', colour: 'var(--g-text-mid)' });
 
     parts.push({ text: `Booking rate ${bookingRate}%`, colour: bookingRate > 85 ? '#f87171' : bookingRate > 70 ? '#fbbf24' : '#34d399' });
 
@@ -147,8 +147,8 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
   if (!huddleData) return null;
 
   return (
-    <div className="rounded-xl" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="flex items-center justify-between" style={{ background: 'rgba(15,23,42,0.85)', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px 12px 0 0' }}>
+    <div className="rounded-xl" style={{ background: 'var(--g-panel)', border: '1px solid var(--g-border)' }}>
+      <div className="flex items-center justify-between" style={{ background: 'var(--g-panel-2)', padding: '14px 16px', borderBottom: '1px solid var(--g-tile)', borderRadius: '12px 12px 0 0' }}>
         <div>
           <div className="font-heading text-base font-medium text-slate-200">Clinician capacity</div>
           <div className="text-sm text-slate-600">Routine slots · 28-day forward view</div>
@@ -162,11 +162,11 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
           onChange={e => { setSearch(e.target.value); setSelectedId(null); }}
           placeholder="Search clinician..."
           className="w-full px-3 py-2.5 rounded-lg text-base focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#e2e8f0' }}
+          style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }}
         />
 
         {showList && (
-          <div className="absolute left-4 right-4 top-full mt-1 rounded-lg overflow-hidden max-h-48 overflow-y-auto" style={{ background: '#1e293b', border: '1px solid #334155', boxShadow: '0 10px 30px rgba(0,0,0,0.4)', zIndex: 50 }}>
+          <div className="absolute left-4 right-4 top-full mt-1 rounded-lg overflow-hidden max-h-48 overflow-y-auto" style={{ background: 'var(--surface-solid)', border: '1px solid var(--g-divider)', boxShadow: '0 10px 30px rgba(0,0,0,0.4)', zIndex: 50 }}>
             {filtered.map(c => {
               const d = clinicianData[c.id];
               return (
@@ -189,7 +189,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
 
       {/* Detail panel */}
       {selected && (
-        <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid var(--g-tile)' }}>
           {/* Clinician header */}
           <div className="flex items-center gap-3 pt-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center text-base font-bold text-white flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", background: selected.group === 'gp' ? '#3b82f6' : selected.group === 'nursing' ? '#10b981' : '#a855f7' }}>{selected.initials}</div>
@@ -283,10 +283,10 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
                 const avgW = comparison.max > 0 ? (comparison.avg / comparison.max) * 100 : 0;
                 return (
                   <div key={e.id} className="flex items-center gap-2 py-1 px-2 rounded-md" style={{ background: isSel ? 'rgba(16,185,129,0.06)' : 'transparent' }}>
-                    <span className="text-sm font-bold w-7 text-right flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", color: isSel ? '#34d399' : '#64748b' }}>{e.initials}</span>
-                    <div className="flex-1 h-4 rounded overflow-hidden relative" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <span className="text-sm font-bold w-7 text-right flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", color: isSel ? '#34d399' : 'var(--g-text-mid)' }}>{e.initials}</span>
+                    <div className="flex-1 h-4 rounded overflow-hidden relative" style={{ background: 'var(--g-tile)' }}>
                       <div className="h-full rounded" style={{ width: `${barW}%`, background: aboveAvg ? 'rgba(16,185,129,0.4)' : 'rgba(245,158,11,0.4)' }} />
-                      <div className="absolute top-0 bottom-0 w-px" style={{ left: `${avgW}%`, background: '#e2e8f0' }} />
+                      <div className="absolute top-0 bottom-0 w-px" style={{ left: `${avgW}%`, background: 'var(--g-text-hi)' }} />
                     </div>
                     <span className="text-sm font-bold w-7 text-right flex-shrink-0 font-mono-data" style={{ color: aboveAvg ? '#34d399' : '#fbbf24' }}>{e.total}</span>
                   </div>
@@ -294,7 +294,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
               })}
             </div>
             <div className="flex items-center gap-3 mt-2 text-sm text-slate-600">
-              <span className="flex items-center gap-1"><span className="w-2 h-px" style={{ background: '#e2e8f0' }} />Avg ({comparison.avg})</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-px" style={{ background: 'var(--g-text-hi)' }} />Avg ({comparison.avg})</span>
               <span style={{ color: '#34d399' }}>Above avg</span>
               <span style={{ color: '#fbbf24' }}>Below avg</span>
             </div>
@@ -302,7 +302,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
 
           {/* Insight */}
           {insight && (
-            <div className="rounded-lg px-3 py-2.5 flex flex-wrap gap-2" style={{ background: 'rgba(255,255,255,0.03)', borderLeft: '3px solid #10b981' }}>
+            <div className="rounded-lg px-3 py-2.5 flex flex-wrap gap-2" style={{ background: 'var(--g-tile-2)', borderLeft: '3px solid #10b981' }}>
               {insight.map((p, i) => (
                 <span key={i} className="text-sm" style={{ color: p.colour, fontWeight: 500 }}>{p.text}{i < insight.length - 1 ? ' · ' : ''}</span>
               ))}
