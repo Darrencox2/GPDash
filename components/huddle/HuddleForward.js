@@ -12,7 +12,7 @@ import { createClient } from '@/utils/supabase/client';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const VB = { over:{bg:'#3b82f6',text:'#fff'}, good:{bg:'#10b981',text:'#fff'}, tight:{bg:'#f59e0b',text:'#fff'}, short:{bg:'#ef4444',text:'#fff'}, none:{bg:'#475569',text:'#94a3b8'} };
+const VB = { over:{bg:'#3b82f6',text:'#fff'}, good:{bg:'#10b981',text:'#fff'}, tight:{bg:'#f59e0b',text:'#fff'}, short:{bg:'#ef4444',text:'#fff'}, none:{bg:'var(--g-text-faint)',text:'var(--g-text-mid)'} };
 function vBand(s,t) { if(t<=0)return VB.none; const p=(s/t)*100; return p>=120?VB.over:p>=90?VB.good:p>=80?VB.tight:VB.short; }
 
 // DOW-relative demand colouring. Caller passes the per-practice dow-specific
@@ -20,7 +20,7 @@ function vBand(s,t) { if(t<=0)return VB.none; const p=(s/t)*100; return p>=120?V
 // or the list-size-scaled fallback if not). Earlier this used the raw
 // Winscombe-shaped BASELINE + DOW_EFFECTS constants for every practice.
 function dowDemandColour(predicted, dowBaseline) {
-  if (!predicted || !dowBaseline || dowBaseline <= 0) return { bg: '#475569', text: '#fff', label: '–' };
+  if (!predicted || !dowBaseline || dowBaseline <= 0) return { bg: 'var(--g-text-faint)', text: '#fff', label: '–' };
   const ratio = predicted / dowBaseline;
   if (ratio <= 0.9) return { bg: '#0ea5e9', text: '#fff', label: 'Low' };
   if (ratio <= 1.1) return { bg: '#10b981', text: '#fff', label: 'Normal' };
@@ -102,7 +102,7 @@ function PredictionBand({ day, convRate }) {
             const sign = tf.effect > 0 ? '+' : '';
             const colour = tf.effect > 0 ? '#fbbf24' : '#34d399';
             return (
-              <span key={i} className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <span key={i} className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)' }}>
                 <span className="text-slate-400">{tf.label}</span>
                 <span className="ml-1 font-mono-data font-bold" style={{ color: colour }}>{sign}{Math.round(tf.effect)}</span>
               </span>
@@ -122,17 +122,17 @@ function DonutGauge({ avail, emb, booked }) {
   return (
     <div className="flex items-center gap-4">
       <svg viewBox="0 0 80 80" style={{width:68,height:68,flexShrink:0}}>
-        <circle cx="40" cy="40" r={r} fill="none" stroke="#334155" strokeWidth="8"/>
+        <circle cx="40" cy="40" r={r} fill="none" style={{stroke:'var(--g-divider)'}} strokeWidth="8"/>
         <circle cx="40" cy="40" r={r} fill="none" stroke="#10b981" strokeWidth="8" strokeDasharray={`${aLen} ${c}`} strokeDashoffset="0" transform="rotate(-90 40 40)"/>
         <circle cx="40" cy="40" r={r} fill="none" stroke="#f59e0b" strokeWidth="8" strokeDasharray={`${eLen} ${c}`} strokeDashoffset={`${-aLen}`} transform="rotate(-90 40 40)"/>
         <circle cx="40" cy="40" r={r} fill="none" stroke="#ef4444" strokeWidth="8" strokeDasharray={`${bLen} ${c}`} strokeDashoffset={`${-(aLen+eLen)}`} transform="rotate(-90 40 40)"/>
-        <text x="40" y="38" textAnchor="middle" fill="#e2e8f0" style={{fontSize:14,fontWeight:800}}>{total}</text>
-        <text x="40" y="49" textAnchor="middle" fill="#64748b" style={{fontSize:8}}>total</text>
+        <text x="40" y="38" textAnchor="middle" style={{fill:'var(--g-text-hi)',fontSize:14,fontWeight:800}}>{total}</text>
+        <text x="40" y="49" textAnchor="middle" style={{fontSize:8, fill:'var(--g-text-mid)'}}>total</text>
       </svg>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/><span className="text-[11px] text-slate-400">Available</span><span className="text-xs font-bold text-emerald-400 ml-auto">{avail}</span></div>
         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}}/><span className="text-[11px] text-slate-400">Embargoed</span><span className="text-xs font-bold text-amber-400 ml-auto">{emb}</span></div>
-        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444'}}/><span className="text-[11px] text-slate-400">Booked</span><span className="text-xs font-bold text-red-400 ml-auto">{booked}</span></div>
+        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,var(--g-label) 1px,var(--g-label) 1.8px),#ef4444'}}/><span className="text-[11px] text-slate-400">Booked</span><span className="text-xs font-bold text-red-400 ml-auto">{booked}</span></div>
       </div>
     </div>
   );
@@ -197,7 +197,7 @@ function WeeklyRoutineBullet({ wk, rTarget }) {
       </div>
       <div className="relative" style={{height: 10}}>
         {/* Track */}
-        <div className="absolute inset-0 rounded-sm" style={{background: 'rgba(255,255,255,0.06)'}}/>
+        <div className="absolute inset-0 rounded-sm" style={{background: 'var(--g-border)'}}/>
         {/* Comfort band — dashed-edge tinted zone around target */}
         <div className="absolute top-0 bottom-0" style={{left: `${comfortLowPct}%`, right: `${100 - comfortHighPct}%`, background: 'rgba(16,185,129,0.13)', borderLeft: '1px dashed rgba(16,185,129,0.35)', borderRight: '1px dashed rgba(16,185,129,0.35)'}}/>
         {/* Offered bar — primary, lighter fill of the band colour */}
@@ -471,7 +471,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
   const updateTarget=v=>saveData({...data,huddleSettings:{...hs,routineWeeklyTarget:parseInt(v)||0}},false);
 
-  if(!huddleData)return<div className="rounded-xl p-12 text-center" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}><h2 className="text-lg font-semibold text-white mb-2" style={{fontFamily:"'Outfit',sans-serif"}}>Upload appointment report</h2><p className="text-sm text-slate-500">Upload a CSV on the Today page first.</p></div>;
+  if(!huddleData)return<div className="rounded-xl p-12 text-center" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}><h2 className="text-lg font-semibold text-white mb-2" style={{fontFamily:"'Outfit',sans-serif"}}>Upload appointment report</h2><p className="text-sm text-slate-500">Upload a CSV on the Today page first.</p></div>;
 
   const DutyPill = ({doc,colour,bgTint,borderCol}) => {
     if(!doc) return null;
@@ -483,7 +483,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   };
 
   return (
-    <div className="-m-4 lg:-m-6 min-h-screen" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
+    <div className="-m-4 lg:-m-6 min-h-screen" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 50%, var(--g-ink) 100%)'}}>
       <div className="max-w-[1500px] mx-auto px-3 py-4 sm:p-4 lg:p-6 space-y-4">
 
       {/* ═══ DESKTOP LAYOUT — calendar (left) + side panel (right) ═══ */}
@@ -497,10 +497,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       <div className="hidden lg:block space-y-4">
 
         {/* ─── LEFT: calendar ─── */}
-        <div ref={calendarRef} className="rounded-2xl overflow-hidden" style={{background:'rgba(15,23,42,0.55)',border:'1px solid rgba(255,255,255,0.06)'}}>
+        <div ref={calendarRef} className="rounded-2xl overflow-hidden" style={{background:'var(--g-panel)',border:'1px solid var(--g-border)'}}>
           {/* Calendar header: title + slot filter cogs */}
           <div className="px-5 py-4 flex items-center gap-2 border-b border-white/10">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             <span className="text-base font-semibold text-white font-heading">Capacity planning</span>
             <span className="text-xs text-slate-500 ml-2">6-week forward view</span>
             <div className="ml-auto flex items-center gap-2">
@@ -553,7 +553,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 );
                 if(!d.hasData) return (
                   <div key={di} className="p-2 border-l border-white/5">
-                    <div className="rounded-lg h-full flex items-center justify-center" style={{background:'rgba(255,255,255,0.03)'}}>
+                    <div className="rounded-lg h-full flex items-center justify-center" style={{background:'var(--g-tile-2)'}}>
                       <span className="text-[10px] text-slate-600">No data</span>
                     </div>
                   </div>
@@ -600,7 +600,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         borderLeft: d.isToday?'3px solid #10b981':'3px solid transparent',
                         outline: sel?'2px solid #6366f1':'none',
                         outlineOffset: -1,
-                        background: sel?'rgba(99,102,241,0.18)':(d.isPast?'rgba(255,255,255,0.02)':'rgba(255,255,255,0.03)'),
+                        background: sel?'rgba(99,102,241,0.18)':(d.isPast?'var(--g-tile-2)':'var(--g-tile-2)'),
                         opacity: d.isPast?0.5:1,
                         filter: d.isPast?'saturate(0.4)':'none',
                         border: 'none'
@@ -658,8 +658,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             exclusive with the day detail drawer — picking a marker
             clears any selected day. Days inside an expanded list are
             clickable and switch to the day drawer. */}
-        <div className="rounded-2xl overflow-hidden" style={{background:'rgba(15,23,42,0.55)',border:'1px solid rgba(255,255,255,0.06)'}}>
-          <div className="grid grid-cols-5 gap-2 p-3" style={{borderBottom: selectedMarker ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
+        <div className="rounded-2xl overflow-hidden" style={{background:'var(--g-panel)',border:'1px solid var(--g-border)'}}>
+          <div className="grid grid-cols-5 gap-2 p-3" style={{borderBottom: selectedMarker ? '1px solid var(--g-border)' : 'none'}}>
             {/* Urgent below target */}
             {(() => {
               const isActive = selectedMarker === 'short';
@@ -671,7 +671,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: isActive ? '#fca5a5' : '#e2e8f0'}}>Urgent below target</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? '#fca5a5' : 'var(--g-text-hi)'}}>Urgent below target</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">{shortDays.length} day{shortDays.length===1?'':'s'} flagged</div>
                   </div>
                   <span className="text-base font-bold text-red-400 font-mono-data">{shortDays.length}</span>
@@ -689,7 +689,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: isActive ? '#fcd34d' : '#e2e8f0'}}>Highest demand days</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? '#fcd34d' : 'var(--g-text-hi)'}}>Highest demand days</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">Top {Math.min(topDemand.length,5)} predicted-busiest</div>
                   </div>
                   <span className="text-base font-bold text-amber-400 font-mono-data">{topDemand.length}</span>
@@ -705,8 +705,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   disabled={disabled}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{
-                    background: disabled ? 'rgba(255,255,255,0.02)' : (isActive ? 'rgba(167,139,250,0.15)' : 'rgba(167,139,250,0.04)'),
-                    border: `1px solid ${disabled ? 'rgba(255,255,255,0.04)' : (isActive ? 'rgba(167,139,250,0.45)' : 'rgba(167,139,250,0.12)')}`,
+                    background: disabled ? 'var(--g-tile-2)' : (isActive ? 'rgba(167,139,250,0.15)' : 'rgba(167,139,250,0.04)'),
+                    border: `1px solid ${disabled ? 'var(--g-tile)' : (isActive ? 'rgba(167,139,250,0.45)' : 'rgba(167,139,250,0.12)')}`,
                     opacity: disabled ? 0.5 : 1,
                     cursor: disabled ? 'not-allowed' : 'pointer'
                   }}>
@@ -714,7 +714,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: isActive ? '#c4b5fd' : '#e2e8f0'}}>Routine by week</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? '#c4b5fd' : 'var(--g-text-hi)'}}>Routine by week</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">{disabled ? 'No target set' : `vs ${rTarget}/wk target`}</div>
                   </div>
                   <span className="text-base font-bold text-purple-300 font-mono-data">{disabled ? '—' : weeks.filter(w=>w.wR>0).length}</span>
@@ -729,10 +729,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{background: isActive ? 'rgba(148,163,184,0.15)' : 'rgba(148,163,184,0.04)', border: `1px solid ${isActive ? 'rgba(148,163,184,0.45)' : 'rgba(148,163,184,0.12)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(148,163,184,0.18)'}}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: isActive ? '#cbd5e1' : '#e2e8f0'}}>Week-on-week</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? 'var(--g-text-hi)' : 'var(--g-text-hi)'}}>Week-on-week</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">Urgent + routine deltas</div>
                   </div>
                   <span className="text-base font-bold text-slate-300 font-mono-data">{weeks.filter(w=>w.wU>0).length}</span>
@@ -751,7 +751,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: isActive ? '#a5b4fc' : '#e2e8f0'}}>Patterns</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? '#a5b4fc' : 'var(--g-text-hi)'}}>Patterns</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">{patterns.length===0?'Nothing flagged':highCount>0?`${highCount} high · ${patterns.length-highCount} other`:`${patterns.length} insight${patterns.length===1?'':'s'}`}</div>
                   </div>
                   <span className="text-base font-bold font-mono-data" style={{color:highCount>0?'#fca5a5':'#a5b4fc'}}>{patterns.length}</span>
@@ -767,9 +767,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 shortDays.length===0
                   ? <p className="text-sm text-slate-400 text-center py-6">All days are meeting their urgent capacity target.</p>
                   : <div className="grid grid-cols-2 gap-2">{shortDays.map((d,i)=>{const u=d.amS+d.pmS,t=d.amT+d.pmT;return(
-                      <button key={i} onClick={()=>pickDay(d.isoKey)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                      <button key={i} onClick={()=>pickDay(d.isoKey)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
                         <span className="text-xs font-semibold text-slate-300 w-20 flex-shrink-0">{d.dayShort} {d.dayNum} {d.monthStr}</span>
-                        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,0.08)'}}>
+                        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'var(--g-border-2)'}}>
                           <div className="h-full rounded-full" style={{width:`${Math.min((u/t)*100,100)}%`,background:u<t*0.8?'#ef4444':'#f59e0b'}}/>
                         </div>
                         <span className="text-xs font-bold text-red-400 flex-shrink-0">{u}</span>
@@ -786,7 +786,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       const col = cov>=90?'#10b981':cov>=80?'#f59e0b':'#ef4444';
                       const verdict = cov>=90?'OK':cov>=80?'Tight':'Short';
                       return (
-                        <button key={i} onClick={()=>pickDay(d.isoKey)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                        <button key={i} onClick={()=>pickDay(d.isoKey)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
                           <span className="text-xs font-semibold text-slate-300 w-20 flex-shrink-0">{d.dayShort} {d.dayNum} {d.monthStr}</span>
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>
                           <span className="text-[10px] text-slate-500 flex-1">need {d.needed}</span>
@@ -804,9 +804,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   : weeks.filter(w=>w.wR>0).length===0
                     ? <p className="text-sm text-slate-400 text-center py-6">No routine slot data uploaded yet.</p>
                     : <div className="grid grid-cols-2 gap-2">{weeks.filter(w=>w.wR>0).map((w,i)=>{const vb=vBand(w.wR,rTarget);return(
-                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
                           <span className="text-xs font-semibold text-slate-300 w-12 flex-shrink-0">Wk {weeks.indexOf(w)+1}</span>
-                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,0.08)'}}>
+                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'var(--g-border-2)'}}>
                             <div className="h-full rounded-full" style={{width:`${Math.min((w.wR/rTarget)*100,100)}%`,background:vb.bg}}/>
                           </div>
                           <span className="text-xs font-bold flex-shrink-0" style={{color:vb.bg}}>{w.wR}</span>
@@ -818,7 +818,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 weeks.filter(w=>w.wU>0).length===0
                   ? <p className="text-sm text-slate-400 text-center py-6">No urgent data uploaded yet.</p>
                   : <div className="grid grid-cols-2 gap-2">{weeks.filter(w=>w.wU>0).map((w,i,arr)=>{const delta=i>0?w.wU-arr[i-1].wU:0;return(
-                      <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                      <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
                         <span className="text-xs font-semibold text-slate-300 w-12 flex-shrink-0">Wk {weeks.indexOf(w)+1}</span>
                         <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[10px] text-slate-400">urg</span></div>
                         <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'#a78bfa'}}>{w.wR}</span><span className="text-[10px] text-slate-400">rout</span></div>
@@ -834,7 +834,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     </div>
                   : <div className="grid grid-cols-1 gap-3">
                       {patterns.map((p, i) => {
-                        const sevColour = p.severity === 'high' ? '#ef4444' : p.severity === 'medium' ? '#f59e0b' : '#64748b';
+                        const sevColour = p.severity === 'high' ? '#ef4444' : p.severity === 'medium' ? '#f59e0b' : 'var(--g-text-mid)';
                         const sevBg = p.severity === 'high' ? 'rgba(239,68,68,0.06)' : p.severity === 'medium' ? 'rgba(245,158,11,0.06)' : 'rgba(148,163,184,0.04)';
                         const sevBorder = p.severity === 'high' ? 'rgba(239,68,68,0.2)' : p.severity === 'medium' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.15)';
                         const sevLabel = p.severity === 'high' ? 'HIGH' : p.severity === 'medium' ? 'MEDIUM' : 'INFO';
@@ -852,7 +852,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                                 <div className="text-sm font-semibold text-slate-100 leading-snug">{p.title}</div>
                               </div>
                               {p.affectedDates.length > 0 && (
-                                <button onClick={()=>pickDay(p.affectedDates[0])} className="text-[10px] px-2 py-1 rounded text-slate-400 hover:text-white hover:bg-white/5 flex-shrink-0" style={{background:'none',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer'}}>
+                                <button onClick={()=>pickDay(p.affectedDates[0])} className="text-[10px] px-2 py-1 rounded text-slate-400 hover:text-white hover:bg-white/5 flex-shrink-0" style={{background:'none',border:'1px solid var(--g-border-2)',cursor:'pointer'}}>
                                   See day →
                                 </button>
                               )}
@@ -865,7 +865,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                                   <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Evidence</div>
                                   <div className="space-y-1">
                                     {p.evidence.map((ev, j) => (
-                                      <div key={j} className="flex items-center gap-3 px-2.5 py-1.5 rounded text-[11px]" style={{background:'rgba(255,255,255,0.03)'}}>
+                                      <div key={j} className="flex items-center gap-3 px-2.5 py-1.5 rounded text-[11px]" style={{background:'var(--g-tile-2)'}}>
                                         <span className="text-slate-400 flex-shrink-0">{ev.label}</span>
                                         <span className="text-slate-200 font-medium ml-auto text-right">{ev.value}</span>
                                       </div>
@@ -874,7 +874,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                                 </div>
                               )}
                               {p.suggestion && (
-                                <div className="rounded p-2.5" style={{background:'rgba(255,255,255,0.03)', borderLeft: `2px solid ${p.iconColor}`}}>
+                                <div className="rounded p-2.5" style={{background:'var(--g-tile-2)', borderLeft: `2px solid ${p.iconColor}`}}>
                                   <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color: p.iconColor}}>Suggestion</div>
                                   <p className="text-[12px] text-slate-300 leading-relaxed">{p.suggestion}</p>
                                 </div>
@@ -898,7 +898,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           close. Only shown on lg+ — mobile uses inline expansion as
           before. */}
       {detailDay && (
-        <div ref={drawerRef} className="hidden lg:flex fixed top-0 right-0 bottom-0 z-40 flex-col animate-in slide-in-from-right" style={{width:'440px',background:'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',borderLeft:'1px solid rgba(255,255,255,0.1)',boxShadow:'-12px 0 32px rgba(0,0,0,0.5)'}}>
+        <div ref={drawerRef} className="hidden lg:flex fixed top-0 right-0 bottom-0 z-40 flex-col animate-in slide-in-from-right" style={{width:'440px',background:'linear-gradient(180deg, var(--g-ink-2) 0%, var(--g-ink) 100%)',borderLeft:'1px solid var(--g-line)',boxShadow:'-12px 0 32px rgba(0,0,0,0.5)'}}>
           <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
             <span className="text-sm font-semibold text-white font-heading">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</span>
             <button onClick={closeDay} className="ml-auto text-slate-400 hover:text-white" style={{background:'none',border:'none',cursor:'pointer',padding:'4px 8px'}} aria-label="Close">
@@ -944,7 +944,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               )}
             </div>
             {/* AM urgent section */}
-            <div className="rounded-lg p-3" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+            <div className="rounded-lg p-3" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">AM urgent</span>
                 <span className="text-base font-bold text-red-400 ml-auto">{detailDay.amS}</span>
@@ -958,7 +958,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               )}
               <div className="space-y-1">
                 {detailClin.am.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return(
-                  <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'rgba(255,255,255,0.03)'}}>
+                  <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'var(--g-tile-2)'}}>
                     {lc && <div className="w-1 h-3.5 rounded-sm flex-shrink-0" style={{background:lc}}/>}
                     <span className="text-[11px] text-slate-300 flex-1 truncate">{c.name}</span>
                     <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
@@ -968,7 +968,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               </div>
             </div>
             {/* PM urgent section */}
-            <div className="rounded-lg p-3" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.04)'}}>
+            <div className="rounded-lg p-3" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">PM urgent</span>
                 <span className="text-base font-bold text-blue-400 ml-auto">{detailDay.pmS}</span>
@@ -982,7 +982,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               )}
               <div className="space-y-1">
                 {detailClin.pm.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return(
-                  <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'rgba(255,255,255,0.03)'}}>
+                  <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'var(--g-tile-2)'}}>
                     {lc && <div className="w-1 h-3.5 rounded-sm flex-shrink-0" style={{background:lc}}/>}
                     <span className="text-[11px] text-slate-300 flex-1 truncate">{c.name}</span>
                     <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
@@ -1000,7 +1000,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               <div className="mb-3"><DonutGauge avail={detailDay.rA} emb={detailDay.rE} booked={detailDay.rB}/></div>
               <div className="space-y-1">
                 {detailClin.rout.map((c,j)=>{const lc=c.loc?siteCol(c.loc):null;return(
-                  <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'rgba(255,255,255,0.03)'}}>
+                  <div key={j} className="flex items-center gap-2 px-2 py-1.5 rounded" style={{background:'var(--g-tile-2)'}}>
                     {lc && <div className="w-1 h-3.5 rounded-sm flex-shrink-0" style={{background:lc}}/>}
                     <span className="text-[11px] text-slate-300 flex-1 truncate">{c.name}</span>
                     <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
@@ -1016,8 +1016,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       {/* ═══ MOBILE LAYOUT ═══ */}
       <div className="lg:hidden space-y-4">
         {/* 6-week strip — horizontally scrollable */}
-        <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
-          <div className="px-4 py-2.5 flex items-center justify-between" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+        <div className="rounded-xl overflow-hidden" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}>
+          <div className="px-4 py-2.5 flex items-center justify-between" style={{background:"var(--g-panel-2)",borderBottom:"1px solid var(--g-tile)"}}>
             <div>
               <div className="font-heading text-sm font-medium text-slate-200">Capacity planning</div>
               <div className="text-[11px] text-slate-600">Tap any day · 6-week forward view</div>
@@ -1029,7 +1029,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             const ws = wk.ws;
             const wcStr = `wc ${ws.getDate()} ${ws.toLocaleString('en-GB',{month:'short'})}`;
             return (
-              <div key={wi} style={{borderTop: wi > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
+              <div key={wi} style={{borderTop: wi > 0 ? '1px solid var(--g-tile)' : 'none'}}>
                 <div className="flex items-baseline justify-between px-4 py-2">
                   <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{wkLabel}</div>
                   <div className="text-[9px] text-slate-700">{wcStr}</div>
@@ -1041,14 +1041,14 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     const t = d.amT + d.pmT;
                     const fillPct = t > 0 ? Math.min(100, (u/t)*100) : 0;
                     const fillCol = u >= t ? '#10b981' : u >= t * 0.8 ? '#f59e0b' : '#ef4444';
-                    const predCol = d.predicted ? d.dc.text : '#475569';
+                    const predCol = d.predicted ? d.dc.text : 'var(--g-text-faint)';
                     return (
                       <button key={di}
                         onClick={() => d.hasData && !d.isBH && setSelectedDay(sel ? null : d.isoKey)}
                         disabled={!d.hasData || d.isBH}
                         className="rounded-md p-1.5 flex flex-col items-center gap-1 transition-all"
                         style={{
-                          background: sel ? 'rgba(99,102,241,0.18)' : (d.isPast ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)'),
+                          background: sel ? 'rgba(99,102,241,0.18)' : (d.isPast ? 'var(--g-tile-2)' : 'var(--g-tile)'),
                           border: sel ? '1px solid rgba(99,102,241,0.5)' : (d.isToday ? '1px solid rgba(16,185,129,0.4)' : '1px solid transparent'),
                           opacity: d.isPast ? 0.5 : 1,
                           cursor: (d.hasData && !d.isBH) ? 'pointer' : 'default'
@@ -1061,7 +1061,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           <div className="text-[8px] text-slate-700 mt-1">—</div>
                         ) : (<>
                           <div className="font-mono-data text-base font-bold leading-none" style={{color: fillCol}}>{u}</div>
-                          <div className="w-full h-1 rounded-sm overflow-hidden" style={{background: 'rgba(255,255,255,0.06)'}}>
+                          <div className="w-full h-1 rounded-sm overflow-hidden" style={{background: 'var(--g-border)'}}>
                             <div className="h-full" style={{width: `${fillPct}%`, background: fillCol}}/>
                           </div>
                           <div className="font-mono-data text-[10px] font-bold leading-none" style={{color: predCol}}>{d.predicted || '—'}</div>
@@ -1085,9 +1085,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       <div className="p-3 space-y-2">
                         {/* AM urgent */}
                         {(() => {
-                          const amCol = detailDay.amT > 0 ? (detailDay.amS >= detailDay.amT ? '#34d399' : detailDay.amS >= detailDay.amT * 0.8 ? '#fbbf24' : '#f87171') : '#94a3b8';
+                          const amCol = detailDay.amT > 0 ? (detailDay.amS >= detailDay.amT ? '#34d399' : detailDay.amS >= detailDay.amT * 0.8 ? '#fbbf24' : '#f87171') : 'var(--g-text-mid)';
                           return (
-                            <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
+                            <div className="rounded-md p-2.5" style={{background: 'var(--g-tile)'}}>
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-[10px] font-bold uppercase tracking-wider" style={{color: amCol}}>AM urgent</span>
                                 <div className="flex items-baseline gap-1">
@@ -1101,9 +1101,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         })()}
                         {/* PM urgent */}
                         {(() => {
-                          const pmCol = detailDay.pmT > 0 ? (detailDay.pmS >= detailDay.pmT ? '#34d399' : detailDay.pmS >= detailDay.pmT * 0.8 ? '#fbbf24' : '#f87171') : '#94a3b8';
+                          const pmCol = detailDay.pmT > 0 ? (detailDay.pmS >= detailDay.pmT ? '#34d399' : detailDay.pmS >= detailDay.pmT * 0.8 ? '#fbbf24' : '#f87171') : 'var(--g-text-mid)';
                           return (
-                            <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
+                            <div className="rounded-md p-2.5" style={{background: 'var(--g-tile)'}}>
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-[10px] font-bold uppercase tracking-wider" style={{color: pmCol}}>PM urgent</span>
                                 <div className="flex items-baseline gap-1">
@@ -1116,7 +1116,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           );
                         })()}
                         {/* Routine total */}
-                        <div className="rounded-md p-2.5" style={{background: 'rgba(255,255,255,0.04)'}}>
+                        <div className="rounded-md p-2.5" style={{background: 'var(--g-tile)'}}>
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Routine</span>
                             <span className="font-mono-data text-base font-bold text-emerald-400">{detailDay.rTotal}</span>
@@ -1136,7 +1136,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           })}
 
           {/* Strip key */}
-          <div className="px-4 py-3 flex items-center gap-3 flex-wrap" style={{borderTop: '1px solid rgba(255,255,255,0.04)'}}>
+          <div className="px-4 py-3 flex items-center gap-3 flex-wrap" style={{borderTop: '1px solid var(--g-tile)'}}>
             <span className="text-[9px] text-slate-600">Top: urgent slots</span>
             <span className="text-[9px] text-slate-600">·</span>
             <span className="text-[9px] text-slate-600">Bottom: predicted demand</span>
@@ -1149,19 +1149,19 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             {id: 'short', label: 'Short', count: shortDays.length, icon: 'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01', col: '#f87171'},
             {id: 'demand', label: 'High demand', count: topDemand.length, icon: 'M22 12h-4l-3 9L9 3l-3 9H2', col: '#fbbf24'},
             ...(rTarget > 0 ? [{id: 'routine', label: 'Routine', count: weeks.filter(w => w.wR > 0).length, icon: 'M3 3h18v18H3zM3 9h18M9 21V9', col: '#a78bfa'}] : []),
-            {id: 'trend', label: 'Trend', count: weeks.filter(w => w.wU > 0).length, icon: 'M18 20V10M12 20V4M6 20v-6', col: '#94a3b8'},
+            {id: 'trend', label: 'Trend', count: weeks.filter(w => w.wU > 0).length, icon: 'M18 20V10M12 20V4M6 20v-6', col: 'var(--g-text-mid)'},
           ].map(t => {
             const active = mobileTab === t.id;
             return (
               <button key={t.id} onClick={() => setMobileTab(t.id)}
                 className="rounded-lg px-3 py-2 flex items-center gap-2 transition-all"
                 style={{
-                  background: active ? `${t.col}22` : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${active ? `${t.col}55` : 'rgba(255,255,255,0.06)'}`,
+                  background: active ? `${t.col}22` : 'var(--g-tile)',
+                  border: `1px solid ${active ? `${t.col}55` : 'var(--g-border)'}`,
                 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={active ? t.col : '#64748b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={t.icon}/></svg>
-                <span className="text-xs font-semibold" style={{color: active ? t.col : '#94a3b8'}}>{t.label}</span>
-                <span className="text-[10px] ml-auto" style={{color: active ? t.col : '#475569'}}>{t.count}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={active ? t.col : 'var(--g-text-mid)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={t.icon}/></svg>
+                <span className="text-xs font-semibold" style={{color: active ? t.col : 'var(--g-text-mid)'}}>{t.label}</span>
+                <span className="text-[10px] ml-auto" style={{color: active ? t.col : 'var(--g-text-faint)'}}>{t.count}</span>
               </button>
             );
           })}
@@ -1169,7 +1169,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
         {/* Tab content */}
         {mobileTab === 'short' && (
-          <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+          <div className="rounded-xl overflow-hidden" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}>
             <div className="px-4 py-2.5" style={{background:"rgba(239,68,68,0.15)",borderBottom:"1px solid rgba(239,68,68,0.1)"}}>
               <span className="text-xs font-semibold text-white">Urgent capacity below target</span>
             </div>
@@ -1178,9 +1178,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               {shortDays.slice(0, 10).map((d, i) => {
                 const u = d.amS + d.pmS, t = d.amT + d.pmT;
                 return (
-                  <button key={i} onClick={() => setSelectedDay(d.isoKey)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left" style={{background: 'rgba(255,255,255,0.04)'}}>
+                  <button key={i} onClick={() => setSelectedDay(d.isoKey)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left" style={{background: 'var(--g-tile)'}}>
                     <span className="text-xs font-semibold text-slate-300 w-16">{d.dayShort} {d.dayNum} {d.monthStr}</span>
-                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background: 'rgba(255,255,255,0.08)'}}>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background: 'var(--g-border-2)'}}>
                       <div className="h-full rounded-full" style={{width: `${Math.min((u/t)*100, 100)}%`, background: u < t * 0.8 ? '#ef4444' : '#f59e0b'}}/>
                     </div>
                     <span className="text-xs font-bold text-red-400">{u}</span>
@@ -1193,7 +1193,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         )}
 
         {mobileTab === 'demand' && (
-          <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+          <div className="rounded-xl overflow-hidden" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}>
             <div className="px-4 py-2.5" style={{background:"rgba(245,158,11,0.15)",borderBottom:"1px solid rgba(245,158,11,0.1)"}}>
               <span className="text-xs font-semibold text-white">Highest demand days</span>
             </div>
@@ -1202,7 +1202,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               {topDemand.map((d, i) => {
                 const u = d.amS + d.pmS;
                 return (
-                  <button key={i} onClick={() => setSelectedDay(d.isoKey)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left" style={{background: 'rgba(255,255,255,0.04)'}}>
+                  <button key={i} onClick={() => setSelectedDay(d.isoKey)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left" style={{background: 'var(--g-tile)'}}>
                     <span className="text-xs font-semibold text-slate-300 w-16">{d.dayShort} {d.dayNum} {d.monthStr}</span>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{background: d.dc.bg, color: d.dc.text}}>{d.predicted}</span>
                     <span className="text-[10px] text-slate-500 ml-auto">urg {u}</span>
@@ -1214,7 +1214,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         )}
 
         {mobileTab === 'routine' && rTarget > 0 && (
-          <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
+          <div className="rounded-xl overflow-hidden" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}>
             <div className="px-4 py-2.5" style={{background:"rgba(124,58,237,0.15)",borderBottom:"1px solid rgba(124,58,237,0.1)"}}>
               <span className="text-xs font-semibold text-white">Weekly routine capacity</span>
             </div>
@@ -1222,9 +1222,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               {weeks.filter(w => w.wR > 0).map((w, i) => {
                 const vb = vBand(w.wR, rTarget);
                 return (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: 'rgba(255,255,255,0.04)'}}>
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: 'var(--g-tile)'}}>
                     <span className="text-xs font-semibold text-slate-300 w-12">Wk {weeks.indexOf(w)+1}</span>
-                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background: 'rgba(255,255,255,0.08)'}}>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background: 'var(--g-border-2)'}}>
                       <div className="h-full rounded-full" style={{width: `${Math.min((w.wR/rTarget)*100, 100)}%`, background: vb.bg}}/>
                     </div>
                     <span className="text-xs font-bold" style={{color: vb.bg}}>{w.wR}</span>
@@ -1237,15 +1237,15 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         )}
 
         {mobileTab === 'trend' && (
-          <div className="rounded-xl overflow-hidden" style={{background:"rgba(15,23,42,0.7)",border:"1px solid rgba(255,255,255,0.06)"}}>
-            <div className="px-4 py-2.5" style={{background:"rgba(15,23,42,0.85)",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+          <div className="rounded-xl overflow-hidden" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}>
+            <div className="px-4 py-2.5" style={{background:"var(--g-panel-2)",borderBottom:"1px solid var(--g-tile)"}}>
               <span className="text-xs font-semibold text-white">Week-on-week</span>
             </div>
             <div className="p-3 space-y-1.5">
               {weeks.filter(w => w.wU > 0).map((w, i, arr) => {
                 const delta = i > 0 ? w.wU - arr[i-1].wU : 0;
                 return (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: 'rgba(255,255,255,0.04)'}}>
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: 'var(--g-tile)'}}>
                     <span className="text-xs font-semibold text-slate-300 w-12">Wk {weeks.indexOf(w)+1}</span>
                     <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[9px] text-slate-500">urg</span></div>
                     <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-emerald-400">{w.wR}</span><span className="text-[9px] text-slate-500">rout</span></div>
