@@ -23,10 +23,10 @@ export default function EmisReportCard({ variant = 'card' }) {
     <Wrapper>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 4 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 4 }}>
             EMIS appointment report
           </div>
-          <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
+          <p style={{ fontSize: 12, color: 'var(--g-text-mid)', lineHeight: 1.5, margin: 0 }}>
             Download this report definition and import it into EMIS. Run it each
             morning and upload the exported CSV to the Today page so GPDash can
             show your appointment capacity.
@@ -58,7 +58,7 @@ export default function EmisReportCard({ variant = 'card' }) {
             background: 'none',
             border: 'none',
             padding: 0,
-            color: '#22d3ee',
+            color: 'var(--c-cyan)',
             fontSize: 12,
             cursor: 'pointer',
             display: 'flex',
@@ -73,14 +73,14 @@ export default function EmisReportCard({ variant = 'card' }) {
           <div style={{
             marginTop: 10,
             padding: 14,
-            background: 'rgba(0,0,0,0.2)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--g-field)',
+            border: '1px solid var(--g-border)',
             borderRadius: 8,
             fontSize: 12,
-            color: '#cbd5e1',
+            color: 'var(--g-text-hi)',
             lineHeight: 1.6,
           }}>
-            <div style={{ fontWeight: 600, marginBottom: 8, color: '#67e8f9' }}>One-time setup (about 2 minutes)</div>
+            <div style={{ fontWeight: 600, marginBottom: 8, color: 'var(--c-cyan)' }}>One-time setup (about 2 minutes)</div>
             <ol style={{ paddingLeft: 20, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <li>Click <strong>Download XML</strong> above and save the file somewhere you can find it.</li>
               <li>In EMIS, open <strong>Appointment Reporting</strong> from the main menu.</li>
@@ -92,7 +92,7 @@ export default function EmisReportCard({ variant = 'card' }) {
               </li>
             </ol>
 
-            <div style={{ fontWeight: 600, marginTop: 14, marginBottom: 8, color: '#67e8f9' }}>Each morning (about 30 seconds)</div>
+            <div style={{ fontWeight: 600, marginTop: 14, marginBottom: 8, color: 'var(--c-cyan)' }}>Each morning (about 30 seconds)</div>
             <ol style={{ paddingLeft: 20, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <li>Open <strong>Appointment Reporting</strong> and find <em>"GpDash appointment data"</em>.</li>
               <li>If you scheduled it: just open the latest result. Otherwise right-click → <strong>Run</strong> and wait a few seconds.</li>
@@ -108,7 +108,7 @@ export default function EmisReportCard({ variant = 'card' }) {
             <div style={{ marginTop: 10, fontSize: 11, color: '#64748b' }}>
               These instructions are based on standard EMIS Web. If your practice's EMIS layout
               differs, check with your IT lead or
-              {' '}<a href="mailto:darren.cox2@nhs.net" style={{ color: '#22d3ee' }}>get in touch</a>.
+              {' '}<a href="mailto:darren.cox2@nhs.net" style={{ color: 'var(--c-cyan)' }}>get in touch</a>.
             </div>
           </div>
         )}
@@ -120,8 +120,8 @@ export default function EmisReportCard({ variant = 'card' }) {
 function CardWrapper({ children }) {
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--g-tile-2)',
+      border: '1px solid var(--g-border-2)',
       borderRadius: 12,
       padding: 18,
     }}>

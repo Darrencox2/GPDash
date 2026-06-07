@@ -287,7 +287,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   }, [data?.plannedAbsences, selectedWeek, cliniciansList]);
 
   return (
-    <div className="-m-4 lg:-m-6 min-h-screen" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)'}}>
+    <div className="-m-4 lg:-m-6 min-h-screen" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 40%, var(--g-ink) 100%)'}}>
     <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-4">
       {/* ═══ HEADER ═══ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pl-12 lg:pl-0">
@@ -309,7 +309,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             <a
               href={`/v4/practice/${data._v4.practiceSlug}?tab=clinicians&grid=open`}
               className="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 flex items-center gap-1.5 transition-colors hover:bg-white/10"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)' }}
               title="Open the standing weekly pattern editor for the buddy-cover team"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 4v18M16 4v18"/></svg>
@@ -384,15 +384,15 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       )}
 
       {/* ═══ WEEK STRIP ═══ */}
-      <div className="rounded-xl overflow-hidden" style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)'}}>
-        <div className="flex items-center justify-between px-4 py-2.5" style={{background:'rgba(15,23,42,0.85)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-          <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid rgba(255,255,255,0.2)'}}>◀</button>
+      <div className="rounded-xl overflow-hidden" style={{background:'var(--g-panel-2)',border:'1px solid var(--g-border)'}}>
+        <div className="flex items-center justify-between px-4 py-2.5" style={{background:'var(--g-panel-2)',borderBottom:'1px solid var(--g-tile)'}}>
+          <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
           <div className="text-sm font-semibold text-white">{formatWeekRange(selectedWeek)}</div>
           <div className="flex items-center gap-2">
             {selectedWeek.getTime() !== getWeekStart(new Date()).getTime() && (
               <button onClick={() => { setSelectedWeek(getWeekStart(new Date())); setSelectedDay(getCurrentDay()); }} className="text-xs text-white/70 hover:text-white font-medium">This week</button>
             )}
-            <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid rgba(255,255,255,0.2)'}}>▶</button>
+            <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
           </div>
         </div>
         <div className="overflow-x-auto"><div className="grid grid-cols-5 divide-x divide-white/5 min-w-[600px]">
@@ -409,7 +409,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 
             return (
               <button key={day} onClick={() => setSelectedDay(day)} className="text-left transition-all duration-150 flex flex-col" style={{
-                background: isSel ? 'rgba(124,58,237,0.15)' : 'rgba(15,23,42,0.4)',
+                background: isSel ? 'rgba(124,58,237,0.15)' : 'var(--g-panel-soft)',
                 borderBottom: isSel ? '4px solid #7c3aed' : todayDate ? '4px solid #6d28d9' : '4px solid transparent',
                 boxShadow: isSel ? 'inset 0 0 0 1px rgba(124,58,237,0.3)' : 'none',
                 height: 320,
@@ -417,11 +417,11 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 {/* Day header */}
                 <div className="px-3 py-2 flex items-center justify-between flex-shrink-0">
                   <div>
-                    <div className="text-lg font-bold" style={{color: isSel ? '#a78bfa' : closed ? '#475569' : '#e2e8f0'}}>{day.slice(0, 3)}</div>
-                    <div className="text-sm" style={{color: isSel ? '#a78bfa' : '#475569'}}>{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
+                    <div className="text-lg font-bold" style={{color: isSel ? '#a78bfa' : closed ? 'var(--g-text-faint)' : 'var(--g-text-hi)'}}>{day.slice(0, 3)}</div>
+                    <div className="text-sm" style={{color: isSel ? '#a78bfa' : 'var(--g-text-faint)'}}>{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                   </div>
                   {closed ? (
-                    <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{background:'rgba(100,116,139,0.15)',color:'#64748b'}}>Closed</span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{background:'rgba(100,116,139,0.15)',color:'var(--g-text-mid)'}}>Closed</span>
                   ) : has ? (
                     <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{background:'rgba(16,185,129,0.15)',color:'#34d399'}}>Ready</span>
                   ) : (
@@ -442,7 +442,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                       {rows.slice(0, 10).map(({ bid, b, t }) => (
                         <div key={bid} className="flex items-center" style={{gap:6}}>
                           <span className="font-bold text-slate-200 flex-shrink-0 text-right" style={{fontFamily:"'Outfit',sans-serif",fontSize:'clamp(11px,1.2vw,14px)',width:28}}>{b.initials}</span>
-                          <svg width="6" height="6" viewBox="0 0 6 6" style={{flexShrink:0,opacity:0.3}}><path d="M1 3h4M3 1l2 2-2 2" stroke="#64748b" strokeWidth="1" fill="none"/></svg>
+                          <svg width="6" height="6" viewBox="0 0 6 6" style={{flexShrink:0,opacity:0.3}}><path d="M1 3h4M3 1l2 2-2 2" style={{stroke:'var(--g-text-mid)'}} strokeWidth="1" fill="none"/></svg>
                           <div className="flex gap-1 flex-wrap flex-1 min-w-0">
                             {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="rounded font-bold text-white flex-shrink-0" style={{background:'#ef4444',fontSize:'clamp(10px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
                             {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="rounded font-bold text-white flex-shrink-0" style={{background:'#f59e0b',fontSize:'clamp(10px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
@@ -457,10 +457,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 {/* Leave badges — separated */}
                 {dayAbs.length > 0 && !closed && (
                   <div className="px-2 pb-2 mt-auto flex-shrink-0">
-                    <div className="pt-2 flex gap-1.5 flex-wrap" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                    <div className="pt-2 flex gap-1.5 flex-wrap" style={{borderTop:'1px solid var(--g-border)'}}>
                       <span className="text-xs text-slate-500 mr-1" style={{lineHeight:'24px'}}>Leave:</span>
                       {dayAbs.slice(0, 4).map((a, i) => {
-                        const ccStyle = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? {background:'rgba(59,130,246,0.15)',color:'#60a5fa'} : a.reason === 'Training' || a.reason === 'Study' ? {background:'rgba(245,158,11,0.15)',color:'#fbbf24'} : a.reason === 'Sick' ? {background:'rgba(239,68,68,0.15)',color:'#f87171'} : {background:'rgba(100,116,139,0.15)',color:'#94a3b8'};
+                        const ccStyle = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? {background:'rgba(59,130,246,0.15)',color:'#60a5fa'} : a.reason === 'Training' || a.reason === 'Study' ? {background:'rgba(245,158,11,0.15)',color:'#fbbf24'} : a.reason === 'Sick' ? {background:'rgba(239,68,68,0.15)',color:'#f87171'} : {background:'rgba(100,116,139,0.15)',color:'var(--g-text-mid)'};
                         return <span key={i} className="text-xs font-medium px-1.5 py-0.5 rounded" style={ccStyle} title={`${a.clinician.name} — ${a.reason}`}>{a.clinician.initials}</span>;
                       })}
                       {dayAbs.length > 4 && <span className="text-xs text-slate-500">+{dayAbs.length - 4}</span>}
@@ -496,7 +496,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                   <span><strong className="text-red-400">{absentClinicians.length}</strong> <span className="text-slate-500">absent</span></span>
                   <span><strong className="text-amber-400">{dayOffClinicians.length}</strong> <span className="text-slate-500">day off</span></span>
                 </div>
-                {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded" style={{border:'1px solid #334155'}}>Mark closed</button>}
+                {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded" style={{border:'1px solid var(--g-divider)'}}>Mark closed</button>}
               </div>
             </div>
             <div className="px-5 pb-5">
@@ -564,7 +564,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               })}
               </div>
               {(overriddenIds.size > 0 || hasCsvMismatches) && (
-                <div className="flex items-center gap-4 mt-3 pt-3 text-xs text-slate-500 flex-wrap" style={{borderTop:'1px solid #334155'}}>
+                <div className="flex items-center gap-4 mt-3 pt-3 text-xs text-slate-500 flex-wrap" style={{borderTop:'1px solid var(--g-divider)'}}>
                   {overriddenIds.size > 0 && <span className="flex items-center gap-1.5"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>Manually overridden</span>}
                   {hasCsvMismatches && <span className="flex items-center gap-1.5"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>EMIS / Rota mismatch</span>}
                 </div>
@@ -582,8 +582,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           </div>
 
           {/* Allocations */}
-          <div className="rounded-xl overflow-hidden" style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)'}}>
-            <div className="flex items-center justify-between" style={{background:'rgba(15,23,42,0.85)',padding:'12px 20px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+          <div className="rounded-xl overflow-hidden" style={{background:'var(--g-panel-2)',border:'1px solid var(--g-border)'}}>
+            <div className="flex items-center justify-between" style={{background:'var(--g-panel-2)',padding:'12px 20px',borderBottom:'1px solid var(--g-tile)'}}>
               <div>
                 <h2 className="text-base font-semibold text-white">Buddy Allocations — {selectedDay}</h2>
                 <p className="text-xs text-slate-500 mt-0.5">Workload balanced across present clinicians</p>
@@ -604,7 +604,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               <>
                 <div className="overflow-x-auto"><table className="w-full min-w-[500px]">
                     <thead>
-                      <tr style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                      <tr style={{borderBottom:"1px solid var(--g-border)"}}>
                         <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide">Covering</th>
                         <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide"><span className="text-red-400">File & Action</span><span className="text-slate-400 font-normal ml-1">(absent)</span></th>
                         <th className="text-left py-2.5 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide"><span className="text-amber-400">View Only</span><span className="text-slate-400 font-normal ml-1">(day off)</span></th>
@@ -690,7 +690,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                                   background: bg,
                                   minWidth: 32,
                                   cursor: canReassign ? 'pointer' : 'default',
-                                  border: ov ? '1.5px dashed rgba(255,255,255,0.7)' : 'none',
+                                  border: ov ? '1.5px dashed var(--g-marker)' : 'none',
                                   position: 'relative',
                                 }}
                               >
@@ -700,14 +700,14 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                                     position: 'absolute', top: -4, right: -4,
                                     width: 10, height: 10, borderRadius: '50%',
                                     background: '#a78bfa',
-                                    border: '1.5px solid #0f172a',
+                                    border: '1.5px solid var(--g-surface)',
                                   }} />
                                 )}
                               </span>
                             );
                           };
                           return (
-                            <tr key={clinician.id} style={{borderBottom:"1px solid rgba(255,255,255,0.04)"}} className={!canCover ? "opacity-50" : ""}>
+                            <tr key={clinician.id} style={{borderBottom:"1px solid var(--g-tile)"}} className={!canCover ? "opacity-50" : ""}>
                               <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{background:"#10b981",fontFamily:"'Outfit',sans-serif"}}>{clinician.initials}</div><div><div className="text-sm font-medium text-slate-200">{clinician.name}</div><div className="text-xs text-slate-500">{clinician.role}</div></div></div></td>
                               <td className="py-3 px-4">{tasks.absent.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.absent.map(id => renderBadge(id, 'absent', '#ef4444'))}</div> : <span className="text-slate-600">—</span>}</td>
                               <td className="py-3 px-4">{tasks.dayOff.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.dayOff.map(id => renderBadge(id, 'dayOff', '#f59e0b'))}</div> : <span className="text-slate-600">—</span>}</td>
@@ -717,7 +717,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                       })()}
                     </tbody>
                   </table></div>
-                <div className="mt-4 pt-4 flex gap-6 text-xs text-slate-500" style={{borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+                <div className="mt-4 pt-4 flex gap-6 text-xs text-slate-500" style={{borderTop:"1px solid var(--g-border)"}}>
                   <span><strong className="text-emerald-600">{presentClinicians.length}</strong> present</span>
                   <span><strong className="text-red-600">{absentClinicians.length}</strong> absent</span>
                   <span><strong className="text-amber-600">{dayOffClinicians.length}</strong> day off</span>
@@ -816,7 +816,7 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
       style={{
         position: 'fixed', zIndex: 1300, width: W, maxWidth: 'calc(100vw - 20px)',
         left, ...(below ? { top } : { bottom }),
-        background: 'rgba(15,23,42,0.98)', border: '1px solid rgba(255,255,255,0.12)',
+        background: 'var(--surface-solid)', border: '1px solid var(--g-line)',
         borderRadius: 12, padding: '13px 15px', pointerEvents: 'none',
         boxShadow: '0 20px 50px -14px rgba(0,0,0,0.7)',
         animation: 'shtIn 0.16s ease-out',
@@ -830,9 +830,9 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
         </span>
       </div>
       {lines.map((l, i) => (
-        <div key={i} style={{ fontSize: 12.5, color: i === 0 ? '#cbd5e1' : '#94a3b8', lineHeight: 1.5, marginTop: i === 0 ? 0 : 6 }}>{l}</div>
+        <div key={i} style={{ fontSize: 12.5, color: i === 0 ? 'var(--g-text-hi)' : 'var(--g-text-mid)', lineHeight: 1.5, marginTop: i === 0 ? 0 : 6 }}>{l}</div>
       ))}
-      <div style={{ fontSize: 10.5, color: '#475569', marginTop: 9 }}>{c.role}{c.initials ? ` · ${c.initials}` : ''}</div>
+      <div style={{ fontSize: 10.5, color: 'var(--g-text-faint)', marginTop: 9 }}>{c.role}{c.initials ? ` · ${c.initials}` : ''}</div>
     </div>
   );
   return createPortal(tip, document.body);
