@@ -12,9 +12,9 @@ const GROUP_META = {
 };
 
 function LocSquare({ loc, size = 24, duty, colour }) {
-  if (!loc) return <div style={{width:size,height:size,borderRadius:4,background:'#1e293b'}} />;
+  if (!loc) return <div style={{width:size,height:size,borderRadius:4,background:'var(--g-surface-2)'}} />;
   return (
-    <div style={{width:size,height:size,borderRadius:4,background:colour||'#475569',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+    <div style={{width:size,height:size,borderRadius:4,background:colour||'var(--g-text-faint)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
       <span style={{fontSize:size*0.45,fontWeight:700,color:'#fff'}}>{loc.charAt(0)}</span>
       {duty && <svg style={{position:'absolute',top:-2,right:-2,width:size*0.4,height:size*0.4}} viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
     </div>
@@ -324,7 +324,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
     if (!selected || !todayCardData) return null;
     if (todayCardData.noWorkingDay) {
       return (
-        <div className="rounded-xl p-4 text-center" style={{background:'rgba(15,23,42,0.6)',border:'1px solid rgba(255,255,255,0.06)'}}>
+        <div className="rounded-xl p-4 text-center" style={{background:'var(--g-panel-2)',border:'1px solid var(--g-border)'}}>
           <div className="text-sm text-slate-500">No working days found in the next 14 days</div>
         </div>
       );
@@ -353,13 +353,13 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
       // Card background — red gradient if user is duty, blue if support, otherwise glass
       const cardStyle = isMeDuty
-        ? { background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', border: '1px solid rgba(255,255,255,0.1)' }
+        ? { background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', border: '1px solid var(--g-line)' }
         : isMeSupport
-        ? { background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)', border: '1px solid rgba(255,255,255,0.1)' }
-        : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' };
+        ? { background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)', border: '1px solid var(--g-line)' }
+        : { background: 'var(--g-tile)', border: '1px solid var(--g-border)' };
 
-      const labelColour = (isMeDuty || isMeSupport) ? 'rgba(255,255,255,0.7)' : '#64748b';
-      const initialsBg = (isMeDuty || isMeSupport) ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)';
+      const labelColour = (isMeDuty || isMeSupport) ? 'var(--g-text-hi)' : 'var(--g-text-mid)';
+      const initialsBg = (isMeDuty || isMeSupport) ? 'var(--g-label-faint)' : 'var(--g-line)';
 
       return (
         <div className="rounded-lg p-3 flex-1 min-w-0 relative overflow-hidden" style={cardStyle}>
@@ -382,10 +382,10 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
               {sess.myIn ? (
                 <div className="font-heading font-semibold leading-tight truncate" style={{
                   fontSize: 24,
-                  color: (isMeDuty || isMeSupport) ? 'white' : (myLocCol || '#e2e8f0')
+                  color: (isMeDuty || isMeSupport) ? 'white' : (myLocCol || 'var(--g-text-hi)')
                 }}>{sess.myLoc}</div>
               ) : (
-                <div className="text-base" style={{color: (isMeDuty || isMeSupport) ? 'rgba(255,255,255,0.7)' : '#64748b'}}>Not in</div>
+                <div className="text-base" style={{color: (isMeDuty || isMeSupport) ? 'var(--g-text-hi)' : 'var(--g-text-mid)'}}>Not in</div>
               )}
             </div>
 
@@ -395,13 +395,13 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                 {sess.dutyDoc && !isMeDuty && (
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold uppercase tracking-wider" style={{color: labelColour}}>Duty</span>
-                    <span className="px-1.5 py-0.5 rounded text-sm font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : '#e2e8f0'}}>{sess.dutyDoc.initials}</span>
+                    <span className="px-1.5 py-0.5 rounded text-sm font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : 'var(--g-text-hi)'}}>{sess.dutyDoc.initials}</span>
                   </div>
                 )}
                 {sess.support && !isMeSupport && (
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold uppercase tracking-wider" style={{color: labelColour}}>Sup</span>
-                    <span className="px-1.5 py-0.5 rounded text-sm font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : '#e2e8f0'}}>{sess.support.initials}</span>
+                    <span className="px-1.5 py-0.5 rounded text-sm font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : 'var(--g-text-hi)'}}>{sess.support.initials}</span>
                   </div>
                 )}
               </div>
@@ -412,8 +412,8 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
     };
 
     return (
-      <div className="rounded-xl overflow-hidden" style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)'}}>
-        <div className="px-4 py-2.5 flex items-center justify-between" style={{background:'rgba(15,23,42,0.85)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+      <div className="rounded-xl overflow-hidden" style={{background:'var(--g-panel-2)',border:'1px solid var(--g-border)'}}>
+        <div className="px-4 py-2.5 flex items-center justify-between" style={{background:'var(--g-panel-2)',borderBottom:'1px solid var(--g-tile)'}}>
           <div>
             <div className="font-heading text-base font-medium text-slate-200">{dayLabel}</div>
             <div className="text-sm text-slate-600">{dateStr}</div>
@@ -431,7 +431,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
   const searchJsx = (
     <div className="relative">
       {!isSearching ? (
-        <button onClick={() => { setIsSearching(true); setSearch(''); setShowDropdown(true); setTimeout(() => searchRef.current?.focus(), 50); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left" style={{background:'#0f172a',border:'1px solid #334155'}}>
+        <button onClick={() => { setIsSearching(true); setSearch(''); setShowDropdown(true); setTimeout(() => searchRef.current?.focus(), 50); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left" style={{background:'var(--g-surface)',border:'1px solid var(--g-divider)'}}>
           {selected && <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{background: gm.bg, color: gm.tx}}>{selected.initials}</div>}
           <span className="text-base text-slate-200 flex-1">{selected?.name || 'Select clinician...'}</span>
           <span className="text-sm text-slate-500">Change</span>
@@ -444,12 +444,12 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
             placeholder="Type to search..."
             autoFocus
             className="w-full text-base rounded-lg px-3 py-2.5 outline-none"
-            style={{background:'#0f172a',border:'1px solid #6366f1',color:'#e2e8f0'}}
+            style={{background:'var(--g-surface)',border:'1px solid #6366f1',color:'var(--g-text-hi)'}}
             ref={searchRef} />
           {showDropdown && (
-            <div className="absolute top-full left-0 right-0 mt-1 rounded-lg overflow-hidden z-30 max-h-64 overflow-y-auto" style={{background:'#1e293b',border:'1px solid #334155',boxShadow:'0 10px 30px rgba(0,0,0,0.4)'}}>
+            <div className="absolute top-full left-0 right-0 mt-1 rounded-lg overflow-hidden z-30 max-h-64 overflow-y-auto" style={{background:'var(--g-surface-2)',border:'1px solid var(--g-divider)',boxShadow:'0 10px 30px rgba(0,0,0,0.4)'}}>
               {(search ? filtered : clinicians).map(c => (
-                <button key={c.id} onClick={() => select(c)} className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors" style={{background: c.id === selectedId ? 'rgba(255,255,255,0.08)' : 'transparent'}}>
+                <button key={c.id} onClick={() => select(c)} className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors" style={{background: c.id === selectedId ? 'var(--g-border-2)' : 'transparent'}}>
                   <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{background: GROUP_META[c.group]?.bg, color: GROUP_META[c.group]?.tx}}>{c.initials}</span>
                   <span className="text-sm text-slate-200">{c.name}</span>
                   <span className="text-sm text-slate-500 ml-auto">{c.role}</span>
@@ -466,7 +466,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
   // ═══ DESKTOP CALENDAR ═══
   const DesktopView = () => (
-    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 50%, var(--g-ink) 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
       {/* Header */}
       <div className="p-6 pb-4">
         {searchJsx}
@@ -478,28 +478,28 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
       {/* Month nav */}
       <div className="px-6 pb-4 flex items-center gap-3">
-        <button onClick={() => navMonth(-1)} className="px-3 py-1.5 rounded-lg text-base" style={{background:'#1e293b',border:'1px solid #334155',color:'#94a3b8',cursor:'pointer'}}>‹</button>
+        <button onClick={() => navMonth(-1)} className="px-3 py-1.5 rounded-lg text-base" style={{background:'var(--g-surface-2)',border:'1px solid var(--g-divider)',color:'var(--g-text-mid)',cursor:'pointer'}}>‹</button>
         <div className="flex-1 text-center">
           <span className="text-base font-semibold text-slate-200">{calLabel}</span>
           {!isThisMonth && <button onClick={goThisMonth} className="block mx-auto mt-1 text-sm" style={{color:'#818cf8',background:'none',border:'none',cursor:'pointer'}}>This month</button>}
         </div>
-        <button onClick={() => navMonth(1)} className="px-3 py-1.5 rounded-lg text-base" style={{background:'#1e293b',border:'1px solid #334155',color:'#94a3b8',cursor:'pointer'}}>›</button>
+        <button onClick={() => navMonth(1)} className="px-3 py-1.5 rounded-lg text-base" style={{background:'var(--g-surface-2)',border:'1px solid var(--g-divider)',color:'var(--g-text-mid)',cursor:'pointer'}}>›</button>
       </div>
 
       {/* Key */}
       <div className="px-6 pb-4 flex gap-4 flex-wrap">
         {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1.5"><LocSquare loc={s.name} size={18} colour={siteCol(s.name)} /><span className="text-sm text-slate-500">{s.name}</span></div>)}
         {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-sm text-slate-500">Duty</span></div>}
-        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'#1e293b',border:'1px solid #f87171',color:'#f87171'}}>AB</div><span className="text-sm text-slate-500">File & action</span></div>
-        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'#1e293b',border:'1px solid #60a5fa',color:'#60a5fa'}}>AB</div><span className="text-sm text-slate-500">View only</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #f87171',color:'#f87171'}}>AB</div><span className="text-sm text-slate-500">File & action</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #60a5fa',color:'#60a5fa'}}>AB</div><span className="text-sm text-slate-500">View only</span></div>
       </div>
 
       {/* Calendar grid */}
       <div className="px-6 pb-6">
-        <div className="grid grid-cols-7 gap-px rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
+        <div className="grid grid-cols-7 gap-px rounded-xl overflow-hidden" style={{border:'1px solid var(--g-divider)'}}>
           {/* Day headers */}
           {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-            <div key={d} className="py-2.5 text-center text-sm font-semibold uppercase tracking-wider" style={{background:'#1e293b',color:'#64748b'}}>{d}</div>
+            <div key={d} className="py-2.5 text-center text-sm font-semibold uppercase tracking-wider" style={{background:'var(--g-surface-2)',color:'var(--g-text-mid)'}}>{d}</div>
           ))}
           {/* Day cells */}
           {calDays.map((day, i) => {
@@ -511,8 +511,8 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
             const isPast = day.inMonth && isPastDay(day.date);
 
             return (
-              <div key={i} style={{background: isToday ? 'rgba(16,185,129,0.08)' : '#0f172a', minHeight: 96, opacity: !day.inMonth ? 0.3 : (isPast ? 0.4 : 1), padding: '6px 8px', borderTop: '1px solid #1e293b'}}>
-                <div className="text-sm font-semibold mb-2" style={{color: isToday ? '#10b981' : isWeekend ? '#334155' : '#94a3b8'}}>{day.dayNum}</div>
+              <div key={i} style={{background: isToday ? 'rgba(16,185,129,0.08)' : 'var(--g-surface-2)', minHeight: 96, opacity: !day.inMonth ? 0.3 : (isPast ? 0.4 : 1), padding: '6px 8px', borderTop: '1px solid var(--g-divider)'}}>
+                <div className="text-sm font-semibold mb-2" style={{color: isToday ? '#10b981' : isWeekend ? 'var(--g-text-mute)' : 'var(--g-text-mid)'}}>{day.dayNum}</div>
                 {isWeekend ? null : dd?.isBH ? (
                   <div className="text-sm font-medium text-amber-500">Bank hol</div>
                 ) : dd?.absence && !dd?.amIn && !dd?.pmIn ? (
@@ -527,7 +527,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                       <div className="flex gap-1 flex-wrap">
                         {dd.covers.slice(0, 4).map((c, j) => {
                           const isFA = c.coverType === 'fileAction';
-                          return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold" style={{background:'#1e293b',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>;
+                          return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold" style={{background:'var(--g-surface-2)',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>;
                         })}
                         {dd.covers.length > 4 && <span className="text-[11px] text-slate-600 self-center">+{dd.covers.length - 4}</span>}
                       </div>
@@ -544,7 +544,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
   // ═══ MOBILE 2-WEEK ═══
   const MobileView = () => (
-    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 50%, var(--g-ink) 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
       {/* Search */}
       <div className="p-4 pb-2">
         {searchJsx}
@@ -578,13 +578,13 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
             {/* Compact off-all-week */}
             {allOff ? (
-              <div className="rounded-xl px-4 py-3 flex items-center gap-2" style={{background:'rgba(15,23,42,0.5)',border:'1px solid rgba(255,255,255,0.04)'}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2"><path d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <div className="rounded-xl px-4 py-3 flex items-center gap-2" style={{background:'var(--g-panel)',border:'1px solid var(--g-tile)'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-faint)'}} strokeWidth="2"><path d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span className="text-sm text-slate-500">Off all week</span>
               </div>
             ) : (
-              <div className="rounded-xl overflow-hidden" style={{border:'1px solid #334155'}}>
-                <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr',background:'#1e293b',borderBottom:'1px solid #334155'}}>
+              <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--g-divider)'}}>
+                <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr',background:'var(--g-surface-2)',borderBottom:'1px solid var(--g-divider)'}}>
                   <div className="py-2 px-3"/>
                   <div className="py-2 text-center text-sm font-semibold text-slate-500 uppercase">AM</div>
                   <div className="py-2 text-center text-sm font-semibold text-slate-500 uppercase">PM</div>
@@ -607,14 +607,14 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                   const sameSite = amStripe === pmStripe;
 
                   return (
-                    <div key={di} style={{borderBottom: di < 4 ? '1px solid #334155' : 'none', background: isExpanded ? 'rgba(16,185,129,0.04)' : (isWorking ? '#0f172a' : 'rgba(15,23,42,0.5)'), opacity: isPast ? 0.4 : 1}}>
+                    <div key={di} style={{borderBottom: di < 4 ? '1px solid var(--g-divider)' : 'none', background: isExpanded ? 'rgba(16,185,129,0.04)' : (isWorking ? 'var(--g-surface-2)' : 'var(--g-panel)'), opacity: isPast ? 0.4 : 1}}>
                       <button
                         onClick={() => setExpandedDay(isExpanded ? null : day.isoKey)}
                         className="w-full text-left grid hover:bg-white/5 transition-colors"
                         style={{gridTemplateColumns:'80px 1fr 1fr', cursor: isWorking ? 'pointer' : 'default'}}
                         disabled={!isWorking}
                       >
-                        <div className="py-2.5 px-3 flex flex-col justify-center relative" style={{borderRight:'1px solid #1e293b', position:'relative'}}>
+                        <div className="py-2.5 px-3 flex flex-col justify-center relative" style={{borderRight:'1px solid var(--g-divider)', position:'relative'}}>
                           {isWorking && (amStripe || pmStripe) && (
                             <div style={{position:'absolute', left:0, top:0, bottom:0, width:3, display:'flex', flexDirection:'column'}}>
                               <div style={{flex:1, background: amStripe || 'transparent'}} />
@@ -622,7 +622,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                             </div>
                           )}
                           <div className="flex items-center gap-1.5">
-                            <div className="text-base font-semibold leading-tight" style={{color: (isOff || noData || dd?.isBH) ? '#334155' : (isWorking ? '#e2e8f0' : '#475569')}}>{day.dayShort}</div>
+                            <div className="text-base font-semibold leading-tight" style={{color: (isOff || noData || dd?.isBH) ? 'var(--g-text-mute)' : (isWorking ? 'var(--g-text-hi)' : 'var(--g-text-faint)')}}>{day.dayShort}</div>
                             <div className="text-sm text-slate-600 leading-tight">{day.dayNum} {day.monthStr}</div>
                           </div>
                           {isToday && <span className="text-[7px] font-bold mt-0.5 self-start px-1.5 py-0.5 rounded-full" style={{background:'rgba(16,185,129,0.2)',color:'#34d399',letterSpacing:'0.5px'}}>TODAY</span>}
@@ -645,14 +645,14 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                       {covers.length > 0 && (
                         <div className="flex items-center gap-1.5 px-3 pb-2" style={{marginLeft:80}}>
                           <span className="text-xs text-slate-600">Covering:</span>
-                          {covers.map((c, j) => { const isFA = c.coverType === 'fileAction'; return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'#1e293b',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>; })}
+                          {covers.map((c, j) => { const isFA = c.coverType === 'fileAction'; return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>; })}
                         </div>
                       )}
 
                       {/* Note indicator (when collapsed) */}
                       {note && !isExpanded && (
                         <div className="flex items-start gap-1.5 px-3 pb-2 text-sm text-slate-500" style={{marginLeft:80}}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                           <span className="truncate italic">{note}</span>
                         </div>
                       )}
@@ -668,10 +668,10 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                               ? { background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)' }
                               : sess.isMeSupport
                               ? { background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' }
-                              : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' };
-                            const labelColour = (sess.isMeDuty || sess.isMeSupport) ? 'rgba(255,255,255,0.7)' : '#64748b';
-                            const initialsBg = (sess.isMeDuty || sess.isMeSupport) ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)';
-                            const initialsColour = (sess.isMeDuty || sess.isMeSupport) ? 'white' : '#e2e8f0';
+                              : { background: 'var(--g-tile)', border: '1px solid var(--g-border)' };
+                            const labelColour = (sess.isMeDuty || sess.isMeSupport) ? 'var(--g-text-hi)' : 'var(--g-text-mid)';
+                            const initialsBg = (sess.isMeDuty || sess.isMeSupport) ? 'var(--g-label-faint)' : 'var(--g-line)';
+                            const initialsColour = (sess.isMeDuty || sess.isMeSupport) ? 'white' : 'var(--g-text-hi)';
                             return (
                               <div key={s} className="rounded-lg p-2.5 relative overflow-hidden" style={cardStyle}>
                                 <div className="flex items-center justify-between mb-1.5">
@@ -688,7 +688,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                                   <div className="flex-1 min-w-0">
                                     <div className="font-heading font-semibold leading-tight truncate" style={{
                                       fontSize: 18,
-                                      color: (sess.isMeDuty || sess.isMeSupport) ? 'white' : (myLocCol || '#e2e8f0')
+                                      color: (sess.isMeDuty || sess.isMeSupport) ? 'white' : (myLocCol || 'var(--g-text-hi)')
                                     }}>{sess.myLoc}</div>
                                   </div>
                                   {(sess.dutyDoc || sess.support) && (
@@ -713,11 +713,11 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                           })}
 
                           {/* Note edit/display */}
-                          <div className="rounded-lg" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)'}}>
+                          <div className="rounded-lg" style={{background:'var(--g-tile)',border:'1px solid var(--g-border)'}}>
                             {!canEditNotes ? (
                               // Read-only display for users viewing someone else's rota
                               <div className="p-2 flex items-start gap-2">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" className="flex-shrink-0 mt-0.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" className="flex-shrink-0 mt-0.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 {note ? (
                                   <span className="text-sm text-slate-400 italic">{note}</span>
                                 ) : (
@@ -731,7 +731,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                                   onChange={e => setNoteDraft(e.target.value)}
                                   placeholder="Note for this day..."
                                   className="w-full rounded-md p-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                                  style={{background:'rgba(0,0,0,0.2)',border:'1px solid rgba(255,255,255,0.06)',color:'#e2e8f0',minHeight:50}}
+                                  style={{background:'rgba(0,0,0,0.2)',border:'1px solid var(--g-border)',color:'var(--g-text-hi)',minHeight:50}}
                                   autoFocus
                                 />
                                 <div className="flex gap-1.5 mt-1.5">
@@ -745,7 +745,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                                 onClick={(e) => { e.stopPropagation(); setEditingNote(day.isoKey); setNoteDraft(note); }}
                                 className="w-full text-left p-2 flex items-start gap-2 hover:bg-white/5 transition-colors rounded-lg"
                               >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" className="flex-shrink-0 mt-0.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" className="flex-shrink-0 mt-0.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 {note ? (
                                   <span className="text-sm text-slate-400 italic">{note}</span>
                                 ) : (

@@ -10,7 +10,7 @@ const DEMAND_COLOURS = {
   normal: { bg: '#3b82f622', text: '#60a5fa', label: 'Normal' },
   high: { bg: '#f59e0b22', text: '#fbbf24', label: 'High' },
   'very-high': { bg: '#ef444422', text: '#f87171', label: 'Very high' },
-  closed: { bg: '#64748b22', text: '#94a3b8', label: 'Closed' },
+  closed: { bg: '#64748b22', text: 'var(--g-text-mid)', label: 'Closed' },
 };
 const FACTOR_TIPS = {
   dayOfWeek: f => `${f.day}s typically see ${f.effect>0?'higher':'lower'} demand`,
@@ -103,14 +103,14 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
           {data:lows,fill:false,borderWidth:0,pointRadius:0,tension:0.3,spanGaps:true},
           {data:values,borderWidth:2.5,tension:0.3,spanGaps:false,borderColor:'#38bdf8',
             pointRadius:ctx=>values[ctx.dataIndex]===null?0:ctx.dataIndex===todayIdx?8:2.5,
-            pointBackgroundColor:ctx=>ctx.dataIndex===todayIdx?'#f59e0b':ctx.dataIndex<todayIdx?'#94a3b8':'#38bdf8',
+            pointBackgroundColor:ctx=>ctx.dataIndex===todayIdx?'#f59e0b':ctx.dataIndex<todayIdx?'var(--g-text-mid)':'#38bdf8',
             pointBorderColor:ctx=>ctx.dataIndex===todayIdx?'#fbbf24':'transparent',
             pointBorderWidth:ctx=>ctx.dataIndex===todayIdx?4:0,
-            segment:{borderColor:ctx=>ctx.p0DataIndex<todayIdx?'#94a3b8':'#38bdf8',borderDash:ctx=>ctx.p0DataIndex>=todayIdx?[5,4]:undefined}},
+            segment:{borderColor:ctx=>ctx.p0DataIndex<todayIdx?'var(--g-text-mid)':'#38bdf8',borderDash:ctx=>ctx.p0DataIndex>=todayIdx?[5,4]:undefined}},
         ]}, plugins:[shade,tline],
         options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},
-          scales:{x:{ticks:{font:{size:9},color:ctx=>{if(isBH[ctx.index])return'#f59e0b88';if(isClosed[ctx.index])return'#334155';if(ctx.index===todayIdx)return'#f59e0b';return'#64748b';},maxRotation:0},grid:{display:false}},
-            y:{position:'right',min:40,max:220,ticks:{font:{size:9},color:'#475569',stepSize:40},grid:{color:'#1e293b',lineWidth:0.5},border:{display:false}}}},
+          scales:{x:{ticks:{font:{size:9},color:ctx=>{if(isBH[ctx.index])return'#f59e0b88';if(isClosed[ctx.index])return'var(--g-text-mute)';if(ctx.index===todayIdx)return'#f59e0b';return'var(--g-text-mid)';},maxRotation:0},grid:{display:false}},
+            y:{position:'right',min:40,max:220,ticks:{font:{size:9},color:'var(--g-text-faint)',stepSize:40},grid:{color:'#1e293b',lineWidth:0.5},border:{display:false}}}},
       });
     };
     loadChart();
@@ -185,41 +185,41 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
       <div style={{padding:'16px 24px 14px'}}>
         <div className="flex items-center justify-between" style={{marginBottom:14}}>
           <div className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            <span style={{fontSize:11,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Today&apos;s summary · {targetDate.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span style={{fontSize:11,color:'var(--g-text-mid)',textTransform:'uppercase',letterSpacing:'1px'}}>Today&apos;s summary · {targetDate.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</span>
           </div>
-          <button onClick={()=>setShowSettings(!showSettings)} style={{color:'#475569',background:'none',border:'none',cursor:'pointer',padding:2}} title="Settings">
+          <button onClick={()=>setShowSettings(!showSettings)} style={{color:'var(--g-text-faint)',background:'none',border:'none',cursor:'pointer',padding:2}} title="Settings">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06c.5.5 1.21.71 1.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
           </button>
         </div>
         <div className="flex items-center gap-6">
           <svg viewBox="0 0 120 74" width="120" height="74" className="flex-shrink-0">
-            <path d="M 10 68 A 50 50 0 0 1 110 68" fill="none" stroke="#1e293b" strokeWidth="9" strokeLinecap="round"/>
+            <path d="M 10 68 A 50 50 0 0 1 110 68" fill="none" style={{stroke:'var(--g-divider)'}} strokeWidth="9" strokeLinecap="round"/>
             <path d="M 10 68 A 50 50 0 0 1 110 68" fill="none" stroke={arcColour} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${arcPct*157} 157`}/>
             <text x="60" y="56" textAnchor="middle" fill={verdictText} style={{fontSize:26,fontWeight:800}}>{coverage}%</text>
-            <text x="60" y="69" textAnchor="middle" fill="#64748b" style={{fontSize:9}}>coverage</text>
+            <text x="60" y="69" textAnchor="middle" style={{fill:'var(--g-text-mid)'}} style={{fontSize:9}}>coverage</text>
           </svg>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={verdictText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={verdictIcon}/></svg>
               <span className="font-extrabold" style={{fontSize:28,color:verdictText,lineHeight:1}}>{verdict}</span>
             </div>
-            <div style={{fontSize:13,color:'#94a3b8',marginTop:4}}>{shortfall>0?`${shortfall} urgent slots short of estimated need`:`${urgentTotal-needed} slots above estimated need`}</div>
+            <div style={{fontSize:13,color:'var(--g-text-mid)',marginTop:4}}>{shortfall>0?`${shortfall} urgent slots short of estimated need`:`${urgentTotal-needed} slots above estimated need`}</div>
           </div>
           <div className="flex-shrink-0 text-right">
             <div className="flex items-center gap-1.5 justify-end" style={{marginBottom:2}}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              <span style={{fontSize:11,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.5px'}}>Prediction</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <span style={{fontSize:11,color:'var(--g-text-mid)',textTransform:'uppercase',letterSpacing:'0.5px'}}>Prediction</span>
             </div>
-            <div className="flex items-baseline gap-1.5 justify-end"><span style={{fontSize:42,fontWeight:800,color:demandCol.text,lineHeight:1}}>{predicted}</span><span style={{fontSize:13,color:'#94a3b8'}}>requests</span></div>
+            <div className="flex items-baseline gap-1.5 justify-end"><span style={{fontSize:42,fontWeight:800,color:demandCol.text,lineHeight:1}}>{predicted}</span><span style={{fontSize:13,color:'var(--g-text-mid)'}}>requests</span></div>
             <div className="flex items-center gap-1 justify-end" style={{marginTop:4}}>
               <span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:4,background:demandCol.bg,color:demandCol.text}}>{demandCol.label}</span>
               {demandDelta!==null&&demandDelta!==0&&<span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:4,background:demandDelta>0?'rgba(251,113,133,0.1)':'rgba(52,211,153,0.1)',color:demandDelta>0?'#fb7185':'#34d399'}}>{demandDelta>0?'↑':'↓'}{Math.abs(demandDelta)} vs typical</span>}
             </div>
             <div className="flex items-center gap-1 justify-end" style={{marginTop:6}}>
-              <span style={{fontSize:11,color:'#475569'}}>{t.confidence.low}</span>
-              <div style={{width:70,height:5,background:'#1e293b',borderRadius:3,position:'relative'}}><div style={{position:'absolute',top:'50%',left:`${rangePct}%`,transform:'translate(-50%,-50%)',width:7,height:7,borderRadius:'50%',background:demandCol.text}}/></div>
-              <span style={{fontSize:11,color:'#475569'}}>{t.confidence.high}</span>
+              <span style={{fontSize:11,color:'var(--g-text-faint)'}}>{t.confidence.low}</span>
+              <div style={{width:70,height:5,background:'var(--g-surface-2)',borderRadius:3,position:'relative'}}><div style={{position:'absolute',top:'50%',left:`${rangePct}%`,transform:'translate(-50%,-50%)',width:7,height:7,borderRadius:'50%',background:demandCol.text}}/></div>
+              <span style={{fontSize:11,color:'var(--g-text-faint)'}}>{t.confidence.high}</span>
             </div>
           </div>
         </div>
@@ -229,19 +229,19 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
       <div style={{background:'#141e30',padding:'10px 24px'}}>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-faint)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
             {topFactors.map((fac,i) => (
-              <span key={i} className="group relative" style={{fontSize:11,fontWeight:600,padding:'3px 8px',borderRadius:4,background:'#1e293b',color:fac.effect>=0?'#60a5fa':'#34d399',cursor:'default'}}>
-                {fac.effect>=0?'↑':'↓'} <span style={{color:'#94a3b8'}}>{fac.label}</span> {fac.effect>0?'+':''}{Math.round(fac.effect)}
-                <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-md text-xs font-normal text-slate-200 whitespace-nowrap z-10" style={{background:'#0f172a',border:'1px solid #334155'}}>{fac.tip}</span>
+              <span key={i} className="group relative" style={{fontSize:11,fontWeight:600,padding:'3px 8px',borderRadius:4,background:'var(--g-surface-2)',color:fac.effect>=0?'#60a5fa':'#34d399',cursor:'default'}}>
+                {fac.effect>=0?'↑':'↓'} <span style={{color:'var(--g-text-mid)'}}>{fac.label}</span> {fac.effect>0?'+':''}{Math.round(fac.effect)}
+                <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-md text-xs font-normal text-slate-200 whitespace-nowrap z-10" style={{background:'var(--g-surface)',border:'1px solid var(--g-divider)'}}>{fac.tip}</span>
               </span>
             ))}
           </div>
-          <div className="w-px self-stretch" style={{background:'#1e293b'}}/>
+          <div className="w-px self-stretch" style={{background:'var(--g-surface-2)'}}/>
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg><span style={{fontSize:22,fontWeight:800,color:'#a78bfa'}}>{needed}</span><span style={{fontSize:11,color:'#64748b'}}> need</span></div>
+            <div className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg><span style={{fontSize:22,fontWeight:800,color:'#a78bfa'}}>{needed}</span><span style={{fontSize:11,color:'var(--g-text-mid)'}}> need</span></div>
             <div style={{width:60,height:12,display:'flex',gap:1,borderRadius:3,overflow:'hidden'}}><div style={{flex:Math.max(urgentTotal,1),background:'#34d399'}}/>{shortfall>0&&<div style={{flex:shortfall,background:arcColour}}/>}</div>
-            <div className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span style={{fontSize:22,fontWeight:800,color:'#34d399'}}>{urgentTotal}</span><span style={{fontSize:11,color:'#64748b'}}> have</span></div>
+            <div className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span style={{fontSize:22,fontWeight:800,color:'#34d399'}}>{urgentTotal}</span><span style={{fontSize:11,color:'var(--g-text-mid)'}}> have</span></div>
           </div>
         </div>
       </div>
@@ -250,48 +250,48 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
       {(dutyAm||dutyPm) && <div style={{padding:'10px 24px'}}><div className="flex gap-2">
         {[{doc:dutyAm,sess:'AM',col:amDutyCol,slots:amSlots},{doc:dutyPm,sess:'PM',col:pmDutyCol,slots:pmSlots}].map(({doc,sess,col,slots:sl}) => {
           if(!doc) return <div key={sess} className="flex-1"/>;
-          return <div key={sess} className="flex-1 flex items-center gap-2 rounded-lg" style={{background:'#1e293b',border:'1px solid #334155',padding:'8px 12px'}}>
+          return <div key={sess} className="flex-1 flex items-center gap-2 rounded-lg" style={{background:'var(--g-surface-2)',border:'1px solid var(--g-divider)',padding:'8px 12px'}}>
             <div className="flex-shrink-0" style={{width:30,height:30,borderRadius:'50%',background:`${col}20`,display:'flex',alignItems:'center',justifyContent:'center'}}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill={col} stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
             </div>
-            <div className="flex-1 min-w-0"><div style={{fontSize:9,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.5px'}}>{sess} duty</div><div className="font-bold truncate" style={{fontSize:13,color:'#e2e8f0'}}>{doc.title?`${doc.title} `:''}{doc.name}</div></div>
+            <div className="flex-1 min-w-0"><div style={{fontSize:9,color:'var(--g-text-mid)',textTransform:'uppercase',letterSpacing:'0.5px'}}>{sess} duty</div><div className="font-bold truncate" style={{fontSize:13,color:'var(--g-text-hi)'}}>{doc.title?`${doc.title} `:''}{doc.name}</div></div>
             <div className="flex-shrink-0 text-center rounded-md" style={{background:`${col}20`,border:`1px solid ${col}40`,padding:'4px 8px'}}>
               <div style={{fontSize:16,fontWeight:800,color:col,lineHeight:1}}>{sl}</div>
-              <div style={{fontSize:8,color:'#64748b',marginTop:1}}>slots</div>
+              <div style={{fontSize:8,color:'var(--g-text-mid)',marginTop:1}}>slots</div>
             </div>
           </div>;
         })}
       </div></div>}
 
       {/* Chart toggle */}
-      <div style={{borderTop:'1px solid #1e293b'}}>
+      <div style={{borderTop:'1px solid var(--g-divider)'}}>
         <button onClick={()=>setShowChart(!showChart)} className="w-full flex items-center justify-between" style={{padding:'10px 24px',background:'none',border:'none',cursor:'pointer'}}>
           <div className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-            <span style={{fontSize:12,color:'#64748b'}}>14-day demand forecast</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            <span style={{fontSize:12,color:'var(--g-text-mid)'}}>14-day demand forecast</span>
           </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" style={{transform:showChart?'rotate(180deg)':'none',transition:'transform 0.2s'}}><path d="M6 9l6 6 6-6"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" style={{transform:showChart?'rotate(180deg)':'none',transition:'transform 0.2s'}}><path d="M6 9l6 6 6-6"/></svg>
         </button>
         {showChart && <div style={{padding:'0 24px 16px'}}><div style={{position:'relative',height:180}}><canvas ref={chartRef}/></div>
           <div className="flex justify-center gap-3 flex-wrap" style={{marginTop:8}}>
-            <span className="flex items-center gap-1" style={{fontSize:10,color:'#64748b'}}><span style={{width:12,height:2,background:'#94a3b8',display:'inline-block'}}/>Past</span>
-            <span className="flex items-center gap-1" style={{fontSize:10,color:'#64748b'}}><span style={{width:12,height:2,background:'#38bdf8',display:'inline-block'}}/>Forecast</span>
-            <span className="flex items-center gap-1" style={{fontSize:10,color:'#64748b'}}><span style={{width:12,height:6,borderRadius:2,background:'rgba(56,189,248,0.12)',display:'inline-block'}}/>Range</span>
+            <span className="flex items-center gap-1" style={{fontSize:10,color:'var(--g-text-mid)'}}><span style={{width:12,height:2,background:'var(--g-text-mid)',display:'inline-block'}}/>Past</span>
+            <span className="flex items-center gap-1" style={{fontSize:10,color:'var(--g-text-mid)'}}><span style={{width:12,height:2,background:'#38bdf8',display:'inline-block'}}/>Forecast</span>
+            <span className="flex items-center gap-1" style={{fontSize:10,color:'var(--g-text-mid)'}}><span style={{width:12,height:6,borderRadius:2,background:'rgba(56,189,248,0.12)',display:'inline-block'}}/>Range</span>
           </div>
         </div>}
       </div>
 
       {/* Settings */}
-      {showSettings && <div style={{borderTop:'1px solid #1e293b',padding:'14px 24px',background:'#141e30'}}>
-        <div style={{marginBottom:12}}><label style={{fontSize:12,fontWeight:600,color:'#94a3b8',display:'block',marginBottom:6}}>Conversion rate</label>
+      {showSettings && <div style={{borderTop:'1px solid var(--g-divider)',padding:'14px 24px',background:'#141e30'}}>
+        <div style={{marginBottom:12}}><label style={{fontSize:12,fontWeight:600,color:'var(--g-text-mid)',display:'block',marginBottom:6}}>Conversion rate</label>
           <div className="flex items-center gap-3"><input type="range" min="0.05" max="0.60" step="0.01" value={convRate} onChange={e=>updateSetting('conversionRate',parseFloat(e.target.value))} className="flex-1"/>
-            <span style={{fontSize:13,fontWeight:700,color:'#e2e8f0',background:'#1e293b',padding:'4px 12px',borderRadius:6,minWidth:52,textAlign:'center'}}>{convRate.toFixed(2)}</span></div>
-          <div style={{fontSize:10,color:'#475569',marginTop:4}}>{predicted} × {convRate.toFixed(2)} = {needed} est. appointments</div></div>
+            <span style={{fontSize:13,fontWeight:700,color:'var(--g-text-hi)',background:'var(--g-surface-2)',padding:'4px 12px',borderRadius:6,minWidth:52,textAlign:'center'}}>{convRate.toFixed(2)}</span></div>
+          <div style={{fontSize:10,color:'var(--g-text-faint)',marginTop:4}}>{predicted} × {convRate.toFixed(2)} = {needed} est. appointments</div></div>
         <div className="flex gap-4">
-          <div className="flex-1"><label style={{fontSize:12,fontWeight:600,color:'#94a3b8',display:'block',marginBottom:6}}>Green (%)</label>
-            <input type="number" value={greenPct} onChange={e=>updateSetting('greenPct',parseInt(e.target.value)||100)} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:'1px solid #334155',background:'#1e293b',color:'#e2e8f0',fontSize:13}}/></div>
-          <div className="flex-1"><label style={{fontSize:12,fontWeight:600,color:'#94a3b8',display:'block',marginBottom:6}}>Amber (%)</label>
-            <input type="number" value={amberPct} onChange={e=>updateSetting('amberPct',parseInt(e.target.value)||80)} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:'1px solid #334155',background:'#1e293b',color:'#e2e8f0',fontSize:13}}/></div>
+          <div className="flex-1"><label style={{fontSize:12,fontWeight:600,color:'var(--g-text-mid)',display:'block',marginBottom:6}}>Green (%)</label>
+            <input type="number" value={greenPct} onChange={e=>updateSetting('greenPct',parseInt(e.target.value)||100)} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:'1px solid var(--g-divider)',background:'var(--g-surface-2)',color:'var(--g-text-hi)',fontSize:13}}/></div>
+          <div className="flex-1"><label style={{fontSize:12,fontWeight:600,color:'var(--g-text-mid)',display:'block',marginBottom:6}}>Amber (%)</label>
+            <input type="number" value={amberPct} onChange={e=>updateSetting('amberPct',parseInt(e.target.value)||80)} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:'1px solid var(--g-divider)',background:'var(--g-surface-2)',color:'var(--g-text-hi)',fontSize:13}}/></div>
         </div>
       </div>}
     </div>

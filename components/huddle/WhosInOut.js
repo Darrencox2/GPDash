@@ -47,6 +47,7 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
   // "Off today" only makes sense for someone currently considered
   // present — you can't mark them off if they're already absent.
   const canMarkOff = !!onMarkOffToday && !isAbsent;
+  const hasActions = canMarkOff || !!onHide;
 
   return (
     <button
@@ -87,7 +88,7 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
         </div>
       </div>
       {hasLoc && (
-        <div className="flex flex-col gap-px flex-shrink-0">
+        <div className={`flex flex-col gap-px flex-shrink-0 ${hasActions ? 'transition-opacity group-hover:opacity-0' : ''}`}>
           <div className="rounded-t-sm flex items-center justify-center text-xs font-bold text-white" style={{ width: 22, height: 13, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
           <div className="rounded-b-sm flex items-center justify-center text-xs font-bold text-white" style={{ width: 22, height: 13, background: isSplit ? pC : aC }}>{pLoc?.charAt(0) || aLoc?.charAt(0) || '?'}</div>
         </div>
