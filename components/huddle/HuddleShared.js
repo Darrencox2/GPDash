@@ -17,7 +17,7 @@ export const ROLE_COLOURS = {
   'HCA': 'bg-lime-50 border-lime-200',
 };
 // ── Reusable radial gauge (SVG) with scroll-triggered animation ──
-export function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981', trackColour = '#e2e8f0', label, sublabel, children }) {
+export function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#10b981', trackColour, label, sublabel, children }) {
   const rawPct = max > 0 ? (value / max) * 100 : 0;
   const overTarget = rawPct > 100;
   const r = (size - strokeWidth) / 2;
@@ -47,7 +47,7 @@ export function MiniGauge({ value, max, size = 80, strokeWidth = 8, colour = '#1
     <div className="flex flex-col items-center" ref={gaugeRef}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {/* Track circle */}
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke={trackColour} strokeWidth={strokeWidth} />
+        <circle cx={cx} cy={cy} r={r} fill="none" style={{stroke: trackColour || 'var(--g-track)'}} strokeWidth={strokeWidth} />
         {/* Filled arc — animates on scroll */}
         {displayPct > 0 && (
           <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth={strokeWidth}
@@ -119,22 +119,22 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
       width="md"
     >
       {/* Three-up summary tiles — same colours as the bars below */}
-      <div className="grid grid-cols-3 gap-px" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex flex-col items-center py-3" style={{ background: 'rgba(15,23,42,0.5)' }}>
+      <div className="grid grid-cols-3 gap-px" style={{ background: 'var(--g-tile)', borderBottom: '1px solid var(--g-border)' }}>
+        <div className="flex flex-col items-center py-3" style={{ background: 'var(--g-panel)' }}>
           <div className="flex items-center gap-1 mb-0.5">
             <div className="w-2 h-2 rounded-full" style={{ background: accent }} />
             <span className="text-sm text-slate-500 uppercase tracking-wider">Available</span>
           </div>
           <span className="font-mono-data text-xl font-bold" style={{ color: accent }}>{totalAvail}</span>
         </div>
-        <div className="flex flex-col items-center py-3" style={{ background: 'rgba(15,23,42,0.5)' }}>
+        <div className="flex flex-col items-center py-3" style={{ background: 'var(--g-panel)' }}>
           <div className="flex items-center gap-1 mb-0.5">
             <div className="w-2 h-2 rounded-full bg-amber-400" />
             <span className="text-sm text-slate-500 uppercase tracking-wider">Embargoed</span>
           </div>
           <span className="font-mono-data text-xl font-bold text-amber-400">{totalEmb}</span>
         </div>
-        <div className="flex flex-col items-center py-3" style={{ background: 'rgba(15,23,42,0.5)' }}>
+        <div className="flex flex-col items-center py-3" style={{ background: 'var(--g-panel)' }}>
           <div className="flex items-center gap-1 mb-0.5">
             <div className="w-2 h-2 rounded-full bg-red-400" />
             <span className="text-sm text-slate-500 uppercase tracking-wider">Booked</span>
@@ -144,7 +144,7 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
       </div>
 
       {/* Column headers + click-through hint */}
-      <div className="px-4 py-2 flex items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="px-4 py-2 flex items-center" style={{ borderBottom: '1px solid var(--g-tile)' }}>
         <div className="flex-1 text-sm font-semibold text-slate-500 uppercase tracking-wider">
           Clinician
           <span className="ml-2 text-xs text-slate-600 normal-case tracking-normal italic">(click for slots)</span>
@@ -172,7 +172,7 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
               type="button"
               onClick={() => setDrillClinician(c.name)}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors hover:bg-white/5"
-              style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}
+              style={{ background: 'var(--g-tile-3)', border: '1px solid var(--g-tile)', cursor: 'pointer' }}
             >
               <div className="flex-1 min-w-0">
                 <div className="text-base font-medium text-slate-200 truncate">{title ? `${title} ` : ''}{displayName}</div>
@@ -192,7 +192,7 @@ export function CapacityDayPanel({ dateStr, huddleData, huddleSettings, override
 
       {/* Slot type breakdown — only when we have type data */}
       {cap.bySlotType.length > 0 && (
-        <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="px-4 py-3" style={{ borderTop: '1px solid var(--g-border)' }}>
           <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">By slot type</div>
           <div className="space-y-1">
             {cap.bySlotType.map((s, i) => (
@@ -251,7 +251,7 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   if (!hasFilter) return (
-    <div className="py-8 px-6 text-center" style={{background:'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)'}}>
+    <div className="py-8 px-6 text-center" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 50%, var(--g-ink) 100%)'}}>
       <div className="text-slate-600 mb-2" style={{fontSize:28}}>↑</div>
       <h3 className="text-base font-semibold text-slate-400 mb-1">No slots selected</h3>
       <p className="text-sm text-slate-600">Open the filter to configure.</p>
@@ -269,7 +269,7 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
   }), { avail: 0, emb: 0, book: 0 });
 
   return (
-    <div className="p-4" style={{background:'linear-gradient(180deg, rgba(15,23,42,0.4) 0%, rgba(15,23,42,0.6) 100%)'}}>
+    <div className="p-4" style={{background:'linear-gradient(180deg, var(--g-panel-soft) 0%, var(--g-panel-2) 100%)'}}>
       {/* Totals row above the bars — one-glance summary so users don't
           have to mental-sum the columns. */}
       <div className="flex items-baseline justify-between mb-3">
@@ -290,7 +290,7 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
           const total = avail + emb + book;
           const totalPct = hasData && total > 0 ? Math.max(12, (total / maxVal) * 100) : 0;
           const isHovered = hoveredIdx === i;
-          const HATCH = `repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444`;
+          const HATCH = `repeating-linear-gradient(55deg,transparent,transparent 1px,var(--g-label) 1px,var(--g-label) 1.8px),#ef4444`;
           // Drop the per-day numeric labels above each bar when we're
           // showing 21+ days — they'd just be visual noise at that point.
           // The hover tooltip + totals row above cover that information.
@@ -304,7 +304,7 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {showCountLabel && hasData && total > 0 && (
-                <div className="text-sm font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? availColour : '#64748b'}}>
+                <div className="text-sm font-bold transition-all duration-150" style={{color: isToday ? 'var(--g-text-hi)' : isHovered ? availColour : 'var(--g-text-mid)'}}>
                   {avail + emb}{book > 0 && <span style={{color:'#ef4444'}}>+{book}</span>}
                 </div>
               )}
@@ -319,33 +319,33 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
                     {emb > 0 && <div style={{height:`${(emb/total)*100}%`,background:'#f59e0b'}} />}
                     {book > 0 && <div style={{height:`${(book/total)*100}%`,background:HATCH}} />}
                   </div>
-                ) : <div className="w-full h-full" style={{background:'#334155'}} />}
+                ) : <div className="w-full h-full" style={{background:'var(--g-nodata)'}} />}
               </div>
               {showDayLabel ? (
                 <div className="mt-0.5 text-center">
-                  <div className="text-xs leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
-                  <div className="text-[11px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
+                  <div className="text-xs leading-tight" style={{color:isToday?'var(--g-text-hi)':'var(--g-text-faint)',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+                  <div className="text-[11px] leading-tight" style={{color:isToday?'var(--g-text-mid)':'var(--g-text-mute)'}}>{d.dayNum}</div>
                 </div>
               ) : <div style={{height:18}} />}
               {isHovered && hasData && total > 0 && (
-                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap pointer-events-none" style={{background:'#0f172a',border:'1px solid #334155',minWidth:'100px'}}>
+                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap pointer-events-none" style={{background:'var(--surface-solid)',border:'1px solid var(--g-divider)',minWidth:'100px'}}>
                   <div className="text-sm font-bold mb-0.5 text-slate-200">{d.dayName} {d.dayNum}</div>
                   <div className="space-y-0.5 text-sm">
                     <div className="flex justify-between gap-3"><span className="text-slate-400">Available</span><span className="font-semibold" style={{color:availColour}}>{avail}</span></div>
                     {emb > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
                     {book > 0 && <div className="flex justify-between gap-3"><span className="text-slate-400">Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
                   </div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid #334155'}} />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid var(--g-divider)'}} />
                 </div>
               )}
             </div>
           );
         })}
       </div>
-      <div className="flex items-center gap-3 mt-2 pt-2" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+      <div className="flex items-center gap-3 mt-2 pt-2" style={{borderTop:'1px solid var(--g-border)'}}>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:availColour}} /><span className="text-sm text-slate-500">Available</span></div>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}} /><span className="text-sm text-slate-500">Embargoed</span></div>
-        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444',backgroundSize:'5px 5px'}} /><span className="text-sm text-slate-500">Booked</span></div>
+        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(55deg,transparent,transparent 1px,var(--g-label) 1px,var(--g-label) 1.8px),#ef4444',backgroundSize:'5px 5px'}} /><span className="text-sm text-slate-500">Booked</span></div>
       </div>
       {selectedDay && <CapacityDayPanel dateStr={selectedDay} huddleData={huddleData} huddleSettings={huddleSettings} overrides={overrides} teamClinicians={teamClinicians} onClose={() => setSelectedDay(null)} accent={availColour} />}
     </div>
@@ -409,7 +409,7 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
     available: { bg: `${accent}15`, border: `${accent}30`, text: accent, label: 'Avail', rank: 0 },
     embargoed: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', text: '#fbbf24', label: 'Emb', rank: 1 },
     booked: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', text: '#f87171', label: 'Bkd', rank: 2 },
-    blocked: { bg: 'rgba(100,116,139,0.15)', border: 'rgba(100,116,139,0.3)', text: '#94a3b8', label: 'Blkd', rank: 3 },
+    blocked: { bg: 'rgba(100,116,139,0.15)', border: 'rgba(100,116,139,0.3)', text: 'var(--g-text-mid)', label: 'Blkd', rank: 3 },
   };
 
   // EMIS's "Appointment huddle dashboard" CSV doesn't emit per-slot times
@@ -446,10 +446,10 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
   const SlotRow = ({ row, i }) => {
     const style = STATUS_STYLE[row.status] || STATUS_STYLE.available;
     return (
-      <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+      <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-tile)' }}>
         <span className="text-sm text-slate-300 truncate flex-1">{row.slotType}</span>
         {row.count > 1 && (
-          <span className="font-mono-data text-sm text-slate-400 flex-shrink-0 px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          <span className="font-mono-data text-sm text-slate-400 flex-shrink-0 px-1.5 py-0.5 rounded" style={{ background: 'var(--g-tile)' }}>
             ×{row.count}
           </span>
         )}
@@ -471,7 +471,7 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
     const t = (row.available || 0) + (row.embargoed || 0) + (row.booked || 0);
     if (t === 0) return null;
     return (
-      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--g-tile)' }}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
           <span className="font-mono-data text-base font-bold text-slate-300">{t} slots</span>
@@ -510,7 +510,7 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
       width="md"
     >
       {/* Summary bar — total available with booked count */}
-      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--g-border)' }}>
         <div className="flex items-baseline gap-2">
           <span className="font-mono-data text-3xl font-bold" style={{ color: accent }}>{totalAvail + totalEmb}</span>
           <span className="text-sm text-slate-500">available today</span>
@@ -525,7 +525,7 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
         ) : (
           <>
             {amRows.length > 0 && (
-              <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--g-tile)' }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Morning</span>
                   <span className="text-sm text-slate-600">{amRows.reduce((s, r) => s + r.count, 0)} slots</span>
@@ -536,7 +536,7 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
               </div>
             )}
             {pmRows.length > 0 && (
-              <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--g-tile)' }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Afternoon</span>
                   <span className="text-sm text-slate-600">{pmRows.reduce((s, r) => s + r.count, 0)} slots</span>
@@ -555,7 +555,7 @@ export function ClinicianDayPanel({ clinicianName, dateStr, huddleData, huddleSe
           <SessionTileBlock label="Morning" row={amRow} />
           <SessionTileBlock label="Afternoon" row={pmRow} />
           {(amRow || pmRow) && (
-            <div className="px-4 py-3 text-sm text-slate-600 italic" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="px-4 py-3 text-sm text-slate-600 italic" style={{ borderTop: '1px solid var(--g-tile)' }}>
               Per-slot times appear after the next CSV upload.
             </div>
           )}
@@ -578,7 +578,7 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
   const totalEmb = days.reduce((sum, d) => sum + (d.embargoed || 0), 0);
   const totalBooked = days.reduce((sum, d) => sum + (d.booked || 0), 0);
   const THRESHOLDS = [3, 7, 14, 21];
-  const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 1px,rgba(255,255,255,0.35) 1px,rgba(255,255,255,0.35) 1.8px),#ef4444';
+  const HATCH = 'repeating-linear-gradient(55deg,transparent,transparent 1px,var(--g-label) 1px,var(--g-label) 1.8px),#ef4444';
 
   return (
     <div className="p-4">
@@ -602,8 +602,8 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
               const flexBefore = days.slice(0, idx).reduce((s, d) => s + (d.isWeekend ? 0.3 : 1), 0);
               const pct = (flexBefore / totalFlex) * 100;
               return <div key={`t${ti}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{ left: `${pct}%` }}>
-                <div className="absolute top-0 bottom-0 w-px" style={{ background: '#475569', opacity: 0.6 }} />
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-xs font-semibold text-slate-500 whitespace-nowrap" style={{background:'#1e293b',border:'1px solid #334155'}}>{t}d</div>
+                <div className="absolute top-0 bottom-0 w-px" style={{ background: 'var(--g-text-faint)', opacity: 0.6 }} />
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-xs font-semibold text-slate-500 whitespace-nowrap" style={{background:'var(--g-nodata)',border:'1px solid var(--g-divider)'}}>{t}d</div>
               </div>;
             })}
           </>;
@@ -621,22 +621,22 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
           return (
             <div key={i}
               className={`flex-1 flex flex-col items-center justify-end h-full relative ${d.isMonday && i > 0 ? 'ml-1 pl-1' : ''}`}
-              style={{borderLeft: d.isMonday && i > 0 ? '1px solid #334155' : 'none'}}
+              style={{borderLeft: d.isMonday && i > 0 ? '1px solid var(--g-divider)' : 'none'}}
               onMouseEnter={() => setHoveredIdx(i)}
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {hasData && total > 0 && (
-                <div className="text-sm font-bold transition-all duration-150" style={{color: isToday ? '#e2e8f0' : isHovered ? '#34d399' : '#64748b'}}>
+                <div className="text-sm font-bold transition-all duration-150" style={{color: isToday ? 'var(--g-text-hi)' : isHovered ? '#34d399' : 'var(--g-text-mid)'}}>
                   {avail}{emb > 0 && <span style={{color:'#fbbf24'}}>+{emb}</span>}
                 </div>
               )}
               <div className="w-full rounded-t overflow-hidden cursor-pointer transition-all duration-200"
                 style={{ height: hasData ? `${pct}%` : '4%', minHeight: 2,
-                  outline: isToday ? '2px solid #e2e8f0' : isHovered ? '2px solid #34d399' : 'none',
+                  outline: isToday ? '2px solid var(--g-text-hi)' : isHovered ? '2px solid #34d399' : 'none',
                   outlineOffset: -1,
                   boxShadow: isHovered ? '0 0 12px rgba(52,211,153,0.3)' : 'none',
                   transform: isHovered ? 'scaleX(1.15)' : 'none', zIndex: isHovered || isToday ? 10 : 1 }}>
-                {!hasData ? <div className="w-full h-full" style={{background:'#1e293b'}} /> : total === 0 ? <div className="w-full h-full" style={{background:'#334155'}} /> : (
+                {!hasData ? <div className="w-full h-full" style={{background:'var(--g-nodata)'}} /> : total === 0 ? <div className="w-full h-full" style={{background:'var(--g-nodata)'}} /> : (
                   <div className="w-full h-full flex flex-col justify-end">
                     {avail > 0 && <div style={{height:`${(avail/total)*100}%`,background:'#10b981'}} />}
                     {emb > 0 && <div style={{height:`${(emb/total)*100}%`,background:'#f59e0b'}} />}
@@ -645,15 +645,15 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
                 )}
               </div>
               {isHovered && hasData && (
-                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-3 py-2 shadow-xl whitespace-nowrap pointer-events-none" style={{background:'#0f172a',border:'1px solid #334155',minWidth:'120px'}}>
+                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-20 rounded-lg px-3 py-2 shadow-xl whitespace-nowrap pointer-events-none" style={{background:'var(--surface-solid)',border:'1px solid var(--g-divider)',minWidth:'120px'}}>
                   <div className="text-sm font-bold mb-1 text-slate-200">{d.dayName} {d.dayNum} {d.monthShort}</div>
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#10b981'}} />Available</span><span className="font-semibold text-emerald-400">{avail}</span></div>
                     {emb > 0 && <div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f59e0b'}} />Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
                     {book > 0 && <div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#ef4444'}} />Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
-                    <div className="flex items-center justify-between gap-3 text-sm pt-0.5" style={{borderTop:'1px solid #334155'}}><span className="text-slate-400">Total</span><span className="font-bold text-white">{total}</span></div>
+                    <div className="flex items-center justify-between gap-3 text-sm pt-0.5" style={{borderTop:'1px solid var(--g-divider)'}}><span className="text-slate-400">Total</span><span className="font-bold text-white">{total}</span></div>
                   </div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid #334155'}} />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid var(--g-divider)'}} />
                 </div>
               )}
             </div>
@@ -665,12 +665,12 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
           if (d.isWeekend) return <div key={i} className="flex-[0.3]" />;
           const isToday = i === 0;
           return <div key={i} className={`flex-1 text-center ${d.isMonday && i > 0 ? 'ml-1 pl-1' : ''}`}>
-            <div className="text-xs leading-tight" style={{color:isToday?'#e2e8f0':'#475569',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
-            <div className="text-[11px] leading-tight" style={{color:isToday?'#94a3b8':'#334155'}}>{d.dayNum}</div>
+            <div className="text-xs leading-tight" style={{color:isToday?'var(--g-text-hi)':'var(--g-text-faint)',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+            <div className="text-[11px] leading-tight" style={{color:isToday?'var(--g-text-mid)':'var(--g-text-mute)'}}>{d.dayNum}</div>
           </div>;
         })}
       </div>
-      <div className="flex items-center gap-4 mt-3 pt-3" style={{borderTop:'1px solid #334155'}}>
+      <div className="flex items-center gap-4 mt-3 pt-3" style={{borderTop:'1px solid var(--g-divider)'}}>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}} /><span className="text-sm text-slate-500">Available</span></div>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}} /><span className="text-sm text-slate-500">Embargoed</span></div>
         <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{background:HATCH,backgroundSize:'5px 5px'}} /><span className="text-sm text-slate-500">Booked</span></div>
@@ -710,15 +710,15 @@ export function SpeedometerGauge({ percentage, width = 300, height = 165, viewBo
 
   return (
     <svg className={className} viewBox={viewBox} style={width ? {width, height} : undefined}>
-      <path d={`M ${trackStart.x.toFixed(1)} ${trackStart.y.toFixed(1)} A ${r} ${r} 0 1 1 ${trackEnd.x.toFixed(1)} ${trackEnd.y.toFixed(1)}`} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={strokeW} strokeLinecap="round"/>
+      <path d={`M ${trackStart.x.toFixed(1)} ${trackStart.y.toFixed(1)} A ${r} ${r} 0 1 1 ${trackEnd.x.toFixed(1)} ${trackEnd.y.toFixed(1)}`} fill="none" style={{stroke:'var(--g-tile)'}} strokeWidth={strokeW} strokeLinecap="round"/>
       {arcs}
-      <line x1={cx} y1={cy} x2={needleStub.x.toFixed(1)} y2={needleStub.y.toFixed(1)} stroke="rgba(255,255,255,0.2)" strokeWidth={strokeW*0.12} strokeLinecap="round"/>
-      <circle cx={needlePt.x.toFixed(1)} cy={needlePt.y.toFixed(1)} r={strokeW*0.45} fill={endCol} stroke="#0f172a" strokeWidth={strokeW*0.22} style={{filter:`drop-shadow(0 0 ${strokeW*0.6}px ${endCol})`}}/>
-      <circle cx={cx} cy={cy} r={strokeW*0.3} fill="#1e293b" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeW*0.08}/>
-      <rect x={cx-pillW/2} y={cy-pillH-strokeW*0.1} width={pillW} height={pillH} rx={pillR} fill="rgba(15,23,42,0.9)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
-      <text x={cx} y={cy-pillH*0.45} textAnchor="middle" fill="white" style={{fontFamily:"'Space Mono',monospace",fontSize:pctSize,fontWeight:700}}>{percentage}%</text>
+      <line x1={cx} y1={cy} x2={needleStub.x.toFixed(1)} y2={needleStub.y.toFixed(1)} style={{stroke:'var(--g-label-faint)'}} strokeWidth={strokeW*0.12} strokeLinecap="round"/>
+      <circle cx={needlePt.x.toFixed(1)} cy={needlePt.y.toFixed(1)} r={strokeW*0.45} fill={endCol} strokeWidth={strokeW*0.22} style={{filter:`drop-shadow(0 0 ${strokeW*0.6}px ${endCol})`, stroke:'var(--g-ink)'}}/>
+      <circle cx={cx} cy={cy} r={strokeW*0.3} style={{fill:'var(--g-ink-2)',stroke:'var(--g-border-2)'}} strokeWidth={strokeW*0.08}/>
+      <rect x={cx-pillW/2} y={cy-pillH-strokeW*0.1} width={pillW} height={pillH} rx={pillR} style={{fill:'var(--g-panel-strong)',stroke:'var(--g-border)'}} strokeWidth="0.5"/>
+      <text x={cx} y={cy-pillH*0.45} textAnchor="middle" style={{fontFamily:"'Space Mono',monospace",fontSize:pctSize,fontWeight:700,fill:'var(--g-pill-text)'}}>{percentage}%</text>
       <text x={cx} y={cy-pillH*0.08} textAnchor="middle" fill={endCol} style={{fontFamily:"'Outfit',sans-serif",fontSize:labelSize,fontWeight:500}}>{band.label}</text>
-      {slots !== undefined && target !== undefined && <text x={cx} y={cy+subSize*1.4} textAnchor="middle" fill="#475569" style={{fontSize:subSize}}>{slots} / {target} target</text>}
+      {slots !== undefined && target !== undefined && <text x={cx} y={cy+subSize*1.4} textAnchor="middle" style={{fontSize:subSize,fill:'var(--g-text-faint)'}}>{slots} / {target} target</text>}
     </svg>
   );
 }
