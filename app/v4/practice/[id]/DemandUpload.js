@@ -170,8 +170,8 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
     <div>
       {/* Existing data summary */}
       {history && history.length > 0 && (
-        <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>
-          <strong style={{ color: '#cbd5e1' }}>Already uploaded:</strong>{' '}
+        <div style={{ padding: 10, background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', borderRadius: 8, fontSize: 12, color: 'var(--g-text-mid)', marginBottom: 12 }}>
+          <strong style={{ color: 'var(--g-text-hi)' }}>Already uploaded:</strong>{' '}
           {history.length} day{history.length === 1 ? '' : 's'} of data
           {history[0]?.earliest_date && (
             <> · {formatDate(history[0].earliest_date)} → {formatDate(history[0].latest_date)}</>
@@ -189,17 +189,17 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
         style={{
           padding: 24,
           background: drag ? 'rgba(34,211,238,0.08)' : 'rgba(0,0,0,0.2)',
-          border: `2px dashed ${drag ? 'rgba(34,211,238,0.5)' : 'rgba(255,255,255,0.1)'}`,
+          border: `2px dashed ${drag ? 'rgba(34,211,238,0.5)' : 'var(--g-line)'}`,
           borderRadius: 10,
           textAlign: 'center',
           cursor: 'pointer',
           opacity: busy ? 0.6 : 1,
         }}
       >
-        <div style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 4 }}>
+        <div style={{ fontSize: 13, color: 'var(--g-text-hi)', marginBottom: 4 }}>
           {busy ? 'Uploading and recalibrating…' : 'Drop CSV here or click to browse'}
         </div>
-        <div style={{ fontSize: 11, color: '#64748b' }}>
+        <div style={{ fontSize: 11, color: 'var(--g-text-mid)' }}>
           Supports: {SUPPORTED_SOURCES.map(s => s.label).join(' · ')}
         </div>
         <input
@@ -218,26 +218,26 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
         </div>
       )}
       {result && !error && (
-        <div style={{ marginTop: 12, padding: 14, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, fontSize: 12, color: '#cbd5e1' }}>
+        <div style={{ marginTop: 12, padding: 14, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--g-text-hi)' }}>
           <div style={{ color: '#34d399', fontWeight: 600, marginBottom: 6 }}>
             ✓ Uploaded
             {result.sourceLabel && (
-              <span style={{ marginLeft: 8, fontWeight: 400, color: '#94a3b8', fontSize: 11 }}>
+              <span style={{ marginLeft: 8, fontWeight: 400, color: 'var(--g-text-mid)', fontSize: 11 }}>
                 detected as {result.sourceLabel}
               </span>
             )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 4, marginBottom: 8 }}>
-            <span style={{ color: '#64748b' }}>Days in this file</span><span>{result.rowsInFile.toLocaleString()}</span>
-            <span style={{ color: '#64748b' }}>Date range</span><span>{formatDate(result.earliest)} → {formatDate(result.latest)}</span>
-            <span style={{ color: '#64748b' }}>Total days on file</span><span>{result.rowsTotal.toLocaleString()}</span>
+            <span style={{ color: 'var(--g-text-mid)' }}>Days in this file</span><span>{result.rowsInFile.toLocaleString()}</span>
+            <span style={{ color: 'var(--g-text-mid)' }}>Date range</span><span>{formatDate(result.earliest)} → {formatDate(result.latest)}</span>
+            <span style={{ color: 'var(--g-text-mid)' }}>Total days on file</span><span>{result.rowsTotal.toLocaleString()}</span>
             {result.totalEvents != null && (
               <>
-                <span style={{ color: '#64748b' }}>Submissions</span>
+                <span style={{ color: 'var(--g-text-mid)' }}>Submissions</span>
                 <span>
                   {result.totalEvents.toLocaleString()} total
                   {result.proxyEvents != null && result.directEvents != null && (
-                    <span style={{ color: '#64748b' }}>
+                    <span style={{ color: 'var(--g-text-mid)' }}>
                       {' '}— {result.directEvents.toLocaleString()} direct + {result.proxyEvents.toLocaleString()} via staff
                     </span>
                   )}
@@ -246,26 +246,26 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
             )}
           </div>
           {result.calibration?.sufficient ? (
-            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--g-border)' }}>
               <div style={{ color: '#67e8f9', fontWeight: 500, marginBottom: 6 }}>Calibration applied</div>
               <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 4 }}>
-                <span style={{ color: '#64748b' }}>Baseline</span><span>{result.calibration.baseline} requests/day</span>
-                <span style={{ color: '#64748b' }}>Growth</span><span>{(result.calibration.growthPerDay * 365).toFixed(1)} requests/year</span>
-                <span style={{ color: '#64748b' }}>Day-of-week effects</span>
+                <span style={{ color: 'var(--g-text-mid)' }}>Baseline</span><span>{result.calibration.baseline} requests/day</span>
+                <span style={{ color: 'var(--g-text-mid)' }}>Growth</span><span>{(result.calibration.growthPerDay * 365).toFixed(1)} requests/year</span>
+                <span style={{ color: 'var(--g-text-mid)' }}>Day-of-week effects</span>
                 <span>Mon {fmt(result.calibration.dowEffects[0])} · Tue {fmt(result.calibration.dowEffects[1])} · Wed {fmt(result.calibration.dowEffects[2])} · Thu {fmt(result.calibration.dowEffects[3])} · Fri {fmt(result.calibration.dowEffects[4])}</span>
-                <span style={{ color: '#64748b' }}>Seasonal effects</span>
+                <span style={{ color: 'var(--g-text-mid)' }}>Seasonal effects</span>
                 <span>{result.calibration.monthEffectsAvailable
                   ? '✓ Fitted (≥9 months data)'
                   : `Not yet (need ≥9 months — have ${(result.calibration.spanDays / 30).toFixed(0)} months)`}</span>
               </div>
             </div>
           ) : (
-            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', color: '#fcd34d' }}>
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--g-border)', color: '#fcd34d' }}>
               Not enough data to calibrate yet — keep uploading. ({result.calibration?.reason})
             </div>
           )}
           {result.parseErrors.length > 0 && (
-            <details style={{ marginTop: 8, fontSize: 11, color: '#94a3b8' }}>
+            <details style={{ marginTop: 8, fontSize: 11, color: 'var(--g-text-mid)' }}>
               <summary style={{ cursor: 'pointer' }}>{result.parseErrors.length} parse warning(s)</summary>
               <ul style={{ marginTop: 6, paddingLeft: 18 }}>
                 {result.parseErrors.slice(0, 10).map((e, i) => <li key={i}>{e}</li>)}

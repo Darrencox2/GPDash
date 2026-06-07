@@ -20,18 +20,18 @@ export default function PendingInvitesCard({ invites, canManage }) {
   if (!invites || invites.length === 0) return null;
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--g-tile-2)',
+      border: '1px solid var(--g-border-2)',
       borderRadius: 12,
       padding: 20,
     }}>
-      <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginBottom: 14 }}>
+      <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>
         Pending invites
       </h3>
       {invites.map(inv => (
         <InviteRow key={inv.id} invite={inv} canManage={canManage} />
       ))}
-      <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
+      <div style={{ marginTop: 12, fontSize: 11, color: 'var(--g-text-mid)', lineHeight: 1.5 }}>
         Invite emails aren't sent automatically yet — copy the link and forward it via your usual channel (Slack, text, email, etc.).
       </div>
     </div>
@@ -81,11 +81,11 @@ function InviteRow({ invite: inv, canManage }) {
   const expired = new Date(inv.expires_at) < new Date();
 
   return (
-    <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+    <div style={{ padding: '12px 0', borderBottom: '1px solid var(--g-tile)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-          <div style={{ fontSize: 14, color: '#e2e8f0' }}>{inv.email}</div>
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+          <div style={{ fontSize: 14, color: 'var(--g-text-hi)' }}>{inv.email}</div>
+          <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 2 }}>
             Invited as <span style={{ textTransform: 'capitalize' }}>{inv.role}</span>
             {' · '}
             {expired ? (
@@ -103,9 +103,9 @@ function InviteRow({ invite: inv, canManage }) {
               style={{
                 padding: '5px 10px',
                 fontSize: 11,
-                color: copied ? '#34d399' : '#cbd5e1',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                color: copied ? '#34d399' : 'var(--g-text-hi)',
+                background: 'var(--g-tile)',
+                border: '1px solid var(--g-border-2)',
                 borderRadius: 6,
                 cursor: 'pointer',
               }}

@@ -40,9 +40,9 @@ const TYPE_META = {
   rota_note_updated: { label: 'Rota', colour: '#a78bfa' },
   rota_note_deleted: { label: 'Rota', colour: '#a78bfa' },
   // Settings
-  settings_changed: { label: 'Settings', colour: '#94a3b8' },
+  settings_changed: { label: 'Settings', colour: 'var(--g-text-mid)' },
   // Catch-all
-  other: { label: 'Other', colour: '#94a3b8' },
+  other: { label: 'Other', colour: 'var(--g-text-mid)' },
 };
 
 // Event type categories for the filter chips
@@ -127,9 +127,9 @@ export default function AuditLogView({ practiceId }) {
             style={{
               padding: '6px 12px',
               fontSize: 13,
-              background: filter === g.id ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${filter === g.id ? 'rgba(34,211,238,0.4)' : 'rgba(255,255,255,0.08)'}`,
-              color: filter === g.id ? '#22d3ee' : '#94a3b8',
+              background: filter === g.id ? 'rgba(34,211,238,0.15)' : 'var(--g-tile)',
+              border: `1px solid ${filter === g.id ? 'rgba(34,211,238,0.4)' : 'var(--g-border-2)'}`,
+              color: filter === g.id ? '#22d3ee' : 'var(--g-text-mid)',
               borderRadius: 999,
               cursor: 'pointer',
             }}>
@@ -144,10 +144,10 @@ export default function AuditLogView({ practiceId }) {
         </div>
       )}
 
-      {loading && <div style={{ fontSize: 13, color: '#64748b', padding: 16 }}>Loading…</div>}
+      {loading && <div style={{ fontSize: 13, color: 'var(--g-text-mid)', padding: 16 }}>Loading…</div>}
 
       {!loading && events.length === 0 && !error && (
-        <div style={{ fontSize: 14, color: '#64748b', padding: 24, textAlign: 'center' }}>
+        <div style={{ fontSize: 14, color: 'var(--g-text-mid)', padding: 24, textAlign: 'center' }}>
           No events recorded yet for this filter.
         </div>
       )}
@@ -159,7 +159,7 @@ export default function AuditLogView({ practiceId }) {
       )}
 
       {hasMore && (
-        <div style={{ marginTop: 12, fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--g-text-mid)', textAlign: 'center' }}>
           Showing the most recent {PAGE_SIZE} events. Older events still exist
           in the database — pagination UI coming if you need it.
         </div>
@@ -176,9 +176,9 @@ function EventRow({ event, userLabel }) {
   return (
     <div style={{
       padding: '10px 12px',
-      background: 'rgba(0,0,0,0.2)',
+      background: 'var(--g-field)',
       borderRadius: 6,
-      border: '1px solid rgba(255,255,255,0.04)',
+      border: '1px solid var(--g-tile)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{
@@ -190,14 +190,14 @@ function EventRow({ event, userLabel }) {
           fontWeight: 600,
           flexShrink: 0,
         }}>{meta.label}</span>
-        <span style={{ fontSize: 14, color: '#e2e8f0', flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 14, color: 'var(--g-text-hi)', flex: 1, minWidth: 0 }}>
           {event.description || event.event_type}
         </span>
-        <span style={{ fontSize: 12, color: '#64748b', flexShrink: 0 }}>
+        <span style={{ fontSize: 12, color: 'var(--g-text-mid)', flexShrink: 0 }}>
           {formatRelativeTime(event.occurred_at)}
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, fontSize: 12, color: '#64748b' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, fontSize: 12, color: 'var(--g-text-mid)' }}>
         <span>by {userLabel}</span>
         {hasDetails && (
           <button
@@ -220,10 +220,10 @@ function EventRow({ event, userLabel }) {
         <pre style={{
           marginTop: 8,
           padding: 10,
-          background: 'rgba(0,0,0,0.4)',
+          background: 'var(--g-field)',
           borderRadius: 4,
           fontSize: 12,
-          color: '#94a3b8',
+          color: 'var(--g-text-mid)',
           fontFamily: 'ui-monospace, Menlo, monospace',
           overflowX: 'auto',
           margin: '8px 0 0',

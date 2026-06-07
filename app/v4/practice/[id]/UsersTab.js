@@ -33,7 +33,7 @@ const ROLE_STYLES = {
   },
   user: {
     background: 'rgba(148,163,184,0.12)',
-    color: '#cbd5e1',
+    color: 'var(--g-text-hi)',
     border: '1px solid rgba(148,163,184,0.25)',
   },
 };
@@ -80,14 +80,14 @@ export default function UsersTab({
           <Stat label="Members" value={stats.total} />
           <Stat label="Owners" value={stats.owners} colour="#fcd34d" />
           <Stat label="Admins" value={stats.admins} colour="#67e8f9" />
-          <Stat label="Users" value={stats.users} colour="#cbd5e1" />
+          <Stat label="Users" value={stats.users} colour="var(--g-text-hi)" />
           {stats.unlinked > 0 && <Stat label="Unlinked" value={stats.unlinked} colour="#fbbf24" tooltip="Clinicians who haven't linked themselves to their record yet — their personal rota will be empty until they do. Non-clinical staff (practice managers, reception, etc.) don't count toward this." />}
-          {stats.nonClinical > 0 && <Stat label="Non-clinical" value={stats.nonClinical} colour="#94a3b8" tooltip="Members who explicitly aren't clinicians at this practice (practice managers, reception, IT, finance, etc.)." />}
+          {stats.nonClinical > 0 && <Stat label="Non-clinical" value={stats.nonClinical} colour="var(--g-text-mid)" tooltip="Members who explicitly aren't clinicians at this practice (practice managers, reception, IT, finance, etc.)." />}
           {stats.invites > 0 && <Stat label="Pending invites" value={stats.invites} colour="#a5b4fc" />}
         </div>
 
         {members.length === 0 ? (
-          <p style={{ fontSize: 14, color: '#64748b' }}>No members yet.</p>
+          <p style={{ fontSize: 14, color: 'var(--g-text-mid)' }}>No members yet.</p>
         ) : (
           members.map(m => (
             <MemberRow
@@ -116,14 +116,14 @@ export default function UsersTab({
           {bulkInviteButton && (
             <div style={{
               paddingTop: 14,
-              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderTop: '1px solid var(--g-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 12,
               flexWrap: 'wrap',
             }}>
-              <div style={{ fontSize: 12, color: '#94a3b8', flex: '1 1 240px' }}>
+              <div style={{ fontSize: 12, color: 'var(--g-text-mid)', flex: '1 1 240px' }}>
                 Got a list? Paste a bunch at once — Outlook contacts, comma-separated, anything.
               </div>
               {bulkInviteButton}
@@ -136,7 +136,7 @@ export default function UsersTab({
           discoverable but doesn't clutter the main member list. */}
       {transferOwnershipButton && (
         <Card title="Transfer ownership">
-          <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+          <p style={{ fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
             Step down from owner and promote another member to owner in one action.
             Useful when the practice changes hands or you're stepping back from administration.
             Required if you (as the only owner) want to leave the practice.
@@ -213,7 +213,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
   return (
     <div style={{
       padding: '14px 0',
-      borderBottom: '1px solid rgba(255,255,255,0.04)',
+      borderBottom: '1px solid var(--g-tile)',
       // Subtle highlight on the "you" row
       background: isMe ? 'rgba(34,211,238,0.04)' : undefined,
       marginLeft: isMe ? -16 : 0,
@@ -225,12 +225,12 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0, flex: '1 1 auto' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 14, color: '#e2e8f0', fontWeight: isMe ? 600 : 400 }}>
+            <span style={{ fontSize: 14, color: 'var(--g-text-hi)', fontWeight: isMe ? 600 : 400 }}>
               {m.email || '—'}
             </span>
             {isMe && <span style={{ fontSize: 10, padding: '1px 7px', background: 'rgba(34,211,238,0.18)', color: '#67e8f9', borderRadius: 999, fontWeight: 600, letterSpacing: 0.4 }}>YOU</span>}
           </div>
-          {m.name && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{m.name}</div>}
+          {m.name && <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 2 }}>{m.name}</div>}
           {/* Clinician-link status. Three states:
                (a) Linked to a clinician record  → slate "Linked to X"
                (b) Marked as non-clinical here   → slate "Non-clinical"
@@ -369,9 +369,9 @@ function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
   // Linked → just show the link.
   if (m.linked_clinician_id) {
     return (
-      <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-        <span style={{ color: '#94a3b8' }}>
-          Linked to <span style={{ color: '#cbd5e1' }}>{m.linked_clinician_name}</span>
+      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 4 }}>
+        <span style={{ color: 'var(--g-text-mid)' }}>
+          Linked to <span style={{ color: 'var(--g-text-hi)' }}>{m.linked_clinician_name}</span>
         </span>
       </div>
     );
@@ -380,8 +380,8 @@ function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
   // Marked non-clinical → slate badge, no warning. Self or admin can undo.
   if (m.marked_non_clinical) {
     return (
-      <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ color: '#94a3b8' }}>Non-clinical</span>
+      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ color: 'var(--g-text-mid)' }}>Non-clinical</span>
         {(isMe || canActOnTarget) && (
           <button
             onClick={() => setNonClinical(false)}
@@ -430,9 +430,9 @@ function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
 const tinyActionBtn = {
   padding: '2px 8px',
   fontSize: 11,
-  color: '#cbd5e1',
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.12)',
+  color: 'var(--g-text-hi)',
+  background: 'var(--g-tile)',
+  border: '1px solid var(--g-line)',
   borderRadius: 4,
   cursor: 'pointer',
   fontWeight: 500,
@@ -441,7 +441,7 @@ const tinyActionBtn = {
 const tinyLinkBtn = {
   padding: '0 4px',
   fontSize: 11,
-  color: '#94a3b8',
+  color: 'var(--g-text-mid)',
   background: 'transparent',
   border: 'none',
   textDecoration: 'underline',
@@ -454,15 +454,15 @@ function Stat({ label, value, colour, tooltip }) {
     <div
       title={tooltip}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--g-tile-2)',
+        border: '1px solid var(--g-border)',
         borderRadius: 8,
         padding: '6px 12px',
         cursor: tooltip ? 'help' : 'default',
       }}
     >
-      <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 600, color: colour || '#e2e8f0', fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>{value}</div>
+      <div style={{ fontSize: 9, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: colour || 'var(--g-text-hi)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>{value}</div>
     </div>
   );
 }
@@ -472,12 +472,12 @@ function Stat({ label, value, colour, tooltip }) {
 function Card({ title, children }) {
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--g-tile-2)',
+      border: '1px solid var(--g-border-2)',
       borderRadius: 12,
       padding: 20,
     }}>
-      {title && <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: '#cbd5e1', marginBottom: 14 }}>{title}</h3>}
+      {title && <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>{title}</h3>}
       {children}
     </div>
   );

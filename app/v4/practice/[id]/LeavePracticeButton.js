@@ -45,7 +45,7 @@ export default function LeavePracticeButton({ practiceId, practiceName, myRole, 
         style={{
           padding: '4px 10px',
           fontSize: 11,
-          color: isLastOwner ? '#64748b' : '#fbbf24',
+          color: isLastOwner ? 'var(--g-text-mid)' : '#fbbf24',
           background: isLastOwner ? 'rgba(148,163,184,0.06)' : 'rgba(245,158,11,0.08)',
           border: `1px solid ${isLastOwner ? 'rgba(148,163,184,0.15)' : 'rgba(245,158,11,0.25)'}`,
           borderRadius: 6,

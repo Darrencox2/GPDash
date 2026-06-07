@@ -67,7 +67,7 @@ export default function PracticeTabs({ canManage, isPlatformAdmin, sectionStatus
       <div style={{
         display: 'flex',
         gap: 4,
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        borderBottom: '1px solid var(--g-border-2)',
         marginBottom: 24,
         flexWrap: 'wrap',
       }}>
@@ -83,7 +83,7 @@ export default function PracticeTabs({ canManage, isPlatformAdmin, sectionStatus
                 padding: '10px 16px',
                 fontSize: 14,
                 fontWeight: t.id === effectiveTab ? 600 : 400,
-                color: t.id === effectiveTab ? (t.id === 'danger' ? '#fca5a5' : '#22d3ee') : '#94a3b8',
+                color: t.id === effectiveTab ? (t.id === 'danger' ? '#fca5a5' : '#22d3ee') : 'var(--g-text-mid)',
                 background: 'none',
                 border: 'none',
                 borderBottom: `2px solid ${t.id === effectiveTab ? (t.id === 'danger' ? '#fca5a5' : '#22d3ee') : 'transparent'}`,

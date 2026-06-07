@@ -116,7 +116,7 @@ export default function DemandComparisonPanel({
   if (analysis.firstTime) {
     if (firstTimeMode === 'hide') return null;
     return (
-      <div style={{ marginTop: 12, padding: 12, background: 'rgba(34,211,238,0.05)', border: '1px solid rgba(34,211,238,0.15)', borderRadius: 8, fontSize: 12, color: '#94a3b8' }}>
+      <div style={{ marginTop: 12, padding: 12, background: 'rgba(34,211,238,0.05)', border: '1px solid rgba(34,211,238,0.15)', borderRadius: 8, fontSize: 12, color: 'var(--g-text-mid)' }}>
         This is the first calibration for your practice — there&apos;s no prior model to compare against.
         Once you upload another batch, you&apos;ll see how well the current model predicted it.
       </div>
@@ -129,18 +129,18 @@ export default function DemandComparisonPanel({
   const biasMag = Math.abs(meanError);
 
   return (
-    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--g-border)' }}>
       <div style={{ color: '#a78bfa', fontWeight: 500, marginBottom: 8 }}>
         {title}
       </div>
 
       {/* Headline stats */}
       <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 4, marginBottom: 12 }}>
-        <span style={{ color: '#64748b' }}>Days compared</span>
+        <span style={{ color: 'var(--g-text-mid)' }}>Days compared</span>
         <span>{n} weekday{n === 1 ? '' : 's'}</span>
-        <span style={{ color: '#64748b' }}>Mean absolute error</span>
+        <span style={{ color: 'var(--g-text-mid)' }}>Mean absolute error</span>
         <span>{mae.toFixed(1)} requests/day{mape != null && ` (${mape.toFixed(0)}% MAPE)`}</span>
-        <span style={{ color: '#64748b' }}>Average bias</span>
+        <span style={{ color: 'var(--g-text-mid)' }}>Average bias</span>
         <span>
           {biasMag < 0.5
             ? 'Model was on target'
@@ -153,21 +153,21 @@ export default function DemandComparisonPanel({
 
       {/* Day-of-week bias */}
       <div style={{ marginTop: 12 }}>
-        <div style={{ color: '#64748b', fontSize: 11, marginBottom: 6 }}>Day-of-week bias (negative = predicted too high)</div>
+        <div style={{ color: 'var(--g-text-mid)', fontSize: 11, marginBottom: 6 }}>Day-of-week bias (negative = predicted too high)</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
           {dowBias.map(d => (
             <div key={d.label} style={{
               padding: 8,
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--g-tile-2)',
+              border: '1px solid var(--g-border)',
               borderRadius: 6,
               textAlign: 'center',
             }}>
-              <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.label}</div>
-              <div style={{ fontSize: 13, color: d.meanError == null ? '#475569' : (Math.abs(d.meanError) < 1 ? '#94a3b8' : (d.meanError > 0 ? '#fcd34d' : '#67e8f9')), fontWeight: 500, marginTop: 2 }}>
+              <div style={{ fontSize: 10, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.label}</div>
+              <div style={{ fontSize: 13, color: d.meanError == null ? 'var(--g-text-faint)' : (Math.abs(d.meanError) < 1 ? 'var(--g-text-mid)' : (d.meanError > 0 ? '#fcd34d' : '#67e8f9')), fontWeight: 500, marginTop: 2 }}>
                 {d.meanError == null ? '—' : (d.meanError > 0 ? '+' : '') + d.meanError.toFixed(0)}
               </div>
-              <div style={{ fontSize: 9, color: '#475569', marginTop: 1 }}>{d.count} day{d.count === 1 ? '' : 's'}</div>
+              <div style={{ fontSize: 9, color: 'var(--g-text-faint)', marginTop: 1 }}>{d.count} day{d.count === 1 ? '' : 's'}</div>
             </div>
           ))}
         </div>
@@ -175,27 +175,27 @@ export default function DemandComparisonPanel({
 
       {/* Top outliers */}
       {outliers.length > 0 && (
-        <details style={{ marginTop: 12, fontSize: 11, color: '#94a3b8' }}>
-          <summary style={{ cursor: 'pointer', color: '#cbd5e1' }}>
+        <details style={{ marginTop: 12, fontSize: 11, color: 'var(--g-text-mid)' }}>
+          <summary style={{ cursor: 'pointer', color: 'var(--g-text-hi)' }}>
             Top {outliers.length} biggest misses (click for factor breakdown)
           </summary>
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {outliers.map((p, i) => (
               <div key={i} style={{
                 padding: 8,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: 'var(--g-tile-2)',
+                border: '1px solid var(--g-border)',
                 borderRadius: 6,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                  <span style={{ color: '#cbd5e1', fontWeight: 500 }}>{formatDate(p.date)}</span>
+                  <span style={{ color: 'var(--g-text-hi)', fontWeight: 500 }}>{formatDate(p.date)}</span>
                   <span style={{ color: p.error > 0 ? '#67e8f9' : '#fcd34d' }}>
                     {p.error > 0 ? '+' : ''}{p.error} ({p.error > 0 ? 'higher' : 'lower'} than predicted)
                   </span>
                 </div>
-                <div style={{ display: 'flex', gap: 16, color: '#64748b', fontSize: 10, marginBottom: 4 }}>
-                  <span>Predicted: <span style={{ color: '#cbd5e1' }}>{p.predicted}</span></span>
-                  <span>Actual: <span style={{ color: '#cbd5e1' }}>{p.actual}</span></span>
+                <div style={{ display: 'flex', gap: 16, color: 'var(--g-text-mid)', fontSize: 10, marginBottom: 4 }}>
+                  <span>Predicted: <span style={{ color: 'var(--g-text-hi)' }}>{p.predicted}</span></span>
+                  <span>Actual: <span style={{ color: 'var(--g-text-hi)' }}>{p.actual}</span></span>
                 </div>
                 <FactorBreakdown factors={p.factors} />
               </div>
@@ -237,13 +237,13 @@ function ComparisonChart({ points }) {
     : [0, Math.floor(points.length / 2), points.length - 1];
 
   return (
-    <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 8, border: '1px solid rgba(255,255,255,0.04)' }}>
+    <div style={{ background: 'var(--g-field)', borderRadius: 8, padding: 8, border: '1px solid var(--g-tile)' }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
         {/* Y gridlines */}
         {yTicks.map((y) => (
           <g key={y}>
-            <line x1={PAD_L} y1={yScale(y)} x2={W - PAD_R} y2={yScale(y)} stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-            <text x={PAD_L - 4} y={yScale(y) + 3} textAnchor="end" fontSize="9" fill="#64748b">{y}</text>
+            <line x1={PAD_L} y1={yScale(y)} x2={W - PAD_R} y2={yScale(y)} stroke="var(--g-tile)" strokeWidth="1" />
+            <text x={PAD_L - 4} y={yScale(y) + 3} textAnchor="end" fontSize="9" style={{fill:'var(--g-text-mid)'}}>{y}</text>
           </g>
         ))}
 
@@ -258,13 +258,13 @@ function ComparisonChart({ points }) {
 
         {/* X labels */}
         {labelIndices.map(i => (
-          <text key={i} x={xScale(i)} y={H - 6} textAnchor="middle" fontSize="9" fill="#64748b">
+          <text key={i} x={xScale(i)} y={H - 6} textAnchor="middle" fontSize="9" style={{fill:'var(--g-text-mid)'}}>
             {shortDate(points[i].date)}
           </text>
         ))}
       </svg>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, fontSize: 10, color: 'var(--g-text-mid)', marginTop: 4 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ width: 12, height: 2, background: '#a78bfa', display: 'inline-block' }} />
           Predicted
@@ -288,7 +288,7 @@ function FactorBreakdown({ factors }) {
   if (factors.firstWeekBack) parts.push(`first week back ${fmtNum(factors.firstWeekBack.effect || 0)}`);
   if (factors.trend?.effect != null) parts.push(`trend ${fmtNum(factors.trend.effect)}`);
   if (parts.length === 0) return null;
-  return <div style={{ color: '#64748b', fontSize: 10, marginTop: 2 }}>{parts.join(' · ')}</div>;
+  return <div style={{ color: 'var(--g-text-mid)', fontSize: 10, marginTop: 2 }}>{parts.join(' · ')}</div>;
 }
 
 function fmtNum(n) {

@@ -71,7 +71,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
           <div style={{
             maxWidth: 480,
             width: '100%',
-            background: '#0f172a',
+            background: 'var(--g-surface)',
             border: '1px solid rgba(239,68,68,0.4)',
             borderRadius: 12,
             padding: 24,
@@ -79,12 +79,12 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
             <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: '#fca5a5', marginBottom: 8 }}>
               ⚠ Delete practice
             </h2>
-            <p style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5, marginBottom: 12 }}>
-              This is permanent and cannot be undone. Deleting <strong style={{ color: 'white' }}>{practiceName}</strong> will
+            <p style={{ fontSize: 13, color: 'var(--g-text-hi)', lineHeight: 1.5, marginBottom: 12 }}>
+              This is permanent and cannot be undone. Deleting <strong style={{ color: 'var(--g-text-hi)' }}>{practiceName}</strong> will
               remove every clinician record, working pattern, absence, rota note, room
               allocation, demand history row, and every member's access to this practice.
             </p>
-            <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: 'var(--g-text-hi)', marginBottom: 8 }}>
               Type the practice name below to confirm:
             </p>
             <input
@@ -96,10 +96,10 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
               style={{
                 width: '100%',
                 padding: '8px 12px',
-                background: 'rgba(0,0,0,0.3)',
-                border: `1px solid ${matches ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                background: 'var(--g-field)',
+                border: `1px solid ${matches ? 'rgba(239,68,68,0.5)' : 'var(--g-line)'}`,
                 borderRadius: 6,
-                color: '#e2e8f0',
+                color: 'var(--g-text-hi)',
                 fontSize: 14,
                 marginBottom: 12,
               }}
@@ -116,7 +116,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
                 style={{
                   padding: '8px 14px',
                   background: 'transparent',
-                  color: '#94a3b8',
+                  color: 'var(--g-text-mid)',
                   border: '1px solid rgba(255,255,255,0.15)',
                   borderRadius: 6,
                   fontSize: 13,

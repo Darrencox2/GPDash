@@ -59,7 +59,7 @@ export default function ClinicianLinker({ practiceId, currentLinkedClinicianId, 
 
   return (
     <div>
-      <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>
+      <p style={{ fontSize: 12, color: 'var(--g-text-mid)', marginBottom: 12 }}>
         Link your account to a clinician record so 'My Rota' knows whose rota to show
         and lets you save personal notes.
       </p>
@@ -70,10 +70,10 @@ export default function ClinicianLinker({ practiceId, currentLinkedClinicianId, 
         disabled={busy}
         style={{
           width: '100%', padding: '10px 12px', fontSize: 13,
-          background: 'rgba(15,23,42,0.7)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'var(--g-panel-2)',
+          border: '1px solid var(--g-line)',
           borderRadius: 8,
-          color: '#e2e8f0',
+          color: 'var(--g-text-hi)',
           marginBottom: 10,
         }}
       >

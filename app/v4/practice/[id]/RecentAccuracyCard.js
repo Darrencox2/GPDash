@@ -77,7 +77,7 @@ export default function RecentAccuracyCard({
 
   if (rows == null) {
     return (
-      <div style={{ padding: 12, color: '#64748b', fontSize: 12 }}>
+      <div style={{ padding: 12, color: 'var(--g-text-mid)', fontSize: 12 }}>
         Loading recent accuracy…
       </div>
     );
@@ -85,7 +85,7 @@ export default function RecentAccuracyCard({
 
   if (rows.length === 0) {
     return (
-      <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, fontSize: 12, color: '#94a3b8' }}>
+      <div style={{ padding: 12, background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', borderRadius: 8, fontSize: 12, color: 'var(--g-text-mid)' }}>
         No demand history in the last {days} days yet.
       </div>
     );
@@ -93,7 +93,7 @@ export default function RecentAccuracyCard({
 
   return (
     <div>
-      <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 8 }}>
+      <p style={{ fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 8 }}>
         How the current model has been tracking against your actual demand
         for the last {rows.length} day{rows.length === 1 ? '' : 's'} on file.
         Filtered to weekdays only in the chart.

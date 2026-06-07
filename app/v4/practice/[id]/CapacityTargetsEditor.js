@@ -67,7 +67,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
       )}
 
       <Card title="Today gauge target (demand-driven)" status={saving ? 'saving' : saved ? 'saved' : null}>
-        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+        <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
           The Today page urgent gauge target is calculated dynamically from
           today's predicted demand. This slider sets what proportion of
           requests typically need an urgent slot. The static table below is
@@ -75,7 +75,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
           Capacity Planning's weekly view.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-          <label style={{ fontSize: 14, color: '#cbd5e1', minWidth: 130 }}>
+          <label style={{ fontSize: 14, color: 'var(--g-text-hi)', minWidth: 130 }}>
             Demand → urgent ratio
           </label>
           <input
@@ -90,8 +90,8 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
           <span style={{
             fontSize: 14,
             fontWeight: 700,
-            color: '#e2e8f0',
-            background: 'rgba(0,0,0,0.3)',
+            color: 'var(--g-text-hi)',
+            background: 'var(--g-field)',
             padding: '6px 14px',
             borderRadius: 6,
             minWidth: 64,
@@ -101,7 +101,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
             {convRate.toFixed(2)}
           </span>
         </div>
-        <p style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>
+        <p style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 8 }}>
           Example: if today's predicted demand is {sampleDemand} requests
           and the ratio is {convRate.toFixed(2)}, the gauge target will be {sampleTarget} urgent
           slots ({sampleDemand} × {convRate.toFixed(2)}).
@@ -109,7 +109,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
       </Card>
 
       <Card title="Static capacity targets (capacity planning)" status={saving ? 'saving' : saved ? 'saved' : null}>
-        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+        <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
           Fixed expected slots per session per weekday. Used by Capacity Planning's
           weekly view, and as a fallback for Today's gauge when no prediction is
           available. Colour bands: <span style={{ color: '#34d399' }}>green</span> at ≥90%,
@@ -120,9 +120,9 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '8px 4px', color: '#64748b', fontSize: 12, fontWeight: 600, width: 100 }}></th>
+                <th style={{ textAlign: 'left', padding: '8px 4px', color: 'var(--g-text-mid)', fontSize: 12, fontWeight: 600, width: 100 }}></th>
                 {DAYS.map(d => (
-                  <th key={d} style={{ textAlign: 'center', padding: '8px 4px', color: '#94a3b8', fontSize: 12, fontWeight: 600 }}>
+                  <th key={d} style={{ textAlign: 'center', padding: '8px 4px', color: 'var(--g-text-mid)', fontSize: 12, fontWeight: 600 }}>
                     {d.slice(0, 3)}
                   </th>
                 ))}
@@ -130,7 +130,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
             </thead>
             <tbody>
               {['am', 'pm'].map(session => (
-                <tr key={session} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                <tr key={session} style={{ borderTop: '1px solid var(--g-tile)' }}>
                   <td style={{ padding: '10px 4px', fontSize: 13, fontWeight: 500, color: session === 'am' ? '#fbbf24' : '#60a5fa' }}>
                     {session === 'am' ? 'Morning' : 'Afternoon'}
                   </td>
@@ -146,10 +146,10 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
                         style={{
                           width: 64,
                           padding: '6px 4px',
-                          background: 'rgba(0,0,0,0.3)',
-                          border: '1px solid rgba(255,255,255,0.1)',
+                          background: 'var(--g-field)',
+                          border: '1px solid var(--g-line)',
                           borderRadius: 6,
-                          color: '#e2e8f0',
+                          color: 'var(--g-text-hi)',
                           fontSize: 14,
                           textAlign: 'center',
                           fontFamily: "'Space Mono', monospace",
@@ -165,12 +165,12 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
       </Card>
 
       <Card title="Routine weekly target" status={saving ? 'saving' : saved ? 'saved' : null}>
-        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+        <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
           Total routine appointment slots you aim to offer per week. Used in
           Capacity Planning to colour-code the weekly routine totals.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <label style={{ fontSize: 14, color: '#cbd5e1' }}>Target slots per week</label>
+          <label style={{ fontSize: 14, color: 'var(--g-text-hi)' }}>Target slots per week</label>
           <input
             type="number"
             min={0}
@@ -181,10 +181,10 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
             style={{
               width: 100,
               padding: '8px 12px',
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--g-field)',
+              border: '1px solid var(--g-line)',
               borderRadius: 6,
-              color: '#e2e8f0',
+              color: 'var(--g-text-hi)',
               fontSize: 15,
               textAlign: 'center',
               fontFamily: "'Space Mono', monospace",
@@ -199,14 +199,14 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
 function Card({ title, status, children }) {
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--g-tile-2)',
+      border: '1px solid var(--g-border-2)',
       borderRadius: 12,
       padding: 18,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1' }}>{title}</h3>
-        {status === 'saving' && <span style={{ fontSize: 13, color: '#64748b' }}>Saving…</span>}
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)' }}>{title}</h3>
+        {status === 'saving' && <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>Saving…</span>}
         {status === 'saved' && <span style={{ fontSize: 13, color: '#34d399' }}>✓ Saved</span>}
       </div>
       {children}

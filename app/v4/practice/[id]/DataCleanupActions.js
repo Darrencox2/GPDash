@@ -78,7 +78,7 @@ export default function DataCleanupActions({ practiceId }) {
 
   return (
     <div>
-      <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, marginBottom: 16 }}>
+      <p style={{ fontSize: 14, color: 'var(--g-text-hi)', lineHeight: 1.6, marginBottom: 16 }}>
         Clear specific datasets without deleting the whole practice. Each action is permanent.
       </p>
       {error && (
@@ -122,14 +122,14 @@ function CleanupRow({ title, description, busy, onClick }) {
       justifyContent: 'space-between',
       padding: 12,
       marginBottom: 8,
-      background: 'rgba(0,0,0,0.2)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      background: 'var(--g-field)',
+      border: '1px solid var(--g-border)',
       borderRadius: 8,
       gap: 12,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, color: '#e2e8f0', fontWeight: 500 }}>{title}</div>
-        <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{description}</div>
+        <div style={{ fontSize: 14, color: 'var(--g-text-hi)', fontWeight: 500 }}>{title}</div>
+        <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 2 }}>{description}</div>
       </div>
       <button
         type="button"

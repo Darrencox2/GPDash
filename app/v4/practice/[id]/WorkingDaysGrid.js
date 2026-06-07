@@ -301,11 +301,11 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
         onClick={e => e.stopPropagation()}
         style={{
           maxWidth: 920, width: '100%',
-          background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'linear-gradient(135deg, var(--g-ink), var(--g-ink-2))',
+          border: '1px solid var(--g-line)',
           borderRadius: 14,
           padding: 24,
-          color: '#cbd5e1',
+          color: 'var(--g-text-hi)',
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
@@ -313,9 +313,9 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
           <div>
             <h2 style={{
               fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600,
-              color: 'white', margin: 0,
+              color: 'var(--g-text-hi)', margin: 0,
             }}>Working days grid</h2>
-            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>
+            <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.5 }}>
               Standard AM/PM working pattern per clinician. Click a half to toggle.
               Saves as you go.
             </p>
@@ -326,7 +326,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
             style={{
               background: 'transparent',
               border: '1px solid rgba(255,255,255,0.15)',
-              color: '#94a3b8',
+              color: 'var(--g-text-mid)',
               borderRadius: 6,
               fontSize: 18, padding: '4px 10px',
               cursor: 'pointer', fontFamily: 'inherit',
@@ -342,9 +342,9 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
           borderRadius: 8,
           display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         }}>
-          <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
+          <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: 'var(--g-text-hi)', lineHeight: 1.5 }}>
             <strong style={{ color: '#34d399' }}>Auto-generate from CSV</strong>
-            <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>
+            <div style={{ color: 'var(--g-text-mid)', fontSize: 11, marginTop: 2 }}>
               Looks at the last 12 weeks of appointment history. Sets AM or PM "in" when
               the clinician appeared in ≥50% of weeks for that session.
             </div>
@@ -354,10 +354,10 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
             disabled={generating}
             style={{
               padding: '7px 14px', fontSize: 12, fontWeight: 500,
-              background: generating ? 'rgba(255,255,255,0.04)' : 'rgba(16,185,129,0.15)',
-              border: '1px solid ' + (generating ? 'rgba(255,255,255,0.1)' : 'rgba(16,185,129,0.30)'),
+              background: generating ? 'var(--g-tile)' : 'rgba(16,185,129,0.15)',
+              border: '1px solid ' + (generating ? 'var(--g-line)' : 'rgba(16,185,129,0.30)'),
               borderRadius: 6,
-              color: generating ? '#64748b' : '#34d399',
+              color: generating ? 'var(--g-text-mid)' : '#34d399',
               cursor: generating ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
             }}
@@ -373,9 +373,9 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
             style={{
               padding: '7px 14px', fontSize: 12, fontWeight: 500,
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--g-line)',
               borderRadius: 6,
-              color: generating ? '#475569' : '#94a3b8',
+              color: generating ? 'var(--g-text-faint)' : 'var(--g-text-mid)',
               cursor: generating ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
             }}
@@ -397,13 +397,13 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
 
         <div style={{
           marginTop: 16,
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--g-border-2)',
           borderRadius: 10,
           overflow: 'auto',
         }}>
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 760 }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <tr style={{ background: 'var(--g-tile-2)' }}>
                 <Th width={220} sticky>Clinician</Th>
                 {DAYS.map(d => (
                   <Th key={d.key} width={88} style={{ textAlign: 'center' }}>{d.label}</Th>
@@ -411,27 +411,27 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                 <Th width={60} style={{ textAlign: 'center' }}>/wk</Th>
                 <Th width={120} style={{ textAlign: 'center' }}>Quick set</Th>
               </tr>
-              <tr style={{ background: 'rgba(255,255,255,0.015)' }}>
+              <tr style={{ background: 'var(--g-tile-2)' }}>
                 <Th sticky />
                 {DAYS.map(d => (
                   <th key={`sub-${d.key}`} style={{
                     padding: '4px 6px',
-                    fontSize: 10, color: '#64748b', fontWeight: 500,
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    fontSize: 10, color: 'var(--g-text-mid)', fontWeight: 500,
+                    borderBottom: '1px solid var(--g-border-2)',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-around' }}>
                       <span>AM</span><span>PM</span>
                     </div>
                   </th>
                 ))}
-                <th style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }} />
-                <th style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }} />
+                <th style={{ borderBottom: '1px solid var(--g-border-2)' }} />
+                <th style={{ borderBottom: '1px solid var(--g-border-2)' }} />
               </tr>
             </thead>
             <tbody>
               {ordered.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+                  <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: 'var(--g-text-mid)' }}>
                     No active clinicians to configure.
                   </td>
                 </tr>
@@ -443,11 +443,11 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                 const err = errors[c.id];
                 return (
                   <tr key={c.id} style={{
-                    background: i % 2 === 1 ? 'rgba(255,255,255,0.015)' : 'transparent',
+                    background: i % 2 === 1 ? 'var(--g-tile-2)' : 'transparent',
                   }}>
                     <Td sticky>
-                      <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 500 }}>{c.name}</div>
-                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                      <div style={{ fontSize: 13, color: 'var(--g-text-hi)', fontWeight: 500 }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 2 }}>
                         {c.role || 'Unassigned'}{c.initials ? ` · ${c.initials}` : ''}
                       </div>
                       {err && <div style={{ fontSize: 11, color: '#fca5a5', marginTop: 2 }}>{err}</div>}
@@ -474,12 +474,12 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                     <Td style={{ textAlign: 'center' }}>
                       <span style={{
                         fontSize: 13, fontWeight: 600,
-                        color: sessions === 0 ? '#475569' : '#cbd5e1',
+                        color: sessions === 0 ? 'var(--g-text-faint)' : 'var(--g-text-hi)',
                       }}>
                         {sessions}
                       </span>
                       {saving && (
-                        <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>Saving…</div>
+                        <div style={{ fontSize: 9, color: 'var(--g-text-mid)', marginTop: 2 }}>Saving…</div>
                       )}
                     </Td>
                     <Td style={{ textAlign: 'center' }}>
@@ -496,7 +496,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
         </div>
 
         <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ margin: 0, fontSize: 11, color: '#64748b', lineHeight: 1.5, maxWidth: 540 }}>
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--g-text-mid)', lineHeight: 1.5, maxWidth: 540 }}>
             This is the standard week — daily overrides (sick days, training, swapped
             sessions) are handled elsewhere on the dashboard and won't change this grid.
             Weekends aren't included.
@@ -552,9 +552,9 @@ function SmallBtn({ onClick, children }) {
       onClick={onClick}
       style={{
         padding: '3px 8px', fontSize: 10, fontWeight: 500,
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 4, color: '#94a3b8', cursor: 'pointer',
+        background: 'var(--g-tile)',
+        border: '1px solid var(--g-line)',
+        borderRadius: 4, color: 'var(--g-text-mid)', cursor: 'pointer',
         fontFamily: 'inherit',
       }}
     >{children}</button>
@@ -566,13 +566,13 @@ function Th({ children, width, sticky, style }) {
     <th style={{
       textAlign: 'left',
       padding: '10px 12px',
-      fontSize: 11, fontWeight: 600, color: '#94a3b8',
+      fontSize: 11, fontWeight: 600, color: 'var(--g-text-mid)',
       textTransform: 'uppercase', letterSpacing: 0.4,
-      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      borderBottom: '1px solid var(--g-border-2)',
       width, minWidth: width,
       position: sticky ? 'sticky' : undefined,
       left: sticky ? 0 : undefined,
-      background: sticky ? '#0f172a' : undefined,
+      background: sticky ? 'var(--g-surface)' : undefined,
       zIndex: sticky ? 2 : undefined,
       ...style,
     }}>{children}</th>
@@ -583,7 +583,7 @@ function Td({ children, sticky, style }) {
   return (
     <td style={{
       padding: '8px 12px',
-      borderBottom: '1px solid rgba(255,255,255,0.04)',
+      borderBottom: '1px solid var(--g-tile)',
       verticalAlign: 'middle',
       position: sticky ? 'sticky' : undefined,
       left: sticky ? 0 : undefined,

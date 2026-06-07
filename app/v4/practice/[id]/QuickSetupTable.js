@@ -476,12 +476,12 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
           placeholder="Search by name, role, or initials…"
           style={{
             flex: '1 1 240px', padding: '8px 12px', fontSize: 13,
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 6, color: '#e2e8f0', outline: 'none', fontFamily: 'inherit',
+            background: 'var(--g-tile)',
+            border: '1px solid var(--g-border-2)',
+            borderRadius: 6, color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
           }}
         />
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#cbd5e1', cursor: 'pointer' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--g-text-hi)', cursor: 'pointer' }}>
           <input type="checkbox" checked={showLeft} onChange={e => setShowLeft(e.target.checked)} />
           Show left
         </label>
@@ -548,13 +548,13 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
       />
 
       <div style={{
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--g-border)',
         borderRadius: 10, overflow: 'hidden',
       }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 970 }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <tr style={{ background: 'var(--g-tile-2)' }}>
                 <Th width={36} style={{ textAlign: 'center', paddingLeft: 12, paddingRight: 4 }}>
                   <input
                     type="checkbox"
@@ -591,11 +591,11 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
                         <td colSpan={8} style={{
                           padding: '14px 14px 6px',
                           fontSize: 10.5, fontWeight: 600,
-                          color: '#64748b',
+                          color: 'var(--g-text-mid)',
                           textTransform: 'uppercase',
                           letterSpacing: 0.6,
-                          background: 'rgba(255,255,255,0.015)',
-                          borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.05)',
+                          background: 'var(--g-tile-2)',
+                          borderTop: i === 0 ? 'none' : '1px solid var(--g-tile)',
                         }}>
                           {c.role || 'Unassigned role'}
                         </td>
@@ -615,7 +615,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+                  <td colSpan={8} style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: 'var(--g-text-mid)' }}>
                     {clinicians.length === 0
                       ? 'No clinicians yet. Upload a CSV from the Today page to populate this list.'
                       : 'No clinicians match your filters.'}
@@ -627,8 +627,8 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
         </div>
       </div>
 
-      <div style={{ marginTop: 12, fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
-        Edits save automatically. <strong style={{ color: '#94a3b8' }}>Click a row</strong> to
+      <div style={{ marginTop: 12, fontSize: 11, color: 'var(--g-text-mid)', lineHeight: 1.5 }}>
+        Edits save automatically. <strong style={{ color: 'var(--g-text-mid)' }}>Click a row</strong> to
         open the details panel for aliases, buddy preferences, room preferences, and notes.
       </div>
 
@@ -701,7 +701,7 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPa
     ? 'rgba(34,211,238,0.08)' // selected: cyan tint
     : (needsAttn
       ? 'rgba(245,158,11,0.06)'
-      : (zebra ? 'rgba(255,255,255,0.015)' : 'transparent'));
+      : (zebra ? 'var(--g-tile-2)' : 'transparent'));
 
   const stickyBg = selected
     ? '#0d2230'
@@ -729,7 +729,7 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPa
       onClick={handleRowClick}
       style={{
         background: baseBg,
-        borderTop: '1px solid rgba(255,255,255,0.04)',
+        borderTop: '1px solid var(--g-tile)',
         cursor: 'pointer',
       }}
     >
@@ -874,8 +874,8 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
     <div style={{
       position: 'sticky', top: 0, zIndex: 10,
       padding: '10px 14px', marginBottom: 12,
-      background: active ? 'rgba(34,211,238,0.10)' : 'rgba(255,255,255,0.03)',
-      border: `1px solid ${active ? 'rgba(34,211,238,0.25)' : 'rgba(255,255,255,0.08)'}`,
+      background: active ? 'rgba(34,211,238,0.10)' : 'var(--g-tile-2)',
+      border: `1px solid ${active ? 'rgba(34,211,238,0.25)' : 'var(--g-border-2)'}`,
       borderRadius: 8,
       display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
       backdropFilter: 'blur(8px)',
@@ -884,11 +884,11 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
       {active ? (
         <strong style={{ fontSize: 13, color: '#a5f3fc' }}>{count} selected</strong>
       ) : (
-        <span style={{ fontSize: 13, color: '#94a3b8' }}>
-          Bulk edit — <span style={{ color: '#64748b' }}>tick rows below to enable</span>
+        <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
+          Bulk edit — <span style={{ color: 'var(--g-text-mid)' }}>tick rows below to enable</span>
         </span>
       )}
-      <span style={{ color: '#475569' }}>·</span>
+      <span style={{ color: 'var(--g-text-faint)' }}>·</span>
 
       <BulkSelect label="Set role" onChange={onSetRole} disabled={!active}>
         {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
@@ -898,7 +898,7 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
         {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
       </BulkSelect>
 
-      <span style={{ color: '#475569' }}>·</span>
+      <span style={{ color: 'var(--g-text-faint)' }}>·</span>
       <BulkButton onClick={() => onSetBuddyCover(true)} disabled={!active}>Buddy on</BulkButton>
       <BulkButton onClick={() => onSetBuddyCover(false)} disabled={!active}>Buddy off</BulkButton>
       <BulkButton onClick={() => onSetCanCover(true)} disabled={!active}>Can cover on</BulkButton>
@@ -911,8 +911,8 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
           <button onClick={onClear} style={{
             padding: '5px 10px', fontSize: 11,
             background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 4, color: '#94a3b8', cursor: 'pointer',
+            border: '1px solid var(--g-line)',
+            borderRadius: 4, color: 'var(--g-text-mid)', cursor: 'pointer',
           }}>Clear selection</button>
         </span>
       )}
@@ -935,9 +935,9 @@ function BulkSelect({ label, onChange, children, disabled }) {
       style={{
         padding: '5px 10px', fontSize: 12,
         background: disabled ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.3)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '1px solid var(--g-line)',
         borderRadius: 4,
-        color: disabled ? '#475569' : '#cbd5e1',
+        color: disabled ? 'var(--g-text-faint)' : 'var(--g-text-hi)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'inherit',
         opacity: disabled ? 0.5 : 1,
@@ -952,10 +952,10 @@ function BulkButton({ onClick, children, disabled }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
       padding: '5px 10px', fontSize: 11, fontWeight: 500,
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      background: 'var(--g-tile)',
+      border: '1px solid var(--g-line)',
       borderRadius: 4,
-      color: disabled ? '#475569' : '#cbd5e1',
+      color: disabled ? 'var(--g-text-faint)' : 'var(--g-text-hi)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       fontFamily: 'inherit',
       opacity: disabled ? 0.5 : 1,
@@ -970,9 +970,9 @@ function Th({ children, sticky, stickyLeft, width, style }) {
       padding: '10px 12px',
       fontSize: 11, fontWeight: 600,
       textAlign: 'left', textTransform: 'uppercase', letterSpacing: 0.6,
-      color: '#94a3b8',
+      color: 'var(--g-text-mid)',
       background: 'inherit',
-      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      borderBottom: '1px solid var(--g-border-2)',
       width,
       position: sticky ? 'sticky' : 'static',
       left: sticky ? (stickyLeft || 0) : 'auto',
@@ -985,7 +985,7 @@ function Td({ children, sticky, stickyLeft, bg, style }) {
   return (
     <td style={{
       padding: '6px 8px',
-      fontSize: 13, color: '#e2e8f0',
+      fontSize: 13, color: 'var(--g-text-hi)',
       verticalAlign: 'middle',
       position: sticky ? 'sticky' : 'static',
       left: sticky ? (stickyLeft || 0) : 'auto',
@@ -998,17 +998,17 @@ function Td({ children, sticky, stickyLeft, bg, style }) {
 
 const inputStyle = {
   width: '100%', padding: '6px 8px', fontSize: 13,
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.06)',
-  borderRadius: 4, color: '#e2e8f0', outline: 'none', fontFamily: 'inherit',
+  background: 'var(--g-tile)',
+  border: '1px solid var(--g-border)',
+  borderRadius: 4, color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
 };
 const selectStyle = { ...inputStyle, cursor: 'pointer' };
 
 function SaveIndicator({ state, errorMsg, onRetry }) {
-  if (state === 'idle') return <span style={{ fontSize: 11, color: '#64748b' }}>—</span>;
+  if (state === 'idle') return <span style={{ fontSize: 11, color: 'var(--g-text-mid)' }}>—</span>;
   if (state === 'dirty' || state === 'saving') {
-    return <span style={{ fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#94a3b8' }} />
+    return <span style={{ fontSize: 11, color: 'var(--g-text-mid)', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--g-text-mid)' }} />
       {state === 'saving' ? 'Saving…' : 'Saving in a moment…'}
     </span>;
   }

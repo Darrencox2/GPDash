@@ -97,9 +97,9 @@ export default async function CliniciansTab({ practiceId }) {
       <div style={{ marginBottom: 16 }}>
         <h2 style={{
           fontFamily: "'Outfit', sans-serif",
-          fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 6,
+          fontSize: 22, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 6,
         }}>Clinicians</h2>
-        <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
+        <p style={{ fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.5, margin: 0 }}>
           Quick setup for everyone in your team. Edit roles, initials, sessions and status inline. Saves automatically as you go.
         </p>
       </div>

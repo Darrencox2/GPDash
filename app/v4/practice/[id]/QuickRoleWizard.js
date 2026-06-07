@@ -225,7 +225,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
       <div
         style={{
           width: 'min(1080px, 96vw)', maxWidth: '96vw', maxHeight: '90vh', overflowY: 'auto',
-          background: 'rgba(15,23,42,0.96)', border: '1px solid rgba(129,140,248,0.28)',
+          background: 'var(--surface-solid)', border: '1px solid rgba(129,140,248,0.28)',
           borderRadius: 18, padding: '26px 32px 24px',
           boxShadow: '0 40px 90px -20px rgba(0,0,0,0.75)',
           animation: 'qrwPop 0.55s cubic-bezier(0.34,1.56,0.64,1)',
@@ -236,9 +236,9 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
           <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#818cf8', fontWeight: 600 }}>
             {done ? 'Done' : `Step ${step + 1} of ${COMMON_ROLES.length}`}
           </div>
-          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: 'var(--g-text-mid)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
         </div>
-        <div style={{ height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 999, overflow: 'hidden', marginBottom: 20 }}>
+        <div style={{ height: 5, background: 'var(--g-tile)', borderRadius: 999, overflow: 'hidden', marginBottom: 20 }}>
           <div style={{ height: '100%', width: `${done ? 100 : Math.round((step / COMMON_ROLES.length) * 100)}%`, background: 'linear-gradient(90deg,#6366f1,#818cf8)', borderRadius: 999, transition: 'width 0.45s cubic-bezier(0.2,0.8,0.2,1)' }} />
         </div>
 
@@ -262,7 +262,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
             <div style={{ fontSize: 22, fontWeight: 600, color: '#f1f5f9', animation: 'qrwLift 0.45s ease-out 0.15s both' }}>
               {withRole} of {allPeople.length} have a role
             </div>
-            <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6, animation: 'qrwLift 0.45s ease-out 0.25s both' }}>
+            <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 6, animation: 'qrwLift 0.45s ease-out 0.25s both' }}>
               {leftover > 0
                 ? `${leftover} still need a role — they're waiting in the grid below for you to finish off.`
                 : 'Everyone has a role. Nice work.'}
@@ -281,11 +281,11 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(129,140,248,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>{current.ico}</div>
                 <div style={{ fontSize: 21, fontWeight: 600, color: '#f1f5f9' }}>{current.question || `Who are your ${current.role}s?`}</div>
               </div>
-              <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6, marginLeft: 44 }}>{current.hint} {isAdminStep ? 'Anyone already administrative is ticked — adjust as needed.' : 'The people already on this role are ticked — adjust as needed.'}</div>
+              <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 6, marginLeft: 44 }}>{current.hint} {isAdminStep ? 'Anyone already administrative is ticked — adjust as needed.' : 'The people already on this role are ticked — adjust as needed.'}</div>
             </div>
 
             <div style={{ position: 'relative', marginBottom: 14 }}>
-              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: 13 }}>🔍</span>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--g-text-mid)', fontSize: 13 }}>🔍</span>
               <input
                 type="text"
                 value={query}
@@ -293,20 +293,20 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                 placeholder="Search for a name…"
                 style={{
                   width: '100%', padding: '9px 12px 9px 34px', fontSize: 14,
-                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: 10, color: '#e2e8f0', outline: 'none', fontFamily: 'inherit',
+                  background: 'var(--g-tile)', border: '1px solid var(--g-line)',
+                  borderRadius: 10, color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
                 }}
               />
             </div>
 
             <div key={poolKey} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 8, marginBottom: 22, minHeight: 96, maxHeight: '52vh', overflowY: 'auto', alignContent: 'start' }}>
               {allPeople.length === 0 ? (
-                <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px' }}>No clinicians to sort.</div>
+                <div style={{ fontSize: 13, color: 'var(--g-text-mid)', padding: '12px 2px' }}>No clinicians to sort.</div>
               ) : (() => {
                 const q = query.trim().toLowerCase();
                 const shown = q ? allPeople.filter(p => p.name.toLowerCase().includes(q)) : allPeople;
                 if (shown.length === 0) {
-                  return <div style={{ fontSize: 13, color: '#64748b', padding: '12px 2px', gridColumn: '1 / -1' }}>No matches for “{query}”.</div>;
+                  return <div style={{ fontSize: 13, color: 'var(--g-text-mid)', padding: '12px 2px', gridColumn: '1 / -1' }}>No matches for “{query}”.</div>;
                 }
                 return shown.map((p, i) => {
                   const sel = selected.has(p.id);
@@ -331,7 +331,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                         padding: '7px 11px', borderRadius: 10, cursor: isFading ? 'default' : 'pointer', textAlign: 'left',
                         minHeight: 46,
                         border: `1px solid ${sel ? '#818cf8' : 'rgba(255,255,255,0.10)'}`,
-                        background: sel ? 'rgba(99,102,241,0.20)' : 'rgba(255,255,255,0.03)',
+                        background: sel ? 'rgba(99,102,241,0.20)' : 'var(--g-tile-2)',
                         // Fade driven by a transition (reliable across re-renders),
                         // not an animation-name swap. The entrance animation is
                         // switched off while fading so it cannot hold the element
@@ -346,13 +346,13 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                       <span style={{
                         display: 'flex', alignItems: 'center', gap: 5, width: '100%',
                         fontSize: 13.5, fontWeight: sel ? 600 : (allocatedElsewhere ? 400 : 500),
-                        color: sel ? '#c7d2fe' : (allocatedElsewhere ? '#5b6675' : '#e2e8f0'),
+                        color: sel ? '#c7d2fe' : (allocatedElsewhere ? '#5b6675' : 'var(--g-text-hi)'),
                       }}>
                         {sel && <span style={{ color: '#818cf8', flexShrink: 0 }}>✓</span>}
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                       </span>
                       {subline && (
-                        <span style={{ fontSize: 10.5, color: allocatedElsewhere ? '#3f4856' : (hasRole ? '#94a3b8' : '#64748b'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                        <span style={{ fontSize: 10.5, color: allocatedElsewhere ? '#3f4856' : (hasRole ? 'var(--g-text-mid)' : 'var(--g-text-mid)'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
                           {subline}
                         </span>
                       )}
@@ -373,10 +373,10 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               >
                 {step + 1 >= COMMON_ROLES.length ? 'Confirm & finish' : 'Confirm & continue'} →
               </button>
-              <span style={{ fontSize: 12.5, color: '#94a3b8' }}>
+              <span style={{ fontSize: 12.5, color: 'var(--g-text-mid)' }}>
                 {selCount} marked as {isAdminStep ? 'non-clinician' : current.role}
               </span>
-              <span style={{ fontSize: 12, color: '#64748b', marginLeft: 'auto', fontFamily: "'Space Mono', monospace" }}>
+              <span style={{ fontSize: 12, color: 'var(--g-text-mid)', marginLeft: 'auto', fontFamily: "'Space Mono', monospace" }}>
                 Step {step + 1} / {COMMON_ROLES.length}
               </span>
             </div>

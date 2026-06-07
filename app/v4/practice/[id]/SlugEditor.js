@@ -106,9 +106,9 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
 
   if (!canEdit) {
     return (
-      <div style={{ fontSize: 13, color: '#94a3b8' }}>
+      <div style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
         URL: <code style={{ color: '#22d3ee' }}>/p/{currentSlug}</code>
-        <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Only owners and admins can change this.</div>
+        <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 4 }}>Only owners and admins can change this.</div>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
 
   return (
     <div>
-      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginBottom: 6 }}>
         URL: <code style={{ color: '#22d3ee' }}>/p/{value || '…'}</code>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
@@ -132,10 +132,10 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
           style={{
             flex: 1,
             padding: '6px 10px',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--g-tile)',
+            border: '1px solid var(--g-border-2)',
             borderRadius: 6,
-            color: '#e2e8f0',
+            color: 'var(--g-text-hi)',
             fontSize: 13,
             fontFamily: 'ui-monospace, Menlo, monospace',
           }}
@@ -145,8 +145,8 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
           disabled={saveBlocked}
           style={{
             padding: '6px 14px',
-            background: !saveBlocked ? '#0891b2' : 'rgba(255,255,255,0.06)',
-            color: !saveBlocked ? 'white' : '#64748b',
+            background: !saveBlocked ? '#0891b2' : 'var(--g-border)',
+            color: !saveBlocked ? 'white' : 'var(--g-text-mid)',
             border: 'none',
             borderRadius: 6,
             fontSize: 12,
@@ -165,8 +165,8 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
           marginTop: 6,
           color: avail.state === 'available' ? '#34d399'
             : avail.state === 'taken' ? '#fca5a5'
-            : avail.state === 'checking' ? '#94a3b8'
-            : '#64748b',
+            : avail.state === 'checking' ? 'var(--g-text-mid)'
+            : 'var(--g-text-mid)',
         }}>
           {avail.state === 'checking' && 'Checking availability…'}
           {avail.state === 'available' && '✓ Available'}
@@ -179,10 +179,10 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
         <div style={{
           fontSize: 11,
           marginTop: 6,
-          color: status.kind === 'error' ? '#fca5a5' : status.kind === 'saved' ? '#34d399' : '#94a3b8',
+          color: status.kind === 'error' ? '#fca5a5' : status.kind === 'saved' ? '#34d399' : 'var(--g-text-mid)',
         }}>{status.message}</div>
       )}
-      <div style={{ fontSize: 11, color: '#64748b', marginTop: 6, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 6, lineHeight: 1.5 }}>
         Lowercase letters, digits, and dashes. Must be unique across all practices.
       </div>
     </div>

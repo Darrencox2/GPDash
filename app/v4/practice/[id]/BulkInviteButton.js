@@ -93,9 +93,9 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
         style={{
           padding: '7px 14px',
           fontSize: 12,
-          color: '#cbd5e1',
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          color: 'var(--g-text-hi)',
+          background: 'var(--g-tile)',
+          border: '1px solid var(--g-line)',
           borderRadius: 6,
           cursor: 'pointer',
           fontWeight: 500,
@@ -151,15 +151,15 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                     many parsed rows and the admin wants to invert their
                     decision quickly. */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, fontSize: 12 }}>
-                  <span style={{ color: '#94a3b8' }}>
+                  <span style={{ color: 'var(--g-text-mid)' }}>
                     {includedRows.length} of {rows.length} selected
                   </span>
-                  <span style={{ color: '#475569' }}>·</span>
+                  <span style={{ color: 'var(--g-text-faint)' }}>·</span>
                   <button onClick={() => setAllIncluded(true)} style={miniBtn}>Select all</button>
                   <button onClick={() => setAllIncluded(false)} style={miniBtn}>Select none</button>
                 </div>
 
-                <div style={{ maxHeight: 320, overflowY: 'auto', marginBottom: 14, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
+                <div style={{ maxHeight: 320, overflowY: 'auto', marginBottom: 14, border: '1px solid var(--g-border)', borderRadius: 8 }}>
                   {rows.map((r, idx) => (
                     <div
                       key={r.email}
@@ -169,7 +169,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                         alignItems: 'center',
                         gap: 10,
                         padding: '10px 12px',
-                        borderBottom: idx < rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                        borderBottom: idx < rows.length - 1 ? '1px solid var(--g-tile)' : 'none',
                         cursor: 'pointer',
                         opacity: r.include ? 1 : 0.45,
                         background: r.include ? 'transparent' : 'rgba(0,0,0,0.15)',
@@ -187,7 +187,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           background: r.include ? 'rgba(16,185,129,0.15)' : 'rgba(100,116,139,0.15)',
                           border: `1px solid ${r.include ? 'rgba(16,185,129,0.5)' : 'rgba(100,116,139,0.4)'}`,
-                          color: r.include ? '#34d399' : '#94a3b8',
+                          color: r.include ? '#34d399' : 'var(--g-text-mid)',
                           fontSize: 13, fontWeight: 700, lineHeight: 1,
                           flexShrink: 0,
                         }}
@@ -196,11 +196,11 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                       </div>
 
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: 13, color: 'var(--g-text-hi)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {r.email}
                         </div>
                         {r.displayName && (
-                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{r.displayName}</div>
+                          <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 2 }}>{r.displayName}</div>
                         )}
                       </div>
                       <select
@@ -220,7 +220,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                         style={{
                           background: 'transparent',
                           border: 'none',
-                          color: '#64748b',
+                          color: 'var(--g-text-mid)',
                           fontSize: 18,
                           cursor: 'pointer',
                           padding: 4,
@@ -243,7 +243,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
             {/* ─── Stage: submitting ─────────────────────────────── */}
             {stage === 'submitting' && (
               <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <div style={{ fontSize: 14, color: '#94a3b8' }}>Sending invites…</div>
+                <div style={{ fontSize: 14, color: 'var(--g-text-mid)' }}>Sending invites…</div>
               </div>
             )}
 
@@ -253,27 +253,27 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                 <h3 style={modalTitle}>Done</h3>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
                   <SummaryStat label="Created" value={results.created} colour="#34d399" />
-                  {results.skipped > 0 && <SummaryStat label="Skipped" value={results.skipped} colour="#94a3b8" />}
+                  {results.skipped > 0 && <SummaryStat label="Skipped" value={results.skipped} colour="var(--g-text-mid)" />}
                   {results.errored > 0 && <SummaryStat label="Errored" value={results.errored} colour="#fca5a5" />}
                 </div>
                 {(results.skipped > 0 || results.errored > 0) && (
-                  <div style={{ maxHeight: 240, overflowY: 'auto', marginBottom: 14, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
+                  <div style={{ maxHeight: 240, overflowY: 'auto', marginBottom: 14, border: '1px solid var(--g-border)', borderRadius: 8 }}>
                     {results.results.filter(r => r.status !== 'created').map((r, idx) => (
                       <div key={idx} style={{
                         padding: '8px 12px',
                         fontSize: 12,
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        borderBottom: '1px solid var(--g-tile)',
                       }}>
-                        <span style={{ color: '#cbd5e1' }}>{r.email}</span>
+                        <span style={{ color: 'var(--g-text-hi)' }}>{r.email}</span>
                         {' · '}
-                        <span style={{ color: r.status === 'error' ? '#fca5a5' : '#94a3b8' }}>
+                        <span style={{ color: r.status === 'error' ? '#fca5a5' : 'var(--g-text-mid)' }}>
                           {r.message || r.status}
                         </span>
                       </div>
                     ))}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 14, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginBottom: 14, lineHeight: 1.5 }}>
                   {results.created > 0 ? (
                     <>
                       Invite emails are being sent in the background. If a recipient
@@ -298,8 +298,8 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
 
 function SummaryStat({ label, value, colour }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '6px 12px' }}>
-      <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+    <div style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)', borderRadius: 8, padding: '6px 12px' }}>
+      <div style={{ fontSize: 9, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ fontSize: 16, fontWeight: 600, color: colour, fontFamily: "'Outfit', sans-serif" }}>{value}</div>
     </div>
   );
@@ -317,8 +317,8 @@ const overlay = {
   padding: 20,
 };
 const modal = {
-  background: '#0f172a',
-  border: '1px solid rgba(255,255,255,0.12)',
+  background: 'var(--g-surface)',
+  border: '1px solid var(--g-line)',
   borderRadius: 12,
   padding: 24,
   maxWidth: 520,
@@ -329,18 +329,18 @@ const modal = {
 };
 const closeBtn = {
   position: 'absolute', top: 14, right: 14,
-  background: 'transparent', border: 'none', color: '#64748b',
+  background: 'transparent', border: 'none', color: 'var(--g-text-mid)',
   fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 4,
 };
-const modalTitle = { fontSize: 16, fontWeight: 600, color: 'white', marginBottom: 8, fontFamily: "'Outfit', sans-serif" };
-const modalDesc = { fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 };
+const modalTitle = { fontSize: 16, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 8, fontFamily: "'Outfit', sans-serif" };
+const modalDesc = { fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 };
 const textarea = {
   width: '100%',
   padding: '10px 12px',
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--g-tile)',
+  border: '1px solid var(--g-border-2)',
   borderRadius: 8,
-  color: '#e2e8f0',
+  color: 'var(--g-text-hi)',
   fontSize: 13,
   fontFamily: 'ui-monospace, Menlo, monospace',
   resize: 'vertical',
@@ -349,10 +349,10 @@ const textarea = {
 };
 const roleSelect = {
   padding: '4px 8px',
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--g-tile)',
+  border: '1px solid var(--g-border-2)',
   borderRadius: 6,
-  color: '#cbd5e1',
+  color: 'var(--g-text-hi)',
   fontSize: 12,
   cursor: 'pointer',
 };
@@ -367,5 +367,5 @@ const errorBox = {
 };
 const buttonRow = { display: 'flex', gap: 8, justifyContent: 'flex-end' };
 const btnPrimary = { padding: '8px 16px', background: '#0891b2', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-const btnSubtle = { padding: '8px 16px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-const miniBtn = { padding: '3px 8px', background: 'rgba(255,255,255,0.04)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, fontSize: 11, fontWeight: 500, cursor: 'pointer' };
+const btnSubtle = { padding: '8px 16px', background: 'var(--g-border)', color: 'var(--g-text-hi)', border: '1px solid var(--g-border-2)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const miniBtn = { padding: '3px 8px', background: 'var(--g-tile)', color: 'var(--g-text-mid)', border: '1px solid var(--g-border-2)', borderRadius: 4, fontSize: 11, fontWeight: 500, cursor: 'pointer' };

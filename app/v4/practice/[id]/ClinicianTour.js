@@ -114,7 +114,7 @@ export default function ClinicianTour({ step, targets, stepIndex, totalSteps, pr
           position: 'fixed', zIndex: 1201, width: calloutW, maxWidth: 'calc(100vw - 24px)',
           left: calloutLeft,
           ...(below ? { top: calloutTop } : { bottom: calloutBottom }),
-          background: 'rgba(15,23,42,0.98)', border: '1px solid rgba(129,140,248,0.45)',
+          background: 'var(--surface-solid)', border: '1px solid rgba(129,140,248,0.45)',
           borderRadius: 14, padding: '15px 17px',
           boxShadow: '0 24px 60px -16px rgba(0,0,0,0.7)',
           animation: 'ctIn 0.3s ease-out',
@@ -124,7 +124,7 @@ export default function ClinicianTour({ step, targets, stepIndex, totalSteps, pr
           Step {stepIndex} of {totalSteps}
         </div>
         <div style={{ fontSize: 15, fontWeight: 600, color: '#f1f5f9', marginBottom: 5 }}>{copy.title}</div>
-        <div style={{ fontSize: 12.5, color: '#cbd5e1', lineHeight: 1.5, marginBottom: 13 }}>{copy.body}</div>
+        <div style={{ fontSize: 12.5, color: 'var(--g-text-hi)', lineHeight: 1.5, marginBottom: 13 }}>{copy.body}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {onPrimary && (
             <button
@@ -138,7 +138,7 @@ export default function ClinicianTour({ step, targets, stepIndex, totalSteps, pr
           <button
             type="button"
             onClick={onSkip}
-            style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 12, cursor: 'pointer', marginLeft: 'auto' }}
+            style={{ background: 'none', border: 'none', color: 'var(--g-text-mid)', fontSize: 12, cursor: 'pointer', marginLeft: 'auto' }}
           >
             Skip tour
           </button>

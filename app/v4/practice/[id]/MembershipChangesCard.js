@@ -15,7 +15,7 @@ import { createClient } from '@/utils/supabase/client';
 const EVENT_DISPLAY = {
   user_invited:      { glyph: '✉', colour: '#a5b4fc', label: 'Invited' },
   invite_accepted:   { glyph: '✓', colour: '#34d399', label: 'Accepted invite' },
-  invite_revoked:    { glyph: '⊘', colour: '#94a3b8', label: 'Revoked invite' },
+  invite_revoked:    { glyph: '⊘', colour: 'var(--g-text-mid)', label: 'Revoked invite' },
   user_role_changed: { glyph: '↔', colour: '#67e8f9', label: 'Role changed' },
   user_removed:      { glyph: '−', colour: '#fca5a5', label: 'Removed' },
 };
@@ -42,8 +42,8 @@ export default function MembershipChangesCard({ practiceId }) {
 
   // Card styling matches the rest of UsersTab
   const cardStyle = {
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'var(--g-tile-2)',
+    border: '1px solid var(--g-border-2)',
     borderRadius: 12,
     padding: 20,
   };
@@ -52,7 +52,7 @@ export default function MembershipChangesCard({ practiceId }) {
     return (
       <div style={cardStyle}>
         <h3 style={titleStyle}>Recent membership changes</h3>
-        <div style={{ fontSize: 13, color: '#64748b' }}>Loading…</div>
+        <div style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>Loading…</div>
       </div>
     );
   }
@@ -70,7 +70,7 @@ export default function MembershipChangesCard({ practiceId }) {
     return (
       <div style={cardStyle}>
         <h3 style={titleStyle}>Recent membership changes</h3>
-        <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+        <p style={{ fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.5, margin: 0 }}>
           No membership changes recorded yet. Future role changes, invites, and member additions/removals will appear here.
         </p>
       </div>
@@ -93,10 +93,10 @@ export default function MembershipChangesCard({ practiceId }) {
           style={{
             marginTop: 12,
             padding: '6px 12px',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--g-tile)',
+            border: '1px solid var(--g-border-2)',
             borderRadius: 6,
-            color: '#cbd5e1',
+            color: 'var(--g-text-hi)',
             fontSize: 12,
             cursor: 'pointer',
           }}
@@ -109,7 +109,7 @@ export default function MembershipChangesCard({ practiceId }) {
 }
 
 function EventRow({ ev }) {
-  const display = EVENT_DISPLAY[ev.event_type] || { glyph: '·', colour: '#94a3b8', label: ev.event_type };
+  const display = EVENT_DISPLAY[ev.event_type] || { glyph: '·', colour: 'var(--g-text-mid)', label: ev.event_type };
   const when = formatRelativeTime(ev.occurred_at);
   // Description is the human-readable version emitted by log_audit_event.
   // Falls back to the actor name + label if description is missing.
@@ -119,16 +119,16 @@ function EventRow({ ev }) {
       display: 'flex',
       gap: 10,
       padding: '8px 0',
-      borderBottom: '1px solid rgba(255,255,255,0.04)',
+      borderBottom: '1px solid var(--g-tile)',
       fontSize: 13,
-      color: '#cbd5e1',
+      color: 'var(--g-text-hi)',
       lineHeight: 1.5,
     }}>
       <span style={{
         flex: '0 0 22px',
         height: 22,
         borderRadius: '50%',
-        background: 'rgba(255,255,255,0.05)',
+        background: 'var(--g-tile)',
         color: display.colour,
         display: 'inline-flex',
         alignItems: 'center',
@@ -138,7 +138,7 @@ function EventRow({ ev }) {
       }}>{display.glyph}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div>{text}</div>
-        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+        <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 2 }}>
           {ev.actor_name} · {when}
         </div>
       </div>
@@ -167,6 +167,6 @@ const titleStyle = {
   fontFamily: "'Outfit', sans-serif",
   fontSize: 14,
   fontWeight: 600,
-  color: '#cbd5e1',
+  color: 'var(--g-text-hi)',
   marginBottom: 14,
 };

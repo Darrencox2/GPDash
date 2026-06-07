@@ -74,12 +74,12 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
           {error}
         </div>
       )}
-      <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+      <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
         Calendar URL from TeamNet → Diary → Sync. Once set, the app pulls planned absences
         automatically when opened. These absences appear on Today, Capacity Planning, and Buddy cover.
       </p>
 
-      <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', marginBottom: 6 }}>
+      <label style={{ display: 'block', fontSize: 13, color: 'var(--g-text-mid)', marginBottom: 6 }}>
         TeamNet calendar URL
       </label>
       <input
@@ -91,14 +91,14 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
         style={{
           width: '100%',
           padding: '10px 12px',
-          background: 'rgba(0,0,0,0.2)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--g-field)',
+          border: '1px solid var(--g-border-2)',
           borderRadius: 8,
-          color: '#e2e8f0',
+          color: 'var(--g-text-hi)',
           fontSize: 15,
         }}
       />
-      {saving && <div style={{ marginTop: 6, fontSize: 13, color: '#64748b' }}>Saving…</div>}
+      {saving && <div style={{ marginTop: 6, fontSize: 13, color: 'var(--g-text-mid)' }}>Saving…</div>}
       {saved && <div style={{ marginTop: 6, fontSize: 13, color: '#34d399' }}>✓ Saved</div>}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
@@ -108,9 +108,9 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
           disabled={!url || syncing}
           style={{
             padding: '8px 16px',
-            background: url && !syncing ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${url && !syncing ? 'rgba(34,211,238,0.4)' : 'rgba(255,255,255,0.1)'}`,
-            color: url && !syncing ? '#22d3ee' : '#64748b',
+            background: url && !syncing ? 'rgba(34,211,238,0.15)' : 'var(--g-tile)',
+            border: `1px solid ${url && !syncing ? 'rgba(34,211,238,0.4)' : 'var(--g-line)'}`,
+            color: url && !syncing ? '#22d3ee' : 'var(--g-text-mid)',
             borderRadius: 8,
             fontSize: 14,
             fontWeight: 500,
@@ -120,12 +120,12 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
           {syncing ? 'Syncing…' : 'Sync now'}
         </button>
         {lastSyncTime && (
-          <span style={{ fontSize: 13, color: '#64748b' }}>
+          <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
             Last sync: {new Date(lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
         {plannedAbsenceCount > 0 && (
-          <span style={{ fontSize: 13, color: '#94a3b8' }}>
+          <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
             · {plannedAbsenceCount} upcoming absence{plannedAbsenceCount === 1 ? '' : 's'}
           </span>
         )}

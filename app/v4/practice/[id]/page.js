@@ -42,7 +42,7 @@ export default async function PracticeAdminPage({ params }) {
 
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
+  if (!supabase) return <div style={{ padding: 32, color: 'var(--g-text-hi)' }}>Configuration error.</div>;
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/v4/login');
@@ -208,7 +208,7 @@ export default async function PracticeAdminPage({ params }) {
               border: '1px solid rgba(34, 211, 238, 0.15)',
               borderRadius: 8,
               fontSize: 13,
-              color: '#94a3b8',
+              color: 'var(--g-text-mid)',
               lineHeight: 1.5,
             }}>
               Looking to link your account to a clinician record? That lives in
@@ -260,7 +260,7 @@ export default async function PracticeAdminPage({ params }) {
     ),
     activity: canManage ? narrow(
       <Card title="Audit log">
-        <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+        <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
           Recent activity in this practice — clinician edits, CSV uploads,
           settings changes, user invites, and so on. Filter by category, click
           "show details" on any row for the full payload.
@@ -287,9 +287,9 @@ export default async function PracticeAdminPage({ params }) {
           <div style={{ marginBottom: 20 }}>
             <h1 style={{
               fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 600,
-              color: 'white', marginBottom: 6,
+              color: 'var(--g-text-hi)', marginBottom: 6,
             }}>{practice.name}</h1>
-            <div style={{ display: 'flex', gap: 12, fontSize: 13, color: '#94a3b8', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 12, fontSize: 13, color: 'var(--g-text-mid)', flexWrap: 'wrap' }}>
               {practice.ods_code && <span>ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{practice.ods_code}</span></span>}
               {practice.region && <span>{practice.region}</span>}
               <span style={{
@@ -334,9 +334,9 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 12, flexWrap: 'wrap',
         }}>
-          <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13, color: 'var(--g-text-hi)', lineHeight: 1.5 }}>
             <strong style={{ color: '#67e8f9' }}>Replay the setup wizard</strong>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 4 }}>
               Step through the original onboarding flow again — useful for adding TeamNet sync,
               re-uploading demand data, or just reviewing what's configured. Nothing gets reset.
             </div>
@@ -357,12 +357,12 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
 
 function DemandTab({ practiceId, demandSettings, huddleSettings, history, canManage, listSize }) {
   if (!canManage) {
-    return <Card title="Demand model"><p style={{ fontSize: 14, color: '#64748b' }}>Admin-only.</p></Card>;
+    return <Card title="Demand model"><p style={{ fontSize: 14, color: 'var(--g-text-mid)' }}>Admin-only.</p></Card>;
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Card title="Demand history upload">
-        <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, marginBottom: 14 }}>
+        <p style={{ fontSize: 14, color: 'var(--g-text-hi)', lineHeight: 1.6, marginBottom: 14 }}>
           Upload your historical demand data to calibrate the prediction model to your
           practice. We accept the AskMyGP <em>"Crosstab — Demand data"</em> CSV export.
           Re-upload anytime to recalibrate.
@@ -374,7 +374,7 @@ function DemandTab({ practiceId, demandSettings, huddleSettings, history, canMan
           listSize={listSize}
         />
         {demandSettings?.lastCalibratedAt && (
-          <div style={{ marginTop: 14, fontSize: 13, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12 }}>
+          <div style={{ marginTop: 14, fontSize: 13, color: 'var(--g-text-mid)', borderTop: '1px solid var(--g-border)', paddingTop: 12 }}>
             Last calibrated{' '}
             {new Date(demandSettings.lastCalibratedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
             {' · '}
@@ -440,7 +440,7 @@ function DangerTab({ practiceId, practiceName }) {
         <h3 style={{ color: '#fca5a5', fontSize: 16, fontWeight: 600, marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
           Delete this practice
         </h3>
-        <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+        <p style={{ color: 'var(--g-text-hi)', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
           Permanently delete this practice and all of its data — clinicians, rota notes,
           absences, buddy assignments, demand history, settings, members, and invites.
           Only visible to platform admins. <strong>There is no undo.</strong>
@@ -454,12 +454,12 @@ function DangerTab({ practiceId, practiceName }) {
 function Card({ title, children }) {
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--g-tile-2)',
+      border: '1px solid var(--g-border-2)',
       borderRadius: 12,
       padding: 18,
     }}>
-      <h3 style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 }}>{title}</h3>
+      <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 12 }}>{title}</h3>
       {children}
     </div>
   );
