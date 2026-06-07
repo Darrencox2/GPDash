@@ -16,7 +16,7 @@ const STATUS_OPTS = [
 const CATEGORY_OPTS = [
   { id: 'urgent', label: 'Urgent', colour: '#ef4444' },
   { id: 'routine', label: 'Routine', colour: '#10b981' },
-  { id: 'other', label: 'Other', colour: '#64748b' },
+  { id: 'other', label: 'Other', colour: 'var(--g-text-mid)' },
 ];
 const SESSION_MODE_OPTS = [
   { id: 'worked', label: 'Worked' },
@@ -41,13 +41,13 @@ function ChipGroup({ options, selected, onChange, allLabel = 'Any', allowAll = t
     <div className="flex items-center gap-1 flex-wrap">
       {allowAll && (
         <button onClick={() => onChange([])} className="text-xs px-2 py-1 rounded-md"
-          style={{ background: none ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${none ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`, color: none ? '#c7d2fe' : '#94a3b8' }}>{allLabel}</button>
+          style={{ background: none ? 'rgba(99,102,241,0.25)' : 'var(--g-tile)', border: `1px solid ${none ? 'rgba(99,102,241,0.5)' : 'var(--g-border-2)'}`, color: none ? '#c7d2fe' : 'var(--g-text-mid)' }}>{allLabel}</button>
       )}
       {options.map(o => {
         const on = (selected || []).includes(o.id);
         return (
           <button key={o.id} onClick={() => toggle(o.id)} className="text-xs px-2 py-1 rounded-md flex items-center gap-1"
-            style={{ background: on ? `${o.colour}28` : 'rgba(255,255,255,0.04)', border: `1px solid ${on ? `${o.colour}88` : 'rgba(255,255,255,0.08)'}`, color: on ? '#e2e8f0' : '#94a3b8' }}>
+            style={{ background: on ? `${o.colour}28` : 'var(--g-tile)', border: `1px solid ${on ? `${o.colour}88` : 'var(--g-border-2)'}`, color: on ? 'var(--g-text-hi)' : 'var(--g-text-mid)' }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: o.colour, opacity: on ? 1 : 0.4 }} />{o.label}
           </button>
         );
@@ -63,7 +63,7 @@ function Segmented({ options, value, onChange, disabledIds = [] }) {
         const active = value === o.id, disabled = disabledIds.includes(o.id);
         return (
           <button key={o.id} disabled={disabled} onClick={() => !disabled && onChange(o.id)} className="text-xs font-medium px-2.5 py-1 rounded"
-            style={{ background: active ? 'rgba(99,102,241,0.9)' : 'transparent', color: disabled ? '#475569' : active ? 'white' : '#94a3b8', cursor: disabled ? 'not-allowed' : 'pointer' }}>{o.label}</button>
+            style={{ background: active ? 'rgba(99,102,241,0.9)' : 'transparent', color: disabled ? 'var(--g-text-faint)' : active ? 'white' : 'var(--g-text-mid)', cursor: disabled ? 'not-allowed' : 'pointer' }}>{o.label}</button>
         );
       })}
     </div>
@@ -79,14 +79,14 @@ function MultiSelect({ label, options, selected, onChange }) {
   return (
     <div>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between text-xs rounded-md px-2 py-1.5"
-        style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${sel.length ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'}`, color: '#e2e8f0' }}>
+        style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${sel.length ? 'rgba(99,102,241,0.5)' : 'var(--g-line)'}`, color: 'var(--g-text-hi)' }}>
         <span>{label}{sel.length ? ` · ${sel.length}` : ''}</span><span className="text-slate-500">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="mt-1 rounded-md p-2 space-y-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="mt-1 rounded-md p-2 space-y-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-border-2)' }}>
           <div className="flex items-center gap-1">
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" className="flex-1 text-xs rounded px-2 py-1"
-              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
+              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
             {sel.length > 0 && <button onClick={() => onChange([])} className="text-xs text-slate-400 px-1">Clear</button>}
           </div>
           <div className="max-h-40 overflow-y-auto space-y-0.5">
@@ -339,7 +339,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
   if (!huddleData) {
     return (
-      <div className="rounded-xl p-12 text-center" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="rounded-xl p-12 text-center" style={{ background: 'var(--g-panel-2)', border: '1px solid var(--g-border)' }}>
         <div className="text-3xl mb-2">📊</div>
         <h3 className="text-lg font-semibold text-slate-200 mb-1">No CSV data yet</h3>
         <p className="text-sm text-slate-400">Upload a huddle CSV on the Today page to start building reports.</p>
@@ -360,7 +360,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     const star = (ref) => (
       <button onClick={(e) => { e.stopPropagation(); toggleFav(ref); }}
         className="absolute top-2 right-2 transition-colors"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: favourites.has(ref) ? '#fbbf24' : '#475569', fontSize: 16, lineHeight: 1 }}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: favourites.has(ref) ? '#fbbf24' : 'var(--g-text-faint)', fontSize: 16, lineHeight: 1 }}
         title={favourites.has(ref) ? 'Remove from favourites' : 'Add to favourites'} aria-label="Toggle favourite">
         {favourites.has(ref) ? '★' : '☆'}
       </button>
@@ -368,9 +368,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     const card = (key, accent, onClick, body, extra) => (
       <div key={key} onClick={onClick}
         className="group relative rounded-xl p-4 pr-8 cursor-pointer flex flex-col transition-transform hover:-translate-y-0.5"
-        style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.07)', borderLeft: `3px solid ${accent.bar}`, minHeight: 84 }}
+        style={{ background: 'var(--g-panel-2)', border: '1px solid var(--g-tile)', borderLeft: `3px solid ${accent.bar}`, minHeight: 84 }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = accent.ring; e.currentTarget.style.borderLeftColor = accent.bar; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderLeftColor = accent.bar; }}>
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--g-tile)'; e.currentTarget.style.borderLeftColor = accent.bar; }}>
         {body}{extra}
       </div>
     );
@@ -525,7 +525,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
       <div className="flex flex-col lg:flex-row gap-4 items-start">
         {/* MAIN */}
-        <div className="flex-1 min-w-0 w-full rounded-xl overflow-hidden" style={{ background: 'rgba(15,23,42,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex-1 min-w-0 w-full rounded-xl overflow-hidden" style={{ background: 'var(--g-panel)', border: '1px solid var(--g-border)' }}>
           {/* Header band */}
           <div className="px-5 pt-5 pb-4" style={{ background: 'linear-gradient(180deg, rgba(99,102,241,0.10), rgba(99,102,241,0))' }}>
             <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -558,17 +558,17 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                   {savingReport ? '…' : 'Save for my practice'}
                 </button>
               )}
-              {canEdit && <button onClick={() => setShowSaveBox(s => !s)} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>{(loadedSavedId || origin === 'preset') ? 'Save as new' : 'Save report'}</button>}
-              {dirty && <button onClick={resetReport} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#cbd5e1' }}>↺ Reset</button>}
-              <button onClick={copyTable} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>Copy</button>
-              <button onClick={downloadCsv} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>CSV</button>
+              {canEdit && <button onClick={() => setShowSaveBox(s => !s)} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>{(loadedSavedId || origin === 'preset') ? 'Save as new' : 'Save report'}</button>}
+              {dirty && <button onClick={resetReport} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)' }}>↺ Reset</button>}
+              <button onClick={copyTable} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-mid)' }}>Copy</button>
+              <button onClick={downloadCsv} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-mid)' }}>CSV</button>
               {dirty && loadedSavedId && <span className="text-xs text-amber-300/80">Unsaved changes</span>}
               {origin === 'preset' && !loadedSavedId && <span className="text-xs text-slate-500">Save keeps this report, with your changes, for your whole practice</span>}
             </div>
             {showSaveBox && canEdit && (
               <div className="flex items-center gap-2 mt-2">
                 <input value={newReportName} onChange={e => setNewReportName(e.target.value)} placeholder="Name this report…" className="flex-1 max-w-xs text-xs rounded px-2 py-1.5"
-                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
+                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
                 <button onClick={saveAsNew} disabled={savingReport || !newReportName.trim()} className="text-xs px-3 py-1.5 rounded" style={{ background: '#10b981', color: '#06281e', border: 'none', opacity: (savingReport || !newReportName.trim()) ? 0.5 : 1 }}>{savingReport ? '…' : 'Save'}</button>
               </div>
             )}
@@ -594,7 +594,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
         </div>
 
         {/* RIGHT CONTROLS */}
-        <div className="w-full lg:w-80 lg:flex-shrink-0 rounded-xl p-4 space-y-4" style={{ background: 'rgba(15,23,42,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="w-full lg:w-80 lg:flex-shrink-0 rounded-xl p-4 space-y-4" style={{ background: 'var(--g-panel)', border: '1px solid var(--g-border)' }}>
           <StepSection n="1" title="Measure">
             <Segmented options={[{ id: 'slots', label: 'Slots' }, { id: 'sessions', label: 'Sessions' }]} value={grain} onChange={setGrain} />
             <div className="text-xs text-slate-500 font-medium mt-1">{isSession ? 'Count sessions that are…' : 'Count slots…'}</div>
@@ -619,11 +619,11 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               </>
             )}
             <div className="text-xs text-slate-500 font-medium mt-2">Show as</div>
-            <select value={denomMode} onChange={e => setDenomMode(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
-              <option value="none" style={{ background: '#1e293b' }}>Count (raw number)</option>
-              <option value="group" style={{ background: '#1e293b' }}>% of each group&rsquo;s total</option>
-              <option value="total" style={{ background: '#1e293b' }}>% of overall total (share)</option>
-              <option value="custom" style={{ background: '#1e293b' }}>% of a custom subset…</option>
+            <select value={denomMode} onChange={e => setDenomMode(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
+              <option value="none" style={{ background: 'var(--surface-2)' }}>Count (raw number)</option>
+              <option value="group" style={{ background: 'var(--surface-2)' }}>% of each group&rsquo;s total</option>
+              <option value="total" style={{ background: 'var(--surface-2)' }}>% of overall total (share)</option>
+              <option value="custom" style={{ background: 'var(--surface-2)' }}>% of a custom subset…</option>
             </select>
             {denomMode === 'custom' && (
               <div className="mt-1 pl-3 space-y-2" style={{ borderLeft: '2px solid rgba(99,102,241,0.3)' }}>
@@ -648,20 +648,20 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             )}
           </StepSection>
 
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          <div style={{ borderTop: '1px solid var(--g-border)' }} />
 
           <StepSection n="2" title="Break down">
             <div className="text-xs text-slate-600">Group by</div>
-            <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
-              {groupByOpts.map(o => <option key={o.id} value={o.id} style={{ background: '#1e293b' }}>{o.label}</option>)}
+            <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
+              {groupByOpts.map(o => <option key={o.id} value={o.id} style={{ background: 'var(--surface-2)' }}>{o.label}</option>)}
             </select>
             <div className="text-xs text-slate-600 mt-1">Compare by (series)</div>
-            <select value={splitBy} onChange={e => setSplitBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }}>
-              {splitByOpts.filter(o => o.id !== groupBy).map(o => <option key={o.id} value={o.id} style={{ background: '#1e293b' }}>{o.label}</option>)}
+            <select value={splitBy} onChange={e => setSplitBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
+              {splitByOpts.filter(o => o.id !== groupBy).map(o => <option key={o.id} value={o.id} style={{ background: 'var(--surface-2)' }}>{o.label}</option>)}
             </select>
           </StepSection>
 
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          <div style={{ borderTop: '1px solid var(--g-border)' }} />
 
           <StepSection n="3" title="View">
             <div className="text-xs text-slate-600">Date range</div>
@@ -679,20 +679,20 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <input type="number" min="0" max="104" value={range.backWeeks}
                       onChange={e => setRange(r => ({ ...r, backWeeks: Math.max(0, parseInt(e.target.value) || 0) }))}
-                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
+                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
                     <span className="text-xs text-slate-500">weeks back →</span>
                     <input type="number" min="0" max="104" value={range.fwdWeeks}
                       onChange={e => setRange(r => ({ ...r, fwdWeeks: Math.max(0, parseInt(e.target.value) || 0) }))}
-                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />
+                      className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
                     <span className="text-xs text-slate-500">weeks ahead</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 flex-wrap">
                     <input type="date" value={range.from || ''} onChange={e => setRange(r => ({ ...r, from: e.target.value }))}
-                      className="text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none', colorScheme: 'dark' }} />
+                      className="text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none', colorScheme: 'dark' }} />
                     <span className="text-xs text-slate-500">to</span>
                     <input type="date" value={range.to || ''} onChange={e => setRange(r => ({ ...r, to: e.target.value }))}
-                      className="text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none', colorScheme: 'dark' }} />
+                      className="text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none', colorScheme: 'dark' }} />
                   </div>
                 )}
                 <div className="text-xs text-slate-500">{rangeLabel(range)}</div>
@@ -708,9 +708,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 {condMode === 'custom' && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500">Red ≤</span>
-                    <input value={condLow} onChange={e => setCondLow(e.target.value)} placeholder="low" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(239,68,68,0.4)', color: '#e2e8f0', outline: 'none' }} />
+                    <input value={condLow} onChange={e => setCondLow(e.target.value)} placeholder="low" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--g-text-hi)', outline: 'none' }} />
                     <span className="text-xs text-slate-500">Green ≥</span>
-                    <input value={condHigh} onChange={e => setCondHigh(e.target.value)} placeholder="high" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(16,185,129,0.4)', color: '#e2e8f0', outline: 'none' }} />
+                    <input value={condHigh} onChange={e => setCondHigh(e.target.value)} placeholder="high" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(16,185,129,0.4)', color: 'var(--g-text-hi)', outline: 'none' }} />
                   </div>
                 )}
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -721,7 +721,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             )}
           </StepSection>
 
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          <div style={{ borderTop: '1px solid var(--g-border)' }} />
 
           <StepSection n="4" title="Refine">
             <Collapsible title="Filter data" badge={filterCount || null} defaultOpen={filterCount > 0}>
@@ -740,7 +740,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               {refOn && (
                 <div className="pl-5 flex items-center gap-2">
                   <Segmented options={[{ id: 'auto', label: result.isRatio ? 'Fair share' : 'Average' }, { id: 'custom', label: 'Custom' }]} value={refMode} onChange={setRefMode} />
-                  {refMode === 'custom' && <input value={refCustom} onChange={e => setRefCustom(e.target.value)} placeholder="value" className="w-16 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', outline: 'none' }} />}
+                  {refMode === 'custom' && <input value={refCustom} onChange={e => setRefCustom(e.target.value)} placeholder="value" className="w-16 text-xs rounded px-1.5 py-1" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />}
                 </div>
               )}
             </Collapsible>
@@ -769,16 +769,16 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick, co
               <div className="space-y-1">
                 {result.series.map((s, si) => { const cell = g.cells[s.key]; const w = (cell.value / maxVal) * 100;
                   return (
-                    <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} className="relative h-4 rounded overflow-hidden cursor-pointer" style={{ background: 'rgba(255,255,255,0.05)' }} title="Click to drill down">
+                    <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} className="relative h-4 rounded overflow-hidden cursor-pointer" style={{ background: 'var(--g-tile)' }} title="Click to drill down">
                       <div className="absolute left-0 top-0 bottom-0 rounded" style={{ width: `${Math.max(w, 0.5)}%`, background: PALETTE[si % PALETTE.length], opacity: 0.9 }} />
                       <span className="absolute right-1.5 top-0 bottom-0 flex items-center text-[10px] font-medium text-slate-200">{fmt(cell.value)}</span>
                     </div>
                   ); })}
               </div>
             ) : (
-              <div onClick={() => onPick && onPick(g.key, g.label)} className="relative h-8 rounded-lg overflow-hidden cursor-pointer group" style={{ background: 'rgba(255,255,255,0.05)' }} title="Click to drill down">
+              <div onClick={() => onPick && onPick(g.key, g.label)} className="relative h-8 rounded-lg overflow-hidden cursor-pointer group" style={{ background: 'var(--g-tile)' }} title="Click to drill down">
                 <div className="absolute left-0 top-0 bottom-0 rounded-lg transition-all group-hover:brightness-110" style={{ width: `${Math.max((g.value / maxVal) * 100, 1)}%`, background: colourFor(g.value, gi), opacity: 0.9 }} />
-                {refValue != null && <div className="absolute top-0 bottom-0" style={{ left: `${(refValue / maxVal) * 100}%`, width: 2, background: 'rgba(255,255,255,0.6)' }} title={refLabel} />}
+                {refValue != null && <div className="absolute top-0 bottom-0" style={{ left: `${(refValue / maxVal) * 100}%`, width: 2, background: 'var(--g-marker)' }} title={refLabel} />}
                 <div className="absolute inset-0 flex items-center px-3">
                   <span className="text-sm font-bold text-white drop-shadow">{fmt(g.value)}</span>
                   {isRatio && <span className="text-[10px] text-white/75 ml-2">{g.numerator}/{g.denominator}</span>}
@@ -789,8 +789,8 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick, co
         </div>
       ))}
       {refValue != null && !multi && (
-        <div className="flex items-center gap-2 pt-2.5 mt-1 text-xs text-slate-500" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <span className="inline-block align-middle" style={{ width: 2, height: 12, background: 'rgba(255,255,255,0.6)' }} />
+        <div className="flex items-center gap-2 pt-2.5 mt-1 text-xs text-slate-500" style={{ borderTop: '1px solid var(--g-border)' }}>
+          <span className="inline-block align-middle" style={{ width: 2, height: 12, background: 'var(--g-marker)' }} />
           <span>{refLabel} · {result.groups.length} group{result.groups.length === 1 ? '' : 's'} · click a bar to drill down</span>
         </div>
       )}
@@ -809,7 +809,7 @@ function StackedView({ result, fmt, onPick }) {
         return (
           <div key={g.key} className="flex items-center gap-3">
             <div className="w-32 lg:w-40 text-sm font-medium text-slate-300 truncate text-right" title={g.label}>{g.label}</div>
-            <div className="flex-1 relative h-8 rounded-lg overflow-hidden flex" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <div className="flex-1 relative h-8 rounded-lg overflow-hidden flex" style={{ background: 'var(--g-tile)' }}>
               {result.series.map((s, si) => { const v = g.cells[s.key]?.value || 0; const w = (v / maxTotal) * 100; if (w <= 0) return null;
                 return <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} title={`${s.label}: ${fmt(v)} — click to drill down`} className="cursor-pointer hover:brightness-110 transition-all" style={{ width: `${w}%`, background: PALETTE[si % PALETTE.length], opacity: 0.9 }} />; })}
               <span className="absolute right-2.5 top-0 bottom-0 flex items-center text-xs font-bold text-white drop-shadow pointer-events-none">{fmt(total)}</span>
@@ -837,21 +837,21 @@ function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal, onPick, c
       {multi && <div className="flex flex-wrap gap-3 mb-2">{result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-xs text-slate-400"><span className="w-3 h-0.5" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}</div>}
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: 480 }}>
         <defs><linearGradient id="trendfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#818cf8" stopOpacity="0.28" /><stop offset="100%" stopColor="#818cf8" stopOpacity="0.02" /></linearGradient></defs>
-        {grid.map((gl, i) => (<g key={i}><line x1={padL} y1={gl.yy} x2={W - padR} y2={gl.yy} stroke="rgba(255,255,255,0.06)" /><text x={padL - 8} y={gl.yy + 3} textAnchor="end" fill="#64748b" style={{ fontSize: 10 }}>{isRatio ? `${Math.round(gl.v)}%` : Math.round(gl.v)}</text></g>))}
-        {refValue != null && <g><line x1={padL} y1={y(refValue)} x2={W - padR} y2={y(refValue)} stroke="rgba(248,250,252,0.45)" strokeDasharray="5 3" /><text x={W - padR} y={y(refValue) - 4} textAnchor="end" fill="#cbd5e1" style={{ fontSize: 9 }}>{refLabel}</text></g>}
+        {grid.map((gl, i) => (<g key={i}><line x1={padL} y1={gl.yy} x2={W - padR} y2={gl.yy} style={{ stroke: 'var(--g-border)' }} /><text x={padL - 8} y={gl.yy + 3} textAnchor="end" style={{ fontSize: 10, fill: 'var(--g-text-mid)' }}>{isRatio ? `${Math.round(gl.v)}%` : Math.round(gl.v)}</text></g>))}
+        {refValue != null && <g><line x1={padL} y1={y(refValue)} x2={W - padR} y2={y(refValue)} style={{ stroke: 'var(--g-label)' }} strokeDasharray="5 3" /><text x={W - padR} y={y(refValue) - 4} textAnchor="end" style={{ fontSize: 9, fill: 'var(--g-text-hi)' }}>{refLabel}</text></g>}
         {multi ? result.series.map((s, si) => (
           <g key={s.key}>
             <path d={lineFor(g => g.cells[s.key]?.value || 0)} fill="none" stroke={PALETTE[si % PALETTE.length]} strokeWidth="2.5" strokeLinejoin="round" />
-            {groups.map((g, i) => <circle key={g.key} cx={x(i)} cy={y(g.cells[s.key]?.value || 0)} r="3" fill={PALETTE[si % PALETTE.length]} stroke="#1e293b" strokeWidth="1.5" />)}
+            {groups.map((g, i) => <circle key={g.key} cx={x(i)} cy={y(g.cells[s.key]?.value || 0)} r="3" fill={PALETTE[si % PALETTE.length]} style={{ stroke: 'var(--g-ink-2)' }} strokeWidth="1.5" />)}
           </g>
         )) : (
           <g>
             <path d={`${lineFor(g => g.value)} L ${x(groups.length - 1).toFixed(1)} ${(padT + innerH).toFixed(1)} L ${x(0).toFixed(1)} ${(padT + innerH).toFixed(1)} Z`} fill="url(#trendfill)" />
             <path d={lineFor(g => g.value)} fill="none" stroke={single} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
-            {groups.map((g, i) => (<g key={g.key} style={{ cursor: 'pointer' }} onClick={() => onPick && onPick(g.key, g.label)}><circle cx={x(i)} cy={y(g.value)} r="4.5" fill={colourFor ? colourFor(g.value, i) : single} stroke="#0f172a" strokeWidth="2" /><text x={x(i)} y={y(g.value) - 11} textAnchor="middle" fill="#c7d2fe" style={{ fontSize: 10, fontWeight: 700 }}>{fmt(g.value)}</text></g>))}
+            {groups.map((g, i) => (<g key={g.key} style={{ cursor: 'pointer' }} onClick={() => onPick && onPick(g.key, g.label)}><circle cx={x(i)} cy={y(g.value)} r="4.5" fill={colourFor ? colourFor(g.value, i) : single} style={{ stroke: 'var(--g-ink)' }} strokeWidth="2" /><text x={x(i)} y={y(g.value) - 11} textAnchor="middle" style={{ fontSize: 10, fontWeight: 700, fill: 'var(--g-text-hi)' }}>{fmt(g.value)}</text></g>))}
           </g>
         )}
-        {groups.map((g, i) => <text key={g.key} x={x(i)} y={H - padB + 18} textAnchor="middle" fill="#64748b" style={{ fontSize: 10 }} transform={groups.length > 8 ? `rotate(-35 ${x(i)} ${H - padB + 18})` : undefined}>{g.label.replace('w/c ', '')}</text>)}
+        {groups.map((g, i) => <text key={g.key} x={x(i)} y={H - padB + 18} textAnchor="middle" style={{ fontSize: 10, fill: 'var(--g-text-mid)' }} transform={groups.length > 8 ? `rotate(-35 ${x(i)} ${H - padB + 18})` : undefined}>{g.label.replace('w/c ', '')}</text>)}
       </svg>
     </div>
   );
@@ -864,7 +864,7 @@ function TableView({ result, groupLabel, fmt, onPick }) {
     <div className="overflow-x-auto">
       <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <tr style={{ borderBottom: '1px solid var(--g-line)' }}>
             <th className="text-xs font-semibold uppercase tracking-wider text-slate-500 py-2 pr-4">{groupLabel}</th>
             {multi ? result.series.map(s => <th key={s.key} className="text-xs font-semibold uppercase tracking-wider text-slate-500 py-2 px-3 text-right">{s.label}</th>)
               : (<>{result.isRatio && <th className="text-xs text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Num</th>}{result.isRatio && <th className="text-xs text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Denom</th>}<th className="text-xs text-slate-500 py-2 pl-3 text-right uppercase tracking-wider font-semibold">{result.isRatio ? '%' : 'Count'}</th></>)}
@@ -872,7 +872,7 @@ function TableView({ result, groupLabel, fmt, onPick }) {
         </thead>
         <tbody>
           {result.groups.map(g => (
-            <tr key={g.key} onClick={() => onPick && onPick(g.key, g.label)} className="cursor-pointer hover:bg-white/5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <tr key={g.key} onClick={() => onPick && onPick(g.key, g.label)} className="cursor-pointer hover:bg-white/5" style={{ borderBottom: '1px solid var(--g-tile)' }}>
               <td className="text-sm text-slate-200 py-2 pr-4">{g.label}</td>
               {multi ? result.series.map(s => <td key={s.key} className="text-sm text-indigo-300 font-medium py-2 px-3 text-right tabular-nums">{fmt(g.cells[s.key]?.value || 0)}</td>)
                 : (<>{result.isRatio && <td className="text-sm text-slate-400 py-2 px-3 text-right tabular-nums">{g.numerator}</td>}{result.isRatio && <td className="text-sm text-slate-400 py-2 px-3 text-right tabular-nums">{g.denominator}</td>}<td className="text-sm font-bold text-indigo-300 py-2 pl-3 text-right tabular-nums">{fmt(g.value)}</td></>)}
@@ -880,7 +880,7 @@ function TableView({ result, groupLabel, fmt, onPick }) {
           ))}
         </tbody>
         {!multi && (
-          <tfoot><tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <tfoot><tr style={{ borderTop: '1px solid var(--g-line)' }}>
             <td className="text-sm font-semibold text-slate-300 py-2 pr-4">Total / overall</td>
             {result.isRatio && <td className="text-sm text-slate-300 py-2 px-3 text-right tabular-nums">{result.totalNum}</td>}
             {result.isRatio && <td className="text-sm text-slate-300 py-2 px-3 text-right tabular-nums">{result.totalDenom}</td>}
@@ -901,7 +901,7 @@ function DrillModal({ drill, isSession, onClose }) {
   const dates = Object.keys(byDate).sort();
   return (
     <div onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
-      <div onClick={e => e.stopPropagation()} className="w-full max-w-lg rounded-xl overflow-hidden flex flex-col" style={{ background: 'linear-gradient(180deg,#1e293b,#0f172a)', border: '1px solid rgba(255,255,255,0.1)', maxHeight: '80vh' }}>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-lg rounded-xl overflow-hidden flex flex-col" style={{ background: 'linear-gradient(180deg,var(--g-ink-2),var(--g-ink))', border: '1px solid var(--g-line)', maxHeight: '80vh' }}>
         <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
           <div><div className="text-base font-semibold text-white">{groupLabel}{seriesLabel ? ` · ${seriesLabel}` : ''}</div><div className="text-xs text-slate-500">{totalCount} {isSession ? 'session' : 'slot'}{totalCount === 1 ? '' : 's'} across {dates.length} day{dates.length === 1 ? '' : 's'}</div></div>
           <button onClick={onClose} className="ml-auto text-slate-400 hover:text-white" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }} aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
@@ -910,10 +910,10 @@ function DrillModal({ drill, isSession, onClose }) {
           {dates.length === 0 && <p className="text-sm text-slate-400 text-center py-6">No underlying records.</p>}
           {dates.map(iso => { const rows = byDate[iso]; const d = new Date(iso + 'T00:00:00');
             return (
-              <div key={iso} className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div key={iso} className="rounded-lg p-2" style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-tile)' }}>
                 <div className="text-xs font-medium text-slate-300 mb-1">{d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div>
                 <div className="flex flex-wrap gap-1">
-                  {rows.map((f, i) => <span key={i} className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>{f.session.toUpperCase()}{isSession ? ` · ${f.clinicianName}${f.isBusiestUrgent ? ' · most urgent' : ''}${f.urgentCount ? ` · ${f.urgentCount} urgent` : ''}` : ` · ${f.clinicianName} · ${f.slotType} · ${f.status}${f.count > 1 ? ` ×${f.count}` : ''}`}</span>)}
+                  {rows.map((f, i) => <span key={i} className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--g-tile)', color: 'var(--g-text-mid)' }}>{f.session.toUpperCase()}{isSession ? ` · ${f.clinicianName}${f.isBusiestUrgent ? ' · most urgent' : ''}${f.urgentCount ? ` · ${f.urgentCount} urgent` : ''}` : ` · ${f.clinicianName} · ${f.slotType} · ${f.status}${f.count > 1 ? ` ×${f.count}` : ''}`}</span>)}
                 </div>
               </div>
             ); })}

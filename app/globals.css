@@ -60,6 +60,7 @@
     --g-label: rgba(255,255,255,0.35); --g-label-faint: rgba(255,255,255,0.2);
     --g-text-hi: #e2e8f0; --g-text-mid: #94a3b8; --g-text-faint: #475569; --g-text-mute: #334155;
     --g-nodata: #334155; --g-ink: #0f172a; --g-ink-2: #1e293b; --g-track: #e2e8f0; --g-pill-text: #ffffff;
+    --g-line: rgba(255,255,255,0.1); --g-marker: rgba(255,255,255,0.6);
   }
   [data-theme="light"] {
     --app-bg: #f4f6fc;
@@ -92,6 +93,7 @@
     --g-label: rgba(15,23,42,0.5); --g-label-faint: rgba(15,23,42,0.3);
     --g-text-hi: #1e293b; --g-text-mid: #64748b; --g-text-faint: #94a3b8; --g-text-mute: #94a3b8;
     --g-nodata: #e2e8f0; --g-ink: #cbd5e1; --g-ink-2: #cbd5e1; --g-track: #cbd5e1; --g-pill-text: #1e293b;
+    --g-line: rgba(15,23,42,0.16); --g-marker: rgba(15,23,42,0.55);
   }
 }
 
