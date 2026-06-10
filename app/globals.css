@@ -62,6 +62,8 @@
     --g-nodata: #334155; --g-ink: #0f172a; --g-ink-2: #1e293b; --g-track: #e2e8f0; --g-pill-text: #ffffff;
     --g-line: rgba(255,255,255,0.1); --g-marker: rgba(255,255,255,0.6);
     --g-surface: #0f172a; --g-surface-2: #1e293b; --g-field: rgba(0,0,0,0.22);
+    /* ── Shape scale (theme-independent): controls, buttons/inputs, cards, pills ── */
+    --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-pill: 999px;
   }
   [data-theme="light"] {
     --app-bg: #f4f6fc;

@@ -1,5 +1,6 @@
 import './globals.css'
 import ImpersonationBanner from '@/components/ImpersonationBanner';
+import { ConfirmHost } from '@/components/ui';
 
 export const metadata = {
   title: {
@@ -35,6 +36,9 @@ export default function RootLayout({ children }) {
             at the top of every page so it can't be hidden by other content. */}
         <ImpersonationBanner />
         {children}
+        {/* Singleton host for the awaitable confirmDialog() — replaces
+            native window.confirm so confirmations match the app design. */}
+        <ConfirmHost />
       </body>
     </html>
   )
