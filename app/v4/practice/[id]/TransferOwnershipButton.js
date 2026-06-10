@@ -63,7 +63,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
           color: 'var(--g-text-hi)',
           background: 'var(--g-tile)',
           border: '1px solid var(--g-line)',
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           cursor: 'pointer',
           fontWeight: 500,
         }}
@@ -88,7 +88,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
             </p>
 
             {candidates.length === 0 ? (
-              <div style={{ padding: 14, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, color: '#fde68a', fontSize: 13, marginBottom: 14 }}>
+              <div style={{ padding: 14, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--r-md)', color: '#fde68a', fontSize: 13, marginBottom: 14 }}>
                 There are no other members to transfer ownership to. Invite someone first, then come back here once they've accepted.
               </div>
             ) : (
@@ -104,7 +104,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                     padding: '10px 12px',
                     background: 'var(--g-tile)',
                     border: '1px solid var(--g-line)',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r-md)',
                     color: 'var(--g-text-hi)',
                     fontSize: 14,
                     marginBottom: 16,
@@ -123,7 +123,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                     padding: 14,
                     background: 'rgba(34,211,238,0.06)',
                     border: '1px solid rgba(34,211,238,0.2)',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r-md)',
                     fontSize: 13,
                     color: '#a5f3fc',
                     lineHeight: 1.5,
@@ -135,7 +135,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                 )}
 
                 <label style={{ display: 'block', fontSize: 11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-                  Type <code style={{ background: 'var(--g-border)', padding: '1px 6px', borderRadius: 4, color: '#fde68a' }}>transfer</code> to confirm
+                  Type <code style={{ background: 'var(--g-border)', padding: '1px 6px', borderRadius: 'var(--r-sm)', color: '#fde68a' }}>transfer</code> to confirm
                 </label>
                 <input
                   value={confirmText}
@@ -145,7 +145,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                     padding: '10px 12px',
                     background: 'var(--g-tile)',
                     border: '1px solid var(--g-line)',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r-md)',
                     color: 'var(--g-text-hi)',
                     fontSize: 14,
                     marginBottom: 16,
@@ -154,7 +154,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                 />
 
                 {error && (
-                  <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12, borderRadius: 6 }}>
+                  <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12, borderRadius: 'var(--r-sm)' }}>
                     {error}
                   </div>
                 )}
@@ -172,7 +172,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                     background: canSubmit ? '#d97706' : 'rgba(217,119,6,0.3)',
                     color: 'white',
                     border: 'none',
-                    borderRadius: 8,
+                    borderRadius: 'var(--r-md)',
                     fontSize: 13,
                     fontWeight: 500,
                     cursor: canSubmit && !busy ? 'pointer' : 'not-allowed',
@@ -191,8 +191,8 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
 }
 
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 };
-const modal = { background: 'var(--surface-solid)', border: '1px solid var(--g-line)', borderRadius: 12, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' };
+const modal = { background: 'var(--surface-solid)', border: '1px solid var(--g-line)', borderRadius: 'var(--r-lg)', padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' };
 const closeBtn = { position: 'absolute', top: 14, right: 14, background: 'transparent', border: 'none', color: 'var(--g-text-mid)', fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 4 };
 const modalTitle = { fontSize: 16, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 8, fontFamily: "'Outfit', sans-serif" };
 const modalDesc = { fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 };
-const btnSubtle = { padding: '8px 16px', background: 'var(--g-border)', color: 'var(--g-text-hi)', border: '1px solid var(--g-border-2)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const btnSubtle = { padding: '8px 16px', background: 'var(--g-border)', color: 'var(--g-text-hi)', border: '1px solid var(--g-border-2)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };

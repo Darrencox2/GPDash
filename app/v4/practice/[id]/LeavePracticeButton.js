@@ -49,7 +49,7 @@ export default function LeavePracticeButton({ practiceId, practiceName, myRole, 
           color: isLastOwner ? 'var(--g-text-mid)' : '#fbbf24',
           background: isLastOwner ? 'rgba(148,163,184,0.06)' : 'rgba(245,158,11,0.08)',
           border: `1px solid ${isLastOwner ? 'rgba(148,163,184,0.15)' : 'rgba(245,158,11,0.25)'}`,
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           cursor: isLastOwner || busy ? 'not-allowed' : 'pointer',
           opacity: busy ? 0.6 : 1,
         }}

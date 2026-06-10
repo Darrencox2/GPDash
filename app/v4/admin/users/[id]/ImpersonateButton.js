@@ -75,7 +75,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
             background: disabledReason ? 'rgba(255,255,255,0.04)' : '#7c3aed',
             color: disabledReason ? '#64748b' : 'white',
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             fontSize: 13,
             fontWeight: 500,
             cursor: disabledReason ? 'not-allowed' : 'pointer',
@@ -105,7 +105,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
           <div style={{
             background: '#0f172a',
             border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 12,
+            borderRadius: 'var(--r-lg)',
             padding: 24,
             maxWidth: 500,
             width: '100%',
@@ -140,7 +140,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
                 padding: '8px 10px',
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 color: '#e2e8f0',
                 fontSize: 13,
                 fontFamily: 'inherit',
@@ -157,7 +157,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
                 border: '1px solid rgba(239,68,68,0.3)',
                 color: '#fca5a5',
                 fontSize: 12,
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 marginBottom: 12,
               }}>{error}</div>
             )}
@@ -185,5 +185,5 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
   );
 }
 
-const btnSubtle = { padding: '8px 14px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-const btnDanger = { padding: '8px 14px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const btnSubtle = { padding: '8px 14px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const btnDanger = { padding: '8px 14px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };

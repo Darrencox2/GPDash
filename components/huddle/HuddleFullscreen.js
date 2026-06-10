@@ -579,7 +579,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
               <span style={{fontSize:'clamp(9px,1.2vh,15px)',fontWeight:500,color:vsPct>3?'#f59e0b':vsPct<-3?'#10b981':C.textDim}}>{vsPct>3?'Higher than normal':vsPct<-3?'Lower than normal':'Typical'} for a {dayName}</span>
             </div>
             {topFactors.length > 0 && <div className="flex gap-1 flex-wrap" style={{marginTop:'clamp(3px,0.4vh,6px)'}}>
-              {topFactors.map((f,i) => <span key={i} style={{fontSize:'clamp(7px,0.9vh,12px)',fontWeight:500,padding:'1px 5px',borderRadius:10,background:f.effect>=0?'rgba(239,68,68,0.1)':'rgba(16,185,129,0.1)',color:f.effect>=0?'#f87171':'#34d399'}}>{f.effect>=0?'↑':'↓'} {f.label} {f.effect>0?'+':''}{Math.round(f.effect)}</span>)}
+              {topFactors.map((f,i) => <span key={i} style={{fontSize:'clamp(7px,0.9vh,12px)',fontWeight:500,padding:'1px 5px',borderRadius:'var(--r-md)',background:f.effect>=0?'rgba(239,68,68,0.1)':'rgba(16,185,129,0.1)',color:f.effect>=0?'#f87171':'#34d399'}}>{f.effect>=0?'↑':'↓'} {f.label} {f.effect>0?'+':''}{Math.round(f.effect)}</span>)}
             </div>}
           </div>}
         </div>
@@ -686,7 +686,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                         </div>
                         <div className="flex items-center justify-between" style={{marginTop:'clamp(2px,0.4vh,6px)'}}>
                           <div className="flex items-center" style={{gap:'clamp(3px,0.4vw,6px)'}}>
-                            <span style={{fontSize:'clamp(7px,1vh,12px)',padding:'1px 5px',borderRadius:10,background:`${s.band.colour}20`,color:s.band.colour,fontWeight:500}}>{s.band.label} · {Math.round(s.band.pct)}%</span>
+                            <span style={{fontSize:'clamp(7px,1vh,12px)',padding:'1px 5px',borderRadius:'var(--r-md)',background:`${s.band.colour}20`,color:s.band.colour,fontWeight:500}}>{s.band.label} · {Math.round(s.band.pct)}%</span>
                             <span style={{fontSize:'clamp(7px,1vh,12px)',color:C.textDim}}>{s.avail} available{s.booked>0?` · ${s.booked} booked`:''}</span>
                           </div>
                           {s.target>0 && <span style={{fontSize:'clamp(7px,1vh,12px)',color:C.textFaint}}>target {s.target}</span>}

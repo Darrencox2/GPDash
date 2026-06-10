@@ -302,7 +302,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 8, fontSize: 15 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 15 }}>
           {error}
         </div>
       )}
@@ -331,7 +331,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                   border: '1px solid rgba(34,211,238,0.25)',
                   color: '#22d3ee',
                   padding: '8px 14px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 14,
                   cursor: 'pointer',
                 }}
@@ -345,7 +345,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                   border: '1px solid rgba(239,68,68,0.2)',
                   color: '#fca5a5',
                   padding: '8px 14px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 14,
                   cursor: savingField === 'practice' ? 'wait' : 'pointer',
                 }}
@@ -358,7 +358,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                   border: '1px solid rgba(255,255,255,0.12)',
                   color: editingDetails ? '#22d3ee' : '#94a3b8',
                   padding: '8px 14px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 14,
                   cursor: 'pointer',
                 }}
@@ -400,7 +400,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               color: '#cbd5e1',
               padding: 10,
               background: 'rgba(0,0,0,0.2)',
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               marginBottom: 12,
               lineHeight: 1.6,
             }}>
@@ -437,7 +437,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               padding: 10,
               background: 'rgba(34, 211, 238, 0.04)',
               border: '1px solid rgba(34, 211, 238, 0.12)',
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               marginBottom: 12,
               lineHeight: 1.6,
             }}>
@@ -464,7 +464,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             padding: 12,
             background: 'rgba(0,0,0,0.2)',
             border: '1px solid rgba(255,255,255,0.04)',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
           }}>
             <div style={{
               fontSize: 12,
@@ -503,7 +503,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               {practiceMatchDebug?.attempts?.length > 0 && (
                 <details style={{ marginTop: 8, fontSize: 15, color: '#64748b' }}>
                   <summary style={{ cursor: 'pointer' }}>Show what was searched (debug)</summary>
-                  <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontFamily: 'ui-monospace, Menlo, monospace', whiteSpace: 'pre-wrap', fontSize: 12 }}>
+                  <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--r-sm)', fontFamily: 'ui-monospace, Menlo, monospace', whiteSpace: 'pre-wrap', fontSize: 12 }}>
                     {practiceMatchDebug.attempts.map((a, i) => (
                       <div key={i} style={{ marginBottom: 6 }}>
                         <div style={{ wordBreak: 'break-all' }}>{a.url}</div>
@@ -546,7 +546,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                           ? 'rgba(255,255,255,0.04)'
                           : 'rgba(255,255,255,0.08)'
                       }`,
-                      borderRadius: 8,
+                      borderRadius: 'var(--r-md)',
                       cursor: isSelected || unavailable ? 'not-allowed' : 'pointer',
                       opacity: unavailable ? 0.5 : 1,
                       transition: 'background 0.15s',
@@ -594,7 +594,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           padding: '12px 14px',
           background: 'rgba(34, 211, 238, 0.07)',
           border: '1px solid rgba(34, 211, 238, 0.25)',
-          borderRadius: 10,
+          borderRadius: 'var(--r-md)',
           fontSize: 14,
           color: '#a5f3fc',
           lineHeight: 1.5,
@@ -690,7 +690,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             background: allRequired ? '#0891b2' : 'rgba(255,255,255,0.05)',
             color: allRequired ? 'white' : '#64748b',
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             fontSize: 15,
             fontWeight: 500,
             cursor: allRequired ? 'pointer' : 'not-allowed',
@@ -705,7 +705,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             background: 'transparent',
             color: '#94a3b8',
             border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             fontSize: 15,
             cursor: 'pointer',
           }}
@@ -743,7 +743,7 @@ function formatMonthYear(dateStr) {
 
 function Card({ title, status, children }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 18 }}>
+    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', padding: 18 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
         <h3 style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1' }}>{title}</h3>
         {status === 'saving' && <span style={{ fontSize: 15, color: '#64748b' }}>Saving…</span>}
@@ -779,7 +779,7 @@ function Stat({ label, value, mono, editable, inputType, inputValue, onInputChan
             padding: '4px 8px',
             background: 'rgba(0,0,0,0.3)',
             border: '1px solid rgba(34,211,238,0.3)',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             color: '#e2e8f0',
             fontSize: 22,
             fontWeight: 600,
@@ -804,7 +804,7 @@ const input = {
   padding: '10px 12px',
   background: 'rgba(0,0,0,0.2)',
   border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 8,
+  borderRadius: 'var(--r-md)',
   color: '#e2e8f0',
   fontSize: 15,
 };
@@ -814,6 +814,6 @@ const lookupBox = {
   padding: 12,
   background: 'rgba(34,211,238,0.05)',
   border: '1px solid rgba(34,211,238,0.15)',
-  borderRadius: 6,
+  borderRadius: 'var(--r-sm)',
   fontSize: 14,
 };

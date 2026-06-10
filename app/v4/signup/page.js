@@ -295,7 +295,7 @@ function SignupPageInner() {
                   padding: '6px 12px', fontSize: 12,
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: 6, color: '#cbd5e1',
+                  borderRadius: 'var(--r-sm)', color: '#cbd5e1',
                   cursor: (resendBusy || cooldownSecsLeft > 0) ? 'not-allowed' : 'pointer',
                   opacity: (resendBusy || cooldownSecsLeft > 0) ? 0.5 : 1,
                 }}
@@ -309,7 +309,7 @@ function SignupPageInner() {
                   padding: '6px 12px', fontSize: 12,
                   background: 'transparent',
                   border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 6, color: '#94a3b8',
+                  borderRadius: 'var(--r-sm)', color: '#94a3b8',
                   cursor: 'pointer',
                 }}
               >

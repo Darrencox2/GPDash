@@ -59,7 +59,7 @@ function ChipGroup({ options, selected, onChange, allLabel = 'Any', allowAll = t
 
 function Segmented({ options, value, onChange, disabledIds = [] }) {
   return (
-    <div className="flex flex-wrap" style={{ background: 'var(--g-field)', borderRadius: 6, padding: 2, gap: 2 }}>
+    <div className="flex flex-wrap" style={{ background: 'var(--g-field)', borderRadius: 'var(--r-sm)', padding: 2, gap: 2 }}>
       {options.map(o => {
         const active = value === o.id, disabled = disabledIds.includes(o.id);
         return (

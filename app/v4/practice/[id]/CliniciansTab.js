@@ -52,7 +52,7 @@ export default async function CliniciansTab({ practiceId }) {
 
   if (error) {
     return (
-      <div style={{ padding: 16, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#fca5a5', fontSize: 13 }}>
+      <div style={{ padding: 16, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-md)', color: '#fca5a5', fontSize: 13 }}>
         Failed to load clinicians: {error.message}
       </div>
     );

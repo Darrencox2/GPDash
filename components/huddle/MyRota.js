@@ -12,9 +12,9 @@ const GROUP_META = {
 };
 
 function LocSquare({ loc, size = 24, duty, colour }) {
-  if (!loc) return <div style={{width:size,height:size,borderRadius:4,background:'var(--g-surface-2)'}} />;
+  if (!loc) return <div style={{width:size,height:size,borderRadius:'var(--r-sm)',background:'var(--g-surface-2)'}} />;
   return (
-    <div style={{width:size,height:size,borderRadius:4,background:colour||'var(--g-text-faint)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+    <div style={{width:size,height:size,borderRadius:'var(--r-sm)',background:colour||'var(--g-text-faint)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
       <span style={{fontSize:size*0.45,fontWeight:700,color:'#fff'}}>{loc.charAt(0)}</span>
       {duty && <svg style={{position:'absolute',top:-2,right:-2,width:size*0.4,height:size*0.4}} viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
     </div>
@@ -466,7 +466,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
   // ═══ DESKTOP CALENDAR ═══
   const DesktopView = () => (
-    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 50%, var(--g-ink) 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 50%, var(--g-ink) 100%)', borderRadius: 'var(--r-lg)', overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
       {/* Header */}
       <div className="p-6 pb-4">
         {searchJsx}
@@ -544,7 +544,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
   // ═══ MOBILE 2-WEEK ═══
   const MobileView = () => (
-    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 50%, var(--g-ink) 100%)', borderRadius: 16, overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+    <div className="flex flex-col gap-0" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 50%, var(--g-ink) 100%)', borderRadius: 'var(--r-lg)', overflow: 'hidden', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
       {/* Search */}
       <div className="p-4 pb-2">
         {searchJsx}

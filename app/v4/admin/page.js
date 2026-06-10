@@ -37,7 +37,7 @@ export default async function AdminPracticesPage() {
         <AdminNav active="practices" />
 
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 14, borderRadius: 8, marginBottom: 18, fontSize: 14 }}>
+          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 14, borderRadius: 'var(--r-md)', marginBottom: 18, fontSize: 14 }}>
             {error.message}
           </div>
         )}
@@ -48,7 +48,7 @@ export default async function AdminPracticesPage() {
           <Stat label="Total clinicians" value={(practices || []).reduce((s, p) => s + Number(p.clinician_count || 0), 0)} />
         </div>
 
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.04)', textAlign: 'left' }}>
@@ -119,7 +119,7 @@ function PublicLegalLinksCard() {
       marginTop: 32,
       background: 'rgba(255,255,255,0.03)',
       border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 22,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
@@ -144,7 +144,7 @@ function PublicLegalLinksCard() {
               padding: '10px 12px',
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 8,
+              borderRadius: 'var(--r-md)',
               textDecoration: 'none',
               flexWrap: 'wrap',
             }}
@@ -179,7 +179,7 @@ const btnPrimary = {
   color: 'white',
   background: '#0891b2',
   border: '1px solid #0891b2',
-  borderRadius: 6,
+  borderRadius: 'var(--r-sm)',
   textDecoration: 'none',
   whiteSpace: 'nowrap',
   display: 'inline-block',
@@ -191,7 +191,7 @@ const btnSubtle = {
   color: '#cbd5e1',
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 6,
+  borderRadius: 'var(--r-sm)',
   textDecoration: 'none',
   whiteSpace: 'nowrap',
   display: 'inline-block',
@@ -203,7 +203,7 @@ function Stat({ label, value }) {
       flex: '1 1 200px',
       background: 'rgba(255,255,255,0.03)',
       border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 10,
+      borderRadius: 'var(--r-md)',
       padding: '16px 18px',
     }}>
       <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>

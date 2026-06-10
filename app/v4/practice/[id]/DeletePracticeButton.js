@@ -45,7 +45,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
           background: '#dc2626',
           color: 'white',
           border: 'none',
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           fontSize: 12,
           fontWeight: 500,
           cursor: 'pointer',
@@ -73,7 +73,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
             width: '100%',
             background: 'var(--g-surface)',
             border: '1px solid rgba(239,68,68,0.4)',
-            borderRadius: 12,
+            borderRadius: 'var(--r-lg)',
             padding: 24,
           }}>
             <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: '#fca5a5', marginBottom: 8 }}>
@@ -98,14 +98,14 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
                 padding: '8px 12px',
                 background: 'var(--g-field)',
                 border: `1px solid ${matches ? 'rgba(239,68,68,0.5)' : 'var(--g-line)'}`,
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 color: 'var(--g-text-hi)',
                 fontSize: 14,
                 marginBottom: 12,
               }}
             />
             {error && (
-              <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 10, borderRadius: 6, fontSize: 12, marginBottom: 12 }}>
+              <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 10, borderRadius: 'var(--r-sm)', fontSize: 12, marginBottom: 12 }}>
                 {error}
               </div>
             )}
@@ -118,7 +118,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
                   background: 'transparent',
                   color: 'var(--g-text-mid)',
                   border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 13,
                   cursor: 'pointer',
                 }}
@@ -131,7 +131,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
                   background: matches ? '#dc2626' : 'rgba(220,38,38,0.3)',
                   color: matches ? 'white' : 'rgba(255,255,255,0.5)',
                   border: 'none',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 13,
                   fontWeight: 500,
                   cursor: matches && !busy ? 'pointer' : 'not-allowed',

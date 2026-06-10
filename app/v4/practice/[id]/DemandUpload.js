@@ -170,7 +170,7 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
     <div>
       {/* Existing data summary */}
       {history && history.length > 0 && (
-        <div style={{ padding: 10, background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', borderRadius: 8, fontSize: 12, color: 'var(--g-text-mid)', marginBottom: 12 }}>
+        <div style={{ padding: 10, background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--g-text-mid)', marginBottom: 12 }}>
           <strong style={{ color: 'var(--g-text-hi)' }}>Already uploaded:</strong>{' '}
           {history.length} day{history.length === 1 ? '' : 's'} of data
           {history[0]?.earliest_date && (
@@ -190,7 +190,7 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
           padding: 24,
           background: drag ? 'rgba(34,211,238,0.08)' : 'rgba(0,0,0,0.2)',
           border: `2px dashed ${drag ? 'rgba(34,211,238,0.5)' : 'var(--g-line)'}`,
-          borderRadius: 10,
+          borderRadius: 'var(--r-md)',
           textAlign: 'center',
           cursor: 'pointer',
           opacity: busy ? 0.6 : 1,
@@ -213,12 +213,12 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
 
       {/* Results */}
       {error && (
-        <div style={{ marginTop: 12, padding: 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', borderRadius: 8, fontSize: 12 }}>
+        <div style={{ marginTop: 12, padding: 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', borderRadius: 'var(--r-md)', fontSize: 12 }}>
           {error}
         </div>
       )}
       {result && !error && (
-        <div style={{ marginTop: 12, padding: 14, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--g-text-hi)' }}>
+        <div style={{ marginTop: 12, padding: 14, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--g-text-hi)' }}>
           <div style={{ color: '#34d399', fontWeight: 600, marginBottom: 6 }}>
             ✓ Uploaded
             {result.sourceLabel && (

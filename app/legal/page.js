@@ -49,7 +49,7 @@ export default function LegalLandingPage() {
               href={doc.href}
               style={{
                 display: 'block',
-                borderRadius: 12,
+                borderRadius: 'var(--r-lg)',
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 padding: 20,
@@ -67,7 +67,7 @@ export default function LegalLandingPage() {
                     <span style={{
                       fontSize: 10,
                       padding: '2px 8px',
-                      borderRadius: 999,
+                      borderRadius: 'var(--r-pill)',
                       fontWeight: 600,
                       background: 'rgba(251,191,36,0.15)',
                       color: '#fcd34d',

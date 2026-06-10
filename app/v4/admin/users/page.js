@@ -36,7 +36,7 @@ export default async function AdminUsersPage({ searchParams }) {
         </div>
 
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 14, borderRadius: 8, marginTop: 18, fontSize: 14 }}>
+          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 14, borderRadius: 'var(--r-md)', marginTop: 18, fontSize: 14 }}>
             {error.message}
           </div>
         )}

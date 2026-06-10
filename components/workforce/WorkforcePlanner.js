@@ -494,10 +494,10 @@ export default function WorkforcePlanner({ data, toast }) {
     return (
       <div onPointerDown={startDrag({ clinId, fromDay: day, fromSession: session, fromActivityId: activityId || null })}
         title={`${c.name}${c.role ? ' · ' + c.role : ''}${c._added ? ' · added' : ''}${off ? ' · off contract' : ''}`}
-        style={{ touchAction: 'none', display: 'flex', alignItems: 'center', gap: 7, padding: '4px 11px 4px 4px', borderRadius: 999, cursor: 'grab', width: '100%', boxSizing: 'border-box',
+        style={{ touchAction: 'none', display: 'flex', alignItems: 'center', gap: 7, padding: '4px 11px 4px 4px', borderRadius: 'var(--r-pill)', cursor: 'grab', width: '100%', boxSizing: 'border-box',
           opacity: dimmed ? 0.3 : 1, boxShadow: lit ? '0 0 0 2px var(--accent-2)' : 'none', transition: 'opacity 0.12s',
           background: off ? 'rgba(239,68,68,0.18)' : 'var(--accent-soft)', border: `1px ${c._added ? 'dashed' : 'solid'} ${off ? '#ef4444' : 'rgba(129,140,248,0.5)'}` }}>
-        <span style={{ width: 26, height: 26, borderRadius: 999, background: off ? '#ef4444' : 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(clinId) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
+        <span style={{ width: 26, height: 26, borderRadius: 'var(--r-pill)', background: off ? '#ef4444' : 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(clinId) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: off ? '#fecaca' : 'var(--accent-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
       </div>
     );
@@ -562,7 +562,7 @@ export default function WorkforcePlanner({ data, toast }) {
       {/* Week toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 13, color: 'var(--text-3)' }}>Showing</span>
-        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--g-field)', borderRadius: 8 }}>
+        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--g-field)', borderRadius: 'var(--r-md)' }}>
           {['a', 'b'].map(w => <button key={w} onClick={() => setViewWeek(w)} style={{ ...S.toggle, background: viewWeek === w ? 'var(--accent)' : 'transparent', color: viewWeek === w ? '#fff' : 'var(--text-3)' }}>Week {w.toUpperCase()}</button>)}
         </div>
         <span style={{ fontSize: 12, color: 'var(--text-4)' }}>only activities alternate — staff work the same each week</span>
@@ -571,7 +571,7 @@ export default function WorkforcePlanner({ data, toast }) {
           {holidayOn ? `✓ Holiday cover (−${holidayAllowance}/session)` : 'Holiday cover'}
         </button>
         {expandedClin && byId[expandedClin] && (
-          <span style={{ fontSize: 12.5, color: 'var(--accent-text)', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(129,140,248,0.4)', borderRadius: 999, padding: '4px 10px', display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 12.5, color: 'var(--accent-text)', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(129,140,248,0.4)', borderRadius: 'var(--r-pill)', padding: '4px 10px', display: 'inline-flex', gap: 8, alignItems: 'center' }}>
             Highlighting {byId[expandedClin].name}
             <button onClick={() => setExpandedClin(null)} style={{ ...S.linkBtn, color: 'var(--accent-text)' }}>clear</button>
           </span>
@@ -594,7 +594,7 @@ export default function WorkforcePlanner({ data, toast }) {
                 const rc = ratioColour(cd.general, cd.demandHalf, thresholds);
                 return (
                   <div key={day} data-drop={`cell:${day}:${session}`}
-                    style={{ minHeight: 168, borderRadius: 12, position: 'relative', overflow: 'hidden',
+                    style={{ minHeight: 168, borderRadius: 'var(--r-lg)', position: 'relative', overflow: 'hidden',
                       background: over ? 'rgba(99,102,241,0.14)' : 'var(--surface)',
                       border: `1px solid ${over ? 'var(--accent-2)' : anomN ? 'rgba(239,68,68,0.45)' : 'var(--border)'}`, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', background: rc.tint, borderBottom: `2px solid ${rc.solid}` }}>
@@ -607,7 +607,7 @@ export default function WorkforcePlanner({ data, toast }) {
                         const durLbl = a.duration === 'quarter' ? '¼ sess' : a.duration === 'half' ? '½ sess' : a.duration === 'fullday' ? 'full day' : '1 sess';
                         return (
                           <div key={a.id} data-drop={`act:${a.id}`} onClick={() => setEditingId(a.id)}
-                            style={{ borderRadius: 9, padding: '6px 8px', cursor: 'pointer', border: aover ? '1px solid var(--accent-2)' : `1px solid ${assigned ? 'rgba(56,189,248,0.35)' : 'rgba(245,158,11,0.3)'}`,
+                            style={{ borderRadius: 'var(--r-md)', padding: '6px 8px', cursor: 'pointer', border: aover ? '1px solid var(--accent-2)' : `1px solid ${assigned ? 'rgba(56,189,248,0.35)' : 'rgba(245,158,11,0.3)'}`,
                               background: assigned ? 'rgba(56,189,248,0.16)' : 'rgba(245,158,11,0.14)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
                               <span style={{ fontSize: 13, color: assigned ? '#7dd3fc' : '#fcd34d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label || 'Activity'}</span>
@@ -628,7 +628,7 @@ export default function WorkforcePlanner({ data, toast }) {
                           <Metric label="demand" value={`~${cd.demandHalf}`} bg={scaleTint(demT(cd.demandHalf))} />
                           <Metric label="duty" value={cd.duty} bg="rgba(248,113,113,0.16)" />
                         </div>
-                        <div style={{ background: rc.tint, color: rc.text, borderRadius: 7, padding: '4px 8px', fontSize: 12, fontWeight: 500, display: 'flex', justifyContent: 'space-between' }}>
+                        <div style={{ background: rc.tint, color: rc.text, borderRadius: 'var(--r-sm)', padding: '4px 8px', fontSize: 12, fontWeight: 500, display: 'flex', justifyContent: 'space-between' }}>
                           <span>{rc.label}</span><span>{cd.ratio != null ? `${cd.ratio.toFixed(1)} / clin` : '–'}</span>
                         </div>
                       </div>
@@ -648,7 +648,7 @@ export default function WorkforcePlanner({ data, toast }) {
           })}
         </div>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 14 }}>
-          {[['Overstaffed', RC.blue.solid], ['Good', RC.green.solid], ['Tight', RC.amber.solid], ['Short', RC.red.solid]].map(([l, col]) => (<div key={l} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--text-3)' }}><span style={{ width: 14, height: 14, borderRadius: 4, background: col }} />{l}</div>))}
+          {[['Overstaffed', RC.blue.solid], ['Good', RC.green.solid], ['Tight', RC.amber.solid], ['Short', RC.red.solid]].map(([l, col]) => (<div key={l} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--text-3)' }}><span style={{ width: 14, height: 14, borderRadius: 'var(--r-sm)', background: col }} />{l}</div>))}
           <span style={{ fontSize: 12.5, color: 'var(--text-4)', marginLeft: 'auto' }}>Cards shade red→green across the week · ratio header is absolute</span>
         </div>
       </div>
@@ -665,12 +665,12 @@ export default function WorkforcePlanner({ data, toast }) {
                   const mismatch = !additiveIds.has(c.id) && allocated !== contracted;
                   const open = expandedClin === c.id;
                   return (
-                    <div key={c.id} style={{ borderRadius: 8, background: open ? 'var(--surface)' : 'transparent' }}>
+                    <div key={c.id} style={{ borderRadius: 'var(--r-md)', background: open ? 'var(--surface)' : 'transparent' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px' }}>
-                        <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 999, background: c._added ? 'transparent' : 'var(--accent)', border: c._added ? '1px dashed var(--accent-2)' : 'none', color: c._added ? 'var(--accent-text)' : '#fff', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(c.id) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
+                        <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 'var(--r-pill)', background: c._added ? 'transparent' : 'var(--accent)', border: c._added ? '1px dashed var(--accent-2)' : 'none', color: c._added ? 'var(--accent-text)' : '#fff', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(c.id) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
                         <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 13.5, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize: 10, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize: 10, marginLeft: 5 }}>edited</span>}</span>
                         <button onClick={() => toggleDuty(c.id)} title={dutySet.has(c.id) ? 'Duty-capable — click to unset' : 'Mark as duty-capable'}
-                          style={{ width: 22, height: 22, borderRadius: 999, cursor: 'pointer', fontSize: 10, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
+                          style={{ width: 22, height: 22, borderRadius: 'var(--r-pill)', cursor: 'pointer', fontSize: 10, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
                             background: dutySet.has(c.id) ? 'rgba(248,113,113,0.18)' : 'transparent', border: `1px solid ${dutySet.has(c.id) ? 'rgba(248,113,113,0.7)' : 'var(--border-2)'}`, color: dutySet.has(c.id) ? '#fca5a5' : 'var(--text-4)' }}>D</button>
                         <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 12.5, color: mismatch ? '#f87171' : 'var(--text-3)' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
                         {c._added ? <button onClick={() => deleteAdded(c.id)} title="Delete" style={S.xBtn}>×</button> : <button onClick={() => removeReal(c.id)} title="Mark as leaving" style={S.xBtn}>×</button>}
@@ -722,7 +722,7 @@ export default function WorkforcePlanner({ data, toast }) {
             <Popout title="Settings" onClose={() => togglePanel('settings')}>
               <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Include roles</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                {allRoles.map(role => { const on = includedRoles == null || includedRoles.includes(role); return (<button key={role} onClick={() => toggleRole(role)} style={{ padding: '6px 12px', borderRadius: 999, fontSize: 13, cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface)', color: on ? 'var(--accent-text)' : 'var(--text-4)' }}>{on ? '✓ ' : ''}{role}</button>); })}
+                {allRoles.map(role => { const on = includedRoles == null || includedRoles.includes(role); return (<button key={role} onClick={() => toggleRole(role)} style={{ padding: '6px 12px', borderRadius: 'var(--r-pill)', fontSize: 13, cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface)', color: on ? 'var(--accent-text)' : 'var(--text-4)' }}>{on ? '✓ ' : ''}{role}</button>); })}
               </div>
               <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Ratio thresholds (requests / general clinician)</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -746,7 +746,7 @@ export default function WorkforcePlanner({ data, toast }) {
                 {scenarios.map(sc => {
                   const active = sc.id === activeScenarioId;
                   return (
-                    <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', borderRadius: 8, background: active ? 'var(--accent-soft)' : 'var(--surface)', border: `1px solid ${active ? 'var(--accent-2)' : 'transparent'}` }}>
+                    <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', borderRadius: 'var(--r-md)', background: active ? 'var(--accent-soft)' : 'var(--surface)', border: `1px solid ${active ? 'var(--accent-2)' : 'transparent'}` }}>
                       <span style={{ flex: 1, fontSize: 13.5, color: active ? 'var(--accent-text)' : 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}{sc.pinned && <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 6 }}>live</span>}{active && <span style={{ fontSize: 10, color: 'var(--accent-2)', marginLeft: 6 }}>editing</span>}</span>
                       {!active && <button onClick={() => switchScenario(sc.id)} style={S.linkBtn}>edit</button>}
                       {!sc.pinned && <button onClick={() => deleteScenario(sc.id)} title="Delete" style={S.xBtn}>×</button>}
@@ -802,14 +802,14 @@ export default function WorkforcePlanner({ data, toast }) {
       {addOpen && <AddStaffModal roles={Array.from(new Set([...COMMON_ROLES, ...allRoles]))} onClose={() => setAddOpen(false)} onAdd={addStaff} />}
 
       {/* Drag ghost */}
-      {ghost && <div style={{ position: 'fixed', left: ghost.x + 10, top: ghost.y + 10, pointerEvents: 'none', zIndex: 200, background: 'var(--accent)', color: '#fff', padding: '4px 10px', borderRadius: 999, fontSize: 12, boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>{ghost.name.split(' ')[0]}</div>}
+      {ghost && <div style={{ position: 'fixed', left: ghost.x + 10, top: ghost.y + 10, pointerEvents: 'none', zIndex: 200, background: 'var(--accent)', color: '#fff', padding: '4px 10px', borderRadius: 'var(--r-pill)', fontSize: 12, boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>{ghost.name.split(' ')[0]}</div>}
     </div>
   );
 }
 
 function FragmentRow({ children }) { return <>{children}</>; }
 function Metric({ label, value, bg }) {
-  return (<div style={{ background: bg, borderRadius: 7, padding: '5px 4px', textAlign: 'center' }}><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', fontFamily: "'Space Mono', monospace" }}>{value}</div><div style={{ fontSize: 10, color: 'var(--text-3)' }}>{label}</div></div>);
+  return (<div style={{ background: bg, borderRadius: 'var(--r-sm)', padding: '5px 4px', textAlign: 'center' }}><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', fontFamily: "'Space Mono', monospace" }}>{value}</div><div style={{ fontSize: 10, color: 'var(--text-3)' }}>{label}</div></div>);
 }
 function MiniWeek({ pattern, onToggle }) {
   return (
@@ -820,7 +820,7 @@ function MiniWeek({ pattern, onToggle }) {
   );
 }
 function Segmented({ options, value, onChange }) {
-  return (<div style={{ display: 'flex', gap: 4 }}>{options.map(([v, l]) => <button key={v} onClick={() => onChange(v)} style={{ flex: 1, padding: '7px 4px', fontSize: 12.5, borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${value === v ? 'var(--accent-2)' : 'var(--border-2)'}`, background: value === v ? 'rgba(99,102,241,0.2)' : 'var(--surface)', color: value === v ? 'var(--accent-text)' : 'var(--text-3)' }}>{l}</button>)}</div>);
+  return (<div style={{ display: 'flex', gap: 4 }}>{options.map(([v, l]) => <button key={v} onClick={() => onChange(v)} style={{ flex: 1, padding: '7px 4px', fontSize: 12.5, borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${value === v ? 'var(--accent-2)' : 'var(--border-2)'}`, background: value === v ? 'rgba(99,102,241,0.2)' : 'var(--surface)', color: value === v ? 'var(--accent-text)' : 'var(--text-3)' }}>{l}</button>)}</div>);
 }
 function ThRow({ label, value, onChange, colour }) {
   return (<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: colour, flexShrink: 0 }} /><span style={{ flex: 1, fontSize: 13, color: 'var(--text-2)' }}>{label}</span><input type="number" min={0} value={value} onChange={e => onChange(e.target.value)} style={{ width: 60, ...S.numInput }} /></div>);
@@ -859,7 +859,7 @@ function AddStaffModal({ roles, onClose, onAdd }) {
       <p style={S.modalLabel}>Contracted sessions <span style={{ color: 'var(--text-4)', textTransform: 'none', letterSpacing: 0 }}>(leave blank for ad-hoc / locum)</span></p>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 1fr)', gap: 4, alignItems: 'center', marginBottom: 6 }}>
         <span />{WF_DAYS.map(d => <span key={d} style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center' }}>{WF_DAY_NAMES[d].slice(0, 3)}</span>)}
-        {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize: 12, color: 'var(--text-3)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern[d][s] === 'in'; return <button key={d} onClick={() => toggle(d, s)} style={{ height: 26, borderRadius: 6, cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent)' : 'var(--surface)' }} />; })}</FragmentRow>))}
+        {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize: 12, color: 'var(--text-3)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern[d][s] === 'in'; return <button key={d} onClick={() => toggle(d, s)} style={{ height: 26, borderRadius: 'var(--r-sm)', cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent)' : 'var(--surface)' }} />; })}</FragmentRow>))}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
         <button onClick={onClose} style={S.btnGhost}>Cancel</button>
@@ -870,13 +870,13 @@ function AddStaffModal({ roles, onClose, onAdd }) {
 }
 
 const S = {
-  card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 },
+  card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 },
   muted: { fontSize: 13, color: 'var(--text-3)', margin: 0 },
-  btnGhost: { background: 'var(--surface-2)', color: 'var(--text-1)', border: '1px solid var(--border-2)', borderRadius: 8, padding: '8px 14px', fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' },
-  toggle: { border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  btnGhost: { background: 'var(--surface-2)', color: 'var(--text-1)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', padding: '8px 14px', fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' },
+  toggle: { border: 'none', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   xBtn: { background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 17, lineHeight: 1, padding: '0 2px' },
   linkBtn: { background: 'none', border: 'none', color: 'var(--accent-2)', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 },
-  input: { width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--text-1)', padding: '9px 11px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' },
-  numInput: { background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 6, color: 'var(--text-1)', padding: '5px 8px', fontSize: 13, fontFamily: 'inherit' },
+  input: { width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', color: 'var(--text-1)', padding: '9px 11px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' },
+  numInput: { background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-sm)', color: 'var(--text-1)', padding: '5px 8px', fontSize: 13, fontFamily: 'inherit' },
   modalLabel: { fontSize: 11.5, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.4, margin: '12px 0 6px' },
 };

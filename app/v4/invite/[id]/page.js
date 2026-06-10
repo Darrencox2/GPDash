@@ -136,7 +136,7 @@ function WrongAccountMessage({ callerEmail, invitedEmail }) {
       padding: '12px 14px',
       background: 'rgba(245,158,11,0.1)',
       border: '1px solid rgba(245,158,11,0.25)',
-      borderRadius: 8,
+      borderRadius: 'var(--r-md)',
       fontSize: 13,
       color: '#fde68a',
       lineHeight: 1.5,
@@ -170,7 +170,7 @@ function Shell({ title, children }) {
         width: '100%',
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 14,
+        borderRadius: 'var(--r-lg)',
         padding: 28,
       }}>
         {title && <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 16 }}>{title}</h1>}
@@ -187,10 +187,10 @@ function Message({ kind, children }) {
     info:    { bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.25)', text: '#a5f3fc' },
   }[kind] || { bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.15)', text: '#cbd5e1' };
   return (
-    <div style={{ padding: 14, background: colours.bg, border: `1px solid ${colours.border}`, borderRadius: 8, fontSize: 13, color: colours.text, lineHeight: 1.5 }}>
+    <div style={{ padding: 14, background: colours.bg, border: `1px solid ${colours.border}`, borderRadius: 'var(--r-md)', fontSize: 13, color: colours.text, lineHeight: 1.5 }}>
       {children}
     </div>
   );
 }
 
-const btn = { padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500, textDecoration: 'none', display: 'inline-block' };
+const btn = { padding: '8px 16px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, textDecoration: 'none', display: 'inline-block' };

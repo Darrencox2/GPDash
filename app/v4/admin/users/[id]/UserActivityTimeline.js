@@ -104,14 +104,14 @@ export default function UserActivityTimeline({ userId }) {
               padding: '8px 10px',
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid rgba(255,255,255,0.04)',
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
             }}
           >
             <div style={{
               flexShrink: 0,
               width: 24,
               height: 24,
-              borderRadius: 999,
+              borderRadius: 'var(--r-pill)',
               background: 'rgba(255,255,255,0.04)',
               display: 'flex',
               alignItems: 'center',

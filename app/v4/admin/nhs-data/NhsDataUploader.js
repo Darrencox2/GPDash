@@ -99,7 +99,7 @@ export default function NhsDataUploader() {
       padding: 16,
       background: 'rgba(0,0,0,0.2)',
       border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
     }}>
       <div style={{ fontSize: 13, fontWeight: 500, color: '#cbd5e1', marginBottom: 12 }}>
         Upload a new month
@@ -146,7 +146,7 @@ export default function NhsDataUploader() {
             padding: 10,
             background: 'rgba(239,68,68,0.1)',
             border: '1px solid rgba(239,68,68,0.3)',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             fontSize: 12,
             color: '#fca5a5',
           }}>{error}</div>
@@ -157,7 +157,7 @@ export default function NhsDataUploader() {
             padding: 10,
             background: 'rgba(16,185,129,0.08)',
             border: '1px solid rgba(16,185,129,0.3)',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             fontSize: 12,
             color: '#6ee7b7',
             lineHeight: 1.5,
@@ -177,7 +177,7 @@ export default function NhsDataUploader() {
             background: uploading ? 'rgba(34,211,238,0.05)' : 'rgba(34,211,238,0.15)',
             border: '1px solid rgba(34,211,238,0.4)',
             color: '#22d3ee',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             fontSize: 13,
             fontWeight: 500,
             cursor: uploading || files.length === 0 || !month ? 'not-allowed' : 'pointer',
@@ -196,7 +196,7 @@ const input = {
   padding: '8px 12px',
   background: 'rgba(0,0,0,0.3)',
   border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 6,
+  borderRadius: 'var(--r-sm)',
   color: '#e2e8f0',
   fontSize: 13,
   fontFamily: 'inherit',

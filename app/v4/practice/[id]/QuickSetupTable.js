@@ -478,7 +478,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
             flex: '1 1 240px', padding: '8px 12px', fontSize: 13,
             background: 'var(--g-tile)',
             border: '1px solid var(--g-border-2)',
-            borderRadius: 6, color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
+            borderRadius: 'var(--r-sm)', color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
           }}
         />
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--g-text-hi)', cursor: 'pointer' }}>
@@ -493,7 +493,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
             padding: '8px 14px', fontSize: 12, fontWeight: 500,
             background: 'rgba(16,185,129,0.10)',
             border: '1px solid rgba(16,185,129,0.30)',
-            borderRadius: 6, color: '#34d399',
+            borderRadius: 'var(--r-sm)', color: '#34d399',
             cursor: 'pointer', fontFamily: 'inherit',
             whiteSpace: 'nowrap',
           }}
@@ -506,7 +506,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
             padding: '8px 14px', fontSize: 12, fontWeight: 600,
             background: 'rgba(99,102,241,0.16)',
             border: '1px solid rgba(129,140,248,0.45)',
-            borderRadius: 6, color: '#a5b4fc',
+            borderRadius: 'var(--r-sm)', color: '#a5b4fc',
             cursor: 'pointer', fontFamily: 'inherit',
             whiteSpace: 'nowrap',
           }}
@@ -519,7 +519,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
           padding: '10px 14px', marginBottom: 12,
           background: 'rgba(245,158,11,0.08)',
           border: '1px solid rgba(245,158,11,0.2)',
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           fontSize: 12, color: '#fde68a', lineHeight: 1.5,
         }}>
           <strong style={{ color: '#fbbf24' }}>{attentionCount} clinician{attentionCount === 1 ? '' : 's'} need{attentionCount === 1 ? 's' : ''} attention.</strong>{' '}
@@ -549,7 +549,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
 
       <div style={{
         border: '1px solid var(--g-border)',
-        borderRadius: 10, overflow: 'hidden',
+        borderRadius: 'var(--r-md)', overflow: 'hidden',
       }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 970 }}>
@@ -832,7 +832,7 @@ function ToggleSwitch({ on, onClick, colourOn, ariaLabel, disabled }) {
         padding: 0,
         background: on ? colourOn : 'rgba(255,255,255,0.10)',
         border: `1px solid ${on ? colourOn : 'rgba(255,255,255,0.14)'}`,
-        borderRadius: 999,
+        borderRadius: 'var(--r-pill)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 0.15s, border 0.15s, opacity 0.15s',
         boxShadow: on && !disabled ? `0 0 8px ${colourOn}55` : 'none',
@@ -876,7 +876,7 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
       padding: '10px 14px', marginBottom: 12,
       background: active ? 'rgba(34,211,238,0.10)' : 'var(--g-tile-2)',
       border: `1px solid ${active ? 'rgba(34,211,238,0.25)' : 'var(--g-border-2)'}`,
-      borderRadius: 8,
+      borderRadius: 'var(--r-md)',
       display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
       backdropFilter: 'blur(8px)',
       transition: 'background 0.15s, border 0.15s',
@@ -912,7 +912,7 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
             padding: '5px 10px', fontSize: 11,
             background: 'transparent',
             border: '1px solid var(--g-line)',
-            borderRadius: 4, color: 'var(--g-text-mid)', cursor: 'pointer',
+            borderRadius: 'var(--r-sm)', color: 'var(--g-text-mid)', cursor: 'pointer',
           }}>Clear selection</button>
         </span>
       )}
@@ -936,7 +936,7 @@ function BulkSelect({ label, onChange, children, disabled }) {
         padding: '5px 10px', fontSize: 12,
         background: disabled ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.3)',
         border: '1px solid var(--g-line)',
-        borderRadius: 4,
+        borderRadius: 'var(--r-sm)',
         color: disabled ? 'var(--g-text-faint)' : 'var(--g-text-hi)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'inherit',
@@ -954,7 +954,7 @@ function BulkButton({ onClick, children, disabled }) {
       padding: '5px 10px', fontSize: 11, fontWeight: 500,
       background: 'var(--g-tile)',
       border: '1px solid var(--g-line)',
-      borderRadius: 4,
+      borderRadius: 'var(--r-sm)',
       color: disabled ? 'var(--g-text-faint)' : 'var(--g-text-hi)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       fontFamily: 'inherit',
@@ -1000,7 +1000,7 @@ const inputStyle = {
   width: '100%', padding: '6px 8px', fontSize: 13,
   background: 'var(--g-tile)',
   border: '1px solid var(--g-border)',
-  borderRadius: 4, color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
+  borderRadius: 'var(--r-sm)', color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
 };
 const selectStyle = { ...inputStyle, cursor: 'pointer' };
 
@@ -1025,7 +1025,7 @@ function SaveIndicator({ state, errorMsg, onRetry }) {
         {errorMsg || 'Save failed'}
         <button onClick={onRetry} style={{
           padding: '3px 8px', fontSize: 11, background: 'rgba(239,68,68,0.15)',
-          border: '1px solid rgba(239,68,68,0.3)', borderRadius: 4,
+          border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--r-sm)',
           color: '#fca5a5', cursor: 'pointer',
         }}>Retry</button>
       </span>

@@ -116,7 +116,7 @@ export function DashboardCompletenessStrip({ statuses, practicePath }) {
       marginBottom: 20,
       background: 'rgba(245,158,11,0.06)',
       border: '1px solid rgba(245,158,11,0.18)',
-      borderRadius: 10,
+      borderRadius: 'var(--r-md)',
     }}>
       <div style={{
         display: 'flex',
@@ -145,7 +145,7 @@ export function DashboardCompletenessStrip({ statuses, practicePath }) {
               padding: '8px 10px',
               background: st.bg,
               border: `1px solid ${st.border}`,
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               cursor: practicePath ? 'pointer' : 'default',
               transition: 'background 0.15s',
               height: '100%',

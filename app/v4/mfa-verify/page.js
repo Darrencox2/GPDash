@@ -164,7 +164,7 @@ function MfaVerifyInner() {
           marginBottom: 16, padding: '10px 14px',
           background: 'rgba(239,68,68,0.1)',
           border: '1px solid rgba(239,68,68,0.3)',
-          borderRadius: 8, color: '#fca5a5', fontSize: 13,
+          borderRadius: 'var(--r-md)', color: '#fca5a5', fontSize: 13,
         }}>{error}</div>
       )}
 

@@ -208,7 +208,7 @@ export default function ClinicianDetailsPanel({
           </div>
           <button onClick={onClose} aria-label="Close" style={{
             background: 'transparent', border: '1px solid var(--g-line)',
-            color: 'var(--g-text-mid)', borderRadius: 6,
+            color: 'var(--g-text-mid)', borderRadius: 'var(--r-sm)',
             fontSize: 18, padding: '4px 10px',
             cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
           }}>×</button>
@@ -258,7 +258,7 @@ export default function ClinicianDetailsPanel({
               padding: 12,
               background: 'var(--g-field)',
               border: '1px solid var(--g-tile)',
-              borderRadius: 8,
+              borderRadius: 'var(--r-md)',
               display: 'flex', flexDirection: 'column', gap: 8,
             }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
@@ -281,7 +281,7 @@ export default function ClinicianDetailsPanel({
                   marginTop: 4, padding: '6px 12px',
                   background: 'rgba(16,185,129,0.10)',
                   border: '1px solid rgba(16,185,129,0.30)',
-                  borderRadius: 6, color: '#34d399',
+                  borderRadius: 'var(--r-sm)', color: '#34d399',
                   fontSize: 11, fontWeight: 500,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
@@ -401,7 +401,7 @@ const inputStyle = {
   fontSize: 13,
   background: 'var(--g-field)',
   border: '1px solid var(--g-line)',
-  borderRadius: 5,
+  borderRadius: 'var(--r-sm)',
   color: 'var(--g-text-hi)',
   outline: 'none',
   fontFamily: 'inherit',
@@ -412,7 +412,7 @@ const siteRowStyle = {
   display: 'flex', alignItems: 'center', gap: 8,
   padding: '6px 10px',
   background: 'var(--g-field)',
-  borderRadius: 6,
+  borderRadius: 'var(--r-sm)',
 };
 
 function Section({ label, children }) {
@@ -480,7 +480,7 @@ function AliasEditor({ aliases, onAdd, onRemove }) {
             padding: '4px 10px',
             background: 'rgba(34,211,238,0.10)',
             border: '1px solid rgba(34,211,238,0.25)',
-            borderRadius: 999,
+            borderRadius: 'var(--r-pill)',
             fontSize: 12, color: '#67e8f9',
             fontFamily: "'Space Mono', monospace",
           }}>
@@ -503,7 +503,7 @@ function AliasEditor({ aliases, onAdd, onRemove }) {
           padding: '6px 14px',
           background: draft.trim() ? 'rgba(34,211,238,0.15)' : 'var(--g-tile)',
           border: '1px solid ' + (draft.trim() ? 'rgba(34,211,238,0.30)' : 'var(--g-line)'),
-          borderRadius: 5,
+          borderRadius: 'var(--r-sm)',
           color: draft.trim() ? '#67e8f9' : 'var(--g-text-mid)',
           fontSize: 12, fontWeight: 500,
           cursor: draft.trim() ? 'pointer' : 'not-allowed',

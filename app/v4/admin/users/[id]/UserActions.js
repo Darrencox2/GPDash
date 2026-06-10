@@ -212,7 +212,7 @@ export default function UserActions({ user, allPractices }) {
             {/* Admin notes shown read-only here too — quick to scan without
                 clicking Edit. Empty notes hidden so the row isn't noise. */}
             {user.admin_notes && (
-              <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 8 }}>
+              <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 'var(--r-md)' }}>
                 <div style={{ fontSize: 10, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Admin notes</div>
                 <div style={{ fontSize: 13, color: '#fde68a', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                   {user.admin_notes}
@@ -243,7 +243,7 @@ export default function UserActions({ user, allPractices }) {
                   padding: '10px 12px',
                   background: 'rgba(255,255,255,0.03)',
                   border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 8,
+                  borderRadius: 'var(--r-md)',
                   flexWrap: 'wrap',
                   gap: 12,
                 }}
@@ -351,15 +351,15 @@ export default function UserActions({ user, allPractices }) {
 }
 
 // ─── Inline styles ───────────────────────────────────────────────────
-const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 20, marginBottom: 16 };
+const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', padding: 20, marginBottom: 16 };
 const cardHeader = { fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 };
 const cardTitleRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 };
-const input = { width: '100%', padding: '8px 10px', fontSize: 13, color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, outline: 'none', fontFamily: 'inherit' };
+const input = { width: '100%', padding: '8px 10px', fontSize: 13, color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', outline: 'none', fontFamily: 'inherit' };
 const selectStyle = { ...input, padding: '6px 10px', cursor: 'pointer', width: 'auto' };
-const btnPrimary = { padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'white', background: '#0891b2', border: 'none', borderRadius: 6, cursor: 'pointer' };
-const btnSubtle = { padding: '6px 12px', fontSize: 12, color: '#cbd5e1', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, cursor: 'pointer' };
-const btnDanger = { padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'white', background: '#dc2626', border: 'none', borderRadius: 6 };
-const btnDangerSubtle = { padding: '6px 10px', fontSize: 12, color: '#fca5a5', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, cursor: 'pointer' };
+const btnPrimary = { padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'white', background: '#0891b2', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer' };
+const btnSubtle = { padding: '6px 12px', fontSize: 12, color: '#cbd5e1', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', cursor: 'pointer' };
+const btnDanger = { padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'white', background: '#dc2626', border: 'none', borderRadius: 'var(--r-sm)' };
+const btnDangerSubtle = { padding: '6px 10px', fontSize: 12, color: '#fca5a5', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)', cursor: 'pointer' };
 
 function Banner({ kind, children }) {
   const palette = kind === 'error'
@@ -370,7 +370,7 @@ function Banner({ kind, children }) {
       padding: '10px 14px',
       background: palette.bg,
       border: `1px solid ${palette.border}`,
-      borderRadius: 8,
+      borderRadius: 'var(--r-md)',
       color: palette.fg,
       fontSize: 13,
       marginBottom: 12,

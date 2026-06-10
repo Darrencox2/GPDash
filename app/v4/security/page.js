@@ -232,12 +232,12 @@ function SecurityPageInner() {
         )}
 
         {enrolling && (
-          <div style={{ marginTop: 16, padding: 20, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ marginTop: 16, padding: 20, background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'white', margin: '0 0 12px' }}>
               Step 1 — Scan the QR code
             </h3>
             <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-              <div style={{ background: 'white', padding: 12, borderRadius: 8, width: 200, height: 200, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ background: 'white', padding: 12, borderRadius: 'var(--r-md)', width: 200, height: 200, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {/* Supabase returns totp.qr_code as a data: URI (image/svg+xml),
                     not raw SVG markup — render it as an image so it scales to
                     fit rather than overflowing and covering the controls below. */}
@@ -250,7 +250,7 @@ function SecurityPageInner() {
                 <div style={{
                   padding: '10px 12px',
                   background: 'rgba(0,0,0,0.3)',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontFamily: "'Space Mono', monospace",
                   fontSize: 13,
                   color: '#67e8f9',
@@ -337,21 +337,21 @@ const section = {
   padding: 24,
   background: 'rgba(15,23,42,0.6)',
   border: '1px solid rgba(255,255,255,0.06)',
-  borderRadius: 12,
+  borderRadius: 'var(--r-lg)',
   marginTop: 16,
 };
 const requiredBanner = {
   padding: 14,
   background: 'rgba(251,191,36,0.08)',
   border: '1px solid rgba(251,191,36,0.3)',
-  borderRadius: 10,
+  borderRadius: 'var(--r-md)',
   marginBottom: 16,
 };
 const factorRow = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
   padding: 12,
   background: 'rgba(255,255,255,0.02)',
-  borderRadius: 8,
+  borderRadius: 'var(--r-md)',
   marginBottom: 6,
 };
 const otpInput = {
@@ -359,7 +359,7 @@ const otpInput = {
   padding: '12px 16px',
   background: 'rgba(0,0,0,0.3)',
   border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 8,
+  borderRadius: 'var(--r-md)',
   color: 'white',
   fontFamily: "'Space Mono', monospace",
   fontSize: 22,
@@ -371,7 +371,7 @@ const btnPrimary = {
   background: '#0891b2',
   color: 'white',
   border: 'none',
-  borderRadius: 8,
+  borderRadius: 'var(--r-md)',
   fontSize: 14,
   fontWeight: 600,
   cursor: 'pointer',
@@ -383,7 +383,7 @@ const btnSubtle = {
   background: 'rgba(255,255,255,0.05)',
   color: '#cbd5e1',
   border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 8,
+  borderRadius: 'var(--r-md)',
   fontSize: 13,
   fontWeight: 500,
   cursor: 'pointer',
@@ -394,7 +394,7 @@ const btnDanger = {
   background: 'rgba(239,68,68,0.1)',
   color: '#fca5a5',
   border: '1px solid rgba(239,68,68,0.3)',
-  borderRadius: 6,
+  borderRadius: 'var(--r-sm)',
   fontSize: 12,
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -404,7 +404,7 @@ const errorBox = {
   padding: '10px 14px',
   background: 'rgba(239,68,68,0.1)',
   border: '1px solid rgba(239,68,68,0.3)',
-  borderRadius: 8,
+  borderRadius: 'var(--r-md)',
   color: '#fca5a5',
   fontSize: 13,
 };

@@ -221,8 +221,8 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
             </div>
             <div className="flex items-baseline gap-1.5 justify-end"><span style={{fontSize:42,fontWeight:800,color:demandCol.text,lineHeight:1}}>{predicted}</span><span style={{fontSize:13,color:'var(--g-text-mid)'}}>requests</span></div>
             <div className="flex items-center gap-1 justify-end" style={{marginTop:4}}>
-              <span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:4,background:demandCol.bg,color:demandCol.text}}>{demandCol.label}</span>
-              {demandDelta!==null&&demandDelta!==0&&<span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:4,background:demandDelta>0?'rgba(251,113,133,0.1)':'rgba(52,211,153,0.1)',color:demandDelta>0?'#fb7185':'#34d399'}}>{demandDelta>0?'↑':'↓'}{Math.abs(demandDelta)} vs typical</span>}
+              <span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:'var(--r-sm)',background:demandCol.bg,color:demandCol.text}}>{demandCol.label}</span>
+              {demandDelta!==null&&demandDelta!==0&&<span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:'var(--r-sm)',background:demandDelta>0?'rgba(251,113,133,0.1)':'rgba(52,211,153,0.1)',color:demandDelta>0?'#fb7185':'#34d399'}}>{demandDelta>0?'↑':'↓'}{Math.abs(demandDelta)} vs typical</span>}
             </div>
             <div className="flex items-center gap-1 justify-end" style={{marginTop:6}}>
               <span style={{fontSize:11,color:'var(--g-text-faint)'}}>{t.confidence.low}</span>
@@ -239,7 +239,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
           <div className="flex items-center gap-1.5 flex-1 flex-wrap">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-faint)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
             {topFactors.map((fac,i) => (
-              <span key={i} className="group relative" style={{fontSize:11,fontWeight:600,padding:'3px 8px',borderRadius:4,background:'var(--g-surface-2)',color:fac.effect>=0?'#60a5fa':'#34d399',cursor:'default'}}>
+              <span key={i} className="group relative" style={{fontSize:11,fontWeight:600,padding:'3px 8px',borderRadius:'var(--r-sm)',background:'var(--g-surface-2)',color:fac.effect>=0?'#60a5fa':'#34d399',cursor:'default'}}>
                 {fac.effect>=0?'↑':'↓'} <span style={{color:'var(--g-text-mid)'}}>{fac.label}</span> {fac.effect>0?'+':''}{Math.round(fac.effect)}
                 <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-md text-xs font-normal text-slate-200 whitespace-nowrap z-10" style={{background:'var(--g-surface)',border:'1px solid var(--g-divider)'}}>{fac.tip}</span>
               </span>
@@ -293,13 +293,13 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
       {showSettings && <div style={{borderTop:'1px solid var(--g-divider)',padding:'14px 24px',background:'#141e30'}}>
         <div style={{marginBottom:12}}><label style={{fontSize:12,fontWeight:600,color:'var(--g-text-mid)',display:'block',marginBottom:6}}>Conversion rate</label>
           <div className="flex items-center gap-3"><input type="range" min="0.05" max="0.60" step="0.01" value={convRate} onChange={e=>updateSetting('conversionRate',parseFloat(e.target.value))} className="flex-1"/>
-            <span style={{fontSize:13,fontWeight:700,color:'var(--g-text-hi)',background:'var(--g-surface-2)',padding:'4px 12px',borderRadius:6,minWidth:52,textAlign:'center'}}>{convRate.toFixed(2)}</span></div>
+            <span style={{fontSize:13,fontWeight:700,color:'var(--g-text-hi)',background:'var(--g-surface-2)',padding:'4px 12px',borderRadius:'var(--r-sm)',minWidth:52,textAlign:'center'}}>{convRate.toFixed(2)}</span></div>
           <div style={{fontSize:10,color:'var(--g-text-faint)',marginTop:4}}>{predicted} × {convRate.toFixed(2)} = {needed} est. appointments</div></div>
         <div className="flex gap-4">
           <div className="flex-1"><label style={{fontSize:12,fontWeight:600,color:'var(--g-text-mid)',display:'block',marginBottom:6}}>Green (%)</label>
-            <input type="number" value={greenPct} onChange={e=>updateSetting('greenPct',parseInt(e.target.value)||100)} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:'1px solid var(--g-divider)',background:'var(--g-surface-2)',color:'var(--g-text-hi)',fontSize:13}}/></div>
+            <input type="number" value={greenPct} onChange={e=>updateSetting('greenPct',parseInt(e.target.value)||100)} style={{width:'100%',padding:'6px 10px',borderRadius:'var(--r-sm)',border:'1px solid var(--g-divider)',background:'var(--g-surface-2)',color:'var(--g-text-hi)',fontSize:13}}/></div>
           <div className="flex-1"><label style={{fontSize:12,fontWeight:600,color:'var(--g-text-mid)',display:'block',marginBottom:6}}>Amber (%)</label>
-            <input type="number" value={amberPct} onChange={e=>updateSetting('amberPct',parseInt(e.target.value)||80)} style={{width:'100%',padding:'6px 10px',borderRadius:6,border:'1px solid var(--g-divider)',background:'var(--g-surface-2)',color:'var(--g-text-hi)',fontSize:13}}/></div>
+            <input type="number" value={amberPct} onChange={e=>updateSetting('amberPct',parseInt(e.target.value)||80)} style={{width:'100%',padding:'6px 10px',borderRadius:'var(--r-sm)',border:'1px solid var(--g-divider)',background:'var(--g-surface-2)',color:'var(--g-text-hi)',fontSize:13}}/></div>
         </div>
       </div>}
     </div>

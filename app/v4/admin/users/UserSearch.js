@@ -28,7 +28,7 @@ export default function UserSearch({ initialSearch }) {
           padding: '10px 14px',
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           color: '#e2e8f0',
           fontSize: 14,
         }}
@@ -38,7 +38,7 @@ export default function UserSearch({ initialSearch }) {
         background: '#0891b2',
         color: 'white',
         border: 'none',
-        borderRadius: 8,
+        borderRadius: 'var(--r-md)',
         fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
@@ -49,7 +49,7 @@ export default function UserSearch({ initialSearch }) {
           background: 'transparent',
           color: '#cbd5e1',
           border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 14,
           cursor: 'pointer',
         }}>Clear</button>

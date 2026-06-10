@@ -40,7 +40,7 @@ export default function EmisReportCard({ variant = 'card' }) {
             background: '#0891b2',
             color: 'white',
             textDecoration: 'none',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             fontSize: 12,
             fontWeight: 500,
             whiteSpace: 'nowrap',
@@ -75,7 +75,7 @@ export default function EmisReportCard({ variant = 'card' }) {
             padding: 14,
             background: 'var(--g-field)',
             border: '1px solid var(--g-border)',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             fontSize: 12,
             color: 'var(--g-text-hi)',
             lineHeight: 1.6,
@@ -101,7 +101,7 @@ export default function EmisReportCard({ variant = 'card' }) {
               <li>Open GPDash, go to the <strong>Today</strong> page, and drop the CSV onto the upload area.</li>
             </ol>
 
-            <div style={{ marginTop: 14, padding: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 6, color: '#fcd34d', fontSize: 11 }}>
+            <div style={{ marginTop: 14, padding: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--r-sm)', color: '#fcd34d', fontSize: 11 }}>
               The report covers the previous 2 months by default — the date filter is built into the XML. You don't need to set anything else.
             </div>
 
@@ -122,7 +122,7 @@ function CardWrapper({ children }) {
     <div style={{
       background: 'var(--g-tile-2)',
       border: '1px solid var(--g-border-2)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 18,
     }}>
       {children}

@@ -123,7 +123,7 @@ export default function PracticeMembers({ practice }) {
                         background: 'rgba(34,211,238,0.15)',
                         color: '#67e8f9',
                         border: '1px solid rgba(34,211,238,0.3)',
-                        borderRadius: 999,
+                        borderRadius: 'var(--r-pill)',
                       }}>Platform admin</span>
                     )}
                   </div>
@@ -173,7 +173,7 @@ export default function PracticeMembers({ practice }) {
           {pickedUser ? (
             // User has been picked — show a confirm row with role + add button
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <div style={{ flex: '1 1 240px', padding: '8px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6 }}>
+              <div style={{ flex: '1 1 240px', padding: '8px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)' }}>
                 <div style={{ fontSize: 13, color: '#e2e8f0' }}>{pickedUser.email}</div>
                 {pickedUser.name && <div style={{ fontSize: 11, color: '#64748b' }}>{pickedUser.name}</div>}
               </div>
@@ -208,7 +208,7 @@ export default function PracticeMembers({ practice }) {
                   marginTop: 8,
                   background: 'rgba(0,0,0,0.4)',
                   border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   overflow: 'hidden',
                 }}>
                   {searchResults.map(u => (
@@ -247,19 +247,19 @@ export default function PracticeMembers({ practice }) {
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────
-const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 20, marginBottom: 16 };
+const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', padding: 20, marginBottom: 16 };
 const cardHeader = { fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 };
 const memberRow = {
   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
   padding: '10px 12px', background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8,
+  border: '1px solid rgba(255,255,255,0.06)', borderRadius: 'var(--r-md)',
   flexWrap: 'wrap', gap: 12,
 };
-const input = { width: '100%', padding: '8px 10px', fontSize: 13, color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, outline: 'none', fontFamily: 'inherit' };
-const selectStyle = { padding: '6px 10px', fontSize: 13, color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, outline: 'none', cursor: 'pointer' };
-const btnPrimary = { padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'white', background: '#0891b2', border: 'none', borderRadius: 6, cursor: 'pointer' };
-const btnSubtle = { padding: '6px 12px', fontSize: 12, color: '#cbd5e1', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' };
-const btnDangerSubtle = { padding: '6px 10px', fontSize: 12, color: '#fca5a5', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, cursor: 'pointer' };
+const input = { width: '100%', padding: '8px 10px', fontSize: 13, color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', outline: 'none', fontFamily: 'inherit' };
+const selectStyle = { padding: '6px 10px', fontSize: 13, color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', outline: 'none', cursor: 'pointer' };
+const btnPrimary = { padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'white', background: '#0891b2', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer' };
+const btnSubtle = { padding: '6px 12px', fontSize: 12, color: '#cbd5e1', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' };
+const btnDangerSubtle = { padding: '6px 10px', fontSize: 12, color: '#fca5a5', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)', cursor: 'pointer' };
 
 function Banner({ kind, children }) {
   const palette = kind === 'error'
@@ -270,7 +270,7 @@ function Banner({ kind, children }) {
       padding: '10px 14px',
       background: palette.bg,
       border: `1px solid ${palette.border}`,
-      borderRadius: 8,
+      borderRadius: 'var(--r-md)',
       color: palette.fg,
       fontSize: 13,
       marginBottom: 12,

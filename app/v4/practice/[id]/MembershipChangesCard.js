@@ -44,7 +44,7 @@ export default function MembershipChangesCard({ practiceId }) {
   const cardStyle = {
     background: 'var(--g-tile-2)',
     border: '1px solid var(--g-border-2)',
-    borderRadius: 12,
+    borderRadius: 'var(--r-lg)',
     padding: 20,
   };
 
@@ -95,7 +95,7 @@ export default function MembershipChangesCard({ practiceId }) {
             padding: '6px 12px',
             background: 'var(--g-tile)',
             border: '1px solid var(--g-border-2)',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             color: 'var(--g-text-hi)',
             fontSize: 12,
             cursor: 'pointer',

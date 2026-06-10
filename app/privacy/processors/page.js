@@ -89,7 +89,7 @@ export default function ProcessorsPage() {
         <div style={{ display: 'grid', gap: 16 }}>
           {PROCESSORS.map(p => (
             <article key={p.name} style={{
-              borderRadius: 12,
+              borderRadius: 'var(--r-lg)',
               padding: 20,
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.08)',

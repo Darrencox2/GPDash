@@ -115,7 +115,7 @@ export default function LinkClinicianSuggest({ data }) {
       padding: '14px 16px',
       background: 'rgba(16,185,129,0.08)',
       border: '1px solid rgba(16,185,129,0.2)',
-      borderRadius: 10,
+      borderRadius: 'var(--r-md)',
       lineHeight: 1.5,
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: candidates.length > 0 ? 10 : 0 }}>
@@ -149,7 +149,7 @@ export default function LinkClinicianSuggest({ data }) {
           padding: '8px 10px',
           background: 'rgba(239,68,68,0.12)',
           border: '1px solid rgba(239,68,68,0.3)',
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           fontSize: 12,
           color: '#fca5a5',
         }}>{error}</div>
@@ -168,7 +168,7 @@ export default function LinkClinicianSuggest({ data }) {
               color: 'white',
               background: '#10b981',
               border: 'none',
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               cursor: busy === c.id ? 'wait' : 'pointer',
               opacity: busy === c.id ? 0.7 : 1,
             }}
@@ -189,7 +189,7 @@ export default function LinkClinicianSuggest({ data }) {
             color: '#cbd5e1',
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             cursor: markingNonClinical ? 'wait' : 'pointer',
             opacity: markingNonClinical ? 0.6 : 1,
           }}

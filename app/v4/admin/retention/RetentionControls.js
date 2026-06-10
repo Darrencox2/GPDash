@@ -47,7 +47,7 @@ export default function RetentionControls({ lastRunResults }) {
     <div style={{
       background: 'rgba(255,255,255,0.03)',
       border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 18,
     }}>
       <h2 style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>
@@ -63,7 +63,7 @@ export default function RetentionControls({ lastRunResults }) {
             background: 'rgba(34,211,238,0.12)',
             border: '1px solid rgba(34,211,238,0.30)',
             color: '#67e8f9',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             fontSize: 13,
             fontWeight: 500,
             cursor: busy ? 'wait' : 'pointer',
@@ -82,7 +82,7 @@ export default function RetentionControls({ lastRunResults }) {
               background: 'white',
               color: '#b91c1c',
               border: '1px solid #fecaca',
-              borderRadius: 8,
+              borderRadius: 'var(--r-md)',
               fontSize: 13,
               fontWeight: 500,
               cursor: 'pointer',
@@ -99,10 +99,10 @@ export default function RetentionControls({ lastRunResults }) {
             padding: '6px 10px',
             background: 'rgba(239,68,68,0.10)',
             border: '1px solid rgba(239,68,68,0.30)',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
           }}>
             <span style={{ fontSize: 12, color: '#fca5a5' }}>
-              Type <code style={{ background: 'rgba(0,0,0,0.2)', padding: '1px 5px', borderRadius: 4 }}>RUN</code> to confirm:
+              Type <code style={{ background: 'rgba(0,0,0,0.2)', padding: '1px 5px', borderRadius: 'var(--r-sm)' }}>RUN</code> to confirm:
             </span>
             <input
               value={confirmText}
@@ -113,7 +113,7 @@ export default function RetentionControls({ lastRunResults }) {
                 background: 'rgba(0,0,0,0.3)',
                 border: '1px solid rgba(255,255,255,0.15)',
                 color: '#f1f5f9',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 fontSize: 13,
                 width: 90,
               }}
@@ -126,7 +126,7 @@ export default function RetentionControls({ lastRunResults }) {
                 background: confirmText === 'RUN' ? '#b91c1c' : '#64748b',
                 color: 'white',
                 border: 'none',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 fontSize: 12,
                 fontWeight: 500,
                 cursor: confirmText === 'RUN' ? 'pointer' : 'not-allowed',
@@ -141,7 +141,7 @@ export default function RetentionControls({ lastRunResults }) {
                 background: 'transparent',
                 color: '#cbd5e1',
                 border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 fontSize: 12,
                 cursor: 'pointer',
               }}
@@ -158,7 +158,7 @@ export default function RetentionControls({ lastRunResults }) {
           border: '1px solid rgba(239,68,68,0.30)',
           color: '#fca5a5',
           padding: 12,
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 13,
           marginBottom: 14,
         }}>
@@ -206,7 +206,7 @@ export default function RetentionControls({ lastRunResults }) {
       )}
 
       <div style={{ fontSize: 11, color: '#64748b', marginTop: 14, lineHeight: 1.6 }}>
-        Each run is logged to <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4 }}>platform_audit_events</code> with the full per-table result set for GDPR Art 5(2) accountability — including dry runs.
+        Each run is logged to <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 'var(--r-sm)' }}>platform_audit_events</code> with the full per-table result set for GDPR Art 5(2) accountability — including dry runs.
         Hard cap of 5000 rows deleted per table per run as a safety net.
       </div>
     </div>

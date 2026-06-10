@@ -116,7 +116,7 @@ export default function DemandComparisonPanel({
   if (analysis.firstTime) {
     if (firstTimeMode === 'hide') return null;
     return (
-      <div style={{ marginTop: 12, padding: 12, background: 'rgba(34,211,238,0.05)', border: '1px solid rgba(34,211,238,0.15)', borderRadius: 8, fontSize: 12, color: 'var(--g-text-mid)' }}>
+      <div style={{ marginTop: 12, padding: 12, background: 'rgba(34,211,238,0.05)', border: '1px solid rgba(34,211,238,0.15)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--g-text-mid)' }}>
         This is the first calibration for your practice — there&apos;s no prior model to compare against.
         Once you upload another batch, you&apos;ll see how well the current model predicted it.
       </div>
@@ -160,7 +160,7 @@ export default function DemandComparisonPanel({
               padding: 8,
               background: 'var(--g-tile-2)',
               border: '1px solid var(--g-border)',
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               textAlign: 'center',
             }}>
               <div style={{ fontSize: 10, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.label}</div>
@@ -185,7 +185,7 @@ export default function DemandComparisonPanel({
                 padding: 8,
                 background: 'var(--g-tile-2)',
                 border: '1px solid var(--g-border)',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                   <span style={{ color: 'var(--g-text-hi)', fontWeight: 500 }}>{formatDate(p.date)}</span>
@@ -237,7 +237,7 @@ function ComparisonChart({ points }) {
     : [0, Math.floor(points.length / 2), points.length - 1];
 
   return (
-    <div style={{ background: 'var(--g-field)', borderRadius: 8, padding: 8, border: '1px solid var(--g-tile)' }}>
+    <div style={{ background: 'var(--g-field)', borderRadius: 'var(--r-md)', padding: 8, border: '1px solid var(--g-tile)' }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
         {/* Y gridlines */}
         {yTicks.map((y) => (

@@ -215,7 +215,7 @@ function ribbonStyle() {
   return {
     background: 'rgba(34, 211, 238, 0.05)',
     border: '1px solid rgba(34, 211, 238, 0.15)',
-    borderRadius: 8,
+    borderRadius: 'var(--r-md)',
     padding: '10px 14px',
     marginBottom: 12,
   };

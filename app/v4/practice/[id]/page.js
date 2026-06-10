@@ -206,7 +206,7 @@ export default async function PracticeAdminPage({ params }) {
               padding: 12,
               background: 'rgba(34, 211, 238, 0.05)',
               border: '1px solid rgba(34, 211, 238, 0.15)',
-              borderRadius: 8,
+              borderRadius: 'var(--r-md)',
               fontSize: 13,
               color: 'var(--g-text-mid)',
               lineHeight: 1.5,
@@ -294,7 +294,7 @@ export default async function PracticeAdminPage({ params }) {
               {practice.region && <span>{practice.region}</span>}
               <span style={{
                 padding: '2px 10px', background: 'rgba(16,185,129,0.15)',
-                color: '#34d399', borderRadius: 999, fontWeight: 600, fontSize: 11,
+                color: '#34d399', borderRadius: 'var(--r-pill)', fontWeight: 600, fontSize: 11,
               }}>You: {myMembership?.role || (isPlatformAdmin ? 'platform admin' : 'guest')}</span>
             </div>
           </div>
@@ -330,7 +330,7 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
           padding: 14,
           background: 'rgba(34,211,238,0.05)',
           border: '1px solid rgba(34,211,238,0.15)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 12, flexWrap: 'wrap',
         }}>
@@ -345,7 +345,7 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
             href={`/v4/onboarding/setup/${practiceId}`}
             style={{
               fontSize: 12, fontWeight: 500, color: 'white',
-              background: '#0891b2', padding: '8px 14px', borderRadius: 6,
+              background: '#0891b2', padding: '8px 14px', borderRadius: 'var(--r-sm)',
               textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >Open wizard →</a>
@@ -383,7 +383,7 @@ function DemandTab({ practiceId, demandSettings, huddleSettings, history, canMan
           </div>
         )}
         {demandSettings?.source === 'nhs_oc_baseline' && (
-          <div style={{ marginTop: 14, padding: 12, background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.2)', borderRadius: 8, fontSize: 13, color: '#a5f3fc', lineHeight: 1.5 }}>
+          <div style={{ marginTop: 14, padding: 12, background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.2)', borderRadius: 'var(--r-md)', fontSize: 13, color: '#a5f3fc', lineHeight: 1.5 }}>
             ✨ Currently seeded from NHS England data ({demandSettings.sourceMonth?.slice(0,7)}).
             Upload your own AskMyGP history above to refine the model with your real numbers.
           </div>
@@ -434,7 +434,7 @@ function DangerTab({ practiceId, practiceName }) {
       <div style={{
         background: 'rgba(127,29,29,0.15)',
         border: '1px solid rgba(239,68,68,0.3)',
-        borderRadius: 12,
+        borderRadius: 'var(--r-lg)',
         padding: 24,
       }}>
         <h3 style={{ color: '#fca5a5', fontSize: 16, fontWeight: 600, marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
@@ -456,7 +456,7 @@ function Card({ title, children }) {
     <div style={{
       background: 'var(--g-tile-2)',
       border: '1px solid var(--g-border-2)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 18,
     }}>
       <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 12 }}>{title}</h3>

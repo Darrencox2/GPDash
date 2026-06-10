@@ -56,7 +56,7 @@ export default async function SetupInProgressPage({ params }) {
         maxWidth: 480, width: '100%',
         background: 'rgba(15,23,42,0.7)',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 14, padding: 28, textAlign: 'center',
+        borderRadius: 'var(--r-lg)', padding: 28, textAlign: 'center',
       }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🛠️</div>
         <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 10 }}>

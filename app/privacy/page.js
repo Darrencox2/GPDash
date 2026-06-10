@@ -89,7 +89,7 @@ export default function PrivacyNoticePage() {
         <Section title="If your practice enables the public buddy cover page">
           <p>
             Practices can optionally publish their daily buddy cover allocations at a public URL of the form{' '}
-            <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: 4, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>
+            <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: 'var(--r-sm)', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>
               gpdash.net/buddy/&lt;practice-slug&gt;
             </code>{' '}
             so that reception and admin staff can click through from
@@ -193,7 +193,7 @@ const builtIn = { color: '#6ee7b7', fontWeight: 500 };
 function DraftBanner() {
   if (LEGAL_META.privacyReviewedByLegal) return null;
   return (
-    <div style={{ marginBottom: 32, padding: '14px 18px', borderRadius: 10, background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.30)', color: '#fcd34d' }}>
+    <div style={{ marginBottom: 32, padding: '14px 18px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.30)', color: '#fcd34d' }}>
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>⚠ Draft — pending legal review</div>
       <div style={{ fontSize: 12, lineHeight: 1.6, color: '#fde68a' }}>
         This notice has been drafted by GPDash&apos;s engineering team and accurately reflects current processing. It hasn&apos;t yet been formally reviewed by a qualified data protection professional. We treat it as our binding statement of practice; the legal review will formalise the wording.
@@ -222,7 +222,7 @@ function SubSection({ title, children }) {
 
 function Basis({ children }) {
   return (
-    <p style={{ fontSize: 12, padding: '10px 14px', borderRadius: 8, marginTop: 10, marginBottom: 0, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: '#94a3b8', lineHeight: 1.6 }}>
+    <p style={{ fontSize: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', marginTop: 10, marginBottom: 0, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: '#94a3b8', lineHeight: 1.6 }}>
       {children}
     </p>
   );
@@ -230,7 +230,7 @@ function Basis({ children }) {
 
 function Contact() {
   return (
-    <div style={{ marginTop: 14, padding: '14px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13, lineHeight: 1.7 }}>
+    <div style={{ marginTop: 14, padding: '14px 18px', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13, lineHeight: 1.7 }}>
       <div style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>Contact</div>
       <div style={{ color: '#cbd5e1' }}>
         For any data protection question — including subject access requests that you&apos;d rather not handle yourself in-app — email{' '}

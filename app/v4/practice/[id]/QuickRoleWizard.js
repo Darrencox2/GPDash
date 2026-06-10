@@ -238,8 +238,8 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
           </div>
           <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: 'var(--g-text-mid)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
         </div>
-        <div style={{ height: 5, background: 'var(--g-tile)', borderRadius: 999, overflow: 'hidden', marginBottom: 20 }}>
-          <div style={{ height: '100%', width: `${done ? 100 : Math.round((step / COMMON_ROLES.length) * 100)}%`, background: 'linear-gradient(90deg,#6366f1,#818cf8)', borderRadius: 999, transition: 'width 0.45s cubic-bezier(0.2,0.8,0.2,1)' }} />
+        <div style={{ height: 5, background: 'var(--g-tile)', borderRadius: 'var(--r-pill)', overflow: 'hidden', marginBottom: 20 }}>
+          <div style={{ height: '100%', width: `${done ? 100 : Math.round((step / COMMON_ROLES.length) * 100)}%`, background: 'linear-gradient(90deg,#6366f1,#818cf8)', borderRadius: 'var(--r-pill)', transition: 'width 0.45s cubic-bezier(0.2,0.8,0.2,1)' }} />
         </div>
 
         {done ? (() => {
@@ -268,7 +268,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                 : 'Everyone has a role. Nice work.'}
             </div>
             <div style={{ marginTop: 20, animation: 'qrwLift 0.45s ease-out 0.35s both' }}>
-              <button onClick={onClose} style={{ background: '#6366f1', border: 'none', color: 'white', padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+              <button onClick={onClose} style={{ background: '#6366f1', border: 'none', color: 'white', padding: '10px 22px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
                 Back to the team
               </button>
             </div>
@@ -278,7 +278,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
           <>
             <div key={headKey} style={{ marginBottom: 16, animation: 'qrwHeadIn 0.35s ease-out' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(129,140,248,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>{current.ico}</div>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(129,140,248,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>{current.ico}</div>
                 <div style={{ fontSize: 21, fontWeight: 600, color: '#f1f5f9' }}>{current.question || `Who are your ${current.role}s?`}</div>
               </div>
               <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 6, marginLeft: 44 }}>{current.hint} {isAdminStep ? 'Anyone already administrative is ticked — adjust as needed.' : 'The people already on this role are ticked — adjust as needed.'}</div>
@@ -294,7 +294,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                 style={{
                   width: '100%', padding: '9px 12px 9px 34px', fontSize: 14,
                   background: 'var(--g-tile)', border: '1px solid var(--g-line)',
-                  borderRadius: 10, color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
+                  borderRadius: 'var(--r-md)', color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
                 }}
               />
             </div>
@@ -328,7 +328,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                       title={p.name}
                       style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1,
-                        padding: '7px 11px', borderRadius: 10, cursor: isFading ? 'default' : 'pointer', textAlign: 'left',
+                        padding: '7px 11px', borderRadius: 'var(--r-md)', cursor: isFading ? 'default' : 'pointer', textAlign: 'left',
                         minHeight: 46,
                         border: `1px solid ${sel ? '#818cf8' : 'rgba(255,255,255,0.10)'}`,
                         background: sel ? 'rgba(99,102,241,0.20)' : 'var(--g-tile-2)',
@@ -366,7 +366,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               <button
                 onClick={confirm}
                 style={{
-                  border: 'none', padding: '9px 16px', borderRadius: 10, fontSize: 14, fontWeight: 500,
+                  border: 'none', padding: '9px 16px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 500,
                   background: '#6366f1', color: 'white', display: 'inline-flex', alignItems: 'center', gap: 7,
                   cursor: 'pointer', transition: 'opacity 0.15s',
                 }}

@@ -62,7 +62,7 @@ export default async function RetentionAdminPage() {
             How long GPDash keeps each category of personal data. Retention
             windows here are the binding policy — what the privacy notice
             says and what the scheduled cleanup job enforces. Update by
-            editing <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>lib/retention-policy.js</code>.
+            editing <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 'var(--r-sm)', fontSize: 12 }}>lib/retention-policy.js</code>.
           </p>
         </div>
 
@@ -70,7 +70,7 @@ export default async function RetentionAdminPage() {
         <div style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 12,
+          borderRadius: 'var(--r-lg)',
           padding: 18,
           marginBottom: 18,
         }}>
@@ -104,7 +104,7 @@ export default async function RetentionAdminPage() {
         <div style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 12,
+          borderRadius: 'var(--r-lg)',
           padding: 18,
           marginBottom: 18,
         }}>

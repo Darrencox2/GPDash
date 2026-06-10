@@ -73,7 +73,7 @@ export default async function V4Test() {
       <span style={{
         display: 'inline-block',
         padding: '4px 10px',
-        borderRadius: 999,
+        borderRadius: 'var(--r-pill)',
         fontSize: 12,
         fontWeight: 600,
         background: `${colour}22`,
@@ -102,7 +102,7 @@ export default async function V4Test() {
         <div style={{
           background: 'rgba(15,23,42,0.7)',
           border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: 12,
+          borderRadius: 'var(--r-lg)',
           padding: 24,
         }}>
           <Row label="Environment variables" status={envStatus}>
@@ -135,7 +135,7 @@ export default async function V4Test() {
               padding: 10,
               background: dbStatus === 'ok' ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.08)',
               border: `1px solid ${dbStatus === 'ok' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.25)'}`,
-              borderRadius: 8,
+              borderRadius: 'var(--r-md)',
               fontSize: 12,
               color: '#cbd5e1',
             }}>
@@ -149,7 +149,7 @@ export default async function V4Test() {
               padding: 12,
               background: 'rgba(239,68,68,0.1)',
               border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: 8,
+              borderRadius: 'var(--r-md)',
               fontSize: 12,
               color: '#fca5a5',
               fontFamily: 'monospace',

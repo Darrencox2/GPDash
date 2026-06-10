@@ -28,7 +28,7 @@ export default function EndImpersonationButton() {
         background: 'rgba(0,0,0,0.25)',
         color: 'white',
         border: '1px solid rgba(255,255,255,0.3)',
-        borderRadius: 6,
+        borderRadius: 'var(--r-sm)',
         fontSize: 12,
         fontWeight: 500,
         cursor: busy ? 'wait' : 'pointer',

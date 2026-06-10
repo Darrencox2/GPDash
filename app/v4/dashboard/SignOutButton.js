@@ -31,7 +31,7 @@ export default function SignOutButton() {
         color: '#94a3b8',
         background: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 8,
+        borderRadius: 'var(--r-md)',
         cursor: 'pointer',
         fontFamily: 'inherit',
       }}

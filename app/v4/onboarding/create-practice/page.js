@@ -243,7 +243,7 @@ export default function CreatePracticePage() {
         {error && <div style={f.errorBox}>{error}</div>}
 
         {/* Mode toggle */}
-        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'rgba(0,0,0,0.3)', borderRadius: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'rgba(0,0,0,0.3)', borderRadius: 'var(--r-md)', marginBottom: 16 }}>
           <ModeButton active={mode === 'name'} onClick={() => setMode('name')}>Search by name</ModeButton>
           <ModeButton active={mode === 'ods'} onClick={() => setMode('ods')}>Enter ODS code</ModeButton>
           <ModeButton active={mode === 'manual'} onClick={() => setMode('manual')}>Enter manually</ModeButton>
@@ -370,7 +370,7 @@ export default function CreatePracticePage() {
         padding: 14,
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 8,
+        borderRadius: 'var(--r-md)',
         marginBottom: 16,
       }}>
         <div style={{ fontSize: 15, color: '#e2e8f0', fontWeight: 500, marginBottom: 4 }}>{picked.name}</div>
@@ -413,7 +413,7 @@ export default function CreatePracticePage() {
           padding: 14,
           background: 'rgba(245,158,11,0.1)',
           border: '1px solid rgba(245,158,11,0.25)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           marginBottom: 16,
           fontSize: 13,
           color: '#fde68a',
@@ -472,7 +472,7 @@ function ModeButton({ active, onClick, children }) {
         color: active ? 'white' : '#94a3b8',
         background: active ? 'rgba(34,211,238,0.15)' : 'transparent',
         border: active ? '1px solid rgba(34,211,238,0.3)' : '1px solid transparent',
-        borderRadius: 6,
+        borderRadius: 'var(--r-sm)',
         cursor: 'pointer',
         transition: 'all 0.15s',
       }}
@@ -505,7 +505,7 @@ function ResultButton({ practice, onClick }) {
         padding: '10px 12px',
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 6,
+        borderRadius: 'var(--r-sm)',
         cursor: 'pointer',
         color: '#e2e8f0',
         fontSize: 13,

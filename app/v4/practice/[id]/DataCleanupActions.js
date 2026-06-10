@@ -83,12 +83,12 @@ export default function DataCleanupActions({ practiceId }) {
         Clear specific datasets without deleting the whole practice. Each action is permanent.
       </p>
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 10, borderRadius: 8, fontSize: 14, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 10, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
           {error}
         </div>
       )}
       {result && (
-        <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399', padding: 10, borderRadius: 8, fontSize: 14, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399', padding: 10, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
           {result}
         </div>
       )}
@@ -125,7 +125,7 @@ function CleanupRow({ title, description, busy, onClick }) {
       marginBottom: 8,
       background: 'var(--g-field)',
       border: '1px solid var(--g-border)',
-      borderRadius: 8,
+      borderRadius: 'var(--r-md)',
       gap: 12,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -141,7 +141,7 @@ function CleanupRow({ title, description, busy, onClick }) {
           background: 'rgba(245,158,11,0.1)',
           border: '1px solid rgba(245,158,11,0.3)',
           color: '#fbbf24',
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           fontSize: 13,
           fontWeight: 500,
           cursor: busy ? 'wait' : 'pointer',

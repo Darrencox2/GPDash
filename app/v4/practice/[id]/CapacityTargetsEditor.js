@@ -61,7 +61,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 8, fontSize: 14 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14 }}>
           {error}
         </div>
       )}
@@ -93,7 +93,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
             color: 'var(--g-text-hi)',
             background: 'var(--g-field)',
             padding: '6px 14px',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             minWidth: 64,
             textAlign: 'center',
             fontFamily: "'Space Mono', monospace",
@@ -148,7 +148,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
                           padding: '6px 4px',
                           background: 'var(--g-field)',
                           border: '1px solid var(--g-line)',
-                          borderRadius: 6,
+                          borderRadius: 'var(--r-sm)',
                           color: 'var(--g-text-hi)',
                           fontSize: 14,
                           textAlign: 'center',
@@ -183,7 +183,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
               padding: '8px 12px',
               background: 'var(--g-field)',
               border: '1px solid var(--g-line)',
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               color: 'var(--g-text-hi)',
               fontSize: 15,
               textAlign: 'center',
@@ -201,7 +201,7 @@ function Card({ title, status, children }) {
     <div style={{
       background: 'var(--g-tile-2)',
       border: '1px solid var(--g-border-2)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 18,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>

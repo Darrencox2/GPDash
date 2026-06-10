@@ -113,7 +113,7 @@ export default function BuddyOverrideModal({
         style={{
           background: 'var(--surface-solid)',
           border: '1px solid var(--border)',
-          borderRadius: 12,
+          borderRadius: 'var(--r-lg)',
           padding: 24,
           maxWidth: 480, width: '100%',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
@@ -137,7 +137,7 @@ export default function BuddyOverrideModal({
             width: '100%', padding: '8px 10px', marginBottom: 14,
             background: 'var(--surface-2)',
             border: '1px solid var(--border)',
-            borderRadius: 6, color: 'var(--text-1)', fontSize: 14,
+            borderRadius: 'var(--r-sm)', color: 'var(--text-1)', fontSize: 14,
           }}
         >
           <option value="">— pick someone present today —</option>
@@ -162,7 +162,7 @@ export default function BuddyOverrideModal({
             width: '100%', padding: '8px 10px', marginBottom: 16,
             background: 'var(--surface-2)',
             border: '1px solid var(--border)',
-            borderRadius: 6, color: 'var(--text-1)', fontSize: 14,
+            borderRadius: 'var(--r-sm)', color: 'var(--text-1)', fontSize: 14,
             resize: 'vertical', fontFamily: 'inherit',
           }}
         />
@@ -180,7 +180,7 @@ export default function BuddyOverrideModal({
               padding: '8px 14px',
               background: 'transparent',
               border: '1px solid var(--border)',
-              borderRadius: 6, color: 'var(--text-3)', fontSize: 13,
+              borderRadius: 'var(--r-sm)', color: 'var(--text-3)', fontSize: 13,
               cursor: busy ? 'not-allowed' : 'pointer',
             }}
           >
@@ -193,7 +193,7 @@ export default function BuddyOverrideModal({
             style={{
               padding: '8px 14px',
               background: busy ? 'rgba(167, 139, 250, 0.3)' : '#a78bfa',
-              border: 'none', borderRadius: 6, color: 'white',
+              border: 'none', borderRadius: 'var(--r-sm)', color: 'white',
               fontSize: 13, fontWeight: 500,
               cursor: busy ? 'wait' : (eligibleCoverers.length === 0 ? 'not-allowed' : 'pointer'),
               opacity: eligibleCoverers.length === 0 ? 0.5 : 1,

@@ -76,7 +76,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 8, fontSize: 14 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14 }}>
           {error}
         </div>
       )}
@@ -94,7 +94,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
           gap: 14,
           padding: 14,
           background: 'var(--g-field)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           marginBottom: 12,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -113,7 +113,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
             style={{
               width: 52,
               height: 28,
-              borderRadius: 999,
+              borderRadius: 'var(--r-pill)',
               border: 'none',
               background: publicEnabled ? '#14b8a6' : 'var(--g-line)',
               position: 'relative',
@@ -142,7 +142,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
             padding: '10px 14px',
             background: 'rgba(20,184,166,0.10)',
             border: '1px solid rgba(20,184,166,0.25)',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             marginBottom: 12,
             fontSize: 13,
           }}>
@@ -162,7 +162,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
           padding: '10px 14px',
           background: 'rgba(251,191,36,0.08)',
           border: '1px solid rgba(251,191,36,0.20)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 12,
           color: '#fde68a',
           lineHeight: 1.6,
@@ -215,7 +215,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
           marginTop: 14,
           padding: 12,
           background: 'var(--g-field)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 14,
           color: '#a5b4fc',
           fontFamily: 'ui-monospace, Menlo, monospace',
@@ -235,7 +235,7 @@ function Slider({ label, description, value, min, max, step, onChange }) {
       gap: 14,
       padding: 14,
       background: 'var(--g-field)',
-      borderRadius: 8,
+      borderRadius: 'var(--r-md)',
       marginBottom: 10,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -255,7 +255,7 @@ function Slider({ label, description, value, min, max, step, onChange }) {
             padding: '6px 10px',
             background: 'var(--g-field)',
             border: '1px solid var(--g-line)',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             color: 'var(--g-text-hi)',
             fontSize: 15,
             fontWeight: 600,
@@ -273,7 +273,7 @@ function Card({ title, status, children }) {
     <div style={{
       background: 'var(--g-tile-2)',
       border: '1px solid var(--g-border-2)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 18,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>

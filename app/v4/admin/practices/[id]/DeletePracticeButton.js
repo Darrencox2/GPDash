@@ -41,7 +41,7 @@ export default function DeletePracticeButton({ practiceId, practiceName, practic
           background: 'rgba(239,68,68,0.12)',
           border: '1px solid rgba(239,68,68,0.3)',
           color: '#fca5a5',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 13,
           marginBottom: 12,
         }}>{error}</div>
@@ -65,7 +65,7 @@ export default function DeletePracticeButton({ practiceId, practiceName, practic
             color: '#e2e8f0',
             background: 'rgba(0,0,0,0.3)',
             border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             outline: 'none',
             fontFamily: 'inherit',
           }}
@@ -80,7 +80,7 @@ export default function DeletePracticeButton({ practiceId, practiceName, practic
             color: 'white',
             background: '#dc2626',
             border: 'none',
-            borderRadius: 6,
+            borderRadius: 'var(--r-sm)',
             cursor: ready ? 'pointer' : 'not-allowed',
             opacity: ready ? 1 : 0.4,
           }}

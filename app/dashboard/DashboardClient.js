@@ -666,7 +666,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                 padding: '14px 16px',
                 background: 'rgba(245,158,11,0.08)',
                 border: '1px solid rgba(245,158,11,0.2)',
-                borderRadius: 10,
+                borderRadius: 'var(--r-md)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -683,7 +683,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                   style={{
                     fontSize: 12, fontWeight: 500, color: 'white',
                     background: '#d97706',
-                    padding: '8px 14px', borderRadius: 6,
+                    padding: '8px 14px', borderRadius: 'var(--r-sm)',
                     textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
                   }}
                 >Quick setup →</a>
@@ -741,7 +741,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                   color: '#94a3b8',
                   fontSize: 11,
                   padding: '2px 6px',
-                  borderRadius: 4,
+                  borderRadius: 'var(--r-sm)',
                   cursor: 'pointer',
                 }}
               >

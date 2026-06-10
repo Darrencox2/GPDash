@@ -34,7 +34,7 @@ export default async function AdminUserDetailPage({ params }) {
     return (
       <div style={{ padding: 32, color: '#fca5a5' }}>
         <AdminNav active="users" />
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', padding: 16, borderRadius: 8 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', padding: 16, borderRadius: 'var(--r-md)' }}>
           {error.message}
         </div>
       </div>
@@ -71,17 +71,17 @@ export default async function AdminUserDetailPage({ params }) {
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {details.suspended_at && (
-                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 999, fontWeight: 600 }}>
+                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 'var(--r-pill)', fontWeight: 600 }}>
                   Suspended
                 </span>
               )}
               {details.is_platform_admin && (
-                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 999, fontWeight: 600 }}>
+                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 'var(--r-pill)', fontWeight: 600 }}>
                   Platform admin
                 </span>
               )}
               {!details.email_confirmed_at && (
-                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
+                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--r-pill)' }}>
                   Email unconfirmed
                 </span>
               )}
@@ -156,7 +156,7 @@ export default async function AdminUserDetailPage({ params }) {
   );
 }
 
-const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 22, marginBottom: 18 };
+const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', padding: 22, marginBottom: 18 };
 const cardHeader = { fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "'Outfit', sans-serif" };
 
 function Row({ label, children }) {

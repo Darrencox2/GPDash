@@ -484,7 +484,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       ) : (
         <>
           {/* Attendance */}
-          <div className="rounded-xl overflow-hidden" className="glass" style={{borderRadius:12}}>
+          <div className="rounded-xl overflow-hidden" className="glass" style={{borderRadius:'var(--r-lg)'}}>
             <div className="px-5 py-4 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold text-white">{selectedDay} — Attendance</h2>
@@ -817,7 +817,7 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
         position: 'fixed', zIndex: 1300, width: W, maxWidth: 'calc(100vw - 20px)',
         left, ...(below ? { top } : { bottom }),
         background: 'var(--surface-solid)', border: '1px solid var(--g-line)',
-        borderRadius: 12, padding: '13px 15px', pointerEvents: 'none',
+        borderRadius: 'var(--r-lg)', padding: '13px 15px', pointerEvents: 'none',
         boxShadow: '0 20px 50px -14px rgba(0,0,0,0.7)',
         animation: 'shtIn 0.16s ease-out',
       }}
@@ -825,7 +825,7 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
       <style>{`@keyframes shtIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <span style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 13.5 }}>{c.name}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto', padding: '2px 9px', borderRadius: 999, background: meta.bg, color: meta.colour, fontSize: 11.5, fontWeight: 600 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto', padding: '2px 9px', borderRadius: 'var(--r-pill)', background: meta.bg, color: meta.colour, fontSize: 11.5, fontWeight: 600 }}>
           <span>{meta.icon}</span>{meta.label}
         </span>
       </div>

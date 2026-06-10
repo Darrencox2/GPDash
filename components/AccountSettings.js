@@ -513,7 +513,7 @@ function RoleBadge({ data }) {
       background: palette.bg,
       color: palette.fg,
       border: `1px solid ${palette.border}`,
-      borderRadius: 999,
+      borderRadius: 'var(--r-pill)',
       fontSize: 12,
       fontWeight: 500,
     }}>{label}</span>

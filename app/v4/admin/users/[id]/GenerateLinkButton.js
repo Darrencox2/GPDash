@@ -69,7 +69,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed }) {
           background: emailUnconfirmed ? '#d97706' : '#475569',
           color: 'white',
           border: 'none',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 13,
           fontWeight: 500,
           cursor: busy ? 'wait' : 'pointer',
@@ -91,7 +91,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed }) {
           border: '1px solid rgba(239,68,68,0.3)',
           color: '#fca5a5',
           fontSize: 12,
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
         }}>{error}</div>
       )}
 
@@ -113,7 +113,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed }) {
                 color: '#e2e8f0',
                 background: 'rgba(0,0,0,0.4)',
                 border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 outline: 'none',
               }}
             />
@@ -125,7 +125,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed }) {
                 color: copied ? '#34d399' : '#cbd5e1',
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
               }}

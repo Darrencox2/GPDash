@@ -40,7 +40,7 @@ export default function AdminNav({ active }) {
             padding: '5px 11px',
             background: 'rgba(34,211,238,0.1)',
             border: '1px solid rgba(34,211,238,0.3)',
-            borderRadius: 999,
+            borderRadius: 'var(--r-pill)',
             fontSize: 11,
             fontWeight: 600,
             color: '#67e8f9',
@@ -58,7 +58,7 @@ export default function AdminNav({ active }) {
             color: '#cbd5e1',
             textDecoration: 'none',
             padding: '7px 14px',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             border: '1px solid rgba(255,255,255,0.1)',
             background: 'rgba(255,255,255,0.04)',
           }}

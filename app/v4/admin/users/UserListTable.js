@@ -123,7 +123,7 @@ export default function UserListTable({ users }) {
               color: filter === f.id ? 'white' : '#cbd5e1',
               background: filter === f.id ? 'rgba(34,211,238,0.18)' : 'rgba(255,255,255,0.04)',
               border: filter === f.id ? '1px solid rgba(34,211,238,0.4)' : '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 999,
+              borderRadius: 'var(--r-pill)',
               cursor: 'pointer',
             }}
           >
@@ -133,7 +133,7 @@ export default function UserListTable({ users }) {
       </div>
 
       {/* Table */}
-      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
             <tr style={{ background: 'rgba(255,255,255,0.04)', textAlign: 'left' }}>
@@ -182,7 +182,7 @@ function UserRow({ user: u }) {
       <td style={{ ...td, color: '#e2e8f0' }}>
         {u.email}
         {!u.email_confirmed_at && (
-          <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
+          <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--r-pill)' }}>
             unconfirmed
           </span>
         )}
@@ -190,11 +190,11 @@ function UserRow({ user: u }) {
       <td style={{ ...td, color: '#cbd5e1' }}>{u.name || '—'}</td>
       <td style={td}>
         {suspended ? (
-          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 999, fontWeight: 600 }}>Suspended</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 'var(--r-pill)', fontWeight: 600 }}>Suspended</span>
         ) : u.is_platform_admin ? (
-          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 999, fontWeight: 600 }}>Platform admin</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 'var(--r-pill)', fontWeight: 600 }}>Platform admin</span>
         ) : orphan ? (
-          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(251,191,36,0.12)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 999 }} title="No practice memberships — never finished onboarding">Orphan</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(251,191,36,0.12)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 'var(--r-pill)' }} title="No practice memberships — never finished onboarding">Orphan</span>
         ) : (
           <span style={{ color: '#94a3b8', fontSize: 13 }}>—</span>
         )}
@@ -214,7 +214,7 @@ function UserRow({ user: u }) {
           color: 'white',
           background: '#0891b2',
           border: '1px solid #0891b2',
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           textDecoration: 'none',
           whiteSpace: 'nowrap',
           display: 'inline-block',
@@ -233,7 +233,7 @@ function Stat({ label, value, colour, tooltip }) {
         minWidth: 130,
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-md)',
         padding: '12px 16px',
         cursor: tooltip ? 'help' : 'default',
       }}

@@ -96,7 +96,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
           color: 'var(--g-text-hi)',
           background: 'var(--g-tile)',
           border: '1px solid var(--g-line)',
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           cursor: 'pointer',
           fontWeight: 500,
         }}
@@ -159,7 +159,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                   <button onClick={() => setAllIncluded(false)} style={miniBtn}>Select none</button>
                 </div>
 
-                <div style={{ maxHeight: 320, overflowY: 'auto', marginBottom: 14, border: '1px solid var(--g-border)', borderRadius: 8 }}>
+                <div style={{ maxHeight: 320, overflowY: 'auto', marginBottom: 14, border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)' }}>
                   {rows.map((r, idx) => (
                     <div
                       key={r.email}
@@ -257,7 +257,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                   {results.errored > 0 && <SummaryStat label="Errored" value={results.errored} colour="#fca5a5" />}
                 </div>
                 {(results.skipped > 0 || results.errored > 0) && (
-                  <div style={{ maxHeight: 240, overflowY: 'auto', marginBottom: 14, border: '1px solid var(--g-border)', borderRadius: 8 }}>
+                  <div style={{ maxHeight: 240, overflowY: 'auto', marginBottom: 14, border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)' }}>
                     {results.results.filter(r => r.status !== 'created').map((r, idx) => (
                       <div key={idx} style={{
                         padding: '8px 12px',
@@ -298,7 +298,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
 
 function SummaryStat({ label, value, colour }) {
   return (
-    <div style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)', borderRadius: 8, padding: '6px 12px' }}>
+    <div style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)', padding: '6px 12px' }}>
       <div style={{ fontSize: 9, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ fontSize: 16, fontWeight: 600, color: colour, fontFamily: "'Outfit', sans-serif" }}>{value}</div>
     </div>
@@ -319,7 +319,7 @@ const overlay = {
 const modal = {
   background: 'var(--g-surface)',
   border: '1px solid var(--g-line)',
-  borderRadius: 12,
+  borderRadius: 'var(--r-lg)',
   padding: 24,
   maxWidth: 520,
   width: '100%',
@@ -339,7 +339,7 @@ const textarea = {
   padding: '10px 12px',
   background: 'var(--g-tile)',
   border: '1px solid var(--g-border-2)',
-  borderRadius: 8,
+  borderRadius: 'var(--r-md)',
   color: 'var(--g-text-hi)',
   fontSize: 13,
   fontFamily: 'ui-monospace, Menlo, monospace',
@@ -351,7 +351,7 @@ const roleSelect = {
   padding: '4px 8px',
   background: 'var(--g-tile)',
   border: '1px solid var(--g-border-2)',
-  borderRadius: 6,
+  borderRadius: 'var(--r-sm)',
   color: 'var(--g-text-hi)',
   fontSize: 12,
   cursor: 'pointer',
@@ -362,10 +362,10 @@ const errorBox = {
   border: '1px solid rgba(239,68,68,0.3)',
   color: '#fca5a5',
   fontSize: 12,
-  borderRadius: 6,
+  borderRadius: 'var(--r-sm)',
   marginBottom: 12,
 };
 const buttonRow = { display: 'flex', gap: 8, justifyContent: 'flex-end' };
-const btnPrimary = { padding: '8px 16px', background: '#0891b2', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-const btnSubtle = { padding: '8px 16px', background: 'var(--g-border)', color: 'var(--g-text-hi)', border: '1px solid var(--g-border-2)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-const miniBtn = { padding: '3px 8px', background: 'var(--g-tile)', color: 'var(--g-text-mid)', border: '1px solid var(--g-border-2)', borderRadius: 4, fontSize: 11, fontWeight: 500, cursor: 'pointer' };
+const btnPrimary = { padding: '8px 16px', background: '#0891b2', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const btnSubtle = { padding: '8px 16px', background: 'var(--g-border)', color: 'var(--g-text-hi)', border: '1px solid var(--g-border-2)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const miniBtn = { padding: '3px 8px', background: 'var(--g-tile)', color: 'var(--g-text-mid)', border: '1px solid var(--g-border-2)', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 500, cursor: 'pointer' };

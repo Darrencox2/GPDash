@@ -66,7 +66,7 @@ export default function ListSizeBackfill() {
     <div style={{
       background: 'rgba(255,255,255,0.03)',
       border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 18,
       marginTop: 16,
     }}>
@@ -82,7 +82,7 @@ export default function ListSizeBackfill() {
       </p>
 
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 10, borderRadius: 6, fontSize: 13, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 10, borderRadius: 'var(--r-sm)', fontSize: 13, marginBottom: 12 }}>
           {error}
         </div>
       )}
@@ -97,7 +97,7 @@ export default function ListSizeBackfill() {
             background: running ? 'rgba(255,255,255,0.04)' : 'rgba(34,211,238,0.15)',
             border: `1px solid ${running ? 'rgba(255,255,255,0.1)' : 'rgba(34,211,238,0.4)'}`,
             color: running ? '#64748b' : '#22d3ee',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             fontSize: 14,
             fontWeight: 500,
             cursor: running ? 'wait' : 'pointer',
@@ -120,7 +120,7 @@ export default function ListSizeBackfill() {
         <div style={{
           padding: 12,
           background: 'rgba(0,0,0,0.2)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 13,
           color: '#cbd5e1',
           lineHeight: 1.7,
@@ -134,7 +134,7 @@ export default function ListSizeBackfill() {
                 width: '100%',
                 height: 8,
                 background: 'rgba(0,0,0,0.4)',
-                borderRadius: 4,
+                borderRadius: 'var(--r-sm)',
                 overflow: 'hidden',
               }}>
                 <div style={{

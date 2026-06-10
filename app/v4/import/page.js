@@ -71,7 +71,7 @@ export default function V4ImportPage() {
         Always run a <strong>dry run first</strong>.
       </p>
 
-      <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 12, color: '#fcd34d' }}>
+      <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--r-md)', padding: 14, marginBottom: 16, fontSize: 12, color: '#fcd34d' }}>
         ⚠ Read these before running:
         <ul style={{ marginTop: 6, marginLeft: 20 }}>
           <li>Only the practice owner can import</li>
@@ -98,7 +98,7 @@ export default function V4ImportPage() {
             color: '#e2e8f0',
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             fontFamily: 'monospace',
           }}
         />
@@ -115,7 +115,7 @@ export default function V4ImportPage() {
             color: 'white',
             background: 'rgba(99,102,241,0.4)',
             border: '1px solid rgba(99,102,241,0.6)',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             cursor: loading ? 'wait' : 'pointer',
             opacity: loading || !practiceId ? 0.5 : 1,
           }}
@@ -133,7 +133,7 @@ export default function V4ImportPage() {
             color: 'white',
             background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             cursor: loading || !report ? 'not-allowed' : 'pointer',
             opacity: loading || !practiceId || !report ? 0.4 : 1,
           }}
@@ -143,13 +143,13 @@ export default function V4ImportPage() {
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: 12, fontSize: 13, color: '#fca5a5', marginBottom: 16 }}>
+        <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--r-md)', padding: 12, fontSize: 13, color: '#fca5a5', marginBottom: 16 }}>
           {error}
         </div>
       )}
 
       {report && (
-        <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20, marginTop: 16 }}>
+        <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 'var(--r-lg)', padding: 20, marginTop: 16 }}>
           <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 600, color: report.dryRun ? '#fbbf24' : '#34d399', marginBottom: 12 }}>
             {report.dryRun ? 'Dry run report' : 'Import complete'}
           </h2>

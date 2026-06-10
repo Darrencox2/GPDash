@@ -203,7 +203,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                     <path d={item.icon} />
                   </svg>
                   <span style={{fontSize:13, color: isActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: isActive ? 500 : 400}}>{item.label}</span>
-                  {item.badge && <span style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:`${item.colour}20`,color:item.colour,marginLeft:'auto'}}>{item.badge}</span>}
+                  {item.badge && <span style={{fontSize:9,padding:'1px 6px',borderRadius:'var(--r-md)',background:`${item.colour}20`,color:item.colour,marginLeft:'auto'}}>{item.badge}</span>}
                 </button>
               );
             })}
@@ -218,7 +218,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               {sidebarOpen ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '6px 6px' }}>
                   <div style={{
-                    width: 40, height: 40, borderRadius: 9,
+                    width: 40, height: 40, borderRadius: 'var(--r-md)',
                     background: 'linear-gradient(135deg, #0891b2, #0e7490)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
@@ -247,7 +247,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0' }} title={practiceName}>
                   <div style={{
-                    width: 40, height: 40, borderRadius: 9,
+                    width: 40, height: 40, borderRadius: 'var(--r-md)',
                     background: 'linear-gradient(135deg, #0891b2, #0e7490)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 13, color: 'white', fontWeight: 500,

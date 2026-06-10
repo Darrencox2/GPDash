@@ -41,7 +41,7 @@ export default function AcceptInviteButton({ inviteId }) {
           color: 'white',
           background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
           border: 'none',
-          borderRadius: 6,
+          borderRadius: 'var(--r-sm)',
           cursor: loading ? 'not-allowed' : 'pointer',
           opacity: loading ? 0.5 : 1,
           fontFamily: 'inherit',

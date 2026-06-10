@@ -103,7 +103,7 @@ export default function ClinicianTour({ step, targets, stepIndex, totalSteps, pr
           position: 'fixed', zIndex: 1200, pointerEvents: 'none',
           top: rect.top - 5, left: rect.left - 5,
           width: rect.width + 10, height: rect.height + 10,
-          borderRadius: 12, animation: 'ctRing 1.8s ease-in-out infinite',
+          borderRadius: 'var(--r-lg)', animation: 'ctRing 1.8s ease-in-out infinite',
         }}
       />
 
@@ -115,7 +115,7 @@ export default function ClinicianTour({ step, targets, stepIndex, totalSteps, pr
           left: calloutLeft,
           ...(below ? { top: calloutTop } : { bottom: calloutBottom }),
           background: 'var(--surface-solid)', border: '1px solid rgba(129,140,248,0.45)',
-          borderRadius: 14, padding: '15px 17px',
+          borderRadius: 'var(--r-lg)', padding: '15px 17px',
           boxShadow: '0 24px 60px -16px rgba(0,0,0,0.7)',
           animation: 'ctIn 0.3s ease-out',
         }}
@@ -130,7 +130,7 @@ export default function ClinicianTour({ step, targets, stepIndex, totalSteps, pr
             <button
               type="button"
               onClick={onPrimary}
-              style={{ border: 'none', background: '#6366f1', color: 'white', padding: '7px 14px', borderRadius: 9, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
+              style={{ border: 'none', background: '#6366f1', color: 'white', padding: '7px 14px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
             >
               {primaryLabel}
             </button>

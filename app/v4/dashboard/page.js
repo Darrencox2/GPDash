@@ -91,7 +91,7 @@ export default async function DashboardPage() {
               padding: '14px 16px',
               background: 'rgba(245,158,11,0.08)',
               border: '1px solid rgba(245,158,11,0.2)',
-              borderRadius: 8,
+              borderRadius: 'var(--r-md)',
               marginBottom: 8,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
               fontWeight: 600,
               color: 'white',
               background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              borderRadius: 8,
+              borderRadius: 'var(--r-md)',
               textDecoration: 'none',
             }}>Set up your practice</Link>
           </div>
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
                 alignItems: 'center',
                 padding: '12px 14px',
                 background: 'rgba(255,255,255,0.04)',
-                borderRadius: 8,
+                borderRadius: 'var(--r-md)',
                 marginBottom: 8,
                 textDecoration: 'none',
               }}
@@ -173,7 +173,7 @@ export default async function DashboardPage() {
                 padding: '3px 10px',
                 background: 'rgba(16,185,129,0.15)',
                 color: '#34d399',
-                borderRadius: 999,
+                borderRadius: 'var(--r-pill)',
                 fontWeight: 600,
               }}>{m.role}</span>
             </Link>
@@ -193,7 +193,7 @@ function Card({ children }) {
     <div style={{
       background: 'rgba(15,23,42,0.7)',
       border: '1px solid rgba(255,255,255,0.06)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 24,
       marginBottom: 16,
     }}>{children}</div>

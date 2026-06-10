@@ -23,7 +23,7 @@ export default function PendingInvitesCard({ invites, canManage }) {
     <div style={{
       background: 'var(--g-tile-2)',
       border: '1px solid var(--g-border-2)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 20,
     }}>
       <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>
@@ -107,7 +107,7 @@ function InviteRow({ invite: inv, canManage }) {
                 color: copied ? '#34d399' : 'var(--g-text-hi)',
                 background: 'var(--g-tile)',
                 border: '1px solid var(--g-border-2)',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 cursor: 'pointer',
               }}
             >
@@ -124,7 +124,7 @@ function InviteRow({ invite: inv, canManage }) {
                 color: '#fca5a5',
                 background: 'rgba(239,68,68,0.08)',
                 border: '1px solid rgba(239,68,68,0.2)',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 cursor: busy ? 'wait' : 'pointer',
                 opacity: busy ? 0.6 : 1,
               }}
@@ -135,7 +135,7 @@ function InviteRow({ invite: inv, canManage }) {
         </div>
       </div>
       {error && (
-        <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5', padding: '5px 8px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6 }}>
+        <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5', padding: '5px 8px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)' }}>
           {error}
         </div>
       )}

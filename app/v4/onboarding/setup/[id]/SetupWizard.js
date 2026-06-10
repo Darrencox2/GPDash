@@ -451,7 +451,7 @@ export default function SetupWizard({
             maxWidth: 560,
             background: 'rgba(15,23,42,0.85)',
             border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 16,
+            borderRadius: 'var(--r-lg)',
             padding: '36px 40px',
             backdropFilter: 'blur(8px)',
             boxShadow: '0 30px 80px -20px rgba(0,0,0,0.6)',
@@ -481,7 +481,7 @@ export default function SetupWizard({
               padding: '14px 16px',
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 10,
+              borderRadius: 'var(--r-md)',
             }}>
               <div>
                 <div style={{ fontSize: 10, color: '#fbbf24', letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>
@@ -556,7 +556,7 @@ export default function SetupWizard({
           padding: '10px 16px',
           background: 'rgba(16,185,129,0.08)',
           border: '1px solid rgba(16,185,129,0.25)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 12, flexWrap: 'wrap',
         }}>
@@ -570,7 +570,7 @@ export default function SetupWizard({
             disabled={navigating}
             style={{
               padding: '7px 14px',
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               background: 'rgba(16,185,129,0.2)',
               border: '1px solid rgba(16,185,129,0.4)',
               color: '#6ee7b7',
@@ -765,7 +765,7 @@ export default function SetupWizard({
           padding: '10px 16px',
           background: 'rgba(16,185,129,0.1)',
           border: '1px solid rgba(16,185,129,0.3)',
-          borderRadius: 10,
+          borderRadius: 'var(--r-md)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           fontSize: 13,
         }}>
@@ -801,7 +801,7 @@ export default function SetupWizard({
       )}
 
       {globalError && (
-        <div style={{ maxWidth: 720, margin: '12px auto 0', padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: '#fca5a5', fontSize: 13, textAlign: 'center' }}>
+        <div style={{ maxWidth: 720, margin: '12px auto 0', padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--r-sm)', color: '#fca5a5', fontSize: 13, textAlign: 'center' }}>
           {globalError}
         </div>
       )}
@@ -931,7 +931,7 @@ function GlobalSaveIndicator({ inFlight, lastSavedAt, error }) {
         padding: '4px 10px',
         background: bg,
         border: `1px solid ${border}`,
-        borderRadius: 999,
+        borderRadius: 'var(--r-pill)',
         fontSize: 11,
         fontWeight: 600,
         color,
@@ -984,7 +984,7 @@ const cardAnimWrapperStyle = {
 const cardStyle = {
   background: 'rgba(15,23,42,0.7)',
   border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 16,
+  borderRadius: 'var(--r-lg)',
   padding: '36px 40px',
   boxShadow: '0 30px 80px -20px rgba(0,0,0,0.5)',
   backdropFilter: 'blur(8px)',
@@ -994,9 +994,9 @@ const footerStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
   position: 'relative', zIndex: 1,
 };
-const btnPrimary = { padding: '11px 20px', background: '#0891b2', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' };
-const btnSubtle = { padding: '11px 16px', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 13, fontWeight: 500, fontFamily: 'inherit' };
-const btnGhost = { padding: '11px 16px', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' };
+const btnPrimary = { padding: '11px 20px', background: '#0891b2', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' };
+const btnSubtle = { padding: '11px 16px', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' };
+const btnGhost = { padding: '11px 16px', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' };
 
 // Step icons — one SVG per step id. Replaces the bare step number on
 // the progress dots so the 8 dots are visually distinguishable at a
@@ -1102,7 +1102,7 @@ function StepHeader({ step, index, done, liveSubtitle }) {
             padding: '2px 8px',
             background: 'rgba(16,185,129,0.15)',
             border: '1px solid rgba(16,185,129,0.35)',
-            borderRadius: 4,
+            borderRadius: 'var(--r-sm)',
             color: '#6ee7b7', fontSize: 10, letterSpacing: 1,
           }}>
             ✓ Done
@@ -1114,7 +1114,7 @@ function StepHeader({ step, index, done, liveSubtitle }) {
             padding: '2px 8px',
             background: 'rgba(245,158,11,0.12)',
             border: '1px solid rgba(245,158,11,0.35)',
-            borderRadius: 4,
+            borderRadius: 'var(--r-sm)',
             color: '#fbbf24', fontSize: 10, letterSpacing: 1,
           }}>
             ! Required
@@ -1222,7 +1222,7 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
       </div>
 
       {practiceOdsCode && (
-        <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, fontSize: 12, color: '#94a3b8' }}>
+        <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 'var(--r-md)', fontSize: 12, color: '#94a3b8' }}>
           ODS code: <span style={{ color: '#cbd5e1', fontFamily: "'Space Mono', monospace" }}>{practiceOdsCode}</span>
         </div>
       )}
@@ -1443,7 +1443,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
             background: (teamnetUrl && !syncing) ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
             border: `1px solid ${(teamnetUrl && !syncing) ? 'rgba(34,211,238,0.4)' : 'rgba(255,255,255,0.1)'}`,
             color: (teamnetUrl && !syncing) ? '#67e8f9' : '#64748b',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
             fontSize: 13, fontWeight: 500,
             cursor: (teamnetUrl && !syncing) ? 'pointer' : 'not-allowed',
             fontFamily: 'inherit',
@@ -1461,7 +1461,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           background: syncStatus.ok ? 'rgba(16,185,129,0.10)' : 'rgba(239,68,68,0.10)',
           border: `1px solid ${syncStatus.ok ? 'rgba(16,185,129,0.30)' : 'rgba(239,68,68,0.30)'}`,
           color: syncStatus.ok ? '#34d399' : '#fca5a5',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 13,
         }}>
           {syncStatus.text}
@@ -1485,7 +1485,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           padding: 16,
           background: 'rgba(8,145,178,0.06)',
           border: '1px solid rgba(8,145,178,0.15)',
-          borderRadius: 10,
+          borderRadius: 'var(--r-md)',
           fontSize: 13, color: '#cbd5e1', lineHeight: 1.7,
         }}>
           <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1781,7 +1781,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         padding: 12,
         background: 'rgba(34,211,238,0.05)',
         border: '1px solid rgba(34,211,238,0.15)',
-        borderRadius: 8,
+        borderRadius: 'var(--r-md)',
         fontSize: 12, color: '#cbd5e1', lineHeight: 1.5,
       }}>
         <strong style={{ color: '#67e8f9' }}>One report does it all.</strong> This is the
@@ -1794,7 +1794,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
       <div style={{
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-md)',
         padding: 16,
       }}>
         <EmisReportCard variant="inline" />
@@ -1808,7 +1808,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
             padding: 16,
             background: 'rgba(16,185,129,0.08)',
             border: '1px solid rgba(16,185,129,0.25)',
-            borderRadius: 10,
+            borderRadius: 'var(--r-md)',
             display: 'flex', alignItems: 'center', gap: 12,
           }}>
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1836,7 +1836,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
             padding: 28,
             background: 'rgba(255,255,255,0.03)',
             border: '2px dashed rgba(255,255,255,0.12)',
-            borderRadius: 10,
+            borderRadius: 'var(--r-md)',
             textAlign: 'center',
             cursor: 'pointer',
             transition: 'border 0.15s, background 0.15s',
@@ -1864,7 +1864,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
             padding: 14,
             background: 'rgba(16,185,129,0.08)',
             border: '1px solid rgba(16,185,129,0.25)',
-            borderRadius: 10,
+            borderRadius: 'var(--r-md)',
           }}>
             <div style={{
               fontSize: 12, color: '#10b981', fontWeight: 700,
@@ -1915,7 +1915,7 @@ function UploadFirstPrompt({ message }) {
       padding: 24,
       background: 'rgba(245,158,11,0.06)',
       border: '1px solid rgba(245,158,11,0.2)',
-      borderRadius: 10,
+      borderRadius: 'var(--r-md)',
       color: '#cbd5e1',
       fontSize: 13, lineHeight: 1.6,
       display: 'flex', flexDirection: 'column', gap: 6,
@@ -2135,7 +2135,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
   const hasUrgent = slotFilters?.urgent && Object.values(slotFilters.urgent).some(Boolean);
 
   return (
-    <div style={{ padding: 16, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 10 }}>
+    <div style={{ padding: 16, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 'var(--r-md)' }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: '#fdba74', marginBottom: 4 }}>Expected urgent capacity (optional)</div>
       <p style={{ fontSize: 12.5, color: '#94a3b8', lineHeight: 1.55, margin: '0 0 12px' }}>
         How many urgent slots you aim to offer per session. Used by Capacity Planning and as a
@@ -2171,7 +2171,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
                       <td key={d} style={{ textAlign: 'center', padding: '4px' }}>
                         {mode === 'manual' ? (
                           <input type="number" min={0} max={999} value={expected[d]?.[session] ?? ''} onChange={e => updateCell(d, session, e.target.value)} placeholder="–"
-                            style={{ width: 56, padding: '6px 4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#e2e8f0', fontSize: 13, textAlign: 'center', fontFamily: "'Space Mono', monospace" }} />
+                            style={{ width: 56, padding: '6px 4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--r-sm)', color: '#e2e8f0', fontSize: 13, textAlign: 'center', fontFamily: "'Space Mono', monospace" }} />
                         ) : (
                           <span style={{ fontFamily: "'Space Mono', monospace", color: '#e2e8f0' }}>{expected[d]?.[session] ?? 0}</span>
                         )}
@@ -2405,7 +2405,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         padding: 14,
         background: 'rgba(34,211,238,0.05)',
         border: '1px solid rgba(34,211,238,0.15)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-md)',
         fontSize: 13, color: '#cbd5e1', lineHeight: 1.55,
       }}>
         <p style={{ margin: 0 }}>
@@ -2429,7 +2429,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
       {/* Duty doctor slot(s) — separate box. Usually only 1–2 slots, so it
           doesn't belong as a per-row toggle on every slot type. Pick from
           the dropdown; selected slots show as removable chips. */}
-      <div style={{ padding: 14, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 10 }}>
+      <div style={{ padding: 14, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 'var(--r-md)' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#c4b5fd', marginBottom: 4 }}>Duty doctor slot(s)</div>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, lineHeight: 1.5 }}>
           Which slot type(s) are your duty / on-call doctor slots? Usually just 1–2. The huddle and
@@ -2437,7 +2437,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           {(slotFilters.dutyDoctorSlot || []).map(slot => (
-            <span key={slot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'rgba(139,92,246,0.18)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 999, fontSize: 12, color: '#ddd6fe', fontFamily: "'Space Mono', monospace" }}>
+            <span key={slot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'rgba(139,92,246,0.18)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 'var(--r-pill)', fontSize: 12, color: '#ddd6fe', fontFamily: "'Space Mono', monospace" }}>
               {slot}
               <button type="button" onClick={() => toggleDuty(slot)} title="Remove" style={{ background: 'none', border: 'none', color: '#c4b5fd', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
             </span>
@@ -2445,7 +2445,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           <select
             value=""
             onChange={(e) => { if (e.target.value) toggleDuty(e.target.value); }}
-            style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 8, color: '#e2e8f0', fontSize: 12, cursor: 'pointer', maxWidth: 320 }}
+            style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 'var(--r-md)', color: '#e2e8f0', fontSize: 12, cursor: 'pointer', maxWidth: 320 }}
           >
             <option value="">+ Add a duty slot…</option>
             {slotTypes.filter(s => !(slotFilters.dutyDoctorSlot || []).includes(s)).map(s => (
@@ -2470,7 +2470,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           padding: 12,
           background: 'rgba(168,85,247,0.08)',
           border: '1px solid rgba(168,85,247,0.25)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
           fontSize: 12, color: '#cbd5e1',
         }}>
@@ -2489,7 +2489,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
 
       <div style={{
         border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-md)',
         overflow: 'hidden',
       }}>
         <div style={{
@@ -2537,7 +2537,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
                       once the user clicks the picker. */}
                   {isAutoApplied && confidence === 'high' && cat !== 'other' && (
                     <span title="Confident auto-suggestion based on the slot name" style={{
-                      fontSize: 9.5, padding: '1px 7px', borderRadius: 999,
+                      fontSize: 9.5, padding: '1px 7px', borderRadius: 'var(--r-pill)',
                       background: 'rgba(16,185,129,0.12)',
                       border: '1px solid rgba(16,185,129,0.3)',
                       color: '#6ee7b7', letterSpacing: 0.4, fontFamily: 'inherit',
@@ -2545,7 +2545,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
                   )}
                   {isAutoApplied && confidence === 'medium' && cat !== 'other' && (
                     <span title="Educated guess — worth double-checking" style={{
-                      fontSize: 9.5, padding: '1px 7px', borderRadius: 999,
+                      fontSize: 9.5, padding: '1px 7px', borderRadius: 'var(--r-pill)',
                       background: 'rgba(251,191,36,0.10)',
                       border: '1px solid rgba(251,191,36,0.3)',
                       color: '#fbbf24', letterSpacing: 0.4, fontFamily: 'inherit',
@@ -2582,7 +2582,7 @@ function SummaryPill({ colour, label, count }) {
       padding: '4px 10px',
       background: `${colour}22`,
       border: `1px solid ${colour}66`,
-      borderRadius: 999,
+      borderRadius: 'var(--r-pill)',
       color: colour,
       fontWeight: 500,
     }}>
@@ -2598,7 +2598,7 @@ function pillButton(colour) {
     background: `${colour}22`,
     color: colour,
     border: `1px solid ${colour}66`,
-    borderRadius: 6,
+    borderRadius: 'var(--r-sm)',
     cursor: 'pointer',
     fontFamily: 'inherit',
   };
@@ -2614,7 +2614,7 @@ function SlotCategoryPicker({ value, onChange }) {
     <div style={{
       display: 'flex',
       background: 'rgba(0,0,0,0.25)',
-      borderRadius: 6,
+      borderRadius: 'var(--r-sm)',
       padding: 2,
       gap: 2,
     }}>
@@ -2630,7 +2630,7 @@ function SlotCategoryPicker({ value, onChange }) {
               fontSize: 11, fontWeight: 500,
               background: active ? o.colour : 'transparent',
               color: active ? 'white' : '#94a3b8',
-              border: 'none', borderRadius: 4,
+              border: 'none', borderRadius: 'var(--r-sm)',
               cursor: 'pointer',
               fontFamily: 'inherit',
               transition: 'background 0.12s, color 0.12s',
@@ -2691,7 +2691,7 @@ function ReviewStep({ steps, stepDone, canComplete, requiredIncomplete, goToStep
               padding: '10px 14px',
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 10,
+              borderRadius: 'var(--r-md)',
               opacity: state === 'optional' ? 0.75 : 1,
             }}>
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: colour, flexShrink: 0 }} />
@@ -2975,7 +2975,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
 
       <div style={{
         border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-md)',
         overflow: 'hidden',
       }}>
         {displayedSites.map((site, i) => (
@@ -2989,7 +2989,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
             }}
           >
             <div style={{
-              width: 28, height: 28, borderRadius: 6,
+              width: 28, height: 28, borderRadius: 'var(--r-sm)',
               background: site.colour,
               flexShrink: 0,
               border: '1px solid rgba(255,255,255,0.1)',
@@ -3009,7 +3009,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
                 padding: '4px 8px', fontSize: 11,
                 background: 'transparent',
                 border: '1px solid rgba(255,255,255,0.08)',
-                color: '#94a3b8', borderRadius: 4,
+                color: '#94a3b8', borderRadius: 'var(--r-sm)',
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
             >×</button>
@@ -3042,7 +3042,7 @@ function ColourPicker({ value, onChange }) {
               padding: 0,
               background: c,
               border: active ? '2px solid white' : '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 4,
+              borderRadius: 'var(--r-sm)',
               cursor: 'pointer',
               transition: 'transform 0.1s',
               transform: active ? 'scale(1.08)' : 'scale(1)',
@@ -3115,7 +3115,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
           padding: 16,
           background: 'rgba(16,185,129,0.06)',
           border: '1px solid rgba(16,185,129,0.25)',
-          borderRadius: 10,
+          borderRadius: 'var(--r-md)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -3205,7 +3205,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
           single set of instructions doesn't work. */}
       <div style={{
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-md)',
         overflow: 'hidden',
       }}>
         <HowToHeader
@@ -3393,7 +3393,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
           padding: 12,
           background: 'rgba(255,255,255,0.02)',
           border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           {parsed.validEmails.length > 0 && (
@@ -3405,7 +3405,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
                 {parsed.validEmails.map(e => (
                   <span key={e} style={{
                     padding: '3px 10px',
-                    borderRadius: 999,
+                    borderRadius: 'var(--r-pill)',
                     background: 'rgba(16,185,129,0.15)',
                     border: '1px solid rgba(16,185,129,0.3)',
                     color: '#6ee7b7',
@@ -3424,7 +3424,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
                 {parsed.duplicates.map((e, i) => (
                   <span key={`${e}-${i}`} style={{
                     padding: '3px 10px',
-                    borderRadius: 999,
+                    borderRadius: 'var(--r-pill)',
                     background: 'rgba(255,255,255,0.05)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     color: '#94a3b8',
@@ -3447,7 +3447,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
                     title={e.includes('@') ? "Missing TLD (e.g. '.com')?" : "Missing @?"}
                     style={{
                       padding: '3px 10px',
-                      borderRadius: 999,
+                      borderRadius: 'var(--r-pill)',
                       background: 'rgba(251,191,36,0.1)',
                       border: '1px solid rgba(251,191,36,0.3)',
                       color: '#fbbf24',
@@ -3487,7 +3487,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
           padding: 14,
           background: 'rgba(16,185,129,0.08)',
           border: '1px solid rgba(16,185,129,0.25)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 13, color: '#6ee7b7',
         }}>
           {result.created > 0 && <>✓ Sent {result.created} invite{result.created === 1 ? '' : 's'}. </>}
@@ -3595,7 +3595,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
         padding: '14px 16px',
         background: 'rgba(20,184,166,0.10)',
         border: '1px solid rgba(20,184,166,0.25)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-md)',
       }}>
         <div style={{
           display: 'flex',
@@ -3618,7 +3618,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
             style={{
               width: 56,
               height: 30,
-              borderRadius: 999,
+              borderRadius: 'var(--r-pill)',
               border: 'none',
               background: buddyCoverPublic ? '#14b8a6' : 'rgba(255,255,255,0.12)',
               position: 'relative',
@@ -3648,7 +3648,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
             padding: '10px 14px',
             background: 'rgba(0,0,0,0.25)',
             border: '1px solid rgba(20,184,166,0.20)',
-            borderRadius: 8,
+            borderRadius: 'var(--r-md)',
           }}>
             <div style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>
               Your public URL
@@ -3675,7 +3675,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
         padding: '12px 16px',
         background: 'rgba(251,191,36,0.08)',
         border: '1px solid rgba(251,191,36,0.22)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-md)',
         fontSize: 13,
         color: '#fde68a',
         lineHeight: 1.65,
@@ -3690,7 +3690,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
         padding: '12px 16px',
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-md)',
         fontSize: 13,
         color: '#cbd5e1',
         lineHeight: 1.65,
@@ -3708,7 +3708,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
           background: 'rgba(239,68,68,0.10)',
           border: '1px solid rgba(239,68,68,0.30)',
           color: '#fca5a5',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           fontSize: 13,
         }}>
           {error}
@@ -3741,7 +3741,7 @@ const inputStyle = {
   padding: '11px 14px',
   background: 'rgba(0,0,0,0.3)',
   border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 8,
+  borderRadius: 'var(--r-md)',
   fontSize: 14,
   color: '#e2e8f0',
   fontFamily: 'inherit',

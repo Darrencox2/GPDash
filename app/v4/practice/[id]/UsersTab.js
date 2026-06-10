@@ -229,7 +229,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
             <span style={{ fontSize: 14, color: 'var(--g-text-hi)', fontWeight: isMe ? 600 : 400 }}>
               {m.email || '—'}
             </span>
-            {isMe && <span style={{ fontSize: 10, padding: '1px 7px', background: 'rgba(34,211,238,0.18)', color: '#67e8f9', borderRadius: 999, fontWeight: 600, letterSpacing: 0.4 }}>YOU</span>}
+            {isMe && <span style={{ fontSize: 10, padding: '1px 7px', background: 'rgba(34,211,238,0.18)', color: '#67e8f9', borderRadius: 'var(--r-pill)', fontWeight: 600, letterSpacing: 0.4 }}>YOU</span>}
           </div>
           {m.name && <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 2 }}>{m.name}</div>}
           {/* Clinician-link status. Three states:
@@ -261,7 +261,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
                 ...ROLE_STYLES[m.role],
                 fontSize: 12,
                 padding: '4px 8px',
-                borderRadius: 999,
+                borderRadius: 'var(--r-pill)',
                 fontWeight: 600,
                 cursor: busy === 'role' ? 'wait' : 'pointer',
                 opacity: busy === 'role' ? 0.6 : 1,
@@ -292,7 +292,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
                 color: '#fca5a5',
                 background: 'rgba(239,68,68,0.08)',
                 border: '1px solid rgba(239,68,68,0.2)',
-                borderRadius: 6,
+                borderRadius: 'var(--r-sm)',
                 cursor: busy === 'remove' ? 'wait' : 'pointer',
                 opacity: busy === 'remove' ? 0.6 : 1,
               }}
@@ -316,7 +316,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
       </div>
 
       {error && (
-        <div style={{ marginTop: 8, fontSize: 11, color: '#fca5a5', padding: '6px 10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6 }}>
+        <div style={{ marginTop: 8, fontSize: 11, color: '#fca5a5', padding: '6px 10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)' }}>
           {error}
         </div>
       )}
@@ -331,7 +331,7 @@ function RoleBadge({ role }) {
       ...s,
       fontSize: 12,
       padding: '4px 12px',
-      borderRadius: 999,
+      borderRadius: 'var(--r-pill)',
       fontWeight: 600,
       textTransform: 'capitalize',
     }}>{role}</span>
@@ -434,7 +434,7 @@ const tinyActionBtn = {
   color: 'var(--g-text-hi)',
   background: 'var(--g-tile)',
   border: '1px solid var(--g-line)',
-  borderRadius: 4,
+  borderRadius: 'var(--r-sm)',
   cursor: 'pointer',
   fontWeight: 500,
 };
@@ -457,7 +457,7 @@ function Stat({ label, value, colour, tooltip }) {
       style={{
         background: 'var(--g-tile-2)',
         border: '1px solid var(--g-border)',
-        borderRadius: 8,
+        borderRadius: 'var(--r-md)',
         padding: '6px 12px',
         cursor: tooltip ? 'help' : 'default',
       }}
@@ -475,7 +475,7 @@ function Card({ title, children }) {
     <div style={{
       background: 'var(--g-tile-2)',
       border: '1px solid var(--g-border-2)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: 20,
     }}>
       {title && <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>{title}</h3>}

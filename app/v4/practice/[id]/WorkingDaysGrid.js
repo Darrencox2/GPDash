@@ -304,7 +304,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
           maxWidth: 920, width: '100%',
           background: 'linear-gradient(135deg, var(--g-ink), var(--g-ink-2))',
           border: '1px solid var(--g-line)',
-          borderRadius: 14,
+          borderRadius: 'var(--r-lg)',
           padding: 24,
           color: 'var(--g-text-hi)',
           fontFamily: "'DM Sans', sans-serif",
@@ -328,7 +328,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
               background: 'transparent',
               border: '1px solid rgba(255,255,255,0.15)',
               color: 'var(--g-text-mid)',
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               fontSize: 18, padding: '4px 10px',
               cursor: 'pointer', fontFamily: 'inherit',
             }}
@@ -340,7 +340,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
           marginTop: 14, padding: '10px 12px',
           background: 'rgba(16,185,129,0.06)',
           border: '1px solid rgba(16,185,129,0.18)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         }}>
           <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: 'var(--g-text-hi)', lineHeight: 1.5 }}>
@@ -357,7 +357,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
               padding: '7px 14px', fontSize: 12, fontWeight: 500,
               background: generating ? 'var(--g-tile)' : 'rgba(16,185,129,0.15)',
               border: '1px solid ' + (generating ? 'var(--g-line)' : 'rgba(16,185,129,0.30)'),
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               color: generating ? 'var(--g-text-mid)' : '#34d399',
               cursor: generating ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
@@ -375,7 +375,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
               padding: '7px 14px', fontSize: 12, fontWeight: 500,
               background: 'transparent',
               border: '1px solid var(--g-line)',
-              borderRadius: 6,
+              borderRadius: 'var(--r-sm)',
               color: generating ? 'var(--g-text-faint)' : 'var(--g-text-mid)',
               cursor: generating ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
@@ -390,7 +390,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
             background: generateStatus.ok ? 'rgba(16,185,129,0.10)' : 'rgba(245,158,11,0.10)',
             border: `1px solid ${generateStatus.ok ? 'rgba(16,185,129,0.30)' : 'rgba(245,158,11,0.30)'}`,
             color: generateStatus.ok ? '#34d399' : '#fcd34d',
-            borderRadius: 6, fontSize: 12,
+            borderRadius: 'var(--r-sm)', fontSize: 12,
           }}>
             {generateStatus.text}
           </div>
@@ -399,7 +399,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
         <div style={{
           marginTop: 16,
           border: '1px solid var(--g-border-2)',
-          borderRadius: 10,
+          borderRadius: 'var(--r-md)',
           overflow: 'auto',
         }}>
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 760 }}>
@@ -508,7 +508,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
               padding: '8px 18px',
               background: '#0891b2',
               border: '1px solid #06b6d4',
-              borderRadius: 8,
+              borderRadius: 'var(--r-md)',
               color: 'white', fontSize: 13, fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
@@ -537,7 +537,7 @@ function SessionToggle({ on, onClick, label }) {
         width: 24, height: 24, padding: 0,
         background: on ? '#10b981' : 'transparent',
         border: `1.5px solid ${on ? '#10b981' : 'rgba(255,255,255,0.18)'}`,
-        borderRadius: 5,
+        borderRadius: 'var(--r-sm)',
         cursor: 'pointer',
         transition: 'background 0.12s, border 0.12s',
         boxShadow: on ? '0 0 6px rgba(16,185,129,0.4)' : 'none',
@@ -555,7 +555,7 @@ function SmallBtn({ onClick, children }) {
         padding: '3px 8px', fontSize: 10, fontWeight: 500,
         background: 'var(--g-tile)',
         border: '1px solid var(--g-line)',
-        borderRadius: 4, color: 'var(--g-text-mid)', cursor: 'pointer',
+        borderRadius: 'var(--r-sm)', color: 'var(--g-text-mid)', cursor: 'pointer',
         fontFamily: 'inherit',
       }}
     >{children}</button>

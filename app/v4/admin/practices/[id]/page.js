@@ -43,7 +43,7 @@ export default async function AdminPracticeDetailPage({ params }) {
     return (
       <div style={{ padding: 32 }}>
         <AdminNav active="practices" />
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', padding: 16, borderRadius: 8, color: '#fca5a5' }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', padding: 16, borderRadius: 'var(--r-md)', color: '#fca5a5' }}>
           {error.message}
         </div>
       </div>
@@ -78,7 +78,7 @@ export default async function AdminPracticeDetailPage({ params }) {
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {!details.setup_completed_at && (
-                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999 }}>
+                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--r-pill)' }}>
                   Setup incomplete
                 </span>
               )}
@@ -155,7 +155,7 @@ export default async function AdminPracticeDetailPage({ params }) {
   );
 }
 
-const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 22, marginBottom: 18 };
+const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', padding: 22, marginBottom: 18 };
 const cardHeader = { fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "'Outfit', sans-serif" };
 
 function Row({ label, children }) {
@@ -173,7 +173,7 @@ function Stat({ label, value }) {
       flex: '1 1 200px',
       background: 'rgba(255,255,255,0.03)',
       border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 10,
+      borderRadius: 'var(--r-md)',
       padding: '16px 18px',
     }}>
       <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>
@@ -195,7 +195,7 @@ function SettingsLink({ href, label, kind, title }) {
         color: isPrimary ? 'white' : '#22d3ee',
         background: isPrimary ? '#0891b2' : 'rgba(255,255,255,0.04)',
         border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 6,
+        borderRadius: 'var(--r-sm)',
         textDecoration: 'none',
         whiteSpace: 'nowrap',
       }}

@@ -65,7 +65,7 @@ export default async function NhsDataAdminPage() {
           padding: 18,
           background: 'rgba(0,0,0,0.2)',
           border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 12,
+          borderRadius: 'var(--r-lg)',
           marginBottom: 18,
         }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "'Outfit', sans-serif" }}>
@@ -80,7 +80,7 @@ export default async function NhsDataAdminPage() {
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '10px 14px',
                   background: 'rgba(255,255,255,0.03)',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 13,
                 }}>
                   <div style={{ fontFamily: "'Space Mono', monospace", color: '#e2e8f0' }}>
@@ -161,7 +161,7 @@ function FreshnessReminder({ months }) {
       padding: '14px 16px',
       background: 'rgba(245, 158, 11, 0.07)',
       border: '1px solid rgba(245, 158, 11, 0.25)',
-      borderRadius: 10,
+      borderRadius: 'var(--r-md)',
       fontSize: 13,
       color: '#fcd34d',
       lineHeight: 1.6,

@@ -130,7 +130,7 @@ export default function AuditLogView({ practiceId }) {
               background: filter === g.id ? 'rgba(34,211,238,0.15)' : 'var(--g-tile)',
               border: `1px solid ${filter === g.id ? 'rgba(34,211,238,0.4)' : 'var(--g-border-2)'}`,
               color: filter === g.id ? '#22d3ee' : 'var(--g-text-mid)',
-              borderRadius: 999,
+              borderRadius: 'var(--r-pill)',
               cursor: 'pointer',
             }}>
             {g.label}
@@ -139,7 +139,7 @@ export default function AuditLogView({ practiceId }) {
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 8, fontSize: 14, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
           {error}
         </div>
       )}
@@ -177,7 +177,7 @@ function EventRow({ event, userLabel }) {
     <div style={{
       padding: '10px 12px',
       background: 'var(--g-field)',
-      borderRadius: 6,
+      borderRadius: 'var(--r-sm)',
       border: '1px solid var(--g-tile)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -185,7 +185,7 @@ function EventRow({ event, userLabel }) {
           padding: '2px 8px',
           background: `${meta.colour}20`,
           color: meta.colour,
-          borderRadius: 4,
+          borderRadius: 'var(--r-sm)',
           fontSize: 11,
           fontWeight: 600,
           flexShrink: 0,
@@ -221,7 +221,7 @@ function EventRow({ event, userLabel }) {
           marginTop: 8,
           padding: 10,
           background: 'var(--g-field)',
-          borderRadius: 4,
+          borderRadius: 'var(--r-sm)',
           fontSize: 12,
           color: 'var(--g-text-mid)',
           fontFamily: 'ui-monospace, Menlo, monospace',
