@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useIsLight } from '@/components/ui';
 import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor, getBand } from '@/lib/huddle';
@@ -37,6 +38,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const [loading, setLoading] = useState(true);
   const [prevData, setPrevData] = useState(null);
   const chartRef = useRef(null);
+  const isLight = useIsLight();
   const chartInstance = useRef(null);
 
   const dc = hs?.demandCapacity || {};
@@ -91,11 +93,17 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
     const loadChart = async () => {
       if (!window.Chart) await new Promise(r => { const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';s.onload=r;document.head.appendChild(s); });
       if (chartInstance.current) chartInstance.current.destroy();
+      // Canvas cannot resolve CSS variables — read the current theme values
+      // at build time; the effect re-runs on theme change via isLight.
+      const css=getComputedStyle(document.documentElement);const V=(n,f)=>css.getPropertyValue(n).trim()||f;
+      const cMid=V('--g-text-mid','#94a3b8'),cFaint=V('--g-text-faint','#475569'),cMute=V('--g-text-mute','#334155'),cLine=V('--g-line','rgba(255,255,255,0.1)');
+      const lightNow=document.documentElement.getAttribute('data-theme')==='light';
+      const cClosed=lightNow?'#e2e8f0':'#1e293b',cBH=lightNow?'rgba(245,158,11,0.14)':'#1c1917';
       const days=forecast.days, todayIdx=days.findIndex(d=>d.isToday);
       const isClosed=days.map(d=>d.isWeekend||d.isBankHoliday), isBH=days.map(d=>d.isBankHoliday);
       const labels=days.map(d=>{if(d.isBankHoliday)return'BH';if(d.isWeekend)return d.dayName;return`${d.dayName} ${d.dayNum}`;});
       const values=days.map((d,i)=>isClosed[i]?null:d.predicted), lows=days.map((d,i)=>isClosed[i]?null:d.confidence.low), highs=days.map((d,i)=>isClosed[i]?null:d.confidence.high);
-      const shade={id:'cs',beforeDraw(c){const x=c.ctx,xs=c.scales.x,ys=c.scales.y,bw=(xs.getPixelForValue(1)-xs.getPixelForValue(0))*0.5;x.save();for(let i=0;i<isClosed.length;i++){if(isClosed[i]){const px=xs.getPixelForValue(i);x.fillStyle=isBH[i]?'#1c1917':'#1e293b';x.fillRect(px-bw,ys.top,bw*2,ys.bottom-ys.top);}}x.restore();}};
+      const shade={id:'cs',beforeDraw(c){const x=c.ctx,xs=c.scales.x,ys=c.scales.y,bw=(xs.getPixelForValue(1)-xs.getPixelForValue(0))*0.5;x.save();for(let i=0;i<isClosed.length;i++){if(isClosed[i]){const px=xs.getPixelForValue(i);x.fillStyle=isBH[i]?cBH:cClosed;x.fillRect(px-bw,ys.top,bw*2,ys.bottom-ys.top);}}x.restore();}};
       const tline={id:'tl',afterDraw(c){const x=c.ctx,xs=c.scales.x,ys=c.scales.y,px=xs.getPixelForValue(todayIdx);x.save();x.beginPath();x.setLineDash([3,3]);x.strokeStyle='#f59e0b44';x.lineWidth=1;x.moveTo(px,ys.top);x.lineTo(px,ys.bottom);x.stroke();x.restore();}};
       chartInstance.current = new window.Chart(chartRef.current, {
         type:'line', data:{labels, datasets:[
@@ -103,19 +111,19 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
           {data:lows,fill:false,borderWidth:0,pointRadius:0,tension:0.3,spanGaps:true},
           {data:values,borderWidth:2.5,tension:0.3,spanGaps:false,borderColor:'#38bdf8',
             pointRadius:ctx=>values[ctx.dataIndex]===null?0:ctx.dataIndex===todayIdx?8:2.5,
-            pointBackgroundColor:ctx=>ctx.dataIndex===todayIdx?'#f59e0b':ctx.dataIndex<todayIdx?'var(--g-text-mid)':'#38bdf8',
+            pointBackgroundColor:ctx=>ctx.dataIndex===todayIdx?'#f59e0b':ctx.dataIndex<todayIdx?cMid:'#38bdf8',
             pointBorderColor:ctx=>ctx.dataIndex===todayIdx?'#fbbf24':'transparent',
             pointBorderWidth:ctx=>ctx.dataIndex===todayIdx?4:0,
-            segment:{borderColor:ctx=>ctx.p0DataIndex<todayIdx?'var(--g-text-mid)':'#38bdf8',borderDash:ctx=>ctx.p0DataIndex>=todayIdx?[5,4]:undefined}},
+            segment:{borderColor:ctx=>ctx.p0DataIndex<todayIdx?cMid:'#38bdf8',borderDash:ctx=>ctx.p0DataIndex>=todayIdx?[5,4]:undefined}},
         ]}, plugins:[shade,tline],
         options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},
-          scales:{x:{ticks:{font:{size:9},color:ctx=>{if(isBH[ctx.index])return'#f59e0b88';if(isClosed[ctx.index])return'var(--g-text-mute)';if(ctx.index===todayIdx)return'#f59e0b';return'var(--g-text-mid)';},maxRotation:0},grid:{display:false}},
-            y:{position:'right',min:40,max:220,ticks:{font:{size:9},color:'var(--g-text-faint)',stepSize:40},grid:{color:'#1e293b',lineWidth:0.5},border:{display:false}}}},
+          scales:{x:{ticks:{font:{size:9},color:ctx=>{if(isBH[ctx.index])return'#f59e0b88';if(isClosed[ctx.index])return cMute;if(ctx.index===todayIdx)return'#f59e0b';return cMid;},maxRotation:0},grid:{display:false}},
+            y:{position:'right',min:40,max:220,ticks:{font:{size:9},color:cFaint,stepSize:40},grid:{color:cLine,lineWidth:0.5},border:{display:false}}}},
       });
     };
     loadChart();
     return () => { if(chartInstance.current) chartInstance.current.destroy(); };
-  }, [forecast, showChart]);
+  }, [forecast, showChart, isLight]);
 
   const active = forecast || prevData;
   if (!active?.today) return <div className="glass rounded-xl"><div className="flex items-center justify-center gap-3 py-12"><div className="w-4 h-4 border-2 border-slate-700 border-t-amber-400 rounded-full animate-spin"/><span className="text-sm text-slate-400">Loading forecast...</span></div></div>;

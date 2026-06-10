@@ -128,7 +128,8 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const [showFsChart, setShowFsChart] = useState(false);
   const [effectiveScreen, setEffectiveScreen] = useState(screenProp || null);
   const screen = effectiveScreen; // null = single, 1 = primary, 2 = secondary
-  const C = useIsLight() ? FS_LIGHT : FS_DARK;
+  const isLight = useIsLight();
+  const C = isLight ? FS_LIGHT : FS_DARK;
   const dualMode = screen === 1 || screen === 2;
   const screen2WindowRef = useRef(null);
 
@@ -286,7 +287,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
         options: { responsive: true, maintainAspectRatio: false, animation: { duration: 1200 },
           plugins: { legend: { display: false }, tooltip: { enabled: false } },
           scales: {
-            x: { ticks: { font: { size: 9 }, color: (ctx) => { if (isBH[ctx.index]) return '#f59e0b88'; if (isClosed[ctx.index]) return '#334155'; if (ctx.index === todayIdx) return '#f59e0b'; return '#64748b'; }, maxRotation: 0 }, grid: { display: false } },
+            x: { ticks: { font: { size: 9 }, color: (ctx) => { if (isBH[ctx.index]) return '#f59e0b88'; if (isClosed[ctx.index]) return C.textFaint; if (ctx.index === todayIdx) return '#f59e0b'; return '#64748b'; }, maxRotation: 0 }, grid: { display: false } },
             y: { position: 'right', min: 40, max: 220, ticks: { font: { size: 9 }, color: C.textFaint, stepSize: 40 }, grid: { color: C.grid, lineWidth: 0.5 }, border: { display: false } },
           },
         },
@@ -294,7 +295,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
     };
     loadChart();
     return () => { if (chartInstance.current) chartInstance.current.destroy(); };
-  }, [demandData]);
+  }, [demandData, isLight]);
 
   // ── Who's in ──────────────────────────────────────────────────
   const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');

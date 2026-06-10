@@ -281,6 +281,31 @@ export function SaveStatus({ state, savedLabel = '✓ Saved' }) {
   return <span style={{ fontSize: 12.5, color: m.color, minWidth: 58, display: 'inline-block' }}>{m.text}</span>;
 }
 
+// ─── Theme hook ──────────────────────────────────────────────────
+// True when the light theme is active; updates live when the user
+// toggles. Use this to rebuild canvas charts (canvas cannot resolve
+// CSS variables, so colours must be re-read on theme change).
+export function useIsLight() {
+  const [light, setLight] = useState(false);
+  useEffect(() => {
+    const el = document.documentElement;
+    const update = () => setLight(el.getAttribute('data-theme') === 'light');
+    update();
+    const mo = new MutationObserver(update);
+    mo.observe(el, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => mo.disconnect();
+  }, []);
+  return light;
+}
+
+// Resolve a CSS custom property to its current concrete value (for
+// canvas drawing). Returns the fallback during SSR.
+export function cssVar(name, fallback = '') {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
 // ─── Confirm Dialog ──────────────────────────────────────────────
 // Imperative, awaitable replacement for window.confirm():
 //   const ok = await confirmDialog({ title, message, confirmLabel, danger });
