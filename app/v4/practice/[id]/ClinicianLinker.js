@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
@@ -33,7 +34,7 @@ export default function ClinicianLinker({ practiceId, currentLinkedClinicianId, 
   };
 
   const unlink = async () => {
-    if (!confirm('Unlink your account from this clinician?')) return;
+    if (!(await confirmDialog({ message: 'Unlink your account from this clinician?', danger: false }))) return;
     setBusy(true); setError(''); setSuccess('');
     try {
       // Direct update — RLS allows admins or the linked user themselves

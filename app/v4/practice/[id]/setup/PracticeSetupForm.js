@@ -6,6 +6,7 @@
 // doesn't lose progress.
 
 import { useState, useEffect, useRef } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { lookupPostcode, isValidPostcodeFormat, formatPostcode } from '@/lib/postcode-lookup';
@@ -242,7 +243,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
    * Used when the user wants to pick a different practice.
    */
   async function clearPractice() {
-    if (!confirm('Clear practice details? You\'ll need to pick a practice again, and any pre-seeded demand predictions will be removed.')) {
+    if (!(await confirmDialog({ message: 'Clear practice details? You\'ll need to pick a practice again, and any pre-seeded demand predictions will be removed.', danger: true }))) {
       return;
     }
     setSavingField('practice');

@@ -12,6 +12,7 @@
 // security boundary.
 
 import { useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
@@ -94,7 +95,7 @@ export default function UserActions({ user, allPractices }) {
   };
 
   const removeMembership = async (practiceId, practiceName) => {
-    if (!confirm(`Remove ${user.email} from ${practiceName}? They'll lose access immediately. The practice's data is unaffected.`)) return;
+    if (!(await confirmDialog({ message: `Remove ${user.email} from ${practiceName}? They'll lose access immediately. The practice's data is unaffected.`, danger: true }))) return;
     setBusy(`remove-${practiceId}`);
     const { error: err } = await supabase.rpc('admin_remove_user_membership', {
       target_user_id: user.id,

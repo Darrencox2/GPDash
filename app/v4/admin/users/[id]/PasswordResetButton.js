@@ -5,6 +5,7 @@
 // by the platform admin on someone else's behalf.
 
 import { useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { createClient } from '@/utils/supabase/client';
 import { getSiteUrl } from '@/lib/site-url';
 
@@ -14,7 +15,7 @@ export default function PasswordResetButton({ email }) {
   const [status, setStatus] = useState({ kind: 'idle', message: '' });
 
   const send = async () => {
-    if (!confirm(`Send a password reset email to ${email}?\n\nThey'll receive a link to set a new password.`)) return;
+    if (!(await confirmDialog({ message: `Send a password reset email to ${email}?\n\nThey'll receive a link to set a new password.`, danger: false }))) return;
     setBusy(true);
     setStatus({ kind: 'idle', message: '' });
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

@@ -5,6 +5,7 @@
 // tab where destructive actions belong.
 
 import { useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -17,7 +18,7 @@ export default function DataCleanupActions({ practiceId }) {
   const [error, setError] = useState('');
 
   async function clearRoomHistory() {
-    if (!confirm('Clear all room allocation history? This removes saved room assignments for past dates. Cannot be undone.')) return;
+    if (!(await confirmDialog({ message: 'Clear all room allocation history? This removes saved room assignments for past dates. Cannot be undone.', danger: true }))) return;
     setBusy('rooms');
     setError('');
     setResult(null);
@@ -40,7 +41,7 @@ export default function DataCleanupActions({ practiceId }) {
   }
 
   async function clearHuddleCsv() {
-    if (!confirm('Clear the parsed huddle CSV data? Today and Capacity Planning will be empty until you re-upload. Cannot be undone.')) return;
+    if (!(await confirmDialog({ message: 'Clear the parsed huddle CSV data? Today and Capacity Planning will be empty until you re-upload. Cannot be undone.', danger: true }))) return;
     setBusy('csv');
     setError('');
     setResult(null);
@@ -55,7 +56,7 @@ export default function DataCleanupActions({ practiceId }) {
   }
 
   async function clearBuddyHistory() {
-    if (!confirm('Clear all buddy allocation history? Past buddy cover assignments will be removed. Cannot be undone.')) return;
+    if (!(await confirmDialog({ message: 'Clear all buddy allocation history? Past buddy cover assignments will be removed. Cannot be undone.', danger: true }))) return;
     setBusy('buddy');
     setError('');
     setResult(null);

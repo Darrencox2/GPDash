@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BrandHeader from '../_lib/BrandHeader';
@@ -33,7 +34,7 @@ export default function V4ImportPage() {
   };
 
   const realRun = async () => {
-    if (!confirm('Really write data to Postgres? This is a one-shot operation.')) return;
+    if (!(await confirmDialog({ message: 'Really write data to Postgres? This is a one-shot operation.', danger: true }))) return;
     setError('');
     setReport(null);
     setLoading(true);

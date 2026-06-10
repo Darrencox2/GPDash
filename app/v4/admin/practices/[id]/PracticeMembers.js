@@ -10,6 +10,7 @@
 // operations are symmetric, only the entry point differs.
 
 import { useEffect, useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
@@ -39,7 +40,7 @@ export default function PracticeMembers({ practice }) {
   };
 
   const removeMember = async (userId, email) => {
-    if (!confirm(`Remove ${email} from ${practice.name}? They'll lose access immediately. Their account is unaffected.`)) return;
+    if (!(await confirmDialog({ message: `Remove ${email} from ${practice.name}? They'll lose access immediately. Their account is unaffected.`, danger: true }))) return;
     setBusy(`remove-${userId}`);
     const { error: err } = await supabase.rpc('admin_remove_user_membership', {
       target_user_id: userId,

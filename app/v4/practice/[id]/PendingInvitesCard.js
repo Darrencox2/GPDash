@@ -12,6 +12,7 @@
 // and surfaces errors.
 
 import { useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { getSiteUrl } from '@/lib/site-url';
@@ -69,7 +70,7 @@ function InviteRow({ invite: inv, canManage }) {
   };
 
   const revoke = async () => {
-    if (!confirm(`Revoke invite for ${inv.email}? They won't be able to use the existing link anymore.`)) return;
+    if (!(await confirmDialog({ message: `Revoke invite for ${inv.email}? They won't be able to use the existing link anymore.`, danger: true }))) return;
     setBusy(true);
     setError('');
     const { error: err } = await supabase.rpc('revoke_practice_invite', { invite_id: inv.id });

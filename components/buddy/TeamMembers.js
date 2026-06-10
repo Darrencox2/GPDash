@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { STAFF_GROUPS, guessGroupFromRole, DAYS } from '@/lib/data';
 
 const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof'];
@@ -95,15 +96,15 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
   };
 
   // Soft-delete: set status to 'left' instead of removing
-  const removePerson = (id) => {
-    if (!confirm('Mark this person as left? They can be restored later.')) return;
+  const removePerson = async (id) => {
+    if (!(await confirmDialog({ message: 'Mark this person as left? They can be restored later.', danger: false }))) return;
     updateField(id, 'status', 'left');
     toast?.('Person marked as left', 'info', 1500);
   };
 
   // Hard delete (only from left section)
-  const permanentlyDelete = (id) => {
-    if (!confirm('Permanently delete this person? This cannot be undone.')) return;
+  const permanentlyDelete = async (id) => {
+    if (!(await confirmDialog({ message: 'Permanently delete this person? This cannot be undone.', danger: true }))) return;
     saveData({ ...data, clinicians: clinicians.filter(c => c.id !== id) });
     toast?.('Person permanently removed', 'success', 1500);
   };
@@ -190,10 +191,10 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
   // Map full day name → single letter for the pills
   const DAY_LABELS = { Monday: 'M', Tuesday: 'T', Wednesday: 'W', Thursday: 'T', Friday: 'F' };
 
-  const removeAllUnconfirmed = () => {
+  const removeAllUnconfirmed = async () => {
     const unconfirmed = clinicians.filter(c => !c.confirmed);
     const count = unconfirmed.length;
-    if (!confirm(`Mark all ${count} unconfirmed staff as left?`)) return;
+    if (!(await confirmDialog({ message: `Mark all ${count} unconfirmed staff as left?`, danger: true }))) return;
     const updated = clinicians.map(c => !c.confirmed ? { ...c, status: 'left' } : c);
     saveData({ ...data, clinicians: updated });
     toast?.(`${count} unconfirmed staff marked as left`, 'success', 1500);

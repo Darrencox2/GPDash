@@ -17,6 +17,7 @@
 // Less drastic than delete; reversible.
 
 import { useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 
 export default function SuspensionCard({ user }) {
@@ -29,7 +30,7 @@ export default function SuspensionCard({ user }) {
   const isSuspended = !!user.suspended_at;
 
   const suspend = async () => {
-    if (!confirm(`Suspend ${user.email}?\n\nThey'll be unable to sign in. Their data is preserved and you can unsuspend at any time.`)) {
+    if (!(await confirmDialog({ message: `Suspend ${user.email}?\n\nThey'll be unable to sign in. Their data is preserved and you can unsuspend at any time.`, danger: true }))) {
       return;
     }
     setBusy(true);
@@ -53,7 +54,7 @@ export default function SuspensionCard({ user }) {
   };
 
   const unsuspend = async () => {
-    if (!confirm(`Unsuspend ${user.email}? They'll be able to sign in again immediately.`)) {
+    if (!(await confirmDialog({ message: `Unsuspend ${user.email}? They'll be able to sign in again immediately.`, danger: false }))) {
       return;
     }
     setBusy(true);

@@ -27,6 +27,7 @@ export const dynamic = 'force-dynamic';
 // timeline view on /v4/admin/users/[id].
 
 import { useEffect, useState, Suspense } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
@@ -156,7 +157,7 @@ function SecurityPageInner() {
   };
 
   const removeFactor = async (factorId) => {
-    if (!confirm('Remove this authenticator? You\'ll need to enrol another before signing into admin areas again.')) return;
+    if (!(await confirmDialog({ message: 'Remove this authenticator? You\'ll need to enrol another before signing into admin areas again.', danger: true }))) return;
     setError('');
     const { error: uerr } = await supabase.auth.mfa.unenroll({ factorId });
     if (uerr) {

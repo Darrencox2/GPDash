@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { GRID_SIZES, getRoomTypes, SITE_COLOUR_PRESETS } from '@/lib/roomAllocation';
 
 export default function RoomSettings({ data, saveData, toast, huddleData }) {
@@ -39,8 +40,8 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
     setSelectedSiteId(id); setShowAddSite(false); toast('Site added', 'success');
   };
   const updateSite = (siteId, updates) => save({ ...ra, sites: sites.map(s => s.id === siteId ? { ...s, ...updates } : s) });
-  const deleteSite = (siteId) => {
-    if (!confirm('Delete this site and all its rooms?')) return;
+  const deleteSite = async (siteId) => {
+    if (!(await confirmDialog({ message: 'Delete this site and all its rooms?', danger: true }))) return;
     save({ ...ra, sites: sites.filter(s => s.id !== siteId) });
     setSelectedSiteId(sites.find(s => s.id !== siteId)?.id || null); toast('Site deleted', 'success');
   };
@@ -190,7 +191,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                 <input type="color" value={rt.colour} onChange={e => { const types = [...getRoomTypes(ra)]; types[i] = { ...types[i], colour: e.target.value }; save({ ...ra, roomTypes: types }); }} className="w-5 h-5 rounded-full border-0 cursor-pointer flex-shrink-0" style={{padding:0}} />
                 <input type="text" value={rt.label} onChange={e => { const types = [...getRoomTypes(ra)]; types[i] = { ...types[i], label: e.target.value }; save({ ...ra, roomTypes: types }); }} className="text-sm font-medium text-slate-700 bg-transparent border-0 flex-1 outline-none" />
                 <span className="text-[10px] text-slate-400">{rt.id}</span>
-                <button onClick={() => { if (!confirm('Delete this room type?')) return; save({ ...ra, roomTypes: getRoomTypes(ra).filter(x => x.id !== rt.id) }); toast('Deleted', 'success'); }} className="text-xs text-red-400 hover:text-red-600">×</button>
+                <button onClick={async () => { if (!(await confirmDialog({ message: 'Delete this room type?', danger: true }))) return; save({ ...ra, roomTypes: getRoomTypes(ra).filter(x => x.id !== rt.id) }); toast('Deleted', 'success'); }} className="text-xs text-red-400 hover:text-red-600">×</button>
               </div>
             ))}
           </div>

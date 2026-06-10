@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
+import { confirmDialog } from '@/components/ui';
 
 const TYPE_META = {
   csv: { label: 'CSV', colour: '#34d399', bg: 'rgba(16,185,129,0.15)', icon: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12' },
@@ -39,8 +40,8 @@ export default function AuditLog({ data, saveData }) {
   const filtered = log.filter(e => filterType === 'all' || e.type === filterType);
   const visible = showAll ? filtered : filtered.slice(0, 30);
 
-  const handleClear = () => {
-    if (!confirm('Clear audit log? This cannot be undone.')) return;
+  const handleClear = async () => {
+    if (!(await confirmDialog({ message: 'Clear audit log? This cannot be undone.', danger: true }))) return;
     saveData({ ...data, auditLog: [] });
   };
 

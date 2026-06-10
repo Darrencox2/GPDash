@@ -5,6 +5,7 @@
 // Renders bits relevant to the signed-in user (vs. the practice itself).
 
 import { useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { roleLabel, isPlatformAdmin, isOwner, isAdmin, canEditPracticeData } from '@/lib/permissions';
@@ -42,8 +43,8 @@ export default function AccountSettings({ data }) {
   };
 
   const setNonClinical = async (marked) => {
-    if (marked && !confirm("Mark yourself as non-clinical for this practice?\n\nThis hides the 'Is this you?' suggestion on the dashboard and the 'Not linked' warning on the Users tab. You can switch back here anytime.")) return;
-    if (!marked && !confirm("Unmark yourself as non-clinical?\n\nThe linking prompts will reappear until you pick a clinician record.")) return;
+    if (marked && !(await confirmDialog({ message: "Mark yourself as non-clinical for this practice?\n\nThis hides the 'Is this you?' suggestion on the dashboard and the 'Not linked' warning on the Users tab. You can switch back here anytime.", danger: false }))) return;
+    if (!marked && !(await confirmDialog({ message: "Unmark yourself as non-clinical?\n\nThe linking prompts will reappear until you pick a clinician record.", danger: false }))) return;
     setNonClinicalBusy(true); setError('');
     const { error: rpcErr } = await supabase.rpc('set_member_non_clinical_flag', {
       target_practice_id: practiceId,
@@ -56,7 +57,7 @@ export default function AccountSettings({ data }) {
   };
 
   const unlinkSelf = async () => {
-    if (!confirm('Unlink your account from this clinician? You can re-link later.')) return;
+    if (!(await confirmDialog({ message: 'Unlink your account from this clinician? You can re-link later.', danger: false }))) return;
     setUnlinkBusy(true); setError('');
     try {
       const { error: updErr } = await supabase

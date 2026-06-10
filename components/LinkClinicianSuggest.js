@@ -24,6 +24,7 @@
 //     to anyone other than this user) → not eligible
 
 import { useMemo, useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { createClient } from '@/utils/supabase/client';
 
 // Pulls the surname out of a clinician.name field. Handles comma-format
@@ -87,7 +88,7 @@ export default function LinkClinicianSuggest({ data }) {
 
   const markNonClinical = async () => {
     if (!practiceId || !v4.userId) return;
-    if (!confirm("Mark yourself as non-clinical for this practice?\n\nThis hides the 'Is this you?' suggestion and the 'Not linked to a clinician' warning on the Users tab. You can switch back later from Account settings.")) return;
+    if (!(await confirmDialog({ message: "Mark yourself as non-clinical for this practice?\n\nThis hides the 'Is this you?' suggestion and the 'Not linked to a clinician' warning on the Users tab. You can switch back later from Account settings.", danger: false }))) return;
     setMarkingNonClinical(true);
     setError('');
     const { error: rpcErr } = await supabase.rpc('set_member_non_clinical_flag', {

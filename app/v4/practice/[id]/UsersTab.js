@@ -16,6 +16,7 @@
 // Self-row never shows actions (use Leave Practice in Push C).
 
 import { useMemo, useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import LeavePracticeButton from './LeavePracticeButton';
@@ -198,7 +199,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
 
   const remove = async () => {
     const label = m.name || m.email;
-    if (!confirm(`Remove ${label} from the practice?\n\nTheir personal data (notes, rota links) is preserved on their account, but they'll lose access to this practice immediately.`)) return;
+    if (!(await confirmDialog({ message: `Remove ${label} from the practice?\n\nTheir personal data (notes, rota links) is preserved on their account, but they'll lose access to this practice immediately.`, danger: true }))) return;
     setBusy('remove');
     setError('');
     const { error: err } = await supabase.rpc('remove_practice_member', {
@@ -346,14 +347,14 @@ function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
   const [error, setError] = useState('');
 
   const setNonClinical = async (marked) => {
-    if (marked && !confirm(isMe
+    if (marked && !(await confirmDialog({ message: isMe
       ? "Mark yourself as non-clinical for this practice?\n\nThis hides the 'Not linked to a clinician' warning. You can switch back later from Account settings."
       : `Mark ${m.name || m.email} as non-clinical?\n\nThis hides the 'Not linked' warning on their row. They can change it themselves from Account settings.`
-    )) return;
-    if (!marked && !confirm(isMe
+    , danger: false }))) return;
+    if (!marked && !(await confirmDialog({ message: isMe
       ? "Unmark yourself as non-clinical?\n\nThe 'Not linked' warning will reappear until you link a clinician record."
       : `Unmark ${m.name || m.email} as non-clinical?`
-    )) return;
+    , danger: false }))) return;
     setBusy(true);
     setError('');
     const { error: err } = await supabase.rpc('set_member_non_clinical_flag', {

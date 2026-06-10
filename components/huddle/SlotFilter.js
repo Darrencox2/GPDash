@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { createPortal } from 'react-dom';
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -242,8 +243,8 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
             {/* Delete card */}
             {cardSettings.onDelete && (
               <button
-                onClick={() => {
-                  if (confirm(`Remove "${cardSettings.card.title}" card?`)) {
+                onClick={async () => {
+                  if ((await confirmDialog({ message: `Remove "${cardSettings.card.title}" card?`, danger: true }))) {
                     cardSettings.onDelete();
                     setShow(false);
                   }

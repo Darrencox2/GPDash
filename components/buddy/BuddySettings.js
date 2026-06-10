@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { calculateHistoricalTargets } from '@/lib/huddle';
 import { getDefaultData } from '@/lib/data';
-import { Button } from '@/components/ui';
+import { Button, confirmDialog } from '@/components/ui';
 import AuditLog from '@/components/AuditLog';
 
 export default function BuddySettings({ data, saveData, password, syncStatus, setSyncStatus, helpers, huddleData }) {
@@ -119,15 +119,15 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
         <div className="space-y-2">
           <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
             <div><div className="text-sm font-medium text-slate-700">Room allocation history</div><div className="text-xs text-slate-400">Saved room assignments for past dates</div></div>
-            <button onClick={() => { if (!confirm('Clear all room allocation history?')) return; const ra = { ...(data.roomAllocation || {}), allocationHistory: {}, dailyOverrides: {} }; saveData({ ...data, roomAllocation: ra }); toast('Room history cleared', 'success'); }} className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">Clear</button>
+            <button onClick={async () => { if (!(await confirmDialog({ message: 'Clear all room allocation history?', danger: true }))) return; const ra = { ...(data.roomAllocation || {}), allocationHistory: {}, dailyOverrides: {} }; saveData({ ...data, roomAllocation: ra }); toast('Room history cleared', 'success'); }} className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">Clear</button>
           </div>
           <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
             <div><div className="text-sm font-medium text-slate-700">Huddle CSV data</div><div className="text-xs text-slate-400">Parsed appointment data — will need re-upload</div></div>
-            <button onClick={() => { if (!confirm('Clear CSV data? You will need to re-upload.')) return; saveData({ ...data, huddleCsvData: null, huddleCsvUploadedAt: null }); toast('CSV data cleared', 'success'); }} className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">Clear</button>
+            <button onClick={async () => { if (!(await confirmDialog({ message: 'Clear CSV data? You will need to re-upload.', danger: true }))) return; saveData({ ...data, huddleCsvData: null, huddleCsvUploadedAt: null }); toast('CSV data cleared', 'success'); }} className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">Clear</button>
           </div>
           <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
             <div><div className="text-sm font-medium text-slate-700">Buddy allocation history</div><div className="text-xs text-slate-400">Past buddy cover assignments</div></div>
-            <button onClick={() => { if (!confirm('Clear all buddy allocation history?')) return; saveData({ ...data, allocationHistory: {} }); toast('Buddy history cleared', 'success'); }} className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">Clear</button>
+            <button onClick={async () => { if (!(await confirmDialog({ message: 'Clear all buddy allocation history?', danger: true }))) return; saveData({ ...data, allocationHistory: {} }); toast('Buddy history cleared', 'success'); }} className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">Clear</button>
           </div>
         </div>
       </div>
@@ -142,7 +142,7 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
         ) : (
           <>
             <p className="text-sm text-slate-500 mb-4">Reset all data to defaults. This will clear ALL clinicians, rotas, and history.</p>
-            <button onClick={async () => { if (confirm('Delete ALL DATA and reset? Cannot be undone.')) { if (confirm('FINAL WARNING: Everything will be deleted. Continue?')) { const d = getDefaultData(); saveData(d); try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(d) }); alert('Reset successful. Refreshing...'); window.location.reload(); } catch (err) { alert('Reset failed: ' + err.message); } } } }} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium">Reset All Data</button>
+            <button onClick={async () => { if ((await confirmDialog({ message: 'Delete ALL DATA and reset? Cannot be undone.', danger: true }))) { if ((await confirmDialog({ message: 'FINAL WARNING: Everything will be deleted. Continue?', danger: false }))) { const d = getDefaultData(); saveData(d); try { await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify(d) }); alert('Reset successful. Refreshing...'); window.location.reload(); } catch (err) { alert('Reset failed: ' + err.message); } } } }} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium">Reset All Data</button>
           </>
         )}
       </div>

@@ -8,6 +8,7 @@
 // disabled state with explanation so the button doesn't look broken.
 
 import { useState } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
@@ -21,7 +22,7 @@ export default function LeavePracticeButton({ practiceId, practiceName, myRole, 
 
   const leave = async () => {
     if (isLastOwner) return;
-    if (!confirm(`Leave ${practiceName}?\n\nYou'll lose access immediately. Your personal data (notes, account) is preserved — you'll just no longer be able to view or edit anything in this practice. An owner can re-invite you later if needed.`)) return;
+    if (!(await confirmDialog({ message: `Leave ${practiceName}?\n\nYou'll lose access immediately. Your personal data (notes, account) is preserved — you'll just no longer be able to view or edit anything in this practice. An owner can re-invite you later if needed.`, danger: true }))) return;
     setBusy(true);
     setError('');
     const { error: err } = await supabase.rpc('leave_practice', { target_practice_id: practiceId });

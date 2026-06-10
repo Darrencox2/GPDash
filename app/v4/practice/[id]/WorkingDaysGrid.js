@@ -19,6 +19,7 @@
 // AM and PM slots. Whole day in = 2 sessions; AM only = 1.
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { confirmDialog } from '@/components/ui';
 import { createClient } from '@/utils/supabase/client';
 import { normalizeWorkingPattern } from '@/lib/v4-data';
 
@@ -365,8 +366,8 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
             {generating ? 'Generating…' : 'Generate for missing'}
           </button>
           <button
-            onClick={() => {
-              if (!confirm('Overwrite ALL working patterns from CSV? This will replace any manual edits.')) return;
+            onClick={async () => {
+              if (!(await confirmDialog({ message: 'Overwrite ALL working patterns from CSV? This will replace any manual edits.', danger: true }))) return;
               generateFromCsv({ overwrite: true });
             }}
             disabled={generating}
