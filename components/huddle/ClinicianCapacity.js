@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
+import { EmptyState } from '@/components/ui';
 import { getHuddleCapacity, getSiteColour, getCliniciansForDate } from '@/lib/huddle';
 import { matchesStaffMember, toHuddleDateStr } from '@/lib/data';
 
@@ -313,9 +314,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
 
       {/* Empty state */}
       {!selected && !showList && (
-        <div className="py-8 px-4 text-center">
-          <div className="text-base text-slate-500">Search for a clinician to view their routine capacity</div>
-        </div>
+        <EmptyState compact icon="🔍" title="Search for a clinician" description="View their routine slots, weekly pattern and how they compare across the practice." />
       )}
     </div>
   );

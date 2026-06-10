@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { Button, Card } from '@/components/ui';
+import { Button, Card, EmptyState } from '@/components/ui';
 import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getDutyDoctor, getDutyDoctorDiagnostic, getBand, getCliniciansForDate, getSiteColour, getActiveSlotTypes } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
@@ -540,17 +540,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
       {/* ═══ DATA-DRIVEN SECTIONS ═══ */}
       {!huddleData ? (
-        <div className="glass rounded-xl p-12 text-center">
-          <div className="text-5xl mb-4">📊</div>
-          <h2 className="font-heading text-lg font-medium text-slate-200 mb-2">No appointment data yet</h2>
-          {canEdit ? (
-            <>
-              <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">Upload or drag-and-drop your EMIS CSV to see urgent capacity.</p>
-              <Button onClick={() => fileRef.current?.click()}>Select CSV File</Button>
-            </>
-          ) : (
-            <p className="text-sm text-slate-500 max-w-md mx-auto">Ask an admin to upload today's EMIS appointment report.</p>
-          )}
+        <div className="glass rounded-xl">
+          {canEdit
+            ? <EmptyState icon="📊" title="No appointment data yet" description="Upload or drag-and-drop your EMIS CSV to see urgent capacity." action="Select CSV File" actionVariant="primary" onAction={() => fileRef.current?.click()} />
+            : <EmptyState icon="📊" title="No appointment data yet" description="Ask an admin to upload today's EMIS appointment report." />}
         </div>
       ) : isPracticeClosed ? (
         <div className="glass rounded-xl overflow-hidden">

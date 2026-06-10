@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { EmptyState } from '@/components/ui';
 import { DAYS, STAFF_GROUPS, matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getCliniciansForDate, getClinicianLocationsForDate, getClinicianSessionLocations, getSiteColour } from '@/lib/huddle';
 import { canEditPracticeData } from '@/lib/permissions';
@@ -524,7 +525,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
         const csvName = todayCsvClinicians.find(n => matchesStaffMember(n, selectedPerson.person));
         if (!csvName) return (
           <SidePanel open={true} onClose={() => setSelectedPerson(null)} title={selectedPerson.person.name} accent={selectedPerson.accent}>
-            <div className="px-4 py-8 text-center text-base text-slate-500">No CSV slot data found for this person on this date.</div>
+            <EmptyState compact title="No slot data" description="No CSV slot data found for this person on this date." />
           </SidePanel>
         );
         return (

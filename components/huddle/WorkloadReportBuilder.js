@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
-import { PageHeader } from '@/components/ui';
+import { PageHeader, EmptyState } from '@/components/ui';
 import {
   buildFacts, buildSessionFacts, runReport, collectGroupFacts, describeMeasure, isTimeDimension,
   makeConditionalColour, PRESET_GROUPS, PRESETS, groupByOptionsForGrain, splitByOptionsForGrain, RANGE_OPTIONS, rangeLabel,
@@ -340,10 +340,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
 
   if (!huddleData) {
     return (
-      <div className="rounded-xl p-12 text-center" style={{ background: 'var(--g-panel-2)', border: '1px solid var(--g-border)' }}>
-        <div className="text-3xl mb-2">📊</div>
-        <h3 className="text-lg font-semibold text-slate-200 mb-1">No CSV data yet</h3>
-        <p className="text-sm text-slate-400">Upload a huddle CSV on the Today page to start building reports.</p>
+      <div className="rounded-xl" style={{ background: 'var(--g-panel-2)', border: '1px solid var(--g-border)' }}>
+        <EmptyState icon="📊" title="No CSV data yet" description="Upload a huddle CSV on the Today page to start building reports." />
       </div>
     );
   }

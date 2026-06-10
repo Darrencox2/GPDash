@@ -177,13 +177,13 @@ export function PageSkeleton() {
 
 // ─── Empty State ─────────────────────────────────────────────────
 // Same shape everywhere: icon, one-line title, short hint, ONE action.
-export function EmptyState({ icon, title, description, action, onAction, compact = false }) {
+export function EmptyState({ icon, title, description, action, onAction, actionVariant = 'secondary', compact = false }) {
   return (
     <div className="text-center" style={{ padding: compact ? '26px 18px' : '44px 22px' }}>
       {icon && <div style={{ fontSize: compact ? 26 : 36, marginBottom: 10, opacity: 0.85 }}>{icon}</div>}
       <div style={{ fontFamily: HEAD, fontSize: compact ? 14.5 : 16.5, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 5 }}>{title}</div>
       {description && <p style={{ fontSize: 13, color: 'var(--g-text-mid)', maxWidth: 430, margin: '0 auto', lineHeight: 1.55 }}>{description}</p>}
-      {action && <div style={{ marginTop: 14 }}><Button size="sm" variant="secondary" onClick={onAction}>{action}</Button></div>}
+      {action && <div style={{ marginTop: 14 }}><Button size="sm" variant={actionVariant} onClick={onAction}>{action}</Button></div>}
     </div>
   );
 }

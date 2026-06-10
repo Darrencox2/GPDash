@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { EmptyState } from '@/components/ui';
 import { getHuddleCapacity, getDateTotals, getDutyDoctor, getSiteColour } from '@/lib/huddle';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
@@ -471,7 +472,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
   const updateTarget=v=>saveData({...data,huddleSettings:{...hs,routineWeeklyTarget:parseInt(v)||0}},false);
 
-  if(!huddleData)return<div className="rounded-xl p-12 text-center" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}><h2 className="text-lg font-semibold text-white mb-2" style={{fontFamily:"'Outfit',sans-serif"}}>Upload appointment report</h2><p className="text-sm text-slate-500">Upload a CSV on the Today page first.</p></div>;
+  if(!huddleData)return<div className="rounded-xl" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}><EmptyState icon="📈" title="Upload appointment report" description="Upload a CSV on the Today page first." /></div>;
 
   const DutyPill = ({doc,colour,bgTint,borderCol}) => {
     if(!doc) return null;

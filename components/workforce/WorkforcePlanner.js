@@ -16,6 +16,7 @@
 //   • Totals strip under the grid. Everything auto-saves.
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { SaveStatus } from '@/components/ui';
 import { createClient } from '@/utils/supabase/client';
 import {
   buildContracted, cloneAllocation, pruneAllocation, detectAnomalies,
@@ -517,7 +518,7 @@ export default function WorkforcePlanner({ data, toast }) {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 12.5, color: saveState === 'error' ? '#f87171' : saveState === 'saving' ? '#fbbf24' : '#34d399', minWidth: 58 }}>{saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Save failed' : '✓ Saved'}</span>
+          <SaveStatus state={saveState} />
           <button onClick={() => togglePanel('clinicians')} style={tabBtn(panel.clinicians)}>Clinicians</button>
           <button onClick={() => togglePanel('anomalies')} style={tabBtn(panel.anomalies)}>Anomalies{anomCount ? ` (${anomCount})` : ''}</button>
           <button onClick={() => togglePanel('audit')} style={tabBtn(panel.audit)}>Audit</button>
