@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { PageHeader } from '@/components/ui';
 import { DAYS } from '@/lib/data';
 import { inferWeeklyRota } from '@/lib/auto-rota';
 
@@ -49,11 +50,7 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Clinician Rota</h1>
-          <p className="text-sm text-slate-500 mt-1">Standard weekly working pattern. Click any cell to toggle. Includes everyone marked 'Buddy cover' on the Team page.</p>
-        </div>
+      <PageHeader title="Clinician Rota" subtitle="Standard weekly working pattern. Click any cell to toggle. Includes everyone marked 'Buddy cover' on the Team page." className="mb-0" actions={
         <button
           onClick={autoGenerateFromCSV}
           disabled={generating || !huddleData?.dates?.length}
@@ -62,7 +59,7 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
         >
           {generating ? 'Analysing…' : '✨ Auto-generate from CSV'}
         </button>
-      </div>
+      } />
 
       {genReport?.error && (
         <div className="card p-3 bg-red-50 border border-red-200 text-sm text-red-800">{genReport.error}</div>

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
+import { PageHeader } from '@/components/ui';
 import {
   buildFacts, buildSessionFacts, runReport, collectGroupFacts, describeMeasure, isTimeDimension,
   makeConditionalColour, PRESET_GROUPS, PRESETS, groupByOptionsForGrain, splitByOptionsForGrain, RANGE_OPTIONS, rangeLabel,
@@ -385,10 +386,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     }).filter(Boolean);
     return (
       <div className="space-y-7">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Reporting</h1>
-          <p className="text-sm text-slate-400 mt-1">Pick a report to get started, or build your own. Every report is fully editable once open.</p>
-        </div>
+        <PageHeader title="Reporting" subtitle="Pick a report to get started, or build your own. Every report is fully editable once open." className="mb-0" />
 
         {favResolved.length > 0 && (
           <div>

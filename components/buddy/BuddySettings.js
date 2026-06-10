@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { calculateHistoricalTargets } from '@/lib/huddle';
 import { getDefaultData } from '@/lib/data';
-import { Button, confirmDialog } from '@/components/ui';
+import { Button, confirmDialog, PageHeader } from '@/components/ui';
 import AuditLog from '@/components/AuditLog';
 
 export default function BuddySettings({ data, saveData, password, syncStatus, setSyncStatus, helpers, huddleData }) {
@@ -22,7 +22,7 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-xl font-bold text-slate-900">Settings</h1><p className="text-sm text-slate-500 mt-1">General settings, capacity targets, and TeamNet sync</p></div>
+      <PageHeader title="Settings" subtitle="General settings, capacity targets, and TeamNet sync" className="mb-0" />
 
       {/* TeamNet Calendar Sync */}
       <div className="card p-5">

@@ -292,7 +292,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       {/* ═══ HEADER ═══ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pl-12 lg:pl-0">
         <div>
-          <h1 className="text-xl font-bold text-white" style={{fontFamily:"'Outfit',sans-serif"}}>Buddy Cover</h1>
+          <h1 className="text-xl font-semibold" style={{fontFamily:"'Outfit',sans-serif", color:'var(--g-pill-text)'}}>Buddy Cover</h1>
           <p className="text-sm text-slate-500 mt-0.5">
             {data.lastSyncTime ? `TeamNet synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'TeamNet not synced'}
             {syncStatus && <span className="ml-2 text-emerald-600">{syncStatus}</span>}

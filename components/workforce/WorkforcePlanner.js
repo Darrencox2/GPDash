@@ -507,8 +507,8 @@ export default function WorkforcePlanner({ data, toast }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 25, fontWeight: 600, color: 'var(--text-1)', fontFamily: "'Outfit', sans-serif" }}>Workforce planner</h2>
-          <p style={{ margin: '6px 0 0', fontSize: 15, color: 'var(--text-3)', maxWidth: 680, lineHeight: 1.55 }}>
+          <h2 style={{ margin: 0, fontSize: 23, fontWeight: 600, color: 'var(--g-text-hi)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>Workforce planner</h2>
+          <p style={{ margin: '5px 0 0', fontSize: 13.5, color: 'var(--g-text-mid)', maxWidth: 720, lineHeight: 1.5 }}>
             Drag clinicians across the week, allocate activities, and see where each session sits against demand. Use it to plan recruitment: spot the gaps against demand and work out how many sessions, and which role, to hire.
           </p>
           <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-4)', maxWidth: 680, lineHeight: 1.5 }}>
