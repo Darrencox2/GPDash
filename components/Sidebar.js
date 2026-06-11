@@ -93,6 +93,14 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
   //   - If onNavigate provided (sidebar is on a non-dashboard page), use it for
   //     all other items so they navigate to the dashboard with the right section
   //   - Otherwise (default — on dashboard) use setActiveSection for in-page state
+  // On phones the drawer must start closed — both shells initialise
+  // sidebarOpen=true, which on first load covered the page with the
+  // nav and scrim on mobile.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) setSidebarOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleItemClick = (item) => {
     if (item.id === 'practice-settings' && practiceSlug) {
       router.push(`/v4/practice/${practiceSlug}`);

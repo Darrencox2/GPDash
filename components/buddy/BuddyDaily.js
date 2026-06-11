@@ -290,7 +290,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     <div className="-m-4 lg:-m-6 min-h-screen" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 40%, var(--g-ink) 100%)'}}>
     <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-4">
       {/* ═══ HEADER ═══ */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pl-12 lg:pl-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold" style={{fontFamily:"'Outfit',sans-serif", color:'var(--g-pill-text)'}}>Buddy Cover</h1>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -298,7 +298,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             {syncStatus && <span className="ml-2 text-emerald-600">{syncStatus}</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Link to the standing working pattern editor. Lives in
               Practice → Clinicians → Working days grid since v4.14.0
               (the in-dashboard team-rota was retired with the rest of

@@ -67,6 +67,17 @@
     /* ── Shape scale (theme-independent): controls, buttons/inputs, cards, pills ── */
     --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-pill: 999px;
   }
+
+  /* Mobile browsers: 100vh includes the collapsed URL bar, which lets the
+     sidebar footer slip off-screen. dvh tracks the real visible height and
+     equals vh on desktop, so this is a strict improvement where supported. */
+  @supports (height: 100dvh) {
+    .h-screen { height: 100dvh; }
+    .min-h-screen { min-height: 100dvh; }
+  }
+
+  :root {
+  }
   [data-theme="light"] {
     --app-bg: #f4f6fc;
     --app-text: #1e293b;
