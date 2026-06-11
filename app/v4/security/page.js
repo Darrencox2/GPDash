@@ -104,7 +104,7 @@ function SecurityPageInner() {
     // Clean up the un-verified factor so it doesn't clutter the user's
     // record. Unenroll silently — if it fails we just leave the orphan.
     if (enrolling?.factorId) {
-      await supabase.auth.mfa.unenroll({ factorId: enrolling.factorId }).catch(() => {});
+      await supabase.auth.mfa.unenroll({ factorId: enrolling.factorId }).then(null, () => {});
     }
     setEnrolling(null);
     setCode('');
@@ -139,7 +139,7 @@ function SecurityPageInner() {
       supabase.rpc('log_auth_event', {
         event_type: 'mfa_failed',
         details: { phase: 'enrollment', factor_id: enrolling.factorId },
-      }).catch(() => {});
+      }).then(null, () => {});
       return;
     }
     // Success — log the enrollment, refresh the list, redirect if we
@@ -147,7 +147,7 @@ function SecurityPageInner() {
     supabase.rpc('log_auth_event', {
       event_type: 'mfa_enrolled',
       details: { factor_id: enrolling.factorId, factor_type: 'totp' },
-    }).catch(() => {});
+    }).then(null, () => {});
     setEnrolling(null);
     setCode('');
     await refresh();

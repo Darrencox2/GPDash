@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
         event_type: 'password_reset_requested',
         email,
         details: null,
-      }).catch(() => {});
+      }).then(null, () => {});
       setSent(true);
     } catch (e) {
       // An exception here previously vanished — surface it instead.

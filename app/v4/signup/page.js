@@ -162,7 +162,7 @@ function SignupPageInner() {
         event_type: 'signup',
         email,
         details: null,
-      }).catch(() => {});
+      }).then(null, () => {});
       router.push(next);
       router.refresh();
     } else {

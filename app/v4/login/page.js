@@ -60,7 +60,7 @@ function LoginPageInner() {
         event_type: 'failed_login',
         email,
         details: { reason: err.message },
-      }).catch(() => {});
+      }).then(null, () => {});
       return;
     }
 
@@ -70,7 +70,7 @@ function LoginPageInner() {
       event_type: 'login',
       email,
       details: null,
-    }).catch(() => {});
+    }).then(null, () => {});
 
     // Check whether MFA is required for this account. getAuthenticatorAssuranceLevel
     // returns:

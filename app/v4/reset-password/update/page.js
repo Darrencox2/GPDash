@@ -55,7 +55,7 @@ export default function ResetPasswordUpdatePage() {
       supabase.rpc('log_auth_event', {
         event_type: 'password_changed',
         details: { via: 'reset_link' },
-      }).catch(() => {});
+      }).then(null, () => {});
       router.push('/v4/dashboard');
       router.refresh();
     }

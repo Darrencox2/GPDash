@@ -95,7 +95,7 @@ function MfaVerifyInner() {
       supabase.rpc('log_auth_event', {
         event_type: 'mfa_failed',
         details: { phase: 'challenge', factor_id: factorId },
-      }).catch(() => {});
+      }).then(null, () => {});
       // Re-issue a fresh challenge so they can immediately retry
       const { data: chal } = await supabase.auth.mfa.challenge({ factorId });
       if (chal?.id) setChallengeId(chal.id);
@@ -105,7 +105,7 @@ function MfaVerifyInner() {
     supabase.rpc('log_auth_event', {
       event_type: 'mfa_challenged',
       details: { factor_id: factorId },
-    }).catch(() => {});
+    }).then(null, () => {});
     // router.push then a hard refresh so server components on the next
     // page re-evaluate AAL with the new session.
     router.push(next);
@@ -117,7 +117,7 @@ function MfaVerifyInner() {
     await supabase.rpc('log_auth_event', {
       event_type: 'logout',
       details: { reason: 'mfa_lockout' },
-    }).catch(() => {});
+    }).then(null, () => {});
     await supabase.auth.signOut();
     router.push('/v4/login');
   };

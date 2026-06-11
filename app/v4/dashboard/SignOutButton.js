@@ -14,7 +14,7 @@ export default function SignOutButton() {
       await supabase.rpc('log_auth_event', {
         event_type: 'logout',
         details: null,
-      }).catch(() => {});
+      }).then(null, () => {});
       await supabase.auth.signOut();
     }
     router.push('/v4/login');
