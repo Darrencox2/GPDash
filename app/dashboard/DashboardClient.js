@@ -540,6 +540,24 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   const getDayOffClinicians = (day) => getCachedDayStatus(getDateKeyForDay(day), day).dayOff;
   const getClinicianStatus = (id, day) => { const s = getCachedDayStatus(getDateKeyForDay(day), day); if (s.present.includes(id)) return 'present'; if (s.absent.includes(id)) return 'absent'; return 'dayoff'; };
 
+  // ── Change history (cover + rota edits) ──────────────────────────
+  // Every attendance/rota edit is recorded in data.changeLog (capped at
+  // 300 entries, newest first) with who/when/what, and can be reverted
+  // from the History panel on the buddy cover page.
+  const withChange = (d, entry) => ({ ...d, changeLog: [{ ts: Date.now(), uid: data?._v4?.userId || null, who: data?._v4?.userName || data?._v4?.userEmail || 'Unknown', ...entry }, ...ensureArray(d.changeLog)].slice(0, 300) });
+  const clinicianLabel = (id) => { const c = ensureArray(data.clinicians).find(c => c.id === id); return c?.name || c?.initials || 'Unknown'; };
+  const revertChange = (entry) => {
+    if (entry.type === 'status') {
+      if (getDateKeyForDay(entry.day) !== entry.dateKey) { toast?.('That date is no longer in the editable week', 'warning'); return; }
+      togglePresence(entry.clinicianId, entry.day, entry.from);
+    } else if (entry.type === 'rota') {
+      const inNow = ensureArray(data.weeklyRota?.[entry.day]).includes(entry.clinicianId);
+      const wantIn = entry.from === 'working';
+      if (inNow === wantIn) { toast?.('Already back to the previous state', 'warning'); return; }
+      toggleRotaDay(entry.clinicianId, entry.day);
+    }
+  };
+
   const togglePresence = (id, day, targetStatus) => {
     const dateKey = getDateKeyForDay(day); if (isPastDate(dateKey)) return;
     const dayKey = `${dateKey}-${day}`; const scheduled = getScheduledForDay(day); const currentPresent = ensureArray(getPresentClinicians(day));
@@ -563,7 +581,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     overrideSet.forEach(oid => { if (!naturalPresent.has(oid)) overriddenIds.push(oid); });
     naturalPresent.forEach(nid => { if (!overrideSet.has(nid)) overriddenIds.push(nid); });
     const newHistory = { ...data.allocationHistory, [dateKey]: { date: dateKey, day, allocations, dayOffAllocations, presentIds: newPresent, absentIds, dayOffIds, hasOverride: overriddenIds.length > 0, overriddenIds } };
-    saveData({ ...data, dailyOverrides: newOverrides, allocationHistory: newHistory });
+    saveData(withChange({ ...data, dailyOverrides: newOverrides, allocationHistory: newHistory }, { type: 'status', day, dateKey, clinicianId: id, clinician: clinicianLabel(id), from: currentStatus, to: next }));
   };
 
   const getCurrentAllocations = () => data?.allocationHistory?.[getDateKey()] || null;
@@ -606,7 +624,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     return weekAbsences;
   };
 
-  const toggleRotaDay = (clinicianId, day) => { const currentRota = ensureArray(data.weeklyRota[day]); const newRota = currentRota.includes(clinicianId) ? currentRota.filter(id => id !== clinicianId) : [...currentRota, clinicianId]; saveData({ ...data, weeklyRota: { ...data.weeklyRota, [day]: newRota } }); };
+  const toggleRotaDay = (clinicianId, day) => { const currentRota = ensureArray(data.weeklyRota[day]); const wasIn = currentRota.includes(clinicianId); const newRota = wasIn ? currentRota.filter(id => id !== clinicianId) : [...currentRota, clinicianId]; saveData(withChange({ ...data, weeklyRota: { ...data.weeklyRota, [day]: newRota } }, { type: 'rota', day, clinicianId, clinician: clinicianLabel(clinicianId), from: wasIn ? 'working' : 'off', to: wasIn ? 'off' : 'working' })); };
   const removeClinician = async (id) => { if (!(await confirmDialog({ message: 'Remove this clinician?', danger: true }))) return; const newClinicians = ensureArray(data.clinicians).filter(c => c.id !== id); const newRota = { ...data.weeklyRota }; DAYS.forEach(day => { newRota[day] = ensureArray(newRota[day]).filter(cid => cid !== id); }); saveData({ ...data, clinicians: newClinicians, weeklyRota: newRota }); };
   const updateClinicianField = (id, field, value) => { const newClinicians = ensureArray(data.clinicians).map(c => { if (c.id !== id) return c; let pv = value; if (field === 'sessions') pv = parseInt(value) || 6; if (field === 'primaryBuddy' || field === 'secondaryBuddy') pv = value ? (/^\d+$/.test(String(value)) ? parseInt(value) : value) : null; return { ...c, [field]: pv }; }); saveData({ ...data, clinicians: newClinicians }); };
 
@@ -691,7 +709,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
             );
           })()}
           <Suspense fallback={<div className="text-sm text-slate-500 py-12 text-center">Loading…</div>}>
-          {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} />}
+          {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} onRevertChange={revertChange} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-rota' && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}

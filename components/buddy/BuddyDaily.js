@@ -6,9 +6,11 @@ import { getCliniciansForDate } from '@/lib/huddle';
 import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 import BuddyOverrideModal from './BuddyOverrideModal';
+import ChangeHistoryPanel from './ChangeHistoryPanel';
 
-export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData, setActiveSection }) {
+export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData, setActiveSection, onRevertChange }) {
   const canEdit = canEditPracticeData(data);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
 
   // Lazy supabase client for the manual override audit-log insert.
@@ -316,6 +318,15 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               Working days grid
             </a>
           )}
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 flex items-center gap-1.5 transition-colors hover:bg-white/10"
+            style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)' }}
+            title="Who changed what, and when — with revert"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            History
+          </button>
           {canEdit && (
           <button onClick={handleCopyWeek} className="px-3 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5" style={{background:"rgba(16,185,129,0.6)",border:"1px solid rgba(16,185,129,0.3)"}}>Copy Week</button>
           )}
@@ -728,6 +739,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           </div>
         </>
       )}
+
+      <ChangeHistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} changeLog={data.changeLog} canEdit={canEdit} onRevert={onRevertChange} />
 
       {overrideTarget && currentAlloc && (
         <BuddyOverrideModal
