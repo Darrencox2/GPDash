@@ -76,8 +76,6 @@
     .min-h-screen { min-height: 100dvh; }
   }
 
-  :root {
-  }
   [data-theme="light"] {
     --app-bg: #f4f6fc;
     --app-text: #1e293b;

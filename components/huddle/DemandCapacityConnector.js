@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useIsLight } from '@/components/ui';
+import { useIsLight, Skeleton } from '@/components/ui';
 import { predictDemand, getWeatherForecast } from '@/lib/demandPredictor';
 import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor, getBand } from '@/lib/huddle';
@@ -126,7 +126,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   }, [forecast, showChart, isLight]);
 
   const active = forecast || prevData;
-  if (!active?.today) return <div className="glass rounded-xl"><div className="flex items-center justify-center gap-3 py-12"><div className="w-4 h-4 border-2 border-slate-700 border-t-amber-400 rounded-full animate-spin"/><span className="text-sm text-slate-400">Loading forecast...</span></div></div>;
+  if (!active?.today) return <div className="glass rounded-xl p-4 space-y-3"><div className="flex items-center justify-between"><Skeleton variant="heading" /><Skeleton variant="button" /></div><Skeleton variant="card" style={{ height: 96 }} /></div>;
 
   const t = active.today;
   // Typical demand for this date — baseline + dow + month effects from the
