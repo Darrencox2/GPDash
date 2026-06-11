@@ -1,6 +1,7 @@
 import './globals.css'
 import ImpersonationBanner from '@/components/ImpersonationBanner';
 import { ConfirmHost } from '@/components/ui';
+import PwaSetup from '@/components/PwaSetup';
 
 export const metadata = {
   title: {
@@ -10,12 +11,21 @@ export const metadata = {
     template: '%s · GPDash',
   },
   description: 'GP practice dashboard — huddle capacity, buddy cover & team management',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'GPDash',
+  },
+  icons: {
+    apple: '/icons/apple-touch-icon.png',
+  },
 }
 
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  themeColor: '#0f172a',
 }
 
 export default function RootLayout({ children }) {
@@ -39,6 +49,7 @@ export default function RootLayout({ children }) {
         {/* Singleton host for the awaitable confirmDialog() — replaces
             native window.confirm so confirmations match the app design. */}
         <ConfirmHost />
+        <PwaSetup />
       </body>
     </html>
   )
