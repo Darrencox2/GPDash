@@ -21,13 +21,16 @@ export default function ResetPasswordPage() {
       return;
     }
     setLoading(true);
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getSiteUrl()}/v4/reset-password/update`,
-    });
-    setLoading(false);
-    if (err) {
-      setError(err.message);
-    } else {
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${getSiteUrl()}/v4/reset-password/update`,
+      });
+      if (err) {
+        // Always show something — some gateway-level failures carry an
+        // empty message, which previously rendered as no box at all.
+        setError(err.message || `Reset request failed (${err.status || 'no status'}). Please try again or contact support.`);
+        return;
+      }
       // Audit: log the reset request. anon execute is granted on
       // log_auth_event for exactly this case — the request happens
       // before sign-in. Don't disclose whether the email exists
@@ -39,6 +42,11 @@ export default function ResetPasswordPage() {
         details: null,
       }).catch(() => {});
       setSent(true);
+    } catch (e) {
+      // An exception here previously vanished — surface it instead.
+      setError(`Unexpected error: ${e?.message || String(e)}`);
+    } finally {
+      setLoading(false);
     }
   };
 
