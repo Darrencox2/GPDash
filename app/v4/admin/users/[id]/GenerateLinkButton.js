@@ -16,7 +16,7 @@
 
 import { useState } from 'react';
 
-export default function GenerateLinkButton({ email, emailUnconfirmed }) {
+export default function GenerateLinkButton({ email, emailUnconfirmed, type, label }) {
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState(null);
   const [error, setError] = useState('');
@@ -25,7 +25,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed }) {
   // For unconfirmed accounts we generate a 'signup' link (which both
   // signs them in AND marks the email confirmed). For confirmed accounts
   // we generate a regular magic-link.
-  const linkType = emailUnconfirmed ? 'signup' : 'magiclink';
+  const linkType = type || (emailUnconfirmed ? 'signup' : 'magiclink');
 
   const generate = async () => {
     setBusy(true);
@@ -66,7 +66,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed }) {
         disabled={busy}
         style={{
           padding: '8px 14px',
-          background: emailUnconfirmed ? '#d97706' : '#475569',
+          background: type === 'recovery' ? '#0891b2' : emailUnconfirmed ? '#d97706' : '#475569',
           color: 'white',
           border: 'none',
           borderRadius: 'var(--r-md)',
@@ -78,9 +78,11 @@ export default function GenerateLinkButton({ email, emailUnconfirmed }) {
       >
         {busy
           ? 'Generating…'
-          : emailUnconfirmed
-            ? 'Generate sign-up confirmation link'
-            : 'Generate sign-in link'}
+          : label
+            ? label
+            : emailUnconfirmed
+              ? 'Generate sign-up confirmation link'
+              : 'Generate sign-in link'}
       </button>
 
       {error && (
