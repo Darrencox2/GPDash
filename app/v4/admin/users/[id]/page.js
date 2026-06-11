@@ -129,10 +129,6 @@ export default async function AdminUserDetailPage({ params }) {
         <div style={card}>
           <h3 style={cardHeader}>Sign-in & email links</h3>
           <GenerateLinkButton email={details.email} emailUnconfirmed={!details.email_confirmed_at} />
-          {/* Email-free password reset: generates the recovery URL directly
-              via the service-role admin API. Built for NHSmail eating reset
-              emails — copy the link and pass it to the user by any channel. */}
-          <GenerateLinkButton email={details.email} type="recovery" label="Generate password reset link" />
         </div>
 
         {/* Password reset stays separate — it's a one-shot transactional action */}
