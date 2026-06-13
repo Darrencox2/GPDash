@@ -498,11 +498,20 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               <h1 className="font-heading text-lg sm:text-2xl font-medium text-slate-900 truncate">
                 {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'short' })}
               </h1>
-              {!isViewingToday && <button onClick={goToToday} className="text-[10px] text-emerald-400 hover:text-emerald-300 font-medium underline flex-shrink-0">today</button>}
             </div>
             <span className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">
               {viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
+            {!isViewingToday && (
+              <button
+                onClick={goToToday}
+                className="mt-1 inline-flex items-center gap-1 text-[11px] text-emerald-500 hover:text-emerald-400 font-medium"
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18M3 12l6-6M3 12l6 6"/></svg>
+                Navigate to today
+              </button>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
