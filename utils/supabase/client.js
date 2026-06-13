@@ -19,5 +19,19 @@ export const createClient = () => {
     return null;
   }
 
-  return createBrowserClient(url, key);
+  return createBrowserClient(url, key, {
+    auth: {
+      // PKCE flow: the email link carries only a `code` that is worthless
+      // to anyone but the browser that requested it (it holds the matching
+      // verifier). This defeats NHSmail/Outlook link scanners that were
+      // pre-fetching the old implicit-flow links and burning the
+      // single-use token before the user could click — the cause of
+      // "reset link invalid immediately", confirmed in the auth logs
+      // (scanner GET /verify -> 403 "One-time token not found").
+      flowType: 'pkce',
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  });
 };
