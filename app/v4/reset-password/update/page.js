@@ -13,6 +13,7 @@ export default function ResetPasswordUpdatePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [ready, setReady] = useState(false);
+  const [diag, setDiag] = useState('');
 
   // Establish a session from the reset link. Supabase can deliver the
   // recovery in three shapes depending on project/email-template config:
@@ -30,37 +31,52 @@ export default function ResetPasswordUpdatePage() {
     let cancelled = false;
 
     const establish = async () => {
+      // ── TEMP DIAGNOSTIC (v4.69.3) — remove once reset is confirmed working.
+      // Records exactly what the link delivered and how the exchange went,
+      // so we can see the real cause instead of guessing.
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      const note = [];
+      note.push('search=' + (search || '(none)'));
+      note.push('hash=' + (hash ? hash.slice(0, 60) + '…' : '(none)'));
+
       // Already have a session (legacy hash links, or returning to the page)?
       const { data: { session } } = await supabase.auth.getSession();
       if (session) { if (!cancelled) setReady(true); return; }
+      note.push('preSession=none');
 
       const url = new URL(window.location.href);
       const code = url.searchParams.get('code');
       const tokenHash = url.searchParams.get('token_hash');
       const type = url.searchParams.get('type') || 'recovery';
+      const errCode = url.searchParams.get('error_code') || url.searchParams.get('error');
+      const errDesc = url.searchParams.get('error_description');
+      if (errCode) note.push('linkError=' + errCode + ' ' + (errDesc || ''));
 
       try {
         if (code) {
+          note.push('path=code');
           const { error: err } = await supabase.auth.exchangeCodeForSession(code);
-          if (err) throw err;
+          if (err) { note.push('exchangeErr=' + err.message); throw err; }
         } else if (tokenHash) {
+          note.push('path=token_hash type=' + type);
           const { error: err } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-          if (err) throw err;
+          if (err) { note.push('verifyErr=' + err.message); throw err; }
         } else {
-          // No recognisable params and no session — give the client a
-          // moment in case detectSessionInUrl is mid-flight on a hash link.
-          await new Promise(r => setTimeout(r, 400));
+          note.push('path=none-waiting');
+          await new Promise(r => setTimeout(r, 600));
           const { data: { session: s2 } } = await supabase.auth.getSession();
-          if (!s2) throw new Error('no-link');
+          if (!s2) { note.push('postWaitSession=none'); throw new Error('no-link'); }
         }
         if (!cancelled) {
           setReady(true);
-          // Strip the token from the address bar so a reload or a
-          // scanner re-hitting the URL can't error on a spent code.
           window.history.replaceState({}, '', '/v4/reset-password/update');
         }
       } catch {
-        if (!cancelled) setError('Invalid or expired reset link. Please request a new one.');
+        if (!cancelled) {
+          setError('Invalid or expired reset link. Please request a new one.');
+          setDiag(note.join('  |  '));
+        }
       }
     };
 
@@ -107,6 +123,11 @@ export default function ResetPasswordUpdatePage() {
     <AuthCard title="Set new password" subtitle="Choose a strong password">
       <form onSubmit={handleSubmit}>
         {error && <div style={f.errorBox}>{error}</div>}
+        {diag && (
+          <div style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 8, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.12)', fontSize: 11, lineHeight: 1.5, color: '#cbd5e1', wordBreak: 'break-all', fontFamily: "'Space Mono', monospace" }}>
+            <strong style={{ color: '#fbbf24' }}>Diagnostic (send this to support):</strong><br />{diag}
+          </div>
+        )}
 
         <div style={f.field}>
           <label style={f.label}>New password</label>
