@@ -172,7 +172,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                         borderBottom: idx < rows.length - 1 ? '1px solid var(--g-tile)' : 'none',
                         cursor: 'pointer',
                         opacity: r.include ? 1 : 0.45,
-                        background: r.include ? 'transparent' : 'rgba(0,0,0,0.15)',
+                        background: r.include ? 'transparent' : 'var(--g-tile)',
                         transition: 'opacity 0.15s, background 0.15s',
                       }}
                     >

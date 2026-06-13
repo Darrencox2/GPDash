@@ -188,7 +188,7 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
         onClick={() => fileInput.current?.click()}
         style={{
           padding: 24,
-          background: drag ? 'rgba(34,211,238,0.08)' : 'rgba(0,0,0,0.2)',
+          background: drag ? 'rgba(34,211,238,0.08)' : 'var(--g-field)',
           border: `2px dashed ${drag ? 'rgba(34,211,238,0.5)' : 'var(--g-line)'}`,
           borderRadius: 'var(--r-md)',
           textAlign: 'center',
