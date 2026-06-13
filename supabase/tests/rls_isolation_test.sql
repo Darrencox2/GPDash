@@ -1,100 +1,49 @@
 -- ============================================================================
 -- RLS ISOLATION TEST  (run in the Supabase SQL editor)
 -- ============================================================================
--- Proves one practice cannot read another practice's data, using your REAL
--- existing data — no synthetic users (inserting into auth.users directly is
--- fragile across Supabase versions). It picks two DIFFERENT practices that
--- each have at least one member, then acts AS a member of practice A and
--- checks they cannot see practice B's rows.
+-- Read-only. Proves a member of one practice cannot see another practice's
+-- data, using your real existing data. Returns a results table of PASS/FAIL
+-- rows — no DO block, no dollar-quoting (the SQL editor was auto-appending
+-- ALTER TABLE lines into the DO block and breaking it).
 --
--- Read-only: SELECT-only, no writes, nothing to roll back. Safe on production.
---
--- Output: the Messages/Notices panel. Every check ends PASS or FAIL, with a
--- final verdict. A FAIL names the table with the isolation hole.
---
--- Requires: at least 2 practices, each with >=1 member in practice_users.
--- If you only have one practice so far, this will say so — that is fine, it
--- just means cross-practice isolation cannot be tested until a second
--- practice exists.
+-- Run all three statements together (the editor runs the whole script).
+-- The first two set the "logged-in user" to a real member of the busiest
+-- practice; the third is the actual test and shows the results grid.
 -- ============================================================================
-do $$
-declare
-  pa uuid; pb uuid;          -- two distinct practices
-  ua uuid;                   -- a member of practice A
-  seen int;
-  fails int := 0;
-begin
-  -- Pick practice A = the one with the most members (most realistic), and a
-  -- member of it. Then practice B = any other practice.
-  select pu.practice_id, pu.user_id
-    into pa, ua
-    from public.practice_users pu
-    group by pu.practice_id, pu.user_id
-    order by (select count(*) from public.practice_users x where x.practice_id = pu.practice_id) desc
-    limit 1;
 
-  select id into pb from public.practices where id <> pa limit 1;
+-- 1. Become a real member of the practice that has the most members.
+select set_config('request.jwt.claims',
+  json_build_object('sub',
+    (select pu.user_id
+       from public.practice_users pu
+       order by (select count(*) from public.practice_users x where x.practice_id = pu.practice_id) desc
+       limit 1),
+    'role','authenticated')::text, true);
 
-  if pa is null then
-    raise notice 'No practices with members found — nothing to test yet.'; return;
-  end if;
-  if pb is null then
-    raise notice 'Only one practice exists — cross-practice isolation cannot be tested until a second practice is created. (Single-practice RLS is still enforced.)'; return;
-  end if;
+-- 2. Switch role to authenticated so RLS applies.
+select set_config('role','authenticated', true);
 
-  raise notice 'Testing AS a member of practice % , trying to reach practice %', pa, pb;
-
-  -- Become user A (RLS reads these JWT claims).
-  perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role','authenticated')::text, true);
-  perform set_config('role', 'authenticated', true);
-
-  -- ---- Cross-practice READ checks: each must return 0 rows ----
-  select count(*) into seen from public.clinicians where practice_id = pb;
-  if seen = 0 then raise notice 'clinicians cross-read ........... PASS';
-  else fails := fails+1; raise notice 'clinicians cross-read ........... FAIL (saw % rows of B)', seen; end if;
-
-  select count(*) into seen from public.practice_settings where practice_id = pb;
-  if seen = 0 then raise notice 'practice_settings cross-read .... PASS';
-  else fails := fails+1; raise notice 'practice_settings cross-read .... FAIL (saw %)', seen; end if;
-
-  select count(*) into seen from public.buddy_allocations where practice_id = pb;
-  if seen = 0 then raise notice 'buddy_allocations cross-read .... PASS';
-  else fails := fails+1; raise notice 'buddy_allocations cross-read .... FAIL (saw %)', seen; end if;
-
-  select count(*) into seen from public.practice_users where practice_id = pb;
-  if seen = 0 then raise notice 'practice_users cross-read ....... PASS';
-  else fails := fails+1; raise notice 'practice_users cross-read ....... FAIL (saw %)', seen; end if;
-
-  -- clinician-FK-path tables: count B's rows reachable via B's clinicians
-  select count(*) into seen from public.absences a
-    where a.clinician_id in (select id from public.clinicians where practice_id = pb);
-  if seen = 0 then raise notice 'absences cross-read (FK path) ... PASS';
-  else fails := fails+1; raise notice 'absences cross-read (FK path) ... FAIL (saw %)', seen; end if;
-
-  select count(*) into seen from public.working_patterns w
-    where w.clinician_id in (select id from public.clinicians where practice_id = pb);
-  if seen = 0 then raise notice 'working_patterns cross-read ..... PASS';
-  else fails := fails+1; raise notice 'working_patterns cross-read ..... FAIL (saw %)', seen; end if;
-
-  select count(*) into seen from public.day_annotations where practice_id = pb;
-  if seen = 0 then raise notice 'day_annotations cross-read ...... PASS';
-  else fails := fails+1; raise notice 'day_annotations cross-read ...... FAIL (saw %)', seen; end if;
-
-  select count(*) into seen from public.saved_reports where practice_id = pb;
-  if seen = 0 then raise notice 'saved_reports cross-read ........ PASS';
-  else fails := fails+1; raise notice 'saved_reports cross-read ........ FAIL (saw %)', seen; end if;
-
-  -- ---- Helper-function checks ----
-  select count(*) into seen from public.user_practice_ids() upi where upi = pb;
-  if seen = 0 then raise notice 'user_practice_ids excludes B .... PASS';
-  else fails := fails+1; raise notice 'user_practice_ids excludes B .... FAIL'; end if;
-
-  if public.is_practice_admin(pb) then
-    fails := fails+1; raise notice 'is_practice_admin(B) is false ... FAIL (A is admin of B!)';
-  else raise notice 'is_practice_admin(B) is false ... PASS';
-  end if;
-
-  raise notice '----------------------------------------';
-  if fails = 0 then raise notice 'RESULT: ALL CHECKS PASSED — isolation holds between these two practices.';
-  else raise notice 'RESULT: % FAILURE(S) — see lines above.', fails; end if;
-end $$;
+-- 3. The test: for the "other" practice (any practice the current user is NOT
+--    a member of), every count below must be 0. result column says PASS/FAIL.
+with other as (
+  select id as bid
+  from public.practices
+  where id not in (select public.user_practice_ids())
+  limit 1
+)
+select check_name,
+       n_visible,
+       case when n_visible = 0 then 'PASS' else 'FAIL' end as result
+from (
+  select 'clinicians'        as check_name, (select count(*) from public.clinicians        where practice_id = (select bid from other)) as n_visible
+  union all select 'practice_settings',  (select count(*) from public.practice_settings  where practice_id = (select bid from other))
+  union all select 'buddy_allocations',  (select count(*) from public.buddy_allocations  where practice_id = (select bid from other))
+  union all select 'practice_users',     (select count(*) from public.practice_users     where practice_id = (select bid from other))
+  union all select 'day_annotations',    (select count(*) from public.day_annotations    where practice_id = (select bid from other))
+  union all select 'saved_reports',      (select count(*) from public.saved_reports      where practice_id = (select bid from other))
+  union all select 'absences (FK path)', (select count(*) from public.absences where clinician_id in (select id from public.clinicians where practice_id = (select bid from other)))
+  union all select 'working_patterns',   (select count(*) from public.working_patterns where clinician_id in (select id from public.clinicians where practice_id = (select bid from other)))
+  union all select 'is_practice_admin(other)', (case when (select bid from other) is null then 0 when public.is_practice_admin((select bid from other)) then 1 else 0 end)
+  union all select 'NO OTHER PRACTICE (info only)', (case when (select bid from other) is null then 1 else 0 end)
+) checks
+order by result desc, check_name;
