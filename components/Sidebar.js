@@ -275,6 +275,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
           {/* Theme toggle */}
           <div className="p-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
             <button onClick={toggleTheme}
+              aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
               className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-lg text-sm transition-colors"
               style={{ color: 'var(--text-3)' }}
               title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>

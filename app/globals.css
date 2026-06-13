@@ -19,6 +19,16 @@
        spacing, icons — keeping every layout proportion intact. */
     zoom: 1.25;
   }
+
+  /* Keyboard accessibility: a clear focus ring for users navigating by
+     keyboard (Tab). :focus-visible only shows it for keyboard focus, not
+     mouse clicks, so it doesn't add visual noise for pointer users. Uses
+     the accent colour and works in both themes. */
+  :focus-visible {
+    outline: 2px solid var(--accent, #6366f1);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
   body {
     @apply antialiased;
     font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
