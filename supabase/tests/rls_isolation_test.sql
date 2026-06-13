@@ -24,6 +24,14 @@ declare
   procedure_label text;
 begin
   -- ---- Seed: two practices, one user each (bypasses RLS — we're the definer) ----
+  -- practice_users.user_id has a FK to auth.users, so the users must exist
+  -- there first. Insert minimal auth.users rows (instance_id + email are the
+  -- practical NOT NULLs); everything else defaults.
+  insert into auth.users (id, instance_id, email, aud, role)
+    values
+      (ua, '00000000-0000-0000-0000-000000000000', 'rls-test-a@example.invalid', 'authenticated', 'authenticated'),
+      (ub, '00000000-0000-0000-0000-000000000000', 'rls-test-b@example.invalid', 'authenticated', 'authenticated');
+
   insert into public.practices (name, slug, ods_code)
     values ('TEST Practice A','test-rls-a','ZTESTA') returning id into pa;
   insert into public.practices (name, slug, ods_code)
