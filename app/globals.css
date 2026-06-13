@@ -13,6 +13,11 @@
 @layer base {
   html {
     scrollbar-gutter: stable;
+    /* Site-wide 125% scale. The app mixes rem-based Tailwind text classes
+       with ~1000 inline pixel font sizes, so a root font-size bump would
+       only scale half of them. zoom scales everything uniformly — text,
+       spacing, icons — keeping every layout proportion intact. */
+    zoom: 1.25;
   }
   body {
     @apply antialiased;
