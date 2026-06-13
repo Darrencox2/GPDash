@@ -91,7 +91,7 @@ export default async function PracticeAdminPage({ params }) {
   ]);
 
   const isPlatformAdmin = !!myProfile?.is_platform_admin;
-  const isAdminOrOwner = myMembership?.role === 'owner' || myMembership?.role === 'admin';
+  const isAdminOrOwner = ['owner', 'partner', 'practice_manager', 'admin'].includes(myMembership?.role);
   if (!isAdminOrOwner && !isPlatformAdmin) {
     if (myMembership) {
       redirect(`/p/${practice.slug || practiceId}`);
@@ -173,6 +173,7 @@ export default async function PracticeAdminPage({ params }) {
             <InviteForm
               practiceId={practiceId}
               canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin}
+              canAssignLeadership={['owner','partner','practice_manager'].includes(myMembership?.role) || isPlatformAdmin}
             />
           }
           bulkInviteButton={
@@ -180,6 +181,7 @@ export default async function PracticeAdminPage({ params }) {
               <BulkInviteButton
                 practiceId={practiceId}
                 canMakeOwner={myMembership?.role === 'owner' || isPlatformAdmin}
+                canAssignLeadership={['owner','partner','practice_manager'].includes(myMembership?.role) || isPlatformAdmin}
               />
             ) : null
           }

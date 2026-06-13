@@ -84,7 +84,8 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
   const practiceSlug = data?._v4?.practiceSlug;
   const practiceName = data?._v4?.practiceName || null;
   const myRole = data?._v4?.myRole || null;
-  const roleLabel = myRole ? (myRole.charAt(0).toUpperCase() + myRole.slice(1)) : null;
+  const ROLE_LABELS = { owner: 'Owner', partner: 'Partner', practice_manager: 'Practice manager', admin: 'Admin', user: 'User', clinician: 'Clinician', receptionist: 'Receptionist' };
+  const roleLabel = myRole ? (ROLE_LABELS[myRole] || (myRole.charAt(0).toUpperCase() + myRole.slice(1))) : null;
   const initials = practiceName ? practiceInitials(practiceName) : '';
 
   // Click handler logic:

@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { parseEmails } from '@/lib/parse-emails';
 
-export default function BulkInviteButton({ practiceId, canMakeOwner }) {
+export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLeadership }) {
   const router = useRouter();
   const supabase = createClient();
   const [showModal, setShowModal] = useState(false);
@@ -211,6 +211,8 @@ export default function BulkInviteButton({ practiceId, canMakeOwner }) {
                       >
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
+                        {canAssignLeadership && <option value="practice_manager">Practice manager</option>}
+                        {canAssignLeadership && <option value="partner">Partner</option>}
                         {canMakeOwner && <option value="owner">Owner</option>}
                       </select>
                       <button

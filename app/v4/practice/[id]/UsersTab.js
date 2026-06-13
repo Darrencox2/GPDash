@@ -27,6 +27,16 @@ const ROLE_STYLES = {
     color: '#fcd34d',
     border: '1px solid rgba(251,191,36,0.35)',
   },
+  partner: {
+    background: 'rgba(167,139,250,0.15)',
+    color: '#c4b5fd',
+    border: '1px solid rgba(167,139,250,0.35)',
+  },
+  practice_manager: {
+    background: 'rgba(96,165,250,0.15)',
+    color: '#93c5fd',
+    border: '1px solid rgba(96,165,250,0.35)',
+  },
   admin: {
     background: 'rgba(34,211,238,0.15)',
     color: '#67e8f9',
@@ -168,13 +178,18 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
   const canActOnTarget = useMemo(() => {
     if (isMe) return false; // self uses Leave Practice (Push C)
     if (isPlatformAdmin) return true;
-    if (myRole === 'owner') return true; // owners can act on anyone except themselves
-    if (myRole === 'admin') return m.role !== 'owner'; // admins can't touch owners
+    // Leadership (owner/partner/practice_manager) can act on anyone but themselves.
+    if (myRole === 'owner' || myRole === 'partner' || myRole === 'practice_manager') return true;
+    // Operational admin cannot touch the confidential leadership tier.
+    if (myRole === 'admin') return !['owner', 'partner', 'practice_manager'].includes(m.role);
     return false;
   }, [isMe, isPlatformAdmin, myRole, m.role]);
 
   // Promotion to owner allowed only if caller is an owner (or platform admin)
   const canPromoteToOwner = isPlatformAdmin || myRole === 'owner';
+  // Only leadership can assign the confidential leadership tier (partner /
+  // practice manager). Operational admins cannot.
+  const canAssignLeadership = isPlatformAdmin || ['owner', 'partner', 'practice_manager'].includes(myRole);
 
   // Demoting last owner is blocked at DB level too, but show this in UI
   const wouldBeLastOwner = m.role === 'owner' && totalOwners === 1;
@@ -273,6 +288,8 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
               }}
             >
               {canPromoteToOwner && <option value="owner">Owner</option>}
+              {canAssignLeadership && <option value="partner">Partner</option>}
+              {canAssignLeadership && <option value="practice_manager">Practice manager</option>}
               <option value="admin">Admin</option>
               <option value="user">User</option>
             </select>
@@ -326,6 +343,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
 
 function RoleBadge({ role }) {
   const s = ROLE_STYLES[role] || ROLE_STYLES.user;
+  const LABELS = { owner: 'Owner', partner: 'Partner', practice_manager: 'Practice manager', admin: 'Admin', user: 'User', clinician: 'Clinician', receptionist: 'Receptionist' };
   return (
     <span style={{
       ...s,
@@ -333,8 +351,7 @@ function RoleBadge({ role }) {
       padding: '4px 12px',
       borderRadius: 'var(--r-pill)',
       fontWeight: 600,
-      textTransform: 'capitalize',
-    }}>{role}</span>
+    }}>{LABELS[role] || role}</span>
   );
 }
 

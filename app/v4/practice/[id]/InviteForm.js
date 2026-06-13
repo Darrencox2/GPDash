@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { formStyles as f } from '../../_lib/auth-ui';
 
-export default function InviteForm({ practiceId, canMakeOwner }) {
+export default function InviteForm({ practiceId, canMakeOwner, canAssignLeadership }) {
   const router = useRouter();
   const supabase = createClient();
   const [email, setEmail] = useState('');
@@ -47,13 +47,26 @@ export default function InviteForm({ practiceId, canMakeOwner }) {
   // 'clinician' and 'receptionist' from the legacy enum are not offered for
   // new invites — treat them as deprecated; the permissions code handles them
   // as user-level if they exist on legacy rows.
-  const roleOptions = canMakeOwner
-    ? ['user', 'admin', 'owner']
-    : ['user', 'admin'];
+  const roleOptions = [
+    'user',
+    'admin',
+    ...(canAssignLeadership ? ['practice_manager', 'partner'] : []),
+    ...(canMakeOwner ? ['owner'] : []),
+  ];
+
+  const roleLabels = {
+    user: 'User',
+    admin: 'Admin',
+    practice_manager: 'Practice manager',
+    partner: 'Partner',
+    owner: 'Owner',
+  };
 
   const roleDescription = {
     user: 'Can view dashboard data and edit their own rota notes',
-    admin: 'Can edit clinicians, working patterns, settings, and invite users',
+    admin: 'Practice operations: edit clinicians, working patterns, settings, invite staff. No access to confidential leadership areas',
+    practice_manager: 'Leadership tier: full management plus confidential areas like Meetings',
+    partner: 'Leadership tier: full management plus confidential areas like Meetings',
     owner: 'Full control including renaming the practice and transferring ownership',
   };
 
@@ -82,7 +95,7 @@ export default function InviteForm({ practiceId, canMakeOwner }) {
           style={{ ...f.input, cursor: 'pointer' }}
         >
           {roleOptions.map((r) => (
-            <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+            <option key={r} value={r}>{roleLabels[r] || r}</option>
           ))}
         </select>
         <p style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 6 }}>

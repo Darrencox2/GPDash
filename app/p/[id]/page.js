@@ -137,7 +137,7 @@ export default async function PracticePage({ params }) {
   // will mark it complete on next visit. Setup never gets stuck in a
   // "I have everything but the flag isn't set" state.
   const minimumMet = isMinimumSetupComplete(practice, (clinicians || []).length);
-  if (minimumMet && !practice.setup_completed_at && (myRole === 'owner' || myRole === 'admin')) {
+  if (minimumMet && !practice.setup_completed_at && ['owner','partner','practice_manager','admin'].includes(myRole)) {
     // Best-effort — don't block the render if this fails.
     try {
       const ts = new Date().toISOString();
@@ -158,7 +158,7 @@ export default async function PracticePage({ params }) {
   // page rather than the broken dashboard. Platform admins skip this
   // and see the dashboard as-is — useful for support / debugging.
   if (!practice.setup_completed_at && !isPlatformAdmin) {
-    if (myRole === 'owner' || myRole === 'admin') {
+    if (['owner','partner','practice_manager','admin'].includes(myRole)) {
       redirect(`/v4/onboarding/setup/${practiceId}`);
     } else if (myRole) {
       // Regular team member arriving before the owner has finished

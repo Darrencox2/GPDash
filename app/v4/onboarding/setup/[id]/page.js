@@ -45,7 +45,7 @@ export default async function OnboardingSetupPage({ params }) {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+  if (!membership || !['owner', 'partner', 'practice_manager', 'admin'].includes(membership.role)) {
     redirect('/v4/dashboard');
   }
 

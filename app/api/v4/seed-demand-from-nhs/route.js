@@ -48,7 +48,7 @@ export async function POST(request) {
     .maybeSingle();
   // Platform admin can also seed
   const { data: adminCheck } = await supabase.rpc('is_platform_admin');
-  const isAdmin = membership?.role === 'admin' || membership?.role === 'owner' || adminCheck === true;
+  const isAdmin = ['owner', 'partner', 'practice_manager', 'admin'].includes(membership?.role) || adminCheck === true;
   if (!isAdmin) {
     return NextResponse.json({ error: 'not_authorized' }, { status: 403 });
   }

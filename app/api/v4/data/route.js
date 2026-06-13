@@ -189,8 +189,9 @@ export async function POST(request) {
     .eq('practice_id', practiceId)
     .eq('user_id', user.id)
     .maybeSingle();
-  if (!membership || (membership.role !== 'owner' && membership.role !== 'admin')) {
-    return NextResponse.json({ error: 'Write access requires admin or owner role' }, { status: 403 });
+  const MANAGEMENT_ROLES = ['owner', 'partner', 'practice_manager', 'admin'];
+  if (!membership || !MANAGEMENT_ROLES.includes(membership.role)) {
+    return NextResponse.json({ error: 'Write access requires a management role' }, { status: 403 });
   }
 
   const newData = await request.json();
