@@ -150,10 +150,10 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
       <aside className={`
         fixed lg:sticky top-0 left-0 h-screen z-40 lg:z-auto
-        ${sidebarOpen ? 'w-[360px]' : 'w-0 lg:w-14'}
+        ${sidebarOpen ? 'w-[252px]' : 'w-0 lg:w-14'}
         flex-shrink-0 transition-all duration-200 overflow-hidden
       `} style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}>
-        <div className="h-full flex flex-col w-[360px] lg:w-auto">
+        <div className="h-full flex flex-col w-[252px] lg:w-auto">
           {/* Logo */}
           <div className="px-3 pt-4 pb-2">
             {sidebarOpen ? (

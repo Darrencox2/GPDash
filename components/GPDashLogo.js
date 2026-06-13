@@ -25,8 +25,8 @@ function GridIcon({ size = 32 }) {
 
 export default function GPDashLogo({ size = 'sidebar', className = '' }) {
   if (size === 'sidebar-collapsed') return <GridIcon size={36} />;
-  const iconSize = size === 'large' ? 56 : 44;
-  const fontSize = size === 'large' ? 26 : 20;
+  const iconSize = size === 'large' ? 56 : 53;
+  const fontSize = size === 'large' ? 26 : 24;
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <GridIcon size={iconSize} />
