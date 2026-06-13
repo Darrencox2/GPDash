@@ -23,6 +23,7 @@ const SESSION_MODE_OPTS = [
   { id: 'worked', label: 'Worked' },
   { id: 'slottype', label: 'Includes slot type(s)' },
   { id: 'busiest', label: 'Most urgent slots' },
+  { id: 'duty', label: 'Duty doctor' },
 ];
 const SESSION_OPTS = [
   { id: 'am', label: 'AM', colour: '#f59e0b' },
@@ -146,7 +147,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   }, [data?.clinicians]);
 
   const slotData = useMemo(() => buildFacts(huddleData, clinicians, hs), [huddleData, clinicians, hs]);
-  const sessionData = useMemo(() => buildSessionFacts(slotData.facts), [slotData]);
+  const sessionData = useMemo(() => buildSessionFacts(slotData.facts, hs?.dutyDoctorSlot), [slotData, hs?.dutyDoctorSlot]);
   const filterOpts = useMemo(() => buildFilterOptions(clinicians, slotData), [clinicians, slotData]);
 
   // View: 'gallery' (pick a report) | 'builder' (work on one).
@@ -480,7 +481,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   const colourFor = (value, index) => colourMode === 'single' ? SINGLE : colourMode === 'conditional' ? condColour(value) : PALETTE[index % PALETTE.length];
 
   const usesBusiest = isSession && (num.mode === 'busiest' || (denomMode === 'custom' && denom.mode === 'busiest'));
-  const dutyMissing = usesBusiest && !sessionData.hasUrgent;
+  const usesDuty = isSession && (num.mode === 'duty' || (denomMode === 'custom' && denom.mode === 'duty'));
+  const dutyMissing = (usesBusiest && !sessionData.hasUrgent) || (usesDuty && !sessionData.hasDuty);
   const filterCount = ['clinicianIds','roles','locations','slotTypes','sessions'].reduce((n, k) => n + (globalFilter[k]?.length || 0), 0);
 
   const insight = (() => {
@@ -574,7 +576,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           <div className="px-5 pb-5 pt-1">
             {insight && <div className="mb-4 text-sm text-amber-200/90 rounded-lg px-3 py-2" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>💡 {insight}</div>}
             {dutyMissing ? (
-              <p className="text-base text-slate-400 text-center py-10">No urgent slots found in this data. The &ldquo;most urgent slots&rdquo; measure needs an urgent slot category — set which slot types count as urgent in the Today page filter.</p>
+              <p className="text-base text-slate-400 text-center py-10">{usesDuty ? 'No duty doctor sessions found. The \u201cduty doctor\u201d measure needs duty slots to be set on the Today page (the slots that define who the duty clinician is).' : 'No urgent slots found in this data. The \u201cmost urgent slots\u201d measure needs an urgent slot category \u2014 set which slot types count as urgent in the Today page filter.'}</p>
             ) : result.groups.length === 0 ? (
               <p className="text-base text-slate-400 text-center py-10">No data matches. Widen the date range, relax the filters, or turn off &ldquo;exclude system rows&rdquo;.</p>
             ) : (chart === 'table') ? (
@@ -601,6 +603,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                   <MultiSelect label="Slot types to include" options={filterOpts.slotTypes} selected={num.slotTypes} onChange={(v) => setNum(n => ({ ...n, slotTypes: v }))} />
                 )}
                 {num.mode === 'busiest' && <div className="text-xs text-slate-500">The session each day with the most urgent slots — the de-facto on-call.</div>}
+                {num.mode === 'duty' && <div className="text-xs text-slate-500">The session where the clinician was the duty doctor, using the duty slots set on the Today page.</div>}
                 <div className="text-xs text-slate-600 mt-1">Restrict to</div>
                 <ChipGroup options={SESSION_OPTS} selected={num.sessions} onChange={(v) => setNum(n => ({ ...n, sessions: v }))} allLabel="AM+PM" />
               </>
