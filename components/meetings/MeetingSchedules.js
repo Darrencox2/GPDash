@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { generateOccurrences, missingOccurrences, describeSchedule, DOW_LABELS } from '@/lib/meeting-schedules';
+import { generateOccurrences, missingOccurrences, describeSchedule, DOW_LABELS, NTH_LABELS } from '@/lib/meeting-schedules';
 
 const MEETING_TYPES = [
   { id: 'partners', label: 'Partners' },
@@ -162,6 +162,7 @@ function ScheduleForm({ practiceId, userId, onCancel, onCreated }) {
   const [cadence, setCadence] = useState('weekly');
   const [dow, setDow] = useState(2); // Tuesday default
   const [dom, setDom] = useState(1);
+  const [week, setWeek] = useState(2); // for monthly_nth: 2nd by default
   const [time, setTime] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -180,6 +181,7 @@ function ScheduleForm({ practiceId, userId, onCancel, onCreated }) {
         created_by: userId || null,
       };
       if (cadence === 'monthly') row.day_of_month = dom;
+      else if (cadence === 'monthly_nth') { row.day_of_week = dow; row.week_of_month = week; }
       else row.day_of_week = dow;
       const { error } = await supabase.from('meeting_schedules').insert(row);
       if (error) throw error;
@@ -208,7 +210,8 @@ function ScheduleForm({ practiceId, userId, onCancel, onCreated }) {
             <select style={{ ...inputStyle, cursor: 'pointer' }} value={cadence} onChange={(e) => setCadence(e.target.value)}>
               <option value="weekly">Weekly</option>
               <option value="fortnightly">Fortnightly</option>
-              <option value="monthly">Monthly</option>
+              <option value="monthly">Monthly (date)</option>
+              <option value="monthly_nth">Monthly (e.g. 2nd Wednesday)</option>
             </select>
           </div>
         </div>
@@ -220,6 +223,21 @@ function ScheduleForm({ practiceId, userId, onCancel, onCreated }) {
                 {Array.from({ length: 28 }, (_, i) => i + 1).map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
+          ) : cadence === 'monthly_nth' ? (
+            <>
+              <div style={{ flex: '1 1 130px' }}>
+                <label style={labelStyle}>Which week</label>
+                <select style={{ ...inputStyle, cursor: 'pointer' }} value={week} onChange={(e) => setWeek(Number(e.target.value))}>
+                  {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{NTH_LABELS[n].charAt(0).toUpperCase() + NTH_LABELS[n].slice(1)}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: '1 1 130px' }}>
+                <label style={labelStyle}>Day of week</label>
+                <select style={{ ...inputStyle, cursor: 'pointer' }} value={dow} onChange={(e) => setDow(Number(e.target.value))}>
+                  {DOW_LABELS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                </select>
+              </div>
+            </>
           ) : (
             <div style={{ flex: '1 1 160px' }}>
               <label style={labelStyle}>Day of week</label>
