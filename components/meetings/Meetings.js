@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { isLeadership } from '@/lib/permissions';
 import MeetingDetail from './MeetingDetail';
 import MeetingSchedules from './MeetingSchedules';
+import MeetingUpload from './MeetingUpload';
 
 const MEETING_TYPES = [
   { id: 'partners', label: 'Partners' },
@@ -110,7 +111,7 @@ export default function Meetings({ data }) {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginTop: 14, marginBottom: 4, borderBottom: '1px solid var(--g-border)' }}>
-        {[['meetings', 'Meetings'], ['schedules', 'Schedules']].map(([id, label]) => (
+        {[['meetings', 'Meetings'], ['schedules', 'Schedules'], ['import', 'Import']].map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -132,6 +133,12 @@ export default function Meetings({ data }) {
       {tab === 'schedules' && (
         <div style={{ marginTop: 18 }}>
           <MeetingSchedules data={data} onChanged={() => { load(); setTab('meetings'); }} />
+        </div>
+      )}
+
+      {tab === 'import' && (
+        <div style={{ marginTop: 18 }}>
+          <MeetingUpload data={data} onFiled={() => { load(); }} />
         </div>
       )}
 
