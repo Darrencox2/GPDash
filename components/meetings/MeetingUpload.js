@@ -48,31 +48,40 @@ export default function MeetingUpload({ data, onFiled }) {
   const extractOne = async (row) => {
     patchRow(row.id, { status: 'extracting', error: '' });
     try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error('Not signed in');
+
       const form = new FormData();
       form.append('practice_id', practiceId);
       form.append('file', row.file);
 
-      // Use the supabase client's functions.invoke — it handles the function
-      // URL, the auth header, and CORS/preflight correctly (raw fetch can trip
-      // the JWT gate on the OPTIONS preflight and fail before reaching the fn).
-      const { data: payload, error: invokeErr } = await supabase.functions.invoke('extract-meeting-doc', {
+      // Direct fetch (the function now runs verify_jwt=false + handles its own
+      // OPTIONS, so there is no preflight gate). We read the body as TEXT first
+      // and parse defensively — supabase.functions.invoke throws an opaque
+      // "Unexpected end of JSON input" if the body is ever empty.
+      const base = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const res = await fetch(`${base}/functions/v1/extract-meeting-doc`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+        },
         body: form,
       });
-      if (invokeErr) {
-        // invoke surfaces non-2xx as an error; try to read the function's JSON message.
-        let msg = invokeErr.message || 'Extraction failed';
-        try {
-          const ctx = invokeErr.context;
-          if (ctx && typeof ctx.json === 'function') {
-            const body = await ctx.json();
-            if (body?.error) msg = body.error;
-          }
-        } catch { /* keep msg */ }
-        throw new Error(msg);
-      }
-      if (payload?.error) throw new Error(payload.error);
 
-      const s = payload?.structured || {};
+      const raw = await res.text();
+      let payload = null;
+      if (raw) {
+        try { payload = JSON.parse(raw); } catch { /* non-JSON body */ }
+      }
+      if (!res.ok) {
+        throw new Error(payload?.error || `Extraction failed (${res.status})${raw ? ': ' + raw.slice(0, 160) : ''}`);
+      }
+      if (!payload) throw new Error('The server returned an empty response');
+      if (payload.error) throw new Error(payload.error);
+
+      const s = payload.structured || {};
       patchRow(row.id, {
         status: 'review',
         result: {

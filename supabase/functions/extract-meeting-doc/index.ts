@@ -96,6 +96,7 @@ async function structureWithClaude(text: string): Promise<unknown> {
 }
 
 Deno.serve(async (req) => {
+ try {
   // Answer the CORS preflight FIRST, zero dependencies.
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'Use POST' }, 405);
@@ -154,4 +155,9 @@ Deno.serve(async (req) => {
   } catch (e) {
     return json({ error: (e as Error).message, filename }, 502);
   }
+ } catch (outer) {
+   // Guarantee a JSON body for ANY unexpected failure (e.g. a lazy npm import
+   // failing on cold start) so the client never sees an empty response.
+   return json({ error: 'Server error: ' + ((outer as Error)?.message || String(outer)) }, 500);
+ }
 });
