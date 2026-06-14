@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { isLeadership } from '@/lib/permissions';
 import MeetingDetail from './MeetingDetail';
+import MeetingSchedules from './MeetingSchedules';
 
 const MEETING_TYPES = [
   { id: 'partners', label: 'Partners' },
@@ -38,6 +39,7 @@ export default function Meetings({ data }) {
   const [error, setError] = useState('');
   const [openId, setOpenId] = useState(null);     // viewing a single meeting
   const [creating, setCreating] = useState(false);
+  const [tab, setTab] = useState('meetings');     // 'meetings' | 'schedules'
 
   const load = useCallback(async () => {
     if (!practiceId) return;
@@ -99,19 +101,41 @@ export default function Meetings({ data }) {
           style={{
             flexShrink: 0, padding: '9px 16px', borderRadius: 'var(--r-md)', border: 'none',
             background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            visibility: tab === 'meetings' ? 'visible' : 'hidden',
           }}
         >
           New meeting
         </button>
       </div>
 
-      {error && (
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginTop: 14, marginBottom: 4, borderBottom: '1px solid var(--g-border)' }}>
+        {[['meetings', 'Meetings'], ['schedules', 'Schedules']].map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            style={{
+              padding: '8px 14px', fontSize: 14, fontWeight: 600, cursor: 'pointer', background: 'none',
+              border: 'none', borderBottom: `2px solid ${tab === id ? 'var(--accent, #6366f1)' : 'transparent'}`,
+              color: tab === id ? 'var(--g-text-hi)' : 'var(--g-text-mid)', marginBottom: -1,
+            }}
+          >{label}</button>
+        ))}
+      </div>
+
+      {error && tab === 'meetings' && (
         <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>
           {error}
         </div>
       )}
 
-      {creating && (
+      {tab === 'schedules' && (
+        <div style={{ marginTop: 18 }}>
+          <MeetingSchedules data={data} onChanged={() => { load(); setTab('meetings'); }} />
+        </div>
+      )}
+
+      {tab === 'meetings' && creating && (
         <NewMeetingForm
           practiceId={practiceId}
           userId={data?._v4?.userId}
@@ -120,7 +144,7 @@ export default function Meetings({ data }) {
         />
       )}
 
-      <div style={{ marginTop: 20 }}>
+      <div style={{ marginTop: 20, display: tab === 'meetings' ? 'block' : 'none' }}>
         {meetings === null && (
           <div style={{ color: 'var(--g-text-mid)', fontSize: 14, padding: 20 }}>Loading meetings…</div>
         )}
