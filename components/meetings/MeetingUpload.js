@@ -16,7 +16,6 @@ const inputStyle = {
   background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)',
 };
 
-const FUNCTION_URL = '/functions/v1/extract-meeting-doc';
 
 // Status per file: pending | extracting | review | filing | done | error
 export default function MeetingUpload({ data, onFiled }) {
@@ -49,26 +48,31 @@ export default function MeetingUpload({ data, onFiled }) {
   const extractOne = async (row) => {
     patchRow(row.id, { status: 'extracting', error: '' });
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess?.session?.access_token;
-      if (!token) throw new Error('Not signed in');
-
       const form = new FormData();
       form.append('practice_id', practiceId);
       form.append('file', row.file);
 
-      // Supabase Edge Functions are served from the project URL.
-      const base = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-      const url = `${base}${FUNCTION_URL}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+      // Use the supabase client's functions.invoke — it handles the function
+      // URL, the auth header, and CORS/preflight correctly (raw fetch can trip
+      // the JWT gate on the OPTIONS preflight and fail before reaching the fn).
+      const { data: payload, error: invokeErr } = await supabase.functions.invoke('extract-meeting-doc', {
         body: form,
       });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload?.error || `Extraction failed (${res.status})`);
+      if (invokeErr) {
+        // invoke surfaces non-2xx as an error; try to read the function's JSON message.
+        let msg = invokeErr.message || 'Extraction failed';
+        try {
+          const ctx = invokeErr.context;
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch { /* keep msg */ }
+        throw new Error(msg);
+      }
+      if (payload?.error) throw new Error(payload.error);
 
-      const s = payload.structured || {};
+      const s = payload?.structured || {};
       patchRow(row.id, {
         status: 'review',
         result: {
