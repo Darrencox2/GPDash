@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { useToast, Skeleton } from '@/components/ui';
+import { useToast, Skeleton, confirmDialog } from '@/components/ui';
 
 const STATUS_META = {
   open: { label: 'Open', bg: 'rgba(96,165,250,0.15)', tx: '#93c5fd' },
@@ -83,6 +83,21 @@ export default function ActionRegister({ data }) {
     } catch (e) { setError(e?.message || 'Could not save'); load(); }
   };
 
+  const deleteAction = async (id, description) => {
+    const ok = await confirmDialog({
+      title: 'Delete this action?',
+      message: `"${(description || 'This action').slice(0, 80)}" will be permanently deleted. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    setActions((arr) => arr.filter((a) => a.id !== id));
+    try {
+      const { error } = await supabase.from('meeting_actions').delete().eq('id', id);
+      if (error) throw error;
+      toast('Action deleted', 'success');
+    } catch (e) { setError(e?.message || 'Could not delete'); load(); }
+  };
   const filtered = useMemo(() => {
     if (!actions) return [];
     let list = actions;
@@ -232,6 +247,12 @@ export default function ActionRegister({ data }) {
                         from {mtg.title}{mtg.date ? ` · ${fmtDate(mtg.date)}` : ''}
                       </span>
                     )}
+                    <button
+                      onClick={() => deleteAction(a.id, a.description)}
+                      title="Delete action"
+                      aria-label="Delete action"
+                      style={{ marginLeft: 'auto', color: 'var(--g-text-mid)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, padding: '2px 4px' }}
+                    >Delete</button>
                   </div>
                 </div>
               </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { confirmDialog, useToast } from '@/components/ui';
 import AgendaDocument from './AgendaDocument';
 
 const OUTCOME_META = {
@@ -28,6 +29,7 @@ const inputStyle = {
 
 export default function MeetingDetail({ meetingId, data, onBack }) {
   const supabase = createClient();
+  const toast = useToast();
   const practiceId = data?._v4?.practiceId || null;
   const userId = data?._v4?.userId || null;
 
@@ -91,6 +93,29 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
     } catch (e) { setError(e?.message || 'Could not save'); load(); }
   };
 
+  const deleteMeeting = async () => {
+    const openActions = actions.filter((a) => a.status === 'open' || a.status === 'in_progress').length;
+    const parts = [];
+    if (items.length) parts.push(`${items.length} agenda item${items.length === 1 ? '' : 's'}`);
+    const consequence = parts.length ? ` This also deletes ${parts.join(' and ')}.` : '';
+    const actionNote = openActions > 0
+      ? ` ${openActions} open action${openActions === 1 ? '' : 's'} from this meeting will be kept in the action register but no longer linked to a meeting.`
+      : '';
+    const ok = await confirmDialog({
+      title: 'Delete this meeting?',
+      message: `"${meeting.title}" will be permanently deleted.${consequence}${actionNote} This cannot be undone.`,
+      confirmLabel: 'Delete meeting',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const { error } = await supabase.from('meetings').delete().eq('id', meetingId);
+      if (error) throw error;
+      toast('Meeting deleted', 'success');
+      onBack();
+    } catch (e) { setError(e?.message || 'Could not delete the meeting'); }
+  };
+
   const addItem = async (itemStatus = 'confirmed') => {
     if (!newItem.trim()) return;
     const title = newItem.trim();
@@ -119,9 +144,18 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
   };
 
   const deleteItem = async (id) => {
+    const item = items.find((it) => it.id === id);
+    const ok = await confirmDialog({
+      title: 'Delete this agenda item?',
+      message: `"${(item?.title || 'This item').slice(0, 80)}" and its minutes will be deleted. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     setItems((arr) => arr.filter((it) => it.id !== id));
     try {
       await supabase.from('agenda_items').delete().eq('id', id);
+      toast('Agenda item deleted', 'success');
     } catch (e) { setError(e?.message || 'Could not delete item'); load(); }
   };
 
@@ -176,7 +210,10 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
 
   return (
     <div style={{ padding: 24, maxWidth: 920, margin: '0 auto' }}>
-      <button onClick={onBack} style={backBtn}>← Back to meetings</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <button onClick={onBack} style={backBtn}>← Back to meetings</button>
+        <button onClick={deleteMeeting} style={{ fontSize: 13, color: '#fca5a5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Delete meeting</button>
+      </div>
 
       {error && (
         <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>
