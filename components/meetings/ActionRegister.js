@@ -37,6 +37,7 @@ export default function ActionRegister({ data }) {
   const [members, setMembers] = useState([]);   // {user_id, name}
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('active'); // active | all | mine | done
+  const [justCompleted, setJustCompleted] = useState(new Set()); // completed this session — stay visible
   const myUserId = data?._v4?.userId || null;
 
   const load = useCallback(async () => {
@@ -67,6 +68,10 @@ export default function ActionRegister({ data }) {
 
   const updateAction = async (id, patch) => {
     setActions((arr) => arr.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    // Remember actions completed this session so they stay visible (greyed)
+    // in the Active view until the next load, instead of vanishing instantly.
+    if (patch.status === 'done') setJustCompleted((s) => new Set(s).add(id));
+    if (patch.status && patch.status !== 'done') setJustCompleted((s) => { const n = new Set(s); n.delete(id); return n; });
     try {
       const finalPatch = { ...patch };
       if (patch.status === 'done') finalPatch.completed_at = new Date().toISOString();
@@ -74,17 +79,22 @@ export default function ActionRegister({ data }) {
       const { error } = await supabase.from('meeting_actions').update(finalPatch).eq('id', id);
       if (error) throw error;
       if (patch.status === 'done') toast('Action completed', 'success');
+      else if (patch.status === 'open') toast('Action reopened', 'success');
     } catch (e) { setError(e?.message || 'Could not save'); load(); }
   };
 
   const filtered = useMemo(() => {
     if (!actions) return [];
     let list = actions;
-    if (filter === 'active') list = actions.filter((a) => a.status === 'open' || a.status === 'in_progress');
+    // Active/mine keep items that are open/in-progress OR were completed this
+    // session (so a tick greys the row in place rather than vanishing).
+    if (filter === 'active') list = actions.filter((a) => a.status === 'open' || a.status === 'in_progress' || justCompleted.has(a.id));
     else if (filter === 'done') list = actions.filter((a) => a.status === 'done');
-    else if (filter === 'mine') list = actions.filter((a) => a.assignee_user_id === myUserId && (a.status === 'open' || a.status === 'in_progress'));
-    // Overdue first, then by due date (nulls last), then created.
+    else if (filter === 'mine') list = actions.filter((a) => a.assignee_user_id === myUserId && (a.status === 'open' || a.status === 'in_progress' || justCompleted.has(a.id)));
+    // Done sinks to the bottom; then overdue first; then by due date.
     return [...list].sort((a, b) => {
+      const ad = a.status === 'done' ? 1 : 0, bd = b.status === 'done' ? 1 : 0;
+      if (ad !== bd) return ad - bd;
       const ao = isOverdue(a) ? 0 : 1, bo = isOverdue(b) ? 0 : 1;
       if (ao !== bo) return ao - bo;
       if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
@@ -92,7 +102,7 @@ export default function ActionRegister({ data }) {
       if (b.due_date) return 1;
       return 0;
     });
-  }, [actions, filter, myUserId]);
+  }, [actions, filter, myUserId, justCompleted]);
 
   const counts = useMemo(() => {
     if (!actions) return { active: 0, mine: 0, done: 0, overdue: 0 };
@@ -146,50 +156,77 @@ export default function ActionRegister({ data }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {filtered.map((a) => {
-          const st = STATUS_META[a.status] || STATUS_META.open;
           const overdue = isOverdue(a);
           const mtg = a.meeting_id ? meetings[a.meeting_id] : null;
+          const done = a.status === 'done';
+          const inProgress = a.status === 'in_progress';
           return (
-            <div key={a.id} style={{ padding: '12px 14px', borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: `1px solid ${overdue ? 'rgba(239,68,68,0.35)' : 'var(--g-border)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div key={a.id} style={{ padding: '12px 14px', borderRadius: 'var(--r-lg)', background: done ? 'var(--g-tile)' : 'var(--g-card)', border: `1px solid ${overdue ? 'rgba(239,68,68,0.35)' : 'var(--g-border)'}`, opacity: done ? 0.62 : 1, transition: 'opacity 0.2s, background 0.2s' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                {/* Complete checkbox */}
                 <button
-                  onClick={() => updateAction(a.id, { status: NEXT_STATUS[a.status] || 'open' })}
-                  title="Cycle status"
-                  style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: st.bg, color: st.tx, border: 'none', cursor: 'pointer', marginTop: 1 }}
-                >{st.label}</button>
+                  onClick={() => updateAction(a.id, { status: done ? 'open' : 'done' })}
+                  title={done ? 'Mark as not done' : 'Mark as done'}
+                  aria-label={done ? 'Mark as not done' : 'Mark as done'}
+                  style={{
+                    flexShrink: 0, width: 22, height: 22, marginTop: 1, borderRadius: 6, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: done ? '#10b981' : 'transparent',
+                    border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}`,
+                  }}
+                >
+                  {done && (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  )}
+                </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, color: 'var(--g-text-hi)', textDecoration: a.status === 'done' ? 'line-through' : 'none', opacity: a.status === 'done' ? 0.6 : 1 }}>
+                  <div style={{ fontSize: 14, color: 'var(--g-text-hi)', textDecoration: done ? 'line-through' : 'none' }}>
                     {a.description}
                   </div>
                   <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6, alignItems: 'center', fontSize: 12 }}>
-                    {/* Assignee */}
-                    <select
-                      value={a.assignee_user_id || ''}
-                      onChange={(e) => {
-                        const uid = e.target.value || null;
-                        const m = members.find((x) => x.user_id === uid);
-                        updateAction(a.id, { assignee_user_id: uid, assignee_name: m ? m.name : a.assignee_name });
-                      }}
-                      style={miniSelect}
-                    >
-                      <option value="">{a.assignee_name || 'Unassigned'}</option>
-                      {members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name}</option>)}
-                    </select>
-                    {/* Due date */}
-                    <input
-                      type="date"
-                      value={a.due_date || ''}
-                      onChange={(e) => updateAction(a.id, { due_date: e.target.value || null })}
-                      style={{ ...miniSelect, color: overdue ? '#fca5a5' : 'var(--g-text-mid)' }}
-                    />
-                    {overdue && <span style={{ color: '#fca5a5', fontWeight: 600 }}>Overdue</span>}
-                    {/* Priority */}
-                    <select value={a.priority || 'normal'} onChange={(e) => updateAction(a.id, { priority: e.target.value })} style={miniSelect}>
-                      <option value="low">Low priority</option>
-                      <option value="normal">Normal priority</option>
-                      <option value="high">High priority</option>
-                    </select>
-                    {/* Source meeting */}
+                    {done ? (
+                      <button onClick={() => updateAction(a.id, { status: 'open' })} style={{ ...miniSelect, cursor: 'pointer', color: 'var(--accent, #6366f1)', fontWeight: 600 }}>
+                        Undo completion
+                      </button>
+                    ) : (
+                      <>
+                        {/* In-progress toggle */}
+                        <button
+                          onClick={() => updateAction(a.id, { status: inProgress ? 'open' : 'in_progress' })}
+                          style={{ ...miniSelect, cursor: 'pointer', fontWeight: 600, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+                        >
+                          {inProgress ? 'In progress' : 'Mark in progress'}
+                        </button>
+                        {/* Assignee */}
+                        <select
+                          value={a.assignee_user_id || ''}
+                          onChange={(e) => {
+                            const uid = e.target.value || null;
+                            const m = members.find((x) => x.user_id === uid);
+                            updateAction(a.id, { assignee_user_id: uid, assignee_name: m ? m.name : a.assignee_name });
+                          }}
+                          style={miniSelect}
+                        >
+                          <option value="">{a.assignee_name || 'Unassigned'}</option>
+                          {members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name}</option>)}
+                        </select>
+                        {/* Due date */}
+                        <input
+                          type="date"
+                          value={a.due_date || ''}
+                          onChange={(e) => updateAction(a.id, { due_date: e.target.value || null })}
+                          style={{ ...miniSelect, color: overdue ? '#fca5a5' : 'var(--g-text-mid)' }}
+                        />
+                        {overdue && <span style={{ color: '#fca5a5', fontWeight: 600 }}>Overdue</span>}
+                        {/* Priority */}
+                        <select value={a.priority || 'normal'} onChange={(e) => updateAction(a.id, { priority: e.target.value })} style={miniSelect}>
+                          <option value="low">Low priority</option>
+                          <option value="normal">Normal priority</option>
+                          <option value="high">High priority</option>
+                        </select>
+                      </>
+                    )}
+                    {/* Source meeting (always shown) */}
                     {mtg && (
                       <span style={{ color: 'var(--g-text-mid)' }}>
                         from {mtg.title}{mtg.date ? ` · ${fmtDate(mtg.date)}` : ''}

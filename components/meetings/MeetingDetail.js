@@ -160,8 +160,8 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
       if (patch.status && patch.status !== 'done') finalPatch.completed_at = null;
       const { error } = await supabase.from('meeting_actions').update(finalPatch).eq('id', id);
       if (error) throw error;
-      // Once done, drop it from the carried list after a moment.
-      if (patch.status === 'done') setTimeout(() => setCarried((arr) => arr.filter((a) => a.id !== id)), 600);
+      // Keep the row visible (greyed) rather than removing it, so completion
+      // is confirmed and reversible until the next refresh.
     } catch (e) { setError(e?.message || 'Could not save action'); load(); }
   };
 
@@ -220,17 +220,28 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {carried.map((a) => {
-              const st = ACTION_STATUS_META[a.status] || ACTION_STATUS_META.open;
-              const nextStatus = { open: 'in_progress', in_progress: 'done', done: 'open' };
+              const done = a.status === 'done';
+              const inProgress = a.status === 'in_progress';
               const from = a.meetings;
               return (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'var(--g-card)', border: '1px solid rgba(251,191,36,0.3)' }}>
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 14px', borderRadius: 'var(--r-md)', background: done ? 'var(--g-tile)' : 'var(--g-card)', border: `1px solid ${done ? 'var(--g-border)' : 'rgba(251,191,36,0.3)'}`, opacity: done ? 0.62 : 1, transition: 'opacity 0.2s' }}>
                   <button
-                    onClick={() => updateCarried(a.id, { status: nextStatus[a.status] || 'open' })}
-                    title="Cycle status"
-                    style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', background: st.bg, color: st.tx, border: 'none', cursor: 'pointer' }}
-                  >{st.label}</button>
-                  <span style={{ flex: 1, fontSize: 13.5, color: 'var(--g-text-hi)' }}>{a.description}</span>
+                    onClick={() => updateCarried(a.id, { status: done ? 'open' : 'done' })}
+                    title={done ? 'Mark as not done' : 'Mark as done'}
+                    aria-label={done ? 'Mark as not done' : 'Mark as done'}
+                    style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
+                  >
+                    {done && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
+                  </button>
+                  <span style={{ flex: 1, fontSize: 13.5, color: 'var(--g-text-hi)', textDecoration: done ? 'line-through' : 'none' }}>{a.description}</span>
+                  {done ? (
+                    <button onClick={() => updateCarried(a.id, { status: 'open' })} style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: 'var(--accent, #6366f1)', background: 'none', border: 'none', cursor: 'pointer' }}>Undo</button>
+                  ) : (
+                    <button
+                      onClick={() => updateCarried(a.id, { status: inProgress ? 'open' : 'in_progress' })}
+                      style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', cursor: 'pointer', background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+                    >{inProgress ? 'In progress' : 'Start'}</button>
+                  )}
                   {a.assignee_name && <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--g-text-mid)' }}>{a.assignee_name}</span>}
                   {from?.meeting_date && (
                     <span style={{ flexShrink: 0, fontSize: 11.5, color: 'var(--g-text-mid)' }}>
@@ -409,24 +420,37 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
 }
 
 function ActionRow({ action, onUpdate, compact }) {
-  const st = ACTION_STATUS_META[action.status] || ACTION_STATUS_META.open;
-  const nextStatus = { open: 'in_progress', in_progress: 'done', done: 'open' };
+  const done = action.status === 'done';
+  const inProgress = action.status === 'in_progress';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: compact ? '8px 10px' : '10px 14px', borderRadius: 'var(--r-md)', background: compact ? 'var(--g-tile)' : 'var(--g-card)', border: '1px solid var(--g-border)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: compact ? '8px 10px' : '10px 14px', borderRadius: 'var(--r-md)', background: compact ? 'var(--g-tile)' : 'var(--g-card)', border: '1px solid var(--g-border)', opacity: done ? 0.62 : 1, transition: 'opacity 0.2s' }}>
       <button
-        onClick={() => onUpdate({ status: nextStatus[action.status] || 'open' })}
-        title="Cycle status"
-        style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', background: st.bg, color: st.tx, border: 'none', cursor: 'pointer' }}
-      >{st.label}</button>
-      <span style={{ flex: 1, fontSize: 13.5, color: 'var(--g-text-hi)', textDecoration: action.status === 'done' ? 'line-through' : 'none', opacity: action.status === 'done' ? 0.6 : 1 }}>
+        onClick={() => onUpdate({ status: done ? 'open' : 'done' })}
+        title={done ? 'Mark as not done' : 'Mark as done'}
+        aria-label={done ? 'Mark as not done' : 'Mark as done'}
+        style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
+      >
+        {done && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
+      </button>
+      <span style={{ flex: 1, fontSize: 13.5, color: 'var(--g-text-hi)', textDecoration: done ? 'line-through' : 'none' }}>
         {action.description}
       </span>
-      <input
-        style={{ flexShrink: 0, width: 130, fontSize: 12.5, padding: '4px 8px', borderRadius: 'var(--r-sm)', background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)' }}
-        value={action.assignee_name || ''}
-        onChange={(e) => onUpdate({ assignee_name: e.target.value })}
-        placeholder="Assign to…"
-      />
+      {done ? (
+        <button onClick={() => onUpdate({ status: 'open' })} style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: 'var(--accent, #6366f1)', background: 'none', border: 'none', cursor: 'pointer' }}>Undo</button>
+      ) : (
+        <>
+          <button
+            onClick={() => onUpdate({ status: inProgress ? 'open' : 'in_progress' })}
+            style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', cursor: 'pointer', background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+          >{inProgress ? 'In progress' : 'Start'}</button>
+          <input
+            style={{ flexShrink: 0, width: 120, fontSize: 12.5, padding: '4px 8px', borderRadius: 'var(--r-sm)', background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)' }}
+            value={action.assignee_name || ''}
+            onChange={(e) => onUpdate({ assignee_name: e.target.value })}
+            placeholder="Assign to…"
+          />
+        </>
+      )}
     </div>
   );
 }
