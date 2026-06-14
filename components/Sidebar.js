@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import GPDashLogo from './GPDashLogo';
 import { APP_VERSION } from '@/lib/version';
-import { canEditPracticeData } from '@/lib/permissions';
+import { canEditPracticeData, isLeadership } from '@/lib/permissions';
 
 // Derive a 2-letter tile string from a practice name. Strips stop-words
 // ("the", "and", "&") and common practice suffixes ("Family", "Practice",
@@ -58,6 +58,10 @@ const NAV_ITEMS = [
   // Renamed from "Practice settings" — single entry point for all
   // practice-wide config. Was previously split across "Settings" (buddy
   // cover defaults), "Practice settings" (members + integrations), etc.
+  { id: '_leadership', section: 'LEADERSHIP', requires: 'leadership' },
+  { id: 'meetings', section: 'LEADERSHIP', label: 'Meetings', colour: '#f0abfc', requires: 'leadership',
+    icon: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z' },
+
   { id: 'practice-settings', section: 'ADMIN', label: 'Practice', colour: '#22d3ee', requires: 'admin', external: true,
     icon: 'M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z' },
   { id: 'changelog', section: 'ADMIN', label: 'Changelog', colour: '#94a3b8',
@@ -128,8 +132,13 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
   // Role-aware nav: drop admin-only items if the user can't edit practice data,
   // then drop section dividers that no longer have any items below them.
   const canEdit = canEditPracticeData(data);
+  const canLead = isLeadership(data);
   const filteredNav = (() => {
-    const items = NAV_ITEMS.filter(item => !(item.requires === 'admin' && !canEdit));
+    const items = NAV_ITEMS.filter(item => {
+      if (item.requires === 'admin' && !canEdit) return false;
+      if (item.requires === 'leadership' && !canLead) return false;
+      return true;
+    });
     // Drop any section divider whose section has no following entries before
     // the next divider. Walk backwards: an empty section produces a divider
     // immediately followed by another divider (or end of list).

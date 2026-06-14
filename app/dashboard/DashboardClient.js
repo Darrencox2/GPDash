@@ -42,6 +42,7 @@ const HuddleForward = lazy(() => import('@/components/huddle/HuddleForward'));
 const WorkloadAudit = lazy(() => import('@/components/huddle/WorkloadAudit'));
 const WorkforcePlanner = lazy(() => import('@/components/workforce/WorkforcePlanner'));
 const MyRota = lazy(() => import('@/components/huddle/MyRota'));
+const Meetings = lazy(() => import('@/components/meetings/Meetings'));
 const RoomSettings = lazy(() => import('@/components/room/RoomSettings'));
 const RoomDashboard = lazy(() => import('@/components/room/RoomDashboard'));
 const Changelog = lazy(() => import('@/components/Changelog'));
@@ -712,6 +713,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} onRevertChange={revertChange} />}
           {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-rota' && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
+          {activeSection === 'meetings' && <Meetings data={data} />}
           {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'reporting' && <WorkloadAudit data={data} huddleData={huddleData} />}
           {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
