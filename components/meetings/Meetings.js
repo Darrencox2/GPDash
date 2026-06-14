@@ -6,6 +6,7 @@ import { isLeadership } from '@/lib/permissions';
 import MeetingDetail from './MeetingDetail';
 import MeetingSchedules from './MeetingSchedules';
 import MeetingUpload from './MeetingUpload';
+import ActionRegister from './ActionRegister';
 
 const MEETING_TYPES = [
   { id: 'partners', label: 'Partners' },
@@ -111,7 +112,7 @@ export default function Meetings({ data }) {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginTop: 14, marginBottom: 4, borderBottom: '1px solid var(--g-border)' }}>
-        {[['meetings', 'Meetings'], ['schedules', 'Schedules'], ['import', 'Import']].map(([id, label]) => (
+        {[['meetings', 'Meetings'], ['actions', 'Action register'], ['schedules', 'Schedules'], ['import', 'Import']].map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -127,6 +128,12 @@ export default function Meetings({ data }) {
       {error && tab === 'meetings' && (
         <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>
           {error}
+        </div>
+      )}
+
+      {tab === 'actions' && (
+        <div style={{ marginTop: 18 }}>
+          <ActionRegister data={data} />
         </div>
       )}
 
