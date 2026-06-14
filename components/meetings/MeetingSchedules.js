@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { useToast } from '@/components/ui';
 import { generateOccurrences, missingOccurrences, describeSchedule, DOW_LABELS, NTH_LABELS } from '@/lib/meeting-schedules';
 
 const MEETING_TYPES = [
@@ -20,6 +21,7 @@ const labelStyle = { fontSize: 12.5, fontWeight: 600, color: 'var(--g-text-mid)'
 
 export default function MeetingSchedules({ data, onChanged }) {
   const supabase = createClient();
+  const toast = useToast();
   const practiceId = data?._v4?.practiceId || null;
   const userId = data?._v4?.userId || null;
 
@@ -77,6 +79,7 @@ export default function MeetingSchedules({ data, onChanged }) {
       const { error: insErr } = await supabase.from('meetings').insert(rows);
       if (insErr) throw insErr;
       setBusyId(null);
+      toast(`${rows.length} meeting${rows.length === 1 ? '' : 's'} added to the calendar`, 'success');
       if (onChanged) onChanged();
     } catch (e) {
       setError(e?.message || 'Could not generate meetings');

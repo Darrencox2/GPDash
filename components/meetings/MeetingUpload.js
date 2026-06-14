@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { useToast } from '@/components/ui';
 
 const MEETING_TYPES = [
   { id: 'partners', label: 'Partners' },
@@ -20,6 +21,7 @@ const inputStyle = {
 // Status per file: pending | extracting | review | filing | done | error
 export default function MeetingUpload({ data, onFiled }) {
   const supabase = createClient();
+  const toast = useToast();
   const practiceId = data?._v4?.practiceId || null;
   const userId = data?._v4?.userId || null;
   const fileRef = useRef(null);
@@ -146,6 +148,7 @@ export default function MeetingUpload({ data, onFiled }) {
       }
 
       patchRow(row.id, { status: 'done' });
+      toast('Meeting filed', 'success');
       if (onFiled) onFiled();
     } catch (e) {
       patchRow(row.id, { status: 'review', error: e?.message || 'Could not file this meeting' });

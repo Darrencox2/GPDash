@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { useToast, Skeleton } from '@/components/ui';
 
 const STATUS_META = {
   open: { label: 'Open', bg: 'rgba(96,165,250,0.15)', tx: '#93c5fd' },
@@ -28,6 +29,7 @@ function isOverdue(a) {
 
 export default function ActionRegister({ data }) {
   const supabase = createClient();
+  const toast = useToast();
   const practiceId = data?._v4?.practiceId || null;
 
   const [actions, setActions] = useState(null);
@@ -71,6 +73,7 @@ export default function ActionRegister({ data }) {
       if (patch.status && patch.status !== 'done') finalPatch.completed_at = null;
       const { error } = await supabase.from('meeting_actions').update(finalPatch).eq('id', id);
       if (error) throw error;
+      if (patch.status === 'done') toast('Action completed', 'success');
     } catch (e) { setError(e?.message || 'Could not save'); load(); }
   };
 
@@ -134,7 +137,7 @@ export default function ActionRegister({ data }) {
         <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>{error}</div>
       )}
 
-      {actions === null && <div style={{ color: 'var(--g-text-mid)', fontSize: 14 }}>Loading…</div>}
+      {actions === null && <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0,1,2,3].map((i) => <Skeleton key={i} variant="card" style={{ height: 54 }} />)}</div>}
       {actions && filtered.length === 0 && (
         <div style={{ padding: 28, borderRadius: 'var(--r-lg)', background: 'var(--g-tile)', border: '1px dashed var(--g-border)', textAlign: 'center', color: 'var(--g-text-mid)', fontSize: 13 }}>
           {filter === 'mine' ? 'No actions assigned to you.' : filter === 'done' ? 'No completed actions yet.' : 'No actions yet. Raise actions against agenda items in a meeting.'}

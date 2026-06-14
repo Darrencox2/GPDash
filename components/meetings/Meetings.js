@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { isLeadership } from '@/lib/permissions';
+import { useToast, Skeleton } from '@/components/ui';
 import MeetingDetail from './MeetingDetail';
 import MeetingSchedules from './MeetingSchedules';
 import MeetingUpload from './MeetingUpload';
@@ -34,6 +35,7 @@ function fmtDate(iso) {
 
 export default function Meetings({ data }) {
   const supabase = createClient();
+  const toast = useToast();
   const practiceId = data?._v4?.practiceId || null;
   const allowed = isLeadership(data);
 
@@ -154,13 +156,15 @@ export default function Meetings({ data }) {
           practiceId={practiceId}
           userId={data?._v4?.userId}
           onCancel={() => setCreating(false)}
-          onCreated={(id) => { setCreating(false); load(); setOpenId(id); }}
+          onCreated={(id) => { setCreating(false); load(); setOpenId(id); toast('Meeting created', 'success'); }}
         />
       )}
 
       <div style={{ marginTop: 20, display: tab === 'meetings' ? 'block' : 'none' }}>
         {meetings === null && (
-          <div style={{ color: 'var(--g-text-mid)', fontSize: 14, padding: 20 }}>Loading meetings…</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[0, 1, 2].map((i) => <Skeleton key={i} variant="card" style={{ height: 64 }} />)}
+          </div>
         )}
         {meetings && meetings.length === 0 && !creating && (
           <div style={{
