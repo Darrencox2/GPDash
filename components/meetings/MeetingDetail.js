@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import AgendaDocument from './AgendaDocument';
 
 const OUTCOME_META = {
   decision: { label: 'Decision', bg: 'rgba(16,185,129,0.15)', tx: '#6ee7b7' },
@@ -63,7 +64,7 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
     } catch (e) { setError(e?.message || 'Could not save'); load(); }
   };
 
-  const addItem = async () => {
+  const addItem = async (itemStatus = 'confirmed') => {
     if (!newItem.trim()) return;
     const title = newItem.trim();
     setNewItem('');
@@ -73,6 +74,9 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
         practice_id: practiceId,
         position: items.length,
         title,
+        item_status: itemStatus,
+        added_by_user_id: userId || null,
+        added_by_name: data?._v4?.userName || data?._v4?.userEmail || null,
       });
       if (error) throw error;
       load();
@@ -165,13 +169,24 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
       </div>
 
       {/* Agenda / minutes */}
-      <SectionTitle>Agenda &amp; minutes</SectionTitle>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '24px 0 12px' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--g-text-mid)' }}>
+          Agenda &amp; minutes
+        </div>
+        <AgendaDocument
+          meeting={meeting}
+          items={items}
+          actions={actions}
+          practiceName={data?._v4?.practiceName}
+          mode={meeting.status === 'minuted' ? 'minutes' : 'agenda'}
+        />
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {items.map((it, idx) => (
           <AgendaItem
             key={it.id}
             item={it}
-            index={idx + 1}
+            index={items.slice(0, idx + 1).filter((x) => x.item_status !== 'proposed').length}
             actions={actions.filter((a) => a.agenda_item_id === it.id)}
             onUpdate={(patch) => updateItem(it.id, patch)}
             onDelete={() => deleteItem(it.id)}
@@ -192,10 +207,11 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           style={inputStyle}
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
-          placeholder="Add an agenda item and press Enter"
+          onKeyDown={(e) => { if (e.key === 'Enter') addItem('confirmed'); }}
+          placeholder="Add an agenda item, or propose a point for discussion"
         />
-        <button onClick={addItem} style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 'var(--r-md)', border: 'none', background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Add</button>
+        <button onClick={() => addItem('proposed')} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--g-border)', background: 'transparent', color: 'var(--g-text-mid)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Propose</button>
+        <button onClick={() => addItem('confirmed')} style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 'var(--r-md)', border: 'none', background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Add</button>
       </div>
 
       {/* All actions from this meeting */}
@@ -227,18 +243,27 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
   const [expanded, setExpanded] = useState(false);
   const [actionText, setActionText] = useState('');
   const outcome = item.outcome ? OUTCOME_META[item.outcome] : null;
+  const proposed = item.item_status === 'proposed';
 
   return (
-    <div style={{ borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: '1px solid var(--g-border)', overflow: 'hidden' }}>
+    <div style={{ borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: `1px solid ${proposed ? 'rgba(251,191,36,0.4)' : 'var(--g-border)'}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
-        <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 'var(--r-sm)', background: 'var(--g-tile)', color: 'var(--g-text-mid)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{index}</span>
+        <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 'var(--r-sm)', background: 'var(--g-tile)', color: 'var(--g-text-mid)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{proposed ? '·' : index}</span>
         <input
           style={{ flex: 1, fontSize: 14.5, fontWeight: 600, background: 'transparent', border: 'none', color: 'var(--g-text-hi)', padding: '2px 0', outline: 'none' }}
           value={item.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
           onBlur={(e) => onUpdate({ title: e.target.value.trim() || 'Untitled item' })}
         />
-        {outcome && (
+        {proposed && (
+          <>
+            <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'rgba(251,191,36,0.15)', color: '#fcd34d' }}>
+              Proposed{item.added_by_name ? ` · ${item.added_by_name.split('@')[0]}` : ''}
+            </span>
+            <button onClick={() => onUpdate({ item_status: 'confirmed' })} style={{ ...miniBtn, color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.3)' }}>Add to agenda</button>
+          </>
+        )}
+        {!proposed && outcome && (
           <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: outcome.bg, color: outcome.tx }}>{outcome.label}</span>
         )}
         <button onClick={() => setExpanded((v) => !v)} style={miniBtn}>{expanded ? 'Close' : 'Minute'}</button>
