@@ -34,6 +34,7 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
   const [meeting, setMeeting] = useState(null);
   const [items, setItems] = useState([]);
   const [actions, setActions] = useState([]);
+  const [carried, setCarried] = useState([]); // open actions from earlier meetings
   const [error, setError] = useState('');
   const [newItem, setNewItem] = useState('');
 
@@ -49,10 +50,36 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
       setMeeting(mRes.data);
       setItems(iRes.data || []);
       setActions(aRes.data || []);
+
+      // Carry-forward: open/in-progress actions from EARLIER meetings (so they
+      // are not lost). If this meeting belongs to a recurring series, restrict
+      // to that series; otherwise show open actions from any earlier meeting.
+      // Wrapped so a failure here never breaks the main meeting view.
+      try {
+        const meetingDate = mRes.data?.meeting_date;
+        if (meetingDate) {
+          const { data: openRows } = await supabase
+            .from('meeting_actions')
+            .select('*, meetings!meeting_actions_meeting_id_fkey(title, meeting_date, schedule_id)')
+            .eq('practice_id', practiceId)
+            .in('status', ['open', 'in_progress'])
+            .neq('meeting_id', meetingId);
+          const earlier = (openRows || []).filter((r) => {
+            const md = r.meetings?.meeting_date;
+            if (!md) return false;
+            if (md > meetingDate) return false;
+            if (mRes.data.schedule_id) return r.meetings?.schedule_id === mRes.data.schedule_id;
+            return true;
+          });
+          setCarried(earlier);
+        } else {
+          setCarried([]);
+        }
+      } catch { setCarried([]); }
     } catch (e) {
       setError(e?.message || 'Could not load this meeting');
     }
-  }, [meetingId, supabase]);
+  }, [meetingId, supabase, practiceId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -124,6 +151,20 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
     } catch (e) { setError(e?.message || 'Could not save action'); load(); }
   };
 
+  // Update a carried-forward action (from an earlier meeting) in place.
+  const updateCarried = async (id, patch) => {
+    setCarried((arr) => arr.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    try {
+      const finalPatch = { ...patch };
+      if (patch.status === 'done') finalPatch.completed_at = new Date().toISOString();
+      if (patch.status && patch.status !== 'done') finalPatch.completed_at = null;
+      const { error } = await supabase.from('meeting_actions').update(finalPatch).eq('id', id);
+      if (error) throw error;
+      // Once done, drop it from the carried list after a moment.
+      if (patch.status === 'done') setTimeout(() => setCarried((arr) => arr.filter((a) => a.id !== id)), 600);
+    } catch (e) { setError(e?.message || 'Could not save action'); load(); }
+  };
+
   if (!meeting) {
     return (
       <div style={{ padding: 24 }}>
@@ -167,6 +208,41 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           </select>
         </div>
       </div>
+
+      {/* Carried-forward open actions */}
+      {carried.length > 0 && (
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--g-text-mid)', marginBottom: 4 }}>
+            Open actions carried forward
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--g-text-mid)', marginBottom: 10 }}>
+            Still open from previous meetings. Update or complete them here.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {carried.map((a) => {
+              const st = ACTION_STATUS_META[a.status] || ACTION_STATUS_META.open;
+              const nextStatus = { open: 'in_progress', in_progress: 'done', done: 'open' };
+              const from = a.meetings;
+              return (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'var(--g-card)', border: '1px solid rgba(251,191,36,0.3)' }}>
+                  <button
+                    onClick={() => updateCarried(a.id, { status: nextStatus[a.status] || 'open' })}
+                    title="Cycle status"
+                    style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', background: st.bg, color: st.tx, border: 'none', cursor: 'pointer' }}
+                  >{st.label}</button>
+                  <span style={{ flex: 1, fontSize: 13.5, color: 'var(--g-text-hi)' }}>{a.description}</span>
+                  {a.assignee_name && <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--g-text-mid)' }}>{a.assignee_name}</span>}
+                  {from?.meeting_date && (
+                    <span style={{ flexShrink: 0, fontSize: 11.5, color: 'var(--g-text-mid)' }}>
+                      from {new Date(from.meeting_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Agenda / minutes */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '24px 0 12px' }}>
