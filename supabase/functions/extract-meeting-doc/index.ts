@@ -44,27 +44,45 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
   return (text || '').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-const EXTRACTION_PROMPT = `You are extracting structured data from a UK GP practice meeting document (an agenda or minutes). Read the text and return ONLY a JSON object, no preamble, no markdown fences, with this exact shape:
+const EXTRACTION_TOOL = {
+  name: 'record_meeting',
+  description: 'Record the structured contents of a UK GP practice meeting document.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      meeting_date: { type: 'string', description: 'Date the meeting took place, as YYYY-MM-DD. Empty string if not found. UK dates are usually DD/MM/YYYY.' },
+      meeting_type: { type: 'string', enum: ['partners', 'practice', 'clinical_governance', 'plt', 'other'] },
+      title: { type: 'string', description: 'A short title for the meeting.' },
+      confidence: { type: 'string', enum: ['high', 'medium', 'low'], description: 'Confidence about the meeting date.' },
+      agenda_items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            minute_note: { type: 'string', description: 'Discussion/notes for this item. Empty string if none.' },
+            outcome: { type: 'string', enum: ['decision', 'noted', 'deferred', 'action', ''], description: 'Outcome, or empty string.' },
+          },
+          required: ['title'],
+        },
+      },
+      actions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            description: { type: 'string' },
+            assignee_name: { type: 'string', description: 'Who is responsible. Empty string if unstated.' },
+          },
+          required: ['description'],
+        },
+      },
+    },
+    required: ['meeting_date', 'meeting_type', 'agenda_items', 'actions'],
+  },
+};
 
-{
-  "meeting_date": "YYYY-MM-DD or null if not found",
-  "meeting_type": "one of: partners, practice, clinical_governance, plt, other",
-  "title": "a short title for the meeting, or null",
-  "confidence": "high | medium | low",
-  "agenda_items": [
-    { "title": "item heading", "minute_note": "discussion/notes or null", "outcome": "one of: decision, noted, deferred, action, or null" }
-  ],
-  "actions": [
-    { "description": "the action", "assignee_name": "who is responsible or null" }
-  ]
-}
-
-Rules:
-- meeting_date: find the date the meeting took place. UK format is common (DD/MM/YYYY). Convert to YYYY-MM-DD. If genuinely absent, use null and set confidence to low.
-- If the document is an agenda with no minutes, leave minute_note and outcome null.
-- Extract every distinct agenda item in order. Keep titles concise.
-- Only include actions explicitly stated. Do not invent any.
-- Return ONLY the JSON object.`;
+const EXTRACTION_PROMPT = `Extract the structured contents of this UK GP practice meeting document (an agenda or minutes) by calling the record_meeting tool. Find the meeting date (UK format DD/MM/YYYY is common; convert to YYYY-MM-DD, or empty string if absent with confidence low). Capture every agenda item in order. Only include actions that are explicitly stated; do not invent any.`;
 
 async function structureWithClaude(text: string): Promise<unknown> {
   const clipped = text.length > 24000 ? text.slice(0, 24000) : text;
@@ -77,7 +95,9 @@ async function structureWithClaude(text: string): Promise<unknown> {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
+      max_tokens: 4000,
+      tools: [EXTRACTION_TOOL],
+      tool_choice: { type: 'tool', name: 'record_meeting' },
       messages: [{ role: 'user', content: `${EXTRACTION_PROMPT}\n\n--- DOCUMENT TEXT ---\n${clipped}` }],
     }),
   });
@@ -86,13 +106,13 @@ async function structureWithClaude(text: string): Promise<unknown> {
     throw new Error(`AI extraction failed (${res.status}): ${errText.slice(0, 200)}`);
   }
   const data = await res.json();
-  const textOut = (data.content || [])
-    .filter((b: { type: string }) => b.type === 'text')
-    .map((b: { text: string }) => b.text)
-    .join('')
-    .trim();
-  const clean = textOut.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
-  return JSON.parse(clean);
+  // With a forced tool call, the structured data is in a tool_use block's
+  // `input` — already a parsed object, so no fragile JSON.parse of model text.
+  const toolBlock = (data.content || []).find((b: { type: string }) => b.type === 'tool_use');
+  if (!toolBlock || !toolBlock.input) {
+    throw new Error('The document could not be read into a meeting structure.');
+  }
+  return toolBlock.input;
 }
 
 Deno.serve(async (req) => {
