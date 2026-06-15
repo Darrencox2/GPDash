@@ -83,7 +83,7 @@ export default async function PracticeAdminPage({ params }) {
     supabase.from('profiles').select('is_platform_admin').eq('id', user.id).maybeSingle(),
     supabase.from('practices').select('id, name, slug, ods_code, postcode, list_size, online_consult_tool, region, setup_completed_at, buddy_cover_public').eq('id', practiceId).maybeSingle(),
     supabase.rpc('list_practice_members', { target_practice_id: practiceId }),
-    supabase.from('practice_invites').select('id, email, role, created_at, expires_at').eq('practice_id', practiceId).is('accepted_at', null).order('created_at', { ascending: false }),
+    supabase.from('practice_invites').select('id, email, role, invited_at, expires_at').eq('practice_id', practiceId).is('accepted_at', null).order('invited_at', { ascending: false }),
     supabase.from('practice_settings').select('demand_settings, buddy_settings, huddle_settings, teamnet_url, extras').eq('practice_id', practiceId).maybeSingle(),
     supabase.from('demand_history_summary').select('source, row_count, earliest_date, latest_date, last_uploaded_at').eq('practice_id', practiceId),
     supabase.from('clinicians').select('initials, role, status').eq('practice_id', practiceId),

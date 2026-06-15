@@ -30,7 +30,10 @@ jobs:
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned (not 'latest') so a broken or yanked upstream CLI release
+          # can't break the migration pipeline without warning. Bump
+          # deliberately when needed.
+          version: 2.106.0
 
       - name: Link to Supabase project
         env:
