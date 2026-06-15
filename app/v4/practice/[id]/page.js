@@ -26,6 +26,7 @@ import MembershipChangesCard from './MembershipChangesCard';
 import EmisReportCard from '@/components/EmisReportCard';
 import DeletePracticeButton from './DeletePracticeButton';
 import DemandUpload from './DemandUpload';
+import IngestTokens from './IngestTokens';
 import RecentAccuracyCard from './RecentAccuracyCard';
 import BuddyCoverSettings from './BuddyCoverSettings';
 import TeamNetUrlEditor from './TeamNetUrlEditor';
@@ -400,6 +401,7 @@ function DemandTab({ practiceId, demandSettings, huddleSettings, history, canMan
           listSize={listSize}
           days={60}
         />
+        <IngestTokens practiceId={practiceId} />
       </Card>
 
       <CapacityTargetsEditor
