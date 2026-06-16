@@ -184,21 +184,21 @@ export default function ActionRegister({ data }) {
                   title={done ? 'Mark as not done' : 'Mark as done'}
                   aria-label={done ? 'Mark as not done' : 'Mark as done'}
                   style={{
-                    flexShrink: 0, width: 22, height: 22, marginTop: 1, borderRadius: 6, cursor: 'pointer',
+                    flexShrink: 0, width: 28, height: 28, marginTop: 1, borderRadius: 7, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: done ? '#10b981' : 'transparent',
                     border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}`,
                   }}
                 >
                   {done && (
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   )}
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, color: 'var(--g-text-hi)', textDecoration: done ? 'line-through' : 'none' }}>
                     {a.description}
                   </div>
-                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6, alignItems: 'center', fontSize: 12 }}>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8, alignItems: 'center', fontSize: 13 }}>
                     {done ? (
                       <button onClick={() => updateAction(a.id, { status: 'open' })} style={{ ...miniSelect, cursor: 'pointer', color: 'var(--accent, #6366f1)', fontWeight: 600 }}>
                         Undo completion
@@ -251,7 +251,7 @@ export default function ActionRegister({ data }) {
                       onClick={() => deleteAction(a.id, a.description)}
                       title="Delete action"
                       aria-label="Delete action"
-                      style={{ marginLeft: 'auto', color: 'var(--g-text-mid)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, padding: '2px 4px' }}
+                      style={{ color: 'var(--g-text-mid)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: '7px 8px', minHeight: 36 }}
                     >Delete</button>
                   </div>
                 </div>
@@ -265,6 +265,6 @@ export default function ActionRegister({ data }) {
 }
 
 const miniSelect = {
-  fontSize: 12, padding: '3px 7px', borderRadius: 'var(--r-sm)', background: 'var(--g-field)',
-  border: '1px solid var(--g-border)', color: 'var(--g-text-mid)', cursor: 'pointer', maxWidth: 180,
+  fontSize: 13, padding: '7px 10px', borderRadius: 'var(--r-md)', background: 'var(--g-field)',
+  border: '1px solid var(--g-border)', color: 'var(--g-text-mid)', cursor: 'pointer', maxWidth: 200, minHeight: 36,
 };

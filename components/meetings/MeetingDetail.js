@@ -266,7 +266,7 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
                     onClick={() => updateCarried(a.id, { status: done ? 'open' : 'done' })}
                     title={done ? 'Mark as not done' : 'Mark as done'}
                     aria-label={done ? 'Mark as not done' : 'Mark as done'}
-                    style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
+                    style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
                   >
                     {done && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
                   </button>
@@ -276,7 +276,7 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
                   ) : (
                     <button
                       onClick={() => updateCarried(a.id, { status: inProgress ? 'open' : 'in_progress' })}
-                      style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', cursor: 'pointer', background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+                      style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
                     >{inProgress ? 'In progress' : 'Start'}</button>
                   )}
                   {a.assignee_name && <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--g-text-mid)' }}>{a.assignee_name}</span>}
@@ -465,7 +465,7 @@ function ActionRow({ action, onUpdate, compact }) {
         onClick={() => onUpdate({ status: done ? 'open' : 'done' })}
         title={done ? 'Mark as not done' : 'Mark as done'}
         aria-label={done ? 'Mark as not done' : 'Mark as done'}
-        style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
+        style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
       >
         {done && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
       </button>
@@ -478,10 +478,10 @@ function ActionRow({ action, onUpdate, compact }) {
         <>
           <button
             onClick={() => onUpdate({ status: inProgress ? 'open' : 'in_progress' })}
-            style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', cursor: 'pointer', background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+            style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
           >{inProgress ? 'In progress' : 'Start'}</button>
           <input
-            style={{ flexShrink: 0, width: 120, fontSize: 12.5, padding: '4px 8px', borderRadius: 'var(--r-sm)', background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)' }}
+            style={{ flexShrink: 0, width: 140, fontSize: 13, padding: '7px 10px', borderRadius: 'var(--r-md)', minHeight: 34, background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)' }}
             value={action.assignee_name || ''}
             onChange={(e) => onUpdate({ assignee_name: e.target.value })}
             placeholder="Assign to…"
@@ -496,7 +496,7 @@ const backBtn = {
   fontSize: 13, color: 'var(--g-text-mid)', background: 'none', border: 'none', cursor: 'pointer', padding: 0,
 };
 const miniBtn = {
-  flexShrink: 0, fontSize: 12.5, fontWeight: 600, padding: '4px 12px', borderRadius: 'var(--r-md)',
+  flexShrink: 0, fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 'var(--r-md)', minHeight: 36,
   background: 'transparent', border: '1px solid var(--g-border)', color: 'var(--g-text-mid)', cursor: 'pointer',
 };
 const miniLabel = { fontSize: 12, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 5, display: 'block' };

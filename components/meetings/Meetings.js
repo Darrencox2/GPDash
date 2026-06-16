@@ -113,13 +113,13 @@ export default function Meetings({ data }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginTop: 14, marginBottom: 4, borderBottom: '1px solid var(--g-border)' }}>
+      <div style={{ display: 'flex', gap: 4, marginTop: 14, marginBottom: 4, borderBottom: '1px solid var(--g-border)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {[['meetings', 'Meetings'], ['actions', 'Action register'], ['schedules', 'Schedules'], ['import', 'Import']].map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
             style={{
-              padding: '8px 14px', fontSize: 14, fontWeight: 600, cursor: 'pointer', background: 'none',
+              padding: '11px 16px', fontSize: 14.5, fontWeight: 600, cursor: 'pointer', background: 'none', whiteSpace: 'nowrap',
               border: 'none', borderBottom: `2px solid ${tab === id ? 'var(--accent, #6366f1)' : 'transparent'}`,
               color: tab === id ? 'var(--g-text-hi)' : 'var(--g-text-mid)', marginBottom: -1,
             }}
