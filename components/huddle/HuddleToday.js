@@ -646,11 +646,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           offCount = visibleClinicians.length - inCount;
         }
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             {/* NOTICEBOARD — message-thread style (Option B from the design pass).
                 Avatars use a deterministic colour per author so the same
                 person always looks the same. No more random rainbow rotation. */}
-            <div className="glass rounded-xl overflow-hidden flex flex-col md:order-2 panefx-cyan">
+            <div className="glass rounded-xl overflow-hidden flex flex-col lg:order-2 panefx-cyan">
               <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
@@ -721,12 +721,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               )}
             </div>
             {/* SUMMARY — spans first 3 cols */}
-            <div className="glass rounded-xl p-5 md:col-span-2 lg:col-span-3 md:order-1 panefx-violet">
-              <div className="flex flex-col md:flex-row gap-5 items-stretch">
+            <div className="glass rounded-xl p-5 lg:col-span-3 lg:order-1 panefx-violet">
+              <div className="flex flex-col lg:flex-row gap-5 items-stretch">
                 <div className="flex-shrink-0 flex items-center justify-center">
                   <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[300px]" width={null} viewBox="0 0 300 145" slots={urgTotal} target={targetTotal} />
                 </div>
-                <div className="flex-1 grid grid-cols-2 gap-3">
+                <div className="flex-1 min-w-0 grid grid-cols-2 gap-3">
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center relative">
                     <div className="text-sm text-slate-500 mb-1 flex items-center gap-1.5">
                       Predicted demand
@@ -740,23 +740,23 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         </span>
                       )}
                     </div>
-                    <div className="font-mono-data text-3xl md:text-5xl font-bold text-amber-400 leading-none">{predTotal || '—'}</div>
+                    <div className="font-mono-data text-3xl lg:text-5xl font-bold text-amber-400 leading-none">{predTotal || '—'}</div>
                     <div className="text-sm text-slate-600 mt-1">requests today</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-500 mb-1">Urgent available</div>
-                    <div className="font-mono-data text-3xl md:text-5xl font-bold leading-none" style={{color:band.colour}}>{urgAvail}</div>
+                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:band.colour}}>{urgAvail}</div>
                     <div className="text-sm text-slate-600 mt-1">appointments today</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-500 mb-1">Routine 28 days</div>
-                    <div className="font-mono-data text-3xl md:text-5xl font-bold text-emerald-400 leading-none">{routineAvail + routineEmb}</div>
+                    <div className="font-mono-data text-3xl lg:text-5xl font-bold text-emerald-400 leading-none">{routineAvail + routineEmb}</div>
                     <div className="text-sm text-slate-600 mt-1">{routineEmb > 0 ? `${routineAvail} avail · ${routineEmb} emb` : 'available'}</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-500 mb-1">Clinicians today</div>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-mono-data text-3xl md:text-5xl font-bold text-slate-900 leading-none">{inCount}</span>
+                      <span className="font-mono-data text-3xl lg:text-5xl font-bold text-slate-900 leading-none">{inCount}</span>
                       
                     </div>
                     <div className="text-sm text-slate-600 mt-1">of {visibleClinicians.length} active</div>
