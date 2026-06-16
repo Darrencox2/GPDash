@@ -19,6 +19,14 @@
        spacing, icons — keeping every layout proportion intact. */
     zoom: 1.25;
   }
+  /* Tablets/phones have far less width; a heavy zoom crams fixed-width layouts
+     and forces overflow. Step it down responsively. Biggest lever for tablet. */
+  @media (max-width: 1024px) {
+    html { zoom: 1.05; }
+  }
+  @media (max-width: 900px) {
+    html { zoom: 1.0; }
+  }
 
   /* Keyboard accessibility: a clear focus ring for users navigating by
      keyboard (Tab). :focus-visible only shows it for keyboard focus, not

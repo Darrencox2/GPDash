@@ -646,7 +646,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           offCount = visibleClinicians.length - inCount;
         }
         return (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* NOTICEBOARD — message-thread style (Option B from the design pass).
                 Avatars use a deterministic colour per author so the same
                 person always looks the same. No more random rainbow rotation. */}
@@ -721,7 +721,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               )}
             </div>
             {/* SUMMARY — spans first 3 cols */}
-            <div className="glass rounded-xl p-5 md:col-span-3 md:order-1 panefx-violet">
+            <div className="glass rounded-xl p-5 md:col-span-2 lg:col-span-3 md:order-1 panefx-violet">
               <div className="flex flex-col md:flex-row gap-5 items-stretch">
                 <div className="flex-shrink-0 flex items-center justify-center">
                   <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[300px]" width={null} viewBox="0 0 300 145" slots={urgTotal} target={targetTotal} />
@@ -1214,7 +1214,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               </div>
             </div>
           ) : (
-          <div className="grid gap-4" style={{gridTemplateColumns:'repeat(2, minmax(0, 1fr))'}}>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {capacityCards.map((card, idx) => {
               const overrides = cardOverrides[card.id] || null;
               const effective = overrides || allSlotsOverrides;
