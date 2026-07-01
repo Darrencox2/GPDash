@@ -39,6 +39,15 @@ export default function RootLayout({ children }) {
             __html: `(function(){try{var t=localStorage.getItem('gpdash-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){}})();`,
           }}
         />
+        {/* Fonts: linked here (not @import in CSS) so the browser discovers
+            them from the HTML immediately, in parallel with globals.css.
+            The old @import created a serial chain (CSS -> discover import ->
+            connect -> font CSS -> fonts) that delayed first paint. */}
+        <link rel="preconnect" href="https://fonts.bunny.net" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700|space-mono:400,700|outfit:200,300,400,500&display=swap"
+        />
       </head>
       <body className="min-h-screen">
         {/* ImpersonationBanner is a server component that returns null

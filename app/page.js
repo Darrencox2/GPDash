@@ -1,22 +1,22 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
 import { ToastProvider, useToast, PageSkeleton, confirmDialog } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LoginScreen from '@/components/LoginScreen';
-import BuddyDaily from '@/components/buddy/BuddyDaily';
-import TeamMembers from '@/components/buddy/TeamMembers';
-import TeamRota from '@/components/buddy/TeamRota';
-import BuddySettings from '@/components/buddy/BuddySettings';
-import HuddleToday from '@/components/huddle/HuddleToday';
-import HuddleForward from '@/components/huddle/HuddleForward';
-import WorkforcePlanner from '@/components/workforce/WorkforcePlanner';
-import WorkloadAudit from '@/components/huddle/WorkloadAudit';
-import MyRota from '@/components/huddle/MyRota';
-import RoomSettings from '@/components/room/RoomSettings';
-import RoomDashboard from '@/components/room/RoomDashboard';
-import Changelog from '@/components/Changelog';
+const BuddyDaily = lazy(() => import('@/components/buddy/BuddyDaily'));
+const TeamMembers = lazy(() => import('@/components/buddy/TeamMembers'));
+const TeamRota = lazy(() => import('@/components/buddy/TeamRota'));
+const BuddySettings = lazy(() => import('@/components/buddy/BuddySettings'));
+const HuddleToday = lazy(() => import('@/components/huddle/HuddleToday'));
+const HuddleForward = lazy(() => import('@/components/huddle/HuddleForward'));
+const WorkforcePlanner = lazy(() => import('@/components/workforce/WorkforcePlanner'));
+const WorkloadAudit = lazy(() => import('@/components/huddle/WorkloadAudit'));
+const MyRota = lazy(() => import('@/components/huddle/MyRota'));
+const RoomSettings = lazy(() => import('@/components/room/RoomSettings'));
+const RoomDashboard = lazy(() => import('@/components/room/RoomDashboard'));
+const Changelog = lazy(() => import('@/components/Changelog'));
 
 export default function Home() {
   return (
@@ -288,7 +288,9 @@ function AppContent() {
   if (rotaOnly) return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)' }}>
       <div className="max-w-2xl mx-auto py-6 px-4">
-        <MyRota data={data} huddleData={huddleData} standalone />
+        <Suspense fallback={<PageSkeleton />}>
+          <MyRota data={data} huddleData={huddleData} standalone />
+        </Suspense>
       </div>
     </div>
   );
@@ -301,18 +303,20 @@ function AppContent() {
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <main className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)' }}>
         <div className={`${(activeSection === 'workforce-planner' || activeSection === 'huddle-forward') ? '' : 'max-w-6xl mx-auto '}p-4 lg:p-6 animate-in`}>
-          {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} />}
-          {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
-          {activeSection === 'huddle-rota' && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
-          {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
-          {activeSection === 'reporting' && <WorkloadAudit data={data} huddleData={huddleData} />}
-          {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
-          {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} />}
-          {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} huddleData={huddleData} />}
-          {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} huddleData={huddleData} />}
-          {activeSection === 'changelog' && <Changelog />}
-          {activeSection === 'room-settings' && <RoomSettings data={data} saveData={saveData} toast={toast} huddleData={huddleData} />}
-          {activeSection === 'room-dashboard' && <RoomDashboard data={data} saveData={saveData} huddleData={huddleData} toast={toast} />}
+          <Suspense fallback={<PageSkeleton />}>
+            {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} />}
+            {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
+            {activeSection === 'huddle-rota' && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
+            {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
+            {activeSection === 'reporting' && <WorkloadAudit data={data} huddleData={huddleData} />}
+            {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
+            {activeSection === 'team-members' && <TeamMembers data={data} saveData={saveData} toast={toast} />}
+            {activeSection === 'team-rota' && <TeamRota data={data} saveData={saveData} helpers={helpers} huddleData={huddleData} />}
+            {activeSection === 'settings' && <BuddySettings data={data} saveData={saveData} password={password} syncStatus={syncStatus} setSyncStatus={setSyncStatus} helpers={helpers} huddleData={huddleData} />}
+            {activeSection === 'changelog' && <Changelog />}
+            {activeSection === 'room-settings' && <RoomSettings data={data} saveData={saveData} toast={toast} huddleData={huddleData} />}
+            {activeSection === 'room-dashboard' && <RoomDashboard data={data} saveData={saveData} huddleData={huddleData} toast={toast} />}
+          </Suspense>
         </div>
         <footer className="mt-8 pb-6"><div className="text-center text-xs text-slate-400">GPDash — Practice Dashboard</div></footer>
       </main>
