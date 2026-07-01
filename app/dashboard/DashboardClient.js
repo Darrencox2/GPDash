@@ -37,7 +37,13 @@ const BuddyDaily = lazy(() => import('@/components/buddy/BuddyDaily'));
 // branch catches up.
 const TeamRota = lazy(() => import('@/components/buddy/TeamRota'));
 const BuddySettings = lazy(() => import('@/components/buddy/BuddySettings'));
-const HuddleToday = lazy(() => import('@/components/huddle/HuddleToday'));
+// HuddleToday is the DEFAULT landing section, so start fetching its chunk the
+// moment this module executes (parallel with hydration) instead of waiting for
+// first render to trigger it. Removes a full network round-trip from the
+// critical path on the daily route - most noticeable on mobile connections.
+// Still code-split: other sections stay lazy and on-demand.
+const huddleTodayChunk = import('@/components/huddle/HuddleToday');
+const HuddleToday = lazy(() => huddleTodayChunk);
 const HuddleForward = lazy(() => import('@/components/huddle/HuddleForward'));
 const WorkloadAudit = lazy(() => import('@/components/huddle/WorkloadAudit'));
 const WorkforcePlanner = lazy(() => import('@/components/workforce/WorkforcePlanner'));

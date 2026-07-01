@@ -9,7 +9,10 @@ const BuddyDaily = lazy(() => import('@/components/buddy/BuddyDaily'));
 const TeamMembers = lazy(() => import('@/components/buddy/TeamMembers'));
 const TeamRota = lazy(() => import('@/components/buddy/TeamRota'));
 const BuddySettings = lazy(() => import('@/components/buddy/BuddySettings'));
-const HuddleToday = lazy(() => import('@/components/huddle/HuddleToday'));
+// Default landing section - start fetching its chunk immediately (parallel
+// with hydration) rather than on first render. See DashboardClient.
+const huddleTodayChunk = import('@/components/huddle/HuddleToday');
+const HuddleToday = lazy(() => huddleTodayChunk);
 const HuddleForward = lazy(() => import('@/components/huddle/HuddleForward'));
 const WorkforcePlanner = lazy(() => import('@/components/workforce/WorkforcePlanner'));
 const WorkloadAudit = lazy(() => import('@/components/huddle/WorkloadAudit'));

@@ -1,3 +1,17 @@
+// Self-hosted fonts (fontsource): served same-origin from /_next/static with
+// immutable caching. Eliminates the last third-party origin (fonts.bunny.net)
+// - no DNS/TLS round-trip to a second host, which cost 300-600ms on a cold
+// mobile connection. Weights mirror exactly what the external URL loaded.
+import '@fontsource/dm-sans/400.css';
+import '@fontsource/dm-sans/500.css';
+import '@fontsource/dm-sans/600.css';
+import '@fontsource/dm-sans/700.css';
+import '@fontsource/space-mono/400.css';
+import '@fontsource/space-mono/700.css';
+import '@fontsource/outfit/200.css';
+import '@fontsource/outfit/300.css';
+import '@fontsource/outfit/400.css';
+import '@fontsource/outfit/500.css';
 import './globals.css'
 import ImpersonationBanner from '@/components/ImpersonationBanner';
 import { ConfirmHost } from '@/components/ui';
@@ -38,15 +52,6 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('gpdash-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){}})();`,
           }}
-        />
-        {/* Fonts: linked here (not @import in CSS) so the browser discovers
-            them from the HTML immediately, in parallel with globals.css.
-            The old @import created a serial chain (CSS -> discover import ->
-            connect -> font CSS -> fonts) that delayed first paint. */}
-        <link rel="preconnect" href="https://fonts.bunny.net" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700|space-mono:400,700|outfit:200,300,400,500&display=swap"
         />
       </head>
       <body className="min-h-screen">
