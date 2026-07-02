@@ -53,6 +53,16 @@ export default function RootLayout({ children }) {
             __html: `(function(){try{var t=localStorage.getItem('gpdash-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){}})();`,
           }}
         />
+        {/* Warm the connection to Supabase during page load. Client-side
+            queries (Meetings, action register, auth refresh) otherwise pay a
+            cold DNS + TLS handshake on the first call - noticeable on mobile.
+            crossOrigin anonymous matches supabase-js CORS mode. */}
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <>
+            <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+          </>
+        )}
       </head>
       <body className="min-h-screen">
         {/* ImpersonationBanner is a server component that returns null
