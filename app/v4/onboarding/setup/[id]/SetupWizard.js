@@ -2137,7 +2137,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
   return (
     <div style={{ padding: 16, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 'var(--r-md)' }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: '#fdba74', marginBottom: 4 }}>Expected urgent capacity (optional)</div>
-      <p style={{ fontSize: 12.5, color: '#94a3b8', lineHeight: 1.55, margin: '0 0 12px' }}>
+      <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.55, margin: '0 0 12px' }}>
         How many urgent slots you aim to offer per session. Used by Capacity Planning and as a
         fallback for the Today gauge. You can autofill a starting point from your appointment data,
         set it by hand, or skip and do it later from the Demand tab.
@@ -2166,7 +2166,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
               <tbody>
                 {['am', 'pm'].map(session => (
                   <tr key={session} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '8px 4px', fontSize: 12.5, fontWeight: 500, color: session === 'am' ? '#fbbf24' : '#60a5fa' }}>{session === 'am' ? 'Morning' : 'Afternoon'}</td>
+                    <td style={{ padding: '8px 4px', fontSize: 13, fontWeight: 500, color: session === 'am' ? '#fbbf24' : '#60a5fa' }}>{session === 'am' ? 'Morning' : 'Afternoon'}</td>
                     {DAYS.map(d => (
                       <td key={d} style={{ textAlign: 'center', padding: '4px' }}>
                         {mode === 'manual' ? (
@@ -2553,7 +2553,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
                   )}
                 </div>
                 {showCategorySuggestion && (
-                  <div style={{ marginTop: 2, fontSize: 10.5, color: '#a78bfa' }}>
+                  <div style={{ marginTop: 2, fontSize: 11, color: '#a78bfa' }}>
                     Suggested: <strong style={{ color: suggested === 'urgent' ? '#fdba74' : '#cbd5e1' }}>{suggested}</strong>
                     {confidence === 'medium' && <span style={{ color: '#94a3b8' }}> (medium confidence)</span>}
                   </div>
@@ -2696,8 +2696,8 @@ function ReviewStep({ steps, stepDone, canComplete, requiredIncomplete, goToStep
             }}>
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: colour, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, color: '#e2e8f0' }}>{s.title}</div>
-                <div style={{ fontSize: 11.5, color: colour }}>{label}</div>
+                <div style={{ fontSize: 14, color: '#e2e8f0' }}>{s.title}</div>
+                <div style={{ fontSize: 12, color: colour }}>{label}</div>
               </div>
               {!done && (
                 <button type="button" onClick={() => goToStep(i)} style={pillButton(state === 'todo' ? '#f59e0b' : '#64748b')}>
@@ -2709,7 +2709,7 @@ function ReviewStep({ steps, stepDone, canComplete, requiredIncomplete, goToStep
         })}
       </div>
       {!canComplete && (
-        <div style={{ fontSize: 12.5, color: '#fbbf24', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: '#fbbf24', lineHeight: 1.5 }}>
           You still need to finish {requiredIncomplete.map(s => s.title).join(' and ')} before you can complete setup.
         </div>
       )}

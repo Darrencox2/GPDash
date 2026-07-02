@@ -167,7 +167,7 @@ export function DashboardCompletenessStrip({ statuses, practicePath }) {
                 {it.label}
               </div>
               {it.hint && (
-                <div style={{ fontSize: 10.5, color: '#94a3b8', lineHeight: 1.3 }}>
+                <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.3 }}>
                   {it.hint}
                 </div>
               )}

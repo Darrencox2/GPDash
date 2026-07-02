@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui';
 
 // Manage tokens for automated demand-CSV import (Power Automate).
 // Tokens are leadership-only and shown in full exactly once at creation.
@@ -66,20 +67,20 @@ export default function IngestTokens({ practiceId }) {
       </p>
 
       {error && (
-        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>{error}</div>
+        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>{error}</div>
       )}
 
       {/* Freshly created token — shown once */}
       {freshToken && (
-        <div style={{ marginBottom: 16, padding: 14, borderRadius: 10, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)' }}>
+        <div style={{ marginBottom: 16, padding: 14, borderRadius: 'var(--r-lg)', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)' }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#6ee7b7', marginBottom: 8 }}>
             Token created — copy it now, you will not see it again
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <code style={{ flex: 1, minWidth: 240, fontSize: 12.5, fontFamily: 'var(--font-mono, monospace)', background: 'var(--g-field)', border: '1px solid var(--g-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--g-text-hi)', wordBreak: 'break-all' }}>
+            <code style={{ flex: 1, minWidth: 240, fontSize: 13, fontFamily: 'var(--font-mono, monospace)', background: 'var(--g-field)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-sm)', padding: '8px 10px', color: 'var(--g-text-hi)', wordBreak: 'break-all' }}>
               {freshToken.token}
             </code>
-            <button onClick={() => copy(freshToken.token)} style={primaryBtn}>{copied ? 'Copied' : 'Copy token'}</button>
+            <Button size="sm" onClick={() => copy(freshToken.token)}>{copied ? 'Copied' : 'Copy token'}</Button>
           </div>
         </div>
       )}
@@ -87,18 +88,18 @@ export default function IngestTokens({ practiceId }) {
       {/* Create */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 16 }}>
         <div>
-          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 5 }}>Token label</label>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 5 }}>Token label</label>
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Power Automate" style={inputStyle} />
         </div>
-        <button onClick={createToken} disabled={creating} style={primaryBtn}>{creating ? 'Creating…' : 'Create token'}</button>
+        <Button size="sm" onClick={createToken} disabled={creating}>{creating ? 'Creating…' : 'Create token'}</Button>
       </div>
 
       {/* Endpoint reference */}
-      <div style={{ marginBottom: 18, padding: 12, borderRadius: 8, background: 'var(--g-tile)', border: '1px solid var(--g-border)' }}>
+      <div style={{ marginBottom: 18, padding: 12, borderRadius: 'var(--r-md)', background: 'var(--g-tile)', border: '1px solid var(--g-border)' }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 6 }}>Send the CSV to this URL (HTTP POST)</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <code style={{ flex: 1, minWidth: 240, fontSize: 12.5, fontFamily: 'var(--font-mono, monospace)', color: 'var(--g-text-hi)', wordBreak: 'break-all' }}>{endpointUrl}</code>
-          <button onClick={() => copy(endpointUrl)} style={ghostBtn}>Copy URL</button>
+          <code style={{ flex: 1, minWidth: 240, fontSize: 13, fontFamily: 'var(--font-mono, monospace)', color: 'var(--g-text-hi)', wordBreak: 'break-all' }}>{endpointUrl}</code>
+          <Button size="sm" variant="ghost" onClick={() => copy(endpointUrl)}>Copy URL</Button>
         </div>
         <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 8, lineHeight: 1.5 }}>
           Header <code style={codeInline}>X-Ingest-Token: your-token</code> · Body: the raw CSV file content ·
@@ -114,9 +115,9 @@ export default function IngestTokens({ practiceId }) {
       {tokens && tokens.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {tokens.map((t) => (
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 14px', borderRadius: 8, background: 'var(--g-card)', border: '1px solid var(--g-border)' }}>
+            <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'var(--g-card)', border: '1px solid var(--g-border)' }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--g-text-hi)' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)' }}>
                   {t.label || 'Token'} {!t.enabled && <span style={{ color: '#fca5a5', fontWeight: 400 }}>(disabled)</span>}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 2 }}>
@@ -125,7 +126,7 @@ export default function IngestTokens({ practiceId }) {
                     : 'Never used'}
                 </div>
               </div>
-              <button onClick={() => revoke(t.id)} style={{ ...ghostBtn, color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }}>Revoke</button>
+              <Button size="sm" variant="danger" onClick={() => revoke(t.id)}>Revoke</Button>
             </div>
           ))}
         </div>
@@ -134,7 +135,5 @@ export default function IngestTokens({ practiceId }) {
   );
 }
 
-const inputStyle = { padding: '8px 11px', borderRadius: 8, fontSize: 14, background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)', minWidth: 200 };
-const primaryBtn = { padding: '8px 14px', borderRadius: 8, border: 'none', background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' };
-const ghostBtn = { padding: '7px 12px', borderRadius: 8, border: '1px solid var(--g-border)', background: 'transparent', color: 'var(--g-text-mid)', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-const codeInline = { fontSize: 11.5, fontFamily: 'var(--font-mono, monospace)', background: 'var(--g-field)', padding: '1px 5px', borderRadius: 4, color: 'var(--g-text-hi)' };
+const inputStyle = { padding: '8px 12px', borderRadius: 'var(--r-md)', fontSize: 14, background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)', minWidth: 200 };
+const codeInline = { fontSize: 12, fontFamily: 'var(--font-mono, monospace)', background: 'var(--g-field)', padding: '1px 5px', borderRadius: 'var(--r-sm)', color: 'var(--g-text-hi)' };

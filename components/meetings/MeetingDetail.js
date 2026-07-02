@@ -252,7 +252,7 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--g-text-mid)', marginBottom: 4 }}>
             Open actions carried forward
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--g-text-mid)', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginBottom: 10 }}>
             Still open from previous meetings. Update or complete them here.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -266,22 +266,22 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
                     onClick={() => updateCarried(a.id, { status: done ? 'open' : 'done' })}
                     title={done ? 'Mark as not done' : 'Mark as done'}
                     aria-label={done ? 'Mark as not done' : 'Mark as done'}
-                    style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
+                    style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 'var(--r-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
                   >
                     {done && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
                   </button>
-                  <span style={{ flex: 1, fontSize: 13.5, color: 'var(--g-text-hi)', textDecoration: done ? 'line-through' : 'none' }}>{a.description}</span>
+                  <span style={{ flex: 1, fontSize: 14, color: 'var(--g-text-hi)', textDecoration: done ? 'line-through' : 'none' }}>{a.description}</span>
                   {done ? (
                     <button onClick={() => updateCarried(a.id, { status: 'open' })} style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: 'var(--accent, #6366f1)', background: 'none', border: 'none', cursor: 'pointer' }}>Undo</button>
                   ) : (
                     <button
                       onClick={() => updateCarried(a.id, { status: inProgress ? 'open' : 'in_progress' })}
-                      style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+                      style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
                     >{inProgress ? 'In progress' : 'Start'}</button>
                   )}
                   {a.assignee_name && <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--g-text-mid)' }}>{a.assignee_name}</span>}
                   {from?.meeting_date && (
-                    <span style={{ flexShrink: 0, fontSize: 11.5, color: 'var(--g-text-mid)' }}>
+                    <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--g-text-mid)' }}>
                       from {new Date(from.meeting_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </span>
                   )}
@@ -319,7 +319,7 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           />
         ))}
         {items.length === 0 && (
-          <div style={{ color: 'var(--g-text-mid)', fontSize: 13.5, padding: '8px 2px' }}>
+          <div style={{ color: 'var(--g-text-mid)', fontSize: 14, padding: '8px 2px' }}>
             No agenda items yet. Add the first item below.
           </div>
         )}
@@ -334,14 +334,14 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           onKeyDown={(e) => { if (e.key === 'Enter') addItem('confirmed'); }}
           placeholder="Add an agenda item, or propose a point for discussion"
         />
-        <button onClick={() => addItem('proposed')} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--g-border)', background: 'transparent', color: 'var(--g-text-mid)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Propose</button>
+        <button onClick={() => addItem('proposed')} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--g-border)', background: 'transparent', color: 'var(--g-text-mid)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Propose</button>
         <button onClick={() => addItem('confirmed')} style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 'var(--r-md)', border: 'none', background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Add</button>
       </div>
 
       {/* All actions from this meeting */}
       <SectionTitle>Action log</SectionTitle>
       {actions.length === 0 ? (
-        <div style={{ color: 'var(--g-text-mid)', fontSize: 13.5 }}>
+        <div style={{ color: 'var(--g-text-mid)', fontSize: 14 }}>
           No actions yet. Add actions against an agenda item above.
         </div>
       ) : (
@@ -374,7 +374,7 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
         <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 'var(--r-sm)', background: 'var(--g-tile)', color: 'var(--g-text-mid)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{proposed ? '·' : index}</span>
         <input
-          style={{ flex: 1, fontSize: 14.5, fontWeight: 600, background: 'transparent', border: 'none', color: 'var(--g-text-hi)', padding: '2px 0', outline: 'none' }}
+          style={{ flex: 1, fontSize: 15, fontWeight: 600, background: 'transparent', border: 'none', color: 'var(--g-text-hi)', padding: '2px 0', outline: 'none' }}
           value={item.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
           onBlur={(e) => onUpdate({ title: e.target.value.trim() || 'Untitled item' })}
@@ -465,11 +465,11 @@ function ActionRow({ action, onUpdate, compact }) {
         onClick={() => onUpdate({ status: done ? 'open' : 'done' })}
         title={done ? 'Mark as not done' : 'Mark as done'}
         aria-label={done ? 'Mark as not done' : 'Mark as done'}
-        style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
+        style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 'var(--r-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#10b981' : 'transparent', border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}` }}
       >
         {done && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
       </button>
-      <span style={{ flex: 1, fontSize: 13.5, color: 'var(--g-text-hi)', textDecoration: done ? 'line-through' : 'none' }}>
+      <span style={{ flex: 1, fontSize: 14, color: 'var(--g-text-hi)', textDecoration: done ? 'line-through' : 'none' }}>
         {action.description}
       </span>
       {done ? (
@@ -478,7 +478,7 @@ function ActionRow({ action, onUpdate, compact }) {
         <>
           <button
             onClick={() => onUpdate({ status: inProgress ? 'open' : 'in_progress' })}
-            style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+            style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
           >{inProgress ? 'In progress' : 'Start'}</button>
           <input
             style={{ flexShrink: 0, width: 140, fontSize: 13, padding: '7px 10px', borderRadius: 'var(--r-md)', minHeight: 34, background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)' }}

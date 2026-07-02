@@ -217,9 +217,9 @@ function UploadRow({ row, onFile, onRetry, onChange }) {
 
       {status === 'review' && result && (
         <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--g-border)' }}>
-          {error && <div style={{ margin: '10px 0', padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: '#fca5a5', fontSize: 12.5 }}>{error}</div>}
+          {error && <div style={{ margin: '10px 0', padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: '#fca5a5', fontSize: 13 }}>{error}</div>}
           {result.confidence === 'low' && (
-            <div style={{ margin: '12px 0 0', padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#fcd34d', fontSize: 12.5 }}>
+            <div style={{ margin: '12px 0 0', padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#fcd34d', fontSize: 13 }}>
               Low confidence on the date — please check it carefully before filing.
             </div>
           )}
@@ -239,7 +239,7 @@ function UploadRow({ row, onFile, onRetry, onChange }) {
               <input style={inputStyle} value={result.title} onChange={(e) => onChange({ title: e.target.value })} />
             </div>
           </div>
-          <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--g-text-mid)' }}>
+          <div style={{ marginTop: 12, fontSize: 13, color: 'var(--g-text-mid)' }}>
             {result.agenda_items.length} agenda item{result.agenda_items.length === 1 ? '' : 's'}
             {result.actions.length > 0 && ` · ${result.actions.length} action${result.actions.length === 1 ? '' : 's'}`} detected.
             They will be filed with the meeting.
@@ -252,7 +252,7 @@ function UploadRow({ row, onFile, onRetry, onChange }) {
 
 const primaryBtn = {
   flexShrink: 0, padding: '8px 14px', borderRadius: 'var(--r-md)', border: 'none',
-  background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+  background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
 };
 const ghostBtn = {
   flexShrink: 0, padding: '7px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--g-border)',

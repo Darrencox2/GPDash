@@ -590,7 +590,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
                       <tr>
                         <td colSpan={8} style={{
                           padding: '14px 14px 6px',
-                          fontSize: 10.5, fontWeight: 600,
+                          fontSize: 11, fontWeight: 600,
                           color: 'var(--g-text-mid)',
                           textTransform: 'uppercase',
                           letterSpacing: 0.6,

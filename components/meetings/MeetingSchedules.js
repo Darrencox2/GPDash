@@ -17,7 +17,7 @@ const inputStyle = {
   width: '100%', padding: '9px 11px', borderRadius: 'var(--r-md)', fontSize: 14,
   background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)',
 };
-const labelStyle = { fontSize: 12.5, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 5, display: 'block' };
+const labelStyle = { fontSize: 13, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 5, display: 'block' };
 
 export default function MeetingSchedules({ data, onChanged }) {
   const supabase = createClient();
@@ -139,7 +139,7 @@ export default function MeetingSchedules({ data, onChanged }) {
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)' }}>{s.title}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--g-text-mid)', marginTop: 3 }}>
+                  <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 3 }}>
                     {typeLabel} · {describeSchedule(s)}{next ? ` · next ${new Date(next + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
                   </div>
                 </div>
@@ -265,9 +265,9 @@ function ScheduleForm({ practiceId, userId, onCancel, onCreated }) {
 
 const primaryBtn = {
   flexShrink: 0, padding: '8px 14px', borderRadius: 'var(--r-md)', border: 'none',
-  background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+  background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
 };
 const ghostBtn = {
   flexShrink: 0, padding: '8px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--g-border)',
-  background: 'transparent', color: 'var(--g-text-mid)', fontSize: 13.5, cursor: 'pointer',
+  background: 'transparent', color: 'var(--g-text-mid)', fontSize: 14, cursor: 'pointer',
 };

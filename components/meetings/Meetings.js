@@ -119,7 +119,7 @@ export default function Meetings({ data }) {
             key={id}
             onClick={() => setTab(id)}
             style={{
-              padding: '11px 16px', fontSize: 14.5, fontWeight: 600, cursor: 'pointer', background: 'none', whiteSpace: 'nowrap',
+              padding: '11px 16px', fontSize: 15, fontWeight: 600, cursor: 'pointer', background: 'none', whiteSpace: 'nowrap',
               border: 'none', borderBottom: `2px solid ${tab === id ? 'var(--accent, #6366f1)' : 'transparent'}`,
               color: tab === id ? 'var(--g-text-hi)' : 'var(--g-text-mid)', marginBottom: -1,
             }}
@@ -194,11 +194,11 @@ export default function Meetings({ data }) {
                     <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {m.title}
                     </div>
-                    <div style={{ fontSize: 12.5, color: 'var(--g-text-mid)', marginTop: 3 }}>
+                    <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 3 }}>
                       {typeLabel} · {fmtDate(m.meeting_date)}
                     </div>
                   </div>
-                  <span style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: st.bg, color: st.tx }}>
+                  <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: st.bg, color: st.tx }}>
                     {st.label}
                   </span>
                 </button>
@@ -247,7 +247,7 @@ function NewMeetingForm({ practiceId, userId, onCancel, onCreated }) {
     width: '100%', padding: '9px 11px', borderRadius: 'var(--r-md)', fontSize: 14,
     background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)',
   };
-  const label = { fontSize: 12.5, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 5, display: 'block' };
+  const label = { fontSize: 13, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 5, display: 'block' };
 
   return (
     <div style={{ marginTop: 16, padding: 18, borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: '1px solid var(--g-border)' }}>

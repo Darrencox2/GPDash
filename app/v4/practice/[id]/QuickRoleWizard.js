@@ -345,14 +345,14 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                     >
                       <span style={{
                         display: 'flex', alignItems: 'center', gap: 5, width: '100%',
-                        fontSize: 13.5, fontWeight: sel ? 600 : (allocatedElsewhere ? 400 : 500),
+                        fontSize: 14, fontWeight: sel ? 600 : (allocatedElsewhere ? 400 : 500),
                         color: sel ? '#c7d2fe' : (allocatedElsewhere ? '#5b6675' : 'var(--g-text-hi)'),
                       }}>
                         {sel && <span style={{ color: '#818cf8', flexShrink: 0 }}>✓</span>}
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                       </span>
                       {subline && (
-                        <span style={{ fontSize: 10.5, color: allocatedElsewhere ? '#3f4856' : (hasRole ? 'var(--g-text-mid)' : 'var(--g-text-mid)'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                        <span style={{ fontSize: 11, color: allocatedElsewhere ? '#3f4856' : (hasRole ? 'var(--g-text-mid)' : 'var(--g-text-mid)'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
                           {subline}
                         </span>
                       )}
@@ -373,7 +373,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               >
                 {step + 1 >= COMMON_ROLES.length ? 'Confirm & finish' : 'Confirm & continue'} →
               </button>
-              <span style={{ fontSize: 12.5, color: 'var(--g-text-mid)' }}>
+              <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
                 {selCount} marked as {isAdminStep ? 'non-clinician' : current.role}
               </span>
               <span style={{ fontSize: 12, color: 'var(--g-text-mid)', marginLeft: 'auto', fontFamily: "'Space Mono', monospace" }}>

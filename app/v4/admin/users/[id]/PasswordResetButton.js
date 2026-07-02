@@ -113,9 +113,9 @@ export default function PasswordResetButton({ email }) {
             readOnly
             value={link}
             onFocus={(e) => e.target.select()}
-            style={{ flex: 1, minWidth: 0, fontSize: 11.5, padding: '8px 10px', background: 'var(--g-field)', color: 'var(--g-text-hi)', border: '1px solid var(--g-line)', borderRadius: 'var(--r-sm)', fontFamily: "'Space Mono', monospace" }}
+            style={{ flex: 1, minWidth: 0, fontSize: 12, padding: '8px 10px', background: 'var(--g-field)', color: 'var(--g-text-hi)', border: '1px solid var(--g-line)', borderRadius: 'var(--r-sm)', fontFamily: "'Space Mono', monospace" }}
           />
-          <button onClick={copyLink} style={{ padding: '8px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}>
+          <button onClick={copyLink} style={{ padding: '8px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}>
             {copied ? '✓ Copied' : 'Copy'}
           </button>
         </div>

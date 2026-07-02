@@ -509,7 +509,7 @@ export default function WorkforcePlanner({ data, toast }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 23, fontWeight: 600, color: 'var(--g-text-hi)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>Workforce planner</h2>
-          <p style={{ margin: '5px 0 0', fontSize: 13.5, color: 'var(--g-text-mid)', maxWidth: 720, lineHeight: 1.5 }}>
+          <p style={{ margin: '5px 0 0', fontSize: 14, color: 'var(--g-text-mid)', maxWidth: 720, lineHeight: 1.5 }}>
             Drag clinicians across the week, allocate activities, and see where each session sits against demand. Use it to plan recruitment: spot the gaps against demand and work out how many sessions, and which role, to hire.
           </p>
           <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-4)', maxWidth: 680, lineHeight: 1.5 }}>
@@ -571,7 +571,7 @@ export default function WorkforcePlanner({ data, toast }) {
           {holidayOn ? `✓ Holiday cover (−${holidayAllowance}/session)` : 'Holiday cover'}
         </button>
         {expandedClin && byId[expandedClin] && (
-          <span style={{ fontSize: 12.5, color: 'var(--accent-text)', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(129,140,248,0.4)', borderRadius: 'var(--r-pill)', padding: '4px 10px', display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 13, color: 'var(--accent-text)', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(129,140,248,0.4)', borderRadius: 'var(--r-pill)', padding: '4px 10px', display: 'inline-flex', gap: 8, alignItems: 'center' }}>
             Highlighting {byId[expandedClin].name}
             <button onClick={() => setExpandedClin(null)} style={{ ...S.linkBtn, color: 'var(--accent-text)' }}>clear</button>
           </span>
@@ -649,7 +649,7 @@ export default function WorkforcePlanner({ data, toast }) {
         </div>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 14 }}>
           {[['Overstaffed', RC.blue.solid], ['Good', RC.green.solid], ['Tight', RC.amber.solid], ['Short', RC.red.solid]].map(([l, col]) => (<div key={l} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--text-3)' }}><span style={{ width: 14, height: 14, borderRadius: 'var(--r-sm)', background: col }} />{l}</div>))}
-          <span style={{ fontSize: 12.5, color: 'var(--text-4)', marginLeft: 'auto' }}>Cards shade red→green across the week · ratio header is absolute</span>
+          <span style={{ fontSize: 13, color: 'var(--text-4)', marginLeft: 'auto' }}>Cards shade red→green across the week · ratio header is absolute</span>
         </div>
       </div>
 
@@ -659,7 +659,7 @@ export default function WorkforcePlanner({ data, toast }) {
           {panel.clinicians && (
             <Popout title="Clinicians" onClose={() => togglePanel('clinicians')} highlight={overKey === 'bench'}>
               <button onClick={() => setAddOpen(true)} style={{ ...S.btnGhost, width: '100%', marginBottom: 10 }}>+ Add person</button>
-              <p style={{ fontSize: 11.5, color: 'var(--text-4)', margin: '0 0 10px' }}>Drag a name onto the grid to roster them; drag a chip here to bench them. Tap D to mark someone duty-capable (red ring).</p>
+              <p style={{ fontSize: 12, color: 'var(--text-4)', margin: '0 0 10px' }}>Drag a name onto the grid to roster them; drag a chip here to bench them. Tap D to mark someone duty-capable (red ring).</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {tracker.map(({ c, allocated, contracted }) => {
                   const mismatch = !additiveIds.has(c.id) && allocated !== contracted;
@@ -668,16 +668,16 @@ export default function WorkforcePlanner({ data, toast }) {
                     <div key={c.id} style={{ borderRadius: 'var(--r-md)', background: open ? 'var(--surface)' : 'transparent' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px' }}>
                         <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 'var(--r-pill)', background: c._added ? 'transparent' : 'var(--accent)', border: c._added ? '1px dashed var(--accent-2)' : 'none', color: c._added ? 'var(--accent-text)' : '#fff', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(c.id) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
-                        <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 13.5, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize: 10, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize: 10, marginLeft: 5 }}>edited</span>}</span>
+                        <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 14, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize: 10, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize: 10, marginLeft: 5 }}>edited</span>}</span>
                         <button onClick={() => toggleDuty(c.id)} title={dutySet.has(c.id) ? 'Duty-capable — click to unset' : 'Mark as duty-capable'}
                           style={{ width: 22, height: 22, borderRadius: 'var(--r-pill)', cursor: 'pointer', fontSize: 10, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
                             background: dutySet.has(c.id) ? 'rgba(248,113,113,0.18)' : 'transparent', border: `1px solid ${dutySet.has(c.id) ? 'rgba(248,113,113,0.7)' : 'var(--border-2)'}`, color: dutySet.has(c.id) ? '#fca5a5' : 'var(--text-4)' }}>D</button>
-                        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 12.5, color: mismatch ? '#f87171' : 'var(--text-3)' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
+                        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, color: mismatch ? '#f87171' : 'var(--text-3)' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
                         {c._added ? <button onClick={() => deleteAdded(c.id)} title="Delete" style={S.xBtn}>×</button> : <button onClick={() => removeReal(c.id)} title="Mark as leaving" style={S.xBtn}>×</button>}
                       </div>
                       {open && (
                         <div style={{ padding: '4px 6px 10px 38px' }}>
-                          <p style={{ fontSize: 10.5, color: 'var(--text-4)', margin: '0 0 5px' }}>Tick a clinician's contracted sessions:</p>
+                          <p style={{ fontSize: 11, color: 'var(--text-4)', margin: '0 0 5px' }}>Tick a clinician's contracted sessions:</p>
                           <MiniWeek pattern={effPattern[c.id]} onToggle={(d, s) => togglePattern(c.id, d, s)} />
                           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                             <button onClick={() => acceptAllocAsContract(c.id)} style={S.linkBtn} title="Set their contract to where they're currently allocated">Use allocation</button>
@@ -696,9 +696,9 @@ export default function WorkforcePlanner({ data, toast }) {
                 </div>
               )}
               <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <p style={{ fontSize: 10.5, color: 'var(--text-4)', margin: 0 }}>Contracts (planner overlay — never changes EMIS)</p>
-                <button onClick={acceptAllAsContract} style={{ ...S.btnGhost, width: '100%', fontSize: 12.5 }}>Accept whole plan as contract</button>
-                {editedCount > 0 && <button onClick={resetAllContractsToEmis} style={{ ...S.btnGhost, width: '100%', fontSize: 12.5 }}>Reset all contracts to EMIS</button>}
+                <p style={{ fontSize: 11, color: 'var(--text-4)', margin: 0 }}>Contracts (planner overlay — never changes EMIS)</p>
+                <button onClick={acceptAllAsContract} style={{ ...S.btnGhost, width: '100%', fontSize: 13 }}>Accept whole plan as contract</button>
+                {editedCount > 0 && <button onClick={resetAllContractsToEmis} style={{ ...S.btnGhost, width: '100%', fontSize: 13 }}>Reset all contracts to EMIS</button>}
               </div>
             </Popout>
           )}
@@ -720,17 +720,17 @@ export default function WorkforcePlanner({ data, toast }) {
           )}
           {panel.settings && (
             <Popout title="Settings" onClose={() => togglePanel('settings')}>
-              <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Include roles</p>
+              <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Include roles</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
                 {allRoles.map(role => { const on = includedRoles == null || includedRoles.includes(role); return (<button key={role} onClick={() => toggleRole(role)} style={{ padding: '6px 12px', borderRadius: 'var(--r-pill)', fontSize: 13, cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface)', color: on ? 'var(--accent-text)' : 'var(--text-4)' }}>{on ? '✓ ' : ''}{role}</button>); })}
               </div>
-              <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Ratio thresholds (requests / general clinician)</p>
+              <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Ratio thresholds (requests / general clinician)</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <ThRow label="Overstaffed below" value={thresholds.over} onChange={v => setThreshold('over', v)} colour={RC.blue.solid} />
                 <ThRow label="Tight above" value={thresholds.tight} onChange={v => setThreshold('tight', v)} colour={RC.amber.solid} />
                 <ThRow label="Short above" value={thresholds.short} onChange={v => setThreshold('short', v)} colour={RC.red.solid} />
               </div>
-              <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '16px 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Holiday cover</p>
+              <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '16px 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Holiday cover</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 11, height: 11, borderRadius: 3, background: '#f59e0b', flexShrink: 0 }} />
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text-2)' }}>Staff allowed off per day</span>
@@ -741,20 +741,20 @@ export default function WorkforcePlanner({ data, toast }) {
           )}
           {panel.scenarios && (
             <Popout title="Scenarios" onClose={() => togglePanel('scenarios')}>
-              <p style={{ fontSize: 11.5, color: 'var(--text-4)', margin: '0 0 10px' }}>Current is your live plan and loads by default. Save a copy to explore a what-if (for example losing a clinician), then switch back to Current any time.</p>
+              <p style={{ fontSize: 12, color: 'var(--text-4)', margin: '0 0 10px' }}>Current is your live plan and loads by default. Save a copy to explore a what-if (for example losing a clinician), then switch back to Current any time.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
                 {scenarios.map(sc => {
                   const active = sc.id === activeScenarioId;
                   return (
                     <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', borderRadius: 'var(--r-md)', background: active ? 'var(--accent-soft)' : 'var(--surface)', border: `1px solid ${active ? 'var(--accent-2)' : 'transparent'}` }}>
-                      <span style={{ flex: 1, fontSize: 13.5, color: active ? 'var(--accent-text)' : 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}{sc.pinned && <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 6 }}>live</span>}{active && <span style={{ fontSize: 10, color: 'var(--accent-2)', marginLeft: 6 }}>editing</span>}</span>
+                      <span style={{ flex: 1, fontSize: 14, color: active ? 'var(--accent-text)' : 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}{sc.pinned && <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 6 }}>live</span>}{active && <span style={{ fontSize: 10, color: 'var(--accent-2)', marginLeft: 6 }}>editing</span>}</span>
                       {!active && <button onClick={() => switchScenario(sc.id)} style={S.linkBtn}>edit</button>}
                       {!sc.pinned && <button onClick={() => deleteScenario(sc.id)} title="Delete" style={S.xBtn}>×</button>}
                     </div>
                   );
                 })}
               </div>
-              <p style={{ fontSize: 10.5, color: 'var(--text-4)', margin: '0 0 5px' }}>Save current plan as a new scenario</p>
+              <p style={{ fontSize: 11, color: 'var(--text-4)', margin: '0 0 5px' }}>Save current plan as a new scenario</p>
               <div style={{ display: 'flex', gap: 6 }}>
                 <input type="text" value={scenarioName} placeholder="e.g. If Dr X leaves" onChange={e => setScenarioName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveAsNewScenario(); }} style={{ ...S.input, flex: 1 }} />
                 <button disabled={!scenarioName.trim()} onClick={saveAsNewScenario} style={{ ...S.btnGhost, background: scenarioName.trim() ? 'var(--accent)' : 'rgba(99,102,241,0.4)', border: 'none', color: '#fff' }}>Save</button>
@@ -763,7 +763,7 @@ export default function WorkforcePlanner({ data, toast }) {
           )}
           {panel.audit && (
             <Popout title={`Audit · ${activeName}`} onClose={() => togglePanel('audit')}>
-              <p style={{ fontSize: 11.5, color: 'var(--text-4)', margin: '0 0 10px' }}>Every change made to reach this scenario, starting from its origin. Newest at the top.</p>
+              <p style={{ fontSize: 12, color: 'var(--text-4)', margin: '0 0 10px' }}>Every change made to reach this scenario, starting from its origin. Newest at the top.</p>
               {auditLog.length === 0 ? <span style={S.muted}>No changes recorded yet.</span> : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {[...auditLog].reverse().map((e, i) => {
@@ -820,7 +820,7 @@ function MiniWeek({ pattern, onToggle }) {
   );
 }
 function Segmented({ options, value, onChange }) {
-  return (<div style={{ display: 'flex', gap: 4 }}>{options.map(([v, l]) => <button key={v} onClick={() => onChange(v)} style={{ flex: 1, padding: '7px 4px', fontSize: 12.5, borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${value === v ? 'var(--accent-2)' : 'var(--border-2)'}`, background: value === v ? 'rgba(99,102,241,0.2)' : 'var(--surface)', color: value === v ? 'var(--accent-text)' : 'var(--text-3)' }}>{l}</button>)}</div>);
+  return (<div style={{ display: 'flex', gap: 4 }}>{options.map(([v, l]) => <button key={v} onClick={() => onChange(v)} style={{ flex: 1, padding: '7px 4px', fontSize: 13, borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${value === v ? 'var(--accent-2)' : 'var(--border-2)'}`, background: value === v ? 'rgba(99,102,241,0.2)' : 'var(--surface)', color: value === v ? 'var(--accent-text)' : 'var(--text-3)' }}>{l}</button>)}</div>);
 }
 function ThRow({ label, value, onChange, colour }) {
   return (<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: colour, flexShrink: 0 }} /><span style={{ flex: 1, fontSize: 13, color: 'var(--text-2)' }}>{label}</span><input type="number" min={0} value={value} onChange={e => onChange(e.target.value)} style={{ width: 60, ...S.numInput }} /></div>);
@@ -829,7 +829,7 @@ function Popout({ title, onClose, children, highlight }) {
   return (
     <div style={{ ...S.card, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', background: 'var(--panel)', border: `1px solid ${highlight ? 'var(--accent-2)' : 'var(--border-2)'}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ fontSize: 12.5, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{title}</span>
+        <span style={{ fontSize: 13, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{title}</span>
         <button onClick={onClose} style={S.xBtn}>×</button>
       </div>
       {children}
@@ -872,11 +872,11 @@ function AddStaffModal({ roles, onClose, onAdd }) {
 const S = {
   card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 },
   muted: { fontSize: 13, color: 'var(--text-3)', margin: 0 },
-  btnGhost: { background: 'var(--surface-2)', color: 'var(--text-1)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', padding: '8px 14px', fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' },
+  btnGhost: { background: 'var(--surface-2)', color: 'var(--text-1)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', padding: '8px 14px', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' },
   toggle: { border: 'none', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   xBtn: { background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 17, lineHeight: 1, padding: '0 2px' },
   linkBtn: { background: 'none', border: 'none', color: 'var(--accent-2)', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 },
   input: { width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', color: 'var(--text-1)', padding: '9px 11px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' },
   numInput: { background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-sm)', color: 'var(--text-1)', padding: '5px 8px', fontSize: 13, fontFamily: 'inherit' },
-  modalLabel: { fontSize: 11.5, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.4, margin: '12px 0 6px' },
+  modalLabel: { fontSize: 12, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.4, margin: '12px 0 6px' },
 };

@@ -837,15 +837,15 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
     >
       <style>{`@keyframes shtIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 13.5 }}>{c.name}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto', padding: '2px 9px', borderRadius: 'var(--r-pill)', background: meta.bg, color: meta.colour, fontSize: 11.5, fontWeight: 600 }}>
+        <span style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 14 }}>{c.name}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto', padding: '2px 9px', borderRadius: 'var(--r-pill)', background: meta.bg, color: meta.colour, fontSize: 12, fontWeight: 600 }}>
           <span>{meta.icon}</span>{meta.label}
         </span>
       </div>
       {lines.map((l, i) => (
-        <div key={i} style={{ fontSize: 12.5, color: i === 0 ? 'var(--g-text-hi)' : 'var(--g-text-mid)', lineHeight: 1.5, marginTop: i === 0 ? 0 : 6 }}>{l}</div>
+        <div key={i} style={{ fontSize: 13, color: i === 0 ? 'var(--g-text-hi)' : 'var(--g-text-mid)', lineHeight: 1.5, marginTop: i === 0 ? 0 : 6 }}>{l}</div>
       ))}
-      <div style={{ fontSize: 10.5, color: 'var(--g-text-faint)', marginTop: 9 }}>{c.role}{c.initials ? ` · ${c.initials}` : ''}</div>
+      <div style={{ fontSize: 11, color: 'var(--g-text-faint)', marginTop: 9 }}>{c.role}{c.initials ? ` · ${c.initials}` : ''}</div>
     </div>
   );
   return createPortal(tip, document.body);

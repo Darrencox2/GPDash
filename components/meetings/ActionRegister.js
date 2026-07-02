@@ -136,7 +136,7 @@ export default function ActionRegister({ data }) {
           Every action across all meetings, in one place. Click a status to cycle it.
         </p>
         {counts.overdue > 0 && (
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: '#fca5a5', padding: '3px 10px', borderRadius: 'var(--r-pill)', background: 'rgba(239,68,68,0.12)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#fca5a5', padding: '3px 10px', borderRadius: 'var(--r-pill)', background: 'rgba(239,68,68,0.12)' }}>
             {counts.overdue} overdue
           </span>
         )}
@@ -184,7 +184,7 @@ export default function ActionRegister({ data }) {
                   title={done ? 'Mark as not done' : 'Mark as done'}
                   aria-label={done ? 'Mark as not done' : 'Mark as done'}
                   style={{
-                    flexShrink: 0, width: 28, height: 28, marginTop: 1, borderRadius: 7, cursor: 'pointer',
+                    flexShrink: 0, width: 28, height: 28, marginTop: 1, borderRadius: 'var(--r-md)', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: done ? '#10b981' : 'transparent',
                     border: `2px solid ${done ? '#10b981' : 'var(--g-border-strong, #94a3b8)'}`,

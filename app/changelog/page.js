@@ -54,7 +54,7 @@ export default function ChangelogPage() {
               {(rel.changes || []).map((c, i) => (
                 <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <Badge type={c.type} />
-                  <span style={{ fontSize: 13.5, color: '#cbd5e1' }}>{c.text}</span>
+                  <span style={{ fontSize: 14, color: '#cbd5e1' }}>{c.text}</span>
                 </li>
               ))}
             </ul>

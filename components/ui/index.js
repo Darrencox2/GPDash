@@ -75,9 +75,9 @@ const BTN_VARIANTS = {
   upload_stale: { background: '#dc2626', color: '#fff', border: '1px solid rgba(239,68,68,0.4)' },
 };
 const BTN_SIZES = {
-  xs: { padding: '3px 8px',  fontSize: 11.5, gap: 4, borderRadius: 'var(--r-sm)' },
-  sm: { padding: '5px 11px', fontSize: 12.5, gap: 6, borderRadius: 'var(--r-sm)' },
-  md: { padding: '8px 15px', fontSize: 13.5, gap: 8, borderRadius: 'var(--r-md)' },
+  xs: { padding: '3px 8px',  fontSize: 12, gap: 4, borderRadius: 'var(--r-sm)' },
+  sm: { padding: '5px 11px', fontSize: 13, gap: 6, borderRadius: 'var(--r-sm)' },
+  md: { padding: '8px 15px', fontSize: 14, gap: 8, borderRadius: 'var(--r-md)' },
   lg: { padding: '10px 19px', fontSize: 14, gap: 8, borderRadius: 'var(--r-md)' },
 };
 
@@ -124,7 +124,7 @@ export function CardTitle({ children, sub }) {
   return (
     <div>
       <div style={{ fontFamily: HEAD, fontSize: 15.5, fontWeight: 600, color: 'var(--g-text-hi)' }}>{children}</div>
-      {sub && <div style={{ fontSize: 12.5, color: 'var(--g-text-mid)', marginTop: 1 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 1 }}>{sub}</div>}
     </div>
   );
 }
@@ -136,7 +136,7 @@ export function PageHeader({ title, subtitle, actions, children, className = '' 
     <div className={`flex items-start justify-between gap-x-4 gap-y-2 flex-wrap mb-5 ${className}`}>
       <div style={{ minWidth: 0 }}>
         <h1 style={{ fontFamily: HEAD, fontSize: 23, fontWeight: 600, color: 'var(--g-text-hi)', margin: 0, lineHeight: 1.2 }}>{title}</h1>
-        {subtitle && <p style={{ fontSize: 13.5, color: 'var(--g-text-mid)', margin: '5px 0 0', lineHeight: 1.5, maxWidth: 720 }}>{subtitle}</p>}
+        {subtitle && <p style={{ fontSize: 14, color: 'var(--g-text-mid)', margin: '5px 0 0', lineHeight: 1.5, maxWidth: 720 }}>{subtitle}</p>}
       </div>
       {(actions || children) && <div className="flex items-center gap-2 flex-wrap">{actions}{children}</div>}
     </div>
@@ -214,9 +214,9 @@ export function StatCard({ label, value, accent, sub }) {
   const accentColor = { emerald: '#10b981', amber: '#f59e0b', red: '#ef4444', blue: '#3b82f6', purple: '#8b5cf6', cyan: '#06b6d4' }[accent];
   return (
     <div style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)', padding: '10px 14px' }}>
-      <div style={{ fontSize: 10.5, color: 'var(--g-label)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 11, color: 'var(--g-label)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
       <div style={{ fontFamily: MONO, fontSize: 19, fontWeight: 700, color: accentColor || 'var(--g-text-hi)', lineHeight: 1.3 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11.5, color: 'var(--g-text-mid)' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 12, color: 'var(--g-text-mid)' }}>{sub}</div>}
     </div>
   );
 }
@@ -231,7 +231,7 @@ export function Badge({ children, variant = 'default', className = '' }) {
     info:    { background: 'rgba(59,130,246,0.14)', color: 'var(--c-blue)', border: '1px solid rgba(59,130,246,0.35)' },
     accent:  { background: 'rgba(99,102,241,0.14)', color: 'var(--accent-text)', border: '1px solid rgba(99,102,241,0.35)' },
   };
-  return <span className={`inline-flex items-center gap-1 ${className}`} style={{ fontSize: 11.5, fontWeight: 500, padding: '2px 9px', borderRadius: 'var(--r-pill)', ...(variants[variant] || variants.default) }}>{children}</span>;
+  return <span className={`inline-flex items-center gap-1 ${className}`} style={{ fontSize: 12, fontWeight: 500, padding: '2px 9px', borderRadius: 'var(--r-pill)', ...(variants[variant] || variants.default) }}>{children}</span>;
 }
 
 // ─── Inputs ──────────────────────────────────────────────────────
@@ -240,8 +240,8 @@ const FIELD_BASE = {
   borderRadius: 'var(--r-md)', outline: 'none', width: '100%',
 };
 const FIELD_SIZES = {
-  sm: { padding: '6px 9px', fontSize: 12.5 },
-  md: { padding: '8px 11px', fontSize: 13.5 },
+  sm: { padding: '6px 9px', fontSize: 13 },
+  md: { padding: '8px 11px', fontSize: 14 },
 };
 
 export function Input({ className = '', size = 'md', style, ...props }) {
@@ -260,9 +260,9 @@ export function Select({ className = '', size = 'md', children, style, ...props 
 export function Field({ label, hint, children, className = '' }) {
   return (
     <label className={`block ${className}`}>
-      {label && <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--g-label)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 5 }}>{label}</span>}
+      {label && <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--g-label)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 5 }}>{label}</span>}
       {children}
-      {hint && <span style={{ display: 'block', fontSize: 11.5, color: 'var(--g-text-faint)', marginTop: 4 }}>{hint}</span>}
+      {hint && <span style={{ display: 'block', fontSize: 12, color: 'var(--g-text-faint)', marginTop: 4 }}>{hint}</span>}
     </label>
   );
 }
@@ -278,7 +278,7 @@ export function SaveStatus({ state, savedLabel = '✓ Saved' }) {
     error:  { text: 'Save failed', color: '#f87171' },
   };
   const m = map[state] || map.saving;
-  return <span style={{ fontSize: 12.5, color: m.color, minWidth: 58, display: 'inline-block' }}>{m.text}</span>;
+  return <span style={{ fontSize: 13, color: m.color, minWidth: 58, display: 'inline-block' }}>{m.text}</span>;
 }
 
 // ─── Theme hook ──────────────────────────────────────────────────

@@ -95,6 +95,14 @@
     --g-surface: #0f172a; --g-surface-2: #1e293b; --g-field: rgba(0,0,0,0.22);
     /* ── Shape scale (theme-independent): controls, buttons/inputs, cards, pills ── */
     --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-pill: 999px;
+    /* ── DESIGN SCALE (the standard for all new work) ─────────────────────
+       Type (px):    11 caption · 12 meta · 13 body-small · 14 body ·
+                     16 subhead · 18 h3 · 22 h2 · 28+ display
+       Spacing:      4px grid — use 4/8/12/16/20/24 for padding, gap, margin
+       Radii:        var(--r-sm|md|lg|pill) — never raw px
+       Surfaces:     --g-card (filled card) · --g-tile (subtle) · --g-panel (glass)
+       Buttons:      components/ui Button (primary/ghost/danger, size sm/md) —
+                     do not hand-roll button styles in new components. */
   }
 
   /* Mobile browsers: 100vh includes the collapsed URL bar, which lets the

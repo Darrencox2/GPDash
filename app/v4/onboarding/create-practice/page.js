@@ -309,7 +309,7 @@ export default function CreatePracticePage() {
 
         {mode === 'manual' && (
           <div>
-            <div style={{ fontSize: 11.5, color: '#94a3b8', marginBottom: 12, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12, lineHeight: 1.5 }}>
               Use this if the NHS lookup is not finding your practice or is unavailable. Only the
               name is required — you can add or correct the rest later in settings.
             </div>
