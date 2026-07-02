@@ -934,7 +934,7 @@ function BulkSelect({ label, onChange, children, disabled }) {
       }}
       style={{
         padding: '5px 10px', fontSize: 12,
-        background: 'var(--g-field)', opacity: disabled ? 0.55 : 1,
+        background: 'var(--g-field)',
         border: '1px solid var(--g-line)',
         borderRadius: 'var(--r-sm)',
         color: disabled ? 'var(--g-text-faint)' : 'var(--g-text-hi)',

@@ -65,7 +65,7 @@ const fmt = (n) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
 const CURRENT_ID = 'sc_current';
 const COMMON_ROLES = ['GP', 'GP Partner', 'Salaried GP', 'GP Registrar', 'ANP', 'Nurse', 'Practice Nurse', 'Pharmacist', 'Paramedic', 'Physician Associate', 'HCA', 'Other'];
 function normalizeActivities(arr) {
-  return (Array.isArray(arr) ? arr : []).map(a => ({ duration: 'one', week: 'all', assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' }));
+  return (Array.isArray(arr) ? arr : []).map(a => ({ assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' }));
 }
 function healAlloc(alloc, acts) {
   for (const a of acts || []) {
