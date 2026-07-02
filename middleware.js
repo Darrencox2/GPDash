@@ -16,6 +16,24 @@ export async function middleware(request) {
 
   // Only do the work if we might actually need to redirect from '/'
   if (path === '/') {
+    // FAST PATH: returning user launching the app (e.g. iOS home-screen icon
+    // saved at '/'). If we know their last practice (cookie set client-side by
+    // DashboardClient) and they carry a Supabase auth cookie, redirect straight
+    // to /p/{slug} with ZERO network calls. This collapses the old launch chain
+    // (/ -> network getUser -> /dashboard -> auth+membership query -> /p/slug:
+    // three sequential server round-trips) into one hop. If the auth cookie is
+    // stale the target page redirects to login exactly as it always did; if the
+    // practice is stale the target page handles that too.
+    const lastPractice = request.cookies.get('gpdash-last-practice')?.value || '';
+    const hasAuthCookie = request.cookies
+      .getAll()
+      .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'));
+    if (hasAuthCookie && /^[a-zA-Z0-9-]{1,64}$/.test(lastPractice)) {
+      const dest = request.nextUrl.clone();
+      dest.pathname = `/p/${lastPractice}`;
+      return NextResponse.redirect(dest);
+    }
+
     const { supabase, supabaseResponse } = createClient(request);
     if (supabase) {
       const { data: { user } } = await supabase.auth.getUser();

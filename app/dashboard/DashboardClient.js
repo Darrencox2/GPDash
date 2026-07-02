@@ -159,6 +159,15 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     const section = new URL(window.location.href).searchParams.get('section');
     if (section === 'workload-audit') setActiveSection('reporting');
     else if (section) setActiveSection(section);
+
+    // Remember this practice so launching the app at '/' (home-screen icon)
+    // can redirect straight here in ONE hop with no network calls - see the
+    // fast path in middleware.js. Uses the exact URL segment we would return
+    // to; sanitised the same way middleware validates it.
+    const m = window.location.pathname.match(/^\/p\/([a-zA-Z0-9-]{1,64})$/);
+    if (m) {
+      document.cookie = `gpdash-last-practice=${m[1]}; path=/; max-age=31536000; SameSite=Lax`;
+    }
   }, []); // mount-only — subsequent in-page nav uses setActiveSection directly
   const [syncStatus, setSyncStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
