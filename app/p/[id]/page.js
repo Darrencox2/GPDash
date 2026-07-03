@@ -37,8 +37,8 @@ export default async function PracticePage({ params }) {
   if (!practice) {
     return (
       <div style={{ padding: 32, color: 'white', background: '#0f172a', minHeight: '100vh' }}>
-        <h1 style={{ fontSize: 18, marginBottom: 8 }}>Practice not found</h1>
-        <p style={{ color: '#94a3b8', fontSize: 14 }}>No practice matches "{identifier}". Check the URL or <a href="/v4/dashboard" style={{ color: '#22d3ee' }}>pick a practice</a>.</p>
+        <h1 className="text-h3 mb-2">Practice not found</h1>
+        <p className="text-slate-400 text-body">No practice matches "{identifier}". Check the URL or <a href="/v4/dashboard" className="text-cyan-400">pick a practice</a>.</p>
       </div>
     );
   }

@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminPracticesPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
 
   // Auth + platform-admin + MFA enforcement in one call. Redirects on
   // any failure; if we get past this line the user is fully cleared.
@@ -42,14 +42,14 @@ export default async function AdminPracticesPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 14, marginBottom: 28, flexWrap: 'wrap' }}>
+        <div className="flex gap-3.5 mb-7 flex-wrap">
           <Stat label="Practices" value={practices?.length || 0} />
           <Stat label="Total members" value={(practices || []).reduce((s, p) => s + Number(p.member_count || 0), 0)} />
           <Stat label="Total clinicians" value={(practices || []).reduce((s, p) => s + Number(p.clinician_count || 0), 0)} />
         </div>
 
         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <table className="w-full border-collapse text-body">
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.04)', textAlign: 'left' }}>
                 <th style={th}>Name</th>
@@ -126,10 +126,10 @@ function PublicLegalLinksCard() {
         <h2 style={{ fontSize: 16, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>Public legal pages</h2>
         <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>Not linked from the public navigation</span>
       </div>
-      <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, marginBottom: 14, lineHeight: 1.6 }}>
+      <p className="text-meta text-slate-400 mt-1 mb-3.5 leading-body">
         For sharing with a practice&apos;s IG officer during due diligence. These pages render without auth — paste the URL into an email and the recipient can read straight away.
       </p>
-      <div style={{ display: 'grid', gap: 8 }}>
+      <div className="grid gap-2">
         {links.map(link => (
           <a
             key={link.href}
@@ -150,12 +150,12 @@ function PublicLegalLinksCard() {
             }}
           >
             <div style={{ flex: '1 1 280px' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#67e8f9', marginBottom: 2 }}>
-                {link.href} <span style={{ fontWeight: 400, color: '#94a3b8' }}>— {link.label}</span>
+              <div className="text-body-sm font-semibold text-cyan-300 mb-0.5">
+                {link.href} <span className="font-normal text-slate-400">— {link.label}</span>
               </div>
-              <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>{link.desc}</div>
+              <div className="text-caption text-slate-400 leading-normal">{link.desc}</div>
             </div>
-            <span style={{ fontSize: 11, color: '#67e8f9', fontWeight: 500, whiteSpace: 'nowrap' }}>Open ↗</span>
+            <span className="text-caption text-cyan-300 font-medium whitespace-nowrap">Open ↗</span>
           </a>
         ))}
       </div>

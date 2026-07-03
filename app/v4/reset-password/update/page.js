@@ -140,7 +140,7 @@ export default function ResetPasswordUpdatePage() {
             disabled={!ready}
           />
           {!passwordsMatch && (
-            <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5' }}>
+            <div className="mt-1.5 text-caption text-red-300">
               Passwords don't match yet.
             </div>
           )}

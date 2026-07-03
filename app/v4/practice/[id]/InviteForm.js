@@ -98,7 +98,7 @@ export default function InviteForm({ practiceId, canMakeOwner, canAssignLeadersh
             <option key={r} value={r}>{roleLabels[r] || r}</option>
           ))}
         </select>
-        <p style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 6 }}>
+        <p className="text-caption text-mid mt-1.5">
           {roleDescription[role] || ''}
         </p>
       </div>
@@ -111,7 +111,7 @@ export default function InviteForm({ practiceId, canMakeOwner, canAssignLeadersh
         {loading ? 'Sending invite...' : 'Send invite'}
       </button>
 
-      <p style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 12, textAlign: 'center' }}>
+      <p className="text-caption text-mid mt-3 text-center">
         Invitee creates an account with this email — they'll see a pending invite to accept.
       </p>
     </form>

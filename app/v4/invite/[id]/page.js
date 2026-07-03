@@ -63,7 +63,7 @@ export default async function InviteAcceptPage({ params }) {
     return <Shell title="Invite already used">
       <Message kind="info">
         This invite has already been accepted. If you were already added to {summary.practice_name}, just{' '}
-        <Link href="/v4/login" style={{ color: '#22d3ee' }}>sign in</Link>.
+        <Link href="/v4/login" className="text-cyan-400">sign in</Link>.
       </Message>
     </Shell>;
   }
@@ -78,10 +78,10 @@ export default async function InviteAcceptPage({ params }) {
 
   return (
     <Shell title={`Join ${summary.practice_name}`}>
-      <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, marginBottom: 16 }}>
-        <strong style={{ color: 'white' }}>{summary.inviter_name}</strong> has invited you to join{' '}
-        <strong style={{ color: 'white' }}>{summary.practice_name}</strong>{' '}
-        as <strong style={{ color: '#67e8f9' }}>{summary.role}</strong>.
+      <p className="text-body text-slate-300 leading-body mb-4">
+        <strong className="text-white">{summary.inviter_name}</strong> has invited you to join{' '}
+        <strong className="text-white">{summary.practice_name}</strong>{' '}
+        as <strong className="text-cyan-300">{summary.role}</strong>.
       </p>
 
       {!user ? (
@@ -108,11 +108,11 @@ function SignInPrompt({ invitedEmail, inviteId }) {
   const next = encodeURIComponent(`/v4/invite/${inviteId}`);
   return (
     <div>
-      <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16, lineHeight: 1.6 }}>
+      <p className="text-body-sm text-slate-400 mb-4 leading-body">
         To accept, sign in with the email this invite was sent to:
-        {' '}<strong style={{ color: '#cbd5e1' }}>{invitedEmail}</strong>
+        {' '}<strong className="text-slate-300">{invitedEmail}</strong>
       </p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="flex gap-2 flex-wrap">
         <Link
           href={`/v4/login?email=${encodeURIComponent(invitedEmail)}&next=${next}`}
           style={{ ...btn, background: '#0891b2', color: 'white' }}
@@ -144,8 +144,8 @@ function WrongAccountMessage({ callerEmail, invitedEmail }) {
       You're signed in as <strong>{callerEmail}</strong>, but this invite was sent to{' '}
       <strong>{invitedEmail}</strong>. Sign out and sign back in with the right email to accept,
       or ask the person who sent it to issue a new invite to <strong>{callerEmail}</strong>.
-      <div style={{ marginTop: 10 }}>
-        <Link href="/v4/login" style={{ color: '#22d3ee', fontSize: 12 }}>Switch accounts →</Link>
+      <div className="mt-2.5">
+        <Link href="/v4/login" className="text-cyan-400 text-meta">Switch accounts →</Link>
       </div>
     </div>
   );

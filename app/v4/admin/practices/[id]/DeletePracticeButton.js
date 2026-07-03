@@ -46,13 +46,13 @@ export default function DeletePracticeButton({ practiceId, practiceName, practic
           marginBottom: 12,
         }}>{error}</div>
       )}
-      <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12, lineHeight: 1.5 }}>
-        Deleting <strong style={{ color: '#cbd5e1' }}>{practiceName}</strong> removes all of its
+      <p className="text-body-sm text-slate-400 mb-3 leading-normal">
+        Deleting <strong className="text-slate-300">{practiceName}</strong> removes all of its
         clinicians, working patterns, absences, rota notes, buddy allocations, CSV history, settings,
         and members. The members' user accounts are not deleted, just unlinked from this practice.
         This cannot be undone.
       </p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="flex gap-2 flex-wrap">
         <input
           type="text"
           value={confirm}

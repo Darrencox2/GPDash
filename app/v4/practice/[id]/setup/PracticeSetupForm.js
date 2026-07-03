@@ -300,7 +300,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
   const holidays = lookup?.admin_district ? getSchoolHolidaysForLEA(lookup.admin_district) : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {error && (
         <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 15 }}>
           {error}
@@ -311,7 +311,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
       {odsCode && !showSearch ? (
         <Card title="Your practice" status={fieldStatus('practice', savingField, savedField)}>
           {/* Header: name + action buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+          <div className="flex justify-between items-start gap-4 mb-[18px]">
             <h2 style={{
               fontFamily: "'Outfit', sans-serif",
               fontSize: 22,
@@ -404,21 +404,21 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               marginBottom: 12,
               lineHeight: 1.6,
             }}>
-              {lookupBusy && <span style={{ color: '#94a3b8' }}>Looking up location…</span>}
+              {lookupBusy && <span className="text-slate-400">Looking up location…</span>}
               {lookup && (
                 <>
                   <div>
-                    <span style={{ color: '#64748b' }}>Local authority:</span>{' '}
+                    <span className="text-slate-500">Local authority:</span>{' '}
                     <span>{lookup.admin_district || '—'}</span>
                     {lookup.region && <>
                       {' · '}
-                      <span style={{ color: '#64748b' }}>NHS region:</span>{' '}
+                      <span className="text-slate-500">NHS region:</span>{' '}
                       <span>{lookup.region}</span>
                     </>}
                   </div>
                   {holidays && (
                     <div>
-                      <span style={{ color: '#64748b' }}>Holiday calendar:</span>{' '}
+                      <span className="text-slate-500">Holiday calendar:</span>{' '}
                       <span style={{ color: holidays.isFallback ? '#fcd34d' : '#cbd5e1' }}>
                         {holidays.name}{holidays.isFallback && ' (fallback — no specific data for your LEA)'}
                       </span>
@@ -445,13 +445,13 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                 NHS England — {formatMonthYear(nhsDetails.month)}
               </div>
               {nhsDetails.pcn_name && (
-                <div><span style={{ color: '#64748b' }}>PCN:</span> {nhsDetails.pcn_name}</div>
+                <div><span className="text-slate-500">PCN:</span> {nhsDetails.pcn_name}</div>
               )}
               {nhsDetails.icb_name && (
-                <div><span style={{ color: '#64748b' }}>ICB:</span> {nhsDetails.icb_name}</div>
+                <div><span className="text-slate-500">ICB:</span> {nhsDetails.icb_name}</div>
               )}
               {nhsDetails.total != null && (
-                <div><span style={{ color: '#64748b' }}>Submissions that month:</span> {nhsDetails.total.toLocaleString()} across {nhsDetails.days_with_data} days</div>
+                <div><span className="text-slate-500">Submissions that month:</span> {nhsDetails.total.toLocaleString()} across {nhsDetails.days_with_data} days</div>
               )}
             </div>
           )}
@@ -482,7 +482,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
         </Card>
       ) : (
         <Card title="Find your practice" status={fieldStatus('practice', savingField, savedField)}>
-          <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, lineHeight: 1.5 }}>
+          <p className="text-body text-slate-400 mb-2.5 leading-normal">
             Type your practice name to search NHS Digital and pre-fill its official
             name, ODS code, and list size in one click.
           </p>
@@ -494,25 +494,25 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             style={input}
             autoFocus={showSearch && !!odsCode}
           />
-          {practiceMatchBusy && <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 10 }}>Searching…</div>}
+          {practiceMatchBusy && <div className="text-slate-400 text-body mt-2.5">Searching…</div>}
           {!practiceMatchBusy && practiceQuery.trim().length >= 2 && practiceCandidates.length === 0 && (
             <>
-              <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 10 }}>
+              <p className="text-body text-slate-400 mt-2.5">
                 No matches. Try a different word — names are matched in order, so "Banwell" might find practices that "Winscombe" doesn't.
               </p>
               {practiceMatchDebug?.attempts?.length > 0 && (
                 <details style={{ marginTop: 8, fontSize: 15, color: '#64748b' }}>
-                  <summary style={{ cursor: 'pointer' }}>Show what was searched (debug)</summary>
+                  <summary className="cursor-pointer">Show what was searched (debug)</summary>
                   <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--r-sm)', fontFamily: 'ui-monospace, Menlo, monospace', whiteSpace: 'pre-wrap', fontSize: 12 }}>
                     {practiceMatchDebug.attempts.map((a, i) => (
-                      <div key={i} style={{ marginBottom: 6 }}>
-                        <div style={{ wordBreak: 'break-all' }}>{a.url}</div>
+                      <div key={i} className="mb-1.5">
+                        <div className="break-all">{a.url}</div>
                         <div>status: {a.status ?? 'fetch failed'} · matches: {a.matchCount ?? 'n/a'}</div>
                         {a.contentType && <div>content-type: {a.contentType}</div>}
-                        {a.bodyPreview && <div style={{ color: '#94a3b8' }}>body: {a.bodyPreview}</div>}
-                        {a.errorBody && <div style={{ color: '#fca5a5' }}>error body: {a.errorBody}</div>}
-                        {a.fetchError && <div style={{ color: '#fca5a5' }}>fetch error: {a.fetchError}</div>}
-                        {a.parseError && <div style={{ color: '#fca5a5' }}>parse error: {a.parseError}</div>}
+                        {a.bodyPreview && <div className="text-slate-400">body: {a.bodyPreview}</div>}
+                        {a.errorBody && <div className="text-red-300">error body: {a.errorBody}</div>}
+                        {a.fetchError && <div className="text-red-300">fetch error: {a.fetchError}</div>}
+                        {a.parseError && <div className="text-red-300">parse error: {a.parseError}</div>}
                       </div>
                     ))}
                   </div>
@@ -521,7 +521,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             </>
           )}
           {!practiceMatchBusy && practiceCandidates.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+            <div className="flex flex-col gap-1.5 mt-2.5">
               {practiceCandidates.map(p => {
                 const isSelected = odsCode && p.odsCode === odsCode;
                 const unavailable = p.unavailable && !isSelected;
@@ -552,8 +552,8 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                       transition: 'background 0.15s',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
                         <div style={{ fontSize: 15, color: '#e2e8f0', fontWeight: 500, marginBottom: 2 }}>
                           {p.name}
                         </div>
@@ -562,10 +562,10 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                           {p.listSize != null ? (
                             <span>
                               {p.listSize.toLocaleString()} patients
-                              {p.listSizeAsOf && <span style={{ marginLeft: 4 }}>· NHS Digital, {formatMonthYear(p.listSizeAsOf)}</span>}
+                              {p.listSizeAsOf && <span className="ml-1">· NHS Digital, {formatMonthYear(p.listSizeAsOf)}</span>}
                             </span>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>No list size data</span>
+                            <span className="text-slate-400">No list size data</span>
                           )}
                         </div>
                       </div>
@@ -599,7 +599,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           color: '#a5f3fc',
           lineHeight: 1.5,
         }}>
-          <div style={{ fontWeight: 500, marginBottom: 4 }}>
+          <div className="font-medium mb-1">
             ✨ Demand predictions pre-seeded from NHS data
           </div>
           <div>
@@ -634,15 +634,15 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             {lookup && !lookupBusy && (
               <div style={lookupBox}>
                 <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 6, fontSize: 14 }}>
-                  <span style={{ color: '#64748b' }}>Local authority</span>
-                  <span style={{ color: '#cbd5e1' }}>{lookup.admin_district || '—'}</span>
-                  <span style={{ color: '#64748b' }}>Region</span>
-                  <span style={{ color: '#cbd5e1' }}>{lookup.region || '—'}</span>
-                  <span style={{ color: '#64748b' }}>Country</span>
-                  <span style={{ color: '#cbd5e1' }}>{lookup.country || '—'}</span>
+                  <span className="text-slate-500">Local authority</span>
+                  <span className="text-slate-300">{lookup.admin_district || '—'}</span>
+                  <span className="text-slate-500">Region</span>
+                  <span className="text-slate-300">{lookup.region || '—'}</span>
+                  <span className="text-slate-500">Country</span>
+                  <span className="text-slate-300">{lookup.country || '—'}</span>
                   {holidays && (
                     <>
-                      <span style={{ color: '#64748b' }}>Holiday calendar</span>
+                      <span className="text-slate-500">Holiday calendar</span>
                       <span style={{ color: holidays.isFallback ? '#fcd34d' : '#cbd5e1' }}>
                         {holidays.name}{holidays.isFallback && ' (fallback — no specific data for your LEA)'}
                       </span>
@@ -681,7 +681,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
       <EmisReportCard />
 
       {/* Done button */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+      <div className="flex gap-2 mt-2">
         <button
           onClick={markComplete}
           disabled={!allRequired || savingField === 'done'}

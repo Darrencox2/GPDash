@@ -32,7 +32,7 @@ export default async function AdminPracticeDetailPage({ params }) {
 
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
 
   await requireAdmin(supabase, { returnTo: `/v4/admin/practices/${practiceId}` });
 
@@ -41,7 +41,7 @@ export default async function AdminPracticeDetailPage({ params }) {
   });
   if (error) {
     return (
-      <div style={{ padding: 32 }}>
+      <div className="p-8">
         <AdminNav active="practices" />
         <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', padding: 16, borderRadius: 'var(--r-md)', color: '#fca5a5' }}>
           {error.message}
@@ -67,8 +67,8 @@ export default async function AdminPracticeDetailPage({ params }) {
 
         {/* Identity */}
         <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="flex justify-between items-start mb-[18px] flex-wrap gap-3">
+            <div className="min-w-0 flex-1">
               <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 6, letterSpacing: -0.3 }}>
                 {details.name}
               </h2>
@@ -76,7 +76,7 @@ export default async function AdminPracticeDetailPage({ params }) {
                 {details.slug}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               {!details.setup_completed_at && (
                 <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--r-pill)' }}>
                   Setup incomplete
@@ -86,17 +86,17 @@ export default async function AdminPracticeDetailPage({ params }) {
           </div>
 
           <Row label="ODS code">
-            {details.ods_code ? <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{details.ods_code}</span> : <em style={{ color: '#64748b' }}>not set</em>}
+            {details.ods_code ? <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{details.ods_code}</span> : <em className="text-slate-500">not set</em>}
           </Row>
-          <Row label="Postcode">{details.postcode || <em style={{ color: '#64748b' }}>not set</em>}</Row>
-          <Row label="Region">{details.region || <em style={{ color: '#64748b' }}>not set</em>}</Row>
-          <Row label="List size">{details.list_size ? details.list_size.toLocaleString('en-GB') : <em style={{ color: '#64748b' }}>not set</em>}</Row>
+          <Row label="Postcode">{details.postcode || <em className="text-slate-500">not set</em>}</Row>
+          <Row label="Region">{details.region || <em className="text-slate-500">not set</em>}</Row>
+          <Row label="List size">{details.list_size ? details.list_size.toLocaleString('en-GB') : <em className="text-slate-500">not set</em>}</Row>
           <Row label="Created">{new Date(details.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Row>
-          <Row label="Setup completed">{details.setup_completed_at ? new Date(details.setup_completed_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <em style={{ color: '#fbbf24' }}>not yet</em>}</Row>
+          <Row label="Setup completed">{details.setup_completed_at ? new Date(details.setup_completed_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <em className="text-amber-400">not yet</em>}</Row>
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'flex', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
+        <div className="flex gap-3.5 mb-[18px] flex-wrap">
           <Stat label="Members" value={details.members.length} />
           <Stat label="Clinicians" value={details.clinician_count} />
         </div>
@@ -107,11 +107,11 @@ export default async function AdminPracticeDetailPage({ params }) {
         {/* Deeper settings — link out to existing tabs */}
         <div style={card}>
           <h3 style={cardHeader}>Practice settings</h3>
-          <p style={{ fontSize: 14, color: '#cbd5e1', marginBottom: 16, lineHeight: 1.6 }}>
+          <p className="text-body text-slate-300 mb-4 leading-body">
             Detailed practice configuration lives on the practice's own settings page. You'll see
             the same controls a practice owner sees, plus admin-only sections.
           </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="flex gap-2 flex-wrap">
             <SettingsLink href={`/v4/practice/${details.slug}?tab=details`} label="Details" />
             <SettingsLink href={`/v4/practice/${details.slug}?tab=buddy-cover`} label="Buddy cover" />
             <SettingsLink href={`/v4/practice/${details.slug}?tab=demand`} label="Demand model" />
@@ -162,7 +162,7 @@ function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', gap: 12 }}>
       <span style={{ color: '#94a3b8', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600 }}>{label}</span>
-      <span style={{ color: '#e2e8f0', fontSize: 14 }}>{children}</span>
+      <span className="text-slate-200 text-body">{children}</span>
     </div>
   );
 }

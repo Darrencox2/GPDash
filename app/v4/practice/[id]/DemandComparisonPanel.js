@@ -136,11 +136,11 @@ export default function DemandComparisonPanel({
 
       {/* Headline stats */}
       <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 4, marginBottom: 12 }}>
-        <span style={{ color: 'var(--g-text-mid)' }}>Days compared</span>
+        <span className="text-mid">Days compared</span>
         <span>{n} weekday{n === 1 ? '' : 's'}</span>
-        <span style={{ color: 'var(--g-text-mid)' }}>Mean absolute error</span>
+        <span className="text-mid">Mean absolute error</span>
         <span>{mae.toFixed(1)} requests/day{mape != null && ` (${mape.toFixed(0)}% MAPE)`}</span>
-        <span style={{ color: 'var(--g-text-mid)' }}>Average bias</span>
+        <span className="text-mid">Average bias</span>
         <span>
           {biasMag < 0.5
             ? 'Model was on target'
@@ -152,8 +152,8 @@ export default function DemandComparisonPanel({
       <ComparisonChart points={points} />
 
       {/* Day-of-week bias */}
-      <div style={{ marginTop: 12 }}>
-        <div style={{ color: 'var(--g-text-mid)', fontSize: 11, marginBottom: 6 }}>Day-of-week bias (negative = predicted too high)</div>
+      <div className="mt-3">
+        <div className="text-mid text-caption mb-1.5">Day-of-week bias (negative = predicted too high)</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
           {dowBias.map(d => (
             <div key={d.label} style={{
@@ -175,11 +175,11 @@ export default function DemandComparisonPanel({
 
       {/* Top outliers */}
       {outliers.length > 0 && (
-        <details style={{ marginTop: 12, fontSize: 11, color: 'var(--g-text-mid)' }}>
-          <summary style={{ cursor: 'pointer', color: 'var(--g-text-hi)' }}>
+        <details className="mt-3 text-caption text-mid">
+          <summary className="cursor-pointer text-hi">
             Top {outliers.length} biggest misses (click for factor breakdown)
           </summary>
-          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="mt-2 flex flex-col gap-1.5">
             {outliers.map((p, i) => (
               <div key={i} style={{
                 padding: 8,
@@ -188,14 +188,14 @@ export default function DemandComparisonPanel({
                 borderRadius: 'var(--r-sm)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                  <span style={{ color: 'var(--g-text-hi)', fontWeight: 500 }}>{formatDate(p.date)}</span>
+                  <span className="text-hi font-medium">{formatDate(p.date)}</span>
                   <span style={{ color: p.error > 0 ? '#67e8f9' : '#fcd34d' }}>
                     {p.error > 0 ? '+' : ''}{p.error} ({p.error > 0 ? 'higher' : 'lower'} than predicted)
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, color: 'var(--g-text-mid)', fontSize: 10, marginBottom: 4 }}>
-                  <span>Predicted: <span style={{ color: 'var(--g-text-hi)' }}>{p.predicted}</span></span>
-                  <span>Actual: <span style={{ color: 'var(--g-text-hi)' }}>{p.actual}</span></span>
+                  <span>Predicted: <span className="text-hi">{p.predicted}</span></span>
+                  <span>Actual: <span className="text-hi">{p.actual}</span></span>
                 </div>
                 <FactorBreakdown factors={p.factors} />
               </div>
@@ -265,11 +265,11 @@ function ComparisonChart({ points }) {
       </svg>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, fontSize: 10, color: 'var(--g-text-mid)', marginTop: 4 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span className="flex items-center gap-1">
           <span style={{ width: 12, height: 2, background: '#a78bfa', display: 'inline-block' }} />
           Predicted
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span className="flex items-center gap-1">
           <span style={{ width: 12, height: 2, background: '#22d3ee', display: 'inline-block' }} />
           Actual
         </span>

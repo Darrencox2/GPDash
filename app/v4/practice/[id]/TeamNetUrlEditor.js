@@ -74,12 +74,12 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
           {error}
         </div>
       )}
-      <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
+      <p className="text-body text-mid leading-body mb-3.5">
         Calendar URL from TeamNet → Diary → Sync. Once set, the app pulls planned absences
         automatically when opened. These absences appear on Today, Capacity Planning, and Buddy cover.
       </p>
 
-      <label style={{ display: 'block', fontSize: 13, color: 'var(--g-text-mid)', marginBottom: 6 }}>
+      <label className="block text-body-sm text-mid mb-1.5">
         TeamNet calendar URL
       </label>
       <input
@@ -98,10 +98,10 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
           fontSize: 15,
         }}
       />
-      {saving && <div style={{ marginTop: 6, fontSize: 13, color: 'var(--g-text-mid)' }}>Saving…</div>}
-      {saved && <div style={{ marginTop: 6, fontSize: 13, color: '#34d399' }}>✓ Saved</div>}
+      {saving && <div className="mt-1.5 text-body-sm text-mid">Saving…</div>}
+      {saved && <div className="mt-1.5 text-body-sm text-emerald-400">✓ Saved</div>}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-3 mt-4 flex-wrap">
         <button
           type="button"
           onClick={syncNow}
@@ -120,12 +120,12 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
           {syncing ? 'Syncing…' : 'Sync now'}
         </button>
         {lastSyncTime && (
-          <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
+          <span className="text-body-sm text-mid">
             Last sync: {new Date(lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
         {plannedAbsenceCount > 0 && (
-          <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
+          <span className="text-body-sm text-mid">
             · {plannedAbsenceCount} upcoming absence{plannedAbsenceCount === 1 ? '' : 's'}
           </span>
         )}

@@ -112,9 +112,11 @@
        (computed colours, status alphas, measured dimensions).
        Radii: rounded-md=--r-sm(6) · rounded-lg=--r-md(8) · rounded-xl=--r-lg(12).
        Living template: app/v4/practice/[id]/IngestTokens.js.
-       Migration ladder (each step verified on preview before the next):
-       workforce -> meetings -> app/v4 pages -> auth-ui.js retirement ->
-       huddle/buddy/room literal colours swapped to token classes in place. */
+       Migration status: all render-identical inline styles across the site
+       (workforce, meetings, app/v4, huddle/buddy/room) converted to token
+       classes by the 2026-06 unification pass; remaining inline style={{}}
+       is dynamic/computed/status styling, which is the sanctioned exception.
+       auth-ui.js = intentional dark-locked auth variant (documented there). */
   }
 
   /* Mobile browsers: 100vh includes the collapsed URL bar, which lets the

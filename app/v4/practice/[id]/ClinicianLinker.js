@@ -60,7 +60,7 @@ export default function ClinicianLinker({ practiceId, currentLinkedClinicianId, 
 
   return (
     <div>
-      <p style={{ fontSize: 12, color: 'var(--g-text-mid)', marginBottom: 12 }}>
+      <p className="text-meta text-mid mb-3">
         Link your account to a clinician record so 'My Rota' knows whose rota to show
         and lets you save personal notes.
       </p>
@@ -87,7 +87,7 @@ export default function ClinicianLinker({ practiceId, currentLinkedClinicianId, 
         ))}
       </select>
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="flex gap-2">
         <button
           onClick={link}
           disabled={busy || !selected || selected === currentLinkedClinicianId}

@@ -100,7 +100,7 @@ export default function MeetingSchedules({ data, onChanged }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+      <div className="flex items-center justify-between gap-3 mb-3">
         <p style={{ fontSize: 13, color: 'var(--g-text-mid)', margin: 0 }}>
           Define a recurring meeting once and generate its dates ahead of time.
         </p>
@@ -124,8 +124,8 @@ export default function MeetingSchedules({ data, onChanged }) {
         />
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-        {schedules === null && <div style={{ color: 'var(--g-text-mid)', fontSize: 14 }}>Loading…</div>}
+      <div className="flex flex-col gap-2.5 mt-3">
+        {schedules === null && <div className="text-mid text-body">Loading…</div>}
         {schedules && schedules.length === 0 && !creating && (
           <div style={{ padding: 24, borderRadius: 'var(--r-lg)', background: 'var(--g-tile)', border: '1px dashed var(--g-border)', textAlign: 'center', color: 'var(--g-text-mid)', fontSize: 13 }}>
             No recurring schedules yet. Create one to auto-generate meeting dates.
@@ -136,8 +136,8 @@ export default function MeetingSchedules({ data, onChanged }) {
           const typeLabel = MEETING_TYPES.find(t => t.id === s.meeting_type)?.label || s.meeting_type;
           return (
             <div key={s.id} style={{ padding: '14px 16px', borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: '1px solid var(--g-border)' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                <div style={{ minWidth: 0 }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
                   <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)' }}>{s.title}</div>
                   <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 3 }}>
                     {typeLabel} · {describeSchedule(s)}{next ? ` · next ${new Date(next + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
@@ -196,19 +196,19 @@ function ScheduleForm({ practiceId, userId, onCancel, onCreated }) {
     <div style={{ padding: 18, borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: '1px solid var(--g-border)', marginBottom: 12 }}>
       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>New recurring schedule</div>
       {err && <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: '#fca5a5', fontSize: 13 }}>{err}</div>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="flex flex-col gap-3">
         <div>
           <label style={labelStyle}>Title</label>
           <input style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Weekly partners meeting" autoFocus />
         </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 160px' }}>
+        <div className="flex gap-3 flex-wrap">
+          <div className="flex-[1_1_160px]">
             <label style={labelStyle}>Type</label>
             <select style={{ ...inputStyle, cursor: 'pointer' }} value={type} onChange={(e) => setType(e.target.value)}>
               {MEETING_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
             </select>
           </div>
-          <div style={{ flex: '1 1 160px' }}>
+          <div className="flex-[1_1_160px]">
             <label style={labelStyle}>Cadence</label>
             <select style={{ ...inputStyle, cursor: 'pointer' }} value={cadence} onChange={(e) => setCadence(e.target.value)}>
               <option value="weekly">Weekly</option>
@@ -218,9 +218,9 @@ function ScheduleForm({ practiceId, userId, onCancel, onCreated }) {
             </select>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="flex gap-3 flex-wrap">
           {cadence === 'monthly' ? (
-            <div style={{ flex: '1 1 160px' }}>
+            <div className="flex-[1_1_160px]">
               <label style={labelStyle}>Day of month</label>
               <select style={{ ...inputStyle, cursor: 'pointer' }} value={dom} onChange={(e) => setDom(Number(e.target.value))}>
                 {Array.from({ length: 28 }, (_, i) => i + 1).map(d => <option key={d} value={d}>{d}</option>)}
@@ -242,20 +242,20 @@ function ScheduleForm({ practiceId, userId, onCancel, onCreated }) {
               </div>
             </>
           ) : (
-            <div style={{ flex: '1 1 160px' }}>
+            <div className="flex-[1_1_160px]">
               <label style={labelStyle}>Day of week</label>
               <select style={{ ...inputStyle, cursor: 'pointer' }} value={dow} onChange={(e) => setDow(Number(e.target.value))}>
                 {DOW_LABELS.map((d, i) => <option key={i} value={i}>{d}</option>)}
               </select>
             </div>
           )}
-          <div style={{ flex: '1 1 160px' }}>
+          <div className="flex-[1_1_160px]">
             <label style={labelStyle}>Start time (optional)</label>
             <input style={inputStyle} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </div>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+      <div className="flex gap-2.5 mt-4 justify-end">
         <button onClick={onCancel} disabled={busy} style={ghostBtn}>Cancel</button>
         <button onClick={submit} disabled={busy} style={primaryBtn}>{busy ? 'Creating…' : 'Create schedule'}</button>
       </div>

@@ -468,9 +468,9 @@ export default function SetupWizard({
               fontSize: 30, fontWeight: 600, color: 'white',
               lineHeight: 1.2, marginBottom: 14,
             }}>
-              Let's set up <strong style={{ color: '#67e8f9' }}>{practice.name || 'your practice'}</strong>
+              Let's set up <strong className="text-cyan-300">{practice.name || 'your practice'}</strong>
             </h1>
-            <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, marginBottom: 20 }}>
+            <p className="text-body text-slate-300 leading-body mb-5">
               Eight short steps, about ten minutes. You can leave at any time —
               everything saves as you go. Required steps unlock the dashboard;
               optional steps add forecasting, team invites, and richer detail you
@@ -502,7 +502,7 @@ export default function SetupWizard({
                 </ul>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <div className="flex gap-2.5 justify-end">
               <button
                 onClick={() => setShowWelcome(false)}
                 style={{
@@ -522,7 +522,7 @@ export default function SetupWizard({
       {/* Top strip: brand left, step counter + save indicator right */}
       <div style={topStripStyle}>
         <BrandHeader />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="flex items-center gap-3.5">
           <GlobalSaveIndicator
             inFlight={saveInFlightCount > 0}
             lastSavedAt={lastSavedAt}
@@ -561,7 +561,7 @@ export default function SetupWizard({
           gap: 12, flexWrap: 'wrap',
         }}>
           <div style={{ fontSize: 13, color: '#a7f3d0', lineHeight: 1.4 }}>
-            <strong style={{ color: '#6ee7b7' }}>✓ Setup saved.</strong> You can leave
+            <strong className="text-emerald-300">✓ Setup saved.</strong> You can leave
             to the dashboard anytime — the optional steps below are nice-to-haves
             you can come back to later.
           </div>
@@ -603,7 +603,7 @@ export default function SetupWizard({
               'rgba(255,255,255,0.08)',
           }}>
             <StepHeader step={STEPS[currentStep]} index={currentStep} done={stepDone[currentStep]} liveSubtitle={liveSubtitles[currentStep]} />
-            <div style={{ marginTop: 28 }}>
+            <div className="mt-7">
               {currentStep === 0 && (
                 <DetailsStep
                   practiceId={practice.id}
@@ -713,7 +713,7 @@ export default function SetupWizard({
           ← Back
         </button>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div className="flex gap-2.5 items-center">
           {currentStep < STEPS.length - 1 ? (
             <>
               {STEPS[currentStep].optional && !stepDone[currentStep] && (
@@ -769,7 +769,7 @@ export default function SetupWizard({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           fontSize: 13,
         }}>
-          <span style={{ color: '#6ee7b7' }}>
+          <span className="text-emerald-300">
             ✓ All set — you can head to your dashboard whenever you're ready.
           </span>
           <button
@@ -1184,7 +1184,7 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="flex flex-col gap-[18px]">
       <p style={fieldHelp}>
         These help us forecast your demand more accurately. The postcode tells us your
         region (which affects school holidays and weather data) and the list size scales
@@ -1201,7 +1201,7 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
           style={inputStyle}
         />
         {region && (
-          <div style={{ fontSize: 12, color: '#10b981', marginTop: 6 }}>
+          <div className="text-meta text-emerald-500 mt-1.5">
             ✓ {region}
           </div>
         )}
@@ -1216,7 +1216,7 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
           placeholder="e.g. 11000"
           style={inputStyle}
         />
-        <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>
+        <div className="text-caption text-slate-500 mt-1.5">
           The number of registered patients at your practice.
         </div>
       </div>
@@ -1227,7 +1227,7 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
         </div>
       )}
 
-      {savingField && <div style={{ fontSize: 11, color: '#64748b' }}>Saving {savingField}…</div>}
+      {savingField && <div className="text-caption text-slate-500">Saving {savingField}…</div>}
       {error && <div style={errorText}>{error}</div>}
     </div>
   );
@@ -1369,7 +1369,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="flex flex-col gap-[18px]">
       <p style={fieldHelp}>
         If you use TeamNet for your practice diary, paste the calendar sync URL below
         and GPDash will pull planned absences automatically. You can skip this step and
@@ -1424,7 +1424,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           </span>
           {/* Sync state — shown after the auto-sync fires post-save */}
           {syncing && (
-            <span style={{ color: '#94a3b8' }}>· Testing URL…</span>
+            <span className="text-slate-400">· Testing URL…</span>
           )}
         </div>
       </div>
@@ -1433,7 +1433,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           absences immediately rather than waiting for the daily cron.
           Disabled until the URL has been saved (avoids hitting the API
           with stale or empty input). */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-3 flex-wrap">
         <button
           type="button"
           onClick={syncNow}
@@ -1451,7 +1451,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
         >
           {syncing ? 'Syncing…' : 'Sync now'}
         </button>
-        <span style={{ fontSize: 12, color: '#64748b' }}>
+        <span className="text-meta text-slate-500">
           Otherwise we sync once a day automatically.
         </span>
       </div>
@@ -1494,7 +1494,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
             <li>Click <strong>Add to external calendar</strong>.</li>
             <li>Copy the link TeamNet provides and paste it into the field above.</li>
           </ol>
-          <p style={{ marginTop: 12, marginBottom: 0, color: '#94a3b8', fontSize: 12 }}>
+          <p className="mt-3 mb-0 text-slate-400 text-meta">
             We sync once a day. After this is set up, planned absences from TeamNet will appear automatically in your buddy roster.
           </p>
         </div>
@@ -1770,7 +1770,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="flex flex-col gap-[18px]">
       <p style={fieldHelp}>
         GPDash needs your appointment data from EMIS. Download the report definition
         below, import it into EMIS, and run it. Then upload the resulting CSV here
@@ -1784,7 +1784,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         borderRadius: 'var(--r-md)',
         fontSize: 12, color: '#cbd5e1', lineHeight: 1.5,
       }}>
-        <strong style={{ color: '#67e8f9' }}>One report does it all.</strong> This is the
+        <strong className="text-cyan-300">One report does it all.</strong> This is the
         same CSV you'll upload every day going forward — saved as a report definition in
         EMIS, it takes about 30 seconds to run and re-upload. Each daily upload refreshes
         the dashboard with that day's appointments + any new clinicians.
@@ -1814,20 +1814,20 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CheckIcon />
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: '#6ee7b7', fontWeight: 500 }}>
+            <div className="flex-1">
+              <div className="text-body text-emerald-300 font-medium">
                 Your team is ready
                 {clinicianCountAdded > 0 && (
-                  <span style={{ color: '#94a3b8', fontWeight: 400 }}> · {clinicianCountAdded} clinician{clinicianCountAdded === 1 ? '' : 's'} found</span>
+                  <span className="text-slate-400 font-normal"> · {clinicianCountAdded} clinician{clinicianCountAdded === 1 ? '' : 's'} found</span>
                 )}
               </div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+              <div className="text-meta text-slate-400 mt-0.5">
                 Review roles and initials on the Clinicians tab once setup is done.
               </div>
             </div>
             <label style={{ ...btnSubtle, cursor: 'pointer', padding: '7px 12px', fontSize: 12 }}>
               Re-upload
-              <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
             </label>
           </div>
         ) : (
@@ -1844,15 +1844,15 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(8,145,178,0.4)'; e.currentTarget.style.background = 'rgba(8,145,178,0.04)'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
           >
-            <div style={{ fontSize: 14, color: '#cbd5e1', marginBottom: 4 }}>
+            <div className="text-body text-slate-300 mb-1">
               {uploading ? 'Reading CSV…' : 'Drop your CSV here or click to browse'}
             </div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div className="text-caption text-slate-500">
               The file should end in .csv and come from the EMIS report you just imported.
             </div>
             <input
               type="file" accept=".csv,text/csv"
-              style={{ display: 'none' }}
+              className="hidden"
               disabled={uploading}
               onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             />
@@ -1893,7 +1893,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
               </div>
             )}
             {summary.locations > 1 && (
-              <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 8 }}>
+              <div className="text-caption text-slate-300 mt-2">
                 Multiple sites detected — step 6 lets you pick a colour for each.
               </div>
             )}
@@ -1920,9 +1920,9 @@ function UploadFirstPrompt({ message }) {
       fontSize: 13, lineHeight: 1.6,
       display: 'flex', flexDirection: 'column', gap: 6,
     }}>
-      <div style={{ color: '#fcd34d', fontWeight: 600 }}>Upload your appointment CSV first</div>
+      <div className="text-amber-300 font-semibold">Upload your appointment CSV first</div>
       <div>{message}</div>
-      <div style={{ marginTop: 8, fontSize: 12, color: '#94a3b8' }}>
+      <div className="mt-2 text-meta text-slate-400">
         Use the back button to return to the Appointment data step.
       </div>
     </div>
@@ -2053,7 +2053,7 @@ function computeExpectedUrgentFromCsv(parsedCsv, slotFilters) {
 // their appointment data, entered by hand, or skipped.
 function CapacityStep({ practiceId, parsedCsv, slotFilters, onSetChange }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       <p style={fieldHelp}>
         Set your <strong style={{ color: '#fdba74' }}>expected urgent capacity</strong> — the number of
         urgent (same-day) slots you aim to offer each morning and afternoon. The Today gauge and
@@ -2144,7 +2144,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
       </p>
 
       {mode === 'closed' && (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="flex gap-2.5 flex-wrap">
           <button type="button" onClick={autofill} disabled={!hasUrgent} title={hasUrgent ? '' : 'Mark at least one slot type as Urgent above first'} style={{ ...pillButton('#f97316'), opacity: hasUrgent ? 1 : 0.4, cursor: hasUrgent ? 'pointer' : 'not-allowed' }}>
             ✨ Autofill from my data
           </button>
@@ -2155,12 +2155,12 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
 
       {(mode === 'manual' || mode === 'set') && expected && (
         <div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-body-sm">
               <thead>
                 <tr>
                   <th style={{ width: 90 }} />
-                  {DAYS.map(d => <th key={d} style={{ textAlign: 'center', padding: '6px 4px', color: '#94a3b8', fontSize: 12, fontWeight: 600 }}>{d.slice(0, 3)}</th>)}
+                  {DAYS.map(d => <th key={d} className="text-center px-1 py-1.5 text-slate-400 text-meta font-semibold">{d.slice(0, 3)}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -2182,7 +2182,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
               </tbody>
             </table>
           </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="flex gap-2.5 mt-3 items-center flex-wrap">
             {mode === 'manual'
               ? <button type="button" onClick={saveManual} style={{ ...pillButton('#10b981'), background: '#10b981', color: '#06281e', borderColor: '#10b981' }}>{saving ? 'Saving…' : 'Save targets'}</button>
               : <>
@@ -2400,7 +2400,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
   const pendingCategorySuggestions = slotTypes.some(s => categoryOf(s) === 'other' && suggestSlotCategory(s) !== null);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       <div style={{
         padding: 14,
         background: 'rgba(34,211,238,0.05)',
@@ -2409,14 +2409,14 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         fontSize: 13, color: '#cbd5e1', lineHeight: 1.55,
       }}>
         <p style={{ margin: 0 }}>
-          <strong style={{ color: '#67e8f9' }}>We've taken a first pass at categorising these</strong> based
-          on the slot names — look out for <span style={{ color: '#6ee7b7' }}>✓ AUTO</span> (confident match) and{' '}
-          <span style={{ color: '#fbbf24' }}>~ CHECK</span> (educated guess, worth a second look) badges below.
+          <strong className="text-cyan-300">We've taken a first pass at categorising these</strong> based
+          on the slot names — look out for <span className="text-emerald-300">✓ AUTO</span> (confident match) and{' '}
+          <span className="text-amber-400">~ CHECK</span> (educated guess, worth a second look) badges below.
           Click any picker to override; uncertain slots default to <strong>Other</strong>.
         </p>
         <p style={{ margin: '8px 0 0' }}>
           This is about <strong>routine and urgent GP consultation slots</strong> — the
-          bookable appointments where a clinician sees a patient. <strong style={{ color: '#6ee7b7' }}>Routine</strong> =
+          bookable appointments where a clinician sees a patient. <strong className="text-emerald-300">Routine</strong> =
           consultations booked in advance · <strong style={{ color: '#fdba74' }}>Urgent</strong> =
           same-day / acute consultations. Everything else should be <strong>Other</strong>:
           nursing and HCA clinics, phlebotomy, vaccinations, procedures, and admin/triage
@@ -2431,11 +2431,11 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           the dropdown; selected slots show as removable chips. */}
       <div style={{ padding: 14, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 'var(--r-md)' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#c4b5fd', marginBottom: 4 }}>Duty doctor slot(s)</div>
-        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, lineHeight: 1.5 }}>
+        <div className="text-meta text-slate-400 mb-2.5 leading-normal">
           Which slot type(s) are your duty / on-call doctor slots? Usually just 1–2. The huddle and
           Today views highlight these separately.
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <div className="flex flex-wrap gap-2 items-center">
           {(slotFilters.dutyDoctorSlot || []).map(slot => (
             <span key={slot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'rgba(139,92,246,0.18)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 'var(--r-pill)', fontSize: 12, color: '#ddd6fe', fontFamily: "'Space Mono', monospace" }}>
               {slot}
@@ -2455,7 +2455,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12 }}>
+      <div className="flex items-center gap-2.5 flex-wrap text-meta">
         <SummaryPill colour="#10b981" label="Routine" count={summary.routine} />
         <SummaryPill colour="#f97316" label="Urgent" count={summary.urgent} />
         <SummaryPill colour="#475569" label="Other" count={summary.other} />
@@ -2501,7 +2501,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           textTransform: 'uppercase', letterSpacing: 0.4,
         }}>
           <div>Slot type</div>
-          <div style={{ textAlign: 'center' }}>Category</div>
+          <div className="text-center">Category</div>
         </div>
         {slotTypes.map((slot, i) => {
           const cat = categoryOf(slot);
@@ -2555,11 +2555,11 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
                 {showCategorySuggestion && (
                   <div style={{ marginTop: 2, fontSize: 11, color: '#a78bfa' }}>
                     Suggested: <strong style={{ color: suggested === 'urgent' ? '#fdba74' : '#cbd5e1' }}>{suggested}</strong>
-                    {confidence === 'medium' && <span style={{ color: '#94a3b8' }}> (medium confidence)</span>}
+                    {confidence === 'medium' && <span className="text-slate-400"> (medium confidence)</span>}
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div className="flex justify-center">
                 <SlotCategoryPicker value={cat} onChange={(c) => setCategory(slot, c)} />
               </div>
             </div>
@@ -2569,7 +2569,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
 
       {error && <div style={errorText}>{error}</div>}
 
-      <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
+      <div className="text-caption text-slate-500 leading-normal">
         These can be changed any time from Practice settings → Demand.
       </div>
     </div>
@@ -2674,13 +2674,13 @@ function isCliniciansReviewed(list) {
 function ReviewStep({ steps, stepDone, canComplete, requiredIncomplete, goToStep }) {
   const rows = steps.slice(0, -1).map((s, i) => ({ s, i, done: !!stepDone[i] }));
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       <p style={fieldHelp}>
         {canComplete
           ? "Here's everything. You can finish now and head to your dashboard, or jump back to fill in anything optional first."
           : 'Almost there — finish the required step(s) highlighted below, then you can complete setup.'}
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="flex flex-col gap-2">
         {rows.map(({ s, i, done }) => {
           const state = done ? 'done' : (s.required ? 'todo' : 'optional');
           const colour = state === 'done' ? '#10b981' : state === 'todo' ? '#f59e0b' : '#64748b';
@@ -2695,8 +2695,8 @@ function ReviewStep({ steps, stepDone, canComplete, requiredIncomplete, goToStep
               opacity: state === 'optional' ? 0.75 : 1,
             }}>
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: colour, flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, color: '#e2e8f0' }}>{s.title}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-body text-slate-200">{s.title}</div>
                 <div style={{ fontSize: 12, color: colour }}>{label}</div>
               </div>
               {!done && (
@@ -2709,7 +2709,7 @@ function ReviewStep({ steps, stepDone, canComplete, requiredIncomplete, goToStep
         })}
       </div>
       {!canComplete && (
-        <div style={{ fontSize: 13, color: '#fbbf24', lineHeight: 1.5 }}>
+        <div className="text-body-sm text-amber-400 leading-normal">
           You still need to finish {requiredIncomplete.map(s => s.title).join(' and ')} before you can complete setup.
         </div>
       )}
@@ -2805,7 +2805,7 @@ function ClinicianRolesStep({ practiceId, onSortedChange }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="flex flex-col gap-[18px]">
         <p style={fieldHelp}>Loading your clinician list…</p>
       </div>
     );
@@ -2813,7 +2813,7 @@ function ClinicianRolesStep({ practiceId, onSortedChange }) {
 
   if (error) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="flex flex-col gap-[18px]">
         <p style={fieldHelp}>Couldn't load clinicians: {error}</p>
       </div>
     );
@@ -2821,7 +2821,7 @@ function ClinicianRolesStep({ practiceId, onSortedChange }) {
 
   if (!initialClinicians || initialClinicians.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="flex flex-col gap-[18px]">
         <p style={fieldHelp}>
           No active clinicians yet. Go back to step 3 (Appointment data) and upload
           your EMIS CSV — your team gets built automatically from the appointment list.
@@ -2831,10 +2831,10 @@ function ClinicianRolesStep({ practiceId, onSortedChange }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="flex flex-col gap-[18px]">
       <p style={fieldHelp}>
         Here's your team. Edit roles inline, use the toolbar for bulk changes, and
-        click <strong style={{ color: '#67e8f9' }}>Working days grid</strong> in
+        click <strong className="text-cyan-300">Working days grid</strong> in
         the toolbar to set everyone's AM/PM pattern. This is the same view you
         get later via Practice → Clinicians — you can come back here any time.
       </p>
@@ -2948,7 +2948,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
 
   if (displayedSites.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="flex flex-col gap-3.5">
         <p style={fieldHelp}>
           We didn't find any site/location entries in your CSV. Most single-site
           practices won't need to configure this. You can add sites manually later
@@ -2959,15 +2959,15 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="flex flex-col gap-[18px]">
       <p style={fieldHelp}>
-        We found <strong style={{ color: '#cbd5e1' }}>{displayedSites.length}</strong> site
+        We found <strong className="text-slate-300">{displayedSites.length}</strong> site
         {displayedSites.length === 1 ? '' : 's'} in your CSV appointment data. Each gets a
         colour that's used consistently across the dashboard (Who's In, capacity bars, room
         allocation). Pick something distinctive for each, or skip — defaults work fine.
       </p>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+      <div className="flex items-center justify-end">
         <span style={{ fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b') }}>
           {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves on change')}
         </span>
@@ -2994,7 +2994,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
               flexShrink: 0,
               border: '1px solid rgba(255,255,255,0.1)',
             }} />
-            <div style={{ flex: 1, fontSize: 13, color: '#cbd5e1', fontWeight: 500 }}>
+            <div className="flex-1 text-body-sm text-slate-300 font-medium">
               {site.name}
             </div>
             <ColourPicker
@@ -3019,7 +3019,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
 
       {error && <div style={errorText}>{error}</div>}
 
-      <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
+      <div className="text-caption text-slate-500 leading-normal">
         Sites can also be edited later from the v3 Room Settings page (rooms, grid size, etc.).
       </div>
     </div>
@@ -3028,7 +3028,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
 
 function ColourPicker({ value, onChange }) {
   return (
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+    <div className="flex gap-1 flex-wrap">
       {SITE_COLOUR_PRESETS.map(c => {
         const active = c.toLowerCase() === (value || '').toLowerCase();
         return (
@@ -3100,12 +3100,12 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
     return { totalRows: rows, totalSpanDays: span, earliest: earliestStr, latest: latestStr };
   }, [historySummary]);
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="flex flex-col gap-[18px]">
       <p style={fieldHelp}>
         GPDash can predict demand for any future date based on your historical patterns —
         day of week, school holidays, weather, and so on. Upload an export from{' '}
-        <strong style={{ color: '#cbd5e1' }}>AskMyGP</strong> or{' '}
-        <strong style={{ color: '#cbd5e1' }}>Anima</strong> to calibrate the model
+        <strong className="text-slate-300">AskMyGP</strong> or{' '}
+        <strong className="text-slate-300">Anima</strong> to calibrate the model
         to your practice. The file format is auto-detected — drop the CSV and we'll
         figure out which one. You can skip this and add it later.
       </p>
@@ -3117,13 +3117,13 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
           border: '1px solid rgba(16,185,129,0.25)',
           borderRadius: 'var(--r-md)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <div className="flex items-center gap-3 mb-3.5">
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <CheckIcon />
             </div>
             <div>
-              <div style={{ fontSize: 14, color: '#6ee7b7', fontWeight: 600 }}>Demand data uploaded</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+              <div className="text-body text-emerald-300 font-semibold">Demand data uploaded</div>
+              <div className="text-meta text-slate-400 mt-0.5">
                 {totalRows > 0 ? (
                   <>{totalRows.toLocaleString()} rows{totalSpanDays > 0 && <> · {totalSpanDays} day{totalSpanDays === 1 ? '' : 's'} of history</>}{earliest && latest && <> ({new Date(earliest).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} → {new Date(latest).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })})</>}</>
                 ) : (
@@ -3137,7 +3137,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
               <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: 0.5, fontWeight: 600, marginBottom: 8 }}>
                 MODEL FEATURES UNLOCKED
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="flex flex-col gap-1.5">
                 <FeatureRow
                   on={totalRows >= 1}
                   label="Baseline demand"
@@ -3162,12 +3162,12 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
             </div>
           )}
           <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 10 }}>
+            <div className="text-meta text-slate-300 mb-2.5">
               {totalSpanDays >= 270
                 ? 'You have enough history to unlock every model feature. Add more any time, or carry on.'
                 : 'More history unlocks more of the model (90+ days for the growth trend, 270+ for full-year seasonality). You can add more now, or carry on and top it up later from the Demand tab.'}
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div className="flex gap-2.5 flex-wrap">
               {!addingMore && (
                 <button type="button" onClick={() => setAddingMore(true)} style={pillButton('#6366f1')}>
                   + Add more history
@@ -3180,7 +3180,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
               )}
             </div>
             {addingMore && (
-              <div style={{ marginTop: 14 }}>
+              <div className="mt-3.5">
                 <DemandUpload
                   practiceId={practiceId}
                   demandSettings={null}
@@ -3248,7 +3248,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
         )}
       </div>
 
-      <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
+      <div className="text-caption text-slate-500 leading-normal">
         Don't have a demand CSV handy? Skip for now — you can upload it any time from the
         Demand tab on your practice settings page.
       </div>
@@ -3363,7 +3363,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
   const sendDisabled = sending || parsed.validEmails.length === 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="flex flex-col gap-[18px]">
       <p style={fieldHelp}>
         Drop in some email addresses and we'll email each person an invite link.
         They'll see your practice as soon as they accept. Skip this if you'd
@@ -3379,7 +3379,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
           placeholder="anna@example.com, ben@example.com&#10;chris@example.com"
           style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }}
         />
-        <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>
+        <div className="text-caption text-slate-500 mt-1.5">
           Comma, space, or newline-separated. We'll figure it out.
         </div>
       </div>
@@ -3401,7 +3401,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
               <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
                 ✓ {parsed.validEmails.length} VALID EMAIL{parsed.validEmails.length === 1 ? '' : 'S'}
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {parsed.validEmails.map(e => (
                   <span key={e} style={{
                     padding: '3px 10px',
@@ -3420,7 +3420,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
               <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
                 {parsed.duplicates.length} DUPLICATE{parsed.duplicates.length === 1 ? '' : 'S'} (will skip)
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {parsed.duplicates.map((e, i) => (
                   <span key={`${e}-${i}`} style={{
                     padding: '3px 10px',
@@ -3440,7 +3440,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
               <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
                 ⚠ {parsed.invalid.length} NOT RECOGNISED — CHECK FORMAT
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {parsed.invalid.map((e, i) => (
                   <span
                     key={`${e}-${i}`}
@@ -3491,7 +3491,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
           fontSize: 13, color: '#6ee7b7',
         }}>
           {result.created > 0 && <>✓ Sent {result.created} invite{result.created === 1 ? '' : 's'}. </>}
-          {result.skipped > 0 && <span style={{ color: '#94a3b8' }}>{result.skipped} skipped (already invited or members).</span>}
+          {result.skipped > 0 && <span className="text-slate-400">{result.skipped} skipped (already invited or members).</span>}
         </div>
       )}
 
@@ -3503,7 +3503,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
 // ─── Shared form bits ──────────────────────────────────────────────────
 function Label({ children }) {
   return (
-    <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6, fontWeight: 500 }}>
+    <label className="block text-meta text-slate-400 mb-1.5 font-medium">
       {children}
     </label>
   );
@@ -3514,7 +3514,7 @@ function Label({ children }) {
 // explaining what to do to unlock it (or what it means once active).
 function FeatureRow({ on, label, hint }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+    <div className="flex items-start gap-2.5">
       <div style={{
         flexShrink: 0,
         width: 16, height: 16, borderRadius: '50%',
@@ -3529,7 +3529,7 @@ function FeatureRow({ on, label, hint }) {
           </svg>
         ) : null}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         <div style={{ fontSize: 13, color: on ? '#e2e8f0' : '#94a3b8', fontWeight: 500 }}>
           {label}
         </div>
@@ -3583,7 +3583,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
     : (practiceSlug ? `/buddy/${practiceSlug}` : '');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="flex flex-col gap-[18px]">
       <p style={fieldHelp}>
         EMIS staff can&apos;t see your dashboard, but if you turn this on
         we&apos;ll give you a public URL you can paste into your EMIS
@@ -3603,11 +3603,11 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
           justifyContent: 'space-between',
           gap: 14,
         }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="flex-1 min-w-0">
             <div style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0' }}>
               {buddyCoverPublic ? 'Public access enabled' : 'Public access disabled'}
             </div>
-            <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 4, lineHeight: 1.5 }}>
+            <div className="text-body-sm text-slate-400 mt-1 leading-normal">
               {buddyCoverPublic
                 ? 'Anyone with the URL below can view your buddy allocations.'
                 : 'Only signed-in members of this practice can view buddy allocations.'}
@@ -3680,7 +3680,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
         color: '#fde68a',
         lineHeight: 1.65,
       }}>
-        <strong style={{ color: '#fcd34d' }}>What becomes visible when enabled:</strong>{' '}
+        <strong className="text-amber-300">What becomes visible when enabled:</strong>{' '}
         Your clinicians&apos; names, initials, roles, who is present/absent today,
         and the cover allocations. No patient data is ever shown. You can switch
         this off at any time — the URL will immediately return &quot;not found.&quot;
@@ -3695,7 +3695,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
         color: '#cbd5e1',
         lineHeight: 1.65,
       }}>
-        <strong style={{ color: '#e2e8f0' }}>Why turn this on?</strong>{' '}
+        <strong className="text-slate-200">Why turn this on?</strong>{' '}
         It&apos;s the simplest way to give your reception/admin team buddy cover
         access from EMIS. When enabled, the &quot;Copy week&quot; and &quot;Copy day&quot;
         buttons in your dashboard include this URL in the clipboard — paste once

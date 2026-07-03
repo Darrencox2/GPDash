@@ -109,7 +109,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
   if (state.loading) {
     return (
       <div style={ribbonStyle()}>
-        <span style={{ color: '#64748b', fontSize: 12 }}>Loading NHS benchmarks…</span>
+        <span className="text-slate-500 text-meta">Loading NHS benchmarks…</span>
       </div>
     );
   }
@@ -122,7 +122,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
   if (yourPer1000 == null) {
     return (
       <div style={ribbonStyle()}>
-        <span style={{ color: '#64748b', fontSize: 12 }}>
+        <span className="text-slate-500 text-meta">
           NHS demand benchmarks need your practice list size to compute. Set it under
           Practice → Details.
         </span>
@@ -137,15 +137,15 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
 
   return (
     <div style={ribbonStyle()}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-2 flex-wrap">
         <span style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
           NHS demand · {monthLabel}
         </span>
-        <span style={{ color: '#475569' }}>·</span>
+        <span className="text-slate-600">·</span>
         <Stat label="You" value={yourPer1000} colour="#a5f3fc" emphasised />
         {pcnPer1000 != null && (
           <>
-            <span style={{ color: '#475569' }}>·</span>
+            <span className="text-slate-600">·</span>
             <Stat
               label={`PCN avg${pcnPracticeCount ? ` (${pcnWithListSize}/${pcnPracticeCount})` : ''}`}
               value={pcnPer1000}
@@ -156,7 +156,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
         )}
         {natPer1000 != null && (
           <>
-            <span style={{ color: '#475569' }}>·</span>
+            <span className="text-slate-600">·</span>
             <Stat
               label={`National avg`}
               value={natPer1000}
@@ -183,7 +183,7 @@ function Stat({ label, value, delta, colour, emphasised, estimated }) {
   const fmt = (n) => n >= 100 ? Math.round(n).toLocaleString() : n.toFixed(1);
   return (
     <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
-      <span style={{ fontSize: 11, color: '#94a3b8' }}>{label}:</span>
+      <span className="text-caption text-slate-400">{label}:</span>
       <span style={{
         fontSize: emphasised ? 14 : 13,
         fontWeight: emphasised ? 600 : 500,

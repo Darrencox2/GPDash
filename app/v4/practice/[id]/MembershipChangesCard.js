@@ -52,7 +52,7 @@ export default function MembershipChangesCard({ practiceId }) {
     return (
       <div style={cardStyle}>
         <h3 style={titleStyle}>Recent membership changes</h3>
-        <div style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>Loading…</div>
+        <div className="text-body-sm text-mid">Loading…</div>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default function MembershipChangesCard({ practiceId }) {
     return (
       <div style={cardStyle}>
         <h3 style={titleStyle}>Recent membership changes</h3>
-        <div style={{ fontSize: 12, color: '#fca5a5' }}>{error}</div>
+        <div className="text-meta text-red-300">{error}</div>
       </div>
     );
   }
@@ -136,9 +136,9 @@ function EventRow({ ev }) {
         fontSize: 12,
         marginTop: 1,
       }}>{display.glyph}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         <div>{text}</div>
-        <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 2 }}>
+        <div className="text-caption text-mid mt-0.5">
           {ev.actor_name} · {when}
         </div>
       </div>

@@ -20,7 +20,7 @@ export default function AdminNav({ active }) {
   ];
 
   return (
-    <div style={{ marginBottom: 32 }}>
+    <div className="mb-8">
       {/* Header row: logo on the left, "back to my practices" on the right */}
       <div style={{
         display: 'flex',
@@ -30,7 +30,7 @@ export default function AdminNav({ active }) {
         gap: 16,
         flexWrap: 'wrap',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-3.5 flex-wrap">
           <GPDashLogo size="large" />
           {/* Pill marker that this isn't the regular app */}
           <div style={{
@@ -47,7 +47,7 @@ export default function AdminNav({ active }) {
             textTransform: 'uppercase',
             letterSpacing: 0.8,
           }}>
-            <span style={{ fontSize: 12 }}>⚡</span>
+            <span className="text-meta">⚡</span>
             Platform admin
           </div>
         </div>

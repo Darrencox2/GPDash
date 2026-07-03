@@ -470,7 +470,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
     <div>
       {/* Header strip: search, show-left toggle, save status,
           working-days grid launcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-4 mb-4 flex-wrap">
         <input
           type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search by name, role, or initials…"
@@ -481,7 +481,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
             borderRadius: 'var(--r-sm)', color: 'var(--g-text-hi)', outline: 'none', fontFamily: 'inherit',
           }}
         />
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--g-text-hi)', cursor: 'pointer' }}>
+        <label className="flex items-center gap-1.5 text-meta text-hi cursor-pointer">
           <input type="checkbox" checked={showLeft} onChange={e => setShowLeft(e.target.checked)} />
           Show left
         </label>
@@ -522,7 +522,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
           borderRadius: 'var(--r-sm)',
           fontSize: 12, color: '#fde68a', lineHeight: 1.5,
         }}>
-          <strong style={{ color: '#fbbf24' }}>{attentionCount} clinician{attentionCount === 1 ? '' : 's'} need{attentionCount === 1 ? 's' : ''} attention.</strong>{' '}
+          <strong className="text-amber-400">{attentionCount} clinician{attentionCount === 1 ? '' : 's'} need{attentionCount === 1 ? 's' : ''} attention.</strong>{' '}
           Highlighted rows are missing initials or have a placeholder role.{' '}
           <button
             type="button"
@@ -551,7 +551,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
         border: '1px solid var(--g-border)',
         borderRadius: 'var(--r-md)', overflow: 'hidden',
       }}>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="overflow-x-auto">
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 970 }}>
             <thead>
               <tr style={{ background: 'var(--g-tile-2)' }}>
@@ -562,16 +562,16 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
                     ref={el => { if (el) el.indeterminate = someFilteredSelected && !allFilteredSelected; }}
                     onChange={toggleSelectAllFiltered}
                     aria-label="Select all visible rows"
-                    style={{ cursor: 'pointer' }}
+                    className="cursor-pointer"
                   />
                 </Th>
                 <Th sticky stickyLeft={36} width={240}>Name</Th>
                 <Th width={80}>Initials</Th>
                 <Th width={170}>Role</Th>
                 <Th width={140}>Status</Th>
-                <Th width={100} style={{ textAlign: 'center' }}><span ref={buddyColRef}>In buddy system</span></Th>
-                <Th width={100} style={{ textAlign: 'center' }}>Can cover</Th>
-                <Th width={100} style={{ textAlign: 'center' }}>Who's In</Th>
+                <Th width={100} className="text-center"><span ref={buddyColRef}>In buddy system</span></Th>
+                <Th width={100} className="text-center">Can cover</Th>
+                <Th width={100} className="text-center">Who's In</Th>
               </tr>
             </thead>
             <tbody>
@@ -627,8 +627,8 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
         </div>
       </div>
 
-      <div style={{ marginTop: 12, fontSize: 11, color: 'var(--g-text-mid)', lineHeight: 1.5 }}>
-        Edits save automatically. <strong style={{ color: 'var(--g-text-mid)' }}>Click a row</strong> to
+      <div className="mt-3 text-caption text-mid leading-normal">
+        Edits save automatically. <strong className="text-mid">Click a row</strong> to
         open the details panel for aliases, buddy preferences, room preferences, and notes.
       </div>
 
@@ -767,7 +767,7 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPa
           {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
       </Td>
-      <Td style={{ textAlign: 'center' }}>
+      <Td className="text-center">
         <ToggleSwitch
           on={!!c.buddyCover}
           onClick={() => onChange('buddyCover', !c.buddyCover)}
@@ -775,7 +775,7 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPa
           ariaLabel={`In buddy system for ${c.name}`}
         />
       </Td>
-      <Td style={{ textAlign: 'center' }}>
+      <Td className="text-center">
         {/* canProvideCover defaults to true. Disabled when the row is
             NOT in the buddy system — if they're not participating,
             "can cover others" is moot, and showing it as freely
@@ -791,7 +791,7 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPa
           disabled={!c.buddyCover}
         />
       </Td>
-      <Td style={{ textAlign: 'center' }}>
+      <Td className="text-center">
         <ToggleSwitch
           on={c.showWhosIn !== false}
           onClick={() => onChange('showWhosIn', c.showWhosIn === false)}
@@ -884,11 +884,11 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
       {active ? (
         <strong style={{ fontSize: 13, color: '#a5f3fc' }}>{count} selected</strong>
       ) : (
-        <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
-          Bulk edit — <span style={{ color: 'var(--g-text-mid)' }}>tick rows below to enable</span>
+        <span className="text-body-sm text-mid">
+          Bulk edit — <span className="text-mid">tick rows below to enable</span>
         </span>
       )}
-      <span style={{ color: 'var(--g-text-faint)' }}>·</span>
+      <span className="text-faint">·</span>
 
       <BulkSelect label="Set role" onChange={onSetRole} disabled={!active}>
         {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
@@ -898,7 +898,7 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
         {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
       </BulkSelect>
 
-      <span style={{ color: 'var(--g-text-faint)' }}>·</span>
+      <span className="text-faint">·</span>
       <BulkButton onClick={() => onSetBuddyCover(true)} disabled={!active}>Buddy on</BulkButton>
       <BulkButton onClick={() => onSetBuddyCover(false)} disabled={!active}>Buddy off</BulkButton>
       <BulkButton onClick={() => onSetCanCover(true)} disabled={!active}>Can cover on</BulkButton>
@@ -1005,22 +1005,22 @@ const inputStyle = {
 const selectStyle = { ...inputStyle, cursor: 'pointer' };
 
 function SaveIndicator({ state, errorMsg, onRetry }) {
-  if (state === 'idle') return <span style={{ fontSize: 11, color: 'var(--g-text-mid)' }}>—</span>;
+  if (state === 'idle') return <span className="text-caption text-mid">—</span>;
   if (state === 'dirty' || state === 'saving') {
-    return <span style={{ fontSize: 11, color: 'var(--g-text-mid)', display: 'flex', alignItems: 'center', gap: 6 }}>
+    return <span className="text-caption text-mid flex items-center gap-1.5">
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--g-text-mid)' }} />
       {state === 'saving' ? 'Saving…' : 'Saving in a moment…'}
     </span>;
   }
   if (state === 'saved') {
-    return <span style={{ fontSize: 11, color: '#34d399', display: 'flex', alignItems: 'center', gap: 6 }}>
+    return <span className="text-caption text-emerald-400 flex items-center gap-1.5">
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
       All changes saved
     </span>;
   }
   if (state === 'error') {
     return (
-      <span style={{ fontSize: 11, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span className="text-caption text-red-300 flex items-center gap-2">
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
         {errorMsg || 'Save failed'}
         <button onClick={onRetry} style={{

@@ -296,8 +296,8 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
             </div>
             <div className="flex items-center gap-3 mt-2 text-sm text-slate-600">
               <span className="flex items-center gap-1"><span className="w-2 h-px" style={{ background: 'var(--g-text-hi)' }} />Avg ({comparison.avg})</span>
-              <span style={{ color: '#34d399' }}>Above avg</span>
-              <span style={{ color: '#fbbf24' }}>Below avg</span>
+              <span className="text-emerald-400">Above avg</span>
+              <span className="text-amber-400">Below avg</span>
             </div>
           </div>
 

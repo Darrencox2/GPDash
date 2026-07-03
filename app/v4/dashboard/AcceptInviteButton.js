@@ -30,7 +30,7 @@ export default function AcceptInviteButton({ inviteId }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+    <div className="flex flex-col gap-1 items-end">
       <button
         onClick={handleAccept}
         disabled={loading}

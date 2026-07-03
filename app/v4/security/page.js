@@ -34,7 +34,7 @@ import { createClient } from '@/utils/supabase/client';
 
 export default function SecurityPage() {
   return (
-    <Suspense fallback={<PageShell><div style={{ color: '#94a3b8' }}>Loading…</div></PageShell>}>
+    <Suspense fallback={<PageShell><div className="text-slate-400">Loading…</div></PageShell>}>
       <SecurityPageInner />
     </Suspense>
   );
@@ -168,7 +168,7 @@ function SecurityPageInner() {
   };
 
   if (loading) {
-    return <PageShell><div style={{ color: '#94a3b8' }}>Loading…</div></PageShell>;
+    return <PageShell><div className="text-slate-400">Loading…</div></PageShell>;
   }
 
   return (
@@ -176,13 +176,13 @@ function SecurityPageInner() {
       <h1 style={h1}>Security</h1>
       {user?.email && (
         <p style={{ color: '#94a3b8', marginTop: -8, marginBottom: 24, fontSize: 14 }}>
-          Signed in as <strong style={{ color: '#cbd5e1' }}>{user.email}</strong>
+          Signed in as <strong className="text-slate-300">{user.email}</strong>
         </p>
       )}
 
       {required && factors.length === 0 && (
         <div style={requiredBanner}>
-          <strong style={{ color: '#fbbf24' }}>Two-factor authentication is required</strong>
+          <strong className="text-amber-400">Two-factor authentication is required</strong>
           <p style={{ margin: '6px 0 0', fontSize: 13, color: '#cbd5e1' }}>
             Platform admin accounts must have 2FA enrolled. Set up an authenticator
             below to continue.
@@ -206,17 +206,17 @@ function SecurityPageInner() {
         )}
 
         {factors.length > 0 && !enrolling && (
-          <div style={{ marginTop: 16 }}>
+          <div className="mt-4">
             <div style={{ fontSize: 11, letterSpacing: 1, color: '#94a3b8', fontWeight: 600, marginBottom: 8 }}>
               ENROLLED AUTHENTICATORS
             </div>
             {factors.map(f => (
               <div key={f.id} style={factorRow}>
                 <div>
-                  <div style={{ color: '#e2e8f0', fontWeight: 500 }}>
+                  <div className="text-slate-200 font-medium">
                     {f.friendly_name || 'Authenticator'}
                   </div>
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                  <div className="text-caption text-slate-500 mt-0.5">
                     {f.factor_type} · enrolled {new Date(f.created_at).toLocaleDateString('en-GB')}
                   </div>
                 </div>
@@ -236,7 +236,7 @@ function SecurityPageInner() {
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'white', margin: '0 0 12px' }}>
               Step 1 — Scan the QR code
             </h3>
-            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div className="flex gap-5 items-start flex-wrap">
               <div style={{ background: 'white', padding: 12, borderRadius: 'var(--r-md)', width: 200, height: 200, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {/* Supabase returns totp.qr_code as a data: URI (image/svg+xml),
                     not raw SVG markup — render it as an image so it scales to
@@ -244,7 +244,7 @@ function SecurityPageInner() {
                 <img src={enrolling.qrSvg} alt="Two-factor authentication QR code" width={176} height={176} style={{ display: 'block', width: 176, height: 176 }} />
               </div>
               <div style={{ flex: 1, minWidth: 220 }}>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>
+                <div className="text-meta text-slate-400 mb-2">
                   Can't scan? Enter this secret manually in your authenticator app:
                 </div>
                 <div style={{
@@ -278,7 +278,7 @@ function SecurityPageInner() {
               maxLength={6}
             />
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            <div className="flex gap-2.5 mt-4">
               <button onClick={verifyEnroll} disabled={verifying || code.length !== 6} style={{
                 ...btnPrimary,
                 opacity: (verifying || code.length !== 6) ? 0.4 : 1,
@@ -298,8 +298,8 @@ function SecurityPageInner() {
         )}
       </section>
 
-      <p style={{ color: '#475569', fontSize: 12, marginTop: 32, textAlign: 'center' }}>
-        <Link href="/v4/dashboard" style={{ color: '#94a3b8' }}>← Back to dashboard</Link>
+      <p className="text-slate-600 text-meta mt-8 text-center">
+        <Link href="/v4/dashboard" className="text-slate-400">← Back to dashboard</Link>
       </p>
     </PageShell>
   );

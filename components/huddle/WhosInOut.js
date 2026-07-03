@@ -657,7 +657,7 @@ function OffTodayModal({ person, onClose, onConfirm }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}

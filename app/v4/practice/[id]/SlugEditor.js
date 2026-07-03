@@ -106,9 +106,9 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
 
   if (!canEdit) {
     return (
-      <div style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
-        URL: <code style={{ color: '#22d3ee' }}>/p/{currentSlug}</code>
-        <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 4 }}>Only owners and admins can change this.</div>
+      <div className="text-body-sm text-mid">
+        URL: <code className="text-cyan-400">/p/{currentSlug}</code>
+        <div className="text-caption text-mid mt-1">Only owners and admins can change this.</div>
       </div>
     );
   }
@@ -119,10 +119,10 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
 
   return (
     <div>
-      <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginBottom: 6 }}>
-        URL: <code style={{ color: '#22d3ee' }}>/p/{value || '…'}</code>
+      <div className="text-meta text-mid mb-1.5">
+        URL: <code className="text-cyan-400">/p/{value || '…'}</code>
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="flex gap-2">
         <input
           type="text"
           value={value}
@@ -182,7 +182,7 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
           color: status.kind === 'error' ? '#fca5a5' : status.kind === 'saved' ? '#34d399' : 'var(--g-text-mid)',
         }}>{status.message}</div>
       )}
-      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 6, lineHeight: 1.5 }}>
+      <div className="text-caption text-mid mt-1.5 leading-normal">
         Lowercase letters, digits, and dashes. Must be unique across all practices.
       </div>
     </div>

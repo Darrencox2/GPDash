@@ -37,7 +37,7 @@ const STATE_STYLE = {
 
 export function SectionStatusStripe({ complete, hint, label }) {
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div className="mb-5">
       <div
         role="status"
         aria-label={complete ? `${label || 'Section'} complete` : `${label || 'Section'} needs attention`}
@@ -126,10 +126,10 @@ export function DashboardCompletenessStrip({ statuses, practicePath }) {
         flexWrap: 'wrap',
         gap: 8,
       }}>
-        <div style={{ fontSize: 13, color: '#fcd34d', fontWeight: 500 }}>
+        <div className="text-body-sm text-amber-300 font-medium">
           Setup completeness — {todoCount} thing{todoCount === 1 ? '' : 's'} to finish
         </div>
-        <div style={{ fontSize: 11, color: '#94a3b8' }}>
+        <div className="text-caption text-slate-400">
           Amber = needs attention · Grey = optional · Green = done
         </div>
       </div>

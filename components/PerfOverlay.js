@@ -125,9 +125,9 @@ export default function PerfOverlay({ serverTimings }) {
       padding: 12, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11,
       boxShadow: '0 10px 40px rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div style={{ color: '#22d3ee', fontWeight: 600, fontSize: 12 }}>⚡ Perf debug</div>
-        <div style={{ display: 'flex', gap: 6 }}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-cyan-400 font-semibold text-meta">⚡ Perf debug</div>
+        <div className="flex gap-1.5">
           <button onClick={copyAll} style={{ background: copied ? '#10b981' : '#1e293b', color: copied ? 'white' : '#cbd5e1', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit' }}>
             {copied ? '✓ copied' : 'copy all'}
           </button>
@@ -138,11 +138,11 @@ export default function PerfOverlay({ serverTimings }) {
       </div>
 
       {Object.entries(allMetrics).map(([section, metrics]) => (
-        <div key={section} style={{ marginBottom: 10 }}>
+        <div key={section} className="mb-2.5">
           <div style={{ color: '#64748b', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{section}</div>
           {Object.entries(metrics).map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: '1px solid rgba(148,163,184,0.08)' }}>
-              <span style={{ color: '#94a3b8' }}>{k}</span>
+              <span className="text-slate-400">{k}</span>
               <span style={{ color: highlightFor(v), fontWeight: 500 }}>{v}</span>
             </div>
           ))}
@@ -150,7 +150,7 @@ export default function PerfOverlay({ serverTimings }) {
       ))}
 
       <div style={{ marginTop: 6, padding: 8, background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 'var(--r-sm)', color: '#94a3b8', fontSize: 10, lineHeight: 1.4 }}>
-        <strong style={{ color: '#22d3ee' }}>Hint:</strong> TTFB &gt; ~400 ms usually means cold start or slow server. DOM ready &gt; ~1000 ms means JS bundle is heavy.
+        <strong className="text-cyan-400">Hint:</strong> TTFB &gt; ~400 ms usually means cold start or slow server. DOM ready &gt; ~1000 ms means JS bundle is heavy.
       </div>
     </div>
   );

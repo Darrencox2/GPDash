@@ -38,7 +38,7 @@ export default function ChangelogPage() {
           <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.7, margin: 0 }}>
             Every change to GPDash, version by version. Current version: <strong style={{ color: '#f1f5f9' }}>{APP_VERSION}</strong>.
           </p>
-          <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
+          <p className="text-meta text-slate-400 mt-2.5">
             <a href="/" style={{ color: '#67e8f9', textDecoration: 'underline' }}>Back to GPDash</a>
           </p>
         </header>
@@ -47,14 +47,14 @@ export default function ChangelogPage() {
           <section key={rel.version} style={{ marginBottom: 28, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
               <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: '#f1f5f9', margin: 0 }}>v{rel.version}</h2>
-              <span style={{ fontSize: 13, color: '#94a3b8' }}>{rel.title}</span>
+              <span className="text-body-sm text-slate-400">{rel.title}</span>
               {rel.date && <span style={{ fontSize: 12, color: '#64748b', marginLeft: 'auto' }}>{rel.date}</span>}
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(rel.changes || []).map((c, i) => (
-                <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <li key={i} className="flex gap-2.5 items-start">
                   <Badge type={c.type} />
-                  <span style={{ fontSize: 14, color: '#cbd5e1' }}>{c.text}</span>
+                  <span className="text-body text-slate-300">{c.text}</span>
                 </li>
               ))}
             </ul>

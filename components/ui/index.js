@@ -134,7 +134,7 @@ export function CardTitle({ children, sub }) {
 export function PageHeader({ title, subtitle, actions, children, className = '' }) {
   return (
     <div className={`flex items-start justify-between gap-x-4 gap-y-2 flex-wrap mb-5 ${className}`}>
-      <div style={{ minWidth: 0 }}>
+      <div className="min-w-0">
         <h1 style={{ fontFamily: HEAD, fontSize: 23, fontWeight: 600, color: 'var(--g-text-hi)', margin: 0, lineHeight: 1.2 }}>{title}</h1>
         {subtitle && <p style={{ fontSize: 14, color: 'var(--g-text-mid)', margin: '5px 0 0', lineHeight: 1.5, maxWidth: 720 }}>{subtitle}</p>}
       </div>
@@ -183,7 +183,7 @@ export function EmptyState({ icon, title, description, action, onAction, actionV
       {icon && <div style={{ fontSize: compact ? 26 : 36, marginBottom: 10, opacity: 0.85 }}>{icon}</div>}
       <div style={{ fontFamily: HEAD, fontSize: compact ? 14.5 : 16.5, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 5 }}>{title}</div>
       {description && <p style={{ fontSize: 13, color: 'var(--g-text-mid)', maxWidth: 430, margin: '0 auto', lineHeight: 1.55 }}>{description}</p>}
-      {action && <div style={{ marginTop: 14 }}><Button size="sm" variant={actionVariant} onClick={onAction}>{action}</Button></div>}
+      {action && <div className="mt-3.5"><Button size="sm" variant={actionVariant} onClick={onAction}>{action}</Button></div>}
     </div>
   );
 }
@@ -216,7 +216,7 @@ export function StatCard({ label, value, accent, sub }) {
     <div style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)', padding: '10px 14px' }}>
       <div style={{ fontSize: 11, color: 'var(--g-label)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
       <div style={{ fontFamily: MONO, fontSize: 19, fontWeight: 700, color: accentColor || 'var(--g-text-hi)', lineHeight: 1.3 }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: 'var(--g-text-mid)' }}>{sub}</div>}
+      {sub && <div className="text-meta text-mid">{sub}</div>}
     </div>
   );
 }
@@ -262,7 +262,7 @@ export function Field({ label, hint, children, className = '' }) {
     <label className={`block ${className}`}>
       {label && <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--g-label)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 5 }}>{label}</span>}
       {children}
-      {hint && <span style={{ display: 'block', fontSize: 12, color: 'var(--g-text-faint)', marginTop: 4 }}>{hint}</span>}
+      {hint && <span className="block text-meta text-faint mt-1">{hint}</span>}
     </label>
   );
 }
@@ -359,18 +359,18 @@ export function ConfirmHost() {
         borderRadius: 'var(--r-lg)', padding: '20px 20px 16px', boxShadow: '0 24px 64px -16px rgba(0,0,0,0.55)',
         animation: 'uiPopIn 0.14s ease-out',
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div className="flex items-start gap-3">
           <div aria-hidden style={{
             width: 34, height: 34, borderRadius: 'var(--r-md)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
             background: danger ? 'rgba(239,68,68,0.14)' : 'rgba(99,102,241,0.14)',
             border: `1px solid ${danger ? 'rgba(239,68,68,0.35)' : 'rgba(99,102,241,0.35)'}`,
           }}>{danger ? '⚠' : '?'}</div>
-          <div style={{ minWidth: 0 }}>
+          <div className="min-w-0">
             <div style={{ fontFamily: HEAD, fontSize: 16.5, fontWeight: 600, color: 'var(--g-text-hi)', lineHeight: 1.3 }}>{title}</div>
             {message && <div style={{ fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.55, marginTop: 6, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{message}</div>}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
+        <div className="flex gap-2 justify-end mt-[18px]">
           <Button variant="secondary" size="sm" onClick={() => close(false)}>{cancelLabel}</Button>
           <Button variant={danger ? 'danger' : 'accent'} size="sm" onClick={() => close(true)} autoFocus>{confirmLabel}</Button>
         </div>

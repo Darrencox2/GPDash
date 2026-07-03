@@ -186,7 +186,7 @@ export default function ClinicianDetailsPanel({
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
           zIndex: 1,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <div className="flex items-center gap-3 min-w-0">
             <div style={{
               width: 44, height: 44, borderRadius: '50%',
               background: 'rgba(148,163,184,0.15)',
@@ -197,11 +197,11 @@ export default function ClinicianDetailsPanel({
             }}>
               {(local.initials || '?').toUpperCase()}
             </div>
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'var(--g-text-hi)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {local.title ? `${local.title} ${local.name}` : local.name}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 2 }}>
+              <div className="text-meta text-mid mt-0.5">
                 {local.role || 'Unassigned'} · {local.status === 'active' ? 'Active' : (local.status || 'active')}
               </div>
             </div>
@@ -265,7 +265,7 @@ export default function ClinicianDetailsPanel({
                 {DAY_LABELS.map(d => {
                   const row = workingPattern?.pattern?.[d.key] || {};
                   return (
-                    <div key={d.key} style={{ textAlign: 'center' }}>
+                    <div key={d.key} className="text-center">
                       <div style={{ fontSize: 10, color: 'var(--g-text-mid)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{d.label}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
                         <ReadOnlyHalf on={row.am === 'in'} label="AM" />
@@ -384,7 +384,7 @@ export default function ClinicianDetailsPanel({
           {/* Save indicator */}
           <div style={{ fontSize: 11, color: saving ? 'var(--g-text-mid)' : (savedAt ? '#10b981' : 'var(--g-text-mid)'), textAlign: 'right' }}>
             {error
-              ? <span style={{ color: '#fca5a5' }}>{error}</span>
+              ? <span className="text-red-300">{error}</span>
               : (saving ? 'Saving…' : (savedAt ? '✓ All changes saved' : 'Edits save automatically'))
             }
           </div>
@@ -417,7 +417,7 @@ const siteRowStyle = {
 
 function Section({ label, children }) {
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <section className="flex flex-col gap-2.5">
       <h3 style={{
         margin: 0,
         fontSize: 11, fontWeight: 600, color: 'var(--g-text-mid)',
@@ -429,8 +429,8 @@ function Section({ label, children }) {
 }
 function Field({ label, children }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 11, color: 'var(--g-text-mid)' }}>{label}</span>
+    <label className="flex flex-col gap-1">
+      <span className="text-caption text-mid">{label}</span>
       {children}
     </label>
   );
@@ -470,7 +470,7 @@ function AliasEditor({ aliases, onAdd, onRemove }) {
   };
   return (
     <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+      <div className="flex flex-wrap gap-1.5 mb-2">
         {aliases.length === 0 && (
           <span style={{ fontSize: 11, color: 'var(--g-text-mid)', fontStyle: 'italic' }}>No aliases yet</span>
         )}
@@ -492,7 +492,7 @@ function AliasEditor({ aliases, onAdd, onRemove }) {
           </span>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div className="flex gap-1.5">
         <input
           type="text" value={draft} onChange={e => setDraft(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit(e)}

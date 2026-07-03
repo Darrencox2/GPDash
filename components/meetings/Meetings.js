@@ -91,12 +91,12 @@ export default function Meetings({ data }) {
 
   return (
     <div style={{ padding: 24, maxWidth: 920, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 4 }}>
+      <div className="flex items-start justify-between gap-4 mb-1">
         <div>
           <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 26, fontWeight: 600, color: 'var(--g-text-hi)', margin: 0 }}>
             Meetings
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 4 }}>
+          <p className="text-body-sm text-mid mt-1">
             Agendas, minutes and a running action log. Confidential to the leadership team.
           </p>
         </div>
@@ -134,19 +134,19 @@ export default function Meetings({ data }) {
       )}
 
       {tab === 'actions' && (
-        <div style={{ marginTop: 18 }}>
+        <div className="mt-[18px]">
           <ActionRegister data={data} />
         </div>
       )}
 
       {tab === 'schedules' && (
-        <div style={{ marginTop: 18 }}>
+        <div className="mt-[18px]">
           <MeetingSchedules data={data} onChanged={() => { load(); setTab('meetings'); }} />
         </div>
       )}
 
       {tab === 'import' && (
-        <div style={{ marginTop: 18 }}>
+        <div className="mt-[18px]">
           <MeetingUpload data={data} onFiled={() => { load(); }} />
         </div>
       )}
@@ -162,7 +162,7 @@ export default function Meetings({ data }) {
 
       <div style={{ marginTop: 20, display: tab === 'meetings' ? 'block' : 'none' }}>
         {meetings === null && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-2.5">
             {[0, 1, 2].map((i) => <Skeleton key={i} variant="card" style={{ height: 64 }} />)}
           </div>
         )}
@@ -172,11 +172,11 @@ export default function Meetings({ data }) {
             border: '1px dashed var(--g-border)', textAlign: 'center', color: 'var(--g-text-mid)',
           }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 6 }}>No meetings yet</div>
-            <div style={{ fontSize: 13 }}>Create your first meeting to start building an agenda.</div>
+            <div className="text-body-sm">Create your first meeting to start building an agenda.</div>
           </div>
         )}
         {meetings && meetings.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-2.5">
             {meetings.map((m) => {
               const st = STATUS_META[m.status] || STATUS_META.scheduled;
               const typeLabel = MEETING_TYPES.find(t => t.id === m.meeting_type)?.label || m.meeting_type;
@@ -190,7 +190,7 @@ export default function Meetings({ data }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                   }}
                 >
-                  <div style={{ minWidth: 0 }}>
+                  <div className="min-w-0">
                     <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {m.title}
                     </div>
@@ -253,12 +253,12 @@ function NewMeetingForm({ practiceId, userId, onCancel, onCreated }) {
     <div style={{ marginTop: 16, padding: 18, borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: '1px solid var(--g-border)' }}>
       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>New meeting</div>
       {err && <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: '#fca5a5', fontSize: 13 }}>{err}</div>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="flex flex-col gap-3">
         <div>
           <label style={label}>Title</label>
           <input style={input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Monthly partners meeting" autoFocus />
         </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="flex gap-3 flex-wrap">
           <div style={{ flex: '1 1 180px' }}>
             <label style={label}>Type</label>
             <select style={{ ...input, cursor: 'pointer' }} value={type} onChange={(e) => setType(e.target.value)}>
@@ -271,7 +271,7 @@ function NewMeetingForm({ practiceId, userId, onCancel, onCreated }) {
           </div>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+      <div className="flex gap-2.5 mt-4 justify-end">
         <button onClick={onCancel} disabled={busy} style={{ padding: '8px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--g-border)', background: 'transparent', color: 'var(--g-text-mid)', fontSize: 14, cursor: 'pointer' }}>Cancel</button>
         <button onClick={submit} disabled={busy} style={{ padding: '8px 16px', borderRadius: 'var(--r-md)', border: 'none', background: 'var(--accent, #6366f1)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
           {busy ? 'Creating…' : 'Create meeting'}

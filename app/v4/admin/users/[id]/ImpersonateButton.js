@@ -84,7 +84,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
         >
           Sign in as this user (impersonate)
         </button>
-        <p style={{ color: '#64748b', fontSize: 11, marginTop: 8, lineHeight: 1.5 }}>
+        <p className="text-slate-500 text-caption mt-2 leading-normal">
           {disabledReason
             ? disabledReason
             : 'Use sparingly — only to debug a problem the user is reporting. Every action you take while impersonating is recorded against your account, with the user\'s ID attached. The session is logged, time-limited (1 hour), and visible in the user\'s activity timeline.'}
@@ -112,15 +112,15 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
             maxHeight: '90vh',
             overflowY: 'auto',
           }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#fbbf24', marginBottom: 12 }}>
+            <h3 className="text-subhead font-semibold text-amber-400 mb-3">
               ⚠ Impersonate {user.email}?
             </h3>
-            <p style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5, marginBottom: 16 }}>
+            <p className="text-body-sm text-slate-300 leading-normal mb-4">
               You'll be signed out of your admin account and signed in as <strong>{user.email}</strong>.
               You'll see exactly what they see and any actions you take will be logged
               against your admin user ID with the impersonation flag.
             </p>
-            <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, marginBottom: 16 }}>
+            <p className="text-meta text-slate-400 leading-normal mb-4">
               The session expires in 1 hour. Click "End impersonation" in the red banner
               at any time to return to the login screen — you'll need to sign back in to
               your admin account afterwards.
@@ -162,7 +162,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
               }}>{error}</div>
             )}
 
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { setShowModal(false); setReason(''); setError(''); }}
                 disabled={busy}

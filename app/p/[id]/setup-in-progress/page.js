@@ -62,12 +62,12 @@ export default async function SetupInProgressPage({ params }) {
         <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 10 }}>
           Setup in progress
         </h1>
-        <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, marginBottom: 18 }}>
+        <p className="text-body text-slate-300 leading-body mb-[18px]">
           Your practice admin is still configuring{' '}
-          <strong style={{ color: 'white' }}>{practice.name}</strong> on GPDash.
+          <strong className="text-white">{practice.name}</strong> on GPDash.
           Check back shortly — they'll have it ready soon.
         </p>
-        <p style={{ fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
+        <p className="text-meta text-slate-500 leading-body">
           Once setup is complete you'll be able to access the dashboard at this URL.
         </p>
       </div>

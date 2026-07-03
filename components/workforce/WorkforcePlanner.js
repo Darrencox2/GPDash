@@ -506,7 +506,7 @@ export default function WorkforcePlanner({ data, toast }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', maxWidth: 1360, margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h2 style={{ margin: 0, fontSize: 23, fontWeight: 600, color: 'var(--g-text-hi)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>Workforce planner</h2>
           <p style={{ margin: '5px 0 0', fontSize: 14, color: 'var(--g-text-mid)', maxWidth: 720, lineHeight: 1.5 }}>
@@ -517,7 +517,7 @@ export default function WorkforcePlanner({ data, toast }) {
             <a href={`/v4/practice/${data?._v4?.practiceSlug || practiceId}?tab=clinicians`} style={{ color: 'var(--accent-2)', textDecoration: 'underline' }}>Manage practice → Clinicians</a>.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="flex gap-2 flex-wrap items-center">
           <SaveStatus state={saveState} />
           <button onClick={() => togglePanel('clinicians')} style={tabBtn(panel.clinicians)}>Clinicians</button>
           <button onClick={() => togglePanel('anomalies')} style={tabBtn(panel.anomalies)}>Anomalies{anomCount ? ` (${anomCount})` : ''}</button>
@@ -548,7 +548,7 @@ export default function WorkforcePlanner({ data, toast }) {
       </div>
 
       {/* Banners */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div className="flex gap-2.5 flex-wrap">
         <div style={{ ...S.card, padding: '10px 14px', flex: '1 1 320px', borderColor: anomCount ? 'rgba(245,158,11,0.5)' : 'rgba(16,185,129,0.5)', background: anomCount ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)' }}>
           <span style={{ fontSize: 15, color: anomCount ? '#fbbf24' : '#34d399', fontWeight: 500 }}>{anomCount ? `⚠ ${anomCount} anomal${anomCount === 1 ? 'y' : 'ies'} vs contracted pattern` : '✓ Allocation matches the contracted pattern'}</span>
         </div>
@@ -560,7 +560,7 @@ export default function WorkforcePlanner({ data, toast }) {
       </div>
 
       {/* Week toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="flex items-center gap-2.5">
         <span style={{ fontSize: 13, color: 'var(--text-3)' }}>Showing</span>
         <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--g-field)', borderRadius: 'var(--r-md)' }}>
           {['a', 'b'].map(w => <button key={w} onClick={() => setViewWeek(w)} style={{ ...S.toggle, background: viewWeek === w ? 'var(--accent)' : 'transparent', color: viewWeek === w ? '#fff' : 'var(--text-3)' }}>Week {w.toUpperCase()}</button>)}
@@ -601,7 +601,7 @@ export default function WorkforcePlanner({ data, toast }) {
                       <span style={{ fontSize: 12, fontWeight: 600, color: rc.text }}>{rc.label}{anomN ? <span style={{ color: '#ef4444', marginLeft: 5 }}>⚠{anomN}</span> : null}</span>
                       <button onClick={() => addActivity(day, session)} title="Add activity" style={{ background: 'none', border: 'none', color: rc.text, cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>+</button>
                     </div>
-                    <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                    <div className="p-2 flex flex-col gap-1.5 flex-1">
                       {cd.acts.map(a => {
                         const aover = overKey === `act:${a.id}`; const assigned = a.assignedClinicianId;
                         const durLbl = a.duration === 'quarter' ? '¼ sess' : a.duration === 'half' ? '½ sess' : a.duration === 'fullday' ? 'full day' : '1 sess';
@@ -609,12 +609,12 @@ export default function WorkforcePlanner({ data, toast }) {
                           <div key={a.id} data-drop={`act:${a.id}`} onClick={() => setEditingId(a.id)}
                             style={{ borderRadius: 'var(--r-md)', padding: '6px 8px', cursor: 'pointer', border: aover ? '1px solid var(--accent-2)' : `1px solid ${assigned ? 'rgba(56,189,248,0.35)' : 'rgba(245,158,11,0.3)'}`,
                               background: assigned ? 'rgba(56,189,248,0.16)' : 'rgba(245,158,11,0.14)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                            <div className="flex justify-between items-center gap-1.5">
                               <span style={{ fontSize: 13, color: assigned ? '#7dd3fc' : '#fcd34d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label || 'Activity'}</span>
                               <span style={{ fontSize: 10, color: assigned ? '#7dd3fc' : '#fcd34d', flexShrink: 0 }}>{durLbl}{(a.week || 'all') !== 'all' ? ` · Wk ${(a.week || 'all').toUpperCase()}` : ''}</span>
                             </div>
                             <div style={{ marginTop: 5 }} onPointerDown={e => e.stopPropagation()}>
-                              {assigned ? <Chip clinId={assigned} day={day} session={session} activityId={a.id} /> : <span style={{ fontSize: 12, color: '#fbbf24' }}>Drop a clinician</span>}
+                              {assigned ? <Chip clinId={assigned} day={day} session={session} activityId={a.id} /> : <span className="text-meta text-amber-400">Drop a clinician</span>}
                             </div>
                           </div>
                         );
@@ -647,7 +647,7 @@ export default function WorkforcePlanner({ data, toast }) {
             return (<div key={day} style={{ textAlign: 'center', paddingTop: 6, fontFamily: "'Space Mono', monospace", fontSize: 12, color: 'var(--text-3)' }}>{w} working<br /><span style={{ color: 'var(--text-4)' }}>{fmt(g)} general</span></div>);
           })}
         </div>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 14 }}>
+        <div className="flex gap-4 flex-wrap mt-3.5">
           {[['Overstaffed', RC.blue.solid], ['Good', RC.green.solid], ['Tight', RC.amber.solid], ['Short', RC.red.solid]].map(([l, col]) => (<div key={l} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--text-3)' }}><span style={{ width: 14, height: 14, borderRadius: 'var(--r-sm)', background: col }} />{l}</div>))}
           <span style={{ fontSize: 13, color: 'var(--text-4)', marginLeft: 'auto' }}>Cards shade red→green across the week · ratio header is absolute</span>
         </div>
@@ -666,7 +666,7 @@ export default function WorkforcePlanner({ data, toast }) {
                   const open = expandedClin === c.id;
                   return (
                     <div key={c.id} style={{ borderRadius: 'var(--r-md)', background: open ? 'var(--surface)' : 'transparent' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px' }}>
+                      <div className="flex items-center gap-2 px-1.5 py-1">
                         <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 'var(--r-pill)', background: c._added ? 'transparent' : 'var(--accent)', border: c._added ? '1px dashed var(--accent-2)' : 'none', color: c._added ? 'var(--accent-text)' : '#fff', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(c.id) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
                         <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 14, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize: 10, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize: 10, marginLeft: 5 }}>edited</span>}</span>
                         <button onClick={() => toggleDuty(c.id)} title={dutySet.has(c.id) ? 'Duty-capable — click to unset' : 'Mark as duty-capable'}
@@ -679,7 +679,7 @@ export default function WorkforcePlanner({ data, toast }) {
                         <div style={{ padding: '4px 6px 10px 38px' }}>
                           <p style={{ fontSize: 11, color: 'var(--text-4)', margin: '0 0 5px' }}>Tick a clinician's contracted sessions:</p>
                           <MiniWeek pattern={effPattern[c.id]} onToggle={(d, s) => togglePattern(c.id, d, s)} />
-                          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                          <div className="flex gap-2.5 mt-2">
                             <button onClick={() => acceptAllocAsContract(c.id)} style={S.linkBtn} title="Set their contract to where they're currently allocated">Use allocation</button>
                             {!c._added && contractEdited(c.id) && <button onClick={() => resetContractToEmis(c.id)} style={S.linkBtn} title="Revert to the EMIS working pattern">Reset to EMIS</button>}
                           </div>
@@ -692,7 +692,7 @@ export default function WorkforcePlanner({ data, toast }) {
               {removedIds.length > 0 && (
                 <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                   <p style={{ fontSize: 11, color: 'var(--text-4)', margin: '0 0 5px' }}>Removed (leaving)</p>
-                  {removedIds.map(id => { const c = realClinicians.find(x => x.id === id); if (!c) return null; return (<div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 6px' }}><span style={{ fontSize: 13, color: 'var(--text-4)', textDecoration: 'line-through' }}>{c.name}</span><button onClick={() => restoreReal(id)} style={S.linkBtn}>undo</button></div>); })}
+                  {removedIds.map(id => { const c = realClinicians.find(x => x.id === id); if (!c) return null; return (<div key={id} className="flex justify-between items-center px-1.5 py-0.5"><span style={{ fontSize: 13, color: 'var(--text-4)', textDecoration: 'line-through' }}>{c.name}</span><button onClick={() => restoreReal(id)} style={S.linkBtn}>undo</button></div>); })}
                 </div>
               )}
               <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -721,17 +721,17 @@ export default function WorkforcePlanner({ data, toast }) {
           {panel.settings && (
             <Popout title="Settings" onClose={() => togglePanel('settings')}>
               <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Include roles</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              <div className="flex flex-wrap gap-1.5 mb-3.5">
                 {allRoles.map(role => { const on = includedRoles == null || includedRoles.includes(role); return (<button key={role} onClick={() => toggleRole(role)} style={{ padding: '6px 12px', borderRadius: 'var(--r-pill)', fontSize: 13, cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface)', color: on ? 'var(--accent-text)' : 'var(--text-4)' }}>{on ? '✓ ' : ''}{role}</button>); })}
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Ratio thresholds (requests / general clinician)</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="flex flex-col gap-2">
                 <ThRow label="Overstaffed below" value={thresholds.over} onChange={v => setThreshold('over', v)} colour={RC.blue.solid} />
                 <ThRow label="Tight above" value={thresholds.tight} onChange={v => setThreshold('tight', v)} colour={RC.amber.solid} />
                 <ThRow label="Short above" value={thresholds.short} onChange={v => setThreshold('short', v)} colour={RC.red.solid} />
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '16px 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Holiday cover</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="flex items-center gap-2">
                 <span style={{ width: 11, height: 11, borderRadius: 3, background: '#f59e0b', flexShrink: 0 }} />
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text-2)' }}>Staff allowed off per day</span>
                 <input type="number" min={0} value={holidayAllowance} onChange={e => { setHolidayAllowance(Math.max(0, parseInt(e.target.value, 10) || 0)); markDirty(); }} style={{ width: 60, ...S.numInput }} />
@@ -742,7 +742,7 @@ export default function WorkforcePlanner({ data, toast }) {
           {panel.scenarios && (
             <Popout title="Scenarios" onClose={() => togglePanel('scenarios')}>
               <p style={{ fontSize: 12, color: 'var(--text-4)', margin: '0 0 10px' }}>Current is your live plan and loads by default. Save a copy to explore a what-if (for example losing a clinician), then switch back to Current any time.</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+              <div className="flex flex-col gap-1 mb-3">
                 {scenarios.map(sc => {
                   const active = sc.id === activeScenarioId;
                   return (
@@ -755,7 +755,7 @@ export default function WorkforcePlanner({ data, toast }) {
                 })}
               </div>
               <p style={{ fontSize: 11, color: 'var(--text-4)', margin: '0 0 5px' }}>Save current plan as a new scenario</p>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div className="flex gap-1.5">
                 <input type="text" value={scenarioName} placeholder="e.g. If Dr X leaves" onChange={e => setScenarioName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveAsNewScenario(); }} style={{ ...S.input, flex: 1 }} />
                 <button disabled={!scenarioName.trim()} onClick={saveAsNewScenario} style={{ ...S.btnGhost, background: scenarioName.trim() ? 'var(--accent)' : 'rgba(99,102,241,0.4)', border: 'none', color: '#fff' }}>Save</button>
               </div>
@@ -765,7 +765,7 @@ export default function WorkforcePlanner({ data, toast }) {
             <Popout title={`Audit · ${activeName}`} onClose={() => togglePanel('audit')}>
               <p style={{ fontSize: 12, color: 'var(--text-4)', margin: '0 0 10px' }}>Every change made to reach this scenario, starting from its origin. Newest at the top.</p>
               {auditLog.length === 0 ? <span style={S.muted}>No changes recorded yet.</span> : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                <div className="flex flex-col gap-0">
                   {[...auditLog].reverse().map((e, i) => {
                     const start = i === auditLog.length - 1;
                     return (
@@ -790,7 +790,7 @@ export default function WorkforcePlanner({ data, toast }) {
             <Segmented options={[['quarter', '¼'], ['half', '½'], ['one', '1 sess'], ['fullday', 'Full day']]} value={a.duration} onChange={v => updateActivity(a.id, { duration: v })} />
             <p style={S.modalLabel}>Repeats</p>
             <Segmented options={[['all', 'Every week'], ['a', 'Week A'], ['b', 'Week B']]} value={a.week} onChange={v => updateActivity(a.id, { week: v })} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+            <div className="flex justify-between mt-4">
               <button onClick={() => deleteActivity(a.id)} style={{ ...S.btnGhost, color: '#f87171', borderColor: 'rgba(239,68,68,0.4)' }}>Delete</button>
               <button onClick={() => setEditingId(null)} style={{ ...S.btnGhost, background: 'var(--accent)', border: 'none', color: '#fff' }}>Done</button>
             </div>
@@ -820,15 +820,15 @@ function MiniWeek({ pattern, onToggle }) {
   );
 }
 function Segmented({ options, value, onChange }) {
-  return (<div style={{ display: 'flex', gap: 4 }}>{options.map(([v, l]) => <button key={v} onClick={() => onChange(v)} style={{ flex: 1, padding: '7px 4px', fontSize: 13, borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${value === v ? 'var(--accent-2)' : 'var(--border-2)'}`, background: value === v ? 'rgba(99,102,241,0.2)' : 'var(--surface)', color: value === v ? 'var(--accent-text)' : 'var(--text-3)' }}>{l}</button>)}</div>);
+  return (<div className="flex gap-1">{options.map(([v, l]) => <button key={v} onClick={() => onChange(v)} style={{ flex: 1, padding: '7px 4px', fontSize: 13, borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${value === v ? 'var(--accent-2)' : 'var(--border-2)'}`, background: value === v ? 'rgba(99,102,241,0.2)' : 'var(--surface)', color: value === v ? 'var(--accent-text)' : 'var(--text-3)' }}>{l}</button>)}</div>);
 }
 function ThRow({ label, value, onChange, colour }) {
-  return (<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: colour, flexShrink: 0 }} /><span style={{ flex: 1, fontSize: 13, color: 'var(--text-2)' }}>{label}</span><input type="number" min={0} value={value} onChange={e => onChange(e.target.value)} style={{ width: 60, ...S.numInput }} /></div>);
+  return (<div className="flex items-center gap-2"><span style={{ width: 11, height: 11, borderRadius: 3, background: colour, flexShrink: 0 }} /><span style={{ flex: 1, fontSize: 13, color: 'var(--text-2)' }}>{label}</span><input type="number" min={0} value={value} onChange={e => onChange(e.target.value)} style={{ width: 60, ...S.numInput }} /></div>);
 }
 function Popout({ title, onClose, children, highlight }) {
   return (
     <div style={{ ...S.card, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', background: 'var(--panel)', border: `1px solid ${highlight ? 'var(--accent-2)' : 'var(--border-2)'}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+      <div className="flex justify-between items-center mb-2.5">
         <span style={{ fontSize: 13, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{title}</span>
         <button onClick={onClose} style={S.xBtn}>×</button>
       </div>
@@ -861,7 +861,7 @@ function AddStaffModal({ roles, onClose, onAdd }) {
         <span />{WF_DAYS.map(d => <span key={d} style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center' }}>{WF_DAY_NAMES[d].slice(0, 3)}</span>)}
         {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize: 12, color: 'var(--text-3)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern[d][s] === 'in'; return <button key={d} onClick={() => toggle(d, s)} style={{ height: 26, borderRadius: 'var(--r-sm)', cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent)' : 'var(--surface)' }} />; })}</FragmentRow>))}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+      <div className="flex justify-end gap-2 mt-3.5">
         <button onClick={onClose} style={S.btnGhost}>Cancel</button>
         <button disabled={!name.trim()} onClick={() => onAdd(name.trim(), role.trim() || 'Other', pattern)} style={{ ...S.btnGhost, background: name.trim() ? 'var(--accent)' : 'rgba(99,102,241,0.4)', border: 'none', color: '#fff' }}>Add</button>
       </div>

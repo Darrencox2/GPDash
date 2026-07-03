@@ -201,16 +201,16 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
 
   if (!meeting) {
     return (
-      <div style={{ padding: 24 }}>
+      <div className="p-6">
         <button onClick={onBack} style={backBtn}>← Back to meetings</button>
-        <div style={{ marginTop: 20, color: 'var(--g-text-mid)' }}>{error || 'Loading…'}</div>
+        <div className="mt-5 text-mid">{error || 'Loading…'}</div>
       </div>
     );
   }
 
   return (
     <div style={{ padding: 24, maxWidth: 920, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div className="flex items-center justify-between gap-3">
         <button onClick={onBack} style={backBtn}>← Back to meetings</button>
         <button onClick={deleteMeeting} style={{ fontSize: 13, color: '#fca5a5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Delete meeting</button>
       </div>
@@ -229,7 +229,7 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           onChange={(e) => setMeeting((m) => ({ ...m, title: e.target.value }))}
           onBlur={(e) => updateMeeting({ title: e.target.value.trim() || 'Untitled meeting' })}
         />
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
+        <div className="flex gap-3 flex-wrap mt-2.5 items-center">
           <input
             style={{ ...inputStyle, width: 'auto' }}
             type="date"
@@ -252,10 +252,10 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--g-text-mid)', marginBottom: 4 }}>
             Open actions carried forward
           </div>
-          <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginBottom: 10 }}>
+          <div className="text-body-sm text-mid mb-2.5">
             Still open from previous meetings. Update or complete them here.
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {carried.map((a) => {
               const done = a.status === 'done';
               const inProgress = a.status === 'in_progress';
@@ -305,7 +305,7 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           mode={meeting.status === 'minuted' ? 'minutes' : 'agenda'}
         />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="flex flex-col gap-2.5">
         {items.map((it, idx) => (
           <AgendaItem
             key={it.id}
@@ -319,14 +319,14 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
           />
         ))}
         {items.length === 0 && (
-          <div style={{ color: 'var(--g-text-mid)', fontSize: 14, padding: '8px 2px' }}>
+          <div className="text-mid text-body px-0.5 py-2">
             No agenda items yet. Add the first item below.
           </div>
         )}
       </div>
 
       {/* Add agenda item */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+      <div className="flex gap-2 mt-3">
         <input
           style={inputStyle}
           value={newItem}
@@ -341,11 +341,11 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
       {/* All actions from this meeting */}
       <SectionTitle>Action log</SectionTitle>
       {actions.length === 0 ? (
-        <div style={{ color: 'var(--g-text-mid)', fontSize: 14 }}>
+        <div className="text-mid text-body">
           No actions yet. Add actions against an agenda item above.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {actions.map((a) => (
             <ActionRow key={a.id} action={a} onUpdate={(patch) => updateAction(a.id, patch)} />
           ))}
@@ -371,7 +371,7 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
 
   return (
     <div style={{ borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: `1px solid ${proposed ? 'rgba(251,191,36,0.4)' : 'var(--g-border)'}`, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
+      <div className="flex items-center gap-2.5 px-3.5 py-3">
         <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 'var(--r-sm)', background: 'var(--g-tile)', color: 'var(--g-text-mid)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{proposed ? '·' : index}</span>
         <input
           style={{ flex: 1, fontSize: 15, fontWeight: 600, background: 'transparent', border: 'none', color: 'var(--g-text-hi)', padding: '2px 0', outline: 'none' }}
@@ -395,7 +395,7 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
 
       {expanded && (
         <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--g-border)' }}>
-          <div style={{ marginTop: 12 }}>
+          <div className="mt-3">
             <label style={miniLabel}>Discussion / minute</label>
             <textarea
               style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
@@ -404,9 +404,9 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
               placeholder="What was discussed and agreed…"
             />
           </div>
-          <div style={{ marginTop: 12 }}>
+          <div className="mt-3">
             <label style={miniLabel}>Outcome</label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div className="flex gap-1.5 flex-wrap">
               {Object.keys(OUTCOME_META).map((key) => {
                 const active = item.outcome === key;
                 const meta = OUTCOME_META[key];
@@ -427,16 +427,16 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
           </div>
 
           {/* Actions for this item */}
-          <div style={{ marginTop: 14 }}>
+          <div className="mt-3.5">
             <label style={miniLabel}>Actions from this item</label>
             {actions.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+              <div className="flex flex-col gap-1.5 mb-2">
                 {actions.map((a) => (
                   <ActionRow key={a.id} action={a} compact onUpdate={(patch) => onUpdateAction(a.id, patch)} />
                 ))}
               </div>
             )}
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="flex gap-2">
               <input
                 style={inputStyle}
                 value={actionText}
@@ -447,7 +447,7 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
             </div>
           </div>
 
-          <div style={{ marginTop: 12, textAlign: 'right' }}>
+          <div className="mt-3 text-right">
             <button onClick={onDelete} style={{ ...miniBtn, color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }}>Delete item</button>
           </div>
         </div>

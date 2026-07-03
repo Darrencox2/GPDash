@@ -160,12 +160,12 @@ export default function MeetingUpload({ data, onFiled }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+      <div className="flex items-center justify-between gap-3 mb-3">
         <p style={{ fontSize: 13, color: 'var(--g-text-mid)', margin: 0, maxWidth: 560 }}>
           Upload past agendas or minutes (.docx or .pdf). Each is read automatically — check the date and details, then file it. Nothing is saved until you confirm.
         </p>
         <button onClick={() => fileRef.current?.click()} style={primaryBtn}>Choose files</button>
-        <input ref={fileRef} type="file" accept=".docx,.pdf" multiple onChange={onPick} style={{ display: 'none' }} />
+        <input ref={fileRef} type="file" accept=".docx,.pdf" multiple onChange={onPick} className="hidden" />
       </div>
 
       {globalError && (
@@ -178,7 +178,7 @@ export default function MeetingUpload({ data, onFiled }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="flex flex-col gap-3">
         {rows.map((row) => (
           <UploadRow
             key={row.id}
@@ -198,17 +198,17 @@ function UploadRow({ row, onFile, onRetry, onChange }) {
 
   return (
     <div style={{ borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: '1px solid var(--g-border)', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 14px' }}>
-        <div style={{ minWidth: 0 }}>
+      <div className="flex items-center justify-between gap-2.5 px-3.5 py-3">
+        <div className="min-w-0">
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-          <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 2 }}>
+          <div className="text-meta text-mid mt-0.5">
             {status === 'extracting' && 'Reading document…'}
             {status === 'review' && result && (
               <span>Detected · confidence {result.confidence}</span>
             )}
             {status === 'filing' && 'Filing…'}
-            {status === 'done' && <span style={{ color: '#6ee7b7' }}>Filed ✓</span>}
-            {status === 'error' && <span style={{ color: '#fca5a5' }}>{error}</span>}
+            {status === 'done' && <span className="text-emerald-300">Filed ✓</span>}
+            {status === 'error' && <span className="text-red-300">{error}</span>}
           </div>
         </div>
         {status === 'error' && <button onClick={onRetry} style={ghostBtn}>Retry</button>}
@@ -223,7 +223,7 @@ function UploadRow({ row, onFile, onRetry, onChange }) {
               Low confidence on the date — please check it carefully before filing.
             </div>
           )}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
+          <div className="flex gap-3 flex-wrap mt-3">
             <div style={{ flex: '1 1 150px' }}>
               <label style={miniLabel}>Date</label>
               <input style={inputStyle} type="date" value={result.meeting_date} onChange={(e) => onChange({ meeting_date: e.target.value })} />
@@ -239,7 +239,7 @@ function UploadRow({ row, onFile, onRetry, onChange }) {
               <input style={inputStyle} value={result.title} onChange={(e) => onChange({ title: e.target.value })} />
             </div>
           </div>
-          <div style={{ marginTop: 12, fontSize: 13, color: 'var(--g-text-mid)' }}>
+          <div className="mt-3 text-body-sm text-mid">
             {result.agenda_items.length} agenda item{result.agenda_items.length === 1 ? '' : 's'}
             {result.actions.length > 0 && ` · ${result.actions.length} action${result.actions.length === 1 ? '' : 's'}`} detected.
             They will be filed with the meeting.

@@ -29,12 +29,12 @@ export default function LegalLandingPage() {
   return (
     <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
       <article style={{ maxWidth: 760, margin: '0 auto', lineHeight: 1.65 }}>
-        <header style={{ marginBottom: 32 }}>
+        <header className="mb-8">
           <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 600, marginBottom: 10, color: '#f1f5f9' }}>Legal &amp; compliance</h1>
           <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.7, margin: 0 }}>
             Resources for practices considering or already using GPDash. If you&apos;re an Information Governance officer doing due diligence, the DPA and DSPT evidence pack are usually the documents you want.
           </p>
-          <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
+          <p className="text-meta text-slate-400 mt-2.5">
             For anything not covered here, email{' '}
             <a href={`mailto:${LEGAL_META.privacyContactEmail}`} style={{ color: '#67e8f9', textDecoration: 'underline' }}>
               {LEGAL_META.privacyContactEmail}
@@ -42,7 +42,7 @@ export default function LegalLandingPage() {
           </p>
         </header>
 
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div className="grid gap-3">
           {docs.map(doc => (
             <Link
               key={doc.href}
@@ -62,7 +62,7 @@ export default function LegalLandingPage() {
                 <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 600, margin: 0, color: '#f1f5f9' }}>
                   {doc.title}
                 </h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="flex items-center gap-2">
                   {doc.draft && (
                     <span style={{
                       fontSize: 10,
@@ -75,13 +75,13 @@ export default function LegalLandingPage() {
                       letterSpacing: 0.4,
                     }}>DRAFT</span>
                   )}
-                  <span style={{ fontSize: 11, color: '#64748b' }}>{doc.audience}</span>
+                  <span className="text-caption text-slate-500">{doc.audience}</span>
                 </div>
               </div>
               <p style={{ fontSize: 13, color: '#cbd5e1', margin: 0, lineHeight: 1.65 }}>
                 {doc.description}
               </p>
-              <div style={{ fontSize: 12, color: '#67e8f9', marginTop: 12, fontWeight: 500 }}>
+              <div className="text-meta text-cyan-300 mt-3 font-medium">
                 Open →
               </div>
             </Link>
@@ -89,7 +89,7 @@ export default function LegalLandingPage() {
         </div>
 
         <footer style={{ marginTop: 48, paddingTop: 24, fontSize: 12, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <p style={{ marginBottom: 6 }}>Controller: {LEGAL_META.controllerName}</p>
+          <p className="mb-1.5">Controller: {LEGAL_META.controllerName}</p>
           <p style={{ margin: 0 }}><Link href="/" style={{ color: '#94a3b8', textDecoration: 'none' }}>← Back to GPDash</Link></p>
         </footer>
       </article>

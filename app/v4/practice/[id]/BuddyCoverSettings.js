@@ -74,7 +74,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
     : (practiceSlug ? `/buddy/${practiceSlug}` : '');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {error && (
         <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14 }}>
           {error}
@@ -82,7 +82,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
       )}
 
       <Card title="Public buddy cover page" status={fieldStatus('public', savingField, savedField)}>
-        <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
+        <p className="text-body text-mid leading-body mb-3.5">
           A public page anyone can view without signing in — for pasting into EMIS
           so staff can click through to today&apos;s allocations from there.
         </p>
@@ -97,11 +97,11 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
           borderRadius: 'var(--r-md)',
           marginBottom: 12,
         }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--g-text-hi)' }}>
+          <div className="flex-1 min-w-0">
+            <div className="text-body font-medium text-hi">
               {publicEnabled ? 'Public access enabled' : 'Public access disabled'}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 2 }}>
+            <div className="text-body-sm text-mid mt-0.5">
               {publicEnabled
                 ? 'Anyone with the URL can view your buddy allocations.'
                 : 'Only signed-in members of this practice can view buddy allocations.'}
@@ -167,7 +167,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
           color: '#fde68a',
           lineHeight: 1.6,
         }}>
-          <strong style={{ color: '#fcd34d' }}>What becomes visible:</strong>{' '}
+          <strong className="text-amber-300">What becomes visible:</strong>{' '}
           When public, the URL above shows your clinicians&apos; names, initials, roles, who
           is present/absent today, and the cover allocations. No patient data is ever shown.
           You can switch this off any time — the URL will immediately return &quot;not found.&quot;
@@ -175,7 +175,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
       </Card>
 
       <Card title="Workload weights" status={fieldStatus('weights', savingField, savedField)}>
-        <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 18 }}>
+        <p className="text-body text-mid leading-body mb-[18px]">
           Adjust how workload is calculated when balancing buddy cover allocations.
           Higher values make that type of cover count more towards a clinician's load.
         </p>
@@ -203,12 +203,12 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
 
       <Card title="How the algorithm works">
         <p style={{ fontSize: 14, color: 'var(--g-text-hi)', lineHeight: 1.7 }}>
-          <strong style={{ color: 'var(--g-text-hi)' }}>Round-robin first.</strong> Everyone gets one allocation
+          <strong className="text-hi">Round-robin first.</strong> Everyone gets one allocation
           before anyone gets two. Primary buddy is tried first, then secondary, then any eligible
           clinician.
         </p>
         <p style={{ fontSize: 14, color: 'var(--g-text-hi)', lineHeight: 1.7, marginTop: 12 }}>
-          <strong style={{ color: 'var(--g-text-hi)' }}>Weighted tiebreaking.</strong> When multiple clinicians
+          <strong className="text-hi">Weighted tiebreaking.</strong> When multiple clinicians
           have the same allocation count, the lowest weighted load wins.
         </p>
         <div style={{
@@ -238,9 +238,9 @@ function Slider({ label, description, value, min, max, step, onChange }) {
       borderRadius: 'var(--r-md)',
       marginBottom: 10,
     }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--g-text-hi)' }}>{label}</div>
-        <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 2 }}>{description}</div>
+      <div className="flex-1 min-w-0">
+        <div className="text-body font-medium text-hi">{label}</div>
+        <div className="text-body-sm text-mid mt-0.5">{description}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <input
@@ -262,7 +262,7 @@ function Slider({ label, description, value, min, max, step, onChange }) {
             textAlign: 'center',
           }}
         />
-        <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>× sessions</span>
+        <span className="text-body-sm text-mid">× sessions</span>
       </div>
     </div>
   );
@@ -278,8 +278,8 @@ function Card({ title, status, children }) {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
         <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)' }}>{title}</h3>
-        {status === 'saving' && <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>Saving…</span>}
-        {status === 'saved' && <span style={{ fontSize: 13, color: '#34d399' }}>✓ Saved</span>}
+        {status === 'saving' && <span className="text-body-sm text-mid">Saving…</span>}
+        {status === 'saved' && <span className="text-body-sm text-emerald-400">✓ Saved</span>}
       </div>
       {children}
     </div>

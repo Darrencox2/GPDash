@@ -120,8 +120,8 @@ export default function LinkClinicianSuggest({ data }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: candidates.length > 0 ? 10 : 0 }}>
         <div style={{ flex: '1 1 280px', minWidth: 0 }}>
-          <div style={{ fontSize: 13, color: '#cbd5e1' }}>
-            <strong style={{ color: '#34d399' }}>
+          <div className="text-body-sm text-slate-300">
+            <strong className="text-emerald-400">
               {candidates.length === 1 ? 'Is this you?' : 'Are you one of these?'}
             </strong>
             {' · '}Linking your account to a clinician record gives you a personal rota, lets you add private notes, and shows your name on the huddle board.
@@ -155,7 +155,7 @@ export default function LinkClinicianSuggest({ data }) {
         }}>{error}</div>
       )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+      <div className="flex flex-wrap gap-2 items-center">
         {candidates.map(c => (
           <button
             key={c.id}
@@ -198,7 +198,7 @@ export default function LinkClinicianSuggest({ data }) {
         </button>
       </div>
 
-      <div style={{ marginTop: 8, fontSize: 11, color: '#64748b' }}>
+      <div className="mt-2 text-caption text-slate-500">
         Wrong match? You can pick yourself manually in Account → "Your clinician record".
       </div>
     </div>

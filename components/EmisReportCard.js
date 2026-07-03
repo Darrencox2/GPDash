@@ -21,9 +21,9 @@ export default function EmisReportCard({ variant = 'card' }) {
 
   return (
     <Wrapper>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+      <div className="flex justify-between items-start gap-3 flex-wrap">
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 4 }}>
+          <div className="text-body-sm font-semibold text-hi mb-1">
             EMIS appointment report
           </div>
           <p style={{ fontSize: 12, color: 'var(--g-text-mid)', lineHeight: 1.5, margin: 0 }}>
@@ -51,7 +51,7 @@ export default function EmisReportCard({ variant = 'card' }) {
       </div>
 
       {/* Expandable how-to */}
-      <div style={{ marginTop: 12 }}>
+      <div className="mt-3">
         <button
           onClick={() => setShowHowTo(!showHowTo)}
           style={{
@@ -105,7 +105,7 @@ export default function EmisReportCard({ variant = 'card' }) {
               The report covers the previous 2 months by default — the date filter is built into the XML. You don't need to set anything else.
             </div>
 
-            <div style={{ marginTop: 10, fontSize: 11, color: '#64748b' }}>
+            <div className="mt-2.5 text-caption text-slate-500">
               These instructions are based on standard EMIS Web. If your practice's EMIS layout
               differs, check with your IT lead or
               {' '}<a href="mailto:darren.cox2@nhs.net" style={{ color: 'var(--c-cyan)' }}>get in touch</a>.

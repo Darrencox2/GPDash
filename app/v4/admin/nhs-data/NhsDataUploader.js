@@ -101,18 +101,18 @@ export default function NhsDataUploader() {
       border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 'var(--r-lg)',
     }}>
-      <div style={{ fontSize: 13, fontWeight: 500, color: '#cbd5e1', marginBottom: 12 }}>
+      <div className="text-body-sm font-medium text-slate-300 mb-3">
         Upload a new month
       </div>
-      <p style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5, marginBottom: 14 }}>
+      <p className="text-caption text-slate-400 leading-normal mb-3.5">
         Download the ZIP from NHS Digital, extract the two CSVs (one for north,
         one for south regions), and select them below. Existing data for the
         same month will be replaced.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="flex flex-col gap-3">
         <div>
-          <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
+          <label className="block text-caption text-slate-400 mb-1">
             Month covered
           </label>
           <input
@@ -124,7 +124,7 @@ export default function NhsDataUploader() {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
+          <label className="block text-caption text-slate-400 mb-1">
             CSV file(s) — select both region files at once
           </label>
           <input
@@ -135,7 +135,7 @@ export default function NhsDataUploader() {
             style={{ ...input, padding: 6 }}
           />
           {files.length > 0 && (
-            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
+            <div className="text-caption text-slate-400 mt-1.5">
               {files.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`).join(' · ')}
             </div>
           )}

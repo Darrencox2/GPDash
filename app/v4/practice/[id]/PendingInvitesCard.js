@@ -32,7 +32,7 @@ export default function PendingInvitesCard({ invites, canManage }) {
       {invites.map(inv => (
         <InviteRow key={inv.id} invite={inv} canManage={canManage} />
       ))}
-      <div style={{ marginTop: 12, fontSize: 11, color: 'var(--g-text-mid)', lineHeight: 1.5 }}>
+      <div className="mt-3 text-caption text-mid leading-normal">
         Invite emails aren't sent automatically yet — copy the link and forward it via your usual channel (Slack, text, email, etc.).
       </div>
     </div>
@@ -83,14 +83,14 @@ function InviteRow({ invite: inv, canManage }) {
 
   return (
     <div style={{ padding: '12px 0', borderBottom: '1px solid var(--g-tile)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="flex justify-between items-center gap-3 flex-wrap">
         <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-          <div style={{ fontSize: 14, color: 'var(--g-text-hi)' }}>{inv.email}</div>
-          <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 2 }}>
+          <div className="text-body text-hi">{inv.email}</div>
+          <div className="text-caption text-mid mt-0.5">
             Invited as <span style={{ textTransform: 'capitalize' }}>{inv.role}</span>
             {' · '}
             {expired ? (
-              <span style={{ color: '#fca5a5' }}>expired {new Date(inv.expires_at).toLocaleDateString('en-GB')}</span>
+              <span className="text-red-300">expired {new Date(inv.expires_at).toLocaleDateString('en-GB')}</span>
             ) : (
               <>expires {new Date(inv.expires_at).toLocaleDateString('en-GB')}</>
             )}

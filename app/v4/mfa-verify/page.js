@@ -125,7 +125,7 @@ function MfaVerifyInner() {
   if (loading) {
     return (
       <AuthCard title="Two-factor verification">
-        <div style={{ color: '#94a3b8', textAlign: 'center', padding: 20 }}>
+        <div className="text-slate-400 text-center p-5">
           Loading…
         </div>
       </AuthCard>

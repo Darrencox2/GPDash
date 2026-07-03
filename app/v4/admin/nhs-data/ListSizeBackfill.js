@@ -73,7 +73,7 @@ export default function ListSizeBackfill() {
       <h3 style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1', marginBottom: 8 }}>
         Practice list size backfill
       </h3>
-      <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 14 }}>
+      <p className="text-body text-slate-400 leading-body mb-3.5">
         The NHS OC submissions data doesn't include practice list sizes, but we
         need them to compute fair per-1000-patient demand benchmarks. This button
         fetches list sizes from OpenPrescribing for any practices in
@@ -87,7 +87,7 @@ export default function ListSizeBackfill() {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+      <div className="flex items-center gap-3 flex-wrap mb-3">
         <button
           type="button"
           onClick={runBatch}
@@ -105,7 +105,7 @@ export default function ListSizeBackfill() {
         >
           {running ? 'Running…' : 'Run a batch (300 practices)'}
         </button>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#94a3b8', cursor: 'pointer' }}>
+        <label className="flex items-center gap-1.5 text-body-sm text-slate-400 cursor-pointer">
           <input
             type="checkbox"
             checked={autoLoop}
@@ -126,8 +126,8 @@ export default function ListSizeBackfill() {
           lineHeight: 1.7,
         }}>
           {pct != null && (
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>
+            <div className="mb-2.5">
+              <div className="text-meta text-slate-400 mb-1">
                 Overall progress: {pct}% ({(progress.total - progress.remaining).toLocaleString()} of {progress.total.toLocaleString()} rows backfilled)
               </div>
               <div style={{
@@ -147,7 +147,7 @@ export default function ListSizeBackfill() {
             </div>
           )}
           {progress.done ? (
-            <div style={{ color: '#34d399', fontWeight: 500 }}>
+            <div className="text-emerald-400 font-medium">
               ✓ Backfill complete. All {progress.total?.toLocaleString() || ''} rows have list sizes.
             </div>
           ) : (
@@ -160,12 +160,12 @@ export default function ListSizeBackfill() {
                   </span>
                 )}
               </div>
-              <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>
+              <div className="text-slate-400 text-meta mt-1">
                 ✓ {progress.updated} updated · {progress.skipped} skipped (no list size in OpenPrescribing) · {progress.errors} errors
               </div>
               {progress.errorSamples?.length > 0 && (
-                <details style={{ marginTop: 6 }}>
-                  <summary style={{ color: '#94a3b8', fontSize: 12, cursor: 'pointer' }}>Show error samples</summary>
+                <details className="mt-1.5">
+                  <summary className="text-slate-400 text-meta cursor-pointer">Show error samples</summary>
                   <pre style={{ marginTop: 4, fontSize: 11, color: '#fca5a5', fontFamily: 'ui-monospace, monospace' }}>
                     {JSON.stringify(progress.errorSamples, null, 2)}
                   </pre>

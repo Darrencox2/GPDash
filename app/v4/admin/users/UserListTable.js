@@ -100,7 +100,7 @@ export default function UserListTable({ users }) {
   return (
     <div>
       {/* Stats row */}
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 18, marginBottom: 18 }}>
+      <div className="flex gap-3.5 flex-wrap mt-[18px] mb-[18px]">
         <Stat label="Total"           value={stats.total} />
         <Stat label="Active (30d)"    value={stats.active} colour="#34d399" />
         <Stat label="Never signed in" value={stats.never} colour="#94a3b8" />
@@ -111,7 +111,7 @@ export default function UserListTable({ users }) {
       </div>
 
       {/* Filter chips */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+      <div className="flex gap-1.5 flex-wrap mb-3.5">
         {FILTERS.map(f => (
           <button
             key={f.id}
@@ -134,7 +134,7 @@ export default function UserListTable({ users }) {
 
       {/* Table */}
       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+        <table className="w-full border-collapse text-body">
           <thead>
             <tr style={{ background: 'rgba(255,255,255,0.04)', textAlign: 'left' }}>
               <SortableTh col="email"     label="Email"        sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
@@ -159,7 +159,7 @@ export default function UserListTable({ users }) {
         </table>
       </div>
 
-      <div style={{ marginTop: 12, fontSize: 12, color: '#94a3b8', textAlign: 'right' }}>
+      <div className="mt-3 text-meta text-slate-400 text-right">
         Showing {visible.length} of {users.length} users
       </div>
     </div>
@@ -196,7 +196,7 @@ function UserRow({ user: u }) {
         ) : orphan ? (
           <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(251,191,36,0.12)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 'var(--r-pill)' }} title="No practice memberships — never finished onboarding">Orphan</span>
         ) : (
-          <span style={{ color: '#94a3b8', fontSize: 13 }}>—</span>
+          <span className="text-slate-400 text-body-sm">—</span>
         )}
       </td>
       <td style={{ ...td, textAlign: 'right', color: '#e2e8f0' }}>{u.membership_count}</td>

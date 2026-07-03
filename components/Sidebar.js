@@ -246,7 +246,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                   }}>
                     {initials}
                   </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="min-w-0 flex-1">
                     <div style={{
                       fontSize: 15, color: 'var(--text-1)', fontWeight: 500,
                       lineHeight: 1.25,

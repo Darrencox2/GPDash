@@ -125,7 +125,7 @@ export default function ClinicianTour({ step, targets, stepIndex, totalSteps, pr
         </div>
         <div style={{ fontSize: 15, fontWeight: 600, color: '#f1f5f9', marginBottom: 5 }}>{copy.title}</div>
         <div style={{ fontSize: 13, color: 'var(--g-text-hi)', lineHeight: 1.5, marginBottom: 13 }}>{copy.body}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="flex items-center gap-2.5">
           {onPrimary && (
             <button
               type="button"

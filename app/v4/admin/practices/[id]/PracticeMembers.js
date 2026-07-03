@@ -106,16 +106,16 @@ export default function PracticeMembers({ practice }) {
         <h3 style={cardHeader}>Members ({practice.members.length})</h3>
 
         {practice.members.length === 0 ? (
-          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>
+          <p className="text-slate-500 text-body-sm mb-4">
             This practice has no members yet. Add one below.
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          <div className="flex flex-col gap-2 mb-4">
             {practice.members.map(m => (
               <div key={m.user_id} style={memberRow}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>{m.email}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-slate-200 text-body-sm font-medium">{m.email}</span>
                     {m.is_platform_admin && (
                       <span style={{
                         fontSize: 10,
@@ -127,7 +127,7 @@ export default function PracticeMembers({ practice }) {
                       }}>Platform admin</span>
                     )}
                   </div>
-                  <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+                  <div className="text-slate-500 text-caption mt-0.5">
                     {m.name && <span>{m.name} · </span>}
                     joined {new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     {m.last_sign_in_at && (
@@ -135,7 +135,7 @@ export default function PracticeMembers({ practice }) {
                     )}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="flex gap-2 items-center flex-wrap">
                   <select
                     value={m.role}
                     onChange={(e) => changeRole(m.user_id, e.target.value)}
@@ -168,14 +168,14 @@ export default function PracticeMembers({ practice }) {
 
         {/* Add an existing user */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>Add an existing user</div>
+          <div className="text-meta text-slate-400 mb-2">Add an existing user</div>
 
           {pickedUser ? (
             // User has been picked — show a confirm row with role + add button
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="flex gap-2 flex-wrap items-center">
               <div style={{ flex: '1 1 240px', padding: '8px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)' }}>
-                <div style={{ fontSize: 13, color: '#e2e8f0' }}>{pickedUser.email}</div>
-                {pickedUser.name && <div style={{ fontSize: 11, color: '#64748b' }}>{pickedUser.name}</div>}
+                <div className="text-body-sm text-slate-200">{pickedUser.email}</div>
+                {pickedUser.name && <div className="text-caption text-slate-500">{pickedUser.name}</div>}
               </div>
               <select value={pickRole} onChange={(e) => setPickRole(e.target.value)} style={selectStyle}>
                 <option value="user">user</option>
@@ -194,7 +194,7 @@ export default function PracticeMembers({ practice }) {
             </div>
           ) : (
             // Search-as-you-type
-            <div style={{ position: 'relative' }}>
+            <div className="relative">
               <input
                 type="text"
                 value={searchQuery}
@@ -202,7 +202,7 @@ export default function PracticeMembers({ practice }) {
                 placeholder="Search by email or name…"
                 style={input}
               />
-              {searching && <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Searching…</div>}
+              {searching && <div className="text-caption text-slate-500 mt-1">Searching…</div>}
               {searchResults.length > 0 && (
                 <div style={{
                   marginTop: 8,
@@ -225,17 +225,17 @@ export default function PracticeMembers({ practice }) {
                       onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                       <div>{u.email}</div>
-                      {u.name && <div style={{ fontSize: 11, color: '#64748b' }}>{u.name}</div>}
+                      {u.name && <div className="text-caption text-slate-500">{u.name}</div>}
                     </button>
                   ))}
                 </div>
               )}
               {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
-                <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>
+                <div className="text-caption text-slate-500 mt-1.5">
                   No users match. They need to sign up first — then come back here.
                 </div>
               )}
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
+              <div className="text-caption text-slate-500 mt-2">
                 To invite someone who hasn't signed up yet, use the practice's own Users tab and send an email invite.
               </div>
             </div>

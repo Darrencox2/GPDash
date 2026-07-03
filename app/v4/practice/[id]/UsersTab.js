@@ -84,10 +84,10 @@ export default function UsersTab({
   }, [members, invites]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       <Card title="Team members">
         {/* Stats strip */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+        <div className="flex flex-wrap gap-2 mb-3.5">
           <Stat label="Members" value={stats.total} />
           <Stat label="Owners" value={stats.owners} colour="#fcd34d" />
           <Stat label="Admins" value={stats.admins} colour="#67e8f9" />
@@ -98,7 +98,7 @@ export default function UsersTab({
         </div>
 
         {members.length === 0 ? (
-          <p style={{ fontSize: 14, color: 'var(--g-text-mid)' }}>No members yet.</p>
+          <p className="text-body text-mid">No members yet.</p>
         ) : (
           members.map(m => (
             <MemberRow
@@ -147,7 +147,7 @@ export default function UsersTab({
           discoverable but doesn't clutter the main member list. */}
       {transferOwnershipButton && (
         <Card title="Transfer ownership">
-          <p style={{ fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
+          <p className="text-body-sm text-mid leading-body mb-3.5">
             Step down from owner and promote another member to owner in one action.
             Useful when the practice changes hands or you're stepping back from administration.
             Required if you (as the only owner) want to leave the practice.
@@ -238,7 +238,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
       paddingRight: isMe ? 16 : 0,
       borderRadius: isMe ? 6 : 0,
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="flex justify-between items-center gap-3 flex-wrap">
         <div style={{ minWidth: 0, flex: '1 1 auto' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 14, color: 'var(--g-text-hi)', fontWeight: isMe ? 600 : 400 }}>
@@ -246,7 +246,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
             </span>
             {isMe && <span style={{ fontSize: 10, padding: '1px 7px', background: 'rgba(34,211,238,0.18)', color: '#67e8f9', borderRadius: 'var(--r-pill)', fontWeight: 600, letterSpacing: 0.4 }}>YOU</span>}
           </div>
-          {m.name && <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 2 }}>{m.name}</div>}
+          {m.name && <div className="text-meta text-mid mt-0.5">{m.name}</div>}
           {/* Clinician-link status. Three states:
                (a) Linked to a clinician record  → slate "Linked to X"
                (b) Marked as non-clinical here   → slate "Non-clinical"
@@ -387,9 +387,9 @@ function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
   // Linked → just show the link.
   if (m.linked_clinician_id) {
     return (
-      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 4 }}>
-        <span style={{ color: 'var(--g-text-mid)' }}>
-          Linked to <span style={{ color: 'var(--g-text-hi)' }}>{m.linked_clinician_name}</span>
+      <div className="text-caption text-mid mt-1">
+        <span className="text-mid">
+          Linked to <span className="text-hi">{m.linked_clinician_name}</span>
         </span>
       </div>
     );
@@ -398,8 +398,8 @@ function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
   // Marked non-clinical → slate badge, no warning. Self or admin can undo.
   if (m.marked_non_clinical) {
     return (
-      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ color: 'var(--g-text-mid)' }}>Non-clinical</span>
+      <div className="text-caption text-mid mt-1 flex items-center gap-2 flex-wrap">
+        <span className="text-mid">Non-clinical</span>
         {(isMe || canActOnTarget) && (
           <button
             onClick={() => setNonClinical(false)}
@@ -410,14 +410,14 @@ function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
             {busy ? '…' : 'Undo'}
           </button>
         )}
-        {error && <span style={{ color: '#fca5a5' }}>{error}</span>}
+        {error && <span className="text-red-300">{error}</span>}
       </div>
     );
   }
 
   // Unlinked and not marked → amber warning + action by viewer
   return (
-    <div style={{ fontSize: 11, marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+    <div className="text-caption mt-1 flex items-center gap-2 flex-wrap">
       <span style={{ color: '#fbbf24', opacity: 0.9 }} title="This member's account isn't linked to any clinician record. If they're a clinician, their personal rota will be empty until they link via Account → 'Your clinician record'. If they're not clinical, click the button to suppress this warning.">
         ⚠ Not linked to a clinician
       </span>
@@ -440,7 +440,7 @@ function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
           {busy ? '…' : 'Mark non-clinical'}
         </button>
       ) : null}
-      {error && <span style={{ color: '#fca5a5' }}>{error}</span>}
+      {error && <span className="text-red-300">{error}</span>}
     </div>
   );
 }

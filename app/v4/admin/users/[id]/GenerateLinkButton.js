@@ -98,11 +98,11 @@ export default function GenerateLinkButton({ email, emailUnconfirmed, type, labe
       )}
 
       {link && (
-        <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6 }}>
-            Send this link to <strong style={{ color: '#cbd5e1' }}>{email}</strong>. It expires in 1 hour.
+        <div className="mt-2.5">
+          <div className="text-caption text-slate-400 mb-1.5">
+            Send this link to <strong className="text-slate-300">{email}</strong>. It expires in 1 hour.
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div className="flex gap-1.5">
             <input
               readOnly
               value={link}
@@ -138,7 +138,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed, type, labe
         </div>
       )}
 
-      <p style={{ color: '#64748b', fontSize: 11, marginTop: 8, lineHeight: 1.5 }}>
+      <p className="text-slate-500 text-caption mt-2 leading-normal">
         {emailUnconfirmed
           ? 'Use this when the user signed up but never received the confirmation email. The link signs them in and confirms their email in one step.'
           : 'Use this for users who can\'t access their email or have lost their password reset email.'}

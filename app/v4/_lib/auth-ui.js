@@ -6,7 +6,7 @@
 // auth page is unmistakably branded.
 function AuthLogo() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+    <div className="flex items-center gap-2.5 mb-6">
       <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
         <rect width="36" height="36" rx="7.6" fill="#1e293b" stroke="#334155" strokeWidth="0.5"/>
         <rect x="4.5" y="4.5" width="8.27" height="8.27" rx="3" fill="#10b981"/>
@@ -21,7 +21,7 @@ function AuthLogo() {
       </svg>
       <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, fontFamily: "'Space Mono', monospace" }}>
         <span style={{ fontSize: 18, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>[</span>
-        <span style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>GP</span>
+        <span className="text-h3 font-bold text-white">GP</span>
         <span style={{ fontSize: 18, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>]</span>
         <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 19, fontWeight: 200, color: '#10b981', letterSpacing: '3px', marginLeft: 2 }}>DASH</span>
       </div>
@@ -48,7 +48,7 @@ export function AuthCard({ title, subtitle, children }) {
         boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
       }}>
         <AuthLogo />
-        <div style={{ marginBottom: 24 }}>
+        <div className="mb-6">
           <h1 style={{
             fontFamily: "'Outfit', sans-serif",
             fontSize: 22,
@@ -57,7 +57,7 @@ export function AuthCard({ title, subtitle, children }) {
             marginBottom: 6,
           }}>{title}</h1>
           {subtitle && (
-            <p style={{ fontSize: 13, color: '#94a3b8' }}>{subtitle}</p>
+            <p className="text-body-sm text-slate-400">{subtitle}</p>
           )}
         </div>
         {children}
@@ -66,6 +66,11 @@ export function AuthCard({ title, subtitle, children }) {
   );
 }
 
+// DESIGN SYSTEM NOTE: these values intentionally mirror the DARK theme
+// constants rather than the --g-* tokens. Auth surfaces (login/signup/reset/
+// MFA) are dark-locked by design and must not flip with the in-app theme.
+// Radii already use the shared --r-* tokens. This module is the sanctioned
+// auth variant of the design system, not a separate system.
 export const formStyles = {
   field: {
     marginBottom: 16,

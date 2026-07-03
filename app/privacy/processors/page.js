@@ -71,8 +71,8 @@ export default function ProcessorsPage() {
   return (
     <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
       <article style={{ maxWidth: 760, margin: '0 auto', lineHeight: 1.65 }}>
-        <header style={{ marginBottom: 32 }}>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10 }}>
+        <header className="mb-8">
+          <p className="text-body-sm text-slate-400 mb-2.5">
             <Link href="/privacy" style={inlineLink}>← Privacy Notice</Link>
           </p>
           <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>Sub-processors</h1>
@@ -86,7 +86,7 @@ export default function ProcessorsPage() {
           <p>We&apos;ll update this page whenever the list changes and notify existing customers by email before adding a new sub-processor that materially changes data flows.</p>
         </section>
 
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div className="grid gap-4">
           {PROCESSORS.map(p => (
             <article key={p.name} style={{
               borderRadius: 'var(--r-lg)',

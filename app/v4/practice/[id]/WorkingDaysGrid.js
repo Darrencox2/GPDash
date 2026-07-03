@@ -310,7 +310,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div className="flex items-start justify-between mb-2">
           <div>
             <h2 style={{
               fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600,
@@ -344,8 +344,8 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
           display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         }}>
           <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: 'var(--g-text-hi)', lineHeight: 1.5 }}>
-            <strong style={{ color: '#34d399' }}>Auto-generate from CSV</strong>
-            <div style={{ color: 'var(--g-text-mid)', fontSize: 11, marginTop: 2 }}>
+            <strong className="text-emerald-400">Auto-generate from CSV</strong>
+            <div className="text-mid text-caption mt-0.5">
               Looks at the last 12 weeks of appointment history. Sets AM or PM "in" when
               the clinician appeared in ≥50% of weeks for that session.
             </div>
@@ -407,10 +407,10 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
               <tr style={{ background: 'var(--g-tile-2)' }}>
                 <Th width={220} sticky>Clinician</Th>
                 {DAYS.map(d => (
-                  <Th key={d.key} width={88} style={{ textAlign: 'center' }}>{d.label}</Th>
+                  <Th key={d.key} width={88} className="text-center">{d.label}</Th>
                 ))}
-                <Th width={60} style={{ textAlign: 'center' }}>/wk</Th>
-                <Th width={120} style={{ textAlign: 'center' }}>Quick set</Th>
+                <Th width={60} className="text-center">/wk</Th>
+                <Th width={120} className="text-center">Quick set</Th>
               </tr>
               <tr style={{ background: 'var(--g-tile-2)' }}>
                 <Th sticky />
@@ -432,7 +432,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
             <tbody>
               {ordered.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: 'var(--g-text-mid)' }}>
+                  <td colSpan={8} className="px-4 py-8 text-center text-body-sm text-mid">
                     No active clinicians to configure.
                   </td>
                 </tr>
@@ -447,16 +447,16 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                     background: i % 2 === 1 ? 'var(--g-tile-2)' : 'transparent',
                   }}>
                     <Td sticky>
-                      <div style={{ fontSize: 13, color: 'var(--g-text-hi)', fontWeight: 500 }}>{c.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 2 }}>
+                      <div className="text-body-sm text-hi font-medium">{c.name}</div>
+                      <div className="text-caption text-mid mt-0.5">
                         {c.role || 'Unassigned'}{c.initials ? ` · ${c.initials}` : ''}
                       </div>
-                      {err && <div style={{ fontSize: 11, color: '#fca5a5', marginTop: 2 }}>{err}</div>}
+                      {err && <div className="text-caption text-red-300 mt-0.5">{err}</div>}
                     </Td>
                     {DAYS.map(d => {
                       const dayPattern = data.pattern[d.key] || {};
                       return (
-                        <Td key={d.key} style={{ textAlign: 'center', padding: '6px 4px' }}>
+                        <Td key={d.key} className="text-center px-1 py-1.5">
                           <div style={{ display: 'inline-flex', gap: 3 }}>
                             <SessionToggle
                               on={dayPattern.am === 'in'}
@@ -472,7 +472,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                         </Td>
                       );
                     })}
-                    <Td style={{ textAlign: 'center' }}>
+                    <Td className="text-center">
                       <span style={{
                         fontSize: 13, fontWeight: 600,
                         color: sessions === 0 ? 'var(--g-text-faint)' : 'var(--g-text-hi)',
@@ -483,7 +483,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                         <div style={{ fontSize: 9, color: 'var(--g-text-mid)', marginTop: 2 }}>Saving…</div>
                       )}
                     </Td>
-                    <Td style={{ textAlign: 'center' }}>
+                    <Td className="text-center">
                       <div style={{ display: 'inline-flex', gap: 4 }}>
                         <SmallBtn onClick={() => setRow(c.id, true)}>All</SmallBtn>
                         <SmallBtn onClick={() => setRow(c.id, false)}>Clear</SmallBtn>
@@ -496,7 +496,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
           </table>
         </div>
 
-        <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="mt-3.5 flex justify-between items-center">
           <p style={{ margin: 0, fontSize: 11, color: 'var(--g-text-mid)', lineHeight: 1.5, maxWidth: 540 }}>
             This is the standard week — daily overrides (sick days, training, swapped
             sessions) are handled elsewhere on the dashboard and won't change this grid.

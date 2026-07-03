@@ -232,7 +232,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
         }}
       >
         {/* Top bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+        <div className="flex items-center justify-between gap-3 mb-2.5">
           <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#818cf8', fontWeight: 600 }}>
             {done ? 'Done' : `Step ${step + 1} of ${COMMON_ROLES.length}`}
           </div>
@@ -277,14 +277,14 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
         })() : (
           <>
             <div key={headKey} style={{ marginBottom: 16, animation: 'qrwHeadIn 0.35s ease-out' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="flex items-center gap-2.5">
                 <div style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(129,140,248,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>{current.ico}</div>
                 <div style={{ fontSize: 21, fontWeight: 600, color: '#f1f5f9' }}>{current.question || `Who are your ${current.role}s?`}</div>
               </div>
               <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 6, marginLeft: 44 }}>{current.hint} {isAdminStep ? 'Anyone already administrative is ticked — adjust as needed.' : 'The people already on this role are ticked — adjust as needed.'}</div>
             </div>
 
-            <div style={{ position: 'relative', marginBottom: 14 }}>
+            <div className="relative mb-3.5">
               <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--g-text-mid)', fontSize: 13 }}>🔍</span>
               <input
                 type="text"
@@ -301,7 +301,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
 
             <div key={poolKey} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 8, marginBottom: 22, minHeight: 96, maxHeight: '52vh', overflowY: 'auto', alignContent: 'start' }}>
               {allPeople.length === 0 ? (
-                <div style={{ fontSize: 13, color: 'var(--g-text-mid)', padding: '12px 2px' }}>No clinicians to sort.</div>
+                <div className="text-body-sm text-mid px-0.5 py-3">No clinicians to sort.</div>
               ) : (() => {
                 const q = query.trim().toLowerCase();
                 const shown = q ? allPeople.filter(p => p.name.toLowerCase().includes(q)) : allPeople;
@@ -362,7 +362,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               })()}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className="flex items-center gap-2.5 flex-wrap">
               <button
                 onClick={confirm}
                 style={{
@@ -373,7 +373,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               >
                 {step + 1 >= COMMON_ROLES.length ? 'Confirm & finish' : 'Confirm & continue'} →
               </button>
-              <span style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>
+              <span className="text-body-sm text-mid">
                 {selCount} marked as {isAdminStep ? 'non-clinician' : current.role}
               </span>
               <span style={{ fontSize: 12, color: 'var(--g-text-mid)', marginLeft: 'auto', fontFamily: "'Space Mono', monospace" }}>

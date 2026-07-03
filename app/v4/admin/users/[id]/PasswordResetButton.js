@@ -120,8 +120,8 @@ export default function PasswordResetButton({ email }) {
           </button>
         </div>
       )}
-      <p style={{ color: '#64748b', fontSize: 11, marginTop: 8, lineHeight: 1.5 }}>
-        Sends a Supabase recovery email to <strong style={{ color: '#94a3b8' }}>{email}</strong>.
+      <p className="text-slate-500 text-caption mt-2 leading-normal">
+        Sends a Supabase recovery email to <strong className="text-slate-400">{email}</strong>.
         The link redirects them to {getSiteUrl()}/v4/reset-password/update where they can set a new password.
       </p>
     </div>

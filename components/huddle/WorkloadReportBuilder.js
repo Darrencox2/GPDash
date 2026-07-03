@@ -847,7 +847,7 @@ function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal, onPick, c
           <g>
             <path d={`${lineFor(g => g.value)} L ${x(groups.length - 1).toFixed(1)} ${(padT + innerH).toFixed(1)} L ${x(0).toFixed(1)} ${(padT + innerH).toFixed(1)} Z`} fill="url(#trendfill)" />
             <path d={lineFor(g => g.value)} fill="none" stroke={single} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
-            {groups.map((g, i) => (<g key={g.key} style={{ cursor: 'pointer' }} onClick={() => onPick && onPick(g.key, g.label)}><circle cx={x(i)} cy={y(g.value)} r="4.5" fill={colourFor ? colourFor(g.value, i) : single} style={{ stroke: 'var(--g-ink)' }} strokeWidth="2" /><text x={x(i)} y={y(g.value) - 11} textAnchor="middle" style={{ fontSize: 10, fontWeight: 700, fill: 'var(--g-text-hi)' }}>{fmt(g.value)}</text></g>))}
+            {groups.map((g, i) => (<g key={g.key} className="cursor-pointer" onClick={() => onPick && onPick(g.key, g.label)}><circle cx={x(i)} cy={y(g.value)} r="4.5" fill={colourFor ? colourFor(g.value, i) : single} style={{ stroke: 'var(--g-ink)' }} strokeWidth="2" /><text x={x(i)} y={y(g.value) - 11} textAnchor="middle" style={{ fontSize: 10, fontWeight: 700, fill: 'var(--g-text-hi)' }}>{fmt(g.value)}</text></g>))}
           </g>
         )}
         {groups.map((g, i) => <text key={g.key} x={x(i)} y={H - padB + 18} textAnchor="middle" style={{ fontSize: 10, fill: 'var(--g-text-mid)' }} transform={groups.length > 8 ? `rotate(-35 ${x(i)} ${H - padB + 18})` : undefined}>{g.label.replace('w/c ', '')}</text>)}

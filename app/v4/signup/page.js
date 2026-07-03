@@ -283,10 +283,10 @@ function SignupPageInner() {
           </button>
 
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
+            <div className="text-caption text-slate-400 leading-normal">
               No code? Check your spam folder.
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={handleResend}
@@ -334,7 +334,7 @@ function SignupPageInner() {
       <form onSubmit={handleSubmit}>
         {error && <div style={f.errorBox}>{error}</div>}
 
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div className="flex gap-3">
           <div style={{ ...f.field, flex: 1 }}>
             <label style={f.label}>Forename</label>
             <input
@@ -381,7 +381,7 @@ function SignupPageInner() {
             placeholder="Re-enter your password"
           />
           {!passwordsMatch && (
-            <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5' }}>Passwords don't match yet.</div>
+            <div className="mt-1.5 text-caption text-red-300">Passwords don't match yet.</div>
           )}
         </div>
 

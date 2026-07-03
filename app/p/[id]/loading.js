@@ -12,7 +12,7 @@ export default function Loading() {
     >
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         {/* header row */}
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 24 }}>
+        <div className="flex gap-3 items-center mb-6">
           <div style={{ ...tile, width: 44, height: 44 }} />
           <div style={{ ...tile, width: 180, height: 22 }} />
           <div style={{ ...tile, width: 110, height: 36, marginLeft: 'auto' }} />

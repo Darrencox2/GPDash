@@ -54,7 +54,7 @@ export default function RetentionControls({ lastRunResults }) {
         Manual run
       </h2>
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+      <div className="flex gap-2.5 flex-wrap mb-4">
         <button
           onClick={() => runCleanup(true)}
           disabled={busy}
@@ -101,7 +101,7 @@ export default function RetentionControls({ lastRunResults }) {
             border: '1px solid rgba(239,68,68,0.30)',
             borderRadius: 'var(--r-md)',
           }}>
-            <span style={{ fontSize: 12, color: '#fca5a5' }}>
+            <span className="text-meta text-red-300">
               Type <code style={{ background: 'rgba(0,0,0,0.2)', padding: '1px 5px', borderRadius: 'var(--r-sm)' }}>RUN</code> to confirm:
             </span>
             <input
@@ -167,13 +167,13 @@ export default function RetentionControls({ lastRunResults }) {
       )}
 
       {resultsMeta && (
-        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
+        <div className="text-meta text-slate-400 mb-2.5">
           {resultsMeta.dry_run ? 'Dry run' : 'Cleanup run'} · {resultsMeta.duration_ms}ms · {resultsMeta.total_deleted} total {resultsMeta.dry_run ? 'would be deleted' : 'deleted'}
         </div>
       )}
 
       {results && results.length > 0 && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <table className="w-full border-collapse text-body-sm">
           <thead>
             <tr style={{ textAlign: 'left', color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               <th style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Table</th>
@@ -190,14 +190,14 @@ export default function RetentionControls({ lastRunResults }) {
                 <td style={{ padding: '8px 10px', color: '#cbd5e1', fontFamily: 'monospace', fontSize: 11 }}>
                   {r.cutoff ? new Date(r.cutoff).toISOString().slice(0, 10) : '—'}
                 </td>
-                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#cbd5e1' }}>{r.rows_to_delete ?? '—'}</td>
+                <td className="px-2.5 py-2 text-right text-slate-300">{r.rows_to_delete ?? '—'}</td>
                 <td style={{ padding: '8px 10px', textAlign: 'right', color: r.rows_deleted > 0 ? '#f87171' : '#cbd5e1' }}>{r.rows_deleted ?? 0}</td>
-                <td style={{ padding: '8px 10px', fontSize: 11 }}>
+                <td className="px-2.5 py-2 text-caption">
                   {r.error
-                    ? <span style={{ color: '#fca5a5' }}>{r.error}</span>
+                    ? <span className="text-red-300">{r.error}</span>
                     : r.capped
-                    ? <span style={{ color: '#fbbf24' }}>capped at {r.rows_deleted || r.rows_to_delete}</span>
-                    : <span style={{ color: '#64748b' }}>ok</span>}
+                    ? <span className="text-amber-400">capped at {r.rows_deleted || r.rows_to_delete}</span>
+                    : <span className="text-slate-500">ok</span>}
                 </td>
               </tr>
             ))}
@@ -205,7 +205,7 @@ export default function RetentionControls({ lastRunResults }) {
         </table>
       )}
 
-      <div style={{ fontSize: 11, color: '#64748b', marginTop: 14, lineHeight: 1.6 }}>
+      <div className="text-caption text-slate-500 mt-3.5 leading-body">
         Each run is logged to <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 'var(--r-sm)' }}>platform_audit_events</code> with the full per-table result set for GDPR Art 5(2) accountability — including dry runs.
         Hard cap of 5000 rows deleted per table per run as a safety net.
       </div>

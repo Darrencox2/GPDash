@@ -57,7 +57,7 @@ export default function V4ImportPage() {
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: 32, fontFamily: 'inherit', color: '#e2e8f0' }}>
-      <div style={{ marginBottom: 18 }}>
+      <div className="mb-[18px]">
         <BrandHeader subtitle="v3 → v4 import" />
       </div>
       <Link href="/v4/dashboard" style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'none' }}>
@@ -66,14 +66,14 @@ export default function V4ImportPage() {
       <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600, color: 'white', marginTop: 8, marginBottom: 6 }}>
         Import v3 data
       </h1>
-      <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 24 }}>
+      <p className="text-body-sm text-slate-400 mb-6">
         One-shot import of the existing Redis blob into the new Postgres tables.
         Always run a <strong>dry run first</strong>.
       </p>
 
       <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--r-md)', padding: 14, marginBottom: 16, fontSize: 12, color: '#fcd34d' }}>
         ⚠ Read these before running:
-        <ul style={{ marginTop: 6, marginLeft: 20 }}>
+        <ul className="mt-1.5 ml-5">
           <li>Only the practice owner can import</li>
           <li>Dry run reports what would happen, makes no changes</li>
           <li>Real run is idempotent — safe to retry on errors</li>
@@ -82,8 +82,8 @@ export default function V4ImportPage() {
         </ul>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>
+      <div className="mb-4">
+        <label className="block text-meta text-slate-400 mb-1.5">
           Target practice ID
         </label>
         <input
@@ -104,7 +104,7 @@ export default function V4ImportPage() {
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+      <div className="flex gap-2 mb-6">
         <button
           onClick={dryRun}
           disabled={loading || !practiceId}
@@ -157,7 +157,7 @@ export default function V4ImportPage() {
           <h3 style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginTop: 16, marginBottom: 8 }}>Counts</h3>
           {Object.entries(report.counts).map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12 }}>
-              <span style={{ color: '#94a3b8' }}>{k.replace(/_/g, ' ')}</span>
+              <span className="text-slate-400">{k.replace(/_/g, ' ')}</span>
               <span style={{ color: '#e2e8f0', fontFamily: 'monospace', fontWeight: 600 }}>{v}</span>
             </div>
           ))}
@@ -187,9 +187,9 @@ export default function V4ImportPage() {
                 <div>Total clinicians: <strong>{report.diagnostic.clinicians_total}</strong></div>
                 <div>Active clinicians (not left/admin): <strong>{report.diagnostic.clinicians_with_status_active}</strong></div>
                 <div>Unique clinicians in weeklyRota: <strong>{report.diagnostic.weeklyRota_unique_clinician_count}</strong></div>
-                <div style={{ marginTop: 8 }}>Per day:</div>
+                <div className="mt-2">Per day:</div>
                 {Object.entries(report.diagnostic.weeklyRota_per_day).map(([day, info]) => (
-                  <div key={day} style={{ marginLeft: 12 }}>
+                  <div key={day} className="ml-3">
                     {day}: {info.count} clinicians
                   </div>
                 ))}

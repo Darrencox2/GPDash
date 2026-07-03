@@ -17,7 +17,7 @@ export default async function CliniciansTab({ practiceId }) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   if (!supabase) {
-    return <div style={{ color: '#fca5a5' }}>Configuration error.</div>;
+    return <div className="text-red-300">Configuration error.</div>;
   }
 
   // ─── All queries in parallel ───────────────────────────────────────
@@ -94,7 +94,7 @@ export default async function CliniciansTab({ practiceId }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
+      <div className="mb-4">
         <h2 style={{
           fontFamily: "'Outfit', sans-serif",
           fontSize: 22, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 6,

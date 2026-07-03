@@ -161,7 +161,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
               </>
             )}
 
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <div className="flex gap-2 justify-end">
               <button onClick={close} style={btnSubtle}>Cancel</button>
               {candidates.length > 0 && (
                 <button

@@ -57,7 +57,7 @@ export default function PublicBuddyView({ slug, practiceName }) {
   if (error === 'not-found') return <Centered>Buddy cover not available for this practice.</Centered>;
   if (error) return (
     <Centered>
-      <div style={{ textAlign: 'center' }}>
+      <div className="text-center">
         <div>Unable to load — try refreshing the page.</div>
         <div style={{ fontSize: 11, marginTop: 8, opacity: 0.6 }}>{error}</div>
       </div>

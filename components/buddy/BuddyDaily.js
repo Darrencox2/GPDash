@@ -836,7 +836,7 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
       }}
     >
       <style>{`@keyframes shtIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      <div className="flex items-center gap-2 mb-2">
         <span style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 14 }}>{c.name}</span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto', padding: '2px 9px', borderRadius: 'var(--r-pill)', background: meta.bg, color: meta.colour, fontSize: 12, fontWeight: 600 }}>
           <span>{meta.icon}</span>{meta.label}

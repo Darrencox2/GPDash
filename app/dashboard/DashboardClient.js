@@ -709,7 +709,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                 lineHeight: 1.5,
               }}>
                 <div style={{ fontSize: 13, color: '#cbd5e1', flex: '1 1 280px', minWidth: 0 }}>
-                  <strong style={{ color: '#fbbf24' }}>Review your team</strong>
+                  <strong className="text-amber-400">Review your team</strong>
                   {' · '}{needCount} clinician{needCount === 1 ? '' : 's'} need{needCount === 1 ? 's' : ''} a role and initials. Quick setup is one row each, saves automatically.
                 </div>
                 <a

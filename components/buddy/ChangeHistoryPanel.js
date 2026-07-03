@@ -36,9 +36,9 @@ export default function ChangeHistoryPanel({ open, onClose, changeLog, canEdit, 
             const d = describe(e);
             return (
               <div key={`${e.ts}-${i}`} className="flex items-start justify-between gap-2 py-2.5 px-2" style={{ borderBottom: '1px solid var(--g-border)' }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--g-text-hi)' }}>{d.main}</div>
-                  <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 2 }}>
+                <div className="min-w-0">
+                  <div className="text-body-sm font-medium text-hi">{d.main}</div>
+                  <div className="text-meta text-mid mt-0.5">
                     {d.sub} · {e.who || 'Unknown'} · {new Date(e.ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>

@@ -85,7 +85,7 @@ export default function SuspensionCard({ user }) {
           borderRadius: 'var(--r-md)',
           marginBottom: 12,
         }}>
-          <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 4 }}>
+          <div className="text-body-sm text-amber-400 font-semibold mb-1">
             Suspended
           </div>
           <div style={{ fontSize: 12, color: '#fde68a', lineHeight: 1.5 }}>
@@ -114,7 +114,7 @@ export default function SuspensionCard({ user }) {
           <button onClick={() => setShowSuspendForm(true)} style={btnSubtle}>
             Suspend user
           </button>
-          <p style={{ color: '#64748b', fontSize: 11, marginTop: 8, lineHeight: 1.5 }}>
+          <p className="text-slate-500 text-caption mt-2 leading-normal">
             Blocks sign-in without deleting any data. Reversible at any time.
             Use for investigations, compliance holds, or temporary cooling-off
             periods. Use the danger zone below for permanent deletion.
@@ -144,7 +144,7 @@ export default function SuspensionCard({ user }) {
               marginBottom: 10,
             }}
           />
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="flex gap-2">
             <button onClick={suspend} disabled={busy} style={btnDanger}>
               {busy ? 'Suspending…' : 'Confirm suspend'}
             </button>

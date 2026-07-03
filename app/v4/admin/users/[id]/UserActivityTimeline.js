@@ -81,17 +81,17 @@ export default function UserActivityTimeline({ userId }) {
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) {
-    return <div style={{ fontSize: 12, color: '#fca5a5' }}>Couldn't load activity: {error}</div>;
+    return <div className="text-meta text-red-300">Couldn't load activity: {error}</div>;
   }
   if (events === null) {
-    return <div style={{ fontSize: 12, color: '#64748b' }}>Loading activity…</div>;
+    return <div className="text-meta text-slate-500">Loading activity…</div>;
   }
   if (events.length === 0) {
-    return <div style={{ fontSize: 12, color: '#64748b' }}>No recorded activity yet.</div>;
+    return <div className="text-meta text-slate-500">No recorded activity yet.</div>;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {events.map(ev => {
         const s = styleFor(ev.event_type);
         return (
@@ -120,14 +120,14 @@ export default function UserActivityTimeline({ userId }) {
               color: s.colour,
               fontFamily: 'ui-monospace, Menlo, monospace',
             }}>{s.icon}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.4 }}>
+            <div className="flex-1 min-w-0">
+              <div className="text-body-sm text-slate-300" style={{ lineHeight: 1.4 }}>
                 {ev.description || s.label}
               </div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+              <div className="text-caption text-slate-500 mt-0.5">
                 {formatTime(ev.occurred_at)}
                 {ev.practice_name && (
-                  <> · <span style={{ color: '#94a3b8' }}>{ev.practice_name}</span></>
+                  <> · <span className="text-slate-400">{ev.practice_name}</span></>
                 )}
                 <> · <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 10, opacity: 0.7 }}>{ev.event_type}</span></>
               </div>
@@ -136,7 +136,7 @@ export default function UserActivityTimeline({ userId }) {
         );
       })}
       {events.length === 100 && (
-        <div style={{ fontSize: 11, color: '#64748b', textAlign: 'center', padding: 8 }}>
+        <div className="text-caption text-slate-500 text-center p-2">
           Showing the 100 most recent events. Older events are still in the audit log.
         </div>
       )}

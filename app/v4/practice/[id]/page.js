@@ -43,7 +43,7 @@ export default async function PracticeAdminPage({ params }) {
 
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div style={{ padding: 32, color: 'var(--g-text-hi)' }}>Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-hi">Configuration error.</div>;
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/v4/login');
@@ -263,7 +263,7 @@ export default async function PracticeAdminPage({ params }) {
     ),
     activity: canManage ? narrow(
       <Card title="Audit log">
-        <p style={{ fontSize: 14, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 }}>
+        <p className="text-body text-mid leading-body mb-3.5">
           Recent activity in this practice — clinician edits, CSV uploads,
           settings changes, user invites, and so on. Filter by category, click
           "show details" on any row for the full payload.
@@ -284,15 +284,15 @@ export default async function PracticeAdminPage({ params }) {
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         {/* Page header — kept narrower so the practice name + meta read well */}
         <div style={{ maxWidth: 800 }}>
-          <div style={{ marginBottom: 18 }}>
+          <div className="mb-[18px]">
             <BrandHeader subtitle="Practice management" />
           </div>
-          <div style={{ marginBottom: 20 }}>
+          <div className="mb-5">
             <h1 style={{
               fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 600,
               color: 'var(--g-text-hi)', marginBottom: 6,
             }}>{practice.name}</h1>
-            <div style={{ display: 'flex', gap: 12, fontSize: 13, color: 'var(--g-text-mid)', flexWrap: 'wrap' }}>
+            <div className="flex gap-3 text-body-sm text-mid flex-wrap">
               {practice.ods_code && <span>ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{practice.ods_code}</span></span>}
               {practice.region && <span>{practice.region}</span>}
               <span style={{
@@ -315,7 +315,7 @@ export default async function PracticeAdminPage({ params }) {
 
 function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       <PracticeSetupForm
         practiceId={practiceId}
         practiceSlug={practiceSlug}
@@ -337,9 +337,9 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 12, flexWrap: 'wrap',
         }}>
-          <div style={{ fontSize: 13, color: 'var(--g-text-hi)', lineHeight: 1.5 }}>
-            <strong style={{ color: '#67e8f9' }}>Replay the setup wizard</strong>
-            <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 4 }}>
+          <div className="text-body-sm text-hi leading-normal">
+            <strong className="text-cyan-300">Replay the setup wizard</strong>
+            <div className="text-meta text-mid mt-1">
               Step through the original onboarding flow again — useful for adding TeamNet sync,
               re-uploading demand data, or just reviewing what's configured. Nothing gets reset.
             </div>
@@ -360,12 +360,12 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
 
 function DemandTab({ practiceId, demandSettings, huddleSettings, history, canManage, listSize }) {
   if (!canManage) {
-    return <Card title="Demand model"><p style={{ fontSize: 14, color: 'var(--g-text-mid)' }}>Admin-only.</p></Card>;
+    return <Card title="Demand model"><p className="text-body text-mid">Admin-only.</p></Card>;
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       <Card title="Demand history upload">
-        <p style={{ fontSize: 14, color: 'var(--g-text-hi)', lineHeight: 1.6, marginBottom: 14 }}>
+        <p className="text-body text-hi leading-body mb-3.5">
           Upload your historical demand data to calibrate the prediction model to your
           practice. We accept the AskMyGP <em>"Crosstab — Demand data"</em> CSV export.
           Re-upload anytime to recalibrate.
@@ -414,7 +414,7 @@ function DemandTab({ practiceId, demandSettings, huddleSettings, history, canMan
 
 function ResourcesTab({ practiceId, teamnetUrl, lastSyncTime }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       <Card title="TeamNet calendar sync">
         <TeamNetUrlEditor
           practiceId={practiceId}
@@ -431,7 +431,7 @@ function ResourcesTab({ practiceId, teamnetUrl, lastSyncTime }) {
 
 function DangerTab({ practiceId, practiceName }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       <Card title="Data cleanup">
         <DataCleanupActions practiceId={practiceId} />
       </Card>
@@ -444,7 +444,7 @@ function DangerTab({ practiceId, practiceName }) {
         <h3 style={{ color: '#fca5a5', fontSize: 16, fontWeight: 600, marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
           Delete this practice
         </h3>
-        <p style={{ color: 'var(--g-text-hi)', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+        <p className="text-hi text-body leading-body mb-4">
           Permanently delete this practice and all of its data — clinicians, rota notes,
           absences, buddy assignments, demand history, settings, members, and invites.
           Only visible to platform admins. <strong>There is no undo.</strong>

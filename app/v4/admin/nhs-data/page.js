@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export default async function NhsDataAdminPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
 
   await requireAdmin(supabase, { returnTo: '/v4/admin/nhs-data' });
 
@@ -53,7 +53,7 @@ export default async function NhsDataAdminPage() {
             practices and to power PCN / national benchmarking. NHS England
             publishes a fresh month roughly 6 weeks after the month ends.
             Download from{' '}
-            <a href="https://digital.nhs.uk/data-and-information/publications/statistical/submissions-via-online-consultation-systems-in-general-practice/" target="_blank" rel="noreferrer" style={{ color: '#22d3ee' }}>
+            <a href="https://digital.nhs.uk/data-and-information/publications/statistical/submissions-via-online-consultation-systems-in-general-practice/" target="_blank" rel="noreferrer" className="text-cyan-400">
               digital.nhs.uk
             </a>{' '}
             and upload below.
@@ -72,9 +72,9 @@ export default async function NhsDataAdminPage() {
             Months currently in the database
           </div>
           {months.length === 0 ? (
-            <div style={{ fontSize: 13, color: '#94a3b8' }}>No data uploaded yet.</div>
+            <div className="text-body-sm text-slate-400">No data uploaded yet.</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="flex flex-col gap-1.5">
               {months.map(m => (
                 <div key={m.month} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -86,7 +86,7 @@ export default async function NhsDataAdminPage() {
                   <div style={{ fontFamily: "'Space Mono', monospace", color: '#e2e8f0' }}>
                     {formatMonthYear(m.month)}
                   </div>
-                  <div style={{ display: 'flex', gap: 16, color: '#94a3b8' }}>
+                  <div className="flex gap-4 text-slate-400">
                     <span>{m.count.toLocaleString()} practices</span>
                     <span>uploaded {formatRelativeDate(m.ingested_at)}</span>
                   </div>
@@ -167,7 +167,7 @@ function FreshnessReminder({ months }) {
       lineHeight: 1.6,
       marginBottom: 18,
     }}>
-      <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 14 }}>
+      <div className="font-semibold mb-1.5 text-body">
         ⏰ {missingLabel} data is likely available now
       </div>
       <div>

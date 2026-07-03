@@ -171,7 +171,7 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
       {/* Existing data summary */}
       {history && history.length > 0 && (
         <div style={{ padding: 10, background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--g-text-mid)', marginBottom: 12 }}>
-          <strong style={{ color: 'var(--g-text-hi)' }}>Already uploaded:</strong>{' '}
+          <strong className="text-hi">Already uploaded:</strong>{' '}
           {history.length} day{history.length === 1 ? '' : 's'} of data
           {history[0]?.earliest_date && (
             <> · {formatDate(history[0].earliest_date)} → {formatDate(history[0].latest_date)}</>
@@ -196,10 +196,10 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
           opacity: busy ? 0.6 : 1,
         }}
       >
-        <div style={{ fontSize: 13, color: 'var(--g-text-hi)', marginBottom: 4 }}>
+        <div className="text-body-sm text-hi mb-1">
           {busy ? 'Uploading and recalibrating…' : 'Drop CSV here or click to browse'}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--g-text-mid)' }}>
+        <div className="text-caption text-mid">
           Supports: {SUPPORTED_SOURCES.map(s => s.label).join(' · ')}
         </div>
         <input
@@ -207,7 +207,7 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
           type="file"
           accept=".csv,.txt,text/csv"
           onChange={(e) => handleFile(e.target.files?.[0])}
-          style={{ display: 'none' }}
+          className="hidden"
         />
       </div>
 
@@ -219,25 +219,25 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
       )}
       {result && !error && (
         <div style={{ marginTop: 12, padding: 14, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--g-text-hi)' }}>
-          <div style={{ color: '#34d399', fontWeight: 600, marginBottom: 6 }}>
+          <div className="text-emerald-400 font-semibold mb-1.5">
             ✓ Uploaded
             {result.sourceLabel && (
-              <span style={{ marginLeft: 8, fontWeight: 400, color: 'var(--g-text-mid)', fontSize: 11 }}>
+              <span className="ml-2 font-normal text-mid text-caption">
                 detected as {result.sourceLabel}
               </span>
             )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 4, marginBottom: 8 }}>
-            <span style={{ color: 'var(--g-text-mid)' }}>Days in this file</span><span>{result.rowsInFile.toLocaleString()}</span>
-            <span style={{ color: 'var(--g-text-mid)' }}>Date range</span><span>{formatDate(result.earliest)} → {formatDate(result.latest)}</span>
-            <span style={{ color: 'var(--g-text-mid)' }}>Total days on file</span><span>{result.rowsTotal.toLocaleString()}</span>
+            <span className="text-mid">Days in this file</span><span>{result.rowsInFile.toLocaleString()}</span>
+            <span className="text-mid">Date range</span><span>{formatDate(result.earliest)} → {formatDate(result.latest)}</span>
+            <span className="text-mid">Total days on file</span><span>{result.rowsTotal.toLocaleString()}</span>
             {result.totalEvents != null && (
               <>
-                <span style={{ color: 'var(--g-text-mid)' }}>Submissions</span>
+                <span className="text-mid">Submissions</span>
                 <span>
                   {result.totalEvents.toLocaleString()} total
                   {result.proxyEvents != null && result.directEvents != null && (
-                    <span style={{ color: 'var(--g-text-mid)' }}>
+                    <span className="text-mid">
                       {' '}— {result.directEvents.toLocaleString()} direct + {result.proxyEvents.toLocaleString()} via staff
                     </span>
                   )}
@@ -247,13 +247,13 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
           </div>
           {result.calibration?.sufficient ? (
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--g-border)' }}>
-              <div style={{ color: '#67e8f9', fontWeight: 500, marginBottom: 6 }}>Calibration applied</div>
+              <div className="text-cyan-300 font-medium mb-1.5">Calibration applied</div>
               <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 4 }}>
-                <span style={{ color: 'var(--g-text-mid)' }}>Baseline</span><span>{result.calibration.baseline} requests/day</span>
-                <span style={{ color: 'var(--g-text-mid)' }}>Growth</span><span>{(result.calibration.growthPerDay * 365).toFixed(1)} requests/year</span>
-                <span style={{ color: 'var(--g-text-mid)' }}>Day-of-week effects</span>
+                <span className="text-mid">Baseline</span><span>{result.calibration.baseline} requests/day</span>
+                <span className="text-mid">Growth</span><span>{(result.calibration.growthPerDay * 365).toFixed(1)} requests/year</span>
+                <span className="text-mid">Day-of-week effects</span>
                 <span>Mon {fmt(result.calibration.dowEffects[0])} · Tue {fmt(result.calibration.dowEffects[1])} · Wed {fmt(result.calibration.dowEffects[2])} · Thu {fmt(result.calibration.dowEffects[3])} · Fri {fmt(result.calibration.dowEffects[4])}</span>
-                <span style={{ color: 'var(--g-text-mid)' }}>Seasonal effects</span>
+                <span className="text-mid">Seasonal effects</span>
                 <span>{result.calibration.monthEffectsAvailable
                   ? '✓ Fitted (≥9 months data)'
                   : `Not yet (need ≥9 months — have ${(result.calibration.spanDays / 30).toFixed(0)} months)`}</span>
@@ -265,8 +265,8 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
             </div>
           )}
           {result.parseErrors.length > 0 && (
-            <details style={{ marginTop: 8, fontSize: 11, color: 'var(--g-text-mid)' }}>
-              <summary style={{ cursor: 'pointer' }}>{result.parseErrors.length} parse warning(s)</summary>
+            <details className="mt-2 text-caption text-mid">
+              <summary className="cursor-pointer">{result.parseErrors.length} parse warning(s)</summary>
               <ul style={{ marginTop: 6, paddingLeft: 18 }}>
                 {result.parseErrors.slice(0, 10).map((e, i) => <li key={i}>{e}</li>)}
                 {result.parseErrors.length > 10 && <li>… and {result.parseErrors.length - 10} more</li>}

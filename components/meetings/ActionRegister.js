@@ -131,7 +131,7 @@ export default function ActionRegister({ data }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-3.5 mb-3.5 flex-wrap">
         <p style={{ fontSize: 13, color: 'var(--g-text-mid)', margin: 0 }}>
           Every action across all meetings, in one place. Click a status to cycle it.
         </p>
@@ -143,7 +143,7 @@ export default function ActionRegister({ data }) {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div className="flex gap-1.5 mb-3.5 flex-wrap">
         {[['active', `Active (${counts.active})`], ['mine', `My actions (${counts.mine})`], ['done', `Done (${counts.done})`], ['all', 'All']].map(([id, label]) => (
           <button
             key={id}
@@ -162,14 +162,14 @@ export default function ActionRegister({ data }) {
         <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>{error}</div>
       )}
 
-      {actions === null && <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0,1,2,3].map((i) => <Skeleton key={i} variant="card" style={{ height: 54 }} />)}</div>}
+      {actions === null && <div className="flex flex-col gap-2">{[0,1,2,3].map((i) => <Skeleton key={i} variant="card" style={{ height: 54 }} />)}</div>}
       {actions && filtered.length === 0 && (
         <div style={{ padding: 28, borderRadius: 'var(--r-lg)', background: 'var(--g-tile)', border: '1px dashed var(--g-border)', textAlign: 'center', color: 'var(--g-text-mid)', fontSize: 13 }}>
           {filter === 'mine' ? 'No actions assigned to you.' : filter === 'done' ? 'No completed actions yet.' : 'No actions yet. Raise actions against agenda items in a meeting.'}
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="flex flex-col gap-2">
         {filtered.map((a) => {
           const overdue = isOverdue(a);
           const mtg = a.meeting_id ? meetings[a.meeting_id] : null;
@@ -177,7 +177,7 @@ export default function ActionRegister({ data }) {
           const inProgress = a.status === 'in_progress';
           return (
             <div key={a.id} style={{ padding: '12px 14px', borderRadius: 'var(--r-lg)', background: done ? 'var(--g-tile)' : 'var(--g-card)', border: `1px solid ${overdue ? 'rgba(239,68,68,0.35)' : 'var(--g-border)'}`, opacity: done ? 0.62 : 1, transition: 'opacity 0.2s, background 0.2s' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div className="flex items-start gap-3">
                 {/* Complete checkbox */}
                 <button
                   onClick={() => updateAction(a.id, { status: done ? 'open' : 'done' })}
@@ -194,11 +194,11 @@ export default function ActionRegister({ data }) {
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   )}
                 </button>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex-1 min-w-0">
                   <div style={{ fontSize: 14, color: 'var(--g-text-hi)', textDecoration: done ? 'line-through' : 'none' }}>
                     {a.description}
                   </div>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8, alignItems: 'center', fontSize: 13 }}>
+                  <div className="flex gap-2.5 flex-wrap mt-2 items-center text-body-sm">
                     {done ? (
                       <button onClick={() => updateAction(a.id, { status: 'open' })} style={{ ...miniSelect, cursor: 'pointer', color: 'var(--accent, #6366f1)', fontWeight: 600 }}>
                         Undo completion
@@ -232,7 +232,7 @@ export default function ActionRegister({ data }) {
                           onChange={(e) => updateAction(a.id, { due_date: e.target.value || null })}
                           style={{ ...miniSelect, color: overdue ? '#fca5a5' : 'var(--g-text-mid)' }}
                         />
-                        {overdue && <span style={{ color: '#fca5a5', fontWeight: 600 }}>Overdue</span>}
+                        {overdue && <span className="text-red-300 font-semibold">Overdue</span>}
                         {/* Priority */}
                         <select value={a.priority || 'normal'} onChange={(e) => updateAction(a.id, { priority: e.target.value })} style={miniSelect}>
                           <option value="low">Low priority</option>
@@ -243,7 +243,7 @@ export default function ActionRegister({ data }) {
                     )}
                     {/* Source meeting (always shown) */}
                     {mtg && (
-                      <span style={{ color: 'var(--g-text-mid)' }}>
+                      <span className="text-mid">
                         from {mtg.title}{mtg.date ? ` · ${fmtDate(mtg.date)}` : ''}
                       </span>
                     )}

@@ -150,11 +150,11 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
                 {/* Select-all / select-none controls — handy when there are
                     many parsed rows and the admin wants to invert their
                     decision quickly. */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, fontSize: 12 }}>
-                  <span style={{ color: 'var(--g-text-mid)' }}>
+                <div className="flex items-center gap-3 mb-2.5 text-meta">
+                  <span className="text-mid">
                     {includedRows.length} of {rows.length} selected
                   </span>
-                  <span style={{ color: 'var(--g-text-faint)' }}>·</span>
+                  <span className="text-faint">·</span>
                   <button onClick={() => setAllIncluded(true)} style={miniBtn}>Select all</button>
                   <button onClick={() => setAllIncluded(false)} style={miniBtn}>Select none</button>
                 </div>
@@ -195,12 +195,12 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
                         {r.include ? '✓' : '×'}
                       </div>
 
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="flex-1 min-w-0">
                         <div style={{ fontSize: 13, color: 'var(--g-text-hi)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {r.email}
                         </div>
                         {r.displayName && (
-                          <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 2 }}>{r.displayName}</div>
+                          <div className="text-caption text-mid mt-0.5">{r.displayName}</div>
                         )}
                       </div>
                       <select
@@ -245,7 +245,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
             {/* ─── Stage: submitting ─────────────────────────────── */}
             {stage === 'submitting' && (
               <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <div style={{ fontSize: 14, color: 'var(--g-text-mid)' }}>Sending invites…</div>
+                <div className="text-body text-mid">Sending invites…</div>
               </div>
             )}
 
@@ -253,7 +253,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
             {stage === 'done' && results && (
               <>
                 <h3 style={modalTitle}>Done</h3>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                <div className="flex gap-2 mb-3.5 flex-wrap">
                   <SummaryStat label="Created" value={results.created} colour="#34d399" />
                   {results.skipped > 0 && <SummaryStat label="Skipped" value={results.skipped} colour="var(--g-text-mid)" />}
                   {results.errored > 0 && <SummaryStat label="Errored" value={results.errored} colour="#fca5a5" />}
@@ -266,7 +266,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
                         fontSize: 12,
                         borderBottom: '1px solid var(--g-tile)',
                       }}>
-                        <span style={{ color: 'var(--g-text-hi)' }}>{r.email}</span>
+                        <span className="text-hi">{r.email}</span>
                         {' · '}
                         <span style={{ color: r.status === 'error' ? '#fca5a5' : 'var(--g-text-mid)' }}>
                           {r.message || r.status}
@@ -275,7 +275,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
                     ))}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginBottom: 14, lineHeight: 1.5 }}>
+                <div className="text-caption text-mid mb-3.5 leading-normal">
                   {results.created > 0 ? (
                     <>
                       Invite emails are being sent in the background. If a recipient

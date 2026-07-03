@@ -27,7 +27,7 @@ export default function PrivacyNoticePage() {
       <article style={{ maxWidth: 760, margin: '0 auto', lineHeight: 1.65 }}>
         <DraftBanner />
 
-        <header style={{ marginBottom: 32 }}>
+        <header className="mb-8">
           <h1 style={{
             fontFamily: "'Outfit', sans-serif",
             fontSize: 32, fontWeight: 600, marginBottom: 8, color: '#f1f5f9',
@@ -194,7 +194,7 @@ function DraftBanner() {
   if (LEGAL_META.privacyReviewedByLegal) return null;
   return (
     <div style={{ marginBottom: 32, padding: '14px 18px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.30)', color: '#fcd34d' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>⚠ Draft — pending legal review</div>
+      <div className="text-body-sm font-semibold mb-1.5">⚠ Draft — pending legal review</div>
       <div style={{ fontSize: 12, lineHeight: 1.6, color: '#fde68a' }}>
         This notice has been drafted by GPDash&apos;s engineering team and accurately reflects current processing. It hasn&apos;t yet been formally reviewed by a qualified data protection professional. We treat it as our binding statement of practice; the legal review will formalise the wording.
       </div>
@@ -213,7 +213,7 @@ function Section({ title, children }) {
 
 function SubSection({ title, children }) {
   return (
-    <div style={{ marginTop: 20 }}>
+    <div className="mt-5">
       <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, color: '#e2e8f0' }}>{title}</h3>
       <div>{children}</div>
     </div>
@@ -232,11 +232,11 @@ function Contact() {
   return (
     <div style={{ marginTop: 14, padding: '14px 18px', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13, lineHeight: 1.7 }}>
       <div style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>Contact</div>
-      <div style={{ color: '#cbd5e1' }}>
+      <div className="text-slate-300">
         For any data protection question — including subject access requests that you&apos;d rather not handle yourself in-app — email{' '}
         <a href={`mailto:${LEGAL_META.privacyContactEmail}`} style={inlineLink}>{LEGAL_META.privacyContactEmail}</a>.
       </div>
-      <div style={{ fontSize: 11, color: '#64748b', marginTop: 10 }}>
+      <div className="text-caption text-slate-500 mt-2.5">
         Controller: {LEGAL_META.controllerName}
         {LEGAL_META.controllerAddress && <><br/>{LEGAL_META.controllerAddress}</>}
       </div>

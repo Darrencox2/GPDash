@@ -79,12 +79,12 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
             <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: '#fca5a5', marginBottom: 8 }}>
               ⚠ Delete practice
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--g-text-hi)', lineHeight: 1.5, marginBottom: 12 }}>
-              This is permanent and cannot be undone. Deleting <strong style={{ color: 'var(--g-text-hi)' }}>{practiceName}</strong> will
+            <p className="text-body-sm text-hi leading-normal mb-3">
+              This is permanent and cannot be undone. Deleting <strong className="text-hi">{practiceName}</strong> will
               remove every clinician record, working pattern, absence, rota note, room
               allocation, demand history row, and every member's access to this practice.
             </p>
-            <p style={{ fontSize: 13, color: 'var(--g-text-hi)', marginBottom: 8 }}>
+            <p className="text-body-sm text-hi mb-2">
               Type the practice name below to confirm:
             </p>
             <input
@@ -109,7 +109,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
                 {error}
               </div>
             )}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setOpen(false)}
                 disabled={busy}

@@ -17,7 +17,7 @@ export default function UserSearch({ initialSearch }) {
   };
 
   return (
-    <form onSubmit={submit} style={{ display: 'flex', gap: 10 }}>
+    <form onSubmit={submit} className="flex gap-2.5">
       <input
         type="text"
         value={value}

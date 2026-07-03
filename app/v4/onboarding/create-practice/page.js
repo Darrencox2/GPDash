@@ -259,15 +259,15 @@ export default function CreatePracticePage() {
               style={f.input}
               autoFocus
             />
-            {searching && <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>Searching NHS Digital…</div>}
+            {searching && <div className="text-caption text-slate-500 mt-2">Searching NHS Digital…</div>}
             {!searching && query.trim().length >= 2 && searchResults.length === 0 && (
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
+              <div className="text-caption text-slate-500 mt-2">
                 No NHS practices match "{query}". Try a different spelling, or{' '}
                 <button type="button" onClick={() => { setManualName(query.trim()); setMode('manual'); }} style={{ background: 'none', border: 'none', padding: 0, color: '#34d399', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>enter details manually</button>.
               </div>
             )}
             {searchResults.length > 0 && (
-              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="mt-3 flex flex-col gap-1.5">
                 {searchResults.slice(0, 8).map(p => (
                   <ResultButton key={p.odsCode} practice={p} onClick={() => pickPractice(p)} />
                 ))}
@@ -300,20 +300,20 @@ export default function CreatePracticePage() {
             >
               {odsLookupBusy ? 'Looking up…' : 'Look up practice'}
             </button>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
+            <div className="text-caption text-slate-500 mt-2">
               Don't know your ODS code? Switch to "Search by name" above, or find it on{' '}
-              <a href="https://www.odsportal.digital.nhs.uk/" target="_blank" rel="noopener noreferrer" style={{ color: '#34d399' }}>NHS ODS Portal</a>.
+              <a href="https://www.odsportal.digital.nhs.uk/" target="_blank" rel="noopener noreferrer" className="text-emerald-400">NHS ODS Portal</a>.
             </div>
           </div>
         )}
 
         {mode === 'manual' && (
           <div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12, lineHeight: 1.5 }}>
+            <div className="text-meta text-slate-400 mb-3 leading-normal">
               Use this if the NHS lookup is not finding your practice or is unavailable. Only the
               name is required — you can add or correct the rest later in settings.
             </div>
-            <label style={f.label}>Practice name <span style={{ color: '#f87171' }}>*</span></label>
+            <label style={f.label}>Practice name <span className="text-red-400">*</span></label>
             <input
               type="text"
               value={manualName}
@@ -323,7 +323,7 @@ export default function CreatePracticePage() {
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') submitManual(); }}
             />
-            <label style={{ ...f.label, marginTop: 12 }}>ODS code <span style={{ color: '#64748b' }}>(optional)</span></label>
+            <label style={{ ...f.label, marginTop: 12 }}>ODS code <span className="text-slate-500">(optional)</span></label>
             <input
               type="text"
               value={manualOds}
@@ -332,7 +332,7 @@ export default function CreatePracticePage() {
               style={f.input}
               maxLength={10}
             />
-            <label style={{ ...f.label, marginTop: 12 }}>List size <span style={{ color: '#64748b' }}>(optional)</span></label>
+            <label style={{ ...f.label, marginTop: 12 }}>List size <span className="text-slate-500">(optional)</span></label>
             <input
               type="text"
               inputMode="numeric"
@@ -375,12 +375,12 @@ export default function CreatePracticePage() {
       }}>
         <div style={{ fontSize: 15, color: '#e2e8f0', fontWeight: 500, marginBottom: 4 }}>{picked.name}</div>
         {(picked.pcnName || picked.icbName) && (
-          <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 4 }}>
+          <div className="text-meta text-slate-300 mb-1">
             {[picked.pcnName, picked.icbName].filter(Boolean).join(' · ')}
           </div>
         )}
         {picked.odsCode && (
-          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+          <div className="text-meta text-slate-400">
             ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{picked.odsCode}</span>
             {picked.listSize ? <> · {picked.listSize.toLocaleString('en-GB')} patients</> : null}
           </div>
@@ -390,19 +390,19 @@ export default function CreatePracticePage() {
             already knows where they are, so the setup wizard won't
             need to ask. */}
         {postcodeBusy && (
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+          <div className="text-meta text-slate-500 mt-1">
             Looking up postcode…
           </div>
         )}
         {!postcodeBusy && postcodeLookup && (
-          <div style={{ fontSize: 12, color: '#34d399', marginTop: 4 }}>
+          <div className="text-meta text-emerald-400 mt-1">
             ✓ Postcode: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{postcodeLookup}</span>
           </div>
         )}
       </div>
 
       {dupCheckBusy && (
-        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>Checking…</div>
+        <div className="text-meta text-slate-400 mb-4">Checking…</div>
       )}
 
       {!dupCheckBusy && dupCheck?.exists && (
@@ -419,7 +419,7 @@ export default function CreatePracticePage() {
           color: '#fde68a',
           lineHeight: 1.5,
         }}>
-          <strong style={{ color: '#fbbf24' }}>This practice is already on GPDash.</strong>
+          <strong className="text-amber-400">This practice is already on GPDash.</strong>
           {' '}
           {dupCheck.owner_name ? (
             <>Ask <strong style={{ color: '#fde68a' }}>{dupCheck.owner_name}</strong> to invite you from the practice's Users page.</>
@@ -514,7 +514,7 @@ function ResultButton({ practice, onClick }) {
       onMouseOver={(e) => e.currentTarget.style.background = 'rgba(34,211,238,0.08)'}
       onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
     >
-      <div style={{ fontWeight: 500 }}>{practice.name}</div>
+      <div className="font-medium">{practice.name}</div>
       {contextBits.length > 0 && (
         <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 3 }}>
           {contextBits.join(' · ')}
@@ -523,7 +523,7 @@ function ResultButton({ practice, onClick }) {
       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
         ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{practice.odsCode}</span>
         {practice.listSize ? <> · {practice.listSize.toLocaleString('en-GB')} patients</> : null}
-        {practice.existsInDatabase && <span style={{ color: '#fbbf24', marginLeft: 8 }}>· Already on GPDash</span>}
+        {practice.existsInDatabase && <span className="text-amber-400 ml-2">· Already on GPDash</span>}
       </div>
     </button>
   );

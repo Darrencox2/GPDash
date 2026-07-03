@@ -127,7 +127,7 @@ export default function AgendaDocument({ meeting, items, actions, practiceName, 
   };
 
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+    <div className="flex gap-2 flex-wrap items-center">
       {mode === 'agenda' ? (
         <>
           <button onClick={doAgenda} style={btn}>Print / PDF agenda</button>

@@ -23,7 +23,7 @@ export default async function AdminUserDetailPage({ params }) {
 
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
 
   const { user } = await requireAdmin(supabase, { returnTo: `/v4/admin/users/${userId}` });
 
@@ -32,7 +32,7 @@ export default async function AdminUserDetailPage({ params }) {
   });
   if (error) {
     return (
-      <div style={{ padding: 32, color: '#fca5a5' }}>
+      <div className="p-8 text-red-300">
         <AdminNav active="users" />
         <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', padding: 16, borderRadius: 'var(--r-md)' }}>
           {error.message}
@@ -62,14 +62,14 @@ export default async function AdminUserDetailPage({ params }) {
 
         {/* Identity (read-only — name editing now handled by UserActions) */}
         <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+          <div className="flex justify-between items-start mb-[18px] flex-wrap gap-3">
             <div>
               <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 6, letterSpacing: -0.3 }}>
                 <CopyableValue value={details.email} title="Copy email">{details.email}</CopyableValue>
               </h2>
-              {details.name && <div style={{ color: '#cbd5e1', fontSize: 14 }}>{details.name}</div>}
+              {details.name && <div className="text-slate-300 text-body">{details.name}</div>}
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               {details.suspended_at && (
                 <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 'var(--r-pill)', fontWeight: 600 }}>
                   Suspended
@@ -163,7 +163,7 @@ function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', gap: 12 }}>
       <span style={{ color: '#94a3b8', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600 }}>{label}</span>
-      <span style={{ color: '#e2e8f0', fontSize: 14 }}>{children}</span>
+      <span className="text-slate-200 text-body">{children}</span>
     </div>
   );
 }

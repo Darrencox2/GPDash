@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic';
 export default async function RetentionAdminPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
   await requireAdmin(supabase, { returnTo: '/v4/admin/retention' });
 
   const summary = retentionSummary();
@@ -54,7 +54,7 @@ export default async function RetentionAdminPage() {
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <AdminNav active="retention" />
 
-        <div style={{ marginBottom: 24 }}>
+        <div className="mb-6">
           <h1 style={{ fontSize: 28, fontWeight: 600, marginBottom: 6, color: '#f1f5f9' }}>
             Data retention
           </h1>
@@ -78,23 +78,23 @@ export default async function RetentionAdminPage() {
             <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               Schedule
             </div>
-            <div style={{ fontSize: 14, color: '#cbd5e1' }}>
-              Daily at <code style={{ color: '#67e8f9' }}>03:00 UTC</code> via Vercel Cron — <code style={{ color: '#67e8f9' }}>0 3 * * *</code>
+            <div className="text-body text-slate-300">
+              Daily at <code className="text-cyan-300">03:00 UTC</code> via Vercel Cron — <code className="text-cyan-300">0 3 * * *</code>
             </div>
           </div>
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               Last run
             </div>
-            <div style={{ fontSize: 14, color: '#cbd5e1' }}>
+            <div className="text-body text-slate-300">
               {lastRun ? (
                 <>
                   <span>{new Date(lastRun.created_at).toLocaleString('en-GB', { timeZone: 'UTC', timeZoneName: 'short' })}</span>
                   {' · '}
-                  <span style={{ color: '#94a3b8' }}>{lastRun.description}</span>
+                  <span className="text-slate-400">{lastRun.description}</span>
                 </>
               ) : (
-                <span style={{ color: '#64748b' }}>No runs recorded yet</span>
+                <span className="text-slate-500">No runs recorded yet</span>
               )}
             </div>
           </div>
@@ -111,7 +111,7 @@ export default async function RetentionAdminPage() {
           <h2 style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>
             Retention windows
           </h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <table className="w-full border-collapse text-body">
             <thead>
               <tr style={{ textAlign: 'left', color: '#94a3b8', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                 <th style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Table</th>
@@ -123,13 +123,13 @@ export default async function RetentionAdminPage() {
               {summary.map(row => (
                 <tr key={row.name}>
                   <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#67e8f9' }}>{row.name}</td>
-                  <td style={{ padding: '8px 10px', color: '#cbd5e1' }}>{row.description}</td>
+                  <td className="px-2.5 py-2 text-slate-300">{row.description}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', color: '#f1f5f9', fontWeight: 500 }}>{row.retentionLabel}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 14, lineHeight: 1.6 }}>
+          <div className="text-meta text-slate-500 mt-3.5 leading-body">
             CSV operational data (huddle_csv_data) is pruned in-band by mergeHuddleData on every
             upload — 4 months rolling window — and isn&apos;t covered by this cron.
             Rate-limit counters are TTL&apos;d by Upstash directly (minutes).

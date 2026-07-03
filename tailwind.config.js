@@ -39,15 +39,20 @@ module.exports = {
         strong: 'var(--g-border-strong)',
       },
 
+      lineHeight: {
+        body: '1.6',   // long-form copy; named token because arbitrary leading-[x] proved unreliable here
+      },
       fontSize: {
         // The documented type scale (globals.css) as named utilities.
-        caption: ['11px', '1.4'],
-        meta: ['12px', '1.45'],
-        'body-sm': ['13px', '1.5'],
-        body: ['14px', '1.55'],
-        subhead: ['16px', '1.45'],
-        h3: ['18px', '1.35'],
-        h2: ['22px', '1.3'],
+        // Pure sizes (no bundled line-height) so migrating inline fontSize
+        // to these classes is pixel-exact; set leading-* explicitly if needed.
+        caption: '11px',
+        meta: '12px',
+        'body-sm': '13px',
+        body: '14px',
+        subhead: '16px',
+        h3: '18px',
+        h2: '22px',
       },
     },
   },

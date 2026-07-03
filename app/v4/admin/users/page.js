@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminUsersPage({ searchParams }) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div style={{ padding: 32, color: 'white' }}>Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
 
   await requireAdmin(supabase, { returnTo: '/v4/admin/users' });
 
@@ -31,7 +31,7 @@ export default async function AdminUsersPage({ searchParams }) {
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <AdminNav active="users" />
 
-        <div style={{ marginBottom: 4 }}>
+        <div className="mb-1">
           <UserSearch initialSearch={search} />
         </div>
 

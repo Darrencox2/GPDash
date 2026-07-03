@@ -144,22 +144,22 @@ export default function AuditLogView({ practiceId }) {
         </div>
       )}
 
-      {loading && <div style={{ fontSize: 13, color: 'var(--g-text-mid)', padding: 16 }}>Loading…</div>}
+      {loading && <div className="text-body-sm text-mid p-4">Loading…</div>}
 
       {!loading && events.length === 0 && !error && (
-        <div style={{ fontSize: 14, color: 'var(--g-text-mid)', padding: 24, textAlign: 'center' }}>
+        <div className="text-body text-mid p-6 text-center">
           No events recorded yet for this filter.
         </div>
       )}
 
       {!loading && events.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="flex flex-col gap-1">
           {events.map(e => <EventRow key={e.id} event={e} userLabel={users[e.user_id] || (e.user_id ? 'unknown user' : 'system')} />)}
         </div>
       )}
 
       {hasMore && (
-        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--g-text-mid)', textAlign: 'center' }}>
+        <div className="mt-3 text-meta text-mid text-center">
           Showing the most recent {PAGE_SIZE} events. Older events still exist
           in the database — pagination UI coming if you need it.
         </div>
@@ -180,7 +180,7 @@ function EventRow({ event, userLabel }) {
       borderRadius: 'var(--r-sm)',
       border: '1px solid var(--g-tile)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-2.5 flex-wrap">
         <span style={{
           padding: '2px 8px',
           background: `${meta.colour}20`,
@@ -190,14 +190,14 @@ function EventRow({ event, userLabel }) {
           fontWeight: 600,
           flexShrink: 0,
         }}>{meta.label}</span>
-        <span style={{ fontSize: 14, color: 'var(--g-text-hi)', flex: 1, minWidth: 0 }}>
+        <span className="text-body text-hi flex-1 min-w-0">
           {event.description || event.event_type}
         </span>
         <span style={{ fontSize: 12, color: 'var(--g-text-mid)', flexShrink: 0 }}>
           {formatRelativeTime(event.occurred_at)}
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, fontSize: 12, color: 'var(--g-text-mid)' }}>
+      <div className="flex items-center gap-2.5 mt-1 text-meta text-mid">
         <span>by {userLabel}</span>
         {hasDetails && (
           <button

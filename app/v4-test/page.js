@@ -95,7 +95,7 @@ export default async function V4Test() {
         <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 28, fontWeight: 600, marginBottom: 8 }}>
           GPDash v4 — Supabase connection test
         </h1>
-        <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: 32 }}>
+        <p className="text-slate-400 text-body mb-8">
           Diagnostic page. Confirms Supabase is wired up before we build any features.
         </p>
 
@@ -110,7 +110,7 @@ export default async function V4Test() {
           </Row>
 
           <Row label="Project URL" status={envStatus === 'ok' ? 'ok' : 'unknown'}>
-            <code style={{ fontSize: 12, color: '#94a3b8' }}>{maskedUrl}</code>
+            <code className="text-meta text-slate-400">{maskedUrl}</code>
           </Row>
 
           <Row label="Supabase connection" status={connectionStatus}>
@@ -120,7 +120,7 @@ export default async function V4Test() {
           </Row>
 
           <Row label="Auth state" status={authStatus.includes('signed in') ? 'ok' : 'unknown'}>
-            <span style={{ fontSize: 13, color: '#cbd5e1' }}>{authStatus}</span>
+            <span className="text-body-sm text-slate-300">{authStatus}</span>
           </Row>
 
           <Row label="Database (practices table)" status={dbStatus}>
@@ -159,7 +159,7 @@ export default async function V4Test() {
           )}
         </div>
 
-        <p style={{ color: '#64748b', fontSize: 11, marginTop: 24, textAlign: 'center' }}>
+        <p className="text-slate-500 text-caption mt-6 text-center">
           v4-rebuild branch · this page never appears in production
         </p>
       </div>
@@ -176,7 +176,7 @@ function Row({ label, children }) {
       padding: '12px 0',
       borderBottom: '1px solid rgba(255,255,255,0.04)',
     }}>
-      <span style={{ fontSize: 13, color: '#94a3b8' }}>{label}</span>
+      <span className="text-body-sm text-slate-400">{label}</span>
       <div>{children}</div>
     </div>
   );

@@ -141,8 +141,8 @@ export default function UserActions({ user, allPractices }) {
           )}
         </div>
         {editingProfile ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 12 }}>
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
               <Field label="Forename">
                 <input
                   type="text"
@@ -161,7 +161,7 @@ export default function UserActions({ user, allPractices }) {
               </Field>
             </div>
             <Field label="Platform admin">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: '#cbd5e1' }}>
+              <label className="flex items-center gap-2 cursor-pointer text-body-sm text-slate-300">
                 <input
                   type="checkbox"
                   checked={draftPlatformAdmin}
@@ -171,7 +171,7 @@ export default function UserActions({ user, allPractices }) {
                 Grant full platform-admin access
               </label>
               {draftPlatformAdmin && !user.is_platform_admin && (
-                <div style={{ marginTop: 8, fontSize: 11, color: '#fbbf24' }}>
+                <div className="mt-2 text-caption text-amber-400">
                   ⚠ Platform admins can manage every practice and every user. Make sure you trust this person.
                 </div>
               )}
@@ -185,7 +185,7 @@ export default function UserActions({ user, allPractices }) {
                 style={{ ...input, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
               />
             </Field>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="flex gap-2">
               <button onClick={saveProfile} disabled={busy === 'profile'} style={btnPrimary}>
                 {busy === 'profile' ? 'Saving…' : 'Save'}
               </button>
@@ -205,9 +205,9 @@ export default function UserActions({ user, allPractices }) {
           </div>
         ) : (
           <>
-            <Row label="Forename">{user.first_name || <em style={{ color: '#475569' }}>not set</em>}</Row>
-            <Row label="Surname">{user.last_name || <em style={{ color: '#475569' }}>not set</em>}</Row>
-            <Row label="Display name">{user.name || <em style={{ color: '#475569' }}>not set</em>}</Row>
+            <Row label="Forename">{user.first_name || <em className="text-slate-600">not set</em>}</Row>
+            <Row label="Surname">{user.last_name || <em className="text-slate-600">not set</em>}</Row>
+            <Row label="Display name">{user.name || <em className="text-slate-600">not set</em>}</Row>
             <Row label="Platform admin">{user.is_platform_admin ? 'Yes' : 'No'}</Row>
             {/* Admin notes shown read-only here too — quick to scan without
                 clicking Edit. Empty notes hidden so the row isn't noise. */}
@@ -228,11 +228,11 @@ export default function UserActions({ user, allPractices }) {
         <h3 style={cardHeader}>Practice memberships ({user.memberships.length})</h3>
 
         {user.memberships.length === 0 ? (
-          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>
+          <p className="text-slate-500 text-body-sm mb-4">
             Not a member of any practice yet.
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          <div className="flex flex-col gap-2 mb-4">
             {user.memberships.map(m => (
               <div
                 key={m.practice_id}
@@ -248,13 +248,13 @@ export default function UserActions({ user, allPractices }) {
                   gap: 12,
                 }}
               >
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>{m.practice_name}</div>
-                  <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+                <div className="min-w-0 flex-1">
+                  <div className="text-slate-200 text-body-sm font-medium">{m.practice_name}</div>
+                  <div className="text-slate-500 text-caption mt-0.5">
                     <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{m.practice_slug}</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div className="flex gap-2 items-center">
                   <select
                     value={m.role}
                     onChange={(e) => changeRole(m.practice_id, e.target.value)}
@@ -281,8 +281,8 @@ export default function UserActions({ user, allPractices }) {
         {/* Add to a new practice */}
         {addablePractices.length > 0 ? (
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12 }}>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>Add to another practice</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="text-meta text-slate-400 mb-2">Add to another practice</div>
+            <div className="flex gap-2 flex-wrap">
               <select
                 value={pickPracticeId}
                 onChange={(e) => setPickPracticeId(e.target.value)}
@@ -321,11 +321,11 @@ export default function UserActions({ user, allPractices }) {
       {/* Danger zone */}
       <div style={{ ...card, borderColor: 'rgba(239,68,68,0.2)' }}>
         <h3 style={{ ...cardHeader, color: '#fca5a5' }}>Danger zone</h3>
-        <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12, lineHeight: 1.5 }}>
+        <p className="text-body-sm text-slate-400 mb-3 leading-normal">
           Deleting this user signs them out, removes them from every practice, and unlinks them
           from any clinician records. The practice data itself is unaffected. This cannot be undone.
         </p>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="flex gap-2 flex-wrap">
           <input
             type="text"
             value={deleteConfirm}
@@ -382,7 +382,7 @@ function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0', gap: 12 }}>
       <span style={{ color: '#64748b', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
-      <span style={{ color: '#cbd5e1', fontSize: 13 }}>{children}</span>
+      <span className="text-slate-300 text-body-sm">{children}</span>
     </div>
   );
 }

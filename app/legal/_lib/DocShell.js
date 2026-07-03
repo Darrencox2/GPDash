@@ -29,15 +29,15 @@ export default function DocShell({ title, html, breadcrumb }) {
   return (
     <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
       <article style={{ maxWidth: 800, margin: '0 auto', lineHeight: 1.65 }}>
-        <nav style={{ marginBottom: 16, fontSize: 12, color: '#94a3b8' }}>
+        <nav className="mb-4 text-meta text-slate-400">
           <Link href="/legal" style={inlineLink}>Legal &amp; compliance</Link>
-          {breadcrumb && <> <span style={{ color: '#475569', margin: '0 6px' }}>·</span> <span style={{ color: '#cbd5e1' }}>{breadcrumb}</span></>}
+          {breadcrumb && <> <span style={{ color: '#475569', margin: '0 6px' }}>·</span> <span className="text-slate-300">{breadcrumb}</span></>}
         </nav>
 
         <div className="legal-doc" dangerouslySetInnerHTML={{ __html: html }} />
 
         <footer style={{ marginTop: 48, paddingTop: 24, fontSize: 12, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <p style={{ marginBottom: 8 }}>
+          <p className="mb-2">
             Questions about this document? <a href={`mailto:${LEGAL_META.privacyContactEmail}`} style={inlineLink}>{LEGAL_META.privacyContactEmail}</a>
           </p>
           <p style={{ margin: 0 }}>

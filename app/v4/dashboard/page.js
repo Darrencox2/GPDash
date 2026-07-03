@@ -19,7 +19,7 @@ export default async function DashboardPage() {
     return (
       <div style={{ padding: 32, maxWidth: 600, margin: '0 auto' }}>
         <h1 style={{ fontSize: 20, color: 'white', marginBottom: 12 }}>Configuration error</h1>
-        <p style={{ fontSize: 13, color: '#94a3b8' }}>Supabase environment variables are not set.</p>
+        <p className="text-body-sm text-slate-400">Supabase environment variables are not set.</p>
       </div>
     );
   }
@@ -65,17 +65,17 @@ export default async function DashboardPage() {
 
       {/* Brand strip — same on every v4 page so users always know they're
           in GPDash and can click back to /v4 to switch context. */}
-      <div style={{ marginBottom: 28 }}>
+      <div className="mb-7">
         <BrandHeader />
       </div>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600, color: 'white' }}>
             Your dashboard
           </h1>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 4 }}>
+          <p className="text-body-sm text-slate-400 mt-1">
             Signed in as {profile?.name || profile?.email || user.email}
           </p>
         </div>
@@ -94,13 +94,13 @@ export default async function DashboardPage() {
               borderRadius: 'var(--r-md)',
               marginBottom: 8,
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>{inv.practice_name}</div>
-                  <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
-                    Invited by <strong>{inv.inviter_name}</strong> as <span style={{ color: '#fbbf24', fontWeight: 600 }}>{inv.role}</span>
+              <div className="flex justify-between items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-body font-medium text-slate-200">{inv.practice_name}</div>
+                  <div className="text-meta text-slate-300 mt-1">
+                    Invited by <strong>{inv.inviter_name}</strong> as <span className="text-amber-400 font-semibold">{inv.role}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                  <div className="text-caption text-slate-400 mt-1">
                     Sent to: {inv.invitee_email}
                   </div>
                 </div>
@@ -116,13 +116,13 @@ export default async function DashboardPage() {
         <SectionTitle>Your account</SectionTitle>
         <Field label="Name">{profile?.name || '—'}</Field>
         <Field label="Email">{profile?.email || user.email}</Field>
-        <Field label="User ID"><code style={{ fontSize: 11, color: '#94a3b8' }}>{user.id}</code></Field>
+        <Field label="User ID"><code className="text-caption text-slate-400">{user.id}</code></Field>
         <Field label="Joined">{profile?.created_at ? new Date(profile.created_at).toLocaleString('en-GB') : '—'}</Field>
       </Card>
 
       {/* Practices card */}
       <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div className="flex items-center justify-between mb-4">
           <SectionTitle>Your practices</SectionTitle>
           {memberships && memberships.length > 0 && (
             <Link href="/v4/onboarding/create-practice" style={{ fontSize: 12, color: '#34d399', textDecoration: 'none' }}>
@@ -131,8 +131,8 @@ export default async function DashboardPage() {
           )}
         </div>
         {!memberships || memberships.length === 0 ? (
-          <div style={{ padding: 16, textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>
+          <div className="p-4 text-center">
+            <p className="text-body-sm text-slate-400 mb-4">
               You're not a member of any practice yet.
             </p>
             <Link href="/v4/onboarding/create-practice" style={{
@@ -163,9 +163,9 @@ export default async function DashboardPage() {
               }}
             >
               <div>
-                <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>{m.practices.name}</div>
+                <div className="text-body font-medium text-slate-200">{m.practices.name}</div>
                 {m.practices.ods_code && (
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{m.practices.ods_code}</div>
+                  <div className="text-caption text-slate-500 mt-0.5">{m.practices.ods_code}</div>
                 )}
               </div>
               <span style={{
@@ -181,7 +181,7 @@ export default async function DashboardPage() {
         )}
       </Card>
 
-      <p style={{ color: '#64748b', fontSize: 11, marginTop: 24, textAlign: 'center' }}>
+      <p className="text-slate-500 text-caption mt-6 text-center">
         v4-rebuild branch · this is a preview environment
       </p>
     </div>
@@ -223,8 +223,8 @@ function Field({ label, children }) {
       padding: '10px 0',
       borderBottom: '1px solid rgba(255,255,255,0.04)',
     }}>
-      <span style={{ fontSize: 13, color: '#64748b' }}>{label}</span>
-      <span style={{ fontSize: 13, color: '#cbd5e1' }}>{children}</span>
+      <span className="text-body-sm text-slate-500">{label}</span>
+      <span className="text-body-sm text-slate-300">{children}</span>
     </div>
   );
 }

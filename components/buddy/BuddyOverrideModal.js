@@ -168,10 +168,10 @@ export default function BuddyOverrideModal({
         />
 
         {err && (
-          <div style={{ fontSize: 12, color: '#fca5a5', marginBottom: 12 }}>{err}</div>
+          <div className="text-meta text-red-300 mb-3">{err}</div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
