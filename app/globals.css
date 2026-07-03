@@ -102,7 +102,19 @@
        Radii:        var(--r-sm|md|lg|pill) — never raw px
        Surfaces:     --g-card (filled card) · --g-tile (subtle) · --g-panel (glass)
        Buttons:      components/ui Button (primary/ghost/danger, size sm/md) —
-                     do not hand-roll button styles in new components. */
+                     do not hand-roll button styles in new components.
+
+       ── THE ONE SYSTEM (how to write styles) ──────────────────────────
+       Target syntax: Tailwind classes consuming the tokens above, wired in
+       tailwind.config.js (bg-card, bg-tile, text-hi/mid/mute, border-edge,
+       text-caption/meta/body-sm/body/subhead/h3/h2, font-heading/mono).
+       Inline style={{}} is sanctioned ONLY for genuinely dynamic values
+       (computed colours, status alphas, measured dimensions).
+       Radii: rounded-md=--r-sm(6) · rounded-lg=--r-md(8) · rounded-xl=--r-lg(12).
+       Living template: app/v4/practice/[id]/IngestTokens.js.
+       Migration ladder (each step verified on preview before the next):
+       workforce -> meetings -> app/v4 pages -> auth-ui.js retirement ->
+       huddle/buddy/room literal colours swapped to token classes in place. */
   }
 
   /* Mobile browsers: 100vh includes the collapsed URL bar, which lets the

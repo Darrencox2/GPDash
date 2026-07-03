@@ -58,26 +58,26 @@ export default function IngestTokens({ practiceId }) {
   };
 
   return (
-    <div style={{ marginTop: 28 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--g-text-hi)', margin: '0 0 4px' }}>Automated import</h3>
-      <p style={{ fontSize: 13, color: 'var(--g-text-mid)', margin: '0 0 14px', maxWidth: 620 }}>
+    <div className="mt-7">
+      <h3 className="text-subhead font-semibold text-hi m-0 mb-1">Automated import</h3>
+      <p className="text-body-sm text-mid mt-0 mb-3.5 max-w-[620px]">
         Create a token so an automation (such as Power Automate) can send your demand CSV
         to GPDash automatically. The token is shown once — copy it somewhere safe.
         Re-importing a date replaces that day, so running it daily is safe.
       </p>
 
       {error && (
-        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>{error}</div>
+        <div className="mb-3 px-3.5 py-2.5 rounded-lg text-body-sm" style={statusError}>{error}</div>
       )}
 
       {/* Freshly created token — shown once */}
       {freshToken && (
-        <div style={{ marginBottom: 16, padding: 14, borderRadius: 'var(--r-lg)', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#6ee7b7', marginBottom: 8 }}>
+        <div className="mb-4 p-3.5 rounded-xl" style={statusSuccess}>
+          <div className="text-body-sm font-semibold mb-2" style={{ color: '#6ee7b7' }}>
             Token created — copy it now, you will not see it again
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <code style={{ flex: 1, minWidth: 240, fontSize: 13, fontFamily: 'var(--font-mono, monospace)', background: 'var(--g-field)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-sm)', padding: '8px 10px', color: 'var(--g-text-hi)', wordBreak: 'break-all' }}>
+          <div className="flex gap-2 items-center flex-wrap">
+            <code className="flex-1 min-w-[240px] text-body-sm font-mono bg-field border border-edge rounded-md px-2.5 py-2 text-hi break-all">
               {freshToken.token}
             </code>
             <Button size="sm" onClick={() => copy(freshToken.token)}>{copied ? 'Copied' : 'Copy token'}</Button>
@@ -86,41 +86,46 @@ export default function IngestTokens({ practiceId }) {
       )}
 
       {/* Create */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 16 }}>
+      <div className="flex gap-2 items-end flex-wrap mb-4">
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 5 }}>Token label</label>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Power Automate" style={inputStyle} />
+          <label className="block text-body-sm font-semibold text-mid mb-1">Token label</label>
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Power Automate"
+            className="px-3 py-2 rounded-lg text-body bg-field border border-edge text-hi min-w-[200px]"
+          />
         </div>
         <Button size="sm" onClick={createToken} disabled={creating}>{creating ? 'Creating…' : 'Create token'}</Button>
       </div>
 
       {/* Endpoint reference */}
-      <div style={{ marginBottom: 18, padding: 12, borderRadius: 'var(--r-md)', background: 'var(--g-tile)', border: '1px solid var(--g-border)' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--g-text-mid)', marginBottom: 6 }}>Send the CSV to this URL (HTTP POST)</div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <code style={{ flex: 1, minWidth: 240, fontSize: 13, fontFamily: 'var(--font-mono, monospace)', color: 'var(--g-text-hi)', wordBreak: 'break-all' }}>{endpointUrl}</code>
+      <div className="mb-4 p-3 rounded-lg bg-tile border border-edge">
+        <div className="text-meta font-semibold text-mid mb-1.5">Send the CSV to this URL (HTTP POST)</div>
+        <div className="flex gap-2 items-center flex-wrap">
+          <code className="flex-1 min-w-[240px] text-body-sm font-mono text-hi break-all">{endpointUrl}</code>
           <Button size="sm" variant="ghost" onClick={() => copy(endpointUrl)}>Copy URL</Button>
         </div>
-        <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 8, lineHeight: 1.5 }}>
-          Header <code style={codeInline}>X-Ingest-Token: your-token</code> · Body: the raw CSV file content ·
-          Content-Type <code style={codeInline}>text/csv</code>
+        <div className="text-meta text-mid mt-2 leading-normal">
+          Header <code className="text-caption font-mono bg-field px-1 rounded text-hi">X-Ingest-Token: your-token</code> · Body: the raw CSV file content ·
+          Content-Type <code className="text-caption font-mono bg-field px-1 rounded text-hi">text/csv</code>
         </div>
       </div>
 
       {/* Existing tokens */}
-      {tokens === null && <div style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>Loading…</div>}
+      {tokens === null && <div className="text-body-sm text-mid">Loading…</div>}
       {tokens && tokens.length === 0 && (
-        <div style={{ fontSize: 13, color: 'var(--g-text-mid)' }}>No tokens yet.</div>
+        <div className="text-body-sm text-mid">No tokens yet.</div>
       )}
       {tokens && tokens.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {tokens.map((t) => (
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'var(--g-card)', border: '1px solid var(--g-border)' }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)' }}>
-                  {t.label || 'Token'} {!t.enabled && <span style={{ color: '#fca5a5', fontWeight: 400 }}>(disabled)</span>}
+            <div key={t.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg bg-card border border-edge">
+              <div className="min-w-0">
+                <div className="text-body font-semibold text-hi">
+                  {t.label || 'Token'} {!t.enabled && <span className="font-normal" style={{ color: '#fca5a5' }}>(disabled)</span>}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 2 }}>
+                <div className="text-meta text-mid mt-0.5">
                   {t.last_used_at
                     ? `Last used ${new Date(t.last_used_at).toLocaleString('en-GB')}${t.last_used_count != null ? ` · ${t.last_used_count} rows` : ''}`
                     : 'Never used'}
@@ -135,5 +140,8 @@ export default function IngestTokens({ practiceId }) {
   );
 }
 
-const inputStyle = { padding: '8px 12px', borderRadius: 'var(--r-md)', fontSize: 14, background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)', minWidth: 200 };
-const codeInline = { fontSize: 12, fontFamily: 'var(--font-mono, monospace)', background: 'var(--g-field)', padding: '1px 5px', borderRadius: 'var(--r-sm)', color: 'var(--g-text-hi)' };
+
+// Status colours (semantic red/green alphas) stay inline — the one sanctioned
+// use of inline style in the unified system is dynamic/status values.
+const statusError = { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' };
+const statusSuccess = { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)' };
