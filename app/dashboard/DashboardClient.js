@@ -173,6 +173,26 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [huddleData, setHuddleData] = useState(() => initialData?.huddleCsvData || null);
+  // The CSV blob is no longer in the page payload (see /api/v4/huddle-data) —
+  // fetch it immediately after first paint. Sections that need it show a
+  // skeleton until it lands.
+  const [huddleLoading, setHuddleLoading] = useState(() => !!initialData?.huddleCsvDeferred && !initialData?.huddleCsvData);
+  useEffect(() => {
+    if (!initialData?.huddleCsvDeferred || initialData?.huddleCsvData) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/v4/huddle-data?practice=${encodeURIComponent(practiceId)}`);
+        const json = await res.json();
+        if (!cancelled && res.ok) {
+          if (json.huddleCsvData) setHuddleData(json.huddleCsvData);
+          if (json.huddleCsvUpdatedAt) setData((d) => (d ? { ...d, huddleCsvUpdatedAt: json.huddleCsvUpdatedAt } : d));
+        }
+      } catch { /* section renders its normal empty state */ }
+      if (!cancelled) setHuddleLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []); // mount-only by design
   const [huddleMessages, setHuddleMessages] = useState(() =>
     Array.isArray(initialData?.huddleMessages) ? initialData.huddleMessages : []
   );
@@ -726,11 +746,12 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           })()}
           <Suspense fallback={<div className="text-sm text-slate-500 py-12 text-center">Loading…</div>}>
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} onRevertChange={revertChange} />}
-          {activeSection === 'huddle-today' && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
-          {activeSection === 'huddle-rota' && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
+          {huddleLoading && ['huddle-today','huddle-rota','huddle-forward','reporting'].includes(activeSection) && <PageSkeleton />}
+          {activeSection === 'huddle-today' && !huddleLoading && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
+          {activeSection === 'huddle-rota' && !huddleLoading && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'meetings' && <Meetings data={data} />}
-          {activeSection === 'huddle-forward' && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
-          {activeSection === 'reporting' && <WorkloadAudit data={data} huddleData={huddleData} />}
+          {activeSection === 'huddle-forward' && !huddleLoading && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
+          {activeSection === 'reporting' && !huddleLoading && <WorkloadAudit data={data} huddleData={huddleData} />}
           {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
           {/* team-members section retired in v4.14.0 — Clinicians lives at
               Practice → Clinicians now. If something still navigates to

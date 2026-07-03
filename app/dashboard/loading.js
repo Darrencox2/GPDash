@@ -1,31 +1,33 @@
-// Streaming shell (see app/p/[id]/loading.js for rationale). Next.js sends this INSTANTLY while the page's
-// server component authenticates and runs its data queries — without it the
-// route sends nothing until every query finishes, which reads as a frozen
-// blank screen (worst on the iOS home-screen app, where there is no progress
-// bar). Pure divs + theme tokens so it costs nothing and matches both themes.
+// Branded launch splash — streams instantly while the server prepares the
+// dashboard. Deliberately high-contrast and self-contained (hardcoded colours,
+// inline keyframes): the previous skeleton used near-black tiles on a black
+// background and read as a frozen black screen on phones.
+import GPDashLogo from '@/components/GPDashLogo';
+
 export default function Loading() {
-  const tile = { background: 'var(--g-tile)', borderRadius: 12 };
   return (
     <div
-      className="min-h-screen animate-pulse"
-      style={{ background: 'var(--g-surface)', padding: 20 }}
+      style={{
+        minHeight: '100vh',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 20,
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0f172a 100%)',
+      }}
     >
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        {/* header row */}
-        <div className="flex gap-3 items-center mb-6">
-          <div style={{ ...tile, width: 44, height: 44 }} />
-          <div style={{ ...tile, width: 180, height: 22 }} />
-          <div style={{ ...tile, width: 110, height: 36, marginLeft: 'auto' }} />
-        </div>
-        {/* main panel */}
-        <div style={{ ...tile, height: 280, marginBottom: 16 }} />
-        {/* card row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
-          <div style={{ ...tile, height: 120 }} />
-          <div style={{ ...tile, height: 120 }} />
-          <div style={{ ...tile, height: 120 }} />
-        </div>
+      <style>{`@keyframes gpdash-spin { to { transform: rotate(360deg); } }`}</style>
+      <GPDashLogo size="sidebar" />
+      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: 4, color: '#e2e8f0', fontFamily: "'Outfit', 'DM Sans', sans-serif" }}>
+        [GP]DASH
       </div>
+      <div
+        aria-label="Loading"
+        style={{
+          width: 34, height: 34, borderRadius: '50%',
+          border: '3px solid rgba(148,163,184,0.25)', borderTopColor: '#34d399',
+          animation: 'gpdash-spin 0.8s linear infinite',
+        }}
+      />
+      <div style={{ fontSize: 14, color: '#94a3b8' }}>Loading your practice…</div>
     </div>
   );
 }

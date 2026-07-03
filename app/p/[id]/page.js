@@ -85,7 +85,7 @@ export default async function PracticePage({ params }) {
     supabase.from('working_patterns').select('id, clinician_id, effective_from, effective_to, pattern, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId).is('effective_to', null),
     supabase.from('absences').select('id, clinician_id, start_date, end_date, reason, notes, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId),
     supabase.from('practice_settings').select('huddle_settings, buddy_settings, room_allocation, closed_days, teamnet_url, extras, demand_settings').eq('practice_id', practiceId).maybeSingle(),
-    supabase.from('huddle_csv_data').select('data, updated_at').eq('practice_id', practiceId).maybeSingle(),
+    supabase.from('huddle_csv_data').select('updated_at').eq('practice_id', practiceId).maybeSingle(),
     supabase.from('buddy_allocations').select('date, allocations').eq('practice_id', practiceId).gte('date', cutoffStr),
     supabase.from('rota_notes').select('clinician_id, date, note, clinicians!inner(practice_id)').eq('clinicians.practice_id', practiceId),
     supabase.from('practice_users').select('role, practices(id, name, slug)').eq('user_id', user.id),
@@ -106,7 +106,10 @@ export default async function PracticePage({ params }) {
     workingPatterns: workingPatterns || [],
     absences: absences || [],
     settings: settings || null,
-    huddleCsvData: huddleCsv?.data || null,
+    // Deferred: the CSV blob is fetched client-side after first paint
+    // (/api/v4/huddle-data) so it no longer bloats the page payload.
+    huddleCsvData: null,
+    huddleCsvDeferred: true,
     huddleCsvUpdatedAt: huddleCsv?.updated_at || null,
     members: [],
   };

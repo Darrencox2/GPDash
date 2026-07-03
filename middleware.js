@@ -14,6 +14,18 @@ import { createClient } from '@/utils/supabase/middleware';
 export async function middleware(request) {
   const path = request.nextUrl.pathname;
 
+  // Mirror the practice slug into the fast-path cookie ON THE SERVER for
+  // every dashboard visit. The client-side setter alone was not enough: iOS
+  // home-screen apps can keep a cookie jar separate from Safari, so the
+  // cookie must be planted by whichever context actually loads the dashboard.
+  // Pure string ops — no auth, no network.
+  if (path.startsWith('/p/')) {
+    const m = path.match(/^\/p\/([a-zA-Z0-9-]{1,64})$/);
+    const res = NextResponse.next();
+    if (m) res.cookies.set('gpdash-last-practice', m[1], { path: '/', maxAge: 31536000, sameSite: 'lax' });
+    return res;
+  }
+
   // Only do the work if we might actually need to redirect from '/'
   if (path === '/') {
     // FAST PATH: returning user launching the app (e.g. iOS home-screen icon
@@ -88,6 +100,7 @@ export async function middleware(request) {
 export const config = {
   matcher: [
     '/',
+    '/p/:path*',
     '/v4/:path*',
     '/auth/callback',
   ],
