@@ -6,7 +6,7 @@ export default function manifest() {
     name: 'GPDash — Practice Dashboard',
     short_name: 'GPDash',
     description: 'GP practice dashboard — huddle capacity, buddy cover & team management',
-    start_url: '/',
+    start_url: '/launch',  // static instant splash; navigates on via fast-path cookie
     display: 'standalone',
     background_color: '#0f172a',
     theme_color: '#0f172a',
