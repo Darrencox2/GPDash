@@ -176,9 +176,12 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   // The CSV blob is no longer in the page payload (see /api/v4/huddle-data) —
   // fetch it immediately after first paint. Sections that need it show a
   // skeleton until it lands.
-  const [huddleLoading, setHuddleLoading] = useState(() => !!initialData?.huddleCsvDeferred && !initialData?.huddleCsvData);
+  const [huddleLoading, setHuddleLoading] = useState(() => !!initialData && !initialData?.huddleCsvData);
   useEffect(() => {
-    if (!initialData?.huddleCsvDeferred || initialData?.huddleCsvData) return;
+    // Run whenever the server-rendered payload carried no CSV blob - do NOT
+    // gate on the huddleCsvDeferred flag (an adapter whitelist silently
+    // stripped it once, killing this whole loader; the flag is advisory only).
+    if (!initialData || initialData.huddleCsvData) return;
     let cancelled = false;
     (async () => {
       // Load the deferred huddle CSV. Hardened after a report of data

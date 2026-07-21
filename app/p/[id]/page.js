@@ -108,12 +108,16 @@ export default async function PracticePage({ params }) {
     settings: settings || null,
     // Deferred: the CSV blob is fetched client-side after first paint
     // (/api/v4/huddle-data) so it no longer bloats the page payload.
-    huddleCsvData: null,
-    huddleCsvDeferred: true,
+    huddleCsvData: null,  // deferred - fetched client-side, see below
     huddleCsvUpdatedAt: huddleCsv?.updated_at || null,
     members: [],
   };
   const v3Shape = adaptToV3Shape(v4Data);
+  // ROOT-CAUSE NOTE (v4.96.2): this flag MUST be set on the ADAPTED object.
+  // adaptToV3Shape returns an explicit field whitelist, so setting it on
+  // v4Data silently dropped it - the client never fetched the deferred CSV
+  // and uploads appeared to vanish on refresh.
+  v3Shape.huddleCsvDeferred = true;
 
   const allocationHistory = {};
   for (const a of (allocations || [])) allocationHistory[a.date] = a.allocations;
