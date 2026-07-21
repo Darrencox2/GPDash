@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
 import { getCliniciansForDate } from '@/lib/huddle';
@@ -320,9 +320,24 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     return out;
   })();
 
+  // This week's decisions (audit history for the panel): every stamped manual
+  // presence decision across the week, newest first.
+  const decidedThisWeek = (() => {
+    const out = [];
+    DAYS.forEach((day) => {
+      const dateKey = getDateKeyForDay(day);
+      const meta = data?.dailyOverrides?.[`${dateKey}-${day}`]?.meta || {};
+      Object.entries(meta).forEach(([cid, m]) => {
+        const c = cliniciansList.find((cl) => cl.id === cid);
+        out.push({ id: cid, name: c?.name || 'Unknown', day, to: m.to, by: m.by, at: m.at });
+      });
+    });
+    return out.sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+  })();
+
   return (
     <div className="-m-4 lg:-m-6 min-h-screen buddy-scale-down" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 40%, var(--g-ink) 100%)'}}>
-    <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-4">
+    <div className="max-w-6xl xl:max-w-[1480px] mx-auto p-4 lg:p-6 space-y-4">
       {/* ═══ HEADER ═══ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -400,39 +415,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         </div>
       </div>
 
-      {/* ═══ INCONSISTENCY REVIEW ═══ */}
-      {canEdit && huddleData && weekMismatches.length > 0 && (
-        <div className="rounded-xl p-4 bg-card border" style={{ borderColor: 'rgba(251,191,36,0.35)' }}>
-          <div className="text-body font-semibold text-hi mb-1">Review this week&apos;s inconsistencies</div>
-          <div className="text-meta text-mid mb-3">
-            The board and the EMIS appointment book disagree for these clinician days. Decide each one — your decision is recorded with your name and the time.
-          </div>
-          <div className="flex flex-col gap-2">
-            {weekMismatches.map((m) => (
-              <div key={`${m.id}-${m.day}`} className="flex items-center gap-3 flex-wrap px-3 py-2 rounded-lg bg-tile border border-edge">
-                <span className="text-body-sm font-semibold text-hi">{m.name}</span>
-                <span className="text-meta text-mid">{m.day}</span>
-                <span className="text-meta flex-1 min-w-[180px]" style={{ color: '#fcd34d' }}>
-                  {m.type === 'presentNoCSV' ? 'Marked present, but EMIS has no sessions booked' : 'Marked absent, but EMIS has sessions booked'}
-                </span>
-                <span className="flex gap-1.5">
-                  <button
-                    onClick={() => togglePresence(m.id, m.day, 'present')}
-                    className="text-meta font-semibold px-2.5 py-1.5 rounded-lg cursor-pointer"
-                    style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.35)' }}
-                  >Present</button>
-                  <button
-                    onClick={() => togglePresence(m.id, m.day, 'absent')}
-                    className="text-meta font-semibold px-2.5 py-1.5 rounded-lg cursor-pointer"
-                    style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
-                  >Absent</button>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
+      <div className="xl:flex xl:items-start xl:gap-5">
+      <div className="flex-1 min-w-0 space-y-4">
       {/* First-visit prompt: if no clinicians are in the buddy-cover pool
           yet, the schedule below will be empty and confusing. Point the
           user straight to clinician setup so they can opt people in. */}
@@ -856,6 +840,69 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         />
       )}
 
+      </div>
+
+      {canEdit && (
+        <aside className="xl:w-[300px] xl:shrink-0 xl:sticky xl:top-4 space-y-3">
+          <div className="rounded-xl p-4 bg-card border border-edge">
+            <div className="text-body font-semibold text-hi mb-2">This week&apos;s inconsistencies</div>
+            {!huddleData ? (
+              <div className="text-meta text-mid">Upload the appointment CSV to check the board against EMIS.</div>
+            ) : weekMismatches.length === 0 ? (
+              <div className="text-body-sm" style={{ color: '#6ee7b7' }}>✓ No inconsistencies — the board matches EMIS for this week&apos;s editable days.</div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {weekMismatches.map((m) => (
+                  <div key={`${m.id}-${m.day}`} className="px-3 py-2.5 rounded-lg bg-tile border" style={{ borderColor: 'rgba(251,191,36,0.35)' }}>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-body-sm font-semibold text-hi">{m.name}</span>
+                      <span className="text-caption text-mid">{m.day}</span>
+                    </div>
+                    <div className="text-caption mt-0.5 mb-2" style={{ color: '#fcd34d' }}>
+                      {m.type === 'presentNoCSV' ? 'Marked present — EMIS has no sessions' : 'Marked absent — EMIS has sessions'}
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => togglePresence(m.id, m.day, 'present')}
+                        className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
+                        style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.35)' }}
+                      >Present</button>
+                      <button
+                        onClick={() => togglePresence(m.id, m.day, 'absent')}
+                        className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
+                        style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
+                      >Absent</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {decidedThisWeek.length > 0 && (
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--g-divider)' }}>
+                <div className="text-caption font-semibold text-mid mb-2 uppercase tracking-wide">Decided this week</div>
+                <div className="flex flex-col gap-1.5">
+                  {decidedThisWeek.map((d, i) => (
+                    <div key={`${d.id}-${d.day}-${i}`} className="px-3 py-2 rounded-lg bg-tile" style={{ opacity: 0.6 }}>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-caption font-semibold text-hi">{d.name}</span>
+                        <span className="text-caption text-mid">{d.day}</span>
+                        <span className="text-caption font-semibold" style={{ color: d.to === 'present' ? '#6ee7b7' : d.to === 'absent' ? '#fca5a5' : 'var(--g-text-mid)' }}>
+                          {d.to === 'present' ? 'Present' : d.to === 'absent' ? 'Absent' : 'Day off'}
+                        </span>
+                      </div>
+                      <div className="text-caption text-mid mt-0.5">
+                        {d.by || 'A colleague'}{d.at ? ` \u00b7 ${new Date(d.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
+      </div>
+
       <StatusHoverTooltip hovered={hovered} explainStatus={explainStatus} getClinicianById={getClinicianById} />
     </div>
     </div>
@@ -872,6 +919,24 @@ const STATUS_META = {
   dayOff:  { label: 'Day off', colour: '#fbbf24', bg: 'rgba(251,191,36,0.16)',  icon: '—' },
 };
 function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
+  // Self-correcting horizontal clamp: the pill rect is measured inside the
+  // zoomed page while the tip renders portaled to body — engines disagree on
+  // how CSS zoom maps between those spaces (Safari drifts, worst at the right
+  // edge). Measure where the tip ACTUALLY rendered and nudge by the real
+  // overflow; converges in 1-3 passes regardless of engine.
+  const tipRef = useRef(null);
+  const [nudgeX, setNudgeX] = useState(0);
+  useLayoutEffect(() => { setNudgeX(0); }, [hovered?.id]);
+  useLayoutEffect(() => {
+    const el = tipRef.current; if (!el) return;
+    const vw = window.visualViewport?.width || window.innerWidth;
+    const r = el.getBoundingClientRect();
+    let delta = 0;
+    if (r.right > vw - 10) delta = (vw - 10) - r.right;
+    else if (r.left < 10) delta = 10 - r.left;
+    if (Math.abs(delta) > 2) setNudgeX((n) => n + delta);
+  }, [hovered, nudgeX]);
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   if (!mounted || !hovered || typeof document === 'undefined') return null;
@@ -889,9 +954,12 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
   const top = below ? rect.top + rect.height + gap : null;
   const bottom = below ? null : window.innerHeight - rect.top + gap;
 
+
   const tip = (
     <div
+      ref={tipRef}
       style={{
+        transform: `translateX(${nudgeX}px)`,
         position: 'fixed', zIndex: 1300, width: W, maxWidth: 'calc(100vw - 20px)',
         left, ...(below ? { top } : { bottom }),
         background: 'var(--surface-solid)', border: '1px solid var(--g-line)',

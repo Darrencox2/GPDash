@@ -652,6 +652,26 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     if (!silent) setTimeout(() => setSyncStatus(''), 4000);
   };
 
+  // ═══ Daily automatic TeamNet sync ═══
+  // Answering "what generates the TeamNet sync": previously ONLY the manual
+  // Sync buttons. Now: once per browser per day, a couple of seconds after the
+  // dashboard loads, we run the same sync silently so planned absences (and
+  // therefore the buddy inconsistency checks) stay current without anyone
+  // remembering to press the button. localStorage-gated so multiple tabs or
+  // reloads the same day do not re-sync.
+  useEffect(() => {
+    if (!data?.teamnetUrl || !practiceId) return;
+    const key = `gpdash-teamnet-daily-${practiceId}`;
+    const today = new Date().toISOString().slice(0, 10);
+    try {
+      if (localStorage.getItem(key) === today) return;
+      localStorage.setItem(key, today);
+    } catch { return; }
+    const t = setTimeout(() => { syncTeamNet(true); }, 2500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.teamnetUrl, practiceId]);
+
   const getWeekAbsences = () => {
     const absences = ensureArray(data?.plannedAbsences);
     const weekStart = toLocalIso(selectedWeek);
