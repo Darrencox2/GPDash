@@ -181,14 +181,49 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     if (!initialData?.huddleCsvDeferred || initialData?.huddleCsvData) return;
     let cancelled = false;
     (async () => {
-      try {
+      // Load the deferred huddle CSV. Hardened after a report of data
+      // "vanishing on refresh": one retry on failure, and if the slim
+      // endpoint errors OR claims empty, cross-check against the full
+      // /api/v4/data GET (the long-proven CSV source) before believing it.
+      // Loud console diagnostics so any recurrence tells us which leg fired.
+      const applyBlob = (blob, updatedAt) => {
+        if (cancelled || !blob) return false;
+        setHuddleData(blob);
+        if (updatedAt) setData((d) => (d ? { ...d, huddleCsvUpdatedAt: updatedAt } : d));
+        return true;
+      };
+      const slim = async () => {
         const res = await fetch(`/api/v4/huddle-data?practice=${encodeURIComponent(practiceId)}`);
-        const json = await res.json();
-        if (!cancelled && res.ok) {
-          if (json.huddleCsvData) setHuddleData(json.huddleCsvData);
-          if (json.huddleCsvUpdatedAt) setData((d) => (d ? { ...d, huddleCsvUpdatedAt: json.huddleCsvUpdatedAt } : d));
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error || `huddle-data ${res.status}`);
+        return json;
+      };
+      try {
+        let json;
+        try { json = await slim(); }
+        catch (e1) {
+          console.error('[gpdash] huddle-data attempt 1 failed, retrying:', e1?.message);
+          await new Promise((r) => setTimeout(r, 1200));
+          json = await slim();
         }
-      } catch { /* section renders its normal empty state */ }
+        if (!applyBlob(json.huddleCsvData, json.huddleCsvUpdatedAt)) {
+          // Endpoint says empty — verify against the full data GET before
+          // accepting, in case the slim path is wrong in some environment.
+          const full = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`);
+          const fj = await full.json().catch(() => ({}));
+          if (full.ok && fj?.huddleCsvData) {
+            console.error('[gpdash] slim huddle endpoint returned empty but full data has the CSV - loaded via fallback. Please report this.');
+            applyBlob(fj.huddleCsvData, fj.huddleCsvUpdatedAt);
+          }
+        }
+      } catch (err) {
+        console.error('[gpdash] huddle-data failed after retry, falling back to full data GET:', err?.message);
+        try {
+          const full = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`);
+          const fj = await full.json().catch(() => ({}));
+          if (full.ok) applyBlob(fj?.huddleCsvData, fj?.huddleCsvUpdatedAt);
+        } catch (e2) { console.error('[gpdash] fallback also failed:', e2?.message); }
+      }
       if (!cancelled) setHuddleLoading(false);
     })();
     return () => { cancelled = true; };
