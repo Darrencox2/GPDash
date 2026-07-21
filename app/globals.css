@@ -364,3 +364,9 @@
     box-shadow: 0 14px 32px -12px rgba(var(--h),0.45), 0 2px 8px rgba(var(--h),0.15);
   }
 
+
+/* Buddy Cover runs dense; ease the site zoom off a touch on desktop for this
+   page only (1.25 x 0.88 = ~1.10 effective). Requested 2026-06. */
+@media (min-width: 1025px) {
+  .buddy-scale-down { zoom: 0.88; }
+}

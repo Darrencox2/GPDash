@@ -237,7 +237,9 @@ function AppContent() {
       newScheduled = newScheduled.filter(cid => cid !== id);
     }
 
-    const newOverrides = { ...data.dailyOverrides, [dayKey]: { present: newPresent, scheduled: newScheduled } };
+    const prevDayMeta = data.dailyOverrides?.[dayKey]?.meta || {};
+    const overrideMeta = { ...prevDayMeta, [id]: { at: new Date().toISOString(), by: null /* legacy shared-password site has no user identity */, to: next } };
+    const newOverrides = { ...data.dailyOverrides, [dayKey]: { present: newPresent, scheduled: newScheduled, meta: overrideMeta } };
     // Auto-regenerate buddy allocations with updated presence
     const clins = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
     const absentIds = newScheduled.filter(sid => !newPresent.includes(sid));

@@ -604,7 +604,9 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     if (next === 'present') { if (!newPresent.includes(id)) newPresent.push(id); if (!newScheduled.includes(id)) newScheduled.push(id); }
     else if (next === 'absent') { newPresent = newPresent.filter(cid => cid !== id); if (!newScheduled.includes(id)) newScheduled.push(id); }
     else { newPresent = newPresent.filter(cid => cid !== id); newScheduled = newScheduled.filter(cid => cid !== id); }
-    const newOverrides = { ...data.dailyOverrides, [dayKey]: { present: newPresent, scheduled: newScheduled } };
+    const prevDayMeta = data.dailyOverrides?.[dayKey]?.meta || {};
+    const overrideMeta = { ...prevDayMeta, [id]: { at: new Date().toISOString(), by: data?._v4?.userDisplayName || data?._v4?.userEmail || null, to: next } };
+    const newOverrides = { ...data.dailyOverrides, [dayKey]: { present: newPresent, scheduled: newScheduled, meta: overrideMeta } };
     const clins = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
     const absentIds = newScheduled.filter(sid => !newPresent.includes(sid));
     const dayOffIds = clins.filter(c => !newScheduled.includes(c.id) && !c.longTermAbsent).map(c => c.id);

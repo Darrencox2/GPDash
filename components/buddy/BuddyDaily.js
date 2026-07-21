@@ -151,6 +151,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     if (csvMismatches.presentNoCSV.has(c.id)) lines.push('Heads-up: no sessions found for them in the latest EMIS upload.');
     if (csvMismatches.absentHasCSV.has(c.id)) lines.push('Heads-up: EMIS shows sessions booked for them today.');
 
+    // Audit trail: who last changed this clinician's status for this day.
+    const ovMeta = data?.dailyOverrides?.[`${dateKey}-${selectedDay}`]?.meta?.[c.id];
+    if (ovMeta?.at) {
+      const when = new Date(ovMeta.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      lines.push(`Changed by ${ovMeta.by || 'a colleague'} \u00b7 ${when}`);
+    }
     return { status, lines };
   };
 
@@ -288,8 +294,34 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     return abs;
   }, [data?.plannedAbsences, selectedWeek, cliniciansList]);
 
+
+  // ═══ Weekly inconsistency review ═══
+  // Clinician-days where the buddy board and the EMIS CSV disagree, across
+  // this week's editable (non-past) days. A row disappears once someone makes
+  // an explicit Present/Absent decision (which also stamps who + when).
+  const weekMismatches = (() => {
+    if (!huddleData || !canEdit) return [];
+    const out = [];
+    DAYS.forEach((day) => {
+      const dateKey = getDateKeyForDay(day);
+      if (isPastDate(dateKey)) return;
+      const csvDateStr = toHuddleDateStr(new Date(dateKey + 'T12:00:00'));
+      const csvClinicians = getCliniciansForDate(huddleData, csvDateStr);
+      if (csvClinicians.length === 0) return; // no CSV evidence for that day
+      const dayMeta = data?.dailyOverrides?.[`${dateKey}-${day}`]?.meta || {};
+      cliniciansList.forEach((c) => {
+        if (dayMeta[c.id]) return; // explicitly decided — reviewed
+        const status = getClinicianStatus(c.id, day);
+        const inCSV = csvClinicians.some((csv) => matchesStaffMember(csv, c));
+        if (status === 'present' && !inCSV) out.push({ id: c.id, name: c.name, day, type: 'presentNoCSV' });
+        else if (status === 'absent' && inCSV) out.push({ id: c.id, name: c.name, day, type: 'absentHasCSV' });
+      });
+    });
+    return out;
+  })();
+
   return (
-    <div className="-m-4 lg:-m-6 min-h-screen" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 40%, var(--g-ink) 100%)'}}>
+    <div className="-m-4 lg:-m-6 min-h-screen buddy-scale-down" style={{background:'linear-gradient(135deg, var(--g-ink) 0%, var(--g-ink-2) 40%, var(--g-ink) 100%)'}}>
     <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-4">
       {/* ═══ HEADER ═══ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -367,6 +399,39 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           ))}
         </div>
       </div>
+
+      {/* ═══ INCONSISTENCY REVIEW ═══ */}
+      {canEdit && huddleData && weekMismatches.length > 0 && (
+        <div className="rounded-xl p-4 bg-card border" style={{ borderColor: 'rgba(251,191,36,0.35)' }}>
+          <div className="text-body font-semibold text-hi mb-1">Review this week&apos;s inconsistencies</div>
+          <div className="text-meta text-mid mb-3">
+            The board and the EMIS appointment book disagree for these clinician days. Decide each one — your decision is recorded with your name and the time.
+          </div>
+          <div className="flex flex-col gap-2">
+            {weekMismatches.map((m) => (
+              <div key={`${m.id}-${m.day}`} className="flex items-center gap-3 flex-wrap px-3 py-2 rounded-lg bg-tile border border-edge">
+                <span className="text-body-sm font-semibold text-hi">{m.name}</span>
+                <span className="text-meta text-mid">{m.day}</span>
+                <span className="text-meta flex-1 min-w-[180px]" style={{ color: '#fcd34d' }}>
+                  {m.type === 'presentNoCSV' ? 'Marked present, but EMIS has no sessions booked' : 'Marked absent, but EMIS has sessions booked'}
+                </span>
+                <span className="flex gap-1.5">
+                  <button
+                    onClick={() => togglePresence(m.id, m.day, 'present')}
+                    className="text-meta font-semibold px-2.5 py-1.5 rounded-lg cursor-pointer"
+                    style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.35)' }}
+                  >Present</button>
+                  <button
+                    onClick={() => togglePresence(m.id, m.day, 'absent')}
+                    className="text-meta font-semibold px-2.5 py-1.5 rounded-lg cursor-pointer"
+                    style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
+                  >Absent</button>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* First-visit prompt: if no clinicians are in the buddy-cover pool
           yet, the schedule below will be empty and confusing. Point the
