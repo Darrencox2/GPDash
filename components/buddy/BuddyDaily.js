@@ -177,8 +177,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     if (!currentAlloc) return;
     const grouped = groupAllocationsByCovering(currentAlloc.allocations || {}, currentAlloc.dayOffAllocations || {}, currentAlloc.presentIds || []);
 
-
-
     let s = 'BUDDY COVER\n';
     s += `${date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}\n`;
     // Public URL line — included only if this practice has opted in to
@@ -220,8 +218,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const handleCopyWeek = () => {
     const missing = DAYS.filter(d => { const dk = getDateKeyForDay(d); return !isClosedDay(dk) && !data?.allocationHistory?.[dk]; });
     if (missing.length > 0) { alert(`Missing allocations for: ${missing.join(', ')}`); return; }
-
-
 
     let s = 'BUDDY COVER\n';
     const wcDate = new Date(getDateKeyForDay('Monday') + 'T12:00:00');
@@ -295,16 +291,21 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     return abs;
   }, [data?.plannedAbsences, selectedWeek, cliniciansList]);
 
-
   // ═══ Weekly inconsistency review ═══
   // Clinician-days where the buddy board and the EMIS CSV disagree, across
   // this week's editable (non-past) days. A row disappears once someone makes
   // an explicit Present/Absent decision (which also stamps who + when).
+  // Suggestions: a clinician with NO EMIS sessions on every CSV-covered,
+  // non-past day they are due in this week has effectively disappeared from
+  // EMIS "moving forward" - that pattern deserves a proactive suggestion
+  // (left? long-term sick?) rather than a pile of identical daily rows.
+  // One-off single-day mismatches stay as simple Present/Absent rows.
   // Inline status-transition confirm state for the inconsistency panel:
   // { id, key } when a row's "Left" / "Sick" option is open, plus the
   // editable cover period in weeks.
   const [transitionOpen, setTransitionOpen] = useState(null);
   const [transitionWeeks, setTransitionWeeks] = useState(9);
+  const [suggestMenuOpen, setSuggestMenuOpen] = useState(null); // clinicianId
 
   const confirmTransition = (clinicianId) => {
     const t = STATUS_TRANSITIONS[transitionOpen?.key];
@@ -336,6 +337,23 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       });
     });
     return out;
+  })();
+
+  // Group this week's presentNoCSV mismatches by clinician; if someone is
+  // missing from EMIS on 2+ days AND on every day we have CSV evidence for
+  // them, promote them to a suggestion card and drop their daily rows.
+  const { suggestions, singleMismatches } = (() => {
+    const byClin = {};
+    weekMismatches.forEach((m) => {
+      if (m.type !== 'presentNoCSV') return;
+      (byClin[m.id] = byClin[m.id] || { id: m.id, name: m.name, days: [] }).days.push(m.day);
+    });
+    const suggested = Object.values(byClin).filter((g) => g.days.length >= 2);
+    const suggestedIds = new Set(suggested.map((g) => g.id));
+    return {
+      suggestions: suggested,
+      singleMismatches: weekMismatches.filter((m) => !(m.type === 'presentNoCSV' && suggestedIds.has(m.id))),
+    };
   })();
 
   // This week's decisions (audit history for the panel): every stamped manual
@@ -866,11 +884,90 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             <div className="text-body font-semibold text-hi mb-2">This week&apos;s inconsistencies</div>
             {!huddleData ? (
               <div className="text-meta text-mid">Upload the appointment CSV to check the board against EMIS.</div>
-            ) : weekMismatches.length === 0 ? (
+            ) : (suggestions.length === 0 && singleMismatches.length === 0) ? (
               <div className="text-body-sm" style={{ color: '#6ee7b7' }}>✓ No inconsistencies — the board matches EMIS for this week&apos;s editable days.</div>
             ) : (
+              <>
+              {suggestions.length > 0 && (
+                <div className="flex flex-col gap-2 mb-2">
+                  {suggestions.map((g) => (
+                    <div key={g.id} className="px-3 py-2.5 rounded-lg border" style={{ background: 'rgba(251,191,36,0.06)', borderColor: 'rgba(251,191,36,0.4)' }}>
+                      <div className="text-body-sm font-semibold text-hi">{g.name}</div>
+                      <div className="text-caption mt-0.5 leading-normal" style={{ color: '#fcd34d' }}>
+                        No booked EMIS sessions on any of their days this week ({g.days.join(', ')}).
+                      </div>
+                      <div className="text-caption text-mid mt-1 mb-2 leading-normal">
+                        If they have left or are off long-term, set a status so their work keeps getting covered:
+                      </div>
+                      {transitionOpen?.id !== g.id && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setSuggestMenuOpen(suggestMenuOpen === g.id ? null : g.id)}
+                            className="text-caption font-semibold px-3 py-1.5 rounded-lg cursor-pointer inline-flex items-center gap-1.5"
+                            style={{ background: 'rgba(103,232,249,0.12)', color: '#67e8f9', border: '1px solid rgba(103,232,249,0.35)' }}
+                          >Set status <span style={{ fontSize: 9 }}>▾</span></button>
+                          {suggestMenuOpen === g.id && (
+                            <div className="mt-1.5 rounded-lg overflow-hidden border border-edge bg-card">
+                              {Object.values(STATUS_TRANSITIONS).map((t) => (
+                                <button
+                                  key={t.key}
+                                  onClick={() => {
+                                    setSuggestMenuOpen(null);
+                                    setTransitionOpen({ id: g.id, key: t.key });
+                                    setTransitionWeeks(t.defaultWeeks);
+                                  }}
+                                  className="block w-full text-left px-3 py-2 text-caption cursor-pointer"
+                                  style={{ color: '#e2e8f0', background: 'transparent', border: 'none', borderBottom: '1px solid var(--g-divider)' }}
+                                >
+                                  <span className="font-semibold block">{t.label}</span>
+                                  <span className="block mt-0.5" style={{ color: '#94a3b8' }}>{t.key === 'left_winddown' ? 'Covered while their work winds down, then removed' : 'Absent for an estimated period, auto-back when EMIS shows them'}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {transitionOpen?.id === g.id && STATUS_TRANSITIONS[transitionOpen.key] && (
+                        <div className="px-3 py-2.5 rounded-lg bg-field border border-edge">
+                          <div className="text-caption text-hi font-semibold mb-1.5">
+                            {STATUS_TRANSITIONS[transitionOpen.key].label}: {g.name}
+                          </div>
+                          <label className="flex items-center gap-2 text-caption text-mid mb-2">
+                            Period:
+                            <input
+                              type="number" min="1" max="52"
+                              value={transitionWeeks}
+                              onChange={(e) => setTransitionWeeks(e.target.value)}
+                              className="w-14 px-1.5 py-1 rounded-md bg-card border border-edge text-hi text-caption"
+                            />
+                            weeks
+                          </label>
+                          <div className="text-caption text-mid mb-2 leading-normal">
+                            {STATUS_TRANSITIONS[transitionOpen.key].describe(
+                              Math.max(1, Math.min(52, Number(transitionWeeks) || STATUS_TRANSITIONS[transitionOpen.key].defaultWeeks)),
+                              new Date(Date.now() + Math.max(1, Math.min(52, Number(transitionWeeks) || STATUS_TRANSITIONS[transitionOpen.key].defaultWeeks)) * 7 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                            )}
+                          </div>
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => confirmTransition(g.id)}
+                              className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
+                              style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.35)' }}
+                            >Confirm</button>
+                            <button
+                              onClick={() => setTransitionOpen(null)}
+                              className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
+                              style={{ background: 'rgba(148,163,184,0.1)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+                            >Cancel</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-col gap-2">
-                {weekMismatches.map((m) => (
+                {singleMismatches.map((m) => (
                   <div key={`${m.id}-${m.day}`} className="px-3 py-2.5 rounded-lg bg-tile border" style={{ borderColor: 'rgba(251,191,36,0.35)' }}>
                     <div className="flex items-baseline gap-2">
                       <span className="text-body-sm font-semibold text-hi">{m.name}</span>
@@ -890,56 +987,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
                         style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
                       >Absent</button>
-                      {m.type === 'presentNoCSV' && Object.values(STATUS_TRANSITIONS).map((t) => (
-                        <button
-                          key={t.key}
-                          onClick={() => {
-                            setTransitionOpen(transitionOpen?.id === m.id && transitionOpen?.key === t.key ? null : { id: m.id, key: t.key });
-                            setTransitionWeeks(t.defaultWeeks);
-                          }}
-                          className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
-                          style={{ background: 'rgba(148,163,184,0.12)', color: '#cbd5e1', border: '1px solid rgba(148,163,184,0.3)' }}
-                        >{t.label}…</button>
-                      ))}
                     </div>
-                    {transitionOpen?.id === m.id && STATUS_TRANSITIONS[transitionOpen.key] && (
-                      <div className="mt-2 px-3 py-2.5 rounded-lg bg-field border border-edge">
-                        <div className="text-caption text-hi font-semibold mb-1.5">
-                          {STATUS_TRANSITIONS[transitionOpen.key].label}: {m.name}
-                        </div>
-                        <label className="flex items-center gap-2 text-caption text-mid mb-2">
-                          Cover period:
-                          <input
-                            type="number" min="1" max="52"
-                            value={transitionWeeks}
-                            onChange={(e) => setTransitionWeeks(e.target.value)}
-                            className="w-14 px-1.5 py-1 rounded-md bg-card border border-edge text-hi text-caption"
-                          />
-                          weeks
-                        </label>
-                        <div className="text-caption text-mid mb-2 leading-normal">
-                          {STATUS_TRANSITIONS[transitionOpen.key].describe(
-                            Math.max(1, Math.min(52, Number(transitionWeeks) || STATUS_TRANSITIONS[transitionOpen.key].defaultWeeks)),
-                            new Date(Date.now() + Math.max(1, Math.min(52, Number(transitionWeeks) || STATUS_TRANSITIONS[transitionOpen.key].defaultWeeks)) * 7 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                          )}
-                        </div>
-                        <div className="flex gap-1.5">
-                          <button
-                            onClick={() => confirmTransition(m.id)}
-                            className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
-                            style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.35)' }}
-                          >Confirm</button>
-                          <button
-                            onClick={() => setTransitionOpen(null)}
-                            className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
-                            style={{ background: 'rgba(148,163,184,0.1)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
-                          >Cancel</button>
-                        </div>
-                      </div>
-                    )}
+
                   </div>
                 ))}
               </div>
+              </>
             )}
             {decidedThisWeek.length > 0 && (
               <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--g-divider)' }}>
@@ -1017,7 +1070,6 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
   const below = rect.top + rect.height + gap + 150 < window.innerHeight;
   const top = below ? rect.top + rect.height + gap : null;
   const bottom = below ? null : window.innerHeight - rect.top + gap;
-
 
   const tip = (
     <div
