@@ -12,6 +12,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
+import { mapAuthError } from '@/lib/friendly-errors';
 import { AuthCard, formStyles as f } from '../_lib/auth-ui';
 
 // Outer wrapper provides the Suspense boundary that Next 15 requires
@@ -51,7 +52,7 @@ function LoginPageInner() {
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
     if (err) {
       setLoading(false);
-      setError(err.message);
+      setError(mapAuthError(err.message));
       // Audit: failed login attempt. Logged anonymously (no auth.uid()
       // because sign-in failed) — log_auth_event grants execute to
       // 'anon' specifically for this case. Best-effort; don't block

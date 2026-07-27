@@ -23,6 +23,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
+import { mapAuthError } from '@/lib/friendly-errors';
 import { AuthCard, formStyles as f } from '../_lib/auth-ui';
 
 export default function MfaVerifyPage() {

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { mapAuthError } from '@/lib/friendly-errors';
 import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist } from '../../_lib/auth-ui';
 
 export default function ResetPasswordUpdatePage() {
@@ -33,7 +34,20 @@ export default function ResetPasswordUpdatePage() {
       // Already signed in (returning to the page, or the callback route
       // already exchanged the link)? Then we are ready.
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) { if (!cancelled) setReady(true); return; }
+      if (session) {
+        if (!cancelled) {
+          setReady(true);
+          try {
+            const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aal?.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
+              const { data: factors } = await supabase.auth.mfa.listFactors();
+              const totp = factors?.totp?.[0];
+              if (totp && !cancelled) setMfaFactorId(totp.id);
+            }
+          } catch { /* no MFA - nothing to do */ }
+        }
+        return;
+      }
 
       // Otherwise complete the exchange here as a fallback. PKCE links
       // carry ?code=; token_hash links carry ?token_hash=&type=. The
@@ -59,6 +73,14 @@ export default function ResetPasswordUpdatePage() {
         if (!cancelled) {
           setReady(true);
           window.history.replaceState({}, '', '/v4/reset-password/update');
+          try {
+            const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aal?.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
+              const { data: factors } = await supabase.auth.mfa.listFactors();
+              const totp = factors?.totp?.[0];
+              if (totp && !cancelled) setMfaFactorId(totp.id);
+            }
+          } catch { /* no MFA - nothing to do */ }
         }
       } catch {
         if (!cancelled) setError('Invalid or expired reset link. Please request a new one.');
@@ -68,6 +90,13 @@ export default function ResetPasswordUpdatePage() {
     establish();
     return () => { cancelled = true; };
   }, [supabase]);
+
+  // Two-factor step: if the account has an authenticator enrolled, the
+  // session must be lifted with a 6-digit code before a password change is
+  // allowed. Detect that and ask inline, instead of letting the change
+  // fail with a jargon error.
+  const [mfaFactorId, setMfaFactorId] = useState(null);
+  const [mfaCode, setMfaCode] = useState('');
 
   const passwordsMatch = !confirmPassword || password === confirmPassword;
 
@@ -86,11 +115,23 @@ export default function ResetPasswordUpdatePage() {
       setError('Passwords do not match.');
       return;
     }
+    if (mfaFactorId && mfaCode.length !== 6) {
+      setError('Your account is protected by two-factor authentication. Enter the 6-digit code from your authenticator app in the field above, then save.');
+      return;
+    }
     setLoading(true);
+    if (mfaFactorId) {
+      const { error: mfaErr } = await supabase.auth.mfa.challengeAndVerify({ factorId: mfaFactorId, code: mfaCode });
+      if (mfaErr) {
+        setLoading(false);
+        setError(mapAuthError(mfaErr.message));
+        return;
+      }
+    }
     const { error: err } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (err) {
-      setError(err.message);
+      setError(mapAuthError(err.message));
     } else {
       // Audit: log the password change. User is signed in at this
       // point (the reset link gave them a session), so auth.uid()
@@ -108,6 +149,22 @@ export default function ResetPasswordUpdatePage() {
     <AuthCard title="Set new password" subtitle="Choose a strong password">
       <form onSubmit={handleSubmit}>
         {error && <div style={f.errorBox}>{error}</div>}
+        {mfaFactorId && (
+          <div style={f.field}>
+            <label style={f.label}>Authenticator code</label>
+            <input
+              style={f.input}
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="123456"
+            />
+            <p className="text-caption text-mid mt-1.5">
+              Your account has two-factor authentication, so a code from your authenticator app is needed to change the password.
+            </p>
+          </div>
+        )}
 
         <div style={f.field}>
           <label style={f.label}>New password</label>
