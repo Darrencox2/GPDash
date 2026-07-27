@@ -5,6 +5,7 @@ on:
   # Path filter means we don't waste runs on unrelated commits.
   push:
     branches:
+      - main
       - v4-rebuild
     paths:
       - 'supabase/migrations/**'
