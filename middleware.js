@@ -70,9 +70,11 @@ export async function middleware(request) {
     //     Vercel deployment (preview branches, PR previews, etc.)
     //
     // Production stays on v3 unless the env var is set explicitly.
-    const forceV4 = process.env.NEXT_PUBLIC_DEFAULT_TO_V4 === 'true';
-    const isVercelPreview = process.env.VERCEL_ENV === 'preview';
-    if (forceV4 || isVercelPreview) {
+    // Since go-live (2026-06-18) v4 IS the site - the legacy password page
+    // no longer greets anyone. Env var kept as an emergency opt-OUT
+    // (set NEXT_PUBLIC_DEFAULT_TO_V4=false to resurrect the legacy page).
+    const legacyOptOut = process.env.NEXT_PUBLIC_DEFAULT_TO_V4 === 'false';
+    if (!legacyOptOut) {
       const dest = request.nextUrl.clone();
       dest.pathname = '/v4';
       return NextResponse.redirect(dest);
