@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { AuthCard, formStyles as f } from '../_lib/auth-ui';
@@ -8,10 +9,13 @@ import { getSiteUrl } from '@/lib/site-url';
 
 export default function ResetPasswordPage() {
   const supabase = createClient();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,13 +54,71 @@ export default function ResetPasswordPage() {
     }
   };
 
+  // 6-digit code path. NHS mailboxes run Microsoft Defender Safe Links,
+  // which OPENS emailed links to scan them - consuming the one-time reset
+  // link before the user can click it. The emailed code cannot be consumed
+  // by a scanner, so it always works. verifyOtp establishes a session; the
+  // update page then finds it via getSession and lets the user set a new
+  // password.
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    setError('');
+    setVerifying(true);
+    try {
+      const { error: err } = await supabase.auth.verifyOtp({ email, token: code, type: 'recovery' });
+      if (err) {
+        setError(/expired|invalid/i.test(err.message || '')
+          ? 'That code is not right or has expired. Check the newest email, or request a fresh one below.'
+          : (err.message || 'Could not verify the code.'));
+        return;
+      }
+      router.push('/v4/reset-password/update');
+    } catch (e2) {
+      setError(e2?.message || 'Unexpected error verifying the code.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   if (sent) {
     return (
-      <AuthCard title="Check your email" subtitle="We sent you a password reset link">
+      <AuthCard title="Check your email" subtitle="Enter the 6-digit code from the email">
         <div style={f.successBox}>
-          If an account exists for <strong>{email}</strong>, you'll receive an email with
-          instructions to reset your password.
+          If an account exists for <strong>{email}</strong>, an email is on its way containing a
+          6-digit code. Enter the code below. (The email also contains a link, but on NHS and
+          other scanned mailboxes the link is often used up by the virus scanner - the code
+          always works.)
         </div>
+        {error && <div style={f.errorBox}>{error}</div>}
+        <form onSubmit={handleVerifyCode}>
+          <div style={f.field}>
+            <label style={f.label}>6-digit code</label>
+            <input
+              style={f.input}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="123456"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            style={verifying || code.length !== 6 ? f.buttonDisabled : f.button}
+            disabled={verifying || code.length !== 6}
+          >
+            {verifying ? 'Checking code…' : 'Verify code and continue'}
+          </button>
+        </form>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{ ...f.link, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 12 }}
+        >
+          {loading ? 'Sending…' : 'Send a fresh code'}
+        </button>
         <Link href="/v4/login" style={{ ...f.link, ...f.footerLink }}>← Back to sign in</Link>
       </AuthCard>
     );
