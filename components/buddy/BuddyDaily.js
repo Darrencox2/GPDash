@@ -3,6 +3,7 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
 import { getCliniciansForDate } from '@/lib/huddle';
+import { STATUS_TRANSITIONS, applyTransition } from '@/lib/status-transitions';
 import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 import BuddyOverrideModal from './BuddyOverrideModal';
@@ -299,6 +300,23 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   // Clinician-days where the buddy board and the EMIS CSV disagree, across
   // this week's editable (non-past) days. A row disappears once someone makes
   // an explicit Present/Absent decision (which also stamps who + when).
+  // Inline status-transition confirm state for the inconsistency panel:
+  // { id, key } when a row's "Left" / "Sick" option is open, plus the
+  // editable cover period in weeks.
+  const [transitionOpen, setTransitionOpen] = useState(null);
+  const [transitionWeeks, setTransitionWeeks] = useState(9);
+
+  const confirmTransition = (clinicianId) => {
+    const t = STATUS_TRANSITIONS[transitionOpen?.key];
+    if (!t) return;
+    const next = applyTransition(data, clinicianId, t.key, {
+      weeks: transitionWeeks,
+      by: data?._v4?.userDisplayName || null,
+    });
+    saveData(next);
+    setTransitionOpen(null);
+  };
+
   const weekMismatches = (() => {
     if (!huddleData || !canEdit) return [];
     const out = [];
@@ -861,7 +879,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                     <div className="text-caption mt-0.5 mb-2" style={{ color: '#fcd34d' }}>
                       {m.type === 'presentNoCSV' ? 'Marked present — EMIS has no sessions' : 'Marked absent — EMIS has sessions'}
                     </div>
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-1.5 flex-wrap">
                       <button
                         onClick={() => togglePresence(m.id, m.day, 'present')}
                         className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
@@ -872,7 +890,53 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
                         style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
                       >Absent</button>
+                      {m.type === 'presentNoCSV' && Object.values(STATUS_TRANSITIONS).map((t) => (
+                        <button
+                          key={t.key}
+                          onClick={() => {
+                            setTransitionOpen(transitionOpen?.id === m.id && transitionOpen?.key === t.key ? null : { id: m.id, key: t.key });
+                            setTransitionWeeks(t.defaultWeeks);
+                          }}
+                          className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
+                          style={{ background: 'rgba(148,163,184,0.12)', color: '#cbd5e1', border: '1px solid rgba(148,163,184,0.3)' }}
+                        >{t.label}…</button>
+                      ))}
                     </div>
+                    {transitionOpen?.id === m.id && STATUS_TRANSITIONS[transitionOpen.key] && (
+                      <div className="mt-2 px-3 py-2.5 rounded-lg bg-field border border-edge">
+                        <div className="text-caption text-hi font-semibold mb-1.5">
+                          {STATUS_TRANSITIONS[transitionOpen.key].label}: {m.name}
+                        </div>
+                        <label className="flex items-center gap-2 text-caption text-mid mb-2">
+                          Cover period:
+                          <input
+                            type="number" min="1" max="52"
+                            value={transitionWeeks}
+                            onChange={(e) => setTransitionWeeks(e.target.value)}
+                            className="w-14 px-1.5 py-1 rounded-md bg-card border border-edge text-hi text-caption"
+                          />
+                          weeks
+                        </label>
+                        <div className="text-caption text-mid mb-2 leading-normal">
+                          {STATUS_TRANSITIONS[transitionOpen.key].describe(
+                            Math.max(1, Math.min(52, Number(transitionWeeks) || STATUS_TRANSITIONS[transitionOpen.key].defaultWeeks)),
+                            new Date(Date.now() + Math.max(1, Math.min(52, Number(transitionWeeks) || STATUS_TRANSITIONS[transitionOpen.key].defaultWeeks)) * 7 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                          )}
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => confirmTransition(m.id)}
+                            className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
+                            style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.35)' }}
+                          >Confirm</button>
+                          <button
+                            onClick={() => setTransitionOpen(null)}
+                            className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
+                            style={{ background: 'rgba(148,163,184,0.1)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+                          >Cancel</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

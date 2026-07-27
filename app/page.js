@@ -267,7 +267,7 @@ function AppContent() {
       const res = await fetch('/api/sync-teamnet', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-password': password }, body: JSON.stringify({ url: data.teamnetUrl, clinicians: ensureArray(data.clinicians) }) });
       const result = await res.json();
       if (result.error) { if (!silent) setSyncStatus(`Error: ${result.error}`); }
-      else { const newAbsences = result.absences || []; saveData({ ...data, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }, false); if (!silent) setSyncStatus(`Synced — ${newAbsences.length} absences`); }
+      else { const newAbsences = result.absences || []; saveData({ ...data, plannedAbsences: [...(Array.isArray(data.plannedAbsences) ? data.plannedAbsences : []).filter(a => a.source !== 'teamnet'), ...newAbsences], lastSyncTime: new Date().toISOString() }, false); if (!silent) setSyncStatus(`Synced — ${newAbsences.length} absences`); }
     } catch (err) { if (!silent) setSyncStatus('Sync failed'); }
     if (!silent) setTimeout(() => setSyncStatus(''), 4000);
   };

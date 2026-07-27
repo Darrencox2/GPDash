@@ -20,6 +20,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DAYS, getWeekStart, getActiveWeekStart, getCurrentDay, generateBuddyAllocations, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
+import { sweepWindDowns } from '@/lib/status-transitions';
 import { ToastProvider, useToast, PageSkeleton, confirmDialog } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LinkClinicianSuggest from '@/components/LinkClinicianSuggest';
@@ -312,7 +313,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                 if (!r.ok || result.error) return;  // silent on error
                 const newAbsences = result.absences || [];
                 // Update state + persist new absences via saveData (writes to DB)
-                setData(prev => prev ? { ...prev, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() } : prev);
+                setData(prev => prev ? { ...prev, plannedAbsences: [...(Array.isArray(prev.plannedAbsences) ? prev.plannedAbsences : []).filter(a => a.source !== 'teamnet'), ...newAbsences], lastSyncTime: new Date().toISOString() } : prev);
                 // Persist quietly without a toast
                 fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
                   method: 'POST',
@@ -681,7 +682,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       } else {
         const newAbsences = result.absences || [];
         // Merge — replace plannedAbsences with synced ones (matches v3 behaviour)
-        saveData({ ...data, plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }, false);
+        saveData({ ...data, plannedAbsences: [...(Array.isArray(data.plannedAbsences) ? data.plannedAbsences : []).filter(a => a.source !== 'teamnet'), ...newAbsences], lastSyncTime: new Date().toISOString() }, false);
         if (!silent) setSyncStatus(`Synced — ${newAbsences.length} absences`);
       }
     } catch (err) {
@@ -689,6 +690,27 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     }
     if (!silent) setTimeout(() => setSyncStatus(''), 4000);
   };
+
+  // ═══ Wind-down sweep ═══
+  // Resolve clinician status transitions on load: leavers whose cover
+  // period has ended become status 'left'; long-term-sick clinicians whom
+  // EMIS now shows with booked sessions are marked back (their absence is
+  // truncated). Runs once per load for editors, only when huddle data is
+  // present so the EMIS check is meaningful.
+  const windDownSweepDone = useRef(false);
+  useEffect(() => {
+    if (windDownSweepDone.current) return;
+    if (!data || !huddleData || !canEditPracticeData(data)) return;
+    windDownSweepDone.current = true;
+    try {
+      const res = sweepWindDowns(data, huddleData, { getDateKeyForDay });
+      if (res.changed) {
+        saveData(res.data, false);
+        res.events.forEach((msg) => toast(msg, 'info', 6000));
+      }
+    } catch (e) { console.error('[gpdash] wind-down sweep failed:', e?.message); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, huddleData]);
 
   // ═══ Daily automatic TeamNet sync ═══
   // Answering "what generates the TeamNet sync": previously ONLY the manual
