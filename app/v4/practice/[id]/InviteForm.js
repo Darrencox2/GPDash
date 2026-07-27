@@ -36,7 +36,7 @@ export default function InviteForm({ practiceId, canMakeOwner, canAssignLeadersh
       return;
     }
 
-    setSuccess(`Invite sent to ${email}.`);
+    setSuccess(`Invite created for ${email} - it is NOT emailed automatically. Copy the invite link from the pending invites card below and send it to them yourself.`);
     setEmail('');
     setRole('user');
     router.refresh();
@@ -108,7 +108,7 @@ export default function InviteForm({ practiceId, canMakeOwner, canAssignLeadersh
         disabled={loading}
         style={{ ...f.button, ...(loading ? f.buttonDisabled : {}) }}
       >
-        {loading ? 'Sending invite...' : 'Send invite'}
+        {loading ? 'Creating invite...' : 'Create invite'}
       </button>
 
       <p className="text-caption text-mid mt-3 text-center">
