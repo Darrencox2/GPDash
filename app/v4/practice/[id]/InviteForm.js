@@ -36,7 +36,7 @@ export default function InviteForm({ practiceId, canMakeOwner, canAssignLeadersh
       return;
     }
 
-    setSuccess(`Invite created for ${email} - it is NOT emailed automatically. Copy the invite link from the pending invites card below and send it to them yourself.`);
+    setSuccess(`Invite created for ${email} - an email invitation is on its way to them. You can also copy the invite link from the pending invites card below.`);
     setEmail('');
     setRole('user');
     router.refresh();
@@ -89,18 +89,31 @@ export default function InviteForm({ practiceId, canMakeOwner, canAssignLeadersh
 
       <div style={f.field}>
         <label style={f.label}>Role</label>
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          style={{ ...f.input, cursor: 'pointer' }}
-        >
+        <div className="flex flex-col gap-1.5">
           {roleOptions.map((r) => (
-            <option key={r} value={r}>{roleLabels[r] || r}</option>
+            <label
+              key={r}
+              className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer border"
+              style={{
+                background: role === r ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.03)',
+                borderColor: role === r ? 'rgba(16,185,129,0.45)' : 'rgba(255,255,255,0.08)',
+              }}
+            >
+              <input
+                type="radio"
+                name="invite-role"
+                value={r}
+                checked={role === r}
+                onChange={() => setRole(r)}
+                style={{ marginTop: 3, accentColor: '#10b981' }}
+              />
+              <span>
+                <span className="block text-body-sm font-semibold" style={{ color: '#e2e8f0' }}>{roleLabels[r] || r}</span>
+                <span className="block text-caption mt-0.5" style={{ color: '#94a3b8' }}>{roleDescription[r] || ''}</span>
+              </span>
+            </label>
           ))}
-        </select>
-        <p className="text-caption text-mid mt-1.5">
-          {roleDescription[role] || ''}
-        </p>
+        </div>
       </div>
 
       <button

@@ -33,8 +33,8 @@ export default function PendingInvitesCard({ invites, canManage }) {
         <InviteRow key={inv.id} invite={inv} canManage={canManage} />
       ))}
       <div className="mt-3 text-caption text-mid leading-normal">
-        Invite emails aren't sent automatically yet — copy the link and forward it via your usual channel (Slack, text, email, etc.).
-      </div>
+        Invite emails are sent automatically. The copy button gives you the same link if you also want to send it yourself.
+          </div>
     </div>
   );
 }
