@@ -55,14 +55,28 @@ export default function PublicBuddyView({ slug, practiceName }) {
 
   if (loading) return <Centered>Loading buddy cover…</Centered>;
   if (error === 'not-found') return <Centered>Buddy cover not available for this practice.</Centered>;
-  if (error) return (
-    <Centered>
-      <div className="text-center">
-        <div>Unable to load — try refreshing the page.</div>
-        <div style={{ fontSize: 11, marginTop: 8, opacity: 0.6 }}>{error}</div>
-      </div>
-    </Centered>
-  );
+  if (error) {
+    // Plain-language, cause-aware error with a next step (site rule:
+    // no unhelpful errors). This page is read by clinicians, so the
+    // headline stays non-technical; the raw detail stays visible small
+    // for whoever investigates.
+    const friendly = /not configured|SERVICE_ROLE/i.test(error)
+      ? { head: 'This board cannot start because part of the site setup is incomplete.', next: 'Ask your GPDash administrator to check the server key settings for this environment.' }
+      : /too many|429/i.test(error)
+      ? { head: 'Paused briefly — too many refreshes in a short time.', next: 'No action needed. The board retries by itself every couple of minutes.' }
+      : /network/i.test(error)
+      ? { head: 'No connection to GPDash right now.', next: 'Check the internet connection on this device — the board keeps retrying automatically.' }
+      : { head: 'The board could not load.', next: 'It retries automatically every couple of minutes. If this persists, tell your GPDash administrator.' };
+    return (
+      <Centered>
+        <div className="text-center" style={{ maxWidth: 420 }}>
+          <div style={{ fontWeight: 600 }}>{friendly.head}</div>
+          <div style={{ fontSize: 13, marginTop: 8, opacity: 0.85 }}>{friendly.next}</div>
+          <div style={{ fontSize: 11, marginTop: 10, opacity: 0.5 }}>Detail: {error}</div>
+        </div>
+      </Centered>
+    );
+  }
 
   return <BuddyCoverView data={data} practiceName={practiceName} lastRefresh={lastRefresh} onRefresh={fetchData} />;
 }
