@@ -59,7 +59,7 @@ export async function GET(request) {
       { prefix: 'rl:account-export', limit: 5, window: '60 s' },
       `user:${user.id}`,
     ).catch(() => null);
-    if (rl && !rl.success) {
+    if (rl && !rl.allowed) {
       return NextResponse.json(
         { error: 'Too many export requests. Please wait a minute and try again.' },
         { status: 429, headers: { 'Retry-After': '60' } }

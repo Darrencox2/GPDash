@@ -35,8 +35,14 @@ export async function GET(request, ctx) {
     const h = await headers();
     const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const rl = await checkRateLimit(RATE_LIMIT, `ip:${ip}`);
-    if (rl && !rl.success) {
-      return new NextResponse('Too many requests', { status: 429 });
+    // NOTE: checkRateLimit returns { allowed } - this line previously read
+    // rl.success (always undefined), which made the route return 429 on
+    // EVERY request since it was written. The public board never worked.
+    if (rl && !rl.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, {
+        status: 429,
+        headers: { ...rl.headers, 'Retry-After': String(rl.retryAfterSeconds ?? 60) },
+      }, { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } });
     }
 
     const admin = createAdminClient();
