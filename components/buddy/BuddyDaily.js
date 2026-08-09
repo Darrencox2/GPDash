@@ -32,6 +32,18 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const absentIds = ensureArray(getAbsentClinicians(selectedDay));
   const dayOffIds = ensureArray(getDayOffClinicians(selectedDay));
   const cliniciansList = ensureArray(data.clinicians).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
+
+  // Wind-down awareness: while a clinician has an active windDown marker
+  // (set via the Has left / Long-term sick transitions), their EMIS
+  // mismatches are EXPECTED - a leaver's sessions typically stay in EMIS
+  // for future weeks, and a sick person's are missing. Flagging them again
+  // every week was the "it keeps re-asking me" bug. Suppress them from
+  // both mismatch detectors and show a greyed label on the board instead.
+  const windDownFor = (c, dateKey) =>
+    c?.windDown && dateKey >= c.windDown.startDate && dateKey <= c.windDown.endDate
+      ? c.windDown
+      : null;
+  const windDownLabel = (wd) => (wd?.type === 'sick' ? 'Long-term sick' : 'Leaving - wind-down');
   const presentClinicians = cliniciansList.filter(c => presentIds.includes(c.id));
   const absentClinicians = cliniciansList.filter(c => absentIds.includes(c.id));
   const dayOffClinicians = cliniciansList.filter(c => dayOffIds.includes(c.id));
@@ -69,13 +81,13 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const absentHasCSV = new Set();
     presentIds.forEach(id => {
       const c = cliniciansList.find(cl => cl.id === id);
-      if (!c) return;
+      if (!c || windDownFor(c, dateKey)) return;
       const inCSV = csvClinicians.some(csv => matchesStaffMember(csv, c));
       if (!inCSV) presentNoCSV.add(id);
     });
     [...absentIds, ...dayOffIds].forEach(id => {
       const c = cliniciansList.find(cl => cl.id === id);
-      if (!c) return;
+      if (!c || windDownFor(c, dateKey)) return;
       const inCSV = csvClinicians.some(csv => matchesStaffMember(csv, c));
       if (inCSV) absentHasCSV.add(id);
     });
@@ -329,6 +341,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       if (csvClinicians.length === 0) return; // no CSV evidence for that day
       const dayMeta = data?.dailyOverrides?.[`${dateKey}-${day}`]?.meta || {};
       cliniciansList.forEach((c) => {
+        if (windDownFor(c, dateKey)) return; // wind-down active - mismatches are expected
         if (dayMeta[c.id]) return; // explicitly decided — reviewed
         const status = getClinicianStatus(c.id, day);
         const inCSV = csvClinicians.some((csv) => matchesStaffMember(csv, c));
@@ -607,6 +620,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 const csvNoSession = csvMismatches.presentNoCSV.has(c.id);
                 const csvHasSession = csvMismatches.absentHasCSV.has(c.id);
                 const hasCsvFlag = csvNoSession || csvHasSession;
+                const wd = windDownFor(c, getDateKey());
                 const outlineCol = isOverridden ? '#f59e0b' : hasCsvFlag ? '#3b82f6' : null;
                 const cardBg = status === 'present' ? 'rgba(16,185,129,0.12)' : status === 'absent' ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.08)';
                 const cardBorder = status === 'present' ? '#10b98140' : status === 'absent' ? '#ef444440' : '#f59e0b30';
@@ -617,7 +631,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                     onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHovered({ id: c.id, rect: { top: r.top, left: r.left, width: r.width, height: r.height } }); }}
                     onMouseLeave={() => setHovered(h => (h?.id === c.id ? null : h))}
                     onClick={canEdit && !past ? () => togglePresence(c.id, selectedDay) : undefined}
-                    style={{background:cardBg, border:`1px solid ${cardBorder}`, cursor: canEdit && !past ? 'pointer' : 'help', ...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}
+                    style={{opacity: wd ? 0.55 : 1, background:cardBg, border:`1px solid ${cardBorder}`, cursor: canEdit && !past ? 'pointer' : 'help', ...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -629,6 +643,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-slate-200 truncate">{c.name}</span>
+                            {wd && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#64748b25', border:'1px solid #64748b50', color:'#94a3b8'}}>{windDownLabel(wd)}</span>}
                             {isOverridden && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>}
                             {hasCsvFlag && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>}
                           </div>

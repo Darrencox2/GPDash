@@ -9,6 +9,7 @@ import { detectPatterns } from '@/lib/capacity-patterns';
 import ClinicianCapacity from './ClinicianCapacity';
 import SlotFilter from './SlotFilter';
 import { canEditPracticeData } from '@/lib/permissions';
+import { getSiteStaffingForDate, siteStaffingTooltip } from '@/lib/site-staffing';
 import { createClient } from '@/utils/supabase/client';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -246,6 +247,42 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   const hs = data?.huddleSettings || {};
   const sites = data?.roomAllocation?.sites || [];
   const siteCol = (name) => getSiteColour(name, sites);
+
+  // --- Per-site staffing layer (toggled; hidden by default so the
+  // calendar looks exactly as before until the user asks for it). A
+  // clinician counts for a site only if they have routine slots there
+  // that day - "based but out" people appear in the hover instead.
+  const [showStaffing, setShowStaffing] = useState(false);
+  const capacityStaffing = data?.capacityStaffing || {};
+  const staffingCacheRef = useRef({});
+  useEffect(() => { staffingCacheRef.current = {}; }, [showStaffing, huddleData, data?.capacityStaffing, hs, sites]);
+  const staffingFor = (isoKey) => {
+    if (!showStaffing || !huddleData || sites.length === 0) return [];
+    const cache = staffingCacheRef.current;
+    if (!cache[isoKey]) {
+      const csvStr = toHuddleDateStr(new Date(isoKey + 'T12:00:00'));
+      cache[isoKey] = getSiteStaffingForDate(huddleData, csvStr, {
+        sites,
+        huddleSettings: hs,
+        capacityStaffing,
+      });
+    }
+    return cache[isoKey];
+  };
+  // Prompt-based per-site minimum editor (same pattern as the routine
+  // target editor in the footer - deliberately no new settings page).
+  const editStaffingMinimums = () => {
+    const thresholds = { ...(capacityStaffing.thresholds || {}) };
+    for (const site of sites) {
+      const cur = thresholds[site.name] ?? '';
+      const v = prompt(`Minimum clinicians for ${site.name} (blank = no minimum):`, String(cur));
+      if (v === null) continue; // cancelled - keep existing
+      const n = parseInt(v, 10);
+      if (!v.trim() || !Number.isFinite(n) || n <= 0) delete thresholds[site.name];
+      else thresholds[site.name] = n;
+    }
+    saveData({ ...data, capacityStaffing: { ...capacityStaffing, thresholds } });
+  };
   const saved = hs?.savedSlotFilters || {};
   const urgOv = saved.urgent || null;
   const routOv = saved.routine || null;
@@ -505,6 +542,26 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <span className="text-base font-semibold text-white font-heading">Capacity planning</span>
             <span className="text-xs text-slate-500 ml-2">6-week forward view</span>
             <div className="ml-auto flex items-center gap-2">
+              {sites.length > 0 && (
+                <button onClick={() => setShowStaffing(v => !v)}
+                  title="Show or hide per-site clinician staffing in each day"
+                  className="px-2 py-1 rounded-md text-[10px] font-semibold transition-colors"
+                  style={{
+                    background: showStaffing ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${showStaffing ? '#6366f180' : 'rgba(255,255,255,0.12)'}`,
+                    color: showStaffing ? '#a5b4fc' : '#94a3b8',
+                  }}>
+                  Site staffing
+                </button>
+              )}
+              {showStaffing && canEdit && (
+                <button onClick={editStaffingMinimums}
+                  title="Set the minimum clinician count per site"
+                  className="px-2 py-1 rounded-md text-[10px] font-semibold"
+                  style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', color:'#94a3b8'}}>
+                  Minimums
+                </button>
+              )}
               <div className="flex items-center gap-1">
                 <span className="text-[10px] text-slate-500">Urgent</span>
                 <SlotFilter overrides={urgOv} setOverrides={(v) => persistFilter('urgent', v)} knownSlotTypes={knownSlotTypes} title="Urgent slot types" readOnly={!canEdit} />
@@ -625,6 +682,28 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           <div className="text-[8px] font-bold mt-0.5" style={{color:pmV.text,opacity:0.8}}>PM</div>
                         </div>
                       </div>
+                    {showStaffing && (() => {
+                        const st = staffingFor(d.isoKey);
+                        if (!st.length) return null;
+                        return (
+                          <div className="flex gap-1 mt-1.5">
+                            {st.map((e) => {
+                              const warn = e.below;
+                              const bg = warn ? 'rgba(245,158,11,0.22)' : `${e.site.colour || '#64748b'}26`;
+                              const bd = warn ? '#f59e0b' : `${e.site.colour || '#64748b'}55`;
+                              const fg = warn ? '#fbbf24' : '#cbd5e1';
+                              return (
+                                <div key={e.site.name} title={siteStaffingTooltip(e)}
+                                  className="flex-1 text-center rounded-md py-1"
+                                  style={{background:bg, border:`1px solid ${bd}`}}>
+                                  <div className="text-[8px] font-bold uppercase" style={{color:fg, opacity:0.8}}>{e.letter}</div>
+                                  <div className="text-xs font-bold leading-none font-mono-data" style={{color:fg}}>{e.counted.length}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </button>
                   </div>
                 );

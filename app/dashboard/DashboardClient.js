@@ -48,6 +48,7 @@ const HuddleToday = lazy(() => huddleTodayChunk);
 const HuddleForward = lazy(() => import('@/components/huddle/HuddleForward'));
 const WorkloadAudit = lazy(() => import('@/components/huddle/WorkloadAudit'));
 const WorkforcePlanner = lazy(() => import('@/components/workforce/WorkforcePlanner'));
+const SpendTracker = lazy(() => import('@/components/workforce/SpendTracker'));
 const MyRota = lazy(() => import('@/components/huddle/MyRota'));
 const Meetings = lazy(() => import('@/components/meetings/Meetings'));
 const RoomSettings = lazy(() => import('@/components/room/RoomSettings'));
@@ -835,6 +836,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           {activeSection === 'huddle-forward' && !huddleLoading && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'reporting' && !huddleLoading && <WorkloadAudit data={data} huddleData={huddleData} />}
           {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
+          {activeSection === 'spend' && !huddleLoading && <SpendTracker data={data} saveData={saveData} huddleData={huddleData} />}
           {/* team-members section retired in v4.14.0 — Clinicians lives at
               Practice → Clinicians now. If something still navigates to
               this section ID (deep links from older URLs, third-party
