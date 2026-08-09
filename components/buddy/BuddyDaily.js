@@ -3,7 +3,7 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
 import { getCliniciansForDate } from '@/lib/huddle';
-import { STATUS_TRANSITIONS, applyTransition, undoTransition, getWindDownAlerts } from '@/lib/status-transitions';
+import { STATUS_TRANSITIONS, applyTransition, undoTransition, adjustTransition, getWindDownAlerts } from '@/lib/status-transitions';
 import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 import BuddyOverrideModal from './BuddyOverrideModal';
@@ -43,7 +43,13 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     c?.windDown && dateKey >= c.windDown.startDate && dateKey <= c.windDown.endDate
       ? c.windDown
       : null;
-  const windDownLabel = (wd) => (wd?.type === 'sick' ? 'Long-term sick' : 'Leaving - wind-down');
+  const windDownLabel = (wd) => {
+    const base = wd?.type === 'sick' ? 'Long-term sick' : 'Leaving';
+    if (!wd?.endDate) return base;
+    const weeksLeft = Math.max(0, Math.ceil((new Date(wd.endDate + 'T23:59:59') - Date.now()) / (7 * 86400000)));
+    return `${base} - ${weeksLeft} wk${weeksLeft === 1 ? '' : 's'} left`;
+  };
+  const [wdMenuOpen, setWdMenuOpen] = useState(null); // clinicianId
   const presentClinicians = cliniciansList.filter(c => presentIds.includes(c.id));
   const absentClinicians = cliniciansList.filter(c => absentIds.includes(c.id));
   const dayOffClinicians = cliniciansList.filter(c => dayOffIds.includes(c.id));
@@ -355,6 +361,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   // Wind-down ERROR detection: someone marked as LEFT should not be in
   // EMIS at all. If they are, something has gone wrong - surface it
   // loudly rather than suppressing it.
+  const cliniciansListWithWindDown = ensureArray(data.clinicians).filter((c) => c.windDown && c.status !== 'left');
   const windDownAlerts = (canEdit && huddleData) ? getWindDownAlerts(data, huddleData, { getDateKeyForDay }) : [];
 
   const undoWindDown = (clinicianId) => {
@@ -363,6 +370,18 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const label = c?.windDown?.type === 'sick' ? 'Long-term sick' : 'Has left';
     if (!window.confirm(`Undo the ${label} status for ${c?.name || 'this clinician'}? The wind-down cover will be removed and they return to normal.`)) return;
     saveData(undoTransition(data, clinicianId, { by: data?._v4?.userDisplayName || null }));
+    setWdMenuOpen(null);
+  };
+
+  const adjustWindDown = (clinicianId) => {
+    if (!canEdit) return;
+    const c = (data.clinicians || []).find((x) => x.id === clinicianId);
+    if (!c?.windDown) return;
+    const v = window.prompt('New end date for the wind-down (YYYY-MM-DD):', c.windDown.endDate);
+    if (!v) { setWdMenuOpen(null); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) { window.alert('Please use the format YYYY-MM-DD, for example 2026-10-01.'); return; }
+    saveData(adjustTransition(data, clinicianId, v.trim(), { by: data?._v4?.userDisplayName || null }));
+    setWdMenuOpen(null);
   };
 
   // Group this week's presentNoCSV mismatches by clinician; if someone is
@@ -656,11 +675,21 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-slate-200 truncate">{c.name}</span>
-                            {wd && <button
-                              title={canEdit ? 'Click to undo this status' : windDownLabel(wd)}
-                              onClick={canEdit ? (e) => { e.stopPropagation(); undoWindDown(c.id); } : undefined}
-                              className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium"
-                              style={{background:'#64748b25', border:'1px solid #64748b50', color:'#94a3b8', cursor: canEdit ? 'pointer' : 'default'}}>{windDownLabel(wd)}</button>}
+                            {wd && <span className="relative flex-shrink-0">
+                              <button
+                              title={canEdit ? 'Click to adjust or undo this status' : windDownLabel(wd)}
+                              onClick={canEdit ? (e) => { e.stopPropagation(); setWdMenuOpen(m => m === c.id ? null : c.id); } : undefined}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                              style={{background:'#64748b25', border:'1px solid #64748b50', color:'#94a3b8', cursor: canEdit ? 'pointer' : 'default'}}>{windDownLabel(wd)}</button>
+                              {wdMenuOpen === c.id && canEdit && (
+                                <span className="absolute left-0 top-full mt-1 z-20 flex flex-col rounded-md overflow-hidden"
+                                  style={{background:'#1e293b', border:'1px solid rgba(255,255,255,0.15)', minWidth:150}}
+                                  onClick={(e) => e.stopPropagation()}>
+                                  <button onClick={() => adjustWindDown(c.id)} className="px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-white/10">Adjust end date</button>
+                                  <button onClick={() => undoWindDown(c.id)} className="px-3 py-1.5 text-left text-[11px] hover:bg-white/10" style={{color:'#fca5a5'}}>Undo status</button>
+                                </span>
+                              )}
+                            </span>}
                             {isOverridden && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>}
                             {hasCsvFlag && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>}
                           </div>
@@ -914,6 +943,20 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         <aside className="xl:w-[300px] xl:shrink-0 xl:sticky xl:top-4 space-y-3">
           <div className="rounded-xl p-4 bg-card border border-edge">
             <div className="text-body font-semibold text-hi mb-2">This week&apos;s inconsistencies</div>
+              {(() => {
+                const active = cliniciansListWithWindDown;
+                if (!active.length) return null;
+                return (
+                  <div className="mb-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(100,116,139,0.12)', border: '1px solid rgba(100,116,139,0.3)' }}>
+                    <div className="text-caption font-semibold text-mid mb-1">Wind-downs in progress</div>
+                    {active.map((c) => (
+                      <div key={c.id} className="text-caption text-mid leading-normal">
+                        {c.name} - {c.windDown.type === 'sick' ? 'long-term sick' : 'leaving'}, until {new Date(c.windDown.endDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             {!huddleData ? (
               <div className="text-meta text-mid">Upload the appointment CSV to check the board against EMIS.</div>
             ) : (suggestions.length === 0 && singleMismatches.length === 0 && windDownAlerts.length === 0) ? (

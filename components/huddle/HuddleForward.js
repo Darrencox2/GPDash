@@ -9,7 +9,7 @@ import { detectPatterns } from '@/lib/capacity-patterns';
 import ClinicianCapacity from './ClinicianCapacity';
 import SlotFilter from './SlotFilter';
 import { canEditPracticeData } from '@/lib/permissions';
-import { getSiteStaffingForDate, siteStaffingTooltip } from '@/lib/site-staffing';
+import { getSiteStaffingForDate, siteStaffingTooltip, computeTotalEntry } from '@/lib/site-staffing';
 import { createClient } from '@/utils/supabase/client';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -261,11 +261,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
     const cache = staffingCacheRef.current;
     if (!cache[isoKey]) {
       const csvStr = toHuddleDateStr(new Date(isoKey + 'T12:00:00'));
-      cache[isoKey] = getSiteStaffingForDate(huddleData, csvStr, {
+      const entries = getSiteStaffingForDate(huddleData, csvStr, {
         sites,
         huddleSettings: hs,
         capacityStaffing,
       });
+      cache[isoKey] = entries.length ? [computeTotalEntry(entries, capacityStaffing), ...entries] : entries;
     }
     return cache[isoKey];
   };
@@ -273,6 +274,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   // target editor in the footer - deliberately no new settings page).
   const editStaffingMinimums = () => {
     const thresholds = { ...(capacityStaffing.thresholds || {}) };
+    let totalThreshold = capacityStaffing.totalThreshold ?? '';
+    const tv = prompt('Minimum clinicians for the WHOLE PRACTICE, all sites combined (blank = no minimum):', String(totalThreshold));
+    if (tv !== null) {
+      const tn = parseInt(tv, 10);
+      totalThreshold = (!tv.trim() || !Number.isFinite(tn) || tn <= 0) ? undefined : tn;
+    }
     for (const site of sites) {
       const cur = thresholds[site.name] ?? '';
       const v = prompt(`Minimum clinicians for ${site.name} (blank = no minimum):`, String(cur));
@@ -281,7 +288,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       if (!v.trim() || !Number.isFinite(n) || n <= 0) delete thresholds[site.name];
       else thresholds[site.name] = n;
     }
-    saveData({ ...data, capacityStaffing: { ...capacityStaffing, thresholds } });
+    saveData({ ...data, capacityStaffing: { ...capacityStaffing, thresholds, totalThreshold } });
   };
   const saved = hs?.savedSlotFilters || {};
   const urgOv = saved.urgent || null;
@@ -486,6 +493,32 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
     return res;
   }, [huddleData,hs,urgOv,routOv,weather,convRate,dutySlots,hasDuty,predictionOptions]);
 
+  // Below-minimum day count across the whole calendar window - shown as a
+  // badge on the toggle button so warnings are visible WITHOUT opening the
+  // layer (an early-warning system you have to remember to open is not
+  // one). Only computed when at least one minimum is set.
+  const staffingWarnDays = useMemo(() => {
+    const anyThreshold = capacityStaffing.totalThreshold > 0 ||
+      Object.values(capacityStaffing.thresholds || {}).some((n) => n > 0);
+    if (!huddleData || sites.length === 0 || !anyThreshold) return 0;
+    let count = 0;
+    try {
+      for (const wk of weeks) {
+        for (const d of wk.days) {
+          if (!d.hasData || d.isBH || d.isPast) continue;
+          const csvStr = toHuddleDateStr(new Date(d.isoKey + 'T12:00:00'));
+          const entries = getSiteStaffingForDate(huddleData, csvStr, { sites, huddleSettings: hs, capacityStaffing });
+          if (!entries.length) continue;
+          const total = computeTotalEntry(entries, capacityStaffing);
+          if (total.below || entries.some((e) => e.below)) count += 1;
+        }
+      }
+    } catch { /* badge is advisory - never crash the calendar */ }
+    return count;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [huddleData, sites, hs, data?.capacityStaffing, weeks]);
+
+
   const shortDays = useMemo(()=>weeks.flatMap(w=>w.days).filter(d=>d.hasData&&!d.isBH&&(d.amT+d.pmT)>0&&(d.amS+d.pmS)<(d.amT+d.pmT)*0.8).sort((a,b)=>a.date-b.date),[weeks]);
   const topDemand = useMemo(()=>weeks.flatMap(w=>w.days).filter(d=>!d.isBH&&d.predicted).sort((a,b)=>b.predicted-a.predicted).slice(0,5),[weeks]);
   // Pattern detection — runs over the same `weeks` data used by the
@@ -552,6 +585,13 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     color: showStaffing ? '#a5b4fc' : '#94a3b8',
                   }}>
                   Site staffing
+                  {staffingWarnDays > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold"
+                      style={{background:'#f59e0b30', border:'1px solid #f59e0b60', color:'#fbbf24'}}
+                      title={`${staffingWarnDays} day${staffingWarnDays === 1 ? '' : 's'} in the next 6 weeks below a staffing minimum`}>
+                      {staffingWarnDays}
+                    </span>
+                  )}
                 </button>
               )}
               {showStaffing && canEdit && (
@@ -689,9 +729,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           <div className="flex gap-1 mt-1.5">
                             {st.map((e) => {
                               const warn = e.below;
-                              const bg = warn ? 'rgba(245,158,11,0.22)' : `${e.site.colour || '#64748b'}26`;
-                              const bd = warn ? '#f59e0b' : `${e.site.colour || '#64748b'}55`;
-                              const fg = warn ? '#fbbf24' : '#cbd5e1';
+                              const bg = warn ? 'rgba(245,158,11,0.22)' : e.isTotal ? 'rgba(129,140,248,0.14)' : `${e.site.colour || '#64748b'}26`;
+                              const bd = warn ? '#f59e0b' : e.isTotal ? '#818cf880' : `${e.site.colour || '#64748b'}55`;
+                              const fg = warn ? '#fbbf24' : e.isTotal ? '#a5b4fc' : '#cbd5e1';
                               return (
                                 <div key={e.site.name} title={siteStaffingTooltip(e)}
                                   className="flex-1 text-center rounded-md py-1"

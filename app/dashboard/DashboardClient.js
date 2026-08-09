@@ -840,7 +840,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           {activeSection === 'huddle-forward' && !huddleLoading && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'reporting' && !huddleLoading && <WorkloadAudit data={data} huddleData={huddleData} />}
           {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
-          {activeSection === 'spend' && !huddleLoading && <SpendTracker data={data} saveData={saveData} huddleData={huddleData} />}
+          {activeSection === 'spend' && !huddleLoading && <SpendTracker data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {/* team-members section retired in v4.14.0 — Clinicians lives at
               Practice → Clinicians now. If something still navigates to
               this section ID (deep links from older URLs, third-party

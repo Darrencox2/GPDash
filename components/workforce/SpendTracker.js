@@ -17,7 +17,7 @@ import { canEditPracticeData } from '@/lib/permissions';
 import { logEvent } from '@/lib/data';
 import {
   findCandidateExtras, computeMonthlySpend, availableMonths,
-  isLocum, SLOT_LABELS,
+  isLocum, SLOT_LABELS, currentRate, withRateStep, findUnclassifiedNames,
 } from '@/lib/spend';
 
 const gbp = (n) => `\u00a3${(Number(n) || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 })}`;
@@ -26,7 +26,7 @@ const monthLabel = (m) => {
   return new Date(y, mo - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 };
 
-export default function SpendTracker({ data, saveData, huddleData }) {
+export default function SpendTracker({ data, saveData, huddleData, setActiveSection }) {
   const canEdit = canEditPracticeData(data);
   const months = useMemo(() => availableMonths(huddleData), [huddleData]);
   const [month, setMonth] = useState(months[0]);
@@ -40,6 +40,34 @@ export default function SpendTracker({ data, saveData, huddleData }) {
     () => (huddleData ? findCandidateExtras({ huddleData, data }) : []),
     [huddleData, data]
   );
+  const unclassified = useMemo(
+    () => (huddleData ? findUnclassifiedNames({ huddleData, data }) : []),
+    [huddleData, data]
+  );
+  const trend = useMemo(() => {
+    if (!huddleData) return [];
+    return [...months].reverse().map((m) => ({
+      month: m,
+      total: computeMonthlySpend({ huddleData, data, month: m }).grandTotal,
+    }));
+  }, [huddleData, data, months]);
+
+  const exportCsv = () => {
+    if (!spend) return;
+    const rows = [['Type', 'Name', 'Detail', 'Sessions', 'Rate', 'Total']];
+    spend.locumLines.forEach((l) => rows.push(['Locum', l.name, '', l.sessions, l.rate.toFixed(2), l.total.toFixed(2)]));
+    spend.extraLines.forEach((l) => rows.push(['GP extra', l.name, `${l.date} ${l.slotLabel}`, 1, l.rate.toFixed(2), l.total.toFixed(2)]));
+    rows.push([]);
+    rows.push(['Total', '', '', '', '', spend.grandTotal.toFixed(2)]);
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `locum-spend-${month}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
   const spend = useMemo(
     () => (huddleData && month ? computeMonthlySpend({ huddleData, data, month }) : null),
     [huddleData, data, month]
@@ -75,14 +103,17 @@ export default function SpendTracker({ data, saveData, huddleData }) {
 
   const setRate = (path, id, value) => {
     if (!canEdit) return;
+    const todayIso = new Date().toISOString().slice(0, 10);
     const next = { ...(data.spendRates || {}) };
+    const n = Number(value) || 0;
     if (path === 'gpExtraDefault') {
-      next.gpExtraDefault = Number(value) || 0;
+      if (currentRate(next.gpExtraDefault) === n) return;
+      next.gpExtraDefault = withRateStep(next.gpExtraDefault, n, todayIso);
     } else {
       next[path] = { ...(next[path] || {}) };
-      const n = Number(value);
-      if (!n) delete next[path][id];
-      else next[path][id] = n;
+      if (currentRate(next[path][id]) === n) return;
+      next[path][id] = withRateStep(next[path][id], n, todayIso);
+      if (!next[path][id].length) delete next[path][id];
     }
     const who = path === 'gpExtraDefault' ? 'practice-wide GP extra default'
       : `${(clinicians.find((c) => c.id === id) || {}).name || id} (${path === 'locums' ? 'locum' : 'GP extra'})`;
@@ -108,6 +139,12 @@ export default function SpendTracker({ data, saveData, huddleData }) {
             style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }}>
             {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
           </select>
+          <button onClick={exportCsv}
+            title="Download this month as a CSV for your accountant"
+            className="px-3 py-1.5 rounded-md text-sm font-medium"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#94a3b8' }}>
+            Export CSV
+          </button>
           {canEdit && (
             <button onClick={() => setShowRates((v) => !v)}
               className="px-3 py-1.5 rounded-md text-sm font-medium"
@@ -146,7 +183,7 @@ export default function SpendTracker({ data, saveData, huddleData }) {
               <div key={lc.id} className="flex items-center gap-3">
                 <span className="text-sm text-slate-300 flex-1 truncate">{lc.name}</span>
                 <span className="text-xs text-slate-500">\u00a3</span>
-                <input type="number" min="0" defaultValue={rates.locums?.[lc.id] || ''}
+                <input type="number" min="0" defaultValue={currentRate(rates.locums?.[lc.id]) || ''}
                   onBlur={(e) => setRate('locums', lc.id, e.target.value)}
                   className="w-24 rounded-md px-2 py-1 text-sm text-right font-mono-data"
                   style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
@@ -158,23 +195,71 @@ export default function SpendTracker({ data, saveData, huddleData }) {
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-300 flex-1">Practice-wide default</span>
               <span className="text-xs text-slate-500">\u00a3</span>
-              <input type="number" min="0" defaultValue={rates.gpExtraDefault || ''}
+              <input type="number" min="0" defaultValue={currentRate(rates.gpExtraDefault) || ''}
                 onBlur={(e) => setRate('gpExtraDefault', null, e.target.value)}
                 className="w-24 rounded-md px-2 py-1 text-sm text-right font-mono-data"
                 style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
             </div>
-            <div className="text-[11px] text-slate-600">Used for every confirmed extra unless a GP has their own rate below.</div>
-            {clinicians.filter((c) => (rates.gpExtra || {})[c.id] || spend?.extraLines.some((l) => l.id === c.id)).map((gp) => (
+            <div className="text-[11px] text-slate-600">Used for every confirmed extra unless a GP has their own rate below. Rate changes apply from today - earlier months keep the rate that was in force at the time.</div>
+            {clinicians.filter((c) => currentRate((rates.gpExtra || {})[c.id]) || spend?.extraLines.some((l) => l.id === c.id)).map((gp) => (
               <div key={gp.id} className="flex items-center gap-3">
                 <span className="text-sm text-slate-300 flex-1 truncate">{gp.name}</span>
                 <span className="text-xs text-slate-500">\u00a3</span>
-                <input type="number" min="0" defaultValue={rates.gpExtra?.[gp.id] || ''}
+                <input type="number" min="0" defaultValue={currentRate(rates.gpExtra?.[gp.id]) || ''}
                   placeholder="default"
                   onBlur={(e) => setRate('gpExtra', gp.id, e.target.value)}
                   className="w-24 rounded-md px-2 py-1 text-sm text-right font-mono-data"
                   style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Unclassified names - the biggest hole in the spend number */}
+      {unclassified.length > 0 && (
+        <div className="rounded-xl p-4" style={{ background: '#f59e0b12', border: '1px solid #f59e0b45' }}>
+          <div className="text-sm font-semibold" style={{ color: '#fbbf24' }}>
+            {unclassified.length} {unclassified.length === 1 ? 'person' : 'people'} worked sessions but cannot be classified
+          </div>
+          <div className="text-xs text-slate-400 mt-1 leading-normal">
+            These EMIS names are either not on the staff register or have no role set, so the spend figure cannot tell whether they are locums. They are very often ad-hoc locums - classifying them protects the accuracy of the totals.
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {unclassified.slice(0, 12).map((u) => (
+              <span key={u.csvName} className="px-2 py-1 rounded-md text-xs" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }}
+                title={`${u.dates} session day${u.dates === 1 ? '' : 's'} in the last 60 days${u.status === 'noRole' ? ' - on the register but no role set' : ' - not on the register'}`}>
+                {u.csvName}{u.status === 'noRole' ? ' (no role)' : ''}
+              </span>
+            ))}
+          </div>
+          {typeof setActiveSection === 'function' && (
+            <button onClick={() => setActiveSection('team-members')}
+              className="mt-3 px-3 py-1.5 rounded-md text-xs font-semibold"
+              style={{ background: '#f59e0b25', border: '1px solid #f59e0b60', color: '#fbbf24' }}>
+              Update the staff register
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Month-on-month trend */}
+      {trend.length > 1 && (
+        <div className="rounded-xl p-4" style={{ background: 'var(--g-panel)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="text-sm font-semibold text-slate-200 mb-3">Month on month</div>
+          <div className="flex items-end gap-2" style={{ height: 96 }}>
+            {trend.map((t) => {
+              const max = Math.max(...trend.map((x) => x.total), 1);
+              const h = Math.max(4, Math.round((t.total / max) * 80));
+              const sel = t.month === month;
+              return (
+                <button key={t.month} onClick={() => setMonth(t.month)} className="flex-1 flex flex-col items-center gap-1" title={`${monthLabel(t.month)}: ${gbp(t.total)}`}>
+                  <span className="text-[9px] font-mono-data" style={{ color: sel ? '#fbbf24' : '#64748b' }}>{gbp(t.total)}</span>
+                  <span className="w-full rounded-t-sm" style={{ height: h, background: sel ? '#f59e0b' : 'rgba(245,158,11,0.35)' }} />
+                  <span className="text-[9px]" style={{ color: sel ? '#e2e8f0' : '#64748b' }}>{t.month.slice(5)}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
