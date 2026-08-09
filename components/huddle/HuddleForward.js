@@ -9,7 +9,7 @@ import { detectPatterns } from '@/lib/capacity-patterns';
 import ClinicianCapacity from './ClinicianCapacity';
 import SlotFilter from './SlotFilter';
 import { canEditPracticeData } from '@/lib/permissions';
-import { getSiteStaffingForDate, siteStaffingTooltip, computeTotalEntry } from '@/lib/site-staffing';
+import { getSiteStaffingForDate, computeTotalEntry, STAFF_GROUP_LABELS } from '@/lib/site-staffing';
 import { createClient } from '@/utils/supabase/client';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -253,7 +253,15 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   // clinician counts for a site only if they have routine slots there
   // that day - "based but out" people appear in the hover instead.
   const [showStaffing, setShowStaffing] = useState(false);
-  const capacityStaffing = data?.capacityStaffing || {};
+  const [staffingPanelOpen, setStaffingPanelOpen] = useState(false);
+  const [staffTip, setStaffTip] = useState(null); // { x, y, entry }
+  // Stored INSIDE huddleSettings so it persists: the save route only
+  // writes known fields, and a top-level capacityStaffing was silently
+  // dropped on every save (the "not saving between sessions" bug).
+  const capacityStaffing = hs?.capacityStaffing || data?.capacityStaffing || {};
+  const saveStaffing = (next) => {
+    saveData({ ...data, huddleSettings: { ...hs, capacityStaffing: next } }, false);
+  };
   const staffingCacheRef = useRef({});
   useEffect(() => { staffingCacheRef.current = {}; }, [showStaffing, huddleData, data?.capacityStaffing, hs, sites]);
   const staffingFor = (isoKey) => {
@@ -265,30 +273,11 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         sites,
         huddleSettings: hs,
         capacityStaffing,
+        clinicians: data?.clinicians,
       });
       cache[isoKey] = entries.length ? [computeTotalEntry(entries, capacityStaffing), ...entries] : entries;
     }
     return cache[isoKey];
-  };
-  // Prompt-based per-site minimum editor (same pattern as the routine
-  // target editor in the footer - deliberately no new settings page).
-  const editStaffingMinimums = () => {
-    const thresholds = { ...(capacityStaffing.thresholds || {}) };
-    let totalThreshold = capacityStaffing.totalThreshold ?? '';
-    const tv = prompt('Minimum clinicians for the WHOLE PRACTICE, all sites combined (blank = no minimum):', String(totalThreshold));
-    if (tv !== null) {
-      const tn = parseInt(tv, 10);
-      totalThreshold = (!tv.trim() || !Number.isFinite(tn) || tn <= 0) ? undefined : tn;
-    }
-    for (const site of sites) {
-      const cur = thresholds[site.name] ?? '';
-      const v = prompt(`Minimum clinicians for ${site.name} (blank = no minimum):`, String(cur));
-      if (v === null) continue; // cancelled - keep existing
-      const n = parseInt(v, 10);
-      if (!v.trim() || !Number.isFinite(n) || n <= 0) delete thresholds[site.name];
-      else thresholds[site.name] = n;
-    }
-    saveData({ ...data, capacityStaffing: { ...capacityStaffing, thresholds, totalThreshold } });
   };
   const saved = hs?.savedSlotFilters || {};
   const urgOv = saved.urgent || null;
@@ -507,7 +496,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         for (const d of wk.days) {
           if (!d.hasData || d.isBH || d.isPast) continue;
           const csvStr = toHuddleDateStr(new Date(d.isoKey + 'T12:00:00'));
-          const entries = getSiteStaffingForDate(huddleData, csvStr, { sites, huddleSettings: hs, capacityStaffing });
+          const entries = getSiteStaffingForDate(huddleData, csvStr, { sites, huddleSettings: hs, capacityStaffing, clinicians: data?.clinicians });
           if (!entries.length) continue;
           const total = computeTotalEntry(entries, capacityStaffing);
           if (total.below || entries.some((e) => e.below)) count += 1;
@@ -574,7 +563,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             <span className="text-base font-semibold text-white font-heading">Capacity planning</span>
             <span className="text-xs text-slate-500 ml-2">6-week forward view</span>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2 relative">
               {sites.length > 0 && (
                 <button onClick={() => setShowStaffing(v => !v)}
                   title="Show or hide per-site clinician staffing in each day"
@@ -595,12 +584,69 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 </button>
               )}
               {showStaffing && canEdit && (
-                <button onClick={editStaffingMinimums}
+                <button onClick={() => setStaffingPanelOpen((v) => !v)}
                   title="Set the minimum clinician count per site"
                   className="px-2 py-1 rounded-md text-[10px] font-semibold"
                   style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', color:'#94a3b8'}}>
                   Minimums
                 </button>
+              )}
+              {staffingPanelOpen && showStaffing && canEdit && (
+                <div className="absolute right-0 top-full mt-2 z-30 w-72 rounded-xl p-4 shadow-2xl"
+                  style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.14)' }}
+                  onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-body-sm font-semibold text-hi">Site staffing settings</span>
+                    <button onClick={() => setStaffingPanelOpen(false)} className="text-mute hover:text-hi text-body-sm">&#10005;</button>
+                  </div>
+                  <div className="text-caption text-mute mb-1">Minimum clinicians per day</div>
+                  <div className="space-y-1.5 mb-3">
+                    {[{ key: '__total', label: 'Whole practice (all sites)' }, ...sites.map((st) => ({ key: st.name, label: st.name }))].map((row) => {
+                      const cur = row.key === '__total'
+                        ? (capacityStaffing.totalThreshold ?? '')
+                        : (capacityStaffing.thresholds?.[row.key] ?? '');
+                      return (
+                        <div key={row.key} className="flex items-center gap-2">
+                          <span className="flex-1 text-caption truncate" style={{ color: row.key === '__total' ? '#a5b4fc' : '#cbd5e1', fontWeight: row.key === '__total' ? 600 : 400 }}>{row.label}</span>
+                          <select value={String(cur)}
+                            onChange={(e) => {
+                              const v = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                              if (row.key === '__total') {
+                                saveStaffing({ ...capacityStaffing, totalThreshold: v });
+                              } else {
+                                const thresholds = { ...(capacityStaffing.thresholds || {}) };
+                                if (v == null) delete thresholds[row.key]; else thresholds[row.key] = v;
+                                saveStaffing({ ...capacityStaffing, thresholds });
+                              }
+                            }}
+                            className="rounded-md px-1.5 py-1 text-caption"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#e2e8f0' }}>
+                            <option value="">No minimum</option>
+                            {Array.from({ length: 15 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="text-caption text-mute mb-1">Who counts toward staffing</div>
+                  <div className="space-y-1">
+                    {Object.entries(STAFF_GROUP_LABELS).map(([g, label]) => {
+                      const groups = Array.isArray(capacityStaffing.groups) && capacityStaffing.groups.length ? capacityStaffing.groups : ['gp'];
+                      const on = groups.includes(g);
+                      return (
+                        <label key={g} className="flex items-center gap-2 cursor-pointer text-caption" style={{ color: '#cbd5e1' }}>
+                          <input type="checkbox" checked={on}
+                            onChange={() => {
+                              const next = on ? groups.filter((x) => x !== g) : [...groups, g];
+                              saveStaffing({ ...capacityStaffing, groups: next.length ? next : ['gp'] });
+                            }} />
+                          {label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="text-caption text-faint mt-2 leading-normal">Judged from roles on the staff register. Counting requires routine slots at the site that day.</div>
+                </div>
               )}
               <div className="flex items-center gap-1">
                 <span className="text-[10px] text-slate-500">Urgent</span>
@@ -733,7 +779,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                               const bd = warn ? '#f59e0b' : e.isTotal ? '#818cf880' : `${e.site.colour || '#64748b'}55`;
                               const fg = warn ? '#fbbf24' : e.isTotal ? '#a5b4fc' : '#cbd5e1';
                               return (
-                                <div key={e.site.name} title={siteStaffingTooltip(e)}
+                                <div key={e.site.name}
+                                  onMouseEnter={(ev) => {
+                                    const r = ev.currentTarget.getBoundingClientRect();
+                                    setStaffTip({ x: r.left + r.width / 2, y: r.top, entry: e });
+                                  }}
+                                  onMouseLeave={() => setStaffTip(null)}
                                   className="flex-1 text-center rounded-md py-1"
                                   style={{background:bg, border:`1px solid ${bd}`}}>
                                   <div className="text-[8px] font-bold uppercase" style={{color:fg, opacity:0.8}}>{e.letter}</div>
@@ -1381,6 +1432,32 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       {/* Clinician capacity detail */}
       <ClinicianCapacity data={data} huddleData={huddleData} routineOverrides={routOv} />
       </div>
+      {staffTip && (
+        <div className="fixed z-50 pointer-events-none" style={{ left: staffTip.x, top: staffTip.y - 8, transform: 'translate(-50%, -100%)' }}>
+          <div className="rounded-xl p-3 shadow-2xl text-left" style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.16)', minWidth: 200, maxWidth: 260 }}>
+            <div className="text-caption font-semibold" style={{ color: staffTip.entry.isTotal ? '#a5b4fc' : '#e2e8f0' }}>{staffTip.entry.site.name}</div>
+            <div className="text-caption mt-0.5" style={{ color: staffTip.entry.below ? '#fbbf24' : '#94a3b8' }}>
+              {staffTip.entry.below
+                ? `Below minimum: ${staffTip.entry.counted.length} counted, minimum ${staffTip.entry.threshold}`
+                : staffTip.entry.threshold != null
+                  ? `${staffTip.entry.counted.length} counted (minimum ${staffTip.entry.threshold})`
+                  : `${staffTip.entry.counted.length} counted (no minimum set)`}
+            </div>
+            {staffTip.entry.counted.length > 0 && (
+              <div className="mt-2">
+                <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Counted - routine slots here</div>
+                {staffTip.entry.counted.map((n) => <div key={n} className="text-caption text-slate-300 leading-normal">{n}</div>)}
+              </div>
+            )}
+            {staffTip.entry.basedButOut.length > 0 && (
+              <div className="mt-2">
+                <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Based here - no routine slots today</div>
+                {staffTip.entry.basedButOut.map((n) => <div key={n} className="text-caption text-slate-500 leading-normal">{n}</div>)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
