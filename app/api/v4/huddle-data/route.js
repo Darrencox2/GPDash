@@ -13,6 +13,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { serverError } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
@@ -35,9 +36,32 @@ export async function GET(request) {
       .maybeSingle();
     if (error) return serverError('Could not load huddle data', error);
 
+    let row = data;
+    if (!row) {
+      // Resilience: the RLS-scoped read can transiently miss (observed
+      // live - the client fell back to the full data GET which had the
+      // CSV). Verify membership explicitly, then re-read with the
+      // service client so a session/RLS hiccup cannot blank the board.
+      const { data: member } = await supabase
+        .from('practice_users')
+        .select('user_id')
+        .eq('practice_id', practice)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (member) {
+        const admin = createAdminClient();
+        const { data: adminRow } = await admin
+          .from('huddle_csv_data')
+          .select('data, updated_at')
+          .eq('practice_id', practice)
+          .maybeSingle();
+        row = adminRow || null;
+      }
+    }
+
     return NextResponse.json({
-      huddleCsvData: data?.data || null,
-      huddleCsvUpdatedAt: data?.updated_at || null,
+      huddleCsvData: row?.data || null,
+      huddleCsvUpdatedAt: row?.updated_at || null,
     });
   } catch (err) {
     return serverError('Huddle data fetch failed', err);
