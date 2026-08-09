@@ -1,8 +1,8 @@
 'use client';
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
-import { getCliniciansForDate } from '@/lib/huddle';
+import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence } from '@/lib/data';
+import { getCliniciansForDate, parseHuddleDateStr } from '@/lib/huddle';
 import { STATUS_TRANSITIONS, applyTransition, undoTransition, adjustTransition, getWindDownAlerts } from '@/lib/status-transitions';
 import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
@@ -44,7 +44,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       ? c.windDown
       : null;
   const windDownLabel = (wd) => {
-    const base = wd?.type === 'sick' ? 'Long-term sick' : 'Leaving';
+    const base = wd?.type === 'sick' ? 'Long term absence' : 'Leaving';
     if (!wd?.endDate) return base;
     const weeksLeft = Math.max(0, Math.ceil((new Date(wd.endDate + 'T23:59:59') - Date.now()) / (7 * 86400000)));
     return `${base} - ${weeksLeft} wk${weeksLeft === 1 ? '' : 's'} left`;
@@ -94,6 +94,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     [...absentIds, ...dayOffIds].forEach(id => {
       const c = cliniciansList.find(cl => cl.id === id);
       if (!c || windDownFor(c, dateKey)) return;
+      // Half-day TeamNet absences (session am/pm): EMIS sessions in the
+      // other half of the day are EXPECTED, not an inconsistency.
+      const cov = findCoveringAbsence(data, id, dateKey);
+      if (cov?.session === 'am' || cov?.session === 'pm') return;
       const inCSV = csvClinicians.some(csv => matchesStaffMember(csv, c));
       if (inCSV) absentHasCSV.add(id);
     });
@@ -348,6 +352,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       const dayMeta = data?.dailyOverrides?.[`${dateKey}-${day}`]?.meta || {};
       cliniciansList.forEach((c) => {
         if (windDownFor(c, dateKey)) return; // wind-down active - mismatches are expected
+        const covHalf = findCoveringAbsence(data, c.id, dateKey);
+        if (covHalf?.session === 'am' || covHalf?.session === 'pm') return; // half-day leave - other half in EMIS is expected
         if (dayMeta[c.id]) return; // explicitly decided — reviewed
         const status = getClinicianStatus(c.id, day);
         const inCSV = csvClinicians.some((csv) => matchesStaffMember(csv, c));
@@ -364,10 +370,61 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const cliniciansListWithWindDown = ensureArray(data.clinicians).filter((c) => c.windDown && c.status !== 'left');
   const windDownAlerts = (canEdit && huddleData) ? getWindDownAlerts(data, huddleData, { getDateKeyForDay }) : [];
 
+  // REVERSE inconsistency (user request): a clinician who regularly HAS
+  // EMIS sessions on a weekday that is not one of their working days.
+  // The system works out which day it is by scanning the last 28 days of
+  // CSV history: 2+ occurrences of sessions on that weekday, while the
+  // rota says not working, earns a suggestion to add the working day.
+  const rotaSuggestions = useMemo(() => {
+    if (!canEdit || !huddleData?.dates?.length) return [];
+    const ignores = data?.huddleSettings?.rotaSuggestionIgnores || {};
+    const dayNums = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5 };
+    const cutoff = Date.now() - 28 * 86400000;
+    const byDay = {};
+    for (const ds of huddleData.dates) {
+      const d = parseHuddleDateStr(ds);
+      if (!d || isNaN(d) || d.getTime() < cutoff || d.getTime() > Date.now()) continue;
+      const dayName = Object.keys(dayNums).find((k) => dayNums[k] === d.getDay());
+      if (!dayName) continue;
+      (byDay[dayName] = byDay[dayName] || []).push(ds);
+    }
+    const out = [];
+    for (const c of cliniciansList) {
+      if (c.windDown) continue;
+      for (const [dayName, dsList] of Object.entries(byDay)) {
+        if (ensureArray(data.weeklyRota?.[dayName]).includes(c.id)) continue;
+        if (ignores[`${c.id}-${dayName}`]) continue;
+        let hits = 0;
+        for (const ds of dsList) {
+          const names = getCliniciansForDate(huddleData, ds);
+          if (names.some((n) => matchesStaffMember(n, c))) hits += 1;
+        }
+        if (hits >= 2) out.push({ clinicianId: c.id, name: c.name, dayName, hits, weeks: dsList.length });
+      }
+    }
+    return out;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [huddleData, data?.weeklyRota, data?.huddleSettings?.rotaSuggestionIgnores, cliniciansList, canEdit]);
+
+  const applyRotaSuggestion = (sug) => {
+    if (!canEdit) return;
+    const rota = { ...(data.weeklyRota || {}) };
+    rota[sug.dayName] = [...ensureArray(rota[sug.dayName]), sug.clinicianId];
+    saveData(logEvent({ ...data, weeklyRota: rota }, 'staff',
+      `${sug.dayName} added as a working day for ${sug.name} - EMIS showed sessions on ${sug.hits} of the last ${sug.weeks} ${sug.dayName}s`));
+  };
+
+  const ignoreRotaSuggestion = (sug) => {
+    if (!canEdit) return;
+    const hs = data.huddleSettings || {};
+    const ignores = { ...(hs.rotaSuggestionIgnores || {}), [`${sug.clinicianId}-${sug.dayName}`]: true };
+    saveData({ ...data, huddleSettings: { ...hs, rotaSuggestionIgnores: ignores } }, false);
+  };
+
   const undoWindDown = (clinicianId) => {
     if (!canEdit) return;
     const c = cliniciansList.find((x) => x.id === clinicianId) || (data.clinicians || []).find?.((x) => x.id === clinicianId);
-    const label = c?.windDown?.type === 'sick' ? 'Long-term sick' : 'Has left';
+    const label = c?.windDown?.type === 'sick' ? 'Long term absence' : 'Has left';
     if (!window.confirm(`Undo the ${label} status for ${c?.name || 'this clinician'}? The wind-down cover will be removed and they return to normal.`)) return;
     saveData(undoTransition(data, clinicianId, { by: data?._v4?.userDisplayName || null }));
     setWdMenuOpen(null);
@@ -653,6 +710,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 const csvHasSession = csvMismatches.absentHasCSV.has(c.id);
                 const hasCsvFlag = csvNoSession || csvHasSession;
                 const wd = windDownFor(c, getDateKey());
+                const halfDay = (() => { const cov = findCoveringAbsence(data, c.id, getDateKey()); return (cov?.session === 'am' || cov?.session === 'pm') ? cov.session : null; })();
                 const outlineCol = isOverridden ? '#f59e0b' : hasCsvFlag ? '#3b82f6' : null;
                 const cardBg = status === 'present' ? 'rgba(16,185,129,0.12)' : status === 'absent' ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.08)';
                 const cardBorder = status === 'present' ? '#10b98140' : status === 'absent' ? '#ef444440' : '#f59e0b30';
@@ -675,6 +733,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-slate-200 truncate">{c.name}</span>
+                            {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'#7dd3fc'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
                             {wd && <span className="relative flex-shrink-0">
                               <button
                               title={canEdit ? 'Click to adjust or undo this status' : windDownLabel(wd)}
@@ -951,7 +1010,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                     <div className="text-caption font-semibold text-mid mb-1">Wind-downs in progress</div>
                     {active.map((c) => (
                       <div key={c.id} className="text-caption text-mid leading-normal">
-                        {c.name} - {c.windDown.type === 'sick' ? 'long-term sick' : 'leaving'}, until {new Date(c.windDown.endDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {c.name} - {c.windDown.type === 'sick' ? 'long term absence' : 'leaving'}, until {new Date(c.windDown.endDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </div>
                     ))}
                   </div>
@@ -959,7 +1018,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               })()}
             {!huddleData ? (
               <div className="text-meta text-mid">Upload the appointment CSV to check the board against EMIS.</div>
-            ) : (suggestions.length === 0 && singleMismatches.length === 0 && windDownAlerts.length === 0) ? (
+            ) : (suggestions.length === 0 && singleMismatches.length === 0 && windDownAlerts.length === 0 && rotaSuggestions.length === 0) ? (
               <div className="text-body-sm" style={{ color: '#6ee7b7' }}>✓ No inconsistencies — the board matches EMIS for this week&apos;s editable days.</div>
             ) : (
               <>
@@ -976,6 +1035,30 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: '#e2e8f0' }}>
                         Undo Has left
                       </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {rotaSuggestions.length > 0 && (
+                <div className="flex flex-col gap-2 mb-2">
+                  {rotaSuggestions.map((sug) => (
+                    <div key={`${sug.clinicianId}-${sug.dayName}`} className="px-3 py-2.5 rounded-lg border" style={{ background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.4)' }}>
+                      <div className="text-body-sm font-semibold" style={{ color: '#86efac' }}>{sug.name} - {sug.dayName} looks like a working day</div>
+                      <div className="text-caption mt-0.5 leading-normal text-mid">
+                        EMIS shows booked sessions on {sug.hits} of the last {sug.weeks} {sug.dayName}s, but {sug.dayName} is not one of their working days.
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={() => applyRotaSuggestion(sug)}
+                          className="px-2.5 py-1 rounded-md text-caption font-semibold"
+                          style={{ background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac' }}>
+                          Add {sug.dayName}
+                        </button>
+                        <button onClick={() => ignoreRotaSuggestion(sug)}
+                          className="px-2.5 py-1 rounded-md text-caption font-semibold"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8' }}>
+                          Ignore
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

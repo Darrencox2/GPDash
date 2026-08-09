@@ -75,6 +75,26 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
   const select = c => { setSelectedId(c.id); setSearch(''); setShowDropdown(false); setIsSearching(false); window.location.hash = `rota-${c.initials}`; };
   const selected = clinicians.find(c => c.id === selectedId);
 
+  // Calendar subscription: personal ICS feed for the selected clinician.
+  // The endpoint enforces who may fetch the link (self, or owner/admin).
+  const [calFeed, setCalFeed] = useState(null); // { url, webcal } | 'loading' | 'denied'
+  const [calCopied, setCalCopied] = useState(false);
+  useEffect(() => { setCalFeed(null); setCalCopied(false); }, [selectedId]);
+  const fetchCalFeed = async () => {
+    const practiceId = data?._v4?.practiceId;
+    if (!practiceId || !selected) return;
+    setCalFeed('loading');
+    try {
+      const res = await fetch(`/api/v4/calendar-token?practice=${encodeURIComponent(practiceId)}&clinician=${encodeURIComponent(selected.id)}`);
+      if (!res.ok) { setCalFeed('denied'); return; }
+      setCalFeed(await res.json());
+    } catch { setCalFeed('denied'); }
+  };
+  const copyCalFeed = async () => {
+    if (!calFeed?.url) return;
+    try { await navigator.clipboard.writeText(calFeed.url); setCalCopied(true); setTimeout(() => setCalCopied(false), 2500); } catch { /* ignore */ }
+  };
+
   // Permission: can the current user edit rota notes for this clinician?
   // Admins/owners can edit anyone's. Users can only edit their own (i.e.,
   // the clinician linked to their auth user).
@@ -471,6 +491,36 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
       <div className="p-6 pb-4">
         {searchJsx}
         {selected && <div className="text-base text-slate-400 mt-3">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>}
+        {selected && (
+          <div className="mt-3">
+            {!calFeed && (
+              <button onClick={fetchCalFeed}
+                className="px-3 py-1.5 rounded-md text-sm font-medium"
+                style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc' }}>
+                Subscribe to this calendar
+              </button>
+            )}
+            {calFeed === 'loading' && <span className="text-sm text-slate-500">Fetching link...</span>}
+            {calFeed === 'denied' && <span className="text-sm text-slate-500">Only the linked user or an admin can fetch this link.</span>}
+            {calFeed && typeof calFeed === 'object' && (
+              <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                <div className="text-sm text-slate-300 mb-1.5">Personal calendar feed - every session with site and times, updates as EMIS data is uploaded.</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <code className="text-[11px] px-2 py-1 rounded-md truncate max-w-full" style={{ background: 'rgba(0,0,0,0.3)', color: '#93c5fd' }}>{calFeed.url}</code>
+                  <button onClick={copyCalFeed} className="px-2.5 py-1 rounded-md text-caption font-semibold"
+                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', color: '#e2e8f0' }}>
+                    {calCopied ? 'Copied' : 'Copy link'}
+                  </button>
+                  <a href={calFeed.webcal} className="px-2.5 py-1 rounded-md text-caption font-semibold"
+                    style={{ background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc' }}>
+                    Open in calendar app
+                  </a>
+                </div>
+                <div className="text-caption text-slate-500 mt-1.5">In Google Calendar: Other calendars, plus, From URL, paste the link. Apple and Outlook: the button above works directly.</div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Today card */}
