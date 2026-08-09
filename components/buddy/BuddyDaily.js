@@ -3,7 +3,7 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent } from '@/lib/data';
 import { getCliniciansForDate } from '@/lib/huddle';
-import { STATUS_TRANSITIONS, applyTransition } from '@/lib/status-transitions';
+import { STATUS_TRANSITIONS, applyTransition, undoTransition, getWindDownAlerts } from '@/lib/status-transitions';
 import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 import BuddyOverrideModal from './BuddyOverrideModal';
@@ -352,6 +352,19 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     return out;
   })();
 
+  // Wind-down ERROR detection: someone marked as LEFT should not be in
+  // EMIS at all. If they are, something has gone wrong - surface it
+  // loudly rather than suppressing it.
+  const windDownAlerts = (canEdit && huddleData) ? getWindDownAlerts(data, huddleData, { getDateKeyForDay }) : [];
+
+  const undoWindDown = (clinicianId) => {
+    if (!canEdit) return;
+    const c = cliniciansList.find((x) => x.id === clinicianId) || (data.clinicians || []).find?.((x) => x.id === clinicianId);
+    const label = c?.windDown?.type === 'sick' ? 'Long-term sick' : 'Has left';
+    if (!window.confirm(`Undo the ${label} status for ${c?.name || 'this clinician'}? The wind-down cover will be removed and they return to normal.`)) return;
+    saveData(undoTransition(data, clinicianId, { by: data?._v4?.userDisplayName || null }));
+  };
+
   // Group this week's presentNoCSV mismatches by clinician; if someone is
   // missing from EMIS on 2+ days AND on every day we have CSV evidence for
   // them, promote them to a suggestion card and drop their daily rows.
@@ -643,7 +656,11 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-slate-200 truncate">{c.name}</span>
-                            {wd && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#64748b25', border:'1px solid #64748b50', color:'#94a3b8'}}>{windDownLabel(wd)}</span>}
+                            {wd && <button
+                              title={canEdit ? 'Click to undo this status' : windDownLabel(wd)}
+                              onClick={canEdit ? (e) => { e.stopPropagation(); undoWindDown(c.id); } : undefined}
+                              className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                              style={{background:'#64748b25', border:'1px solid #64748b50', color:'#94a3b8', cursor: canEdit ? 'pointer' : 'default'}}>{windDownLabel(wd)}</button>}
                             {isOverridden && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>}
                             {hasCsvFlag && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>}
                           </div>
@@ -899,10 +916,27 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             <div className="text-body font-semibold text-hi mb-2">This week&apos;s inconsistencies</div>
             {!huddleData ? (
               <div className="text-meta text-mid">Upload the appointment CSV to check the board against EMIS.</div>
-            ) : (suggestions.length === 0 && singleMismatches.length === 0) ? (
+            ) : (suggestions.length === 0 && singleMismatches.length === 0 && windDownAlerts.length === 0) ? (
               <div className="text-body-sm" style={{ color: '#6ee7b7' }}>✓ No inconsistencies — the board matches EMIS for this week&apos;s editable days.</div>
             ) : (
               <>
+              {windDownAlerts.length > 0 && (
+                <div className="flex flex-col gap-2 mb-2">
+                  {windDownAlerts.map((a) => (
+                    <div key={a.clinicianId} className="px-3 py-2.5 rounded-lg border" style={{ background: '#ef444418', borderColor: '#ef444460' }}>
+                      <div className="text-body-sm font-semibold" style={{ color: '#fca5a5' }}>{a.name} - marked as left, but EMIS still shows sessions</div>
+                      <div className="text-caption mt-0.5 leading-normal text-mid">
+                        Someone who has left should not appear in EMIS at all, yet they have booked sessions on {a.days.join(', ')}. Something has gone wrong - either their EMIS rota was not removed, or the status was set in error.
+                      </div>
+                      <button onClick={() => undoWindDown(a.clinicianId)}
+                        className="mt-2 px-2.5 py-1 rounded-md text-caption font-semibold"
+                        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: '#e2e8f0' }}>
+                        Undo Has left
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               {suggestions.length > 0 && (
                 <div className="flex flex-col gap-2 mb-2">
                   {suggestions.map((g) => (

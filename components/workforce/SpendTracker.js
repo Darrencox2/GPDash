@@ -14,6 +14,7 @@
 import { useMemo, useState } from 'react';
 import { PageHeader, EmptyState } from '@/components/ui';
 import { canEditPracticeData } from '@/lib/permissions';
+import { logEvent } from '@/lib/data';
 import {
   findCandidateExtras, computeMonthlySpend, availableMonths,
   isLocum, SLOT_LABELS,
@@ -50,10 +51,26 @@ export default function SpendTracker({ data, saveData, huddleData }) {
     decisions[cand.key] = {
       verdict, // 'extra' | 'not'
       name: cand.name,
+      slotLabel: cand.slotLabel,
+      date: cand.date,
       by: data?._v4?.userDisplayName || null,
       at: new Date().toISOString(),
     };
-    saveData({ ...data, spendDecisions: decisions });
+    const next = { ...data, spendDecisions: decisions };
+    saveData(logEvent(next, 'settings',
+      `Locum spend: ${cand.name} ${cand.slotLabel.toLowerCase()} session on ${cand.date} marked ${verdict === 'extra' ? 'as a PAID EXTRA' : 'as NOT an extra (e.g. a swap)'}`));
+  };
+
+  // Undo a decision - the candidate returns to the review queue. Audited.
+  const undoDecision = (key) => {
+    if (!canEdit) return;
+    const decisions = { ...(data.spendDecisions || {}) };
+    const dec = decisions[key];
+    if (!dec) return;
+    delete decisions[key];
+    const next = { ...data, spendDecisions: decisions };
+    saveData(logEvent(next, 'settings',
+      `Locum spend: decision UNDONE for ${dec.name || key} (${dec.date || ''} ${dec.slotLabel || ''}) - back in the review queue`));
   };
 
   const setRate = (path, id, value) => {
@@ -67,7 +84,10 @@ export default function SpendTracker({ data, saveData, huddleData }) {
       if (!n) delete next[path][id];
       else next[path][id] = n;
     }
-    saveData({ ...data, spendRates: next });
+    const who = path === 'gpExtraDefault' ? 'practice-wide GP extra default'
+      : `${(clinicians.find((c) => c.id === id) || {}).name || id} (${path === 'locums' ? 'locum' : 'GP extra'})`;
+    saveData(logEvent({ ...data, spendRates: next }, 'settings',
+      `Locum spend: session rate for ${who} set to £${Number(value) || 0}`));
   };
 
   if (!huddleData?.dates?.length) {
@@ -210,6 +230,41 @@ export default function SpendTracker({ data, saveData, huddleData }) {
           </div>
         )}
       </div>
+
+      {/* Recent decisions - undo lives here so errors are recoverable */}
+      {(() => {
+        const recent = Object.entries(data?.spendDecisions || {})
+          .map(([key, d]) => ({ key, ...d }))
+          .sort((a, b) => (a.at < b.at ? 1 : -1))
+          .slice(0, 12);
+        if (!recent.length) return null;
+        return (
+          <div className="rounded-xl overflow-hidden" style={{ background: 'var(--g-panel)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <span className="text-sm font-semibold text-slate-200">Recent decisions</span>
+              <span className="text-xs text-slate-500">undo returns a session to the review queue</span>
+            </div>
+            {recent.map((d) => (
+              <div key={d.key} className="px-4 py-2 flex items-center gap-3 text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <span className="flex-1 text-slate-300 truncate">
+                  {d.name || d.key} - {d.date || ''} {String(d.slotLabel || '').toLowerCase()}
+                </span>
+                <span className="text-xs font-semibold" style={{ color: d.verdict === 'extra' ? '#fbbf24' : '#94a3b8' }}>
+                  {d.verdict === 'extra' ? 'Paid extra' : 'Not an extra'}
+                </span>
+                {d.by && <span className="text-[11px] text-slate-600">by {d.by}</span>}
+                {canEdit && (
+                  <button onClick={() => undoDecision(d.key)}
+                    className="px-2 py-1 rounded-md text-[11px] font-semibold"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8' }}>
+                    Undo
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Month detail */}
       {spend && (spend.locumLines.length > 0 || spend.extraLines.length > 0) && (

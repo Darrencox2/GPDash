@@ -18,7 +18,7 @@
 import { Suspense, lazy } from 'react';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DAYS, getWeekStart, getActiveWeekStart, getCurrentDay, generateBuddyAllocations, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus } from '@/lib/data';
+import { DAYS, getWeekStart, getActiveWeekStart, getCurrentDay, generateBuddyAllocations, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus, logEvent } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { sweepWindDowns } from '@/lib/status-transitions';
 import { ToastProvider, useToast, PageSkeleton, confirmDialog } from '@/components/ui';
@@ -706,7 +706,11 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     try {
       const res = sweepWindDowns(data, huddleData, { getDateKeyForDay });
       if (res.changed) {
-        saveData(res.data, false);
+        // Audit every automatic change - the sweep acts on its own, so a
+        // paper trail matters even more than for manual actions.
+        let swept = res.data;
+        res.events.forEach((msg) => { swept = logEvent(swept, 'staff', `Automatic: ${msg}`); });
+        saveData(swept, false);
         res.events.forEach((msg) => toast(msg, 'info', 6000));
       }
     } catch (e) { console.error('[gpdash] wind-down sweep failed:', e?.message); }
