@@ -3,6 +3,7 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence } from '@/lib/data';
 import { getCliniciansForDate, parseHuddleDateStr } from '@/lib/huddle';
+import { getEffectivePattern, patternDayLabel } from '@/lib/session-patterns';
 import { STATUS_TRANSITIONS, applyTransition, undoTransition, adjustTransition, getWindDownAlerts } from '@/lib/status-transitions';
 import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
@@ -375,6 +376,19 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   // The system works out which day it is by scanning the last 28 days of
   // CSV history: 2+ occurrences of sessions on that weekday, while the
   // rota says not working, earns a suggestion to add the working day.
+  // Session pattern labels for the viewed day (shared engine - same
+  // source as the working days grid and locum spend).
+  const dayPatternLabels = useMemo(() => {
+    if (!huddleData) return {};
+    const out = {};
+    for (const c of cliniciansList) {
+      const eff = getEffectivePattern(huddleData, c, data?.huddleSettings || {});
+      out[c.id] = patternDayLabel(eff[selectedDay]);
+    }
+    return out;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [huddleData, cliniciansList, data?.huddleSettings?.sessionPatternOverrides, selectedDay]);
+
   const rotaSuggestions = useMemo(() => {
     if (!canEdit || !huddleData?.dates?.length) return [];
     const ignores = data?.huddleSettings?.rotaSuggestionIgnores || {};
@@ -734,6 +748,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-slate-200 truncate">{c.name}</span>
                             {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'#7dd3fc'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
+                            {dayPatternLabels[c.id] && dayPatternLabels[c.id] !== 'Not in' && <span className="flex-shrink-0 text-[10px]" style={{color:'#64748b'}}>{dayPatternLabels[c.id]}</span>}
                             {wd && <span className="relative flex-shrink-0">
                               <button
                               title={canEdit ? 'Click to adjust or undo this status' : windDownLabel(wd)}
