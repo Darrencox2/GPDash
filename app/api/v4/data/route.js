@@ -13,6 +13,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { loadPracticeData, loadBuddyAllocations, adaptToV3Shape } from '@/lib/v4-data';
 import { requireUuid } from '@/lib/api-helpers';
+import { trimHuddleWindow } from '@/lib/huddle-trim';
 
 export const dynamic = 'force-dynamic';
 
@@ -439,7 +440,13 @@ export async function POST(request) {
   // CSV uploads + auto-detected staff. The component sends the full
   // merged CSV data structure. We just upsert the row.
   if (newData.huddleCsvData) {
-    const csvChanged = JSON.stringify(newData.huddleCsvData) !== JSON.stringify(oldData.huddleCsvData);
+    // Server-side window enforcement (see lib/huddle-trim.js): trim BEFORE
+    // both the change-comparison and the upsert. A stale session re-sending
+    // an oversized blob now trims to the same content as what is stored, so
+    // the comparison sees "unchanged" and the save becomes a no-op instead
+    // of a clobber + phantom csv_uploads audit row.
+    const incomingCsv = trimHuddleWindow(newData.huddleCsvData);
+    const csvChanged = JSON.stringify(incomingCsv) !== JSON.stringify(trimHuddleWindow(oldData.huddleCsvData));
     if (csvChanged) {
       // Audit trail: insert csv_uploads row
       ops.push(
@@ -454,7 +461,7 @@ export async function POST(request) {
           // Then upsert the parsed data
           return supabase.from('huddle_csv_data').upsert({
             practice_id: practiceId,
-            data: newData.huddleCsvData,
+            data: incomingCsv,
             upload_id: upload?.id || null,
           });
         })
