@@ -17,7 +17,7 @@ import { canEditPracticeData } from '@/lib/permissions';
 import { logEvent } from '@/lib/data';
 import {
   findCandidateExtras, computeMonthlySpend, availableMonths,
-  isLocum, SLOT_LABELS, currentRate, withRateStep, findUnclassifiedNames,
+  isLocum, SLOT_LABELS, currentRate, withRateStep, findUnclassifiedNames, describeRateHistory,
 } from '@/lib/spend';
 
 const gbp = (n) => `\u00a3${(Number(n) || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 })}`;
@@ -87,6 +87,26 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
     const next = { ...data, spendDecisions: decisions };
     saveData(logEvent(next, 'settings',
       `Locum spend: ${cand.name} ${cand.slotLabel.toLowerCase()} session on ${cand.date} marked ${verdict === 'extra' ? 'as a PAID EXTRA' : 'as NOT an extra (e.g. a swap)'}`));
+  };
+
+  // Bulk action: mark every likely-swap candidate as not-an-extra in one
+  // go. Each decision is stored individually (so each is individually
+  // undoable from Recent decisions) but the audit log gets ONE summary
+  // entry - dozens of identical lines would drown the 500-entry log.
+  const clearLikelySwaps = () => {
+    if (!canEdit) return;
+    const swaps = candidates.filter((c) => c.likelySwap);
+    if (!swaps.length) return;
+    if (!window.confirm(`Mark all ${swaps.length} likely swaps as not extras? Each can still be undone individually afterwards.`)) return;
+    const decisions = { ...(data.spendDecisions || {}) };
+    const at = new Date().toISOString();
+    const by = data?._v4?.userDisplayName || null;
+    swaps.forEach((c) => {
+      decisions[c.key] = { verdict: 'not', name: c.name, slotLabel: c.slotLabel, date: c.date, by, at, bulk: true };
+    });
+    const next = { ...data, spendDecisions: decisions };
+    saveData(logEvent(next, 'settings',
+      `Locum spend: ${swaps.length} likely swaps marked as not extras in bulk (${[...new Set(swaps.map((c) => c.name))].slice(0, 6).join(', ')}${new Set(swaps.map((c) => c.name)).size > 6 ? ' and others' : ''})`));
   };
 
   // Undo a decision - the candidate returns to the review queue. Audited.
@@ -181,7 +201,12 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
             {locums.length === 0 && <div className="text-xs text-slate-600">No locums on the staff register (role containing Locum).</div>}
             {locums.map((lc) => (
               <div key={lc.id} className="flex items-center gap-3">
-                <span className="text-sm text-slate-300 flex-1 truncate">{lc.name}</span>
+                <span className="text-sm text-slate-300 flex-1 truncate" title={describeRateHistory(rates.locums?.[lc.id]).join('\n') || 'No rate set yet'}>
+                  {lc.name}
+                  {Array.isArray(rates.locums?.[lc.id]) && rates.locums[lc.id].length > 1 && (
+                    <span className="ml-1.5 text-[10px] text-slate-500">({rates.locums[lc.id].length} rate changes - hover)</span>
+                  )}
+                </span>
                 <span className="text-xs text-slate-500">\u00a3</span>
                 <input type="number" min="0" defaultValue={currentRate(rates.locums?.[lc.id]) || ''}
                   onBlur={(e) => setRate('locums', lc.id, e.target.value)}
@@ -193,7 +218,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           <div className="space-y-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="text-xs text-slate-500">GP extra sessions - default rate (per session)</div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-300 flex-1">Practice-wide default</span>
+              <span className="text-sm text-slate-300 flex-1" title={describeRateHistory(rates.gpExtraDefault).join('\n') || 'No rate set yet'}>Practice-wide default</span>
               <span className="text-xs text-slate-500">\u00a3</span>
               <input type="number" min="0" defaultValue={currentRate(rates.gpExtraDefault) || ''}
                 onBlur={(e) => setRate('gpExtraDefault', null, e.target.value)}
@@ -203,7 +228,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
             <div className="text-[11px] text-slate-600">Used for every confirmed extra unless a GP has their own rate below. Rate changes apply from today - earlier months keep the rate that was in force at the time.</div>
             {clinicians.filter((c) => currentRate((rates.gpExtra || {})[c.id]) || spend?.extraLines.some((l) => l.id === c.id)).map((gp) => (
               <div key={gp.id} className="flex items-center gap-3">
-                <span className="text-sm text-slate-300 flex-1 truncate">{gp.name}</span>
+                <span className="text-sm text-slate-300 flex-1 truncate" title={describeRateHistory(rates.gpExtra?.[gp.id]).join('\n') || 'Uses the practice-wide default'}>{gp.name}</span>
                 <span className="text-xs text-slate-500">\u00a3</span>
                 <input type="number" min="0" defaultValue={currentRate(rates.gpExtra?.[gp.id]) || ''}
                   placeholder="default"
@@ -270,7 +295,16 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           <span className="text-sm font-semibold text-slate-200">Review queue</span>
           <span className="text-xs text-slate-500">sessions outside a GP's usual pattern - confirm or deny each one</span>
           {candidates.length > 0 && (
-            <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f59e0b25', border: '1px solid #f59e0b50', color: '#fbbf24' }}>{candidates.length}</span>
+            <span className="ml-auto flex items-center gap-2">
+              {canEdit && candidates.some((c) => c.likelySwap) && (
+                <button onClick={clearLikelySwaps}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold"
+                  style={{ background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.4)', color: '#60a5fa' }}>
+                  Mark all {candidates.filter((c) => c.likelySwap).length} likely swaps as not extras
+                </button>
+              )}
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f59e0b25', border: '1px solid #f59e0b50', color: '#fbbf24' }}>{candidates.length}</span>
+            </span>
           )}
         </div>
         {candidates.length === 0 ? (
@@ -359,7 +393,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
             {spend.locumLines.length === 0 ? (
               <div className="px-4 py-4 text-sm text-slate-500">No locum sessions this month.</div>
             ) : spend.locumLines.map((l) => (
-              <div key={l.id} className="px-4 py-2.5 flex items-center gap-3 text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div key={`${l.id}-${l.rate}`} className="px-4 py-2.5 flex items-center gap-3 text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <span className="flex-1 text-slate-300 truncate">{l.name}</span>
                 <span className="text-xs text-slate-500">{l.sessions} x {l.rateMissing ? 'no rate set' : gbp(l.rate)}</span>
                 <span className="font-mono-data font-semibold" style={{ color: l.rateMissing ? '#f87171' : '#e2e8f0' }}>{gbp(l.total)}</span>
