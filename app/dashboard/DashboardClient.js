@@ -21,6 +21,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { DAYS, getWeekStart, getActiveWeekStart, getCurrentDay, generateBuddyAllocations, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus, logEvent } from '@/lib/data';
 import { predictDemand } from '@/lib/demandPredictor';
 import { sweepWindDowns } from '@/lib/status-transitions';
+import { regenerateCoverWindow, coverInputsFingerprint } from '@/lib/cover-regen';
 import { ToastProvider, useToast, PageSkeleton, confirmDialog } from '@/components/ui';
 import Sidebar from '@/components/Sidebar';
 import LinkClinicianSuggest from '@/components/LinkClinicianSuggest';
@@ -698,6 +699,39 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   // EMIS now shows with booked sessions are marked back (their absence is
   // truncated). Runs once per load for editors, only when huddle data is
   // present so the EMIS check is meaningful.
+  // ── AUTO cover regeneration ─────────────────────────────────────────
+  // The user should never need the "generate next 4 weeks" button after
+  // routine changes. Watch a fingerprint of every cover input (statuses,
+  // wind-downs, presence overrides, absences, rota, closed days); when it
+  // moves after initial load, regenerate the 4-week window - debounced,
+  // silent save, manual overrides re-applied where still valid.
+  // allocationHistory is excluded from the fingerprint, so regeneration
+  // can never re-trigger itself.
+  const coverFpRef = useRef(null);
+  const coverRegenTimer = useRef(null);
+  useEffect(() => {
+    if (!data) return;
+    const fp = coverInputsFingerprint(data);
+    if (coverFpRef.current === null) { coverFpRef.current = fp; return; } // baseline on load
+    if (fp === coverFpRef.current) return;
+    coverFpRef.current = fp;
+    if (!canEditPracticeData(data)) return;
+    if (coverRegenTimer.current) clearTimeout(coverRegenTimer.current);
+    coverRegenTimer.current = setTimeout(() => {
+      try {
+        const res = regenerateCoverWindow(data);
+        if (res.changed) {
+          saveData(res.data, false);
+          toast('Buddy cover updated for the next 4 weeks', 'info', 3500);
+        }
+      } catch (e) {
+        console.error('[gpdash] auto cover regen failed:', e?.message);
+      }
+    }, 1200);
+    return () => { if (coverRegenTimer.current) clearTimeout(coverRegenTimer.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
   const windDownSweepDone = useRef(false);
   useEffect(() => {
     if (windDownSweepDone.current) return;
