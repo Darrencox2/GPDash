@@ -745,6 +745,15 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
         let swept = res.data;
         res.events.forEach((msg) => { swept = logEvent(swept, 'staff', `Automatic: ${msg}`); });
         saveData(swept, false);
+        // Direct clinician-row writes - the bulk route is insert-only for
+        // clinicians, so status/wind_down changes must land explicitly.
+        try {
+          const sb = supabaseRef.current || (supabaseRef.current = createBrowserClient());
+          (res.dbUpdates || []).forEach((u) => {
+            sb.from('clinicians').update(u.fields).eq('id', u.clinicianId)
+              .then(({ error }) => { if (error) console.error('[gpdash] sweep persist failed:', error.message); });
+          });
+        } catch (e) { console.error('[gpdash] sweep persist error:', e?.message); }
         res.events.forEach((msg) => toast(msg, 'info', 6000));
       }
     } catch (e) { console.error('[gpdash] wind-down sweep failed:', e?.message); }

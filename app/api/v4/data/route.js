@@ -68,7 +68,7 @@ export async function GET(request) {
       .eq('clinicians.practice_id', practiceId)
       .is('effective_to', null),
     supabase.from('absences')
-      .select('id, clinician_id, start_date, end_date, reason, notes, clinicians!inner(practice_id)')
+      .select('id, clinician_id, start_date, end_date, reason, notes, source, session, clinicians!inner(practice_id)')
       .eq('clinicians.practice_id', practiceId),
     supabase.from('practice_settings')
       .select('huddle_settings, buddy_settings, room_allocation, closed_days, teamnet_url, extras, demand_settings')
@@ -558,13 +558,15 @@ export async function POST(request) {
           end_date: newA.endDate,
           reason: 'other',
           notes: newA.reason || null,
+          source: newA.source || null,
+          session: newA.session || null,
         }));
-      } else if (oldA.endDate !== newA.endDate || (oldA.reason || '') !== (newA.reason || '')) {
+      } else if (oldA.endDate !== newA.endDate || (oldA.reason || '') !== (newA.reason || '') || (oldA.session || null) !== (newA.session || null) || (oldA.source || null) !== (newA.source || null)) {
         // Match by clinician+startDate; update via the matching v4 row
         // Need to fetch existing absence row id
         ops.push(
           supabase.from('absences')
-            .update({ end_date: newA.endDate, notes: newA.reason || null })
+            .update({ end_date: newA.endDate, notes: newA.reason || null, source: newA.source || null, session: newA.session || null })
             .eq('clinician_id', newA.clinicianId)
             .eq('start_date', newA.startDate)
         );
