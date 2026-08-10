@@ -318,7 +318,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
               color: 'var(--g-text-hi)', margin: 0,
             }}>Working days grid</h2>
             <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.5 }}>
-              Standard AM/PM working pattern per clinician. Click a half to toggle.
+              Standard working pattern per clinician - morning, afternoon and evening sessions. Click a session to toggle.
               Saves as you go.
             </p>
           </div>
@@ -422,7 +422,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                     borderBottom: '1px solid var(--g-border-2)',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-                      <span>AM</span><span>PM</span>
+                      <span>AM</span><span>PM</span><span>Eve</span>
                     </div>
                   </th>
                 ))}

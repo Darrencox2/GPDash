@@ -1031,6 +1031,14 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         <aside className="xl:w-[300px] xl:shrink-0 xl:sticky xl:top-4 space-y-3">
           <div className="rounded-xl p-4 bg-card border border-edge">
             <div className="text-body font-semibold text-hi mb-2">This week&apos;s inconsistencies</div>
+              {data?._v4?.practiceId && (
+                <a href={`/v4/practice/${data._v4.practiceId}`}
+                  className="inline-block mb-2 text-caption font-medium"
+                  style={{ color: '#a5b4fc', textDecoration: 'none' }}
+                  title="Open the working days grid on the practice page - the three session rota that buddy cover runs on">
+                  Edit working days &rarr;
+                </a>
+              )}
               {(() => {
                 const active = cliniciansListWithWindDown;
                 if (!active.length) return null;
