@@ -41,18 +41,28 @@ const ROLE_ORDER = [
   'Medical Student', 'Admin',
 ];
 
+function classifyStaff(role) {
+  const r = String(role || '').toLowerCase();
+  if (/hca|healthcare assistant|phleb/.test(r)) return 'hca';
+  if (/nurse|matron|anp|acp/.test(r)) return 'nursing';
+  if (/gp|doctor|registrar/.test(r)) return 'gp';
+  return 'other';
+}
+
 function sessionsFromPattern(pattern) {
   let n = 0;
   for (const d of DAYS) {
     const row = pattern[d.key] || {};
-    if (row.am === 'in') n++;
-    if (row.pm === 'in') n++;
-    if (row.eve === 'in') n++;
+    for (const k of ['am', 'pm', 'eve']) {
+      if (row[k] === 'in') n += 1;
+      else if (row[k] === 'half') n += 0.5;
+    }
   }
   return n;
 }
 
 export default function WorkingDaysGrid({ practiceId, clinicians, initialPatterns, onClose }) {
+  const [staffFilter, setStaffFilter] = useState('buddy');
   const supabase = createClient();
   const [patterns, setPatterns] = useState(() => {
     // Seed from the server-rendered initialPatterns so the modal isn't
@@ -126,6 +136,11 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
     const roleIdx = Object.fromEntries(ROLE_ORDER.map((r, i) => [r, i]));
     return clinicians
       .filter(c => c.status !== 'left')
+      .filter(c => {
+        if (staffFilter === 'all') return true;
+        if (staffFilter === 'buddy') return !!(c.buddy_cover ?? c.buddyCover);
+        return classifyStaff(c.role) === staffFilter;
+      })
       .slice()
       .sort((a, b) => {
         const ar = roleIdx[a.role] ?? 999;
@@ -133,7 +148,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
         if (ar !== br) return ar - br;
         return (a.name || '').localeCompare(b.name || '');
       });
-  }, [clinicians]);
+  }, [clinicians, staffFilter]);
 
   // Persist a single clinician's pattern. Upsert: if row exists update,
   // otherwise insert with effective_from = today.
@@ -177,10 +192,14 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
     setPatterns(prev => {
       const cur = prev[clinicianId] || { pattern: {} };
       const curDay = cur.pattern[dayKey] || {};
-      const wasOn = curDay[session] === 'in';
+      // Three-state cycle: off -> in -> half -> off. A half session still
+      // counts as working for presence and cover (any-session rule); it
+      // exists so session COUNTS can match contracts (e.g. 5.5 sessions).
+      const curVal = curDay[session] === 'in' ? 'in' : curDay[session] === 'half' ? 'half' : 'off';
+      const nextVal = curVal === 'off' ? 'in' : curVal === 'in' ? 'half' : 'off';
       const nextPattern = {
         ...cur.pattern,
-        [dayKey]: { ...curDay, [session]: wasOn ? 'off' : 'in' },
+        [dayKey]: { ...curDay, [session]: nextVal },
       };
       const next = { ...cur, pattern: nextPattern };
       // Debounce save: 600ms after the last click on this clinician
@@ -317,8 +336,17 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
               fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600,
               color: 'var(--g-text-hi)', margin: 0,
             }}>Working days grid</h2>
+            <select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)}
+              style={{ marginTop: 8, background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--g-text-hi)', borderRadius: 8, padding: '4px 8px', fontSize: 12 }}>
+              <option value="buddy">Buddy cover clinicians</option>
+              <option value="all">All staff</option>
+              <option value="gp">GPs</option>
+              <option value="nursing">Nursing</option>
+              <option value="hca">HCAs</option>
+              <option value="other">Other</option>
+            </select>
             <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.5 }}>
-              Standard working pattern per clinician - morning, afternoon and evening sessions. Click a session to toggle.
+              Standard working pattern per clinician - morning, afternoon and evening sessions. Click a session to cycle off, full, half.
               Saves as you go.
             </p>
           </div>
@@ -461,16 +489,19 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                           <div style={{ display: 'inline-flex', gap: 3 }}>
                             <SessionToggle
                               on={dayPattern.am === 'in'}
+                              half={dayPattern.am === 'half'}
                               onClick={() => toggle(c.id, d.key, 'am')}
                               label={`${d.label} AM`}
                             />
                             <SessionToggle
                               on={dayPattern.pm === 'in'}
+                              half={dayPattern.pm === 'half'}
                               onClick={() => toggle(c.id, d.key, 'pm')}
                               label={`${d.label} PM`}
                             />
                             <SessionToggle
                               on={dayPattern.eve === 'in'}
+                              half={dayPattern.eve === 'half'}
                               onClick={() => toggle(c.id, d.key, 'eve')}
                               label={`${d.label} Evening`}
                             />
@@ -530,23 +561,24 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
 // Clicking flips. We use buttons (not checkboxes) so keyboard tab order
 // is predictable and the visual treatment is consistent with the rest
 // of the app.
-function SessionToggle({ on, onClick, label }) {
+function SessionToggle({ on, half, onClick, label }) {
+  const active = on || half;
   return (
     <button
       type="button"
       onClick={onClick}
       role="switch"
-      aria-checked={on}
+      aria-checked={active}
       aria-label={label}
-      title={label}
+      title={`${label}${half ? ' (half session)' : on ? '' : ' (off)'} - click to cycle off / full / half`}
       style={{
         width: 24, height: 24, padding: 0,
-        background: on ? '#10b981' : 'transparent',
-        border: `1.5px solid ${on ? '#10b981' : 'rgba(255,255,255,0.18)'}`,
+        background: on ? '#10b981' : half ? 'linear-gradient(180deg, #10b981 50%, transparent 50%)' : 'transparent',
+        border: `1.5px solid ${active ? '#10b981' : 'rgba(255,255,255,0.18)'}`,
         borderRadius: 'var(--r-sm)',
         cursor: 'pointer',
         transition: 'background 0.12s, border 0.12s',
-        boxShadow: on ? '0 0 6px rgba(16,185,129,0.4)' : 'none',
+        boxShadow: active ? '0 0 6px rgba(16,185,129,0.4)' : 'none',
       }}
     />
   );

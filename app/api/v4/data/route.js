@@ -255,11 +255,11 @@ export async function POST(request) {
       for (const [longDay, shortDay] of Object.entries(LONG_TO_SHORT_S)) {
         const slots = Array.isArray(days?.[longDay]) ? days[longDay] : [];
         if (!slots.length) continue;
-        pattern[shortDay] = {
-          am: slots.includes('M') ? 'in' : 'off',
-          pm: slots.includes('A') ? 'in' : 'off',
-          eve: slots.includes('E') ? 'in' : 'off',
-        };
+        // Preserve 'half' set in the working days grid: an array write
+        // (binary editors) keeps a slot's existing half status.
+        const oldDetail = oldData.sessionRotaDetail?.[cid]?.[longDay] || {};
+        const keep = (slot, key) => (slots.includes(slot) ? (oldDetail[key] === 'half' ? 'half' : 'in') : 'off');
+        pattern[shortDay] = { am: keep('M', 'am'), pm: keep('A', 'pm'), eve: keep('E', 'eve') };
       }
       if (Object.prototype.hasOwnProperty.call(oldSR, cid)) {
         ops.push(supabase.from('working_patterns').update({ pattern }).eq('clinician_id', cid));
