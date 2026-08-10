@@ -242,7 +242,39 @@ export async function POST(request) {
   //      and the new weeklyRota still has them on Tuesday, don't
   //      overwrite that to {am:'in', pm:'in'} — we'd lose their
   //      half-day pattern. Compare day-sets, not stringified patterns.
-  if (newData.weeklyRota) {
+  // ── Mutation 1b: sessionRota → working_patterns (AUTHORITATIVE) ──
+  // The 3-session model. When the client sends sessionRota, it is the
+  // full truth (M/A/E per weekday per clinician) and Mutation 1's lossy
+  // day-level path is skipped so the two can never fight.
+  if (newData.sessionRota && typeof newData.sessionRota === 'object') {
+    const LONG_TO_SHORT_S = { Monday: 'mon', Tuesday: 'tue', Wednesday: 'wed', Thursday: 'thu', Friday: 'fri' };
+    const oldSR = oldData.sessionRota || {};
+    for (const [cid, days] of Object.entries(newData.sessionRota)) {
+      if (JSON.stringify(days) === JSON.stringify(oldSR[cid])) continue;
+      const pattern = {};
+      for (const [longDay, shortDay] of Object.entries(LONG_TO_SHORT_S)) {
+        const slots = Array.isArray(days?.[longDay]) ? days[longDay] : [];
+        if (!slots.length) continue;
+        pattern[shortDay] = {
+          am: slots.includes('M') ? 'in' : 'off',
+          pm: slots.includes('A') ? 'in' : 'off',
+          eve: slots.includes('E') ? 'in' : 'off',
+        };
+      }
+      if (Object.prototype.hasOwnProperty.call(oldSR, cid)) {
+        ops.push(supabase.from('working_patterns').update({ pattern }).eq('clinician_id', cid));
+      } else {
+        ops.push(supabase.from('working_patterns').insert({
+          clinician_id: cid,
+          effective_from: '1970-01-01',
+          effective_to: null,
+          pattern,
+        }));
+      }
+    }
+  }
+
+  if (newData.weeklyRota && !newData.sessionRota) {
     const newRota = newData.weeklyRota;
     const SHORT_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
     const LONG_TO_SHORT = {

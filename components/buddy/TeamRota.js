@@ -56,18 +56,52 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
   const patterns = useMemo(() => {
     const out = {};
     if (!huddleData) return out;
-    for (const c of buddyCoverClinicians) out[c.id] = getEffectivePattern(huddleData, c, hsPat);
+    for (const c of buddyCoverClinicians) out[c.id] = getEffectivePattern(huddleData, c, hsPat, { data });
     return out;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [huddleData, data?.clinicians, hsPat?.sessionPatternOverrides]);
 
   const SLOT_SHORT = { M: 'M', A: 'A', E: 'E' };
-  const cyclePin = (c, day, slot) => {
-    const overrides = cyclePatternPin(hsPat, c.id, day, slot);
-    const pinNow = overrides?.[c.id]?.[day]?.[slot];
-    const desc = pinNow === 'on' ? 'pinned ON' : pinNow === 'off' ? 'pinned OFF' : 'returned to automatic';
-    saveData(logEvent({ ...data, huddleSettings: { ...hsPat, sessionPatternOverrides: overrides } }, 'staff',
-      `Session pattern for ${c.name}, ${day} ${slot === 'M' ? 'morning' : slot === 'A' ? 'afternoon' : 'evening'}: ${desc}`));
+
+  // The grid EDITS THE ROTA now (unification): a segment click toggles
+  // that session in the authoritative sessionRota, and the day-level
+  // weeklyRota is re-derived in the same save so every legacy reader
+  // stays consistent. Audited.
+  const currentSessions = (cid, day) =>
+    Array.isArray(data?.sessionRota?.[cid]?.[day]) ? data.sessionRota[cid][day]
+      : ensureArray(data.weeklyRota?.[day]).includes(cid) ? ['M', 'A'] : [];
+
+  const saveSessionRota = (nextSR, auditMsg) => {
+    const weeklyRota = { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] };
+    for (const c of ensureArray(data.clinicians)) {
+      for (const day of Object.keys(weeklyRota)) {
+        const slots = Array.isArray(nextSR?.[c.id]?.[day]) ? nextSR[c.id][day]
+          : ensureArray(data.weeklyRota?.[day]).includes(c.id) ? ['M', 'A'] : [];
+        if (slots.length) weeklyRota[day].push(c.id);
+      }
+    }
+    saveData(logEvent({ ...data, sessionRota: { ...(data.sessionRota || {}), ...nextSR }, weeklyRota }, 'staff', auditMsg));
+  };
+
+  const toggleSession = (c, day, slot) => {
+    const cur = currentSessions(c.id, day);
+    const next = cur.includes(slot) ? cur.filter((x) => x !== slot) : [...cur, slot];
+    const slotName = slot === 'M' ? 'morning' : slot === 'A' ? 'afternoon' : 'evening';
+    saveSessionRota(
+      { [c.id]: { ...(data.sessionRota?.[c.id] || {}), [day]: next } },
+      `Working sessions for ${c.name}: ${day} ${slotName} turned ${next.includes(slot) ? 'ON' : 'OFF'}`
+    );
+  };
+
+  const fillFromHistory = () => {
+    if (!huddleData) return;
+    if (!window.confirm('Fill every clinicians working sessions from EMIS history? Days you have edited will be overwritten by what the history shows. This is audited.')) return;
+    const nextSR = {};
+    for (const c of buddyCoverClinicians) {
+      const eff = getEffectivePattern(huddleData, c, hsPat); // pure inference (no data => history speaks)
+      nextSR[c.id] = Object.fromEntries(Object.keys(eff).map((day) => [day, eff[day].slots]));
+    }
+    saveSessionRota(nextSR, 'Working sessions filled from EMIS history for all buddy cover clinicians');
   };
 
   return (
@@ -138,8 +172,9 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
       <div className="card p-5">
         <div className="overflow-x-auto">
           <div className="px-4 pt-3 pb-1 text-xs text-slate-500">
-            Under each working day: M A E session segments, detected automatically from EMIS history and shared with Locum spend.
-            <span style={{ color: '#b45309' }}> Amber outline = uncertain</span> - click a segment to correct it; corrections pin in indigo and are audited.
+            Under each working day: M A E session segments - THE working rota, one source shared by buddy cover, the boards and Locum spend. Click a segment to toggle it.
+            <span style={{ color: '#b45309' }}> Amber outline = EMIS history disagrees or is uncertain</span> - review those first. All changes are audited.
+            <button onClick={fillFromHistory} className="ml-2 px-2 py-0.5 rounded-md text-[11px] font-semibold" style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc' }}>Fill from EMIS history</button>
           </div>
           <table className="w-full">
             <thead><tr className="border-b border-slate-200"><th className="text-left py-2.5 px-4 text-xs font-medium text-slate-500 uppercase tracking-wide">Clinician</th>{DAYS.map(d => <th key={d} className="text-center py-2.5 px-3 text-xs font-medium text-slate-500 uppercase tracking-wide w-20">{d.slice(0, 3)}</th>)}</tr></thead>
@@ -149,19 +184,19 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
                 return (
                   <tr key={c.id} className={`border-b border-slate-100 last:border-0 ${isIncomplete ? 'bg-red-50' : ''}`}>
                     <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="initials-badge neutral">{c.initials}</div><div><div className="text-sm font-medium text-slate-900 flex items-center gap-2">{c.name} {isIncomplete && <span className="text-[10px] font-semibold uppercase text-red-600 px-1.5 py-0.5 bg-red-100 rounded">Set manually</span>}</div><div className="text-xs text-slate-500">{c.role}</div></div></div></td>
-                    {DAYS.map(d => { const w = ensureArray(data.weeklyRota[d]).includes(c.id); return <td key={d} className="text-center py-3 px-3"><button onClick={() => toggleRotaDay(c.id, d)} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors mx-auto text-sm ${w ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{w ? '✓' : '—'}</button>{w && patterns[c.id] && (
+                    {DAYS.map(d => { const w = ensureArray(data.weeklyRota[d]).includes(c.id); return <td key={d} className="text-center py-3 px-3"><button onClick={() => { const cur = currentSessions(c.id, d); saveSessionRota({ [c.id]: { ...(data.sessionRota?.[c.id] || {}), [d]: cur.length ? [] : ['M','A'] } }, `Working day for ${c.name}: ${d} turned ${cur.length ? 'OFF' : 'ON (morning + afternoon)'}`); }} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors mx-auto text-sm ${w ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{w ? '✓' : '—'}</button>{w && patterns[c.id] && (
                       <div className="flex justify-center gap-0.5 mt-1">
                         {SLOTS.map(sl => {
                           const det = patterns[c.id][d]?.detail?.[sl];
                           if (!det) return null;
-                          const uncertain = det.source === 'inferred' && det.confidence === 'uncertain';
+                          const uncertain = det.confidence === 'uncertain' || det.disagrees;
                           const bg = det.on ? (det.source === 'pinned' ? '#6366f1' : '#334155') : 'transparent';
                           const bd = uncertain ? '#f59e0b' : det.on ? (det.source === 'pinned' ? '#818cf8' : '#475569') : '#e2e8f0';
                           const fg = det.on ? '#f8fafc' : '#94a3b8';
                           return (
                             <button key={sl}
-                              onClick={(e) => { e.stopPropagation(); cyclePin(c, d, sl); }}
-                              title={`${d} ${sl === 'M' ? 'morning' : sl === 'A' ? 'afternoon' : 'evening'}: ${det.on ? 'working' : 'not working'}${det.source === 'pinned' ? ' (pinned - click to change)' : uncertain ? ` (auto, UNCERTAIN - seen ${Math.round(det.ratio * 100)}% of ${det.obs} ${d}s - click to correct)` : ` (auto - ${Math.round(det.ratio * 100)}% of ${det.obs} ${d}s)`}`}
+                              onClick={(e) => { e.stopPropagation(); toggleSession(c, d, sl); }}
+                              title={`${d} ${sl === 'M' ? 'morning' : sl === 'A' ? 'afternoon' : 'evening'}: ${det.on ? 'working' : 'not working'}${det.disagrees ? ` - EMIS HISTORY DISAGREES (seen ${Math.round(det.ratio * 100)}% of ${det.obs} ${d}s)` : det.confidence === 'uncertain' ? ` - history uncertain (${Math.round(det.ratio * 100)}% of ${det.obs} ${d}s)` : ''} - click to toggle`}
                               className="w-4 h-4 rounded-[4px] text-[9px] font-bold leading-none"
                               style={{ background: bg, border: `1px solid ${bd}`, color: fg }}>
                               {SLOT_SHORT[sl]}

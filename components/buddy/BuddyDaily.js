@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence } from '@/lib/data';
+import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence, getScheduledSessions } from '@/lib/data';
 import { getCliniciansForDate, parseHuddleDateStr } from '@/lib/huddle';
 import { getEffectivePattern, patternDayLabel } from '@/lib/session-patterns';
 import { STATUS_TRANSITIONS, applyTransition, undoTransition, adjustTransition, getWindDownAlerts } from '@/lib/status-transitions';
@@ -385,7 +385,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     if (!huddleData) return {};
     const out = {};
     for (const c of cliniciansList) {
-      const eff = getEffectivePattern(huddleData, c, data?.huddleSettings || {});
+      const eff = getEffectivePattern(huddleData, c, data?.huddleSettings || {}, { data });
       out[c.id] = patternDayLabel(eff[selectedDay]);
     }
     return out;
@@ -409,7 +409,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     for (const c of cliniciansList) {
       if (c.windDown) continue;
       for (const [dayName, dsList] of Object.entries(byDay)) {
-        if (ensureArray(data.weeklyRota?.[dayName]).includes(c.id)) continue;
+        if (getScheduledSessions(data, c.id, dayName).length) continue;
         if (ignores[`${c.id}-${dayName}`]) continue;
         let hits = 0;
         for (const ds of dsList) {
@@ -425,10 +425,17 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 
   const applyRotaSuggestion = (sug) => {
     if (!canEdit) return;
+    // Sessions from what EMIS actually showed on those days (fallback
+    // morning + afternoon) - written to the authoritative sessionRota,
+    // with the day-level view re-derived in the same save.
+    const c = cliniciansList.find((x) => x.id === sug.clinicianId);
+    const inferred = c && huddleData ? getEffectivePattern(huddleData, c, data?.huddleSettings || {})[sug.dayName]?.slots : null;
+    const slots = inferred?.length ? inferred : ['M', 'A'];
+    const sessionRota = { ...(data.sessionRota || {}), [sug.clinicianId]: { ...(data.sessionRota?.[sug.clinicianId] || {}), [sug.dayName]: slots } };
     const rota = { ...(data.weeklyRota || {}) };
-    rota[sug.dayName] = [...ensureArray(rota[sug.dayName]), sug.clinicianId];
-    saveData(logEvent({ ...data, weeklyRota: rota }, 'staff',
-      `${sug.dayName} added as a working day for ${sug.name} - EMIS showed sessions on ${sug.hits} of the last ${sug.weeks} ${sug.dayName}s`));
+    rota[sug.dayName] = [...new Set([...ensureArray(rota[sug.dayName]), sug.clinicianId])];
+    saveData(logEvent({ ...data, sessionRota, weeklyRota: rota }, 'staff',
+      `${sug.dayName} added as a working day for ${sug.name} (${slots.join('+')}) - EMIS showed sessions on ${sug.hits} of the last ${sug.weeks} ${sug.dayName}s`));
   };
 
   const ignoreRotaSuggestion = (sug) => {
