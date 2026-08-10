@@ -86,9 +86,10 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
     setCalFeed('loading');
     try {
       const res = await fetch(`/api/v4/calendar-token?practice=${encodeURIComponent(practiceId)}&clinician=${encodeURIComponent(selected.id)}`);
-      if (!res.ok) { setCalFeed('denied'); return; }
+      if (res.status === 403) { setCalFeed('denied'); return; }
+      if (!res.ok) { setCalFeed(`error:${res.status}`); return; }
       setCalFeed(await res.json());
-    } catch { setCalFeed('denied'); }
+    } catch { setCalFeed('error:network'); }
   };
   const copyCalFeed = async () => {
     if (!calFeed?.url) return;
@@ -502,6 +503,9 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
             )}
             {calFeed === 'loading' && <span className="text-sm text-slate-500">Fetching link...</span>}
             {calFeed === 'denied' && <span className="text-sm text-slate-500">Only the linked user or an admin can fetch this link.</span>}
+            {typeof calFeed === 'string' && calFeed.startsWith('error:') && (
+              <span className="text-sm" style={{ color: '#fca5a5' }}>Could not fetch the link ({calFeed.slice(6)}). Try again, and tell Darren the number if it persists.</span>
+            )}
             {calFeed && typeof calFeed === 'object' && (
               <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>
                 <div className="text-sm text-slate-300 mb-1.5">Personal calendar feed - every session with site and times, updates as EMIS data is uploaded.</div>

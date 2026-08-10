@@ -14,11 +14,14 @@ export const dynamic = 'force-dynamic';
 export async function GET(request) {
   try {
     const url = new URL(request.url);
-    const practiceId = requireUuid(url.searchParams.get('practice'));
+    // requireUuid returns an ERROR RESPONSE on bad input and null when
+    // valid - assigning its return as the id meant a valid request
+    // always looked parameterless and 400ed. Caught live: the endpoint
+    // had never succeeded for anyone.
+    const practiceId = url.searchParams.get('practice');
     const clinicianId = url.searchParams.get('clinician');
-    if (!practiceId || !clinicianId) {
-      return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
-    }
+    const bad = requireUuid(practiceId, 'practice') || requireUuid(clinicianId, 'clinician');
+    if (bad) return bad;
 
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
