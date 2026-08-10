@@ -738,7 +738,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 const csvHasSession = csvMismatches.absentHasCSV.has(c.id);
                 const hasCsvFlag = csvNoSession || csvHasSession;
                 const wd = windDownFor(c, getDateKey());
-                const halfDay = (() => { const cov = findCoveringAbsence(data, c.id, getDateKey()); return (cov?.session === 'am' || cov?.session === 'pm') ? cov.session : null; })();
+                const cov = findCoveringAbsence(data, c.id, getDateKey());
+                const halfDay = (cov?.session === 'am' || cov?.session === 'pm') ? cov.session : null;
                 const outlineCol = isOverridden ? '#f59e0b' : hasCsvFlag ? '#3b82f6' : null;
                 const cardBg = status === 'present' ? 'rgba(16,185,129,0.12)' : status === 'absent' ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.08)';
                 const cardBorder = status === 'present' ? '#10b98140' : status === 'absent' ? '#ef444440' : '#f59e0b30';
@@ -761,9 +762,13 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-slate-200 truncate">{c.name}</span>
-                            {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'#7dd3fc'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
-                            {dayPatternLabels[c.id] && dayPatternLabels[c.id] !== 'Not in' && <span className="flex-shrink-0 text-[10px]" style={{color:'#64748b'}}>{dayPatternLabels[c.id]}</span>}
-                            {wd && <span className="relative flex-shrink-0">
+                            {isOverridden && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>}
+                            {hasCsvFlag && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>}
+                          </div>
+                          <div className="text-xs text-slate-500 truncate">{c.role}{dayPatternLabels[c.id] && dayPatternLabels[c.id] !== 'Not in' ? ` · ${dayPatternLabels[c.id]}` : ''}</div>
+                          {(wd || halfDay || hasPlanned || lta) && (
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              {wd && <span className="relative flex-shrink-0">
                               <button
                               title={canEdit ? 'Click to adjust or undo this status' : windDownLabel(wd)}
                               onClick={canEdit ? (e) => { e.stopPropagation(); setWdMenuOpen(m => m === c.id ? null : c.id); } : undefined}
@@ -778,10 +783,16 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                                 </span>
                               )}
                             </span>}
-                            {isOverridden && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>}
-                            {hasCsvFlag && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>}
-                          </div>
-                          <div className="text-xs text-slate-500 truncate">{c.role}{hasPlanned ? ` · ${plannedReason}` : ''}{lta ? ' · LTA' : ''}</div>
+                              {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'#7dd3fc'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
+                              {hasPlanned && !wd && (
+                                <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium truncate" style={{background:'#f59e0b1a', border:'1px solid #f59e0b40', color:'#fbbf24', maxWidth: 180}}>
+                                  {plannedReason || 'Leave'}{cov?.endDate && cov.endDate !== getDateKey() ? ` until ${new Date(cov.endDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
+                                </span>
+                              )}
+                              {halfDay && cov?.reason && !hasPlanned && <span className="text-[10px] text-slate-500 truncate">{cov.reason}</span>}
+                              {lta && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#a78bfa1f', border:'1px solid #a78bfa45', color:'#c4b5fd'}}>Long term absence</span>}
+                            </div>
+                          )}
                         </div>
                       </div>
                       {past ? (
