@@ -6,7 +6,7 @@
 //
 // Storage: working_patterns table, one row per clinician with
 // effective_to = null. Each row's `pattern` is a JSONB blob:
-//   { mon: { am: 'in', pm: 'off' }, tue: { am: 'in', pm: 'in' }, ... }
+//   { mon: { am: 'in', pm: 'off', eve: 'off' }, ... } - three sessions (unified rota)
 // Days stored as 3-letter lowercase keys (mon, tue, wed, thu, fri).
 // Saturday/Sunday excluded for now — GP practices don't typically
 // rota out weekends through this system.
@@ -47,6 +47,7 @@ function sessionsFromPattern(pattern) {
     const row = pattern[d.key] || {};
     if (row.am === 'in') n++;
     if (row.pm === 'in') n++;
+    if (row.eve === 'in') n++;
   }
   return n;
 }
@@ -197,7 +198,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
       const cur = prev[clinicianId] || { pattern: {} };
       const nextPattern = {};
       for (const d of DAYS) {
-        nextPattern[d.key] = { am: fill ? 'in' : 'off', pm: fill ? 'in' : 'off' };
+        nextPattern[d.key] = { am: fill ? 'in' : 'off', pm: fill ? 'in' : 'off', eve: fill ? (cur.pattern?.[d.key]?.eve || 'off') : 'off' };
       }
       const next = { ...cur, pattern: nextPattern };
       if (saveTimers.current[clinicianId]) clearTimeout(saveTimers.current[clinicianId]);
@@ -467,6 +468,11 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                               on={dayPattern.pm === 'in'}
                               onClick={() => toggle(c.id, d.key, 'pm')}
                               label={`${d.label} PM`}
+                            />
+                            <SessionToggle
+                              on={dayPattern.eve === 'in'}
+                              onClick={() => toggle(c.id, d.key, 'eve')}
+                              label={`${d.label} Evening`}
                             />
                           </div>
                         </Td>
