@@ -392,8 +392,9 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       .sort((a, b) => b[1] - a[1])
       .slice(0, 14)
       .map(([k, n]) => { const [t, when] = k.split('|'); return `${n}x ${t}${when ? ` (${when})` : ''}`; });
-    const r = ev.currentTarget.getBoundingClientRect();
-    setSlotTip({ x: r.left + r.width / 2, y: r.top, name: m.name, day: m.day, lines });
+    // Anchor to the CURSOR, not the row: these rows span the panel, so
+    // centring on the element put the popup far from the mouse.
+    setSlotTip({ x: ev.clientX, y: ev.clientY - 12, name: m.name, day: m.day, lines });
   };
 
   const cliniciansListWithWindDown = ensureArray(data.clinicians).filter((c) => c.windDown && c.status !== 'left');
