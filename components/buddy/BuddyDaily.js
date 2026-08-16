@@ -2,7 +2,7 @@
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence, getScheduledSessions } from '@/lib/data';
-import { getCliniciansForDate, parseHuddleDateStr } from '@/lib/huddle';
+import { getCliniciansForDate, parseHuddleDateStr, getSlotRowsForClinicianDate } from '@/lib/huddle';
 import { getEffectivePattern, patternDayLabel } from '@/lib/session-patterns';
 import { STATUS_TRANSITIONS, applyTransition, undoTransition, adjustTransition, getWindDownAlerts } from '@/lib/status-transitions';
 import { canEditPracticeData } from '@/lib/permissions';
@@ -371,6 +371,31 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   // Wind-down ERROR detection: someone marked as LEFT should not be in
   // EMIS at all. If they are, something has gone wrong - surface it
   // loudly rather than suppressing it.
+  // Hover detail for mismatch rows: the actual EMIS appointments behind
+  // "marked absent - EMIS has sessions", so a CPD-only day is instantly
+  // distinguishable from real clinical work.
+  const [slotTip, setSlotTip] = useState(null); // { x, y, name, day, lines }
+  const showSlotTip = (ev, m) => {
+    if (!huddleData) return;
+    const dk = getDateKeyForDay(m.day);
+    const csvStr = toHuddleDateStr(new Date(dk + 'T12:00:00'));
+    const c = cliniciansList.find((x) => x.id === m.id);
+    const names = getCliniciansForDate(huddleData, csvStr);
+    const csvName = c ? names.find((n) => matchesStaffMember(n, c)) : null;
+    const rows = csvName ? (getSlotRowsForClinicianDate(huddleData, csvStr, csvName) || []) : [];
+    const agg = {};
+    for (const r of rows) {
+      const key = `${r.slotType || 'Unknown'}|${String(r.time || '').toLowerCase().includes('before') ? 'AM' : String(r.time || '').toLowerCase().includes('after') ? 'PM' : (r.time || '')}`;
+      agg[key] = (agg[key] || 0) + (Number(r.count) || 1);
+    }
+    const lines = Object.entries(agg)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 14)
+      .map(([k, n]) => { const [t, when] = k.split('|'); return `${n}x ${t}${when ? ` (${when})` : ''}`; });
+    const r = ev.currentTarget.getBoundingClientRect();
+    setSlotTip({ x: r.left + r.width / 2, y: r.top, name: m.name, day: m.day, lines });
+  };
+
   const cliniciansListWithWindDown = ensureArray(data.clinicians).filter((c) => c.windDown && c.status !== 'left');
   const windDownAlerts = (canEdit && huddleData) ? getWindDownAlerts(data, huddleData, { getDateKeyForDay }) : [];
 
@@ -1191,7 +1216,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               )}
               <div className="flex flex-col gap-2">
                 {singleMismatches.map((m) => (
-                  <div key={`${m.id}-${m.day}`} className="px-3 py-2.5 rounded-lg bg-tile border" style={{ borderColor: 'rgba(251,191,36,0.35)' }}>
+                  <div key={`${m.id}-${m.day}`} onMouseEnter={(ev) => m.type === 'absentHasCSV' && showSlotTip(ev, m)} onMouseLeave={() => setSlotTip(null)} className="px-3 py-2.5 rounded-lg bg-tile border" style={{ borderColor: 'rgba(251,191,36,0.35)' }}>
                     <div className="flex items-baseline gap-2">
                       <span className="text-body-sm font-semibold text-hi">{m.name}</span>
                       <span className="text-caption text-mid">{m.day}</span>
@@ -1245,6 +1270,16 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 
       <StatusHoverTooltip hovered={hovered} explainStatus={explainStatus} getClinicianById={getClinicianById} />
     </div>
+      {slotTip && (
+        <div className="fixed z-50 pointer-events-none" style={{ left: slotTip.x, top: slotTip.y - 8, transform: 'translate(-50%, -100%)' }}>
+          <div className="rounded-xl p-3 shadow-2xl text-left" style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.16)', minWidth: 210, maxWidth: 280 }}>
+            <div className="text-caption font-semibold text-hi">{slotTip.name} - {slotTip.day}</div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-500 mt-1 mb-0.5">EMIS appointments that day</div>
+            {slotTip.lines.length === 0 && <div className="text-caption text-mid">None found</div>}
+            {slotTip.lines.map((l) => <div key={l} className="text-caption text-slate-300 leading-normal">{l}</div>)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
