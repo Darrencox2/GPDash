@@ -85,20 +85,20 @@ export async function GET(request, ctx) {
     // view actually uses.
     const fromDk = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const toDk   = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    // Allocations live in buddy_allocations (date + whole-entry jsonb) -
+    // this route previously read a nonexistent allocation_history table,
+    // silently getting nothing, so the public board always said
+    // "no allocations yet" regardless of reality.
     const { data: historyRows } = await admin
-      .from('allocation_history')
-      .select('date_key, allocations, day_off_allocations, present_ids')
+      .from('buddy_allocations')
+      .select('date, allocations')
       .eq('practice_id', practice.id)
-      .gte('date_key', fromDk)
-      .lte('date_key', toDk);
+      .gte('date', fromDk)
+      .lte('date', toDk);
 
     const allocationHistory = {};
     for (const row of (historyRows || [])) {
-      allocationHistory[row.date_key] = {
-        allocations: row.allocations || {},
-        dayOffAllocations: row.day_off_allocations || {},
-        presentIds: row.present_ids || [],
-      };
+      allocationHistory[row.date] = row.allocations || {};
     }
 
     // 4. Build the public response. Strip fields the buddy view doesn't

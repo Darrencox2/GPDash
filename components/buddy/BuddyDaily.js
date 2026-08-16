@@ -750,7 +750,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                     onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHovered({ id: c.id, rect: { top: r.top, left: r.left, width: r.width, height: r.height } }); }}
                     onMouseLeave={() => setHovered(h => (h?.id === c.id ? null : h))}
                     onClick={canEdit && !past ? () => togglePresence(c.id, selectedDay) : undefined}
-                    style={{opacity: wd ? 0.55 : 1, background:cardBg, border:`1px solid ${cardBorder}`, cursor: canEdit && !past ? 'pointer' : 'help', ...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}
+                    style={{minHeight: 92, opacity: wd ? 0.55 : 1, background:cardBg, border:`1px solid ${cardBorder}`, cursor: canEdit && !past ? 'pointer' : 'help', ...(outlineCol?{outline:`2px solid ${outlineCol}`,outlineOffset:'-2px'}:{})}}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -766,33 +766,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                             {hasCsvFlag && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>}
                           </div>
                           <div className="text-xs text-slate-500 truncate">{c.role}{dayPatternLabels[c.id] && dayPatternLabels[c.id] !== 'Not in' ? ` · ${dayPatternLabels[c.id]}` : ''}</div>
-                          {(wd || halfDay || hasPlanned || lta) && (
-                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                              {wd && <span className="relative flex-shrink-0">
-                              <button
-                              title={canEdit ? 'Click to adjust or undo this status' : windDownLabel(wd)}
-                              onClick={canEdit ? (e) => { e.stopPropagation(); setWdMenuOpen(m => m === c.id ? null : c.id); } : undefined}
-                              className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                              style={{background:'#64748b25', border:'1px solid #64748b50', color:'#94a3b8', cursor: canEdit ? 'pointer' : 'default'}}>{windDownLabel(wd)}</button>
-                              {wdMenuOpen === c.id && canEdit && (
-                                <span className="absolute left-0 top-full mt-1 z-20 flex flex-col rounded-md overflow-hidden"
-                                  style={{background:'#1e293b', border:'1px solid rgba(255,255,255,0.15)', minWidth:150}}
-                                  onClick={(e) => e.stopPropagation()}>
-                                  <button onClick={() => adjustWindDown(c.id)} className="px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-white/10">Adjust end date</button>
-                                  <button onClick={() => undoWindDown(c.id)} className="px-3 py-1.5 text-left text-[11px] hover:bg-white/10" style={{color:'#fca5a5'}}>Undo status</button>
-                                </span>
-                              )}
-                            </span>}
-                              {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'#7dd3fc'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
-                              {hasPlanned && !wd && (
-                                <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium truncate" style={{background:'#f59e0b1a', border:'1px solid #f59e0b40', color:'#fbbf24', maxWidth: 180}}>
-                                  {plannedReason || 'Leave'}{cov?.endDate && cov.endDate !== getDateKey() ? ` until ${new Date(cov.endDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
-                                </span>
-                              )}
-                              {halfDay && cov?.reason && !hasPlanned && <span className="text-[10px] text-slate-500 truncate">{cov.reason}</span>}
-                              {lta && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#a78bfa1f', border:'1px solid #a78bfa45', color:'#c4b5fd'}}>Long term absence</span>}
-                            </div>
-                          )}
                         </div>
                       </div>
                       {past ? (
@@ -815,6 +788,33 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         </button>
                       )}
                     </div>
+                    {(wd || halfDay || hasPlanned || lta) && (
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                        {wd && <span className="relative flex-shrink-0">
+                        <button
+                        title={canEdit ? 'Click to adjust or undo this status' : windDownLabel(wd)}
+                        onClick={canEdit ? (e) => { e.stopPropagation(); setWdMenuOpen(m => m === c.id ? null : c.id); } : undefined}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                        style={{background:'#64748b25', border:'1px solid #64748b50', color:'#94a3b8', cursor: canEdit ? 'pointer' : 'default'}}>{windDownLabel(wd)}</button>
+                        {wdMenuOpen === c.id && canEdit && (
+                          <span className="absolute left-0 top-full mt-1 z-20 flex flex-col rounded-md overflow-hidden"
+                            style={{background:'#1e293b', border:'1px solid rgba(255,255,255,0.15)', minWidth:150}}
+                            onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => adjustWindDown(c.id)} className="px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-white/10">Adjust end date</button>
+                            <button onClick={() => undoWindDown(c.id)} className="px-3 py-1.5 text-left text-[11px] hover:bg-white/10" style={{color:'#fca5a5'}}>Undo status</button>
+                          </span>
+                        )}
+                      </span>}
+                        {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'#7dd3fc'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
+                        {hasPlanned && !wd && (
+                          <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium truncate" title={`${plannedReason || 'Leave'}${cov?.endDate ? ' until ' + cov.endDate : ''}`} style={{background:'#f59e0b1a', border:'1px solid #f59e0b40', color:'#fbbf24', maxWidth: '100%'}}>
+                            {plannedReason || 'Leave'}{cov?.endDate && cov.endDate !== getDateKey() ? ` until ${new Date(cov.endDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
+                          </span>
+                        )}
+                        {halfDay && cov?.reason && !hasPlanned && <span className="text-[10px] text-slate-500 truncate">{cov.reason}</span>}
+                        {lta && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#a78bfa1f', border:'1px solid #a78bfa45', color:'#c4b5fd'}}>Long term absence</span>}
+                      </div>
+                    )}
                   </div>
                 );
               })}
