@@ -566,6 +566,30 @@ export async function POST(request) {
     // Explicit clinician deletion should use direct supabase delete.
   }
 
+  // ── Mutation 6b: wind-down markers + status flips → clinician rows ──
+  // Targeted single-field updates, gated on actual change. The bulk
+  // clinician path stays insert-only (stale-overwrite protection), but
+  // status transitions must persist server-side: client-direct writes
+  // proved fragile (schema-cache/RLS silences, DB showed zero stored
+  // markers), and every transition already flows through this route.
+  if (Array.isArray(newData.clinicians) && Array.isArray(oldData.clinicians)) {
+    const oldById = Object.fromEntries(oldData.clinicians.map((c) => [c.id, c]));
+    for (const nc of newData.clinicians) {
+      const oc = oldById[nc.id];
+      if (!oc) continue;
+      const fields = {};
+      if (JSON.stringify(nc.windDown || null) !== JSON.stringify(oc.windDown || null)) {
+        fields.wind_down = nc.windDown || null;
+      }
+      if (nc.status && nc.status !== oc.status && ['active', 'left', 'administrative'].includes(nc.status)) {
+        fields.status = nc.status;
+      }
+      if (Object.keys(fields).length) {
+        ops.push(supabase.from('clinicians').update(fields).eq('id', nc.id));
+      }
+    }
+  }
+
   // ─── Mutation 7: plannedAbsences → absences ──────────────────────────
   // v3 stores absences as a flat array; v4 stores them as rows. Diff by
   // (clinicianId, startDate) since v3 doesn't carry stable absence IDs.
