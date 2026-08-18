@@ -83,9 +83,13 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const d = new Date(dateKey + 'T12:00:00');
     const csvDateStr = toHuddleDateStr(d);
     const csvClinicians = getCliniciansForDate(huddleData, csvDateStr);
-    // < 2 (not just 0): a bank-holiday skeleton often has one synthetic
-    // "Unknown" home-visit row - still a closed practice.
-    if (csvClinicians.length < 2) return { presentNoCSV: new Set(), absentHasCSV: new Set() };
+    // Closed-day test on the REGISTER, not on raw count: bank-holiday
+    // skeletons carry synthetic rows ("Unknown", "TRIAGE, TELEPHONE (Dr)")
+    // that defeat any count threshold. If nobody on the actual staff
+    // register has sessions, the practice is shut.
+    if (!csvClinicians.some((n) => cliniciansList.some((c) => matchesStaffMember(n, c)))) {
+      return { presentNoCSV: new Set(), absentHasCSV: new Set() };
+    }
     const presentNoCSV = new Set();
     const absentHasCSV = new Set();
     presentIds.forEach(id => {
@@ -354,10 +358,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       if (isPastDate(dateKey)) return;
       const csvDateStr = toHuddleDateStr(new Date(dateKey + 'T12:00:00'));
       const csvClinicians = getCliniciansForDate(huddleData, csvDateStr);
-      // Bank holiday / closed-day guard: when EMIS shows (almost) nobody
-      // with sessions, the practice is shut - flagging everyone as
-      // "marked present - EMIS has no sessions" is noise, not insight.
-      if (csvClinicians.length < 2) return { presentNoCSV: new Set(), absentHasCSV: new Set() };
+      // Closed-day test on the register (see daily guard).
+      if (!csvClinicians.some((n) => cliniciansList.some((c) => matchesStaffMember(n, c)))) return;
       if (csvClinicians.length === 0) return; // no CSV evidence for that day
       const dayMeta = data?.dailyOverrides?.[`${dateKey}-${day}`]?.meta || {};
       cliniciansList.forEach((c) => {
