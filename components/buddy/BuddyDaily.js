@@ -384,6 +384,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   // distinguishable from real clinical work.
   const [slotTip, setSlotTip] = useState(null); // { x, y, name, day, lines }
   const showSlotTip = (ev, m) => {
+    try {
     if (!huddleData) return;
     const dk = getDateKeyForDay(m.day);
     const csvStr = toHuddleDateStr(new Date(dk + 'T12:00:00'));
@@ -403,6 +404,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     // Anchor to the CURSOR, not the row: these rows span the panel, so
     // centring on the element put the popup far from the mouse.
     setSlotTip({ x: ev.clientX, y: ev.clientY - 12, name: m.name, day: m.day, lines });
+    } catch (e) { console.error('[gpdash] slot tip failed:', e?.message); }
   };
 
   const cliniciansListWithWindDown = ensureArray(data.clinicians).filter((c) => c.windDown && c.status !== 'left');

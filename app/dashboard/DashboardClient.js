@@ -15,7 +15,7 @@
 // Sidebar, same activeSection switching, same components. Components
 // don't know they're talking to Postgres.
 
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, Component } from 'react';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DAYS, getWeekStart, getActiveWeekStart, getCurrentDay, generateBuddyAllocations, getDefaultData, DEFAULT_SETTINGS, guessGroupFromRole, titleCaseName, toLocalIso, computeDayStatus, logEvent } from '@/lib/data';
@@ -28,6 +28,30 @@ import LinkClinicianSuggest from '@/components/LinkClinicianSuggest';
 import { canEditPracticeData, isPlatformAdmin } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 import { DashboardCompletenessStrip } from '@/app/v4/_lib/SectionStatus';
+
+// Shows the REAL error on screen when a section crashes, instead of
+// Next.js's blank "client-side exception" page - a live diagnostic so a
+// staff report can include the actual message.
+class SectionErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error('[gpdash] section crashed:', error, info?.componentStack); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24 }}>
+          <div className="glass" style={{ padding: 20, borderRadius: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#fca5a5' }}>This section hit an error</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Please screenshot this box for Darren, then switch section or reload.</div>
+            <pre style={{ fontSize: 11, color: '#e2e8f0', whiteSpace: 'pre-wrap', marginTop: 10, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 8 }}>{String(this.state.error?.message || this.state.error)}</pre>
+            <button onClick={() => this.setState({ error: null })} style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc', fontSize: 12, cursor: 'pointer' }}>Try again</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Lazy-load section components — they're each 50–200KB with heavy
 // dependencies. Loading them on demand cuts initial bundle dramatically
@@ -811,6 +835,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     <div className="min-h-screen flex" style={{ background: 'var(--app-bg)' }}>
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} data={data} />
       <main className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)' }}>
+        <SectionErrorBoundary key={activeSection}>
         <div className={`${(activeSection === 'huddle-forward' || activeSection === 'workforce-planner') ? '' : 'max-w-6xl mx-auto '}px-4 pb-4 pt-14 lg:p-6 animate-in`}>
           {/* "Is this you?" — auto-suggest matching clinician records when
               the signed-in user has a surname but isn't yet linked. */}
@@ -948,6 +973,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
             >Sign out</button>
           </div>
         </footer>
+      </SectionErrorBoundary>
       </main>
       {searchParams.get('debug') === 'perf' && (
         <Suspense fallback={null}>
