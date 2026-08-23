@@ -9,7 +9,8 @@ import { detectPatterns } from '@/lib/capacity-patterns';
 import ClinicianCapacity from './ClinicianCapacity';
 import SlotFilter from './SlotFilter';
 import { canEditPracticeData } from '@/lib/permissions';
-import { getSiteStaffingForDate, computeTotalEntry, STAFF_GROUP_LABELS } from '@/lib/site-staffing';
+import { getSiteStaffingForDate, computeTotalEntry, STAFF_GROUP_LABELS, STATE_COLOURS } from '@/lib/site-staffing';
+import CapacityWeek from './CapacityWeek';
 import { createClient } from '@/utils/supabase/client';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -253,6 +254,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   // clinician counts for a site only if they have routine slots there
   // that day - "based but out" people appear in the hover instead.
   const [showStaffing, setShowStaffing] = useState(false);
+  const [capView, setCapView] = useState('month'); // 'month' | 'week'
   const [staffingPanelOpen, setStaffingPanelOpen] = useState(false);
   const [staffTip, setStaffTip] = useState(null); // { x, y, entry }
   // Stored INSIDE huddleSettings so it persists: the save route only
@@ -564,6 +566,15 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <span className="text-base font-semibold text-white font-heading">Capacity planning</span>
             <span className="text-xs text-slate-500 ml-2">6-week forward view</span>
             <div className="ml-auto flex items-center gap-2 relative">
+              <div className="flex rounded-md overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.12)'}}>
+                {[['month','6 weeks'],['week','Week detail']].map(([v,label]) => (
+                  <button key={v} onClick={() => setCapView(v)}
+                    className="px-2 py-1 text-[10px] font-semibold"
+                    style={{background: capView===v ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', color: capView===v ? '#a5b4fc' : '#94a3b8', border:'none', cursor:'pointer'}}>
+                    {label}
+                  </button>
+                ))}
+              </div>
               {sites.length > 0 && (
                 <button onClick={() => setShowStaffing(v => !v)}
                   title="Show or hide per-site clinician staffing in each day"
@@ -659,6 +670,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             </div>
           </div>
 
+          {capView === 'month' && (<>
           {/* Column header strip */}
           {/* The day columns get an "Urgent · AM | PM" annotation so it's
               clear at a glance that the per-day numbers are urgent-slot
@@ -771,27 +783,49 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     {showStaffing && (() => {
                         const st = staffingFor(d.isoKey);
                         if (!st.length) return null;
+                        const tot = st.find((e) => e.isTotal);
+                        const rest = st.filter((e) => !e.isTotal);
+                        const tipOn = (ev, e) => {
+                          const r = ev.currentTarget.getBoundingClientRect();
+                          setStaffTip({ x: r.left + r.width / 2, y: r.top, entry: e });
+                        };
+                        const splitStr = (e) => e.sessions && Object.keys(e.sessions).length > 1
+                          ? ['am','pm','eve'].filter((k) => k in e.sessions).map((k) => e.sessions[k]).join('\u00b7') : null;
                         return (
-                          <div className="flex gap-1 mt-1.5">
-                            {st.map((e) => {
-                              const warn = e.below;
-                              const bg = warn ? 'rgba(245,158,11,0.22)' : e.isTotal ? 'rgba(129,140,248,0.14)' : `${e.site.colour || '#64748b'}26`;
-                              const bd = warn ? '#f59e0b' : e.isTotal ? '#818cf880' : `${e.site.colour || '#64748b'}55`;
-                              const fg = warn ? '#fbbf24' : e.isTotal ? '#a5b4fc' : '#cbd5e1';
+                          <div className="mt-1.5">
+                            {tot && (() => {
+                              const C = STATE_COLOURS[tot.state] || STATE_COLOURS.none;
+                              const short = tot.state === 'short' ? tot.threshold - tot.counted.length : 0;
                               return (
-                                <div key={e.site.name}
-                                  onMouseEnter={(ev) => {
-                                    const r = ev.currentTarget.getBoundingClientRect();
-                                    setStaffTip({ x: r.left + r.width / 2, y: r.top, entry: e });
-                                  }}
-                                  onMouseLeave={() => setStaffTip(null)}
-                                  className="flex-1 text-center rounded-md py-1"
-                                  style={{background:bg, border:`1px solid ${bd}`}}>
-                                  <div className="text-[8px] font-bold uppercase" style={{color:fg, opacity:0.8}}>{e.letter}</div>
-                                  <div className="text-xs font-bold leading-none font-mono-data" style={{color:fg}}>{e.counted.length}</div>
+                                <div onMouseEnter={(ev) => tipOn(ev, tot)} onMouseLeave={() => setStaffTip(null)}
+                                  className="flex items-center px-1.5 py-0.5 rounded-md"
+                                  style={{background: C.bg, border: `1px solid ${C.bd}`, borderLeft: '3px solid #818cf8'}}>
+                                  <span className="text-[9px] font-bold uppercase" style={{color: C.fg, opacity: 0.85}}>All</span>
+                                  <span className="ml-auto text-xs font-bold font-mono-data" style={{color: C.fg}}>
+                                    {tot.counted.length}{short > 0 && <span className="text-[9px]"> ({'\u2212'}{short})</span>}
+                                  </span>
                                 </div>
                               );
-                            })}
+                            })()}
+                            <div className="flex gap-1 mt-1">
+                              {rest.map((e) => {
+                                const C = STATE_COLOURS[e.state] || STATE_COLOURS.none;
+                                const short = e.state === 'short' && e.threshold != null ? e.threshold - e.worstCount : 0;
+                                const split = splitStr(e);
+                                return (
+                                  <div key={e.site.name}
+                                    onMouseEnter={(ev) => tipOn(ev, e)}
+                                    onMouseLeave={() => setStaffTip(null)}
+                                    className="flex-1 text-center rounded-md py-1"
+                                    style={{background: C.bg, border: `1px solid ${C.bd}`, borderLeft: `3px solid ${e.site.colour || '#64748b'}`}}>
+                                    <div className="text-xs font-bold leading-none font-mono-data" style={{color: C.fg}}>
+                                      {e.counted.length}{short > 0 && <span className="text-[9px]"> {'\u2212'}{short}</span>}
+                                    </div>
+                                    <div className="text-[8px] font-mono-data mt-0.5" style={{color: C.fg, opacity: 0.75}}>{split || '\u00a0'}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         );
                       })()}
@@ -820,6 +854,11 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               ? <span className="text-slate-400">Routine target: <strong className="text-slate-300">{rTarget}</strong>/wk {canEdit && <button onClick={()=>{const v=prompt('Weekly routine target:',rTarget);if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer ml-1" style={{background:'none',border:'none',fontSize:'inherit'}}>edit</button>}</span>
               : canEdit ? <button onClick={()=>{const v=prompt('Set weekly routine slot target:','200');if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer" style={{background:'none',border:'none',fontSize:'inherit'}}>Set routine target</button> : <span className="text-slate-500 text-xs">Routine target not set</span>}
           </div>
+          </>)}
+          {capView === 'week' && (
+            <CapacityWeek data={data} hs={hs} huddleData={huddleData} sites={sites}
+              capacityStaffing={capacityStaffing} teamClin={teamClin} />
+          )}
         </div>
 
 
@@ -1443,6 +1482,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   ? `${staffTip.entry.counted.length} counted (minimum ${staffTip.entry.threshold})`
                   : `${staffTip.entry.counted.length} counted (no minimum set)`}
             </div>
+            {staffTip.entry.sessions && Object.keys(staffTip.entry.sessions).length > 0 && (
+              <div className="text-caption mt-0.5 text-slate-300">
+                {['am','pm','eve'].filter((k) => k in staffTip.entry.sessions).map((k) => `${k.toUpperCase()} ${staffTip.entry.sessions[k]}`).join(' \u00b7 ')}
+                {staffTip.entry.worstSession && Object.keys(staffTip.entry.sessions).length > 1 ? ` \u2014 colour follows worst (${staffTip.entry.worstSession.toUpperCase()})` : ''}
+              </div>
+            )}
             {staffTip.entry.counted.length > 0 && (
               <div className="mt-2">
                 <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Counted - routine slots here</div>
