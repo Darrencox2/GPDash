@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
-import { loadPracticeData, loadBuddyAllocations, adaptToV3Shape } from '@/lib/v4-data';
+import { loadPracticeData, loadBuddyAllocations, adaptToV3Shape, syncDailyOverrideOps } from '@/lib/v4-data';
 import { requireUuid } from '@/lib/api-helpers';
 import { trimHuddleWindow } from '@/lib/huddle-trim';
 
@@ -421,6 +421,14 @@ export async function POST(request) {
   if (newData.dailyOverrides && JSON.stringify(newData.dailyOverrides) !== JSON.stringify(oldExtras.dailyOverrides || {})) {
     newExtras.dailyOverrides = newData.dailyOverrides;
     extrasChanged = true;
+    // Dual-write: daily_overrides is the system of record from v4.122.0,
+    // and the blob is kept in step for one release as a rollback path.
+    ops.push(...syncDailyOverrideOps(
+      supabase,
+      (v4Data.clinicians || []).map(c => c.id),
+      oldExtras.dailyOverrides || {},
+      newData.dailyOverrides,
+    ));
   }
   if (newData.savedSlotFilters !== undefined && JSON.stringify(newData.savedSlotFilters) !== JSON.stringify(oldExtras.savedSlotFilters || null)) {
     newExtras.savedSlotFilters = newData.savedSlotFilters;
@@ -726,7 +734,18 @@ async function handleFastPath(supabase, practiceId, user, newData) {
     const oldExtras = settingsRow?.extras || {};
     let changed = false;
     const newExtras = { ...oldExtras };
-    if (newData.dailyOverrides !== undefined) { newExtras.dailyOverrides = newData.dailyOverrides; changed = true; }
+    if (newData.dailyOverrides !== undefined) {
+      newExtras.dailyOverrides = newData.dailyOverrides;
+      changed = true;
+      // Same dual-write on the high-frequency path (In/Out toggles land here).
+      const { data: clinRows } = await supabase.from('clinicians').select('id').eq('practice_id', practiceId);
+      ops.push(...syncDailyOverrideOps(
+        supabase,
+        (clinRows || []).map(c => c.id),
+        oldExtras.dailyOverrides || {},
+        newData.dailyOverrides,
+      ));
+    }
     if (newData.lastSyncTime !== undefined) { newExtras.lastTeamnetSync = newData.lastSyncTime; changed = true; }
     if (newData.savedSlotFilters !== undefined) { newExtras.savedSlotFilters = newData.savedSlotFilters; changed = true; }
     if (newData.expectedCapacity !== undefined) { newExtras.expectedCapacity = newData.expectedCapacity; changed = true; }
