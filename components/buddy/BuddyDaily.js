@@ -32,6 +32,10 @@ function BuddyKey() {
   return (
     <div className="flex items-center gap-4 flex-wrap" style={{ fontSize: 12, color: 'var(--meta)' }}>
       <span style={{ fontWeight: 500 }}>Key:</span>
+      <span className="flex items-center gap-1.5">
+        <span style={{ fontWeight: 700, color: 'var(--g-text-hi)', fontFamily: "'Outfit',sans-serif", fontSize: 12 }}>AB</span>
+        <span>in today &mdash; chips are who they cover</span>
+      </span>
       {Object.values(CHIP).map((c) => (
         <span key={c.label} className="flex items-center gap-1.5">
           <span className="rounded font-bold" style={{ background: c.bg, border: `1px solid ${c.bd}`, color: c.fg, fontSize: 11, padding: '1px 5px' }}>AB</span>
@@ -47,6 +51,8 @@ function BuddyKey() {
 }
 
 export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData, setActiveSection, onRevertChange }) {
+  // Which day cards have their leave list expanded (item 7).
+  const [expandedLeave, setExpandedLeave] = useState({});
   const canEdit = canEditPracticeData(data);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
@@ -580,10 +586,27 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold" style={{fontFamily:"'Outfit',sans-serif", color:'var(--g-pill-text)'}}>Buddy Cover</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {data.lastSyncTime ? `TeamNet synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'TeamNet not synced'}
-            {syncStatus && <span className="ml-2 text-emerald-600">{syncStatus}</span>}
-          </p>
+          {(() => {
+            // The board is generated FROM this sync, and a fortnight-old one
+            // rendered identically to a fresh one — a stale sync silently
+            // means a wrong board. Amber with the age past 24h.
+            const ageH = data.lastSyncTime ? (Date.now() - new Date(data.lastSyncTime).getTime()) / 3600000 : null;
+            const stale = ageH != null && ageH > 24;
+            const label = data.lastSyncTime
+              ? (stale
+                  ? `TeamNet synced ${Math.floor(ageH / 24)} day${Math.floor(ageH / 24) === 1 ? '' : 's'} ago`
+                  : `TeamNet synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`)
+              : 'TeamNet not synced';
+            return (
+              <p className="text-sm mt-0.5" style={{ color: stale ? '#fbbf24' : 'var(--meta)' }}>
+                {stale && <span aria-hidden="true">&#9888; </span>}{label}
+                {stale && helpers?.syncTeamNet && (
+                  <button onClick={() => helpers.syncTeamNet()} className="ml-2 underline" style={{ color: '#fbbf24' }}>sync now</button>
+                )}
+                {syncStatus && <span className="ml-2 text-emerald-600">{syncStatus}</span>}
+              </p>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Link to the standing working pattern editor. Lives in
@@ -613,7 +636,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             History
           </button>
           {canEdit && (
-          <button onClick={handleCopyWeek} className="px-3 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5" style={{background:"rgba(16,185,129,0.6)",border:"1px solid rgba(16,185,129,0.3)"}}>Copy Week</button>
+          <button onClick={handleCopyWeek} className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5" style={{background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.45)",color:"var(--link)"}}>Copy Week</button>
           )}
           {canEdit && (isGenerating ? (
             <div className="flex items-center gap-2">
@@ -682,18 +705,30 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       )}
 
       {/* ═══ WEEK STRIP ═══ */}
+      {(() => {
+        // Uniform-state roll-up: when every OPEN day is generated ("Ready"),
+        // four identical pills say what one line can. Per-day pills return
+        // the moment any day differs — state only shows when it discriminates.
+        const openDays = DAYS.filter(d => !isClosedDay(getDateKeyForDay(d)));
+        const readyDays = openDays.filter(d => !!data?.allocationHistory?.[getDateKeyForDay(d)]);
+        const allReady = openDays.length > 0 && readyDays.length === openDays.length;
+        const allReadyCount = allReady ? openDays.length : 0;
+        return (
       <div className="rounded-xl overflow-hidden" style={{background:'var(--g-panel-2)',border:'1px solid var(--g-border)'}}>
-        <div className="flex items-center justify-between px-4 py-2.5" style={{background:'var(--g-panel-2)',borderBottom:'1px solid var(--g-tile)'}}>
-          <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
-          <div className="text-sm font-semibold text-white">{formatWeekRange(selectedWeek)}</div>
-          <div className="flex items-center gap-2">
-            {selectedWeek.getTime() !== getActiveWeekStart().getTime() && (
-              <button onClick={() => { setSelectedWeek(getActiveWeekStart()); setSelectedDay(getCurrentDay()); }} className="text-xs text-white/70 hover:text-white font-medium">This week</button>
-            )}
-            <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
-          </div>
+        {/* Arrows used to sit at the board's far corners, a full width
+            apart from the date they change. Grouped now, snap-back beside. */}
+        <div className="flex items-center justify-center gap-2.5 px-4 py-2.5 relative" style={{background:'var(--g-panel-2)',borderBottom:'1px solid var(--g-tile)'}}>
+          <button aria-label="Previous week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
+          <div className="text-sm font-semibold text-white" style={{minWidth:170,textAlign:'center'}}>{formatWeekRange(selectedWeek)}</div>
+          <button aria-label="Next week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
+          {selectedWeek.getTime() !== getActiveWeekStart().getTime() && (
+            <button onClick={() => { setSelectedWeek(getActiveWeekStart()); setSelectedDay(getCurrentDay()); }} className="text-xs font-medium ml-1" style={{color:'var(--link)'}}>This week</button>
+          )}
+          {allReadyCount > 0 && (
+            <span className="absolute right-4 text-xs" style={{color:'#34d399'}}>&#10003; All {allReadyCount} days ready</span>
+          )}
         </div>
-        <div className="overflow-x-auto"><div className="grid grid-cols-5 divide-x divide-white/5 min-w-[600px]">
+        <div className="overflow-x-auto"><div className="flex divide-x divide-white/5 min-w-[600px]">
           {DAYS.map(day => {
             const dk = getDateKeyForDay(day);
             const dt = new Date(dk + 'T12:00:00');
@@ -706,11 +741,21 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             const dayAbs = weekAbsences[day] || [];
 
             return (
-              <button key={day} onClick={() => setSelectedDay(day)} className="text-left transition-all duration-150 flex flex-col" style={{
+              /* A closed day used to take a full fifth of the board to say
+                 one word. It collapses to a labelled rail (still clickable —
+                 selecting it shows the closed card with "Mark as open"), and
+                 the real days share the space it frees. */
+              closed && !isSel ? (
+                <button key={day} onClick={() => setSelectedDay(day)} title={`${day} ${dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'})} — closed`} className="transition-all duration-150 flex items-center justify-center hover:bg-white/5" style={{ flex: '0 0 40px', height: 320, background: 'var(--g-panel-soft)' }}>
+                  <span style={{ writingMode: 'vertical-rl', fontSize: 10, letterSpacing: '0.12em', color: 'var(--meta)', fontFamily: "'Space Mono',monospace", textTransform: 'uppercase' }}>{day.slice(0,3)} · closed</span>
+                </button>
+              ) : (
+              <button key={day} onClick={() => setSelectedDay(day)} className="text-left transition-all duration-150 flex flex-col hover:bg-white/5" style={{
                 background: isSel ? 'rgba(124,58,237,0.15)' : 'var(--g-panel-soft)',
                 borderBottom: isSel ? '4px solid #7c3aed' : todayDate ? '4px solid #6d28d9' : '4px solid transparent',
                 boxShadow: isSel ? 'inset 0 0 0 1px rgba(124,58,237,0.3)' : 'none',
                 height: 320,
+                flex: closed ? '0 0 120px' : '1 1 0',
               }}>
                 {/* Day header */}
                 <div className="px-3 py-2 flex items-center justify-between flex-shrink-0">
@@ -718,10 +763,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                     <div className="text-lg font-bold" style={{color: isSel ? '#a78bfa' : closed ? 'var(--g-text-faint)' : 'var(--g-text-hi)'}}>{day.slice(0, 3)}</div>
                     <div className="text-sm" style={{color: isSel ? '#a78bfa' : 'var(--meta)'}}>{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                   </div>
-                  {closed ? (
-                    <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{background:'rgba(100,116,139,0.15)',color:'var(--g-text-mid)'}}>Closed</span>
-                  ) : has ? (
-                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{background:'rgba(16,185,129,0.15)',color:'#34d399'}}>Ready</span>
+                  {closed ? null : has ? (
+                    allReady ? null : <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{background:'rgba(16,185,129,0.15)',color:'#34d399'}}>Ready</span>
                   ) : (
                     <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{background:'rgba(245,158,11,0.15)',color:'#fbbf24'}}>Pending</span>
                   )}
@@ -740,7 +783,9 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                       {rows.slice(0, 10).map(({ bid, b, t }) => (
                         <div key={bid} className="flex items-center" style={{gap:6}}>
                           <span className="font-bold text-slate-200 flex-shrink-0 text-right" style={{fontFamily:"'Outfit',sans-serif",fontSize:'clamp(11px,1.2vw,14px)',width:28}}>{b.initials}</span>
-                          <svg width="6" height="6" viewBox="0 0 6 6" style={{flexShrink:0,opacity:0.3}}><path d="M1 3h4M3 1l2 2-2 2" style={{stroke:'var(--g-text-mid)'}} strokeWidth="1" fill="none"/></svg>
+                          {/* Was a 6px glyph nobody could read. One word
+                              carries the whole row grammar. */}
+                          <span className="flex-shrink-0" style={{fontSize:9,color:'var(--meta)',fontFamily:"'Space Mono',monospace",letterSpacing:'0.02em'}}>covers</span>
                           <div className="flex gap-1 flex-wrap flex-1 min-w-0">
                             {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} title={`${x.name} — absent`} className="rounded font-bold text-white flex-shrink-0" style={{background:CHIP.absent.bg,border:`1px solid ${CHIP.absent.bd}`,fontSize:'clamp(11px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
                             {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} title={`${x.name} — day off`} className="rounded font-bold flex-shrink-0" style={{background:CHIP.dayOff.bg,border:`1px solid ${CHIP.dayOff.bd}`,color:CHIP.dayOff.fg,fontSize:'clamp(11px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
@@ -753,33 +798,53 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 })()}
 
                 {/* Leave badges — separated */}
-                {dayAbs.length > 0 && !closed && (
+                {dayAbs.length > 0 && !closed && (() => {
+                  const expanded = !!expandedLeave[day];
+                  const shown = expanded ? dayAbs : dayAbs.slice(0, 4);
+                  const hidden = dayAbs.slice(4);
+                  return (
                   <div className="px-2 pb-2 mt-auto flex-shrink-0">
                     <div className="pt-2 flex gap-1.5 flex-wrap" style={{borderTop:'1px solid var(--g-border)'}}>
-                      <span className="text-xs text-slate-400 mr-1" style={{lineHeight:'24px'}}>Leave:</span>
-                      {dayAbs.slice(0, 4).map((a, i) => {
+                      {/* Count up front — "+8" was hiding most of a 35-person
+                          team's list with no way in. */}
+                      <span className="text-xs text-slate-400 mr-1" style={{lineHeight:'24px'}}>On leave ({dayAbs.length}):</span>
+                      {shown.map((a, i) => {
                         const ccStyle = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? {background:'rgba(59,130,246,0.15)',color:'#60a5fa'} : a.reason === 'Training' || a.reason === 'Study' ? {background:'rgba(245,158,11,0.15)',color:'#fbbf24'} : a.reason === 'Sick' ? {background:'rgba(239,68,68,0.15)',color:'#f87171'} : {background:'rgba(100,116,139,0.15)',color:'var(--g-text-mid)'};
                         return <span key={i} className="text-xs font-medium px-1.5 py-0.5 rounded" style={ccStyle} title={`${a.clinician.name} — ${a.reason}`}>{a.clinician.initials}</span>;
                       })}
-                      {dayAbs.length > 4 && <span className="text-xs text-slate-400">+{dayAbs.length - 4}</span>}
+                      {hidden.length > 0 && (
+                        <span
+                          onClick={(ev) => { ev.stopPropagation(); setExpandedLeave((m) => ({ ...m, [day]: !expanded })); }}
+                          title={expanded ? 'Show fewer' : hidden.map((a) => `${a.clinician.name} — ${a.reason}`).join('\n')}
+                          className="text-xs px-1.5 py-0.5 rounded cursor-pointer"
+                          style={{border:'1px dashed var(--g-border-2)', color:'var(--meta)'}}
+                        >{expanded ? 'less' : `+${hidden.length}`} {expanded ? '\u25B4' : '\u25BE'}</span>
+                      )}
                     </div>
                   </div>
-                )}
+                  );
+                })()}
               </button>
+              )
             );
           })}
         </div></div>
-      </div>
 
-      {/* Key for the chips above. Without it the board is a wall of coloured
-          initials that a reader has to already understand. */}
-      <div className="mt-2.5 mb-1">
-        <BuddyKey />
+        {/* Key lives in the strip footer so the detail card can sit
+            directly against the board it explains. */}
+        <div className="px-4 py-2" style={{borderTop:'1px solid var(--g-tile)'}}>
+          <BuddyKey />
+        </div>
       </div>
+        );
+      })()}
 
-      {/* ═══ DAILY DETAIL ═══ */}
+      {/* ═══ DAILY DETAIL ═══
+          The purple top border is the visible thread from the selected day
+          column above (same #7c3aed as its underline) to the card that
+          shows it — a tab and its panel. */}
       {isClosedDay(getDateKey()) ? (
-        <div className="glass rounded-xl p-8 text-center">
+        <div className="glass rounded-xl p-8 text-center" style={{borderTop:'3px solid #7c3aed'}}>
           {/* Was an emoji, beside line icons everywhere else — including the
               identical state on the Today screen one click away. */}
           <div className="mb-3 flex justify-center">
@@ -795,7 +860,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       ) : (
         <>
           {/* Attendance */}
-          <div className="rounded-xl overflow-hidden" className="glass" style={{borderRadius:'var(--r-lg)'}}>
+          <div className="glass overflow-hidden" style={{borderRadius:'var(--r-lg)', borderTop:'3px solid #7c3aed'}}>
             <div className="px-5 py-4 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold text-white">{selectedDay} — Attendance</h2>
@@ -1123,7 +1188,27 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 
       </div>
 
-      {canEdit && (
+      {canEdit && (() => {
+        // When the board matches EMIS — the usual case — a full sticky column
+        // saying so is space spent on nothing (the noticeboard pattern). One
+        // quiet line instead; the full panel returns when something needs
+        // fixing or a wind-down is in progress.
+        const clean = !!huddleData
+          && suggestions.length === 0 && singleMismatches.length === 0
+          && windDownAlerts.length === 0 && rotaSuggestions.length === 0
+          && cliniciansListWithWindDown.length === 0;
+        if (clean) return (
+          <aside className="xl:w-[300px] xl:shrink-0">
+            <div className="rounded-xl px-4 py-2.5 flex items-center gap-2" style={{ border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.05)' }}>
+              <span style={{ color: '#34d399' }}>&#10003;</span>
+              <span className="text-body-sm" style={{ color: 'var(--g-text-hi)' }}>Board matches EMIS</span>
+              {data?._v4?.practiceId && (
+                <a href={`/v4/practice/${data._v4.practiceId}`} className="ml-auto text-caption" style={{ color: '#a5b4fc', textDecoration: 'none' }}>Edit working days &rarr;</a>
+              )}
+            </div>
+          </aside>
+        );
+        return (
         <aside className="xl:w-[300px] xl:shrink-0 xl:sticky xl:top-4 space-y-3">
           <div className="rounded-xl p-4 bg-card border border-edge">
             <div className="text-body font-semibold text-hi mb-2">This week&apos;s inconsistencies</div>
@@ -1325,7 +1410,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             )}
           </div>
         </aside>
-      )}
+        );
+      })()}
       </div>
 
       <StatusHoverTooltip hovered={hovered} explainStatus={explainStatus} getClinicianById={getClinicianById} />
