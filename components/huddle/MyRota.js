@@ -826,5 +826,12 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
   const content = isMobile ? <MobileView /> : <DesktopView />;
 
   if (standalone) return content;
-  return <div className="mx-auto" style={{maxWidth: isMobile ? 480 : 960}}>{content}</div>;
+  return (
+    <div className="mx-auto" style={{ maxWidth: isMobile ? 480 : 960 }}>
+      {/* Screen readers had no page heading here at all, unlike every other
+          section. Visually hidden, so nothing on screen moves. */}
+      <h1 className="sr-only">My rota</h1>
+      {content}
+    </div>
+  );
 }

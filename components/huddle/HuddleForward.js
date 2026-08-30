@@ -583,7 +583,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           {/* Calendar header: title + slot filter cogs */}
           <div className="px-5 py-4 flex items-center gap-2 border-b border-white/10">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            <span className="text-base font-semibold text-white font-heading">Capacity planning</span>
+            {/* h1, not a span: this is the page heading a screen reader
+                announces on arrival. Classes unchanged, so nothing moves. */}
+            <h1 className="text-base font-semibold text-white font-heading">Capacity planning</h1>
             <span className="text-xs text-slate-400 ml-2">6-week forward view</span>
             <div className="ml-auto flex items-center gap-2 relative">
               <div className="flex rounded-md overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.12)'}}>

@@ -57,8 +57,8 @@ import EmisReportCard from '@/components/EmisReportCard';
 import DemandUpload from '@/app/v4/practice/[id]/DemandUpload';
 import QuickSetupTable from '@/app/v4/practice/[id]/QuickSetupTable';
 import { parseHuddleCSV } from '@/lib/huddle';
-import { buildFacts } from '@/lib/workload-report';
 import { guessGroupFromRole, buddyDefaultsForRole, canonicaliseRole } from '@/lib/data';
+import { suggestSlotCategoryWithConfidence, suggestSlotCategory, suggestDuty, computeExpectedUrgentFromCsv, isCliniciansReviewed } from '@/lib/setup-suggestions';
 
 // Steps are declared up here so the progress indicator can render them
 // before the content. `optional: true` means Continue can advance even
@@ -1952,39 +1952,6 @@ function UploadFirstPrompt({ message }) {
 //     medium-confidence routine (could be either depending on practice
 //     conventions). Used in v4.22.3 to drive visual confidence badges
 //     in the wizard so users know which auto-fills to double-check.
-function suggestSlotCategoryWithConfidence(name) {
-  const n = (name || '').toLowerCase();
-  // HIGH-confidence urgent — distinctive keywords with little ambiguity.
-  // Note: "triage" and "call back" are deliberately NOT treated as urgent —
-  // they are usually administrative/triage contacts rather than bookable
-  // urgent appointments, so they default to "other" (uncategorised) and the
-  // practice can opt them in manually if they really use them as urgent.
-  if (/\bsame[\s-]?day\b/.test(n) || /\burgent\b/.test(n) || /\bontd\b/.test(n)
-      || /\bon[\s-]?the[\s-]?day\b/.test(n) || /\bacute\b/.test(n)
-      || /\bemergency\b/.test(n)) {
-    return { category: 'urgent', confidence: 'high' };
-  }
-  // HIGH-confidence routine — explicit "routine" or "pre-book"
-  if (/\broutine\b/.test(n) || /\bpre[\s-]?book\b/.test(n)) {
-    return { category: 'routine', confidence: 'high' };
-  }
-  // MEDIUM-confidence routine — ambiguous "book"/"appt"/"f2f" markers
-  // that ALMOST always mean routine in practice but could conceivably
-  // be tagged on a same-day slot too
-  if (/\bbook\b/.test(n) || /\bappt\b/.test(n) || /\bappointment\b/.test(n)
-      || /\bf2f\b/.test(n) || /\bface[\s-]?to[\s-]?face\b/.test(n)) {
-    return { category: 'routine', confidence: 'medium' };
-  }
-  return null;
-}
-
-function suggestSlotCategory(name) {
-  const r = suggestSlotCategoryWithConfidence(name);
-  return r ? r.category : null;
-}
-function suggestDuty(name) {
-  return /\bduty\b/.test((name || '').toLowerCase());
-}
 
 // ─── Step 3: Slot types ────────────────────────────────────────────────
 // Classify each slot type from the uploaded CSV.
@@ -2013,39 +1980,6 @@ function suggestDuty(name) {
 // uploaded appointment CSV, using the urgent slot types the user just
 // categorised. Returns { Monday: { am, pm }, ... } — a sensible starting
 // point for expected urgent capacity that the practice can then tweak.
-function computeExpectedUrgentFromCsv(parsedCsv, slotFilters) {
-  if (!parsedCsv) return {};
-  const hs = { savedSlotFilters: { urgent: slotFilters?.urgent || {}, routine: slotFilters?.routine || {} } };
-  let facts = [];
-  try { facts = buildFacts(parsedCsv, [], hs).facts || []; } catch { return {}; }
-  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const perDate = {};
-  for (const f of facts) {
-    if (f.category !== 'urgent') continue;
-    const k = `${f.iso}|${f.session}`;
-    if (!perDate[k]) perDate[k] = { dow: f.dow, urgent: 0 };
-    perDate[k].urgent += (f.count || 0);
-  }
-  const agg = {};
-  for (const k in perDate) {
-    const { dow, urgent } = perDate[k];
-    const session = k.split('|')[1];
-    if (dow < 1 || dow > 5) continue;
-    agg[dow] = agg[dow] || { am: { sum: 0, n: 0 }, pm: { sum: 0, n: 0 } };
-    agg[dow][session].sum += urgent;
-    agg[dow][session].n += 1;
-  }
-  const out = {};
-  for (let dow = 1; dow <= 5; dow++) {
-    const a = agg[dow];
-    if (!a) continue;
-    out[DAY_NAMES[dow]] = {
-      am: a.am.n ? Math.round(a.am.sum / a.am.n) : 0,
-      pm: a.pm.n ? Math.round(a.pm.sum / a.pm.n) : 0,
-    };
-  }
-  return out;
-}
 
 // ─── Step 4: Expected urgent capacity ──────────────────────────────────
 // Its own step (was previously tucked under slot types). Lets the practice
@@ -2662,10 +2596,6 @@ function SlotCategoryPicker({ value, onChange }) {
 // "Reviewed" = there are active clinicians and each has a role assigned.
 // Role is the meaningful per-clinician decision on this step (and drives
 // buddy-cover defaults). Used both at load and live as the table is edited.
-function isCliniciansReviewed(list) {
-  const active = (list || []).filter(c => c.status === 'active');
-  return active.length > 0 && active.every(c => c.role && String(c.role).trim());
-}
 
 // Final step: a summary of everything before finishing. Shows each step's
 // status (done / needs attention / skipped) with a jump button so the user
