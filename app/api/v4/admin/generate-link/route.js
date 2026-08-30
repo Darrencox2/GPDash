@@ -21,6 +21,7 @@ import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isEmail, serverError } from '@/lib/api-helpers';
+import { getSiteUrl } from '@/lib/site-url';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -89,7 +90,13 @@ export async function POST(request) {
 
   // generateLink wants the redirect_to to point at our app so the link
   // lands the user back on /v4/dashboard signed in.
-  const origin = request.headers.get('origin')
+  // Origin/Host are client-supplied, and on a per-deployment Vercel URL
+  // they bake a host that stops resolving (DEPLOYMENT_NOT_FOUND) into a
+  // link the user may click much later. getSiteUrl() prefers the stable
+  // NEXT_PUBLIC_SITE_URL; fall back to the request host only when it is
+  // unset (local dev), never the other way round.
+  const origin = getSiteUrl()
+    || request.headers.get('origin')
     || `https://${request.headers.get('host')}`
     || '';
   const { data, error } = await adminClient.auth.admin.generateLink({

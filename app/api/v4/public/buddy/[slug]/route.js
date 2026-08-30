@@ -24,6 +24,29 @@ export const dynamic = 'force-dynamic';
 // through simultaneously without throttling them.
 const RATE_LIMIT = { prefix: 'rl:public-buddy', limit: 120, window: '60 s' };
 
+// The v3 clinician shape carries fields that exist for the AUTHENTICATED
+// dashboard and must never cross an unauthenticated boundary: `notes` is
+// labelled "Internal notes about this clinician" in the admin panel,
+// `windDown` is a long-term-absence / leaving marker, and `linkedUserId`
+// is an internal auth uuid. Allow-list rather than blocklist, so a field
+// added to the v3 shape later cannot leak here by default.
+//
+// The set below is exactly what the public board reads: PublicBuddyView
+// uses id/name/initials/role/canProvideCover, and the two lib/data helpers
+// it calls (computeDayStatus, groupAllocationsByCovering) read
+// buddyCover/status.
+function toPublicClinicians(clinicians) {
+  return (clinicians || []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    initials: c.initials,
+    role: c.role,
+    status: c.status,
+    buddyCover: c.buddyCover,
+    canProvideCover: c.canProvideCover,
+  }));
+}
+
 export async function GET(request, ctx) {
   try {
     const params = await ctx.params;
@@ -41,8 +64,14 @@ export async function GET(request, ctx) {
     if (rl && !rl.allowed) {
       return NextResponse.json({ error: 'Too many requests' }, {
         status: 429,
-        headers: { ...rl.headers, 'Retry-After': String(rl.retryAfterSeconds ?? 60) },
-      }, { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } });
+        headers: {
+          ...rl.headers,
+          'Retry-After': String(rl.retryAfterSeconds ?? 60),
+          // A 429 must never be cached - an edge cache would keep serving
+          // the rejection after the window slid open again.
+          'Cache-Control': 'no-store',
+        },
+      });
     }
 
     const admin = createAdminClient();
@@ -107,7 +136,7 @@ export async function GET(request, ctx) {
       ok: true,
       practiceName: practice.name,
       practiceSlug: practice.slug,
-      clinicians: v3Shape.clinicians,
+      clinicians: toPublicClinicians(v3Shape.clinicians),
       weeklyRota: v3Shape.weeklyRota,
       plannedAbsences: v3Shape.plannedAbsences,
       settings: v3Shape.settings,        // buddy weights

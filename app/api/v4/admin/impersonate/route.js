@@ -39,6 +39,7 @@ import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { requireUuid } from '@/lib/api-helpers';
+import { getSiteUrl } from '@/lib/site-url';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -146,7 +147,13 @@ export async function POST(request) {
   }
 
   // ─── 6. Generate the magic link for the target ───────────────────────
-  const origin = request.headers.get('origin')
+  // Origin/Host are client-supplied, and on a per-deployment Vercel URL
+  // they bake a host that stops resolving (DEPLOYMENT_NOT_FOUND) into a
+  // link the user may click much later. getSiteUrl() prefers the stable
+  // NEXT_PUBLIC_SITE_URL; fall back to the request host only when it is
+  // unset (local dev), never the other way round.
+  const origin = getSiteUrl()
+    || request.headers.get('origin')
     || `https://${request.headers.get('host')}`
     || '';
   const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({

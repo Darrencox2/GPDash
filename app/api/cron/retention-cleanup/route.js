@@ -124,6 +124,14 @@ async function handle(request) {
     );
 
     const admin = createAdminClient();
+    // Without the service-role key every table below throws into its own
+    // catch, and the run would report ok:true / total_deleted:0 - identical
+    // to a healthy run with nothing to delete. Fail loudly instead.
+    if (!admin) {
+      return NextResponse.json({
+        error: 'Service role key not configured - retention cleanup cannot run.',
+      }, { status: 500 });
+    }
     const startTime = Date.now();
     const now = new Date();
     const results = [];
@@ -200,6 +208,11 @@ async function handle(request) {
     }
 
     const durationMs = Date.now() - startTime;
+    // A run where every table errored is a FAILED run, not an empty one.
+    // Reporting ok:true there let retention silently stop for good - the
+    // per-table errors were recorded but nothing read them.
+    const failed = results.filter((r) => r.error);
+    const allFailed = failed.length === results.length && results.length > 0;
 
     // Log the run to platform_audit_events. Even dry runs are logged —
     // the audit trail documents the data minimisation activity for
@@ -209,9 +222,11 @@ async function handle(request) {
         p_action: 'other',
         p_target_user_id: null,
         p_target_email: null,
-        p_description: dryRun
-          ? `Retention cleanup dry run (${totalDeleted === 0 ? 'no rows past retention' : 'would delete rows'})`
-          : `Retention cleanup: deleted ${totalDeleted} rows past retention`,
+        p_description: failed.length
+          ? `Retention cleanup ${allFailed ? 'FAILED' : 'partially failed'}: ${failed.length}/${results.length} tables errored (${failed.map((r) => r.table).join(', ')})`
+          : dryRun
+            ? `Retention cleanup dry run (${totalDeleted === 0 ? 'no rows past retention' : 'would delete rows'})`
+            : `Retention cleanup: deleted ${totalDeleted} rows past retention`,
         p_details: {
           source: authResult.source,
           dry_run: dryRun,
@@ -227,12 +242,13 @@ async function handle(request) {
     }
 
     return NextResponse.json({
-      ok: true,
+      ok: !allFailed,
       dry_run: dryRun,
       duration_ms: durationMs,
+      failed_tables: failed.map((r) => ({ table: r.table, error: r.error })),
       results,
       total_deleted: totalDeleted,
-    });
+    }, { status: allFailed ? 500 : 200 });
   } catch (err) {
     return serverError('Retention cleanup failed', err);
   }

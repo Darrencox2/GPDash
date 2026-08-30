@@ -126,13 +126,28 @@ export async function POST(request) {
     // deletion, since the cascade itself will null out user_id anyway.
     // The worst-case is an email lingering in a denormalised column;
     // we can mop that up via a maintenance task later.
-    try {
-      await admin.from('auth_events').update({ email: null }).eq('user_id', user.id);
-    } catch (e) { console.warn('[account/delete] auth_events.email scrub failed:', e?.message); }
+    // NB: a supabase-js query RESOLVES with { error } rather than throwing,
+    // so the catch alone only ever saw a thrown TypeError - a genuine query
+    // failure passed through unnoticed. Check the returned error too, and
+    // carry the outcome to the caller: erasure that reports success while
+    // an email survives in a denormalised column is the one failure mode
+    // worth telling the user about.
+    const scrubFailures = [];
+    const scrub = async (label, run) => {
+      try {
+        const { error } = await run();
+        if (error) throw error;
+      } catch (e) {
+        console.warn(`[account/delete] ${label} scrub failed:`, e?.message);
+        scrubFailures.push(label);
+      }
+    };
 
-    try {
-      await admin.from('platform_audit_events').update({ target_email: null }).eq('target_user_id', user.id);
-    } catch (e) { console.warn('[account/delete] platform_audit_events.target_email scrub failed:', e?.message); }
+    await scrub('auth_events.email', () =>
+      admin.from('auth_events').update({ email: null }).eq('user_id', user.id));
+
+    await scrub('platform_audit_events.target_email', () =>
+      admin.from('platform_audit_events').update({ target_email: null }).eq('target_user_id', user.id));
 
     // ─── 4. End active impersonation sessions ─────────────────────────
     // Any session where this user is admin OR target gets ended now.
@@ -187,7 +202,17 @@ export async function POST(request) {
     // The session is invalid anyway, but explicit sign-out clears cookies.
     try { await supabase.auth.signOut(); } catch { /* ignore */ }
 
-    return NextResponse.json({ ok: true, redirect: '/v4/goodbye' });
+    // The account itself is gone either way - ok stays true. But name any
+    // column that still holds an identifier so the caller can escalate
+    // rather than assume erasure was complete.
+    return NextResponse.json({
+      ok: true,
+      redirect: '/v4/goodbye',
+      ...(scrubFailures.length ? {
+        pii_scrub_incomplete: scrubFailures,
+        warning: 'Your account was deleted, but an email address may remain in one or more audit tables. Contact security@gpdash.net to have it removed.',
+      } : {}),
+    });
   } catch (err) {
     return serverError('Account deletion failed', err);
   }
