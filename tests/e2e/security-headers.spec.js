@@ -35,10 +35,22 @@ test.describe('security headers', () => {
     const csp = res.headers()['content-security-policy'] || '';
 
     // A dev server compiles with React Refresh, which needs eval(). A
-    // production build must not. Detect which we are talking to by the
-    // dev-only HMR endpoint rather than trusting an env var.
-    const hmr = await request.get('/_next/static/chunks/webpack.js').catch(() => null);
-    const isDevServer = !!hmr && hmr.ok();
+    // production build must not. Detect which we are talking to from the
+    // server itself rather than trusting an env var.
+    //
+    // The original probe was /_next/static/chunks/webpack.js. Next 16 with
+    // Turbopack hashes every chunk name, so that 404s in dev too — the test
+    // silently took the production branch and failed against a dev server.
+    // These two are checked together so one framework change cannot repeat
+    // that: a false negative here inverts the assertion, which is the worst
+    // possible failure mode for this test.
+    const probes = await Promise.all([
+      // Path literally contains "development" — only a dev server serves it.
+      request.get('/_next/static/development/_buildManifest.js').catch(() => null),
+      // Dev-only error overlay endpoint; rejects a bare GET but exists.
+      request.get('/__nextjs_original-stack-frames').catch(() => null),
+    ]);
+    const isDevServer = probes.some((r) => r && r.status() !== 404);
 
     if (isDevServer) {
       expect(csp, "dev needs 'unsafe-eval' or fast refresh dies").toContain("'unsafe-eval'");

@@ -313,7 +313,12 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
       </aside>
 
       {/* Mobile toggle */}
+      {/* The only control on a phone or tablet that opens navigation, and it
+          had no accessible name — a screen reader announced "button". It is
+          also a disclosure, so it reports its state. */}
       <button onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label="Open navigation menu"
+        aria-expanded={sidebarOpen}
         className="fixed top-3 left-3 z-50 lg:hidden bg-slate-900 text-white p-2 rounded-lg shadow-lg"
         style={{ display: sidebarOpen ? 'none' : 'flex' }}>
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
