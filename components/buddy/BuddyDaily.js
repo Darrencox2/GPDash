@@ -780,7 +780,14 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       {/* ═══ DAILY DETAIL ═══ */}
       {isClosedDay(getDateKey()) ? (
         <div className="glass rounded-xl p-8 text-center">
-          <div className="text-2xl mb-2">🏠</div>
+          {/* Was an emoji, beside line icons everywhere else — including the
+              identical state on the Today screen one click away. */}
+          <div className="mb-3 flex justify-center">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              <path d="M9 22V12h6v10" />
+            </svg>
+          </div>
           <div className="text-lg font-medium text-white mb-1" style={{fontFamily:"'Outfit',sans-serif"}}>Practice Closed</div>
           <div className="text-sm text-slate-400">{getClosedReason(getDateKey())}</div>
           {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-400 hover:text-purple-300">Mark as open →</button>}

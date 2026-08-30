@@ -147,6 +147,9 @@ export async function GET(request, ctx) {
       headers: {
         // Brief edge cache — auto-refresh polls every 2 minutes anyway.
         'Cache-Control': 'public, max-age=30, s-maxage=30',
+        // X-RateLimit-* on success as well as on 429. Without these there is
+        // no way to tell from outside whether limiting is live at all.
+        ...(rl?.headers || {}),
       },
     });
   } catch (err) {

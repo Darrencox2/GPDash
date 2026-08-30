@@ -17,6 +17,7 @@ const SOURCE_STYLE = {
   unhandled: { bg: 'rgba(245,158,11,0.14)', bd: 'rgba(245,158,11,0.38)', fg: '#fcd34d', label: 'Unhandled' },
   client:    { bg: 'rgba(148,163,184,0.12)',bd: 'rgba(148,163,184,0.3)', fg: '#94a3b8', label: 'Reported' },
   csp:       { bg: 'rgba(103,232,249,0.12)',bd: 'rgba(103,232,249,0.32)', fg: '#67e8f9', label: 'CSP blocked' },
+  ratelimit: { bg: 'rgba(251,191,36,0.14)', bd: 'rgba(251,191,36,0.34)', fg: '#fcd34d', label: 'Rate limit off' },
 };
 
 function timeAgo(iso) {

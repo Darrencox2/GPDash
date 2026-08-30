@@ -405,6 +405,22 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   );
   const isPracticeClosed = !hasSlots || viewingPrediction?.isBankHoliday || viewingDate.getDay() === 0 || viewingDate.getDay() === 6;
 
+  // A closed day was a dead end: a large empty card and no way onward. Step
+  // forward to the next weekday that is not a bank holiday. Capped at 14 days
+  // so a long shutdown cannot loop, and it lands on a weekday regardless.
+  const jumpToNextOpenDay = () => {
+    const d = new Date(viewingDate);
+    for (let i = 0; i < 14; i++) {
+      d.setDate(d.getDate() + 1);
+      const dow = d.getDay();
+      if (dow === 0 || dow === 6) continue;
+      if (predictDemand(d, null, predictionOptions)?.isBankHoliday) continue;
+      setViewingDate(d);
+      return;
+    }
+    setViewingDate(d);
+  };
+
   const hasUrgentFilter = !!urgentOverrides;
   const hasRoutineFilter = !!routineOverrides;
 
@@ -519,14 +535,21 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           {canEdit && (
             <button onClick={() => fileRef.current?.click()}
               className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
-              style={{ background: isUploadedToday ? 'rgba(16,185,129,0.92)' : 'rgba(239,68,68,0.88)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}
+              /* Not red. Red is the delete colour everywhere else in the app,
+                 and this is a routine upload — it was the single loudest
+                 element on the screen while the genuinely irreversible
+                 controls were quieter. Amber when action is due (no CSV
+                 today), green once done. */
+              style={{ background: isUploadedToday ? 'rgba(16,185,129,0.92)' : 'rgba(180,83,9,0.95)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.35)'}` }}
               title={data?.huddleCsvUploadedAt ? `Uploaded ${new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : 'No CSV uploaded'}>
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
               <span className="hidden sm:inline">{isUploadedToday ? 'CSV uploaded' : 'Upload CSV'}</span>
             </button>
           )}
-          <button onClick={() => setIsFullscreen(true)} className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
-            style={{ background: 'rgba(124,58,237,0.92)', border: '1px solid rgba(124,58,237,0.3)' }}>
+          {/* Secondary: two solid CTAs side by side meant neither led. This is
+              a view switch, not the primary action on the screen. */}
+          <button onClick={() => setIsFullscreen(true)} className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium transition-colors"
+            style={{ background: 'rgba(124,58,237,0.16)', border: '1px solid rgba(124,58,237,0.45)', color: '#c4b5fd' }}>
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
             <span className="hidden sm:inline">Huddle board</span>
           </button>
@@ -566,6 +589,21 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             <h2 className="font-heading text-xl font-medium text-slate-300 mb-2">Practice closed</h2>
             <p className="text-sm text-slate-400">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             {viewingPrediction?.isBankHoliday && <span className="inline-block mt-3 text-xs font-medium px-3 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--c-amber)', border: '1px solid rgba(245,158,11,0.1)' }}>Bank Holiday</span>}
+            {/* A closed day used to be a dead end — a large empty card with
+                nothing to do. Anyone landing here on a Sunday wants the next
+                day the practice is actually open. */}
+            {(
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={jumpToNextOpenDay}
+                  className="text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--link)' }}
+                >
+                  Go to the next open day &rarr;
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : (
