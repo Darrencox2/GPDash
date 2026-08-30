@@ -88,6 +88,28 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
       localStorage.setItem('gpdash-theme', next);
     } catch (e) {}
   };
+  // Reader scale. Same shape as the theme toggle above: the attribute is
+  // applied pre-paint by the root layout script, so this only reads the
+  // current value on mount and writes on change. Stored per browser, so one
+  // person can run the app larger without changing it for anyone else.
+  const ZOOMS = [
+    { id: 'compact', label: 'Compact', hint: 'Smaller text and controls' },
+    { id: 'default', label: 'Default', hint: 'The standard size' },
+    { id: 'large',   label: 'Large',   hint: 'Larger text and controls' },
+  ];
+  const [zoom, setZoom] = useState('default');
+  useEffect(() => {
+    const z = document.documentElement.getAttribute('data-zoom');
+    setZoom(z === 'compact' || z === 'large' ? z : 'default');
+  }, []);
+  const applyZoom = (next) => {
+    setZoom(next);
+    try {
+      document.documentElement.setAttribute('data-zoom', next);
+      localStorage.setItem('gpdash-zoom', next);
+    } catch (e) {}
+  };
+
   const router = useRouter();
   const practiceSlug = data?._v4?.practiceSlug;
   const practiceName = data?._v4?.practiceName || null;
@@ -300,6 +322,56 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               )}
               {sidebarOpen && <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
             </button>
+
+            {/* Reader scale, next to the theme toggle because it is the same
+                kind of setting: a personal display preference, not practice
+                data. Three steps rather than a slider — enough to matter,
+                few enough to choose without thinking. */}
+            {sidebarOpen ? (
+              <div className="mt-1" role="group" aria-label="Text size">
+                <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)' }}>
+                  {ZOOMS.map((z) => {
+                    const active = zoom === z.id;
+                    return (
+                      <button
+                        key={z.id}
+                        onClick={() => applyZoom(z.id)}
+                        title={z.hint}
+                        aria-pressed={active}
+                        className="flex-1 rounded-md py-1 transition-colors"
+                        style={{
+                          background: active ? 'var(--accent-soft)' : 'transparent',
+                          color: active ? 'var(--accent-text)' : 'var(--text-3)',
+                          border: active ? '1px solid var(--accent)' : '1px solid transparent',
+                          // The button's own size previews what it does. A
+                          // wider spread than the actual 1.0/1.25/1.45 steps,
+                          // because at this size a 2px difference does not
+                          // read as a scale.
+                          fontSize: z.id === 'compact' ? 10 : z.id === 'default' ? 14 : 18,
+                          fontWeight: active ? 600 : 500,
+                          lineHeight: 1.2,
+                        }}
+                      >A</button>
+                    );
+                  })}
+                </div>
+                <div className="text-center mt-1" style={{ fontSize: 11, color: 'var(--meta)' }}>
+                  {ZOOMS.find((z) => z.id === zoom)?.label} text
+                </div>
+              </div>
+            ) : (
+              // Collapsed rail: one button that cycles, since three will not fit.
+              <button
+                onClick={() => applyZoom(ZOOMS[(ZOOMS.findIndex((z) => z.id === zoom) + 1) % ZOOMS.length].id)}
+                title={`Text size: ${ZOOMS.find((z) => z.id === zoom)?.label} — click to change`}
+                aria-label={`Text size: ${ZOOMS.find((z) => z.id === zoom)?.label}. Click to change.`}
+                className="w-full flex items-center justify-center py-2 mt-1 rounded-lg transition-colors hover:bg-white/5"
+                style={{ color: 'var(--text-3)' }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 700 }}>A</span>
+                <span style={{ fontSize: 15, fontWeight: 700, marginLeft: 1 }}>A</span>
+              </button>
+            )}
           </div>
 
           {/* Collapse toggle */}

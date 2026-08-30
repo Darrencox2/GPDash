@@ -14,19 +14,42 @@
 @layer base {
   html {
     scrollbar-gutter: stable;
-    /* Site-wide 125% scale. The app mixes rem-based Tailwind text classes
-       with ~1000 inline pixel font sizes, so a root font-size bump would
-       only scale half of them. zoom scales everything uniformly — text,
-       spacing, icons — keeping every layout proportion intact. */
+    /* Site-wide scale. The app mixes rem-based Tailwind text classes with
+       ~1000 inline pixel font sizes, so a root font-size bump would only
+       scale half of them. zoom scales everything uniformly — text, spacing,
+       icons — keeping every layout proportion intact.
+       Fallback only; data-zoom is set server-side on <html>. */
     zoom: 1.25;
   }
-  /* Tablets/phones have far less width; a heavy zoom crams fixed-width layouts
-     and forces overflow. Step it down responsively. Biggest lever for tablet. */
+
+  /* ── Reader scale ────────────────────────────────────────────────────
+     Three steps, chosen per person and kept in their browser. "default" is
+     exactly what the app has always done, so nobody's screen changes unless
+     they ask it to.
+
+     Every rule uses the same [data-zoom] specificity, so the media queries
+     below genuinely override — an attribute selector in the base block would
+     otherwise beat a bare `html` rule inside a media query, since media
+     queries add no specificity of their own.
+
+     Nothing drops below 1.0 at any width: the app has an 11px type floor and
+     scaling under 1.0 would put real text back under it. Compact is
+     therefore "no magnification", not "shrink". */
+  html[data-zoom="compact"] { zoom: 1; }
+  html[data-zoom="default"] { zoom: 1.25; }
+  html[data-zoom="large"]   { zoom: 1.45; }
+
+  /* Narrower screens have less room, so each step is gentler — a heavy zoom
+     crams fixed-width layouts and forces sideways scrolling. */
   @media (max-width: 1024px) {
-    html { zoom: 1.05; }
+    html[data-zoom="compact"] { zoom: 1; }
+    html[data-zoom="default"] { zoom: 1.05; }
+    html[data-zoom="large"]   { zoom: 1.2; }
   }
   @media (max-width: 900px) {
-    html { zoom: 1.0; }
+    html[data-zoom="compact"] { zoom: 1; }
+    html[data-zoom="default"] { zoom: 1; }
+    html[data-zoom="large"]   { zoom: 1.05; }
   }
 
   /* Keyboard accessibility: a clear focus ring for users navigating by

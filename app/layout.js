@@ -45,13 +45,13 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" data-zoom="default" suppressHydrationWarning>
       <head>
         {/* Apply the saved theme before first paint so there's no flash of
             the wrong theme on load. Defaults to dark when nothing is saved. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('gpdash-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){}})();`,
+            __html: `(function(){try{var d=document.documentElement;var t=localStorage.getItem('gpdash-theme');d.setAttribute('data-theme',t==='light'?'light':'dark');var z=localStorage.getItem('gpdash-zoom');d.setAttribute('data-zoom',(z==='compact'||z==='large')?z:'default');}catch(e){}})();`,
           }}
         />
         {/* Warm the connection to Supabase during page load. Client-side
