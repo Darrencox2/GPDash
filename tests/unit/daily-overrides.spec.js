@@ -5,7 +5,7 @@
 // the round-trip through the table changes either set, the practice sees the
 // wrong people marked absent. These tests pin that it does not.
 import { test, expect } from '@playwright/test';
-import { dailyOverridesFromRows, syncDailyOverrideOps } from '../../lib/v4-data.js';
+import { dailyOverridesFromRows, syncDailyOverrides } from '../../lib/v4-data.js';
 
 const A = '11111111-1111-1111-1111-111111111111';
 const B = '22222222-2222-2222-2222-222222222222';
@@ -79,7 +79,7 @@ test.describe('round trip preserves the absent set', () => {
   }
 });
 
-test.describe('syncDailyOverrideOps', () => {
+test.describe('syncDailyOverrides', () => {
   // Minimal stub recording what would be sent.
   const stub = () => {
     const calls = [];
@@ -92,6 +92,8 @@ test.describe('syncDailyOverrideOps', () => {
           upsert(rows) { ctx.kind = 'upsert'; ctx.rows = rows; return chain; },
           eq(k, v) { ctx.filters[k] = v; return chain; },
           in(k, v) { ctx.filters[k] = v; return chain; },
+          // Supabase queries are thenables; awaiting resolves them.
+          then(res) { return Promise.resolve({ error: null }).then(res); },
         };
         return chain;
       },
@@ -99,41 +101,66 @@ test.describe('syncDailyOverrideOps', () => {
     return { api, calls };
   };
 
-  test('does nothing when no day changed', () => {
+  test('does nothing when no day changed', async () => {
     const { api, calls } = stub();
     const map = { [KEY]: { present: [A], scheduled: [A, B] } };
-    const ops = syncDailyOverrideOps(api, [A, B], map, map);
-    expect(ops).toHaveLength(0);
+    await syncDailyOverrides(api, [A, B], map, map);
     expect(calls).toHaveLength(0);
   });
 
-  test('replaces only the changed date', () => {
+  test('replaces only the changed date', async () => {
     const { api, calls } = stub();
     const before = { [KEY]: { present: [A], scheduled: [A, B] }, '2026-06-18-Thursday': { present: [A], scheduled: [A] } };
     const after  = { [KEY]: { present: [],  scheduled: [A, B] }, '2026-06-18-Thursday': { present: [A], scheduled: [A] } };
-    syncDailyOverrideOps(api, [A, B], before, after);
+    await syncDailyOverrides(api, [A, B], before, after);
     const dates = calls.filter(c => c.kind === 'delete').map(c => c.filters.date);
     expect(dates).toEqual(['2026-06-17']);   // Thursday untouched
   });
 
-  test('writes off for scheduled-but-not-present', () => {
+  test('writes off for scheduled-but-not-present', async () => {
     const { api, calls } = stub();
-    syncDailyOverrideOps(api, [A, B], {}, { [KEY]: { present: [A], scheduled: [A, B] } });
+    await syncDailyOverrides(api, [A, B], {}, { [KEY]: { present: [A], scheduled: [A, B] } });
     const rows = calls.find(c => c.kind === 'upsert').rows;
     expect(rows.find(r => r.clinician_id === A)).toMatchObject({ am: 'in', pm: 'in' });
     expect(rows.find(r => r.clinician_id === B)).toMatchObject({ am: 'off', pm: 'off' });
   });
 
-  test('ignores clinician ids outside the practice', () => {
+  test('ignores clinician ids outside the practice', async () => {
     const { api, calls } = stub();
-    syncDailyOverrideOps(api, [A], {}, { [KEY]: { present: [A, C], scheduled: [A, C] } });
+    await syncDailyOverrides(api, [A], {}, { [KEY]: { present: [A, C], scheduled: [A, C] } });
     const rows = calls.find(c => c.kind === 'upsert').rows;
     expect(rows.map(r => r.clinician_id)).toEqual([A]);
   });
 
-  test('no clinicians means no writes at all', () => {
+  test('no clinicians means no writes at all', async () => {
     const { api, calls } = stub();
-    expect(syncDailyOverrideOps(api, [], {}, { [KEY]: { present: [A], scheduled: [A] } })).toHaveLength(0);
+    await syncDailyOverrides(api, [], {}, { [KEY]: { present: [A], scheduled: [A] } });
     expect(calls).toHaveLength(0);
+  });
+
+  // The bug that emptied daily_overrides in production testing: deletes and
+  // the upsert were handed to the caller's Promise.all together, so a delete
+  // could land after the upsert and wipe what had just been written.
+  test('every delete completes before the upsert', async () => {
+    const order = [];
+    const api = {
+      from() {
+        const chain = {
+          delete() { chain._kind = 'delete'; return chain; },
+          upsert() { chain._kind = 'upsert'; return chain; },
+          eq() { return chain; },
+          in() { return chain; },
+          then(res) { order.push(chain._kind); return Promise.resolve({ error: null }).then(res); },
+        };
+        return chain;
+      },
+    };
+    await syncDailyOverrides(api, [A, B], {}, {
+      [KEY]: { present: [A], scheduled: [A, B] },
+      '2026-06-18-Thursday': { present: [B], scheduled: [A, B] },
+    });
+    expect(order.length).toBeGreaterThan(1);
+    expect(order[order.length - 1]).toBe('upsert');          // upsert is last
+    expect(order.slice(0, -1).every(k => k === 'delete')).toBe(true);
   });
 });

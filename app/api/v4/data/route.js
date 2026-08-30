@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
-import { loadPracticeData, loadBuddyAllocations, adaptToV3Shape, syncDailyOverrideOps } from '@/lib/v4-data';
+import { loadPracticeData, loadBuddyAllocations, adaptToV3Shape, syncDailyOverrides, dailyOverridesFromRows } from '@/lib/v4-data';
 import { requireUuid } from '@/lib/api-helpers';
 import { trimHuddleWindow } from '@/lib/huddle-trim';
 
@@ -246,11 +246,13 @@ export async function POST(request) {
   // The 3-session model. When the client sends sessionRota, it is the
   // full truth (M/A/E per weekday per clinician) and Mutation 1's lossy
   // day-level path is skipped so the two can never fight.
+  const sessionRotaHandled = new Set();
   if (newData.sessionRota && typeof newData.sessionRota === 'object') {
     const LONG_TO_SHORT_S = { Monday: 'mon', Tuesday: 'tue', Wednesday: 'wed', Thursday: 'thu', Friday: 'fri' };
     const oldSR = oldData.sessionRota || {};
     for (const [cid, days] of Object.entries(newData.sessionRota)) {
       if (JSON.stringify(days) === JSON.stringify(oldSR[cid])) continue;
+      sessionRotaHandled.add(cid);
       const pattern = {};
       for (const [longDay, shortDay] of Object.entries(LONG_TO_SHORT_S)) {
         const slots = Array.isArray(days?.[longDay]) ? days[longDay] : [];
@@ -274,7 +276,15 @@ export async function POST(request) {
     }
   }
 
-  if (newData.weeklyRota && !newData.sessionRota) {
+  // Runs whenever weeklyRota is present, skipping any clinician Mutation 1b
+  // already wrote. It used to be fenced off entirely by `!newData.sessionRota`,
+  // which silently discarded every day-level rota edit: saveData spreads the
+  // whole data object, so sessionRota is ALWAYS present, 1b saw no session
+  // change and wrote nothing, and 1 never ran. Three live controls -
+  // DashboardClient.toggleRotaDay, TeamMembers day pills and TeamRota's
+  // generated rota - appeared to save and did not. The per-clinician skip
+  // below keeps the original promise that the two can never fight.
+  if (newData.weeklyRota) {
     const newRota = newData.weeklyRota;
     const SHORT_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
     const LONG_TO_SHORT = {
@@ -311,6 +321,8 @@ export async function POST(request) {
     ]);
 
     for (const cid of allClinicians) {
+      // Mutation 1b is authoritative for anyone whose sessions changed.
+      if (sessionRotaHandled.has(cid)) continue;
       const newDays = newDaysByClinician[cid] || new Set();
       const existing = (v4Data.workingPatterns || []).find(wp => wp.clinician_id === cid);
 
@@ -418,15 +430,16 @@ export async function POST(request) {
   const oldExtras = v4Data.settings?.extras || {};
   let extrasChanged = false;
   const newExtras = { ...oldExtras };
-  if (newData.dailyOverrides && JSON.stringify(newData.dailyOverrides) !== JSON.stringify(oldExtras.dailyOverrides || {})) {
+  // daily_overrides is the record; the extras blob is still written beside
+  // it as the recovery path. One sequenced promise, not a spread of racing
+  // ops - see syncDailyOverrides.
+  if (newData.dailyOverrides && JSON.stringify(newData.dailyOverrides) !== JSON.stringify(oldData.dailyOverrides || {})) {
     newExtras.dailyOverrides = newData.dailyOverrides;
     extrasChanged = true;
-    // Dual-write: daily_overrides is the system of record from v4.122.0,
-    // and the blob is kept in step for one release as a rollback path.
-    ops.push(...syncDailyOverrideOps(
+    ops.push(syncDailyOverrides(
       supabase,
       (v4Data.clinicians || []).map(c => c.id),
-      oldExtras.dailyOverrides || {},
+      oldData.dailyOverrides || {},
       newData.dailyOverrides,
     ));
   }
@@ -719,7 +732,25 @@ async function handleFastPath(supabase, practiceId, user, newData) {
     }
   }
 
-  // ─── dailyOverrides + lastSyncTime → practice_settings.extras ─────
+  // ─── dailyOverrides → daily_overrides table ───────────────────────
+  // Deliberately OUTSIDE the extras branch below: overrides no longer live
+  // in extras, so gating them on an extras read would silently drop every
+  // In/Out toggle — the exact failure this release is fixing elsewhere.
+  if (newData.dailyOverrides !== undefined) {
+    const { data: clinRows } = await supabase.from('clinicians').select('id').eq('practice_id', practiceId);
+    const clinIds = (clinRows || []).map(c => c.id);
+    const { data: curRows } = clinIds.length
+      ? await supabase.from('daily_overrides').select('clinician_id, date, am, pm').in('clinician_id', clinIds)
+      : { data: [] };
+    ops.push(syncDailyOverrides(
+      supabase,
+      clinIds,
+      dailyOverridesFromRows(curRows || []),
+      newData.dailyOverrides,
+    ));
+  }
+
+  // ─── lastSyncTime + filters → practice_settings.extras ────────────
   // For these we need to read current extras (so we don't clobber sibling
   // keys), but only the extras column — much lighter than loadPracticeData.
   const needsExtrasRead = newData.dailyOverrides !== undefined ||
@@ -734,18 +765,7 @@ async function handleFastPath(supabase, practiceId, user, newData) {
     const oldExtras = settingsRow?.extras || {};
     let changed = false;
     const newExtras = { ...oldExtras };
-    if (newData.dailyOverrides !== undefined) {
-      newExtras.dailyOverrides = newData.dailyOverrides;
-      changed = true;
-      // Same dual-write on the high-frequency path (In/Out toggles land here).
-      const { data: clinRows } = await supabase.from('clinicians').select('id').eq('practice_id', practiceId);
-      ops.push(...syncDailyOverrideOps(
-        supabase,
-        (clinRows || []).map(c => c.id),
-        oldExtras.dailyOverrides || {},
-        newData.dailyOverrides,
-      ));
-    }
+    if (newData.dailyOverrides !== undefined) { newExtras.dailyOverrides = newData.dailyOverrides; changed = true; }
     if (newData.lastSyncTime !== undefined) { newExtras.lastTeamnetSync = newData.lastSyncTime; changed = true; }
     if (newData.savedSlotFilters !== undefined) { newExtras.savedSlotFilters = newData.savedSlotFilters; changed = true; }
     if (newData.expectedCapacity !== undefined) { newExtras.expectedCapacity = newData.expectedCapacity; changed = true; }
