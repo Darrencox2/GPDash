@@ -103,7 +103,7 @@ function LoginPageInner() {
   const signupHref = '/v4/signup' + (signupQs.toString() ? `?${signupQs.toString()}` : '');
 
   return (
-    <AuthCard title="Sign in to GPDash" subtitle="v4 preview — for testing only">
+    <AuthCard title="Sign in to GPDash" subtitle="Practice rota, capacity and huddle dashboard">
       <form onSubmit={handleSubmit}>
         {error && <div style={f.errorBox}>{error}</div>}
 
@@ -141,14 +141,15 @@ function LoginPageInner() {
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
 
-        <div style={f.footerLink}>
+        {/* Two real next steps share one row; the legal link is demoted
+            below so all three no longer compete at the same weight. */}
+        <div style={{ ...f.footerLink, display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
           <Link href="/v4/reset-password" style={f.link}>Forgot password?</Link>
+          <span aria-hidden="true" style={{ color: 'rgba(255,255,255,0.18)' }}>·</span>
+          <span>No account? <Link href={signupHref} style={f.link}>Sign up</Link></span>
         </div>
-        <div style={f.footerLink}>
-          No account? <Link href={signupHref} style={f.link}>Sign up</Link>
-        </div>
-        <div style={{ ...f.footerLink, fontSize: 11, opacity: 0.75, marginTop: 12 }}>
-          <Link href="/privacy" style={f.link}>Privacy notice</Link>
+        <div style={{ ...f.footerLink, fontSize: 12, marginTop: 18 }}>
+          <Link href="/privacy" style={f.linkMuted}>Privacy notice</Link>
         </div>
       </form>
     </AuthCard>

@@ -65,7 +65,7 @@ const PROCESSORS = [
   },
 ];
 
-const inlineLink = { color: '#67e8f9', textDecoration: 'underline', textUnderlineOffset: 2 };
+const inlineLink = { color: 'var(--link)', textDecoration: 'underline', textUnderlineOffset: 2 };
 
 export default function ProcessorsPage() {
   return (
@@ -118,7 +118,7 @@ export default function ProcessorsPage() {
           <p>Some tools are used by our development team (e.g. GitHub for source code, Claude for engineering assistance) but are <em>not</em> connected to the production data flow. They never see GPDash user data and are therefore not sub-processors. If that ever changes, this page will be updated and you&apos;ll be notified.</p>
         </section>
 
-        <footer style={{ marginTop: 40, paddingTop: 24, fontSize: 12, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <footer style={{ marginTop: 40, paddingTop: 24, fontSize: 12, color: 'var(--meta)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           Questions? <a href={`mailto:${LEGAL_META.privacyContactEmail}`} style={inlineLink}>{LEGAL_META.privacyContactEmail}</a>
         </footer>
       </article>
@@ -129,7 +129,7 @@ export default function ProcessorsPage() {
 function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '4px 0', alignItems: 'baseline' }}>
-      <span style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, flex: '0 0 110px' }}>{label}</span>
+      <span style={{ fontSize: 11, color: 'var(--meta)', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, flex: '0 0 110px' }}>{label}</span>
       <span style={{ fontSize: 13, color: '#cbd5e1', flex: '1 1 300px' }}>{children}</span>
     </div>
   );

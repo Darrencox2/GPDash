@@ -73,6 +73,13 @@
     /* Accent text colours by hue — pale here (readable on dark tints),
        darkened in light theme below (readable on pale tints). */
     --c-red: #fca5a5; --c-amber: #fcd34d; --c-green: #86efac; --c-cyan: #67e8f9;
+    /* Public (signed-out) surface tokens. The marketing/legal/auth pages a
+       visitor sees before signing in share ONE interactive accent, so the
+       login -> privacy journey does not change colour language halfway.
+       In-app cyan keeps its separate informational role and is untouched.
+       --meta replaces #64748b for small print: that was 3.5:1 on our dark
+       cards, under the 4.5:1 WCAG AA floor for text below 24px. */
+    --link: #34d399; --link-hover: #6ee7b7; --meta: #94a3b8;
     --c-blue: #93c5fd; --c-indigo: #818cf8; --c-purple: #d8b4fe; --c-pink: #f9a8d4;
     --sidebar-bg: linear-gradient(to bottom, #0f172a, #0f172a, #1e293b);
     --sidebar-border: rgba(255,255,255,0.05);

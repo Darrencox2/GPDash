@@ -43,7 +43,7 @@ export default function GoodbyePage() {
         </p>
 
         <div
-          className="text-xs text-slate-500 mb-6 px-4 py-3 rounded-lg leading-relaxed"
+          className="text-xs text-slate-400 mb-6 px-4 py-3 rounded-lg leading-relaxed"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
         >
           If you change your mind, you can create a new GPDash account at any
@@ -54,9 +54,9 @@ export default function GoodbyePage() {
           href="/"
           className="inline-block px-5 py-2 rounded-lg text-sm font-medium transition-colors"
           style={{
-            background: 'rgba(34,211,238,0.15)',
-            border: '1px solid rgba(34,211,238,0.30)',
-            color: '#67e8f9',
+            background: 'rgba(52,211,153,0.15)',
+            border: '1px solid rgba(52,211,153,0.30)',
+            color: 'var(--link)',
           }}
         >
           Return to homepage

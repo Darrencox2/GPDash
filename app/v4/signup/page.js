@@ -330,7 +330,7 @@ function SignupPageInner() {
   const loginHref = '/v4/login' + (loginQs.toString() ? `?${loginQs.toString()}` : '');
 
   return (
-    <AuthCard title="Create your account" subtitle="v4 preview — for testing only">
+    <AuthCard title="Create your account" subtitle="Join your practice on GPDash">
       <form onSubmit={handleSubmit}>
         {error && <div style={f.errorBox}>{error}</div>}
 
@@ -344,7 +344,7 @@ function SignupPageInner() {
             />
           </div>
           <div style={{ ...f.field, flex: 1 }}>
-            <label style={f.label}>Surname *</label>
+            <label style={f.label}>Surname</label>
             <input
               type="text" required autoComplete="family-name" value={lastName}
               onChange={(e) => setLastName(e.target.value)}

@@ -173,7 +173,7 @@ export default function PrivacyNoticePage() {
           <Contact />
         </Section>
 
-        <footer style={{ marginTop: 48, paddingTop: 24, fontSize: 12, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <footer style={{ marginTop: 48, paddingTop: 24, fontSize: 12, color: 'var(--meta)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <Link href="/" style={{ color: '#94a3b8', textDecoration: 'none' }}>← Back to GPDash</Link>
         </footer>
       </article>
@@ -187,7 +187,7 @@ export default function PrivacyNoticePage() {
 // in one file when reviewing the markup.
 
 const ulStyle = { fontSize: 14, color: '#cbd5e1', paddingLeft: 24, marginTop: 8, marginBottom: 12, lineHeight: 1.8 };
-const inlineLink = { color: '#67e8f9', textDecoration: 'underline', textUnderlineOffset: 2 };
+const inlineLink = { color: 'var(--link)', textDecoration: 'underline', textUnderlineOffset: 2 };
 const builtIn = { color: '#6ee7b7', fontWeight: 500 };
 
 function DraftBanner() {
@@ -236,7 +236,7 @@ function Contact() {
         For any data protection question — including subject access requests that you&apos;d rather not handle yourself in-app — email{' '}
         <a href={`mailto:${LEGAL_META.privacyContactEmail}`} style={inlineLink}>{LEGAL_META.privacyContactEmail}</a>.
       </div>
-      <div className="text-caption text-slate-500 mt-2.5">
+      <div className="text-caption text-slate-400 mt-2.5">
         Controller: {LEGAL_META.controllerName}
         {LEGAL_META.controllerAddress && <><br/>{LEGAL_META.controllerAddress}</>}
       </div>

@@ -23,7 +23,7 @@ function AuthLogo() {
         <span style={{ fontSize: 18, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>[</span>
         <span className="text-h3 font-bold text-white">GP</span>
         <span style={{ fontSize: 18, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>]</span>
-        <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 19, fontWeight: 200, color: '#10b981', letterSpacing: '3px', marginLeft: 2 }}>DASH</span>
+        <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 200, color: '#10b981', letterSpacing: '3px', marginLeft: 2 }}>DASH</span>
       </div>
     </div>
   );
@@ -51,7 +51,7 @@ export function AuthCard({ title, subtitle, children }) {
         <div className="mb-6">
           <h1 style={{
             fontFamily: "'Outfit', sans-serif",
-            fontSize: 22,
+            fontSize: 24,
             fontWeight: 600,
             color: 'white',
             marginBottom: 6,
@@ -84,8 +84,8 @@ export const formStyles = {
   },
   input: {
     width: '100%',
-    padding: '10px 12px',
-    fontSize: 14,
+    padding: '11px 12px',
+    fontSize: 16,
     color: '#e2e8f0',
     background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.08)',
@@ -131,13 +131,25 @@ export const formStyles = {
   footerLink: {
     display: 'block',
     marginTop: 16,
-    fontSize: 12,
+    fontSize: 13,
     color: '#94a3b8',
     textAlign: 'center',
   },
   link: {
-    color: '#34d399',
+    color: 'var(--link)',
     textDecoration: 'none',
+    display: 'inline-block',
+    padding: '10px 4px',
+    margin: '-10px -4px',
+  },
+  // Demoted variant: the legal/secondary link that should not compete
+  // with the real next step.
+  linkMuted: {
+    color: 'var(--meta)',
+    textDecoration: 'none',
+    display: 'inline-block',
+    padding: '10px 4px',
+    margin: '-10px -4px',
   },
 };
 
@@ -178,7 +190,7 @@ export function PasswordChecklist({ password }) {
       display: 'flex',
       alignItems: 'center',
       gap: 6,
-      fontSize: 11,
+      fontSize: 12,
       color: ok ? '#34d399' : '#94a3b8',
       transition: 'color 0.15s',
     }}>

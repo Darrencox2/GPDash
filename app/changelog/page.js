@@ -23,13 +23,23 @@ function Badge({ type }) {
   return (
     <span style={{
       display: 'inline-block', flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '1px 8px',
-      borderRadius: 999, background: b.bg, border: `1px solid ${b.border}`, color: b.color,
+      borderRadius: 'var(--r-pill)', background: b.bg, border: `1px solid ${b.border}`, color: b.color,
       marginTop: 2, minWidth: 64, textAlign: 'center',
     }}>{b.label}</span>
   );
 }
 
-export default function ChangelogPage() {
+// Rendering every release at once produced a 162,000px page on desktop and
+// 289,000px on mobile across 7,585 DOM nodes - enough to crash a headless
+// browser mid-screenshot. Nobody scrolls 76 metres to reach v1. Show the
+// recent releases and put the rest behind an explicit opt-in.
+const RECENT_COUNT = 12;
+
+export default async function ChangelogPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const showAll = sp.all === '1';
+  const releases = showAll ? CHANGELOG : CHANGELOG.slice(0, RECENT_COUNT);
+  const hiddenCount = CHANGELOG.length - releases.length;
   return (
     <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
       <article style={{ maxWidth: 760, margin: '0 auto', lineHeight: 1.65 }}>
@@ -39,16 +49,16 @@ export default function ChangelogPage() {
             Every change to GPDash, version by version. Current version: <strong style={{ color: '#f1f5f9' }}>{APP_VERSION}</strong>.
           </p>
           <p className="text-meta text-slate-400 mt-2.5">
-            <a href="/" style={{ color: '#67e8f9', textDecoration: 'underline' }}>Back to GPDash</a>
+            <a href="/" style={{ color: 'var(--link)', textDecoration: 'underline' }}>Back to GPDash</a>
           </p>
         </header>
 
-        {CHANGELOG.map((rel) => (
+        {releases.map((rel) => (
           <section key={rel.version} style={{ marginBottom: 28, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
-              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: '#f1f5f9', margin: 0 }}>v{rel.version}</h2>
+              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 20, fontWeight: 600, color: '#f1f5f9', margin: 0 }}>v{rel.version}</h2>
               <span className="text-body-sm text-slate-400">{rel.title}</span>
-              {rel.date && <span style={{ fontSize: 12, color: '#64748b', marginLeft: 'auto' }}>{rel.date}</span>}
+              {rel.date && <span style={{ fontSize: 12, color: 'var(--meta)', marginLeft: 'auto' }}>{rel.date}</span>}
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(rel.changes || []).map((c, i) => (
@@ -60,6 +70,22 @@ export default function ChangelogPage() {
             </ul>
           </section>
         ))}
+
+        {hiddenCount > 0 && (
+          <p style={{ marginTop: 8, fontSize: 14 }}>
+            <a href="/changelog?all=1" style={{ color: 'var(--link)', textDecoration: 'underline' }}>
+              Show all {CHANGELOG.length} releases
+            </a>
+            <span style={{ color: 'var(--meta)' }}> &middot; {hiddenCount} older {hiddenCount === 1 ? 'release' : 'releases'} hidden</span>
+          </p>
+        )}
+        {showAll && (
+          <p style={{ marginTop: 8, fontSize: 14 }}>
+            <a href="/changelog" style={{ color: 'var(--link)', textDecoration: 'underline' }}>
+              Show recent releases only
+            </a>
+          </p>
+        )}
       </article>
     </main>
   );

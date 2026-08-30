@@ -23,12 +23,12 @@ export function loadAndRender(filename) {
 }
 
 const PAGE_BG = 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)';
-const inlineLink = { color: '#67e8f9', textDecoration: 'underline', textUnderlineOffset: 2 };
+const inlineLink = { color: 'var(--link)', textDecoration: 'underline', textUnderlineOffset: 2 };
 
 export default function DocShell({ title, html, breadcrumb }) {
   return (
     <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
-      <article style={{ maxWidth: 800, margin: '0 auto', lineHeight: 1.65 }}>
+      <article style={{ maxWidth: 720, margin: '0 auto', lineHeight: 1.65 }}>
         <nav className="mb-4 text-meta text-slate-400">
           <Link href="/legal" style={inlineLink}>Legal &amp; compliance</Link>
           {breadcrumb && <> <span style={{ color: '#475569', margin: '0 6px' }}>·</span> <span className="text-slate-300">{breadcrumb}</span></>}
@@ -36,7 +36,7 @@ export default function DocShell({ title, html, breadcrumb }) {
 
         <div className="legal-doc" dangerouslySetInnerHTML={{ __html: html }} />
 
-        <footer style={{ marginTop: 48, paddingTop: 24, fontSize: 12, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <footer style={{ marginTop: 48, paddingTop: 24, fontSize: 12, color: 'var(--meta)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <p className="mb-2">
             Questions about this document? <a href={`mailto:${LEGAL_META.privacyContactEmail}`} style={inlineLink}>{LEGAL_META.privacyContactEmail}</a>
           </p>
@@ -115,7 +115,7 @@ export default function DocShell({ title, html, breadcrumb }) {
         .legal-doc strong { color: #f1f5f9; font-weight: 600; }
         .legal-doc em { color: #94a3b8; font-style: italic; }
         .legal-doc a {
-          color: #67e8f9;
+          color: var(--link);
           text-decoration: underline;
           text-underline-offset: 2px;
         }
@@ -197,7 +197,7 @@ export default function DocShell({ title, html, breadcrumb }) {
         }
         .legal-doc input[type="checkbox"] {
           margin-right: 8px;
-          accent-color: #67e8f9;
+          accent-color: var(--link);
         }
       `}</style>
     </main>
