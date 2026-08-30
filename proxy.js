@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/middleware';
 
-// Middleware runs on EVERY matched request. We previously matched almost
+// Proxy (formerly middleware — renamed in Next 16; the edge runtime is not
+// supported here, which is fine as this app has never used it) runs on EVERY
+// matched request. We previously matched almost
 // everything and did a Supabase auth round-trip per request — adding ~150-400ms
 // to each API call. Now we restrict it to:
 //   1. Auth callback handling (/auth/callback)
@@ -11,7 +13,7 @@ import { createClient } from '@/utils/supabase/middleware';
 // API routes do their own auth check and don't need the middleware overhead.
 // The dashboard page itself doesn't need it either — its useEffect calls
 // /api/v4/data which auths server-side.
-export async function middleware(request) {
+export async function proxy(request) {
   const path = request.nextUrl.pathname;
 
   // Mirror the practice slug into the fast-path cookie ON THE SERVER for
