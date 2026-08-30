@@ -50,6 +50,7 @@ export async function GET(request) {
         .maybeSingle();
       if (member) {
         const admin = createAdminClient();
+        if (!admin) return NextResponse.json({ huddleCsvData: null, huddleCsvUpdatedAt: null });
         const { data: adminRow } = await admin
           .from('huddle_csv_data')
           .select('data, updated_at')

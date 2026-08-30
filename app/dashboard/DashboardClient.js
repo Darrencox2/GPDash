@@ -292,8 +292,15 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       // endpoint errors OR claims empty, cross-check against the full
       // /api/v4/data GET (the long-proven CSV source) before believing it.
       // Loud console diagnostics so any recurrence tells us which leg fired.
+      // NB: returns false ONLY for a genuinely missing blob. It used to also
+      // return false when `cancelled` was set — and React StrictMode mounts
+      // every effect twice in dev, so the first run's completed fetch hit
+      // that path, was misread as "endpoint returned empty", and fired the
+      // full-data fallback plus a scary console.error on every dashboard
+      // load. The endpoint was never wrong; the diagnostic was.
       const applyBlob = (blob, updatedAt) => {
-        if (cancelled || !blob) return false;
+        if (!blob) return false;
+        if (cancelled) return true;   // handled: a cancelled run must not trigger fallbacks
         setHuddleData(blob);
         if (updatedAt) setData((d) => (d ? { ...d, huddleCsvUpdatedAt: updatedAt } : d));
         return true;
@@ -312,9 +319,10 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           await new Promise((r) => setTimeout(r, 1200));
           json = await slim();
         }
+        if (cancelled) return;
         if (!applyBlob(json.huddleCsvData, json.huddleCsvUpdatedAt)) {
-          // Endpoint says empty — verify against the full data GET before
-          // accepting, in case the slim path is wrong in some environment.
+          // Endpoint GENUINELY says empty — verify against the full data GET
+          // before believing it, in case the slim path is wrong somewhere.
           const full = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`);
           const fj = await full.json().catch(() => ({}));
           if (full.ok && fj?.huddleCsvData) {
