@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Button, Card, EmptyState } from '@/components/ui';
-import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getDutyDoctor, getDutyDoctorDiagnostic, getBand, getCliniciansForDate, getSiteColour, getActiveSlotTypes } from '@/lib/huddle';
+import { getHuddleCapacity, parseHuddleCSV, mergeHuddleData, getNDayAvailability, getPastWeeksRoutine, getDutyDoctor, getDutyDoctorDiagnostic, getBand, getCliniciansForDate, getSiteColour, getActiveSlotTypes } from '@/lib/huddle';
 import SlotFilter from './SlotFilter';
 import WhosInOut from './WhosInOut';
 import HuddleFullscreen from './HuddleFullscreen';
@@ -689,19 +689,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             {/* NOTICEBOARD — message-thread style (Option B from the design pass).
                 Avatars use a deterministic colour per author so the same
                 person always looks the same. No more random rainbow rotation. */}
-            <div className="glass rounded-xl overflow-hidden flex flex-col lg:order-2 panefx-cyan">
-              <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+            {/* Empty most days — and a full column saying "no notices" is
+                prime space spent on nothing. Collapsed to one line until it
+                has content; the moment a notice exists it gets the panel. */}
+            <div className={`glass rounded-xl overflow-hidden flex flex-col lg:order-2 panefx-cyan ${huddleMessages.length === 0 ? 'self-start w-full' : ''}`}>
+              <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom: huddleMessages.length > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
-                {huddleMessages.length > 0 && <span className="text-xs text-slate-400 ml-auto">{huddleMessages.length} today</span>}
+                {huddleMessages.length > 0
+                  ? <span className="text-xs text-slate-400 ml-auto">{huddleMessages.length} today</span>
+                  : <span className="text-xs text-slate-400 ml-auto">no notices</span>}
               </div>
               <div className="flex-1 overflow-y-auto" style={{maxHeight:'420px'}}>
-                {huddleMessages.length === 0 && (
-                  <div className="text-center py-8 px-4">
-                    <div className="text-sm text-slate-400">No notices yet today.</div>
-                    {canEdit && <div className="text-xs text-slate-400 mt-1">Post the first one below.</div>}
-                  </div>
-                )}
                 {huddleMessages.map((msg, i) => {
                   // Deterministic palette — hash the author name into one of 5
                   // muted accent colours so the same person is always shown
@@ -763,7 +762,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             <div className="glass rounded-xl p-5 lg:col-span-3 lg:order-1 panefx-violet">
               <div className="flex flex-col lg:flex-row gap-5 items-stretch">
                 <div className="flex-shrink-0 flex items-center justify-center">
-                  <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[300px]" width={null} viewBox="0 0 300 145" slots={urgTotal} target={targetTotal} />
+                  {/* slots/target text removed from under the needle: the raw count
+                      lives in the tile beside it, and the target is on the
+                      session bars below. The gauge's one job is the ratio. */}
+                  <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[300px]" width={null} viewBox="0 0 300 145" />
                 </div>
                 <div className="flex-1 min-w-0 grid grid-cols-2 gap-3">
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center relative">
@@ -836,16 +838,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               </div>
             )}
             {predTotal > 0 && (
-              <div className="glass-inner rounded-xl p-4 mt-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={predColour} strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                  <span className="text-lg font-medium" style={{color:predColour}}>{predLabel}</span>
+              /* Was a full card: icon row + a paragraph + the details toggle,
+                 ~120px for one sentence. Same content on one line now — the
+                 approved compaction is height, not information. */
+              <div className="glass-inner rounded-xl px-4 py-2.5 mt-3">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={predColour} strokeWidth="2" className="flex-shrink-0"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                  <span className="text-sm font-semibold" style={{color:predColour}}>{predLabel}</span>
+                  <span className="text-sm text-slate-400">
+                    avg {todayDayName.slice(0,3)} {predAvgDay}{displayFactors.filter(f => f.impact !== 0).slice(0, 2).map(f => ` · ${f.label} ${f.impact > 0 ? '+' : ''}${f.impact}`).join('')}
+                  </span>
                 </div>
-                <div className="text-sm text-slate-400 leading-relaxed">
-                  Average {todayDayName} sees {predAvgDay} requests.
-                  {displayFactors.filter(f => f.impact !== 0).slice(0, 2).map((f, i) => ` ${f.label} ${f.impact > 0 ? '+' : ''}${f.impact}.`).join('') || ''}
-                </div>
-                <details className="mt-2">
+                <details className="mt-1">
                   <summary className="text-sm text-slate-400 cursor-pointer hover:text-slate-300 flex items-center gap-1">
                     Demand factors
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
@@ -965,18 +969,32 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                   </div>
                   {dutyDocDisplay && (
+                    /* The duty doctor is the most important ROLE of the day,
+                       not an emergency — the old solid alarm-red made a
+                       normal day read as an incident, and its bare 0 (duty
+                       triages rather than holding bookable urgent slots)
+                       looked like a fault. Site colour as the rail, raised
+                       surface, star kept; a word where a count would lie. */
                     <button
-                      onClick={() => setSelectedUrgentClinician({ name: dutyDocDisplay.csvName, accent: '#dc2626' })}
+                      onClick={() => setSelectedUrgentClinician({ name: dutyDocDisplay.csvName, accent: dutyLocCol || '#8b5cf6' })}
                       className="rounded-lg overflow-hidden mb-2 w-full text-left transition-transform hover:scale-[1.01]"
-                      style={{ background: '#dc2626', boxShadow: '0 2px 8px rgba(220,38,38,0.2)', cursor: 'pointer' }}
+                      style={{
+                        background: 'rgba(255,255,255,0.07)',
+                        border: '1px solid rgba(255,255,255,0.14)',
+                        borderLeft: `4px solid ${dutyLocCol || '#8b5cf6'}`,
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+                        cursor: 'pointer',
+                      }}
                     >
                       <div className="flex items-center gap-2.5 px-3 py-2.5">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="white" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fbbf24" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
-                          <div className="text-xs text-white/60">Duty · {dutyDocDisplay.location || '?'}</div>
+                          <div className="text-sm font-semibold text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
+                          <div className="text-xs" style={{ color: 'var(--meta)' }}>Duty · {dutyDocDisplay.location || '?'}</div>
                         </div>
-                        <span className="font-mono-data text-base font-bold text-white flex-shrink-0">{dutyDocDisplay.total}</span>
+                        <span className="font-mono-data text-xs font-bold flex-shrink-0" style={{ color: dutyDocDisplay.total > 0 ? '#fff' : 'var(--meta)', letterSpacing: dutyDocDisplay.total > 0 ? 0 : 0.4 }}>
+                          {dutyDocDisplay.total > 0 ? dutyDocDisplay.total : 'triage'}
+                        </span>
                       </div>
                     </button>
                   )}
@@ -1200,6 +1218,30 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     </div>
                   ))}
                 </div>
+
+                {/* The donuts only look forward. This row is the backwards
+                    half: what each of the last few weeks offered and how
+                    full it ended, from history the blob already keeps. */}
+                {(() => {
+                  // Computed here, in the card's own scope - the summary
+                  // block above is a separate closure. (First attempt
+                  // defined it there; the new error boundary caught it.)
+                  const pastWeeks = getPastWeeksRoutine(huddleData, hs, 4, effectiveRoutineOverrides).filter(w => w.daysWithData > 0);
+                  return pastWeeks.length > 0 && (
+                  <div className="px-4 py-3 border-t border-white/10">
+                    <div className="text-[11px] uppercase tracking-wider mb-2" style={{ color: 'var(--meta)' }}>Previous weeks &middot; offered / booked</div>
+                    <div className="flex gap-2">
+                      {pastWeeks.map((w) => (
+                        <div key={w.weekStart} className="flex-1 rounded-lg px-2.5 py-2 text-center" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)' }} title={`Week beginning ${w.label}: ${w.offered} routine slots offered across ${w.daysWithData} day${w.daysWithData === 1 ? '' : 's'}, ${w.booked} booked${w.fillPct != null ? ` (${w.fillPct}%)` : ''}`}>
+                          <div className="text-[11px]" style={{ color: 'var(--meta)' }}>wc {w.label}</div>
+                          <div className="font-mono-data text-sm font-bold" style={{ color: 'var(--g-text-hi)' }}>{w.offered}</div>
+                          <div className="text-[11px]" style={{ color: 'var(--meta)' }}>{w.fillPct != null ? `${w.fillPct}% booked` : 'no data'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+                })()}
 
                 <details className="border-t border-white/10 group">
                   <summary

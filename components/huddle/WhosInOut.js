@@ -398,6 +398,11 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           <div className="flex items-center gap-2">
             <span className="font-heading text-base font-medium text-slate-200">{isViewingToday ? "Who's in today" : `Who's in — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</span>
             <span className="text-sm text-slate-400">{categories.inPractice.length} in · {categories.leaveAbsent.length + categories.dayOff.length} off</span>
+            {/* The rule for reading every badge below. It lived at the very
+                bottom of the card, after the entire staff list — you had to
+                scroll past the thing you could not read to learn how to
+                read it. Site colours stay in the footer. */}
+            <span className="text-xs hidden sm:inline" style={{ color: 'var(--meta)', fontFamily: "'Space Mono', monospace" }}>left = AM · right = PM</span>
           </div>
           <button onClick={() => setShowSettings(true)}
             className="glass-cog w-8 h-8 rounded-lg flex items-center justify-center"
@@ -472,8 +477,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
                 <span className="text-slate-400">{s.name}</span>
               </span>
             ))}
-            <span className="text-slate-400">|</span>
-            <span className="text-slate-400">Left=AM Right=PM</span>
+
           </div>
         )}
       </div>

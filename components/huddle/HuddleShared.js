@@ -322,9 +322,21 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
                 ) : <div className="w-full h-full" style={{background:'var(--g-nodata)'}} />}
               </div>
               {showDayLabel ? (
-                <div className="mt-0.5 text-center">
-                  <div className="text-xs leading-tight" style={{color:isToday?'var(--g-text-hi)':'var(--g-text-faint)',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
-                  <div className="text-[11px] leading-tight" style={{color:isToday?'var(--g-text-mid)':'var(--g-text-mute)'}}>{d.dayNum}</div>
+                /* On long ranges these Monday anchors were rendered in
+                   --g-text-mute — about 1.6:1 against the card, effectively
+                   invisible — so a 28-day chart read as having no time axis
+                   at all. Anchors now carry a real date at readable weight. */
+                <div className="mt-0.5 text-center" style={{whiteSpace:'nowrap'}}>
+                  {dayCount <= 14 ? (
+                    <>
+                      <div className="text-xs leading-tight" style={{color:isToday?'var(--g-text-hi)':'var(--g-text-faint)',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+                      <div className="text-[11px] leading-tight" style={{color:isToday?'var(--g-text-mid)':'var(--meta)'}}>{d.dayNum}</div>
+                    </>
+                  ) : (
+                    <div className="text-[11px] leading-tight" style={{color:isToday?'var(--g-text-hi)':'var(--meta)',fontWeight:isToday?700:500}}>
+                      {isToday ? 'Today' : `${d.dayNum} ${d.date ? new Date(d.date).toLocaleDateString('en-GB',{month:'short'}) : ''}`}
+                    </div>
+                  )}
                 </div>
               ) : <div style={{height:18}} />}
               {isHovered && hasData && total > 0 && (

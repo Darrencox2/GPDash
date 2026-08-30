@@ -120,3 +120,34 @@ test.describe('getDutyDoctor — behaviour lock', () => {
     expect(getDutyDoctor(null, '31-Aug-2026', 'am', ['Duty'], [])).toBeFalsy();
   });
 });
+
+// ── getPastWeeksRoutine ────────────────────────────────────────────────
+import { getPastWeeksRoutine } from '../../lib/huddle.js';
+
+test.describe('getPastWeeksRoutine', () => {
+  test('empty blob yields no weeks rather than throwing', () => {
+    expect(getPastWeeksRoutine(null, {}, 4)).toEqual([]);
+    expect(getPastWeeksRoutine({}, {}, 4)).toEqual([]);
+    expect(getPastWeeksRoutine({ dates: [] }, {}, 4)).toEqual([]);
+  });
+
+  test('weeks come back oldest first with the documented shape', () => {
+    const out = getPastWeeksRoutine({ dates: ['01-Jan-2020'], clinicians: [] }, {}, 3);
+    expect(out).toHaveLength(3);
+    for (const w of out) {
+      expect(w).toHaveProperty('weekStart');
+      expect(w).toHaveProperty('offered');
+      expect(w).toHaveProperty('booked');
+      expect(w).toHaveProperty('fillPct');
+      expect(w.daysWithData).toBe(0);   // no matching dates in range
+    }
+    // oldest first
+    expect(out[0].weekStart < out[1].weekStart).toBe(true);
+    expect(out[1].weekStart < out[2].weekStart).toBe(true);
+  });
+
+  test('fillPct is null when nothing was offered, never NaN', () => {
+    const out = getPastWeeksRoutine({ dates: ['01-Jan-2020'], clinicians: [] }, {}, 1);
+    expect(out[0].fillPct).toBe(null);
+  });
+});

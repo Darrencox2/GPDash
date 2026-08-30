@@ -31,10 +31,16 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
     let cancelled = false;
     (async () => {
       try {
+        // Take the newest month that actually HAS data, not simply the newest
+        // month. NHS Digital publishes a row for a month before the figures
+        // land, so the latest row is routinely total=0, days_with_data=0.
+        // Reading that row made yourPer1000 null and the ribbon then told
+        // every practice to go and set a list size they had already set.
         const { data: ownRow, error: ownErr } = await supabase
           .from('nhs_oc_baseline')
           .select('total, days_with_data, list_size, pcn_code, month')
           .eq('ods_code', odsCode)
+          .gt('days_with_data', 0)
           .order('month', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -120,11 +126,16 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
   const { month, yourPer1000, yourListSize, pcnPer1000, pcnEstimated, natPer1000, natEstimated, pcnPracticeCount, pcnWithListSize, natWithListSize } = state;
 
   if (yourPer1000 == null) {
+    // Say which of the two things is actually missing. The old copy asserted
+    // the list size regardless, which was wrong whenever the NHS month was
+    // simply empty — and sent people to a setting that was already correct.
+    const missingListSize = !yourListSize;
     return (
       <div style={ribbonStyle()}>
         <span className="text-slate-400 text-meta">
-          NHS demand benchmarks need your practice list size to compute. Set it under
-          Practice → Details.
+          {missingListSize
+            ? <>NHS demand benchmarks need your practice list size. <a href="/v4/practice" style={{ color: 'var(--link)' }}>Set it in Practice &rarr; Details</a>.</>
+            : <>NHS demand benchmarks are not available yet for this practice &mdash; the latest published month has no figures in it.</>}
         </span>
       </div>
     );
