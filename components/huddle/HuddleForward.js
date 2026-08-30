@@ -193,7 +193,7 @@ function DonutGauge({ avail, emb, booked }) {
 // Layers: track → comfort band (target ±10%) → offered bar (lighter,
 // coloured by offered-vs-target) → booked fill (darker, inside) →
 // purple target tick.
-function WeeklyRoutineBullet({ wk, rTarget }) {
+function WeeklyRoutineBullet({ wk, rTarget, shortWeek = false }) {
   const offered = wk.wR || 0;
   const booked = wk.wRB || 0;
   if (offered <= 0) return <div className="h-full flex items-center justify-center"><span className="text-[11px] text-slate-400">—</span></div>;
@@ -209,30 +209,24 @@ function WeeklyRoutineBullet({ wk, rTarget }) {
       </div>
     );
   }
-  const band = vBand(offered, rTarget);          // colour by offered vs target
   const maxScale = rTarget * 1.3;
   const offeredPct = Math.min(100, (offered / maxScale) * 100);
   const bookedPct = Math.min(100, (booked / maxScale) * 100);
-  const targetPct = (rTarget / maxScale) * 100;       // 76.92%
-  const comfortLowPct = (rTarget * 0.9 / maxScale) * 100;  // 69.23%
-  const comfortHighPct = (rTarget * 1.1 / maxScale) * 100; // 84.62%
+  const targetPct = (rTarget / maxScale) * 100;
   const delta = offered - rTarget;
+  // #7: three marks — offered, booked, target. The comfort band and its
+  // dashed edges packed five marks into a 10px strip; the ±10% detail now
+  // lives in the tooltip where it can be read as words.
   return (
-    <div className="h-full flex flex-col justify-center px-2.5" title={`Routine — ${offered} offered vs ${rTarget} target · ${booked} booked (${fillPct}% fill)`}>
+    <div className="h-full flex flex-col justify-center px-2.5" title={`Routine — ${offered} offered vs ${rTarget} target (comfort ±10%: ${Math.round(rTarget*0.9)}–${Math.round(rTarget*1.1)}) · ${booked} booked (${fillPct}% fill)${shortWeek ? ' · short week, target pro-rated' : ''}`}>
       <div className="flex items-baseline gap-1.5 mb-2">
         <span className="text-base font-bold leading-none font-mono-data" style={{color: 'var(--g-text-hi)'}}>{offered}</span>
-        <span className="text-[11px] text-slate-400">/ {rTarget} offered</span>
+        <span className="text-[11px] text-slate-400">/ {rTarget} offered{shortWeek ? ' · short wk' : ''}</span>
       </div>
       <div className="relative" style={{height: 10}}>
-        {/* Track */}
         <div className="absolute inset-0 rounded-sm" style={{background: 'var(--g-border)'}}/>
-        {/* Comfort band — dashed-edge tinted zone around target */}
-        <div className="absolute top-0 bottom-0" style={{left: `${comfortLowPct}%`, right: `${100 - comfortHighPct}%`, background: 'rgba(16,185,129,0.13)', borderLeft: '1px dashed rgba(16,185,129,0.35)', borderRight: '1px dashed rgba(16,185,129,0.35)'}}/>
-        {/* Offered bar — primary, lighter fill of the band colour */}
-        {/* One accent, not the capacity ramp — the delta below is the judgement. */}
-        <div className="absolute left-0 rounded-sm" style={{width: `${offeredPct}%`, top: 1, bottom: 1, background: 'rgba(99,102,241,0.33)', border: '1px solid rgba(99,102,241,0.85)'}}/>
-        {/* Booked fill — darker solid portion inside the offered bar */}
-        <div className="absolute left-0 rounded-sm" style={{width: `${bookedPct}%`, top: 3, bottom: 3, background: 'rgba(99,102,241,0.95)'}}/>
+        <div className="absolute left-0 rounded-sm" style={{width: `${offeredPct}%`, top: 1, bottom: 1, background: 'rgba(99,102,241,0.4)'}}/>
+        <div className="absolute left-0 rounded-sm" style={{width: `${bookedPct}%`, top: 1, bottom: 1, background: '#6366f1'}}/>
         {/* Target tick */}
         <div className="absolute" style={{left: `${targetPct}%`, top: -2, bottom: -2, width: 2, background: '#a78bfa', transform: 'translateX(-1px)', borderRadius: 1}}/>
       </div>
@@ -506,10 +500,14 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           uCap,routCap:hasData&&!isBH?getHuddleCapacity(huddleData,dateStr,hs,routOv):null,
           amDuty,pmDuty});
       }
-      res.push({days,ws,label:`${ws.getDate()} ${ws.toLocaleString('en-GB',{month:'short'})}`,wU,wT,wR:wRA+wRE+wRB,wRA,wRE,wRB});
+      // #1: a bank-holiday week must not be judged against a five-day
+      // target. openDays scales it, so wk1 of a BH week aims at 200, not 250.
+      const openDays = days.filter(d=>!d.isBH).length;
+      const effTarget = rTarget > 0 ? Math.round(rTarget * openDays / 5) : 0;
+      res.push({days,ws,label:`${ws.getDate()} ${ws.toLocaleString('en-GB',{month:'short'})}`,wU,wT,wR:wRA+wRE+wRB,wRA,wRE,wRB,openDays,effTarget});
     }
     return res;
-  }, [huddleData,hs,urgOv,routOv,weather,convRate,dutySlots,hasDuty,predictionOptions]);
+  }, [huddleData,hs,urgOv,routOv,weather,convRate,dutySlots,hasDuty,predictionOptions,rTarget]);
 
   // Below-minimum day count across the whole calendar window - shown as a
   // badge on the toggle button so warnings are visible WITHOUT opening the
@@ -542,6 +540,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   // Pattern detection — runs over the same `weeks` data used by the
   // calendar. See lib/capacity-patterns.js for the rules.
   const patterns = useMemo(()=>detectPatterns(weeks, hs, teamClin, huddleData), [weeks, hs, teamClin, huddleData]);
+  // #9: which week a grid-row click should land on in the detail view.
+  const [weekDetailOffset, setWeekDetailOffset] = useState(0);
 
   const detailDay = selectedDay?weeks.flatMap(w=>w.days).find(d=>d.isoKey===selectedDay):null;
   const detailClin = useMemo(()=>{
@@ -618,7 +618,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[11px] font-bold"
                       style={{background:'#f59e0b30', border:'1px solid #f59e0b60', color:'#fbbf24'}}
                       title={`${staffingWarnDays} day${staffingWarnDays === 1 ? '' : 's'} in the next 6 weeks below a staffing minimum`}>
-                      {staffingWarnDays}
+                      {staffingWarnDays} short
                     </span>
                   )}
                 </button>
@@ -706,33 +706,65 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               counts (the user explicitly asked for this clarification).
               The routine column on the right gets its own label tying back
               to the weekly target. */}
+          {/* #4: the key, above the grid it explains. It was the last row
+              of the card, after all sixty tiles. */}
+          <div className="px-5 py-2 flex items-center gap-4 flex-wrap text-[11px] text-slate-400 border-b border-white/5">
+            <span className="font-semibold">Key:</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#2563eb'}}/>Over</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#047857'}}/>On target</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#b45309'}}/>Tight</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(45deg,transparent,transparent 2px,rgba(0,0,0,0.16) 2px,rgba(0,0,0,0.16) 4px),#dc2626'}}/>Short</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{border:'1.5px dashed rgba(239,68,68,0.5)'}}/>Beyond horizon</span>
+            <span>|</span>
+            <span>Demand chip: &#8593; above typical &middot; &#8593;&#8593; well above</span>
+          </div>
+
+          {/* #10: "URGENT · AM | PM" was printed five times, once per
+              column, in alarm-red caps. One spanning band says it once and
+              hands the red back to the tiles; day names step up a size. */}
           <div className="grid border-b border-white/10" style={{gridTemplateColumns:'62px repeat(5, 1fr) 190px'}}>
-            <div className="p-3"/>
-            {['Mon','Tue','Wed','Thu','Fri'].map(d => (
-              <div key={d} className="p-3 text-center border-l border-white/5">
-                <div className="text-[11px] text-red-400 font-bold uppercase tracking-wider">Urgent · AM | PM</div>
-                <div className="text-xs font-semibold text-slate-300 mt-0.5">{d}</div>
+            <div style={{gridColumn:'1'}}/>
+            <div className="px-3 pt-2 text-center" style={{gridColumn:'2 / span 5'}}>
+              <div className="text-[11px] font-bold uppercase tracking-wider" style={{color:'var(--meta)',borderBottom:'1px solid var(--g-border)',paddingBottom:4}}>Urgent slots · AM | PM per day</div>
+            </div>
+            <div className="px-3 pt-2 border-l border-purple-900/30" style={{gridColumn:'7',background:'rgba(167,139,250,0.05)'}}>
+              <div className="text-[11px] text-purple-300 font-bold uppercase tracking-wider">Routine</div>
+            </div>
+            <div style={{gridColumn:'1'}} className="pb-2"/>
+            {['Mon','Tue','Wed','Thu','Fri'].map((d,i) => (
+              <div key={d} className="px-3 pb-2 pt-1 text-center border-l border-white/5" style={{gridColumn:`${i+2}`}}>
+                <div className="text-sm font-semibold text-slate-300">{d}</div>
               </div>
             ))}
-            <div className="p-3 border-l border-purple-900/30" style={{background:'rgba(167,139,250,0.05)'}}>
-              <div className="text-[11px] text-purple-300 font-bold uppercase tracking-wider">Routine</div>
-              <div className="text-xs font-semibold text-slate-300 mt-0.5">vs weekly target</div>
+            <div className="px-3 pb-2 pt-1 border-l border-purple-900/30" style={{gridColumn:'7',background:'rgba(167,139,250,0.05)'}}>
+              <div className="text-xs font-semibold text-slate-300">vs weekly target</div>
             </div>
           </div>
 
           {/* Weeks */}
           {weeks.map((wk,wi)=>(
             <div key={wi} className="grid border-b border-white/5" style={{gridTemplateColumns:'62px repeat(5, 1fr) 190px'}}>
-              <div className="p-3 border-r border-white/5 flex flex-col justify-center">
+              {/* #9: the week label was inert while a week-detail view sat
+                  behind a header toggle. The obvious thing to click now
+                  opens that week in detail. */}
+              <button onClick={()=>{setWeekDetailOffset(wi);setCapView('week');}}
+                title={`Open week ${wi+1} (${wk.label}) in day-by-day detail`}
+                className="p-3 border-r border-white/5 flex flex-col justify-center text-left transition-colors hover:bg-white/5 group/wk"
+                style={{cursor:'pointer',border:'none',background:'transparent'}}>
                 <div className="text-xs font-bold text-slate-300 font-mono-data">Wk {wi+1}</div>
                 <div className="text-[11px] text-slate-400">{wk.label}</div>
-              </div>
+                <div className="text-[11px] mt-0.5 opacity-0 group-hover/wk:opacity-100 transition-opacity" style={{color:'var(--link)'}}>detail &rarr;</div>
+              </button>
               {wk.days.map((d,di)=>{
                 const sel = selectedDay===d.isoKey;
                 if(d.isBH) return (
+                  /* #8: the one closed-day treatment everywhere — house icon,
+                     neutral surface. Amber belongs to "tight", not to a
+                     day off. */
                   <div key={di} className="p-2 border-l border-white/5">
-                    <div className="rounded-lg h-full flex items-center justify-center" style={{background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.2)'}}>
-                      <span className="text-xs font-semibold text-amber-500">Bank hol</span>
+                    <div className="rounded-lg h-full flex flex-col items-center justify-center gap-1" style={{background:'var(--g-tile-2)',border:'1px solid var(--g-border-2)'}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--meta)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                      <span className="text-[11px]" style={{color:'var(--meta)'}}>Bank holiday</span>
                     </div>
                   </div>
                 );
@@ -743,8 +775,26 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     </div>
                   </div>
                 );
-                const amV = vBand(d.amS,d.amT);
-                const pmV = vBand(d.pmS,d.pmT);
+                let amV = vBand(d.amS,d.amT);
+                let pmV = vBand(d.pmS,d.pmT);
+                // #2: more than three weeks out, with essentially no
+                // bookings in yet, a "short" session is not a shortage —
+                // it is a book that has not opened. Wk 6 was solid red at
+                // 0% booked, which teaches people to ignore red. Dashed
+                // outline instead; full colour returns as the day enters
+                // the actionable window or takes real bookings.
+                const HORIZON_MS = 21 * 86400000;
+                const dayBooked = d.uCap ? ((d.uCap.am.booked||0)+(d.uCap.pm.booked||0)) : 0;
+                // d.isPast already exists for the other direction, so
+                // Date.now() is fine here — the horizon is 3 weeks, a few
+                // hours of same-day imprecision cannot matter.
+                const beyondHorizon = (d.date.getTime() - Date.now()) > HORIZON_MS && dayBooked <= 2;
+                const GHOST = { bg: 'transparent', text: '#fca5a5', ghost: true };
+                const GHOST_T = { bg: 'transparent', text: '#fcd34d', ghost: true };
+                if (beyondHorizon) {
+                  if (amV === VB.short) amV = GHOST; else if (amV === VB.tight) amV = GHOST_T;
+                  if (pmV === VB.short) pmV = GHOST; else if (pmV === VB.tight) pmV = GHOST_T;
+                }
                 // Tooltip strings — native browser tooltips (cheap; no popper needed).
                 // AM/PM tip: duty doctor + supplied/target. Demand tip: top
                 // 2 driver factors. teamClin lookup gives the friendly
@@ -800,11 +850,11 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         </div>
                       </div>
                       <div className="flex gap-1">
-                        <div title={amTip} className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg}}>
+                        <div title={amV.ghost ? amTip + '\nBeyond the booking horizon — not yet judged' : amTip} className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg, border: amV.ghost ? '1.5px dashed rgba(239,68,68,0.45)' : 'none'}}>
                           <div className="text-base font-bold leading-none font-mono-data" style={{color:amV.text}}>{d.amS}</div>
                           <div className="text-[11px] font-bold mt-0.5" style={{color:amV.text,opacity:0.8}}>AM</div>
                         </div>
-                        <div title={pmTip} className="flex-1 text-center rounded-md py-1.5" style={{background:pmV.bg}}>
+                        <div title={pmV.ghost ? pmTip + '\nBeyond the booking horizon — not yet judged' : pmTip} className="flex-1 text-center rounded-md py-1.5" style={{background:pmV.bg, border: pmV.ghost ? '1.5px dashed rgba(239,68,68,0.45)' : 'none'}}>
                           <div className="text-base font-bold leading-none font-mono-data" style={{color:pmV.text}}>{d.pmS}</div>
                           <div className="text-[11px] font-bold mt-0.5" style={{color:pmV.text,opacity:0.8}}>PM</div>
                         </div>
@@ -864,20 +914,14 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               })}
               {/* Routine column — weekly bullet chart */}
               <div className="border-l border-purple-900/30" style={{background:'rgba(167,139,250,0.03)'}}>
-                <WeeklyRoutineBullet wk={wk} rTarget={rTarget} />
+                <WeeklyRoutineBullet wk={wk} rTarget={wk.effTarget || rTarget} shortWeek={wk.openDays < 5} />
               </div>
             </div>
           ))}
 
-          {/* Footer: key + target edit */}
+          {/* Footer: target edit (the key moved to the top of the grid —
+              #4: it sat below sixty tiles that it explained) */}
           <div className="px-5 py-3 flex items-center gap-5 flex-wrap text-[11px] text-slate-400">
-            <span className="font-semibold text-slate-400">Key:</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#3b82f6'}}/>Over</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/>On target</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}}/>Tight</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#ef4444'}}/>Short</span>
-            <span className="text-slate-400">|</span>
-            <span className="text-slate-400">Demand pill colour = vs typical for this weekday</span>
             <span className="text-slate-400">|</span>
             {rTarget>0
               ? <span className="text-slate-400">Routine target: <strong className="text-slate-300">{rTarget}</strong>/wk {canEdit && <button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={()=>{const v=prompt('Weekly routine target:',rTarget);if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer ml-1" style={{background:'none',border:'none',fontSize:'inherit'}}>edit</button>}</span>
@@ -885,7 +929,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           </div>
           </>)}
           {capView === 'week' && (
-            <CapacityWeek data={data} hs={hs} huddleData={huddleData} sites={sites}
+            <CapacityWeek key={weekDetailOffset} initialOffset={weekDetailOffset} data={data} hs={hs} huddleData={huddleData} sites={sites}
               capacityStaffing={capacityStaffing} teamClin={teamClin} />
           )}
         </div>
@@ -905,12 +949,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               return (
                 <button onClick={() => toggleMarker('short')}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
-                  style={{background: isActive ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.04)', border: `1px solid ${isActive ? 'rgba(239,68,68,0.45)' : 'rgba(239,68,68,0.12)'}`}}>
+                  style={{background: isActive ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.07)', border: `1px solid ${isActive ? 'rgba(239,68,68,0.45)' : 'rgba(239,68,68,0.35)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(239,68,68,0.18)'}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: isActive ? '#fca5a5' : 'var(--g-text-hi)'}}>Urgent below target</div>
+                    <div className="text-xs font-semibold" style={{color: '#fca5a5'}}>Urgent below target &rarr;</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{shortDays.length} day{shortDays.length===1?'':'s'} flagged</div>
                   </div>
                   <span className="text-base font-bold text-red-400 font-mono-data">{shortDays.length}</span>
@@ -923,7 +967,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               return (
                 <button onClick={() => toggleMarker('demand')}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
-                  style={{background: isActive ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.04)', border: `1px solid ${isActive ? 'rgba(245,158,11,0.45)' : 'rgba(245,158,11,0.12)'}`}}>
+                  style={{background: isActive ? 'rgba(245,158,11,0.15)' : 'var(--g-tile-2)', border: `1px solid ${isActive ? 'rgba(245,158,11,0.45)' : 'var(--g-border-2)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(245,158,11,0.18)'}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                   </div>
@@ -944,8 +988,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   disabled={disabled}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{
-                    background: disabled ? 'var(--g-tile-2)' : (isActive ? 'rgba(167,139,250,0.15)' : 'rgba(167,139,250,0.04)'),
-                    border: `1px solid ${disabled ? 'var(--g-tile)' : (isActive ? 'rgba(167,139,250,0.45)' : 'rgba(167,139,250,0.12)')}`,
+                    background: disabled ? 'var(--g-tile-2)' : (isActive ? 'rgba(167,139,250,0.15)' : 'var(--g-tile-2)'),
+                    border: `1px solid ${disabled ? 'var(--g-tile)' : (isActive ? 'rgba(167,139,250,0.45)' : 'var(--g-border-2)')}`,
                     opacity: disabled ? 0.5 : 1,
                     cursor: disabled ? 'not-allowed' : 'pointer'
                   }}>
@@ -966,7 +1010,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               return (
                 <button onClick={() => toggleMarker('trend')}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
-                  style={{background: isActive ? 'rgba(148,163,184,0.15)' : 'rgba(148,163,184,0.04)', border: `1px solid ${isActive ? 'rgba(148,163,184,0.45)' : 'rgba(148,163,184,0.12)'}`}}>
+                  style={{background: isActive ? 'rgba(148,163,184,0.15)' : 'var(--g-tile-2)', border: `1px solid ${isActive ? 'rgba(148,163,184,0.45)' : 'var(--g-border-2)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(148,163,184,0.18)'}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
                   </div>
@@ -985,7 +1029,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               return (
                 <button onClick={() => toggleMarker('patterns')}
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
-                  style={{background: isActive ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.04)', border: `1px solid ${isActive ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.12)'}`}}>
+                  style={{background: isActive ? 'rgba(99,102,241,0.15)' : 'var(--g-tile-2)', border: `1px solid ${isActive ? 'rgba(99,102,241,0.45)' : 'var(--g-border-2)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(99,102,241,0.18)'}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
                   </div>

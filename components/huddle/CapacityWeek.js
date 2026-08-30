@@ -28,8 +28,10 @@ function mondayOf(d) {
   return x;
 }
 
-export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaffing, teamClin }) {
-  const [offset, setOffset] = useState(0);
+export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaffing, teamClin, initialOffset = 0 }) {
+  // initialOffset lets the 6-week grid deep-link a specific week (the parent
+  // remounts with key={offset}, so useState's one-shot init is safe here).
+  const [offset, setOffset] = useState(initialOffset);
   const monday = useMemo(() => {
     const m = mondayOf(new Date());
     m.setDate(m.getDate() + offset * 7);

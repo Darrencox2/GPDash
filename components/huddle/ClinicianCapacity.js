@@ -314,7 +314,12 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
 
       {/* Empty state */}
       {!selected && !showList && (
-        <EmptyState compact icon="🔍" title="Search for a clinician" description="View their routine slots, weekly pattern and how they compare across the practice." />
+        /* #5: was a full-height EmptyState card — an illustration and two
+           lines of prose before anyone had typed. One quiet line; the card
+           grows when there is something to show. */
+        <div className="rounded-lg px-3 py-2 text-sm" style={{ color: 'var(--meta)', background: 'var(--g-tile-2)', border: '1px solid var(--g-border)' }}>
+          Search a clinician above to see their routine slots and weekly pattern.
+        </div>
       )}
     </div>
   );
