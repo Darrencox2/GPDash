@@ -29,28 +29,95 @@ import { canEditPracticeData, isPlatformAdmin } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 import { DashboardCompletenessStrip } from '@/app/v4/_lib/SectionStatus';
 import { reportError } from '@/lib/report-error';
+import { noteAction, getTrail, isStaleBuildError, buildErrorReport } from '@/lib/error-context';
+import { APP_VERSION } from '@/lib/version';
 
 // Shows the REAL error on screen when a section crashes, instead of
 // Next.js's blank "client-side exception" page - a live diagnostic so a
 // staff report can include the actual message.
 class SectionErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { error: null }; }
-  static getDerivedStateFromError(error) { return { error }; }
+  constructor(props) { super(props); this.state = { error: null, info: null, copied: false, stale: false }; }
+  static getDerivedStateFromError(error) {
+    return { error, stale: isStaleBuildError(error) };
+  }
   componentDidCatch(error, info) {
     console.error('[gpdash] section crashed:', error, info?.componentStack);
-    // Also send it, so a crash no longer depends on someone screenshotting
-    // the box and remembering to pass it on.
+    this.setState({ info });
     reportError(error, { source: 'boundary', componentStack: info?.componentStack });
+
+    // A chunk that will not load is almost always a stale tab: the browser is
+    // holding a filename from a previous build, after a deploy or a rebuild.
+    // The app is not broken, it is out of date — so reload it once. The
+    // sessionStorage guard means a genuinely missing chunk cannot loop.
+    if (isStaleBuildError(error)) {
+      try {
+        const KEY = 'gpdash-stale-reload';
+        if (!sessionStorage.getItem(KEY)) {
+          sessionStorage.setItem(KEY, String(Date.now()));
+          window.location.reload();
+        }
+      } catch (e) { /* reloading is best effort */ }
+    }
   }
+  copy = () => {
+    const text = buildErrorReport({
+      error: this.state.error,
+      componentStack: this.state.info?.componentStack,
+      section: this.props.section,
+      version: APP_VERSION,
+      practice: this.props.practice,
+    });
+    const done = () => { this.setState({ copied: true }); setTimeout(() => this.setState({ copied: false }), 2500); };
+    try {
+      navigator.clipboard.writeText(text).then(done, () => {
+        // Clipboard can be blocked; fall back to a selectable textarea.
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      });
+    } catch (e) { /* nothing more we can do */ }
+  };
   render() {
     if (this.state.error) {
+      const trail = getTrail();
+      if (this.state.stale) {
+        return (
+          <div style={{ padding: 24 }}>
+            <div className="glass" style={{ padding: 20, borderRadius: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#fbbf24' }}>GPDash has been updated</div>
+              <div style={{ fontSize: 13, color: 'var(--meta)', marginTop: 6, maxWidth: '60ch', lineHeight: 1.6 }}>
+                This tab was open while a new version went out, so part of the app it was
+                trying to load no longer exists. Reloading picks up the new version — nothing
+                is wrong and nothing is lost.
+              </div>
+              <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: '8px 16px', borderRadius: 8, background: 'rgba(251,191,36,0.18)', border: '1px solid rgba(251,191,36,0.5)', color: '#fcd34d', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Reload GPDash</button>
+            </div>
+          </div>
+        );
+      }
       return (
         <div style={{ padding: 24 }}>
           <div className="glass" style={{ padding: 20, borderRadius: 16 }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#fca5a5' }}>This section hit an error</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Please screenshot this box for Darren, then switch section or reload.</div>
-            <pre style={{ fontSize: 11, color: '#e2e8f0', whiteSpace: 'pre-wrap', marginTop: 10, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 8 }}>{String(this.state.error?.message || this.state.error)}</pre>
-            <button onClick={() => this.setState({ error: null })} style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc', fontSize: 12, cursor: 'pointer' }}>Try again</button>
+            <div style={{ fontSize: 13, color: 'var(--meta)', marginTop: 6 }}>
+              Copy the details and send them to Darren — that is more useful than a screenshot,
+              because it includes what you were doing.
+            </div>
+            <pre style={{ fontSize: 12, color: '#e2e8f0', whiteSpace: 'pre-wrap', marginTop: 10, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 8 }}>{String(this.state.error?.message || this.state.error)}</pre>
+            {trail.length > 0 && (
+              <div style={{ marginTop: 10, fontSize: 12, color: 'var(--meta)' }}>
+                <div style={{ fontWeight: 600, marginBottom: 3 }}>What you did just before</div>
+                <ol style={{ margin: 0, paddingLeft: 18, lineHeight: 1.6 }}>
+                  {trail.slice(-4).map((t, i) => <li key={i}>{t.label}</li>)}
+                </ol>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <button onClick={this.copy} style={{ padding: '7px 14px', borderRadius: 8, background: this.state.copied ? 'rgba(52,211,153,0.2)' : 'rgba(52,211,153,0.14)', border: `1px solid ${this.state.copied ? 'var(--link)' : 'rgba(52,211,153,0.45)'}`, color: 'var(--link)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                {this.state.copied ? 'Copied \u2713' : 'Copy error details'}
+              </button>
+              <button onClick={() => this.setState({ error: null, info: null })} style={{ padding: '7px 14px', borderRadius: 8, background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc', fontSize: 13, cursor: 'pointer' }}>Try again</button>
+            </div>
           </div>
         </div>
       );
@@ -181,6 +248,9 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   const [selectedWeek, setSelectedWeek] = useState(() => getActiveWeekStart());
   const [selectedDay, setSelectedDay] = useState(() => getCurrentDay());
   const [activeSection, setActiveSection] = useState('huddle-today');
+  // Breadcrumb for crash reports: what the user navigated to, in order. Kept
+  // in memory only — it exists so a pasted error says what led to it.
+  useEffect(() => { noteAction(`Opened section: ${activeSection}`); }, [activeSection]);
   // Pick up `?section=X` after hydration. The previous useState initializer
   // pattern with `typeof window !== 'undefined'` doesn't work cross-page in
   // App Router — server renders with default, client hydrates with that
@@ -841,7 +911,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     <div className="min-h-screen flex" style={{ background: 'var(--app-bg)' }}>
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} data={data} />
       <main className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)' }}>
-        <SectionErrorBoundary key={activeSection}>
+        <SectionErrorBoundary key={activeSection} section={activeSection} practice={data?._v4?.practiceName}>
         <div className={`${(activeSection === 'huddle-forward' || activeSection === 'workforce-planner') ? '' : 'max-w-6xl mx-auto '}px-4 pb-4 pt-14 lg:p-6 animate-in`}>
           {/* "Is this you?" — auto-suggest matching clinician records when
               the signed-in user has a surname but isn't yet linked. */}
