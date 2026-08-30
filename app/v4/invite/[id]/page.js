@@ -95,7 +95,7 @@ export default async function InviteAcceptPage({ params }) {
         />
       )}
 
-      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 11, color: '#64748b' }}>
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 11, color: 'var(--meta)' }}>
         Invite expires {new Date(summary.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.
       </div>
     </Shell>

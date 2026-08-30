@@ -66,7 +66,7 @@ export default function DashboardShell({ shellData, activeSection, children }) {
           {children}
         </div>
         <footer className="mt-8 pb-6">
-          <div className="text-center text-xs" style={{ color: '#64748b' }}>
+          <div className="text-center text-xs" style={{ color: 'var(--meta)' }}>
             GPDash — {practiceName} · v4 Postgres
             {isPlatformAdmin(shellData) && (
               <>

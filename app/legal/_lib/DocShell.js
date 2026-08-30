@@ -31,7 +31,7 @@ export default function DocShell({ title, html, breadcrumb }) {
       <article style={{ maxWidth: 720, margin: '0 auto', lineHeight: 1.65 }}>
         <nav className="mb-4 text-meta text-slate-400">
           <Link href="/legal" style={inlineLink}>Legal &amp; compliance</Link>
-          {breadcrumb && <> <span style={{ color: '#475569', margin: '0 6px' }}>·</span> <span className="text-slate-300">{breadcrumb}</span></>}
+          {breadcrumb && <> <span style={{ color: 'var(--meta)', margin: '0 6px' }}>·</span> <span className="text-slate-300">{breadcrumb}</span></>}
         </nav>
 
         <div className="legal-doc" dangerouslySetInnerHTML={{ __html: html }} />

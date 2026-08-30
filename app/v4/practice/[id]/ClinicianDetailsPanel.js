@@ -266,7 +266,7 @@ export default function ClinicianDetailsPanel({
                   const row = workingPattern?.pattern?.[d.key] || {};
                   return (
                     <div key={d.key} className="text-center">
-                      <div style={{ fontSize: 10, color: 'var(--g-text-mid)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{d.label}</div>
+                      <div style={{ fontSize:11, color: 'var(--g-text-mid)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{d.label}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
                         <ReadOnlyHalf on={row.am === 'in'} label="AM" />
                         <ReadOnlyHalf on={row.pm === 'in'} label="PM" />

@@ -188,7 +188,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                 return (
                   <div key={item.id} className="flex items-center gap-2 mx-3 mt-4 mb-1.5">
                     <div className="flex-1 h-px" style={{background:'var(--sidebar-divider)'}} />
-                    <span style={{fontSize:10,color:'#334155',letterSpacing:'1.5px'}}>{item.section}</span>
+                    <span style={{fontSize:11,color:'#334155',letterSpacing:'1.5px'}}>{item.section}</span>
                     <div className="flex-1 h-px" style={{background:'var(--sidebar-divider)'}} />
                   </div>
                 );
@@ -225,7 +225,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                     <path d={item.icon} />
                   </svg>
                   <span style={{fontSize:13, color: isActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: isActive ? 500 : 400}}>{item.label}</span>
-                  {item.badge && <span style={{fontSize:9,padding:'1px 6px',borderRadius:'var(--r-md)',background:`${item.colour}20`,color:item.colour,marginLeft:'auto'}}>{item.badge}</span>}
+                  {item.badge && <span style={{fontSize:11,padding:'1px 6px',borderRadius:'var(--r-md)',background:`${item.colour}20`,color:item.colour,marginLeft:'auto'}}>{item.badge}</span>}
                 </button>
               );
             })}
@@ -305,7 +305,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
           {/* Collapse toggle */}
           <div className="p-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
             <button onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="w-full flex items-center justify-center py-1.5 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-white/5 text-xs transition-colors">
+              className="w-full flex items-center justify-center py-1.5 rounded-lg text-slate-400 hover:text-slate-400 hover:bg-white/5 text-xs transition-colors">
               {sidebarOpen ? '◂' : '▸'}
             </button>
           </div>

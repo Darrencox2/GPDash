@@ -16,6 +16,7 @@ const SOURCE_STYLE = {
   boundary:  { bg: 'rgba(239,68,68,0.14)',  bd: 'rgba(239,68,68,0.38)',  fg: '#fca5a5', label: 'Section crash' },
   unhandled: { bg: 'rgba(245,158,11,0.14)', bd: 'rgba(245,158,11,0.38)', fg: '#fcd34d', label: 'Unhandled' },
   client:    { bg: 'rgba(148,163,184,0.12)',bd: 'rgba(148,163,184,0.3)', fg: '#94a3b8', label: 'Reported' },
+  csp:       { bg: 'rgba(103,232,249,0.12)',bd: 'rgba(103,232,249,0.32)', fg: '#67e8f9', label: 'CSP blocked' },
 };
 
 function timeAgo(iso) {

@@ -106,7 +106,7 @@ export default function PracticeMembers({ practice }) {
         <h3 style={cardHeader}>Members ({practice.members.length})</h3>
 
         {practice.members.length === 0 ? (
-          <p className="text-slate-500 text-body-sm mb-4">
+          <p className="text-slate-400 text-body-sm mb-4">
             This practice has no members yet. Add one below.
           </p>
         ) : (
@@ -118,7 +118,7 @@ export default function PracticeMembers({ practice }) {
                     <span className="text-slate-200 text-body-sm font-medium">{m.email}</span>
                     {m.is_platform_admin && (
                       <span style={{
-                        fontSize: 10,
+                        fontSize:11,
                         padding: '2px 6px',
                         background: 'rgba(34,211,238,0.15)',
                         color: '#67e8f9',
@@ -127,7 +127,7 @@ export default function PracticeMembers({ practice }) {
                       }}>Platform admin</span>
                     )}
                   </div>
-                  <div className="text-slate-500 text-caption mt-0.5">
+                  <div className="text-slate-400 text-caption mt-0.5">
                     {m.name && <span>{m.name} · </span>}
                     joined {new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     {m.last_sign_in_at && (
@@ -175,7 +175,7 @@ export default function PracticeMembers({ practice }) {
             <div className="flex gap-2 flex-wrap items-center">
               <div style={{ flex: '1 1 240px', padding: '8px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)' }}>
                 <div className="text-body-sm text-slate-200">{pickedUser.email}</div>
-                {pickedUser.name && <div className="text-caption text-slate-500">{pickedUser.name}</div>}
+                {pickedUser.name && <div className="text-caption text-slate-400">{pickedUser.name}</div>}
               </div>
               <select value={pickRole} onChange={(e) => setPickRole(e.target.value)} style={selectStyle}>
                 <option value="user">user</option>
@@ -202,7 +202,7 @@ export default function PracticeMembers({ practice }) {
                 placeholder="Search by email or name…"
                 style={input}
               />
-              {searching && <div className="text-caption text-slate-500 mt-1">Searching…</div>}
+              {searching && <div className="text-caption text-slate-400 mt-1">Searching…</div>}
               {searchResults.length > 0 && (
                 <div style={{
                   marginTop: 8,
@@ -225,17 +225,17 @@ export default function PracticeMembers({ practice }) {
                       onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                       <div>{u.email}</div>
-                      {u.name && <div className="text-caption text-slate-500">{u.name}</div>}
+                      {u.name && <div className="text-caption text-slate-400">{u.name}</div>}
                     </button>
                   ))}
                 </div>
               )}
               {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
-                <div className="text-caption text-slate-500 mt-1.5">
+                <div className="text-caption text-slate-400 mt-1.5">
                   No users match. They need to sign up first — then come back here.
                 </div>
               )}
-              <div className="text-caption text-slate-500 mt-2">
+              <div className="text-caption text-slate-400 mt-2">
                 To invite someone who hasn't signed up yet, use the practice's own Users tab and send an email invite.
               </div>
             </div>

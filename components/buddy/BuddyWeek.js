@@ -52,13 +52,13 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
             <div key={d} className={`card overflow-hidden ${closed ? 'bg-slate-100' : ''}`}>
               <div className={`px-4 py-3 border-b ${closed ? 'bg-slate-200 border-slate-300' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex items-center justify-between">
-                  <div><div className="text-sm font-medium text-slate-900">{d}</div><div className="text-xs text-slate-500">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div>
-                  <button onClick={() => toggleClosedDay(dk, 'Bank Holiday')} className={`text-xs px-2 py-1 rounded transition-colors ${closed ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{closed ? 'Closed' : 'Open'}</button>
+                  <div><div className="text-sm font-medium text-slate-900">{d}</div><div className="text-xs text-slate-400">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div>
+                  <button onClick={() => toggleClosedDay(dk, 'Bank Holiday')} className={`text-xs px-2 py-1 rounded transition-colors ${closed ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{closed ? 'Closed' : 'Open'}</button>
                 </div>
               </div>
               <div className="p-4 min-h-[120px]">
-                {closed ? <div className="text-center text-slate-500 text-sm py-4"><div className="font-medium">Practice Closed</div><div className="text-xs mt-1">{getClosedReason(dk)}</div></div>
-                : !has ? <div className="text-center text-amber-600 text-sm py-4"><div className="font-medium">Not generated</div><div className="text-xs mt-1 text-slate-500">Go to Daily view</div></div>
+                {closed ? <div className="text-center text-slate-400 text-sm py-4"><div className="font-medium">Practice Closed</div><div className="text-xs mt-1">{getClosedReason(dk)}</div></div>
+                : !has ? <div className="text-center text-amber-600 text-sm py-4"><div className="font-medium">Not generated</div><div className="text-xs mt-1 text-slate-400">Go to Daily view</div></div>
                 : (() => {
                   const ovIds = e.overriddenIds || [];
                   const rows = (e.presentIds || []).map(bid => {
@@ -73,7 +73,7 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
                       const covererOv = ovIds.includes(bid);
                       return (
                       <div key={bid} className="flex items-center gap-2">
-                        <span className={`font-medium w-8 ${hasTasks ? 'text-slate-700' : 'text-slate-400'}`} style={covererOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px',borderRadius:3} : undefined}>{b.initials}</span>
+                        <span className={`font-medium w-8 ${hasTasks ? 'text-slate-400' : 'text-slate-400'}`} style={covererOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px',borderRadius:3} : undefined}>{b.initials}</span>
                         {hasTasks ? (
                           <div className="flex flex-wrap gap-1">
                             {t.absent.map(i => { const x = getClinicianById(i); const isOv = ovIds.includes(i); return x ? <span key={i} className="status-tag absent text-xs" style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px'} : undefined}>{x.initials}</span> : null; })}
@@ -90,7 +90,7 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
         })}
       </div>
 
-      <div className="flex gap-6 text-xs text-slate-500 justify-center flex-wrap">
+      <div className="flex gap-6 text-xs text-slate-400 justify-center flex-wrap">
         <span className="flex items-center gap-1.5"><span className="status-tag absent">XX</span>File & Action (absent)</span>
         <span className="flex items-center gap-1.5"><span className="status-tag dayoff">XX</span>View Only (day off)</span>
         <span className="flex items-center gap-1.5"><span style={{display:'inline-block',padding:'1px 4px',borderRadius:3,outline:'2px solid #f59e0b',outlineOffset:'1px',fontSize:11,fontWeight:500,color:'#64748b'}}>XX</span><span>Manually overridden</span></span>
@@ -99,10 +99,10 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
       <div className="card p-5">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-slate-900">Planned Leave This Week</h2>
-          <p className="text-xs text-slate-500 mt-0.5">{data.lastSyncTime ? `Last synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Not yet synced'}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{data.lastSyncTime ? `Last synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Not yet synced'}</p>
         </div>
         {getWeekAbsences().length === 0 ? <div className="text-center py-6 text-slate-400 text-sm">{data.teamnetUrl ? 'No planned leave this week' : 'Set TeamNet URL in Settings to sync leave calendar'}</div>
-        : <div className="grid grid-cols-5 gap-2">{DAYS.map(d => { const dk = getDateKeyForDay(d); const dt = new Date(dk + 'T12:00:00'); const da = getWeekAbsences().filter(a => a.day === d); return (<div key={d} className="border border-slate-200 rounded-lg overflow-hidden"><div className="bg-slate-50 px-3 py-2 border-b border-slate-200"><div className="text-xs font-medium text-slate-700">{d.slice(0, 3)}</div><div className="text-xs text-slate-400">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div><div className="p-2 min-h-[60px]">{da.length === 0 ? <div className="text-xs text-slate-300 text-center py-2">—</div> : <div className="space-y-1">{da.map((a, i) => { const cc = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? 'bg-blue-100 text-blue-700' : a.reason === 'Training' || a.reason === 'Study' ? 'bg-amber-100 text-amber-700' : a.reason === 'Sick' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'; return <div key={i} className="flex items-center gap-1.5"><span className={`text-xs font-medium px-1.5 py-0.5 rounded ${cc}`}>{a.clinician.initials}</span><span className="text-xs text-slate-400 truncate">{a.reason}</span></div>; })}</div>}</div></div>); })}</div>}
+        : <div className="grid grid-cols-5 gap-2">{DAYS.map(d => { const dk = getDateKeyForDay(d); const dt = new Date(dk + 'T12:00:00'); const da = getWeekAbsences().filter(a => a.day === d); return (<div key={d} className="border border-slate-200 rounded-lg overflow-hidden"><div className="bg-slate-50 px-3 py-2 border-b border-slate-200"><div className="text-xs font-medium text-slate-400">{d.slice(0, 3)}</div><div className="text-xs text-slate-400">{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div></div><div className="p-2 min-h-[60px]">{da.length === 0 ? <div className="text-xs text-slate-300 text-center py-2">—</div> : <div className="space-y-1">{da.map((a, i) => { const cc = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? 'bg-blue-100 text-blue-700' : a.reason === 'Training' || a.reason === 'Study' ? 'bg-amber-100 text-amber-700' : a.reason === 'Sick' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-400'; return <div key={i} className="flex items-center gap-1.5"><span className={`text-xs font-medium px-1.5 py-0.5 rounded ${cc}`}>{a.clinician.initials}</span><span className="text-xs text-slate-400 truncate">{a.reason}</span></div>; })}</div>}</div></div>); })}</div>}
       </div>
     </div>
   );

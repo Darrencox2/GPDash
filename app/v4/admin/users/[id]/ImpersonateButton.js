@@ -84,7 +84,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
         >
           Sign in as this user (impersonate)
         </button>
-        <p className="text-slate-500 text-caption mt-2 leading-normal">
+        <p className="text-slate-400 text-caption mt-2 leading-normal">
           {disabledReason
             ? disabledReason
             : 'Use sparingly — only to debug a problem the user is reporting. Every action you take while impersonating is recorded against your account, with the user\'s ID attached. The session is logged, time-limited (1 hour), and visible in the user\'s activity timeline.'}

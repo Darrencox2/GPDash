@@ -84,10 +84,10 @@ export default function UserActivityTimeline({ userId }) {
     return <div className="text-meta text-red-300">Couldn't load activity: {error}</div>;
   }
   if (events === null) {
-    return <div className="text-meta text-slate-500">Loading activity…</div>;
+    return <div className="text-meta text-slate-400">Loading activity…</div>;
   }
   if (events.length === 0) {
-    return <div className="text-meta text-slate-500">No recorded activity yet.</div>;
+    return <div className="text-meta text-slate-400">No recorded activity yet.</div>;
   }
 
   return (
@@ -124,19 +124,19 @@ export default function UserActivityTimeline({ userId }) {
               <div className="text-body-sm text-slate-300" style={{ lineHeight: 1.4 }}>
                 {ev.description || s.label}
               </div>
-              <div className="text-caption text-slate-500 mt-0.5">
+              <div className="text-caption text-slate-400 mt-0.5">
                 {formatTime(ev.occurred_at)}
                 {ev.practice_name && (
                   <> · <span className="text-slate-400">{ev.practice_name}</span></>
                 )}
-                <> · <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 10, opacity: 0.7 }}>{ev.event_type}</span></>
+                <> · <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize:11, opacity: 0.7 }}>{ev.event_type}</span></>
               </div>
             </div>
           </div>
         );
       })}
       {events.length === 100 && (
-        <div className="text-caption text-slate-500 text-center p-2">
+        <div className="text-caption text-slate-400 text-center p-2">
           Showing the 100 most recent events. Older events are still in the audit log.
         </div>
       )}

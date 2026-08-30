@@ -109,7 +109,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
   if (state.loading) {
     return (
       <div style={ribbonStyle()}>
-        <span className="text-slate-500 text-meta">Loading NHS benchmarks…</span>
+        <span className="text-slate-400 text-meta">Loading NHS benchmarks…</span>
       </div>
     );
   }
@@ -122,7 +122,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
   if (yourPer1000 == null) {
     return (
       <div style={ribbonStyle()}>
-        <span className="text-slate-500 text-meta">
+        <span className="text-slate-400 text-meta">
           NHS demand benchmarks need your practice list size to compute. Set it under
           Practice → Details.
         </span>
@@ -138,14 +138,14 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
   return (
     <div style={ribbonStyle()}>
       <div className="flex items-center gap-2 flex-wrap">
-        <span style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
+        <span style={{ fontSize: 11, color: 'var(--meta)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
           NHS demand · {monthLabel}
         </span>
-        <span className="text-slate-600">·</span>
+        <span className="text-slate-400">·</span>
         <Stat label="You" value={yourPer1000} colour="#a5f3fc" emphasised />
         {pcnPer1000 != null && (
           <>
-            <span className="text-slate-600">·</span>
+            <span className="text-slate-400">·</span>
             <Stat
               label={`PCN avg${pcnPracticeCount ? ` (${pcnWithListSize}/${pcnPracticeCount})` : ''}`}
               value={pcnPer1000}
@@ -156,7 +156,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
         )}
         {natPer1000 != null && (
           <>
-            <span className="text-slate-600">·</span>
+            <span className="text-slate-400">·</span>
             <Stat
               label={`National avg`}
               value={natPer1000}
@@ -166,7 +166,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
           </>
         )}
       </div>
-      <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>
+      <div style={{ fontSize:11, color: 'var(--meta)', marginTop: 4 }}>
         Online consultation submissions per 1,000 patients per reporting weekday
         {yourListSize ? ` · your list: ${yourListSize.toLocaleString()}` : ''}
         {(pcnEstimated || natEstimated)
@@ -192,9 +192,9 @@ function Stat({ label, value, delta, colour, emphasised, estimated }) {
       }}>
         {fmt(value)}
       </span>
-      <span style={{ fontSize: 10, color: '#64748b' }}>/1k</span>
+      <span style={{ fontSize:11, color: 'var(--meta)' }}>/1k</span>
       {estimated && (
-        <span style={{ fontSize: 10, color: '#fcd34d', fontStyle: 'italic' }} title="Estimated using UK average list size — refine by running the list-size backfill in /v4/admin/nhs-data">
+        <span style={{ fontSize:11, color: '#fcd34d', fontStyle: 'italic' }} title="Estimated using UK average list size — refine by running the list-size backfill in /v4/admin/nhs-data">
           ~est
         </span>
       )}

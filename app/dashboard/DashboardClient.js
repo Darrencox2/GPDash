@@ -100,7 +100,7 @@ function RedirectToClinicians({ slug }) {
   }, [slug, router]);
   return (
     <div className="card p-12 text-center">
-      <div className="text-sm text-slate-500">Redirecting to Clinicians…</div>
+      <div className="text-sm text-slate-400">Redirecting to Clinicians…</div>
     </div>
   );
 }
@@ -905,7 +905,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
               </div>
             );
           })()}
-          <Suspense fallback={<div className="text-sm text-slate-500 py-12 text-center">Loading…</div>}>
+          <Suspense fallback={<div className="text-sm text-slate-400 py-12 text-center">Loading…</div>}>
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} onRevertChange={revertChange} />}
           {huddleLoading && ['huddle-today','huddle-rota','huddle-forward','reporting'].includes(activeSection) && <PageSkeleton />}
           {activeSection === 'huddle-today' && !huddleLoading && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}

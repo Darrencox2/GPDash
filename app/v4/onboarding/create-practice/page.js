@@ -259,9 +259,9 @@ export default function CreatePracticePage() {
               style={f.input}
               autoFocus
             />
-            {searching && <div className="text-caption text-slate-500 mt-2">Searching NHS Digital…</div>}
+            {searching && <div className="text-caption text-slate-400 mt-2">Searching NHS Digital…</div>}
             {!searching && query.trim().length >= 2 && searchResults.length === 0 && (
-              <div className="text-caption text-slate-500 mt-2">
+              <div className="text-caption text-slate-400 mt-2">
                 No NHS practices match "{query}". Try a different spelling, or{' '}
                 <button type="button" onClick={() => { setManualName(query.trim()); setMode('manual'); }} style={{ background: 'none', border: 'none', padding: 0, color: '#34d399', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>enter details manually</button>.
               </div>
@@ -300,7 +300,7 @@ export default function CreatePracticePage() {
             >
               {odsLookupBusy ? 'Looking up…' : 'Look up practice'}
             </button>
-            <div className="text-caption text-slate-500 mt-2">
+            <div className="text-caption text-slate-400 mt-2">
               Don't know your ODS code? Switch to "Search by name" above, or find it on{' '}
               <a href="https://www.odsportal.digital.nhs.uk/" target="_blank" rel="noopener noreferrer" className="text-emerald-400">NHS ODS Portal</a>.
             </div>
@@ -323,7 +323,7 @@ export default function CreatePracticePage() {
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') submitManual(); }}
             />
-            <label style={{ ...f.label, marginTop: 12 }}>ODS code <span className="text-slate-500">(optional)</span></label>
+            <label style={{ ...f.label, marginTop: 12 }}>ODS code <span className="text-slate-400">(optional)</span></label>
             <input
               type="text"
               value={manualOds}
@@ -332,7 +332,7 @@ export default function CreatePracticePage() {
               style={f.input}
               maxLength={10}
             />
-            <label style={{ ...f.label, marginTop: 12 }}>List size <span className="text-slate-500">(optional)</span></label>
+            <label style={{ ...f.label, marginTop: 12 }}>List size <span className="text-slate-400">(optional)</span></label>
             <input
               type="text"
               inputMode="numeric"
@@ -390,7 +390,7 @@ export default function CreatePracticePage() {
             already knows where they are, so the setup wizard won't
             need to ask. */}
         {postcodeBusy && (
-          <div className="text-meta text-slate-500 mt-1">
+          <div className="text-meta text-slate-400 mt-1">
             Looking up postcode…
           </div>
         )}

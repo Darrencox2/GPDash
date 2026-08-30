@@ -34,8 +34,14 @@
 //   img-src 'self' data: blob: — own images + base64 + Blob URLs (file previews)
 //   connect-src                — XHR/fetch destinations: own origin (API routes),
 //      *.supabase.co             Supabase auth/db/realtime (any project subdomain),
-//      api.postcodes.io          and postcodes.io (UK postcode lookup used in
-//                                the practice details step)
+//      api.postcodes.io          postcodes.io (UK postcode lookup used in
+//      api.open-meteo.com        the practice details step), and open-meteo,
+//                                which lib/demandPredictor.js calls for the
+//                                forecast. That last one was MISSING until
+//                                v4.121.0: every weather fetch was blocked by
+//                                this header, the predictor silently ran
+//                                weather-free, and the violation reports went
+//                                to a console.warn nobody read.
 //   frame-src 'none'           — we never embed iframes
 //   frame-ancestors 'none'     — and we never get embedded (clickjacking)
 //   base-uri 'self'            — block <base href> injection attacks
@@ -132,7 +138,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
       "font-src 'self' https://fonts.bunny.net data:",
       "img-src 'self' data: blob:",
-      "connect-src 'self' https://*.supabase.co https://api.postcodes.io",
+      "connect-src 'self' https://*.supabase.co https://api.postcodes.io https://api.open-meteo.com",
       "frame-src 'none'",
       "frame-ancestors 'none'",
       "base-uri 'self'",

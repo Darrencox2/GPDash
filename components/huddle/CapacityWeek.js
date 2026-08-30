@@ -101,15 +101,15 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           <button onClick={() => setOffset(0)} className="px-2.5 py-1 rounded-md text-[11px] font-semibold" style={{background: offset === 0 ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', color: offset === 0 ? '#a5b4fc' : '#94a3b8'}}>This week</button>
           <button onClick={() => setOffset(o => o + 1)} className="px-2 py-1 rounded-md text-slate-400 hover:text-white" style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)'}}>&#8250;</button>
         </div>
-        <span className="text-xs text-slate-500">w/c {weekLabel}</span>
+        <span className="text-xs text-slate-400">w/c {weekLabel}</span>
         {shortfalls.length > 0 ? (
           <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold" style={{background:'rgba(239,68,68,0.15)', border:'1px solid #ef444460', color:'#fca5a5'}}>
             {shortfalls.length} session{shortfalls.length === 1 ? '' : 's'} below minimum: {shortfalls.join(' \u00b7 ')}
           </span>
         ) : (
-          <span className="text-[11px] text-slate-500">No sessions below minimum this week</span>
+          <span className="text-[11px] text-slate-400">No sessions below minimum this week</span>
         )}
-        <span className="ml-auto text-[10px] text-slate-600">&#9733; duty &nbsp;&#183;&nbsp; dimmed = no bookable slots &nbsp;&#183;&nbsp; U urgent / R routine slots</span>
+        <span className="ml-auto text-[11px] text-slate-400">&#9733; duty &nbsp;&#183;&nbsp; dimmed = no bookable slots &nbsp;&#183;&nbsp; U urgent / R routine slots</span>
       </div>
 
       <div className="grid grid-cols-5 gap-2" style={{minWidth: 900}}>
@@ -118,14 +118,14 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
             style={{background:'rgba(255,255,255,0.03)', border: d.isToday ? '1px solid rgba(99,102,241,0.6)' : '1px solid rgba(255,255,255,0.08)'}}>
             <div className="text-center">
               <span className="text-xs font-semibold" style={{color: d.isToday ? '#a5b4fc' : '#cbd5e1'}}>{d.dayName.slice(0, 3)}</span>
-              <span className="text-[10px] text-slate-500 ml-1.5">{d.dt.getDate()} {d.dt.toLocaleDateString('en-GB', { month: 'short' })}</span>
+              <span className="text-[11px] text-slate-400 ml-1.5">{d.dt.getDate()} {d.dt.toLocaleDateString('en-GB', { month: 'short' })}</span>
             </div>
 
             {d.detail.map((siteEntry) => (
               <div key={siteEntry.site.name} className="rounded-lg overflow-hidden" style={{borderLeft:`3px solid ${siteEntry.site.colour || '#64748b'}`, background:'rgba(0,0,0,0.15)'}}>
-                <div className="px-2 pt-1.5 text-[10px] font-semibold text-slate-300 truncate" title={siteEntry.site.name}>
+                <div className="px-2 pt-1.5 text-[11px] font-semibold text-slate-300 truncate" title={siteEntry.site.name}>
                   {siteEntry.site.name}
-                  {siteEntry.threshold != null && <span className="text-slate-600 font-normal"> &#183; min {siteEntry.threshold}</span>}
+                  {siteEntry.threshold != null && <span className="text-slate-400 font-normal"> &#183; min {siteEntry.threshold}</span>}
                 </div>
                 <div className="p-1.5 flex flex-col gap-1">
                   {['am', 'pm', 'eve'].filter((k) => siteEntry.sessions[k]).map((k) => {
@@ -134,21 +134,21 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
                     return (
                       <div key={k} className="rounded-md px-1.5 py-1" style={{background: C.bg, border:`1px solid ${C.bd}`}}>
                         <div className="flex items-center gap-1">
-                          <span className="text-[9px] font-bold w-6" style={{color: C.fg}}>{SESSION_LABELS[k]}</span>
-                          <span className="text-[10px] font-bold font-mono-data" style={{color: C.fg}}>
+                          <span className="text-[11px] font-bold w-6" style={{color: C.fg}}>{SESSION_LABELS[k]}</span>
+                          <span className="text-[11px] font-bold font-mono-data" style={{color: C.fg}}>
                             {s.offering}
                             {s.state === 'short' && siteEntry.threshold != null && <span> ({'\u2212'}{siteEntry.threshold - s.offering})</span>}
                           </span>
-                          <span className="ml-auto text-[9px] font-mono-data text-slate-400">U{s.urgent} R{s.routine}</span>
+                          <span className="ml-auto text-[11px] font-mono-data text-slate-400">U{s.urgent} R{s.routine}</span>
                         </div>
                         <div className="flex flex-wrap gap-0.5 mt-1">
                           {s.clins.map((c, i) => (
                             <span key={c.name + i}
                               title={`${c.name}${c.duty ? ' \u2014 DUTY' : ''}\nUrgent ${c.urgent} \u00b7 Routine ${c.routine} \u00b7 Other ${c.other}${c.offering ? '' : '\nNo bookable slots this session'}`}
-                              className="px-1 py-0.5 rounded text-[9px] font-semibold cursor-default"
+                              className="px-1 py-0.5 rounded text-[11px] font-semibold cursor-default"
                               style={c.duty
                                 ? {background:'rgba(245,158,11,0.25)', border:'1px solid #f59e0b80', color:'#fbbf24'}
-                                : {background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', color: c.offering ? '#cbd5e1' : '#64748b'}}>
+                                : {background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', color: c.offering ? '#cbd5e1' : 'var(--meta)'}}>
                               {c.duty ? '\u2605 ' : ''}{c.initials}
                             </span>
                           ))}
@@ -162,23 +162,23 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
 
             {!d.hasData && d.projection && (
               <div className="rounded-lg p-1.5" style={{border:'1px dashed rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.02)'}}>
-                <div className="text-[9px] font-semibold text-slate-500 uppercase mb-1">Rota projection</div>
+                <div className="text-[11px] font-semibold text-slate-400 uppercase mb-1">Rota projection</div>
                 {[['M', 'AM'], ['A', 'PM'], ['E', 'EVE']].filter(([k]) => d.projection[k].length).map(([k, label]) => (
                   <div key={k} className="flex items-start gap-1 mt-0.5">
-                    <span className="text-[9px] font-bold text-slate-500 w-6 pt-0.5">{label}</span>
+                    <span className="text-[11px] font-bold text-slate-400 w-6 pt-0.5">{label}</span>
                     <span className="flex flex-wrap gap-0.5">
                       {d.projection[k].map((ini, i) => (
-                        <span key={ini + i} className="px-1 py-0.5 rounded text-[9px] font-semibold" style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#94a3b8'}}>{ini}</span>
+                        <span key={ini + i} className="px-1 py-0.5 rounded text-[11px] font-semibold" style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#94a3b8'}}>{ini}</span>
                       ))}
                     </span>
                   </div>
                 ))}
-                <div className="text-[8px] text-slate-600 mt-1">Scheduled GPs from the rota &#8212; no EMIS export for this date yet</div>
+                <div className="text-[11px] text-slate-400 mt-1">Scheduled GPs from the rota &#8212; no EMIS export for this date yet</div>
               </div>
             )}
 
             {!d.hasData && !d.projection && (
-              <div className="rounded-lg py-4 text-center text-[10px] text-slate-600" style={{background:'rgba(255,255,255,0.02)'}}>No data</div>
+              <div className="rounded-lg py-4 text-center text-[11px] text-slate-400" style={{background:'rgba(255,255,255,0.02)'}}>No data</div>
             )}
           </div>
         ))}

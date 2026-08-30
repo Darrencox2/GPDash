@@ -446,7 +446,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                 {DAYS.map(d => (
                   <th key={`sub-${d.key}`} style={{
                     padding: '4px 6px',
-                    fontSize: 10, color: 'var(--g-text-mid)', fontWeight: 500,
+                    fontSize:11, color: 'var(--g-text-mid)', fontWeight: 500,
                     borderBottom: '1px solid var(--g-border-2)',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-around' }}>
@@ -517,7 +517,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
                         {sessions}
                       </span>
                       {saving && (
-                        <div style={{ fontSize: 9, color: 'var(--g-text-mid)', marginTop: 2 }}>Saving…</div>
+                        <div style={{ fontSize:11, color: 'var(--g-text-mid)', marginTop: 2 }}>Saving…</div>
                       )}
                     </Td>
                     <Td className="text-center">
@@ -590,7 +590,7 @@ function SmallBtn({ onClick, children }) {
       type="button"
       onClick={onClick}
       style={{
-        padding: '3px 8px', fontSize: 10, fontWeight: 500,
+        padding: '3px 8px', fontSize:11, fontWeight: 500,
         background: 'var(--g-tile)',
         border: '1px solid var(--g-line)',
         borderRadius: 'var(--r-sm)', color: 'var(--g-text-mid)', cursor: 'pointer',

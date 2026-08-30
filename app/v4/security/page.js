@@ -216,7 +216,7 @@ function SecurityPageInner() {
                   <div className="text-slate-200 font-medium">
                     {f.friendly_name || 'Authenticator'}
                   </div>
-                  <div className="text-caption text-slate-500 mt-0.5">
+                  <div className="text-caption text-slate-400 mt-0.5">
                     {f.factor_type} · enrolled {new Date(f.created_at).toLocaleDateString('en-GB')}
                   </div>
                 </div>
@@ -298,7 +298,7 @@ function SecurityPageInner() {
         )}
       </section>
 
-      <p className="text-slate-600 text-meta mt-8 text-center">
+      <p className="text-slate-400 text-meta mt-8 text-center">
         <Link href="/v4/dashboard" className="text-slate-400">← Back to dashboard</Link>
       </p>
     </PageShell>

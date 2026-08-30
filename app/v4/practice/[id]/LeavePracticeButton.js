@@ -57,7 +57,7 @@ export default function LeavePracticeButton({ practiceId, practiceName, myRole, 
         {busy ? '…' : 'Leave'}
       </button>
       {error && (
-        <div style={{ fontSize: 10, color: '#fca5a5', maxWidth: 200, textAlign: 'right' }}>{error}</div>
+        <div style={{ fontSize:11, color: '#fca5a5', maxWidth: 200, textAlign: 'right' }}>{error}</div>
       )}
     </div>
   );

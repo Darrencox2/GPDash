@@ -44,7 +44,7 @@ export default function CopyableValue({ children, value, title }) {
           border: 'none',
           padding: 2,
           cursor: 'pointer',
-          color: copied ? '#34d399' : '#64748b',
+          color: copied ? '#34d399' : 'var(--meta)',
           display: 'inline-flex',
           alignItems: 'center',
           transition: 'color 0.15s',

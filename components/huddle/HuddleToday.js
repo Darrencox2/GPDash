@@ -481,7 +481,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             </button>
             <div className="text-center px-1">
               <div className="font-mono-data text-2xl sm:text-3xl font-bold text-slate-900 leading-none">{viewingDate.getDate()}</div>
-              <div className="text-[10px] sm:text-sm text-slate-500 uppercase tracking-wider">{viewingDate.toLocaleDateString('en-GB', { month: 'short' })}</div>
+              <div className="text-[11px] sm:text-sm text-slate-400 uppercase tracking-wider">{viewingDate.toLocaleDateString('en-GB', { month: 'short' })}</div>
             </div>
             <button onClick={(e) => { e.stopPropagation(); navigateDay(1); }} className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
               <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -499,7 +499,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 {isViewingToday ? 'Today' : viewingDate.toLocaleDateString('en-GB', { weekday: 'short' })}
               </h1>
             </div>
-            <span className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">
+            <span className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">
               {viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
             {!isViewingToday && (
@@ -538,7 +538,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           removed since the date is already prominent in the navigator. */}
       {!isViewingToday && !hasDataForDate && huddleData && (
         <div className="glass-dark rounded-lg p-3 flex items-center gap-2 mb-2">
-          <svg className="w-4 h-4 text-slate-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <svg className="w-4 h-4 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span className="text-xs text-slate-400">No CSV data available for this date</span>
         </div>
       )}
@@ -564,7 +564,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               </svg>
             </div>
             <h2 className="font-heading text-xl font-medium text-slate-300 mb-2">Practice closed</h2>
-            <p className="text-sm text-slate-500">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <p className="text-sm text-slate-400">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             {viewingPrediction?.isBankHoliday && <span className="inline-block mt-3 text-xs font-medium px-3 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--c-amber)', border: '1px solid rgba(245,158,11,0.1)' }}>Bank Holiday</span>}
           </div>
         </div>
@@ -654,13 +654,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
-                {huddleMessages.length > 0 && <span className="text-xs text-slate-600 ml-auto">{huddleMessages.length} today</span>}
+                {huddleMessages.length > 0 && <span className="text-xs text-slate-400 ml-auto">{huddleMessages.length} today</span>}
               </div>
               <div className="flex-1 overflow-y-auto" style={{maxHeight:'420px'}}>
                 {huddleMessages.length === 0 && (
                   <div className="text-center py-8 px-4">
-                    <div className="text-sm text-slate-500">No notices yet today.</div>
-                    {canEdit && <div className="text-xs text-slate-600 mt-1">Post the first one below.</div>}
+                    <div className="text-sm text-slate-400">No notices yet today.</div>
+                    {canEdit && <div className="text-xs text-slate-400 mt-1">Post the first one below.</div>}
                   </div>
                 )}
                 {huddleMessages.map((msg, i) => {
@@ -687,12 +687,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2 mb-0.5">
                           <span className="text-xs font-medium text-slate-200">{msg.author || 'Anonymous'}</span>
-                          {time && <span className="text-[10px] text-slate-500">{time}</span>}
+                          {time && <span className="text-[11px] text-slate-400">{time}</span>}
                         </div>
                         <div className="text-xs text-slate-300 leading-relaxed break-words">{msg.text}</div>
                       </div>
                       {canEdit && (
-                        <button onClick={() => removeMessage(i)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs leading-none mt-1" title="Delete notice">✕</button>
+                        <button onClick={() => removeMessage(i)} className="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs leading-none mt-1" title="Delete notice">✕</button>
                       )}
                     </div>
                   );
@@ -728,12 +728,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 </div>
                 <div className="flex-1 min-w-0 grid grid-cols-2 gap-3">
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center relative">
-                    <div className="text-sm text-slate-500 mb-1 flex items-center gap-1.5">
+                    <div className="text-sm text-slate-400 mb-1 flex items-center gap-1.5">
                       Predicted demand
                       {pred?.usingFallback && (
                         <span
                           title="Estimated from list size — calibrate by uploading an AskMyGP CSV in Practice → Demand model"
-                          className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                          className="text-[11px] font-medium px-1.5 py-0.5 rounded"
                           style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--c-amber)', border: '1px solid rgba(245,158,11,0.3)' }}
                         >
                           est
@@ -741,25 +741,25 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       )}
                     </div>
                     <div className="font-mono-data text-3xl lg:text-5xl font-bold text-amber-400 leading-none">{predTotal || '—'}</div>
-                    <div className="text-sm text-slate-600 mt-1">requests today</div>
+                    <div className="text-sm text-slate-400 mt-1">requests today</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                    <div className="text-sm text-slate-500 mb-1">Urgent available</div>
+                    <div className="text-sm text-slate-400 mb-1">Urgent available</div>
                     <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:band.colour}}>{urgAvail}</div>
-                    <div className="text-sm text-slate-600 mt-1">appointments today</div>
+                    <div className="text-sm text-slate-400 mt-1">appointments today</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                    <div className="text-sm text-slate-500 mb-1">Routine 28 days</div>
+                    <div className="text-sm text-slate-400 mb-1">Routine 28 days</div>
                     <div className="font-mono-data text-3xl lg:text-5xl font-bold text-emerald-400 leading-none">{routineAvail + routineEmb}</div>
-                    <div className="text-sm text-slate-600 mt-1">{routineEmb > 0 ? `${routineAvail} avail · ${routineEmb} emb` : 'available'}</div>
+                    <div className="text-sm text-slate-400 mt-1">{routineEmb > 0 ? `${routineAvail} avail · ${routineEmb} emb` : 'available'}</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                    <div className="text-sm text-slate-500 mb-1">Clinicians today</div>
+                    <div className="text-sm text-slate-400 mb-1">Clinicians today</div>
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono-data text-3xl lg:text-5xl font-bold text-slate-900 leading-none">{inCount}</span>
                       
                     </div>
-                    <div className="text-sm text-slate-600 mt-1">of {visibleClinicians.length} active</div>
+                    <div className="text-sm text-slate-400 mt-1">of {visibleClinicians.length} active</div>
                   </div>
                 </div>
               </div>
@@ -807,15 +807,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   {displayFactors.filter(f => f.impact !== 0).slice(0, 2).map((f, i) => ` ${f.label} ${f.impact > 0 ? '+' : ''}${f.impact}.`).join('') || ''}
                 </div>
                 <details className="mt-2">
-                  <summary className="text-sm text-slate-500 cursor-pointer hover:text-slate-300 flex items-center gap-1">
+                  <summary className="text-sm text-slate-400 cursor-pointer hover:text-slate-300 flex items-center gap-1">
                     Demand factors
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
                   </summary>
                   <div className="mt-2 space-y-1.5">
-                    <div className="flex justify-between text-sm"><span className="text-slate-500">Base {todayDayName} avg</span><span className="font-bold text-slate-300 font-mono-data">{predAvgDay}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-slate-400">Base {todayDayName} avg</span><span className="font-bold text-slate-300 font-mono-data">{predAvgDay}</span></div>
                     {displayFactors.filter(f => f.impact !== 0).map((f, i) => (
                       <div key={i} className="flex justify-between text-sm">
-                        <span className="text-slate-500">{f.label}</span>
+                        <span className="text-slate-400">{f.label}</span>
                         <span className="font-bold font-mono-data" style={{color: f.impact > 0 ? '#ef4444' : f.impact < 0 ? '#10b981' : '#475569'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
                       </div>
                     ))}
@@ -921,7 +921,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                           <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{background:`${band.colour}20`,color:band.colour}}>{band.label} · {Math.round(band.pct)}%</span>
                           <span className="text-sm text-slate-400">{avail} available{booked > 0 ? <span> · {booked} booked</span> : ''}{added > 0 ? <span style={{color:'var(--c-indigo)'}}> · +{added} since 8am</span> : ''}</span>
                         </div>
-                        {target > 0 && <span className="text-sm text-slate-500">target {target}</span>}
+                        {target > 0 && <span className="text-sm text-slate-400">target {target}</span>}
                       </div>
                     </div>
                   </div>
@@ -1034,9 +1034,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 )}
                 {urgentOverrides && Object.values(urgentOverrides).every(v => !v) ? (
                   <div className="py-12 px-6 text-center glass-inner rounded-b-xl">
-                    <div className="text-slate-600 mb-2" style={{fontSize:32}}>↑</div>
+                    <div className="text-slate-400 mb-2" style={{fontSize:32}}>↑</div>
                     <h3 className="text-base font-semibold text-slate-300 mb-1">No slots selected</h3>
-                    <p className="text-sm text-slate-500 max-w-sm mx-auto">Open the filter above to choose which slot types to include as urgent on the day.</p>
+                    <p className="text-sm text-slate-400 max-w-sm mx-auto">Open the filter above to choose which slot types to include as urgent on the day.</p>
                   </div>
                 ) : (<>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
@@ -1061,7 +1061,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 {/* Slot type breakdown — collapsible */}
                 {capacity.bySlotType.length > 0 && (
                   <details className="mx-4 mb-3">
-                    <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300 flex items-center gap-1 py-1">
+                    <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-300 flex items-center gap-1 py-1">
                       Slot type breakdown
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
                     </summary>
@@ -1132,7 +1132,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-heading text-base font-medium text-slate-200">Routine Capacity</div>
-                      <div className="text-[13px] text-slate-600">30-day availability overview</div>
+                      <div className="text-[13px] text-slate-400">30-day availability overview</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => setActiveSection('huddle-forward')} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">Clinician detail →</button>
@@ -1143,9 +1143,9 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
 
                 {routineOverrides && Object.values(routineOverrides).every(v => !v) ? (
                   <div className="py-12 px-6 text-center glass-inner">
-                    <div className="text-slate-600 mb-2" style={{fontSize:32}}>↑</div>
+                    <div className="text-slate-400 mb-2" style={{fontSize:32}}>↑</div>
                     <h3 className="text-base font-semibold text-slate-300 mb-1">No slots selected</h3>
-                    <p className="text-sm text-slate-500 max-w-sm mx-auto">Open the filter above to choose which slot types to include as routine capacity.</p>
+                    <p className="text-sm text-slate-400 max-w-sm mx-auto">Open the filter above to choose which slot types to include as routine capacity.</p>
                   </div>
                 ) : (<>
                 {/* Booking gauges — non-overlapping weekly ranges */}
@@ -1157,7 +1157,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         <text x="50" y="58" textAnchor="middle" fill="#64748b" style={{ fontSize: '10px' }}>available</text>
                       </MiniGauge>
                       <div className="text-[13px] font-semibold text-slate-300 mt-1">{g.label}</div>
-                      <div className="text-[13px] text-slate-500">{g.avail} available · {g.booked} booked</div>
+                      <div className="text-[13px] text-slate-400">{g.avail} available · {g.booked} booked</div>
                     </div>
                   ))}
                 </div>
@@ -1169,7 +1169,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400 transition-transform group-open:rotate-180"><path d="M6 9l6 6 6-6"/></svg>
                     <span className="font-medium">View next 28 days</span>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">expand</span>
+                    <span className="text-[11px] text-slate-400 uppercase tracking-wider">expand</span>
                   </summary>
                   <TwentyEightDayChart huddleData={huddleData} huddleSettings={hs} overrides={effectiveRoutineOverrides} teamClinicians={teamClinicians} />
                 </details>
@@ -1191,7 +1191,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-heading text-base font-medium text-slate-200 mb-1">Capacity cards</h3>
-                  <p className="text-sm text-slate-500 mb-3 leading-relaxed">
+                  <p className="text-sm text-slate-400 mb-3 leading-relaxed">
                     Build cards to track availability for specific clinic types — for example "Diabetes review", "Travel clinic", or "First trimester antenatal". Each card filters the routine slot types you assign to it and shows availability across the next 7, 14, 21, or 28 days.
                   </p>
                   {canEdit ? (
@@ -1204,11 +1204,11 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                           placeholder="e.g. Diabetes review"
                           className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-100 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500" autoFocus />
                         <Button onClick={addCapacityCard} size="sm" disabled={!newCardTitle.trim()}>Add</Button>
-                        <button onClick={() => { setShowAddCard(false); setNewCardTitle(''); }} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
+                        <button onClick={() => { setShowAddCard(false); setNewCardTitle(''); }} className="text-xs text-slate-400 hover:text-slate-300">✕</button>
                       </div>
                     )
                   ) : (
-                    <p className="text-xs text-slate-600 italic">Ask an admin to set these up.</p>
+                    <p className="text-xs text-slate-400 italic">Ask an admin to set these up.</p>
                   )}
                 </div>
               </div>
@@ -1269,14 +1269,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <div className="flex items-center gap-2.5 min-w-0">
                         {/* Drag handle — only visible on hover, only for editors */}
                         {canEdit && (
-                          <div className="flex-shrink-0 opacity-0 group-hover:opacity-50 transition-opacity text-slate-500" title="Drag to reorder">
+                          <div className="flex-shrink-0 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400" title="Drag to reorder">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
                           </div>
                         )}
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:accentBar,boxShadow:`0 0 8px ${accentBar}88`}} />
                         <div className="min-w-0">
                           <div className="font-heading text-base font-medium text-slate-200 truncate">{card.title}</div>
-                          <div className="text-xs text-slate-600">Next {cardDays} days</div>
+                          <div className="text-xs text-slate-400">Next {cardDays} days</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -1309,8 +1309,8 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 className="glass-inner rounded-xl flex items-center justify-center border-2 border-dashed transition-colors hover:border-slate-500"
                 style={{borderColor:'rgba(255,255,255,0.08)', minHeight:80}}>
                 <div className="text-center">
-                  <div className="text-lg text-slate-600 leading-none">+</div>
-                  <div className="text-xs text-slate-500 mt-1">Add card</div>
+                  <div className="text-lg text-slate-400 leading-none">+</div>
+                  <div className="text-xs text-slate-400 mt-1">Add card</div>
                 </div>
               </button>
             ) : (
@@ -1321,7 +1321,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     placeholder="Card title..."
                     className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-100 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500" autoFocus />
                   <Button onClick={addCapacityCard} size="sm" disabled={!newCardTitle.trim()}>Add</Button>
-                  <button onClick={() => { setShowAddCard(false); setNewCardTitle(''); }} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
+                  <button onClick={() => { setShowAddCard(false); setNewCardTitle(''); }} className="text-xs text-slate-400 hover:text-slate-300">✕</button>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {CARD_COLOURS.map(c => (

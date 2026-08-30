@@ -142,14 +142,14 @@ export default async function AdminUserDetailPage({ params }) {
           paddingTop: 20,
           borderTop: '1px solid rgba(255,255,255,0.06)',
           fontSize: 12,
-          color: '#64748b',
+          color: 'var(--meta)',
           display: 'flex',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 12,
         }}>
           <span>GPDash · Platform admin</span>
-          <Link href="/v4/admin/users" style={{ color: '#64748b', textDecoration: 'none' }}>← All users</Link>
+          <Link href="/v4/admin/users" style={{ color: 'var(--meta)', textDecoration: 'none' }}>← All users</Link>
         </div>
       </div>
     </div>

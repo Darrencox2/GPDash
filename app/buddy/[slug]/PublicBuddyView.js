@@ -84,7 +84,7 @@ export default function PublicBuddyView({ slug, practiceName }) {
 function Centered({ children }) {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)' }}>
-      <div className="text-slate-500 text-sm">{children}</div>
+      <div className="text-slate-400 text-sm">{children}</div>
     </div>
   );
 }
@@ -151,17 +151,17 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>Buddy Cover</h1>
-            {practiceName && <div className="text-sm text-slate-500">{practiceName}</div>}
+            {practiceName && <div className="text-sm text-slate-400">{practiceName}</div>}
             <div className="flex items-center gap-2 mt-1">
-              <button onClick={() => navigateDay(-1)} className="rounded text-slate-600 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.06)', padding: '2px 6px', fontSize: 12, lineHeight: 1 }}>‹</button>
+              <button onClick={() => navigateDay(-1)} className="rounded text-slate-400 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.06)', padding: '2px 6px', fontSize: 12, lineHeight: 1 }}>‹</button>
               <span className="text-slate-400 text-sm">{dateDisplay}</span>
-              <button onClick={() => navigateDay(1)} className="rounded text-slate-600 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.06)', padding: '2px 6px', fontSize: 12, lineHeight: 1 }}>›</button>
+              <button onClick={() => navigateDay(1)} className="rounded text-slate-400 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.06)', padding: '2px 6px', fontSize: 12, lineHeight: 1 }}>›</button>
               {!isViewingToday && <button onClick={() => setViewDate(new Date(realToday))} className="text-xs text-purple-400 hover:text-purple-300 ml-1">Today</button>}
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {lastRefresh && <span className="text-xs text-slate-600">Updated {lastRefresh.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>}
-            <button onClick={onRefresh} className="rounded-lg text-xs text-slate-500 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.08)', padding: '6px 12px' }}>Refresh</button>
+            {lastRefresh && <span className="text-xs text-slate-400">Updated {lastRefresh.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>}
+            <button onClick={onRefresh} className="rounded-lg text-xs text-slate-400 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.08)', padding: '6px 12px' }}>Refresh</button>
           </div>
         </div>
 
@@ -169,7 +169,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
           <div className="rounded-xl p-10 text-center" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="text-3xl mb-3">🏠</div>
             <div className="text-lg font-medium text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>Practice Closed</div>
-            <div className="text-sm text-slate-500 mt-1">{isClosed ? (typeof isClosed === 'string' ? isClosed : 'Closed') : 'Weekend'}</div>
+            <div className="text-sm text-slate-400 mt-1">{isClosed ? (typeof isClosed === 'string' ? isClosed : 'Closed') : 'Weekend'}</div>
           </div>
         )}
 
@@ -177,22 +177,22 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
           <div className="rounded-xl p-10 text-center" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="text-3xl mb-3">📋</div>
             <div className="text-lg font-medium text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>No Allocations Yet</div>
-            <div className="text-sm text-slate-500 mt-1">Buddy cover for today has not been generated yet</div>
+            <div className="text-sm text-slate-400 mt-1">Buddy cover for today has not been generated yet</div>
           </div>
         )}
 
         {!isClosed && !isWeekend && status && (
           <div className="grid grid-cols-3 gap-3">
             <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.15)' }}>
-              <div className="text-sm text-slate-500">Present</div>
+              <div className="text-sm text-slate-400">Present</div>
               <div className="text-2xl sm:text-3xl font-bold text-emerald-400" style={{ fontFamily: "'Space Mono',monospace" }}>{presentCount}</div>
             </div>
             <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.15)' }}>
-              <div className="text-sm text-slate-500">Absent</div>
+              <div className="text-sm text-slate-400">Absent</div>
               <div className="text-2xl sm:text-3xl font-bold text-red-400" style={{ fontFamily: "'Space Mono',monospace" }}>{absentClinicians.length}</div>
             </div>
             <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.15)' }}>
-              <div className="text-sm text-slate-500">Day Off</div>
+              <div className="text-sm text-slate-400">Day Off</div>
               <div className="text-2xl sm:text-3xl font-bold text-amber-400" style={{ fontFamily: "'Space Mono',monospace" }}>{dayOffClinicians.length}</div>
             </div>
           </div>
@@ -202,7 +202,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
           <div className="flex gap-3 flex-wrap">
             {absentClinicians.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-slate-600 uppercase tracking-wider">Absent:</span>
+                <span className="text-xs text-slate-400 uppercase tracking-wider">Absent:</span>
                 {absentClinicians.map(c => (
                   <span key={c.id} className="rounded-md font-bold text-white text-sm" style={{ background: '#ef4444', padding: '3px 10px' }}>{c.initials}</span>
                 ))}
@@ -210,7 +210,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
             )}
             {dayOffClinicians.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-slate-600 uppercase tracking-wider">Day off:</span>
+                <span className="text-xs text-slate-400 uppercase tracking-wider">Day off:</span>
                 {dayOffClinicians.map(c => (
                   <span key={c.id} className="rounded-md font-bold text-white text-sm" style={{ background: '#f59e0b', padding: '3px 10px' }}>{c.initials}</span>
                 ))}
@@ -224,7 +224,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
             <div className="flex items-center justify-between" style={{ background: 'rgba(15,23,42,0.85)', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               <div>
                 <h2 className="text-base font-semibold text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>Buddy Allocations</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Who is covering for whom today</p>
+                <p className="text-xs text-slate-400 mt-0.5">Who is covering for whom today</p>
               </div>
             </div>
             <div className="p-5">
@@ -232,8 +232,8 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide">Covering</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide"><span className="text-red-400">File & Action</span><span className="text-slate-600 font-normal ml-1">(absent)</span></th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide"><span className="text-amber-400">View Only</span><span className="text-slate-600 font-normal ml-1">(day off)</span></th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide"><span className="text-red-400">File & Action</span><span className="text-slate-400 font-normal ml-1">(absent)</span></th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide"><span className="text-amber-400">View Only</span><span className="text-slate-400 font-normal ml-1">(day off)</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -244,7 +244,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
                           <div className="w-9 h-9 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: '#10b981', fontFamily: "'Outfit',sans-serif" }}>{clinician.initials}</div>
                           <div>
                             <div className="text-sm font-medium text-slate-200">{clinician.name}</div>
-                            <div className="text-xs text-slate-500">{clinician.role}</div>
+                            <div className="text-xs text-slate-400">{clinician.role}</div>
                           </div>
                         </div>
                       </td>
@@ -254,7 +254,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
                             const x = getClinicianById(id);
                             return x ? <span key={id} className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white" style={{ padding: '4px 10px', background: '#ef4444', minWidth: 36 }}>{x.initials}</span> : null;
                           })}</div>
-                        ) : <span className="text-slate-600">—</span>}
+                        ) : <span className="text-slate-400">—</span>}
                       </td>
                       <td className="py-3 px-4">
                         {tasks.dayOff.length > 0 ? (
@@ -262,14 +262,14 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
                             const x = getClinicianById(id);
                             return x ? <span key={id} className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white" style={{ padding: '4px 10px', background: '#f59e0b', minWidth: 36 }}>{x.initials}</span> : null;
                           })}</div>
-                        ) : <span className="text-slate-600">—</span>}
+                        ) : <span className="text-slate-400">—</span>}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table></div>
 
-              <div className="mt-5 pt-4 flex gap-5 text-xs text-slate-500 flex-wrap" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="mt-5 pt-4 flex gap-5 text-xs text-slate-400 flex-wrap" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <span className="flex items-center gap-1.5"><span className="rounded-md text-xs font-bold text-white" style={{ background: '#10b981', padding: '2px 6px' }}>XX</span>Covering</span>
                 <span className="flex items-center gap-1.5"><span className="rounded-md text-xs font-bold text-white" style={{ background: '#ef4444', padding: '2px 6px' }}>XX</span>File & action (absent)</span>
                 <span className="flex items-center gap-1.5"><span className="rounded-md text-xs font-bold text-white" style={{ background: '#f59e0b', padding: '2px 6px' }}>XX</span>View only (day off)</span>
@@ -278,7 +278,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
           </div>
         )}
 
-        <div className="text-center text-xs text-slate-700 pt-4">
+        <div className="text-center text-xs text-slate-400 pt-4">
           <span>GPDash {APP_VERSION} · Auto-refreshes every 2 minutes</span>
         </div>
       </div>

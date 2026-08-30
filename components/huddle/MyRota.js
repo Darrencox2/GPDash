@@ -15,7 +15,9 @@ function LocSquare({ loc, size = 24, duty, colour }) {
   if (!loc) return <div style={{width:size,height:size,borderRadius:'var(--r-sm)',background:'var(--g-surface-2)'}} />;
   return (
     <div style={{width:size,height:size,borderRadius:'var(--r-sm)',background:colour||'var(--g-text-faint)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-      <span style={{fontSize:size*0.45,fontWeight:700,color:'#fff'}}>{loc.charAt(0)}</span>
+      {/* Floor at 11px: size*0.45 gave 8.1px at the default 18px square,
+          which is the site initial on every rota row. */}
+      <span style={{fontSize:Math.max(11, Math.round(size*0.45)),fontWeight:700,color:'#fff'}}>{loc.charAt(0)}</span>
       {duty && <svg style={{position:'absolute',top:-2,right:-2,width:size*0.4,height:size*0.4}} viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
     </div>
   );
@@ -346,7 +348,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
     if (todayCardData.noWorkingDay) {
       return (
         <div className="rounded-xl p-4 text-center" style={{background:'var(--g-panel-2)',border:'1px solid var(--g-border)'}}>
-          <div className="text-sm text-slate-500">No working days found in the next 14 days</div>
+          <div className="text-sm text-slate-400">No working days found in the next 14 days</div>
         </div>
       );
     }
@@ -360,7 +362,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
       if (!person) return null;
       return (
         <div className="flex items-center gap-2 text-sm">
-          <span className="w-6 flex-shrink-0 text-slate-600 text-sm font-semibold uppercase tracking-wider">{label}</span>
+          <span className="w-6 flex-shrink-0 text-slate-400 text-sm font-semibold uppercase tracking-wider">{label}</span>
           <span className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{fontFamily:"'Outfit',sans-serif",background:groupBg(person.group)}}>{person.initials}</span>
           <span className="text-slate-300 flex-1 truncate">{person.title ? `${person.title} ${person.name.split(',')[0]}` : person.name.split(',')[0]}</span>
         </div>
@@ -437,7 +439,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
         <div className="px-4 py-2.5 flex items-center justify-between" style={{background:'var(--g-panel-2)',borderBottom:'1px solid var(--g-tile)'}}>
           <div>
             <div className="font-heading text-base font-medium text-slate-200">{dayLabel}</div>
-            <div className="text-sm text-slate-600">{dateStr}</div>
+            <div className="text-sm text-slate-400">{dateStr}</div>
           </div>
         </div>
         <div className="p-3 flex flex-col sm:flex-row gap-2">
@@ -455,7 +457,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
         <button onClick={() => { setIsSearching(true); setSearch(''); setShowDropdown(true); setTimeout(() => searchRef.current?.focus(), 50); }} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left" style={{background:'var(--g-surface)',border:'1px solid var(--g-divider)'}}>
           {selected && <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{background: gm.bg, color: gm.tx}}>{selected.initials}</div>}
           <span className="text-base text-slate-200 flex-1">{selected?.name || 'Select clinician...'}</span>
-          <span className="text-sm text-slate-500">Change</span>
+          <span className="text-sm text-slate-400">Change</span>
         </button>
       ) : (
         <div>
@@ -473,11 +475,11 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                 <button key={c.id} onClick={() => select(c)} className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors" style={{background: c.id === selectedId ? 'var(--g-border-2)' : 'transparent'}}>
                   <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{background: GROUP_META[c.group]?.bg, color: GROUP_META[c.group]?.tx}}>{c.initials}</span>
                   <span className="text-sm text-slate-200">{c.name}</span>
-                  <span className="text-sm text-slate-500 ml-auto">{c.role}</span>
+                  <span className="text-sm text-slate-400 ml-auto">{c.role}</span>
                 </button>
               ))}
-              {search && filtered.length === 0 && <div className="px-3 py-3 text-sm text-slate-500 text-center">No matches</div>}
-              <button onClick={() => { setIsSearching(false); setShowDropdown(false); }} className="w-full text-center py-2 text-sm text-slate-500 border-t border-slate-700">Cancel</button>
+              {search && filtered.length === 0 && <div className="px-3 py-3 text-sm text-slate-400 text-center">No matches</div>}
+              <button onClick={() => { setIsSearching(false); setShowDropdown(false); }} className="w-full text-center py-2 text-sm text-slate-400 border-t border-slate-700">Cancel</button>
             </div>
           )}
         </div>
@@ -501,8 +503,8 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                 Subscribe to this calendar
               </button>
             )}
-            {calFeed === 'loading' && <span className="text-sm text-slate-500">Fetching link...</span>}
-            {calFeed === 'denied' && <span className="text-sm text-slate-500">Only the linked user or an admin can fetch this link.</span>}
+            {calFeed === 'loading' && <span className="text-sm text-slate-400">Fetching link...</span>}
+            {calFeed === 'denied' && <span className="text-sm text-slate-400">Only the linked user or an admin can fetch this link.</span>}
             {typeof calFeed === 'string' && calFeed.startsWith('error:') && (
               <span className="text-sm" style={{ color: '#fca5a5' }}>Could not fetch the link ({calFeed.slice(6)}). Try again, and tell Darren the number if it persists.</span>
             )}
@@ -520,7 +522,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                     Open in calendar app
                   </a>
                 </div>
-                <div className="text-caption text-slate-500 mt-1.5">In Google Calendar: Other calendars, plus, From URL, paste the link. Apple and Outlook: the button above works directly.</div>
+                <div className="text-caption text-slate-400 mt-1.5">In Google Calendar: Other calendars, plus, From URL, paste the link. Apple and Outlook: the button above works directly.</div>
               </div>
             )}
           </div>
@@ -542,10 +544,10 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
       {/* Key */}
       <div className="px-6 pb-4 flex gap-4 flex-wrap">
-        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1.5"><LocSquare loc={s.name} size={18} colour={siteCol(s.name)} /><span className="text-sm text-slate-500">{s.name}</span></div>)}
-        {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-sm text-slate-500">Duty</span></div>}
-        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #f87171',color:'#f87171'}}>AB</div><span className="text-sm text-slate-500">File & action</span></div>
-        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #60a5fa',color:'#60a5fa'}}>AB</div><span className="text-sm text-slate-500">View only</span></div>
+        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1.5"><LocSquare loc={s.name} size={18} colour={siteCol(s.name)} /><span className="text-sm text-slate-400">{s.name}</span></div>)}
+        {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-sm text-slate-400">Duty</span></div>}
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #f87171',color:'#f87171'}}>AB</div><span className="text-sm text-slate-400">File & action</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #60a5fa',color:'#60a5fa'}}>AB</div><span className="text-sm text-slate-400">View only</span></div>
       </div>
 
       {/* Calendar grid */}
@@ -581,13 +583,13 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                       <div className="flex gap-1 flex-wrap">
                         {dd.covers.slice(0, 4).map((c, j) => {
                           const isFA = c.coverType === 'fileAction';
-                          return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold" style={{background:'var(--g-surface-2)',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>;
+                          return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>;
                         })}
-                        {dd.covers.length > 4 && <span className="text-[11px] text-slate-600 self-center">+{dd.covers.length - 4}</span>}
+                        {dd.covers.length > 4 && <span className="text-[11px] text-slate-400 self-center">+{dd.covers.length - 4}</span>}
                       </div>
                     )}
                   </div>
-                ) : day.inMonth ? <div className="text-xs text-slate-700">No data</div> : null}
+                ) : day.inMonth ? <div className="text-xs text-slate-400">No data</div> : null}
               </div>
             );
           })}
@@ -610,8 +612,8 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
       {/* Key */}
       <div className="px-4 pb-3 flex gap-3 flex-wrap">
-        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1"><LocSquare loc={s.name} size={14} colour={siteCol(s.name)} /><span className="text-xs text-slate-500">{s.name}</span></div>)}
-        {hasDuty && <div className="flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-xs text-slate-500">Duty</span></div>}
+        {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1"><LocSquare loc={s.name} size={14} colour={siteCol(s.name)} /><span className="text-xs text-slate-400">{s.name}</span></div>)}
+        {hasDuty && <div className="flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-xs text-slate-400">Duty</span></div>}
       </div>
 
       {/* 4-week grid */}
@@ -626,22 +628,22 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
         return (
           <div key={wi} className="px-4 pb-3">
             <div className="flex items-baseline justify-between mb-1.5">
-              <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{weekLabel}</div>
-              <div className="text-xs text-slate-700">{wcStr}</div>
+              <div className="text-sm font-semibold text-slate-400 uppercase tracking-wider">{weekLabel}</div>
+              <div className="text-xs text-slate-400">{wcStr}</div>
             </div>
 
             {/* Compact off-all-week */}
             {allOff ? (
               <div className="rounded-xl px-4 py-3 flex items-center gap-2" style={{background:'var(--g-panel)',border:'1px solid var(--g-tile)'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-faint)'}} strokeWidth="2"><path d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span className="text-sm text-slate-500">Off all week</span>
+                <span className="text-sm text-slate-400">Off all week</span>
               </div>
             ) : (
               <div className="rounded-xl overflow-hidden" style={{border:'1px solid var(--g-divider)'}}>
                 <div className="grid" style={{gridTemplateColumns:'80px 1fr 1fr',background:'var(--g-surface-2)',borderBottom:'1px solid var(--g-divider)'}}>
                   <div className="py-2 px-3"/>
-                  <div className="py-2 text-center text-sm font-semibold text-slate-500 uppercase">AM</div>
-                  <div className="py-2 text-center text-sm font-semibold text-slate-500 uppercase">PM</div>
+                  <div className="py-2 text-center text-sm font-semibold text-slate-400 uppercase">AM</div>
+                  <div className="py-2 text-center text-sm font-semibold text-slate-400 uppercase">PM</div>
                 </div>
                 {week.map((day, di) => {
                   const dd = weekData[di];
@@ -677,14 +679,14 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                           )}
                           <div className="flex items-center gap-1.5">
                             <div className="text-base font-semibold leading-tight" style={{color: (isOff || noData || dd?.isBH) ? 'var(--g-text-mute)' : (isWorking ? 'var(--g-text-hi)' : 'var(--g-text-faint)')}}>{day.dayShort}</div>
-                            <div className="text-sm text-slate-600 leading-tight">{day.dayNum} {day.monthStr}</div>
+                            <div className="text-sm text-slate-400 leading-tight">{day.dayNum} {day.monthStr}</div>
                           </div>
-                          {isToday && <span className="text-[7px] font-bold mt-0.5 self-start px-1.5 py-0.5 rounded-full" style={{background:'rgba(16,185,129,0.2)',color:'#34d399',letterSpacing:'0.5px'}}>TODAY</span>}
+                          {isToday && <span className="text-[11px] font-bold mt-0.5 self-start px-1.5 py-0.5 rounded-full" style={{background:'rgba(16,185,129,0.2)',color:'#34d399',letterSpacing:'0.5px'}}>TODAY</span>}
                         </div>
                         {dd?.isBH ? (
                           <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-sm font-medium text-amber-400">Bank holiday</span></div>
                         ) : (isOff || noData) ? (
-                          <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-sm text-slate-600">{dd?.absence || 'Off'}</span></div>
+                          <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-sm text-slate-400">{dd?.absence || 'Off'}</span></div>
                         ) : dd ? (<>
                           <div className="p-1.5 flex items-center justify-center">
                             <LocSquare loc={dd.amIn ? dd.amLoc : null} size={32} duty={dd.amDuty} colour={dd.amLoc ? siteCol(dd.amLoc) : null} />
@@ -698,14 +700,14 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                       {/* Covers */}
                       {covers.length > 0 && (
                         <div className="flex items-center gap-1.5 px-3 pb-2" style={{marginLeft:80}}>
-                          <span className="text-xs text-slate-600">Covering:</span>
+                          <span className="text-xs text-slate-400">Covering:</span>
                           {covers.map((c, j) => { const isFA = c.coverType === 'fileAction'; return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>; })}
                         </div>
                       )}
 
                       {/* Note indicator (when collapsed) */}
                       {note && !isExpanded && (
-                        <div className="flex items-start gap-1.5 px-3 pb-2 text-sm text-slate-500" style={{marginLeft:80}}>
+                        <div className="flex items-start gap-1.5 px-3 pb-2 text-sm text-slate-400" style={{marginLeft:80}}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                           <span className="truncate italic">{note}</span>
                         </div>
@@ -775,7 +777,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                                 {note ? (
                                   <span className="text-sm text-slate-400 italic">{note}</span>
                                 ) : (
-                                  <span className="text-sm text-slate-600 italic">No note</span>
+                                  <span className="text-sm text-slate-400 italic">No note</span>
                                 )}
                               </div>
                             ) : editingNote === day.isoKey ? (
@@ -803,7 +805,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                                 {note ? (
                                   <span className="text-sm text-slate-400 italic">{note}</span>
                                 ) : (
-                                  <span className="text-sm text-slate-600">Add a note...</span>
+                                  <span className="text-sm text-slate-400">Add a note...</span>
                                 )}
                               </button>
                             )}

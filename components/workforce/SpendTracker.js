@@ -184,9 +184,9 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
             { label: `Total - ${monthLabel(month)}`, value: spend.grandTotal, sub: 'locums + confirmed extras', big: true },
           ].map((t) => (
             <div key={t.label} className="rounded-xl p-4" style={{ background: 'var(--g-panel)', border: `1px solid ${t.big ? '#f59e0b50' : 'rgba(255,255,255,0.08)'}` }}>
-              <div className="text-xs text-slate-500">{t.label}</div>
+              <div className="text-xs text-slate-400">{t.label}</div>
               <div className="text-2xl font-bold font-mono-data mt-1" style={{ color: t.big ? '#fbbf24' : '#e2e8f0' }}>{gbp(t.value)}</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">{t.sub}</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">{t.sub}</div>
             </div>
           ))}
         </div>
@@ -197,17 +197,17 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
         <div className="rounded-xl p-4 space-y-4" style={{ background: 'var(--g-panel)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="text-sm font-semibold text-slate-200">Session rates</div>
           <div className="space-y-2">
-            <div className="text-xs text-slate-500">Locums (per session)</div>
-            {locums.length === 0 && <div className="text-xs text-slate-600">No locums on the staff register (role containing Locum).</div>}
+            <div className="text-xs text-slate-400">Locums (per session)</div>
+            {locums.length === 0 && <div className="text-xs text-slate-400">No locums on the staff register (role containing Locum).</div>}
             {locums.map((lc) => (
               <div key={lc.id} className="flex items-center gap-3">
                 <span className="text-sm text-slate-300 flex-1 truncate" title={describeRateHistory(rates.locums?.[lc.id]).join('\n') || 'No rate set yet'}>
                   {lc.name}
                   {Array.isArray(rates.locums?.[lc.id]) && rates.locums[lc.id].length > 1 && (
-                    <span className="ml-1.5 text-[10px] text-slate-500">({rates.locums[lc.id].length} rate changes - hover)</span>
+                    <span className="ml-1.5 text-[11px] text-slate-400">({rates.locums[lc.id].length} rate changes - hover)</span>
                   )}
                 </span>
-                <span className="text-xs text-slate-500">\u00a3</span>
+                <span className="text-xs text-slate-400">\u00a3</span>
                 <input type="number" min="0" defaultValue={currentRate(rates.locums?.[lc.id]) || ''}
                   onBlur={(e) => setRate('locums', lc.id, e.target.value)}
                   className="w-24 rounded-md px-2 py-1 text-sm text-right font-mono-data"
@@ -216,20 +216,20 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
             ))}
           </div>
           <div className="space-y-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="text-xs text-slate-500">GP extra sessions - default rate (per session)</div>
+            <div className="text-xs text-slate-400">GP extra sessions - default rate (per session)</div>
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-300 flex-1" title={describeRateHistory(rates.gpExtraDefault).join('\n') || 'No rate set yet'}>Practice-wide default</span>
-              <span className="text-xs text-slate-500">\u00a3</span>
+              <span className="text-xs text-slate-400">\u00a3</span>
               <input type="number" min="0" defaultValue={currentRate(rates.gpExtraDefault) || ''}
                 onBlur={(e) => setRate('gpExtraDefault', null, e.target.value)}
                 className="w-24 rounded-md px-2 py-1 text-sm text-right font-mono-data"
                 style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
             </div>
-            <div className="text-[11px] text-slate-600">Used for every confirmed extra unless a GP has their own rate below. Rate changes apply from today - earlier months keep the rate that was in force at the time.</div>
+            <div className="text-[11px] text-slate-400">Used for every confirmed extra unless a GP has their own rate below. Rate changes apply from today - earlier months keep the rate that was in force at the time.</div>
             {clinicians.filter((c) => currentRate((rates.gpExtra || {})[c.id]) || spend?.extraLines.some((l) => l.id === c.id)).map((gp) => (
               <div key={gp.id} className="flex items-center gap-3">
                 <span className="text-sm text-slate-300 flex-1 truncate" title={describeRateHistory(rates.gpExtra?.[gp.id]).join('\n') || 'Uses the practice-wide default'}>{gp.name}</span>
-                <span className="text-xs text-slate-500">\u00a3</span>
+                <span className="text-xs text-slate-400">\u00a3</span>
                 <input type="number" min="0" defaultValue={currentRate(rates.gpExtra?.[gp.id]) || ''}
                   placeholder="default"
                   onBlur={(e) => setRate('gpExtra', gp.id, e.target.value)}
@@ -279,9 +279,9 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
               const sel = t.month === month;
               return (
                 <button key={t.month} onClick={() => setMonth(t.month)} className="flex-1 flex flex-col items-center gap-1" title={`${monthLabel(t.month)}: ${gbp(t.total)}`}>
-                  <span className="text-[9px] font-mono-data" style={{ color: sel ? '#fbbf24' : '#64748b' }}>{gbp(t.total)}</span>
+                  <span className="text-[11px] font-mono-data" style={{ color: sel ? '#fbbf24' : 'var(--meta)' }}>{gbp(t.total)}</span>
                   <span className="w-full rounded-t-sm" style={{ height: h, background: sel ? '#f59e0b' : 'rgba(245,158,11,0.35)' }} />
-                  <span className="text-[9px]" style={{ color: sel ? '#e2e8f0' : '#64748b' }}>{t.month.slice(5)}</span>
+                  <span className="text-[11px]" style={{ color: sel ? '#e2e8f0' : 'var(--meta)' }}>{t.month.slice(5)}</span>
                 </button>
               );
             })}
@@ -293,7 +293,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
       <div className="rounded-xl overflow-hidden" style={{ background: 'var(--g-panel)', border: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <span className="text-sm font-semibold text-slate-200">Review queue</span>
-          <span className="text-xs text-slate-500">sessions outside a GP's usual pattern - confirm or deny each one</span>
+          <span className="text-xs text-slate-400">sessions outside a GP's usual pattern - confirm or deny each one</span>
           {candidates.length > 0 && (
             <span className="ml-auto flex items-center gap-2">
               {canEdit && candidates.some((c) => c.likelySwap) && (
@@ -308,7 +308,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           )}
         </div>
         {candidates.length === 0 ? (
-          <div className="px-4 py-6 text-sm text-slate-500">Nothing to review - no sessions outside anyone's usual pattern.</div>
+          <div className="px-4 py-6 text-sm text-slate-400">Nothing to review - no sessions outside anyone's usual pattern.</div>
         ) : (
           <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
             {candidates.slice(0, 30).map((c) => (
@@ -317,7 +317,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
                   <div className="text-sm font-medium text-slate-200">
                     {c.name} - {c.slotLabel.toLowerCase()} session, {new Date(c.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5">
+                  <div className="text-xs text-slate-400 mt-0.5">
                     Usual {c.dayName}: {c.expectedThatDay.length ? c.expectedThatDay.map((s) => SLOT_LABELS[s].toLowerCase()).join(' + ') : 'not normally in'}.
                     {' '}This week: {c.weekTotal} sessions vs usual {c.expectedWeekly}.
                   </div>
@@ -344,7 +344,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
               </div>
             ))}
             {candidates.length > 30 && (
-              <div className="px-4 py-2 text-[11px] text-slate-600">Showing the 30 most recent - decide these and older ones will surface.</div>
+              <div className="px-4 py-2 text-[11px] text-slate-400">Showing the 30 most recent - decide these and older ones will surface.</div>
             )}
           </div>
         )}
@@ -361,7 +361,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--g-panel)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <span className="text-sm font-semibold text-slate-200">Recent decisions</span>
-              <span className="text-xs text-slate-500">undo returns a session to the review queue</span>
+              <span className="text-xs text-slate-400">undo returns a session to the review queue</span>
             </div>
             {recent.map((d) => (
               <div key={d.key} className="px-4 py-2 flex items-center gap-3 text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
@@ -371,7 +371,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
                 <span className="text-xs font-semibold" style={{ color: d.verdict === 'extra' ? '#fbbf24' : '#94a3b8' }}>
                   {d.verdict === 'extra' ? 'Paid extra' : 'Not an extra'}
                 </span>
-                {d.by && <span className="text-[11px] text-slate-600">by {d.by}</span>}
+                {d.by && <span className="text-[11px] text-slate-400">by {d.by}</span>}
                 {canEdit && (
                   <button onClick={() => undoDecision(d.key)}
                     className="px-2 py-1 rounded-md text-[11px] font-semibold"
@@ -391,11 +391,11 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--g-panel)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div className="px-4 py-3 text-sm font-semibold text-slate-200" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Locums - {monthLabel(month)}</div>
             {spend.locumLines.length === 0 ? (
-              <div className="px-4 py-4 text-sm text-slate-500">No locum sessions this month.</div>
+              <div className="px-4 py-4 text-sm text-slate-400">No locum sessions this month.</div>
             ) : spend.locumLines.map((l) => (
               <div key={`${l.id}-${l.rate}`} className="px-4 py-2.5 flex items-center gap-3 text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <span className="flex-1 text-slate-300 truncate">{l.name}</span>
-                <span className="text-xs text-slate-500">{l.sessions} x {l.rateMissing ? 'no rate set' : gbp(l.rate)}</span>
+                <span className="text-xs text-slate-400">{l.sessions} x {l.rateMissing ? 'no rate set' : gbp(l.rate)}</span>
                 <span className="font-mono-data font-semibold" style={{ color: l.rateMissing ? '#f87171' : '#e2e8f0' }}>{gbp(l.total)}</span>
               </div>
             ))}
@@ -403,11 +403,11 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--g-panel)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div className="px-4 py-3 text-sm font-semibold text-slate-200" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Confirmed GP extras - {monthLabel(month)}</div>
             {spend.extraLines.length === 0 ? (
-              <div className="px-4 py-4 text-sm text-slate-500">No confirmed extras this month.</div>
+              <div className="px-4 py-4 text-sm text-slate-400">No confirmed extras this month.</div>
             ) : spend.extraLines.map((l) => (
               <div key={`${l.id}-${l.date}-${l.slot}`} className="px-4 py-2.5 flex items-center gap-3 text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <span className="flex-1 text-slate-300 truncate">{l.name}</span>
-                <span className="text-xs text-slate-500">{new Date(l.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {l.slotLabel.toLowerCase()}{l.rateMissing ? ' - no rate set' : ''}</span>
+                <span className="text-xs text-slate-400">{new Date(l.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {l.slotLabel.toLowerCase()}{l.rateMissing ? ' - no rate set' : ''}</span>
                 <span className="font-mono-data font-semibold" style={{ color: l.rateMissing ? '#f87171' : '#e2e8f0' }}>{gbp(l.total)}</span>
               </div>
             ))}

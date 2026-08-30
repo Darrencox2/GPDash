@@ -17,7 +17,7 @@ export default function LoginScreen({ password, setPassword, onLogin, loading, e
 
           <form onSubmit={onLogin}>
             <div className="mb-5">
-              <label className="block text-sm font-medium text-slate-500 mb-2">Password</label>
+              <label className="block text-sm font-medium text-slate-400 mb-2">Password</label>
               <input
                 type="password"
                 value={password}
@@ -48,7 +48,7 @@ export default function LoginScreen({ password, setPassword, onLogin, loading, e
 
         {/* Footer */}
         <div className="text-center mt-6">
-          <span className="text-xs text-slate-700" style={{fontFamily:"'Space Mono',monospace"}}>{APP_VERSION}</span>
+          <span className="text-xs text-slate-400" style={{fontFamily:"'Space Mono',monospace"}}>{APP_VERSION}</span>
         </div>
       </div>
     </div>

@@ -77,7 +77,7 @@ export default function RoutineWaitTime({ data, huddleData, routineOverrides }) 
         <div className="flex items-center justify-between">
           <div>
             <div className="font-heading text-base font-medium text-slate-200">Routine GP wait times</div>
-            <div className="text-sm text-slate-600">Working days until next available routine GP appointments</div>
+            <div className="text-sm text-slate-400">Working days until next available routine GP appointments</div>
           </div>
         </div>
       </div>
@@ -86,10 +86,10 @@ export default function RoutineWaitTime({ data, huddleData, routineOverrides }) 
           const f = formatWait(c.wait);
           return (
             <div key={i} className="p-3 sm:p-4 text-center">
-              <div className="text-sm sm:text-sm text-slate-500 mb-1">{c.title}</div>
+              <div className="text-sm sm:text-sm text-slate-400 mb-1">{c.title}</div>
               <div className="font-mono-data text-2xl sm:text-3xl font-bold leading-none" style={{ color: f.colour }}>{f.num}</div>
-              <div className="text-sm text-slate-600 mt-1">{f.label || c.sub}</div>
-              {c.wait?.date && <div className="text-sm text-slate-500 mt-0.5">{c.wait.date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</div>}
+              <div className="text-sm text-slate-400 mt-1">{f.label || c.sub}</div>
+              {c.wait?.date && <div className="text-sm text-slate-400 mt-0.5">{c.wait.date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</div>}
             </div>
           );
         })}

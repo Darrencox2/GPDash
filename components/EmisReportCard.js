@@ -105,7 +105,7 @@ export default function EmisReportCard({ variant = 'card' }) {
               The report covers the previous 2 months by default — the date filter is built into the XML. You don't need to set anything else.
             </div>
 
-            <div className="mt-2.5 text-caption text-slate-500">
+            <div className="mt-2.5 text-caption text-slate-400">
               These instructions are based on standard EMIS Web. If your practice's EMIS layout
               differs, check with your IT lead or
               {' '}<a href="mailto:darren.cox2@nhs.net" style={{ color: 'var(--c-cyan)' }}>get in touch</a>.

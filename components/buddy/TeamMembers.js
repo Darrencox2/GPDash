@@ -11,7 +11,7 @@ const GROUP_COLOURS = {
   gp: { bg: 'bg-blue-50', border: 'border-blue-200', badge: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
   nursing: { bg: 'bg-teal-50', border: 'border-teal-200', badge: 'bg-teal-100 text-teal-700', dot: 'bg-teal-500' },
   allied: { bg: 'bg-purple-50', border: 'border-purple-200', badge: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
-  admin: { bg: 'bg-slate-50', border: 'border-slate-200', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
+  admin: { bg: 'bg-slate-50', border: 'border-slate-200', badge: 'bg-slate-100 text-slate-400', dot: 'bg-slate-400' },
 };
 
 // Debounced text input — saves on blur or after 500ms pause
@@ -216,10 +216,10 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
           <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : c.id)}>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold text-slate-900">{c.title ? `${c.title} ` : ''}{c.name}</span>
-              {!c.confirmed && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">Unconfirmed</span>}
-              {c.status === 'longTermAbsent' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">LTA</span>}
+              {!c.confirmed && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">Unconfirmed</span>}
+              {c.status === 'longTermAbsent' && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">LTA</span>}
             </div>
-            <div className="text-xs text-slate-500">{c.role}{c.source === 'csv' ? ' · from CSV' : ''}</div>
+            <div className="text-xs text-slate-400">{c.role}{c.source === 'csv' ? ' · from CSV' : ''}</div>
           </div>
           {!compact && (
             <div className="flex gap-1 flex-shrink-0">
@@ -247,7 +247,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
               <>
                 <span
                   title={c.buddyCover ? 'Provides buddy cover' : 'Not part of buddy cover'}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors ${
                     c.buddyCover
                       ? 'bg-purple-100 text-purple-700'
                       : 'bg-slate-50 text-slate-300 border border-slate-200'
@@ -256,7 +256,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
                 </span>
                 <span
                   title={c.showWhosIn ? "Shown in the Who's In widget" : "Hidden from the Who's In widget"}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors ${
                     c.showWhosIn
                       ? 'bg-teal-100 text-teal-700'
                       : 'bg-slate-50 text-slate-300 border border-slate-200'
@@ -323,7 +323,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
                             <button onClick={() => mergePerson(c.id, parseInt(mergeTarget), mergeNameChoice)} className="px-3 py-1.5 rounded-lg bg-blue-500 text-white text-xs font-medium hover:bg-blue-600">
                               Merge into {target.name.split(' ')[0]}
                             </button>
-                            <button onClick={() => { setMergeId(null); setMergeTarget(''); }} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Cancel</button>
+                            <button onClick={() => { setMergeId(null); setMergeTarget(''); }} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-400 text-xs font-medium hover:bg-slate-200">Cancel</button>
                           </div>
                         </>
                       );
@@ -334,38 +334,38 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div><label className="block text-xs text-slate-500 mb-1">Title</label><select value={c.title || ''} onChange={e => updateField(c.id, 'title', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{TITLE_OPTIONS.map(t => <option key={t} value={t}>{t || '—'}</option>)}</select></div>
-              <div className="md:col-span-2"><label className="block text-xs text-slate-500 mb-1">Name</label><DebouncedInput type="text" value={c.name || ''} onChange={v => updateField(c.id, 'name', v)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm" /></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Initials</label><DebouncedInput type="text" maxLength={4} value={c.initials || ''} onChange={v => updateField(c.id, 'initials', v)} uppercase className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center uppercase" /></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Sessions/week</label><input type="number" min="0" max="10" value={c.sessions || 0} onChange={e => updateField(c.id, 'sessions', parseInt(e.target.value) || 0)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center" /></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Title</label><select value={c.title || ''} onChange={e => updateField(c.id, 'title', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{TITLE_OPTIONS.map(t => <option key={t} value={t}>{t || '—'}</option>)}</select></div>
+              <div className="md:col-span-2"><label className="block text-xs text-slate-400 mb-1">Name</label><DebouncedInput type="text" value={c.name || ''} onChange={v => updateField(c.id, 'name', v)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm" /></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Initials</label><DebouncedInput type="text" maxLength={4} value={c.initials || ''} onChange={v => updateField(c.id, 'initials', v)} uppercase className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center uppercase" /></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Sessions/week</label><input type="number" min="0" max="10" value={c.sessions || 0} onChange={e => updateField(c.id, 'sessions', parseInt(e.target.value) || 0)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center" /></div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div><label className="block text-xs text-slate-500 mb-1">Role</label><select value={c.role || ''} onChange={e => updateField(c.id, 'role', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Group</label><select value={c.group || 'gp'} onChange={e => updateField(c.id, 'group', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{GROUP_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select></div>
-              <div><label className="block text-xs text-slate-500 mb-1">Status</label><select value={c.status || 'active'} onChange={e => updateField(c.id, 'status', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="active">Active</option><option value="longTermAbsent">Long-term absent</option><option value="administrative">Administrative</option><option value="left">Left practice</option></select></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Role</label><select value={c.role || ''} onChange={e => updateField(c.id, 'role', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Group</label><select value={c.group || 'gp'} onChange={e => updateField(c.id, 'group', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm">{GROUP_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Status</label><select value={c.status || 'active'} onChange={e => updateField(c.id, 'status', e.target.value)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="active">Active</option><option value="longTermAbsent">Long-term absent</option><option value="administrative">Administrative</option><option value="left">Left practice</option></select></div>
             </div>
 
             <div>
-              <label className="block text-xs text-slate-500 mb-2">Features</label>
+              <label className="block text-xs text-slate-400 mb-2">Features</label>
               <div className="flex gap-2 flex-wrap">
-                <button onClick={() => updateField(c.id, 'buddyCover', !c.buddyCover)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${c.buddyCover ? 'bg-purple-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{c.buddyCover ? '✓ ' : ''}Buddy Cover</button>
-                <button onClick={() => updateField(c.id, 'showWhosIn', !c.showWhosIn)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${c.showWhosIn ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{c.showWhosIn ? '✓ ' : ''}Who's In</button>
-                <button onClick={() => updateField(c.id, 'canProvideCover', c.canProvideCover === false ? true : false)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${c.canProvideCover !== false ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{c.canProvideCover !== false ? '✓ ' : ''}Can Cover Others</button>
+                <button onClick={() => updateField(c.id, 'buddyCover', !c.buddyCover)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${c.buddyCover ? 'bg-purple-500 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{c.buddyCover ? '✓ ' : ''}Buddy Cover</button>
+                <button onClick={() => updateField(c.id, 'showWhosIn', !c.showWhosIn)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${c.showWhosIn ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{c.showWhosIn ? '✓ ' : ''}Who's In</button>
+                <button onClick={() => updateField(c.id, 'canProvideCover', c.canProvideCover === false ? true : false)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${c.canProvideCover !== false ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{c.canProvideCover !== false ? '✓ ' : ''}Can Cover Others</button>
               </div>
             </div>
 
             {c.buddyCover && (
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs text-slate-500 mb-1">Primary buddy</label><select value={c.primaryBuddy || ''} onChange={e => updateField(c.id, 'primaryBuddy', e.target.value ? (/^\d+$/.test(e.target.value) ? parseInt(e.target.value) : e.target.value) : null)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="">None</option>{buddyCoverPeople.filter(x => x.id !== c.id).map(x => <option key={x.id} value={x.id}>{x.initials} — {x.name}</option>)}</select></div>
-                <div><label className="block text-xs text-slate-500 mb-1">Secondary buddy</label><select value={c.secondaryBuddy || ''} onChange={e => updateField(c.id, 'secondaryBuddy', e.target.value ? (/^\d+$/.test(e.target.value) ? parseInt(e.target.value) : e.target.value) : null)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="">None</option>{buddyCoverPeople.filter(x => x.id !== c.id && x.id !== c.primaryBuddy).map(x => <option key={x.id} value={x.id}>{x.initials} — {x.name}</option>)}</select></div>
+                <div><label className="block text-xs text-slate-400 mb-1">Primary buddy</label><select value={c.primaryBuddy || ''} onChange={e => updateField(c.id, 'primaryBuddy', e.target.value ? (/^\d+$/.test(e.target.value) ? parseInt(e.target.value) : e.target.value) : null)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="">None</option>{buddyCoverPeople.filter(x => x.id !== c.id).map(x => <option key={x.id} value={x.id}>{x.initials} — {x.name}</option>)}</select></div>
+                <div><label className="block text-xs text-slate-400 mb-1">Secondary buddy</label><select value={c.secondaryBuddy || ''} onChange={e => updateField(c.id, 'secondaryBuddy', e.target.value ? (/^\d+$/.test(e.target.value) ? parseInt(e.target.value) : e.target.value) : null)} className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm"><option value="">None</option>{buddyCoverPeople.filter(x => x.id !== c.id && x.id !== c.primaryBuddy).map(x => <option key={x.id} value={x.id}>{x.initials} — {x.name}</option>)}</select></div>
               </div>
             )}
 
             {/* Room preferences */}
             {(data?.roomAllocation?.sites || []).length > 0 && (
               <div>
-                <label className="block text-xs text-slate-500 mb-2">Room preferences</label>
+                <label className="block text-xs text-slate-400 mb-2">Room preferences</label>
                 <div className="space-y-2">
                   {(data.roomAllocation.sites || []).map(site => {
                     const clinicalRooms = (site.rooms || []).filter(r => r.isClinical !== false);
@@ -373,7 +373,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
                     return (
                       <div key={site.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50">
                         <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: site.colour || '#94a3b8'}} />
-                        <span className="text-xs font-medium text-slate-700 w-20 flex-shrink-0">{site.name}</span>
+                        <span className="text-xs font-medium text-slate-400 w-20 flex-shrink-0">{site.name}</span>
                         <select value={prefs.preferred || ''} onChange={e => updateField(c.id, 'roomPreferences', { ...(c.roomPreferences || {}), [site.id]: { ...prefs, preferred: e.target.value || null } })} className="flex-1 px-2 py-1 rounded border border-slate-200 text-xs">
                           <option value="">No preferred room</option>
                           {clinicalRooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -390,10 +390,10 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
             )}
 
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Name aliases (for CSV/TeamNet matching)</label>
+              <label className="block text-xs text-slate-400 mb-1">Name aliases (for CSV/TeamNet matching)</label>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {(c.aliases || []).map((alias, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-xs text-slate-600">
+                  <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-xs text-slate-400">
                     {alias}<button onClick={() => removeAlias(c.id, i)} className="text-slate-400 hover:text-red-500">✕</button>
                   </span>
                 ))}
@@ -403,12 +403,12 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
                 <input type="text" placeholder="Add alias..." id={`alias-${c.id}`} className="flex-1 px-2 py-1 rounded border border-slate-200 text-xs"
                   onKeyDown={e => { if (e.key === 'Enter') { addAlias(c.id, e.target.value); e.target.value = ''; } }} />
                 <button onClick={() => { const el = document.getElementById(`alias-${c.id}`); addAlias(c.id, el.value); el.value = ''; }}
-                  className="px-2 py-1 rounded bg-slate-100 text-xs text-slate-600 hover:bg-slate-200">Add</button>
+                  className="px-2 py-1 rounded bg-slate-100 text-xs text-slate-400 hover:bg-slate-200">Add</button>
               </div>
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-[10px] text-slate-400">Source: {c.source || 'manual'} · ID: {c.id}</span>
+              <span className="text-[11px] text-slate-400">Source: {c.source || 'manual'} · ID: {c.id}</span>
               {c.confirmed && <button onClick={() => removePerson(c.id)} className="text-xs text-red-400 hover:text-red-600">Mark as left</button>}
             </div>
           </div>
@@ -422,7 +422,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Staff Register</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-400 mt-1">
             {activeStaff.filter(c => c.status === 'active').length} active
             {activeStaff.filter(c => c.status === 'longTermAbsent').length > 0 ? ` · ${activeStaff.filter(c => c.status === 'longTermAbsent').length} LTA` : ''}
             {adminStaff.length > 0 ? ` · ${adminStaff.length} administrative` : ''}
@@ -447,12 +447,12 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
 
       {showAddForm && (
         <div className="card p-4 bg-slate-50 space-y-3">
-          <div className="text-sm font-semibold text-slate-700">Add new person</div>
+          <div className="text-sm font-semibold text-slate-400">Add new person</div>
           <div className="flex gap-3 flex-wrap items-end">
-            <div className="flex-1 min-w-[180px]"><label className="block text-xs font-medium text-slate-600 mb-1">Name</label><input type="text" placeholder="Dr. Jane Smith" value={newPerson.name} onChange={e => setNewPerson(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" /></div>
-            <div className="w-20"><label className="block text-xs font-medium text-slate-600 mb-1">Initials</label><input type="text" placeholder="JS" maxLength={4} value={newPerson.initials} onChange={e => setNewPerson(p => ({ ...p, initials: e.target.value.toUpperCase() }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm text-center uppercase focus:outline-none focus:ring-2 focus:ring-slate-900" /></div>
-            <div className="w-40"><label className="block text-xs font-medium text-slate-600 mb-1">Role</label><select value={newPerson.role} onChange={e => setNewPerson(p => ({ ...p, role: e.target.value, group: guessGroupFromRole(e.target.value) }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm">{ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-            <div className="w-32"><label className="block text-xs font-medium text-slate-600 mb-1">Group</label><select value={newPerson.group} onChange={e => setNewPerson(p => ({ ...p, group: e.target.value }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm">{GROUP_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select></div>
+            <div className="flex-1 min-w-[180px]"><label className="block text-xs font-medium text-slate-400 mb-1">Name</label><input type="text" placeholder="Dr. Jane Smith" value={newPerson.name} onChange={e => setNewPerson(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" /></div>
+            <div className="w-20"><label className="block text-xs font-medium text-slate-400 mb-1">Initials</label><input type="text" placeholder="JS" maxLength={4} value={newPerson.initials} onChange={e => setNewPerson(p => ({ ...p, initials: e.target.value.toUpperCase() }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm text-center uppercase focus:outline-none focus:ring-2 focus:ring-slate-900" /></div>
+            <div className="w-40"><label className="block text-xs font-medium text-slate-400 mb-1">Role</label><select value={newPerson.role} onChange={e => setNewPerson(p => ({ ...p, role: e.target.value, group: guessGroupFromRole(e.target.value) }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm">{ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+            <div className="w-32"><label className="block text-xs font-medium text-slate-400 mb-1">Group</label><select value={newPerson.group} onChange={e => setNewPerson(p => ({ ...p, group: e.target.value }))} className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm">{GROUP_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}</select></div>
             <button onClick={addPerson} className="btn-primary text-sm">Add</button>
           </div>
         </div>
@@ -491,7 +491,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
             <div key={groupKey}>
               <div className="flex items-center gap-2 mb-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${gc.dot}`} />
-                <span className="text-sm font-semibold text-slate-700">{groupLabel}</span>
+                <span className="text-sm font-semibold text-slate-400">{groupLabel}</span>
                 <span className="text-xs text-slate-400">{members.length}</span>
               </div>
               {GP_SUBS.map(sub => {
@@ -523,7 +523,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
           <div key={groupKey}>
             <div className="flex items-center gap-2 mb-2">
               <span className={`w-2.5 h-2.5 rounded-full ${gc.dot}`} />
-              <span className="text-sm font-semibold text-slate-700">{groupLabel}</span>
+              <span className="text-sm font-semibold text-slate-400">{groupLabel}</span>
               <span className="text-xs text-slate-400">{members.length}</span>
             </div>
             <div className="space-y-1.5">
@@ -543,7 +543,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
           <button onClick={() => setShowAdmin(!showAdmin)} className="flex items-center gap-2 w-full text-left group">
             <span className="text-xs text-slate-400">{showAdmin ? '▾' : '›'}</span>
             <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-            <span className="text-sm font-semibold text-slate-500">Administrative</span>
+            <span className="text-sm font-semibold text-slate-400">Administrative</span>
             <span className="text-xs text-slate-400">{adminStaff.length}</span>
             <span className="text-xs text-slate-400 ml-1">— hidden from all views</span>
           </button>
@@ -561,7 +561,7 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
           <button onClick={() => setShowLeft(!showLeft)} className="flex items-center gap-2 w-full text-left group">
             <span className="text-xs text-slate-400">{showLeft ? '▾' : '›'}</span>
             <span className="w-2.5 h-2.5 rounded-full bg-red-300" />
-            <span className="text-sm font-semibold text-slate-500">Left / Removed</span>
+            <span className="text-sm font-semibold text-slate-400">Left / Removed</span>
             <span className="text-xs text-slate-400">{leftStaff.length}</span>
             <span className="text-xs text-slate-400 ml-1">— can be restored</span>
           </button>

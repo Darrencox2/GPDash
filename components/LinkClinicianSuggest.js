@@ -198,7 +198,7 @@ export default function LinkClinicianSuggest({ data }) {
         </button>
       </div>
 
-      <div className="mt-2 text-caption text-slate-500">
+      <div className="mt-2 text-caption text-slate-400">
         Wrong match? You can pick yourself manually in Account → "Your clinician record".
       </div>
     </div>

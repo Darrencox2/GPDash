@@ -104,16 +104,16 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
           <span className="text-sm font-semibold text-white">Site Room Layout</span>
         </div>
         <div className="border-b border-slate-200"><div className="flex items-center gap-1 px-4 pt-3">
-          {sites.map(s => <button key={s.id} onClick={() => setSelectedSiteId(s.id)} className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${selectedSiteId === s.id ? 'bg-white border border-b-0 border-slate-200 text-slate-900' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}><span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{background: s.colour || '#94a3b8'}} />{s.name}</button>)}
-          <button onClick={() => setShowAddSite(true)} className="px-3 py-2 text-sm text-slate-400 hover:text-slate-600">+ Add site</button>
+          {sites.map(s => <button key={s.id} onClick={() => setSelectedSiteId(s.id)} className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${selectedSiteId === s.id ? 'bg-white border border-b-0 border-slate-200 text-slate-900' : 'text-slate-400 hover:text-slate-400 hover:bg-slate-50'}`}><span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{background: s.colour || '#94a3b8'}} />{s.name}</button>)}
+          <button onClick={() => setShowAddSite(true)} className="px-3 py-2 text-sm text-slate-400 hover:text-slate-400">+ Add site</button>
         </div></div>
         {showAddSite && <AddSiteForm csvLocations={csvLocations} existingSites={sites} onSave={addSite} onCancel={() => setShowAddSite(false)} />}
         {selectedSite && <div className="p-5">
           <div className="flex items-center gap-3 mb-3 flex-wrap">
-            <label className="text-xs text-slate-500">Colour:</label>
+            <label className="text-xs text-slate-400">Colour:</label>
             <div className="flex gap-1.5">{SITE_COLOUR_PRESETS.map(c => <button key={c} onClick={() => updateSite(selectedSite.id, { colour: c })} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background: c, outline: selectedSite.colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={selectedSite.colour || '#8c64c3'} onChange={e => updateSite(selectedSite.id, { colour: e.target.value })} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div>
             <span className="text-slate-300">|</span>
-            <label className="text-xs text-slate-500">Grid:</label>
+            <label className="text-xs text-slate-400">Grid:</label>
             <select value={selectedSite.gridSize} onChange={e => convertGridSize(selectedSite.id, e.target.value)} className="text-xs border border-slate-200 rounded px-2 py-1">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
             <button onClick={() => deleteSite(selectedSite.id)} className="text-xs text-red-400 hover:text-red-600 ml-auto">Delete site</button>
           </div>
@@ -152,22 +152,22 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                 else if (expandLeft >= need) { visW = minCardCells; visX = room.x - need; }
               }
               if (nc) return <div key={room.id} className="absolute rounded-lg flex items-center justify-center text-center" style={{left: room.x * cellSize + 2, top: room.y * cellSize + 2, width: w * cellSize - 4, height: h * cellSize - 4, background: '#e2e8f0', opacity: isDragging ? 0.3 : 0.7, pointerEvents: 'none'}}>
-                <span className="text-[10px] font-semibold text-slate-500 leading-tight px-1">{room.name}</span>
+                <span className="text-[11px] font-semibold text-slate-400 leading-tight px-1">{room.name}</span>
               </div>;
               return <div key={room.id} className="absolute rounded-lg overflow-hidden" style={{left: visX * cellSize + 2, top: room.y * cellSize + 2, width: visW * cellSize - 4, height: h * cellSize - 4, background: '#fff', border: `2px solid ${sc}40`, opacity: isDragging ? 0.3 : 1, pointerEvents: 'none'}}>
                 <div className="flex items-center gap-1 px-2 py-1" style={{background: sc + '15', borderBottom: '1px solid #f1f5f9'}}>
-                  <span className="text-[10px] font-bold truncate flex-1" style={{color: sc}}>{room.name}</span>
+                  <span className="text-[11px] font-bold truncate flex-1" style={{color: sc}}>{room.name}</span>
                   {typeDots.map(rt => <span key={rt.id} className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: rt.colour}} />)}
                 </div>
                 <div className="px-2 py-1 flex items-center justify-center" style={{minHeight: h * cellSize - 30}}>
-                  <span className="text-[10px] text-slate-300">Click to edit</span>
+                  <span className="text-[11px] text-slate-300">Click to edit</span>
                 </div>
               </div>;
             }); })()}
           </div>
-          <div className="flex items-center gap-4 mt-3 text-[10px] text-slate-500">{getRoomTypes(ra).map(rt => <span key={rt.id} className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{background:rt.colour}}/>{rt.label}</span>)}<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-300"/>Non-clinical</span></div>
+          <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-400">{getRoomTypes(ra).map(rt => <span key={rt.id} className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{background:rt.colour}}/>{rt.label}</span>)}<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-300"/>Non-clinical</span></div>
         </div>}
-        {!selectedSite && !showAddSite && <div className="p-12 text-center"><div className="text-2xl mb-2">🏥</div><h3 className="text-sm font-semibold text-slate-600 mb-1">No sites configured</h3><p className="text-xs text-slate-400 mb-4">Add a site to start setting up rooms.</p><button onClick={() => setShowAddSite(true)} className="btn-primary">Add site</button></div>}
+        {!selectedSite && !showAddSite && <div className="p-12 text-center"><div className="text-2xl mb-2">🏥</div><h3 className="text-sm font-semibold text-slate-400 mb-1">No sites configured</h3><p className="text-xs text-slate-400 mb-4">Add a site to start setting up rooms.</p><button onClick={() => setShowAddSite(true)} className="btn-primary">Add site</button></div>}
       </div>
 
       {/* ROOM TYPES CARD */}
@@ -189,8 +189,8 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
             {getRoomTypes(ra).map((rt, i) => (
               <div key={rt.id} className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                 <input type="color" value={rt.colour} onChange={e => { const types = [...getRoomTypes(ra)]; types[i] = { ...types[i], colour: e.target.value }; save({ ...ra, roomTypes: types }); }} className="w-5 h-5 rounded-full border-0 cursor-pointer flex-shrink-0" style={{padding:0}} />
-                <input type="text" value={rt.label} onChange={e => { const types = [...getRoomTypes(ra)]; types[i] = { ...types[i], label: e.target.value }; save({ ...ra, roomTypes: types }); }} className="text-sm font-medium text-slate-700 bg-transparent border-0 flex-1 outline-none" />
-                <span className="text-[10px] text-slate-400">{rt.id}</span>
+                <input type="text" value={rt.label} onChange={e => { const types = [...getRoomTypes(ra)]; types[i] = { ...types[i], label: e.target.value }; save({ ...ra, roomTypes: types }); }} className="text-sm font-medium text-slate-400 bg-transparent border-0 flex-1 outline-none" />
+                <span className="text-[11px] text-slate-400">{rt.id}</span>
                 <button onClick={async () => { if (!(await confirmDialog({ message: 'Delete this room type?', danger: true }))) return; save({ ...ra, roomTypes: getRoomTypes(ra).filter(x => x.id !== rt.id) }); toast('Deleted', 'success'); }} className="text-xs text-red-400 hover:text-red-600">×</button>
               </div>
             ))}
@@ -225,7 +225,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                 </div>
               )}
               {available.length > 0 ? (
-                <select onChange={e => { if (!e.target.value) return; save({ ...ra, procedureSlotTypes: [...selected, e.target.value] }); toast('Added', 'success'); e.target.value = ''; }} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-600" defaultValue="">
+                <select onChange={e => { if (!e.target.value) return; save({ ...ra, procedureSlotTypes: [...selected, e.target.value] }); toast('Added', 'success'); e.target.value = ''; }} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-400" defaultValue="">
                   <option value="">Add a slot type...</option>
                   {available.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -248,11 +248,11 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-2 px-2 text-xs font-semibold text-slate-500 w-40">Clinician</th>
+                  <th className="text-left py-2 px-2 text-xs font-semibold text-slate-400 w-40">Clinician</th>
                   {sites.map(s => (
                     <th key={s.id} className="text-center py-2 px-2" colSpan={2}>
                       <span className="inline-block w-2 h-2 rounded-full mr-1" style={{background: s.colour || '#94a3b8'}} />
-                      <span className="text-xs font-semibold text-slate-700">{s.name}</span>
+                      <span className="text-xs font-semibold text-slate-400">{s.name}</span>
                     </th>
                   ))}
                 </tr>
@@ -260,8 +260,8 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                   <th />
                   {sites.map(s => (
                     <React.Fragment key={s.id}>
-                      <th className="text-center py-1 px-1 text-[10px] text-slate-400 font-normal">Preferred</th>
-                      <th className="text-center py-1 px-1 text-[10px] text-slate-400 font-normal">Secondary</th>
+                      <th className="text-center py-1 px-1 text-[11px] text-slate-400 font-normal">Preferred</th>
+                      <th className="text-center py-1 px-1 text-[11px] text-slate-400 font-normal">Secondary</th>
                     </React.Fragment>
                   ))}
                 </tr>
@@ -270,8 +270,8 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
                 {allStaff.filter(c => c.group !== 'admin' && c.status !== 'administrative').map(c => (
                   <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                     <td className="py-1.5 px-2">
-                      <div className="text-xs font-medium text-slate-700">{c.name}</div>
-                      <div className="text-[10px] text-slate-400">{c.role}</div>
+                      <div className="text-xs font-medium text-slate-400">{c.name}</div>
+                      <div className="text-[11px] text-slate-400">{c.role}</div>
                     </td>
                     {sites.map(s => {
                       const rooms = (s.rooms || []).filter(r => r.isClinical !== false);
@@ -302,7 +302,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
         <div className="p-5"><div className="space-y-1 max-w-lg">
           {sortedPriority.map((c, i) => <div key={c.id} draggable onDragStart={() => setDragPriorityId(c.id)} onDragOver={e => e.preventDefault()} onDrop={() => handlePriorityDrop(c.id)}
             className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors cursor-grab active:cursor-grabbing ${dragPriorityId === c.id ? 'bg-indigo-50 border border-indigo-200' : 'bg-slate-50 hover:bg-slate-100'}`}>
-            <span className="text-xs font-bold text-slate-300 w-5">{i + 1}</span><span className="text-sm font-medium text-slate-700 flex-1">{c.name}</span><span className="text-xs text-slate-400">{c.role}</span>
+            <span className="text-xs font-bold text-slate-300 w-5">{i + 1}</span><span className="text-sm font-medium text-slate-400 flex-1">{c.name}</span><span className="text-xs text-slate-400">{c.role}</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2"><circle cx="8" cy="6" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="6" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="16" cy="18" r="1.5"/></svg>
           </div>)}
         </div></div>
@@ -321,9 +321,9 @@ function AddSiteForm({ csvLocations, existingSites, onSave, onCancel }) {
   return <div className="p-5 border-b border-slate-200 bg-slate-50">
     <h3 className="text-sm font-semibold text-slate-900 mb-3">Add site</h3>
     <div className="flex items-end gap-4 flex-wrap">
-      <div><label className="text-xs text-slate-500 block mb-1">Site name</label><div className="flex items-center gap-2"><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Winscombe" className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 w-48" />{suggestions.length > 0 && <div className="flex gap-1">{suggestions.map(s => <button key={s} onClick={() => setName(s)} className="text-xs px-2 py-1 rounded bg-slate-200 text-slate-600 hover:bg-slate-300">{s}</button>)}</div>}</div></div>
-      <div><label className="text-xs text-slate-500 block mb-1">Colour</label><div className="flex gap-1.5 items-center">{SITE_COLOUR_PRESETS.slice(0, 6).map(c => <button key={c} onClick={() => setColour(c)} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background:c, outline: colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={colour} onChange={e => setColour(e.target.value)} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div></div>
-      <div><label className="text-xs text-slate-500 block mb-1">Grid size</label><select value={gridSize} onChange={e => setGridSize(e.target.value)} className="text-sm border border-slate-200 rounded-lg px-3 py-1.5">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
+      <div><label className="text-xs text-slate-400 block mb-1">Site name</label><div className="flex items-center gap-2"><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Winscombe" className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 w-48" />{suggestions.length > 0 && <div className="flex gap-1">{suggestions.map(s => <button key={s} onClick={() => setName(s)} className="text-xs px-2 py-1 rounded bg-slate-200 text-slate-400 hover:bg-slate-300">{s}</button>)}</div>}</div></div>
+      <div><label className="text-xs text-slate-400 block mb-1">Colour</label><div className="flex gap-1.5 items-center">{SITE_COLOUR_PRESETS.slice(0, 6).map(c => <button key={c} onClick={() => setColour(c)} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background:c, outline: colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={colour} onChange={e => setColour(e.target.value)} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div></div>
+      <div><label className="text-xs text-slate-400 block mb-1">Grid size</label><select value={gridSize} onChange={e => setGridSize(e.target.value)} className="text-sm border border-slate-200 rounded-lg px-3 py-1.5">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
       <div className="flex gap-2"><button onClick={() => name.trim() && onSave(name.trim(), colour, gridSize)} disabled={!name.trim()} className="btn-primary text-sm">Add</button><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button></div>
     </div>
   </div>;
@@ -338,13 +338,13 @@ function RoomEditPopup({ room, site, roomTypes, onSave, onDelete, onCancel }) {
     <div className="bg-white rounded-xl shadow-2xl p-5 w-96" onClick={e => e.stopPropagation()}>
       <h3 className="text-sm font-semibold text-slate-900 mb-4">{!site?.rooms?.find(r => r.id === room.id) ? 'Add room' : 'Edit room'}</h3>
       <div className="space-y-4">
-        <div><label className="text-xs text-slate-500 block mb-1">Room name</label><input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" autoFocus /></div>
+        <div><label className="text-xs text-slate-400 block mb-1">Room name</label><input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" autoFocus /></div>
         <div className="flex items-center gap-3">
-          <label className="text-xs text-slate-500">Non-clinical space</label>
+          <label className="text-xs text-slate-400">Non-clinical space</label>
           <button onClick={() => setIsClinical(!isClinical)} className={`w-8 h-5 rounded-full transition-colors ${isClinical ? 'bg-slate-300' : 'bg-amber-400'}`}><div className={`w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${isClinical ? 'translate-x-1' : 'translate-x-[17px]'}`} /></button>
           <span className="text-xs text-slate-400">{isClinical ? 'Clinical room' : 'Non-clinical'}</span>
         </div>
-        {isClinical && <div><label className="text-xs text-slate-500 block mb-2">Suitable for</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${types.includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`} style={types.includes(rt.id) ? {background: rt.colour} : undefined}>{rt.label}</button>)}</div></div>}
+        {isClinical && <div><label className="text-xs text-slate-400 block mb-2">Suitable for</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${types.includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`} style={types.includes(rt.id) ? {background: rt.colour} : undefined}>{rt.label}</button>)}</div></div>}
         {(room.w > 1 || room.h > 1) && <div className="text-xs text-slate-400">Size: {room.w || 1} x {room.h || 1} squares</div>}
       </div>
       <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">

@@ -222,7 +222,7 @@ function AdminFooter() {
       paddingTop: 20,
       borderTop: '1px solid rgba(255,255,255,0.06)',
       fontSize: 12,
-      color: '#64748b',
+      color: 'var(--meta)',
       display: 'flex',
       justifyContent: 'space-between',
       flexWrap: 'wrap',

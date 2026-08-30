@@ -484,7 +484,7 @@ export default function SetupWizard({
               borderRadius: 'var(--r-md)',
             }}>
               <div>
-                <div style={{ fontSize: 10, color: '#fbbf24', letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>
+                <div style={{ fontSize:11, color: '#fbbf24', letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>
                   REQUIRED
                 </div>
                 <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: '#cbd5e1', lineHeight: 1.7 }}>
@@ -493,7 +493,7 @@ export default function SetupWizard({
                 </ul>
               </div>
               <div>
-                <div style={{ fontSize: 10, color: '#64748b', letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>
+                <div style={{ fontSize:11, color: 'var(--meta)', letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>
                   OPTIONAL (DO LATER IF YOU PREFER)
                 </div>
                 <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: '#94a3b8', lineHeight: 1.7 }}>
@@ -528,7 +528,7 @@ export default function SetupWizard({
             lastSavedAt={lastSavedAt}
             error={saveError}
           />
-          <div style={{ fontSize: 12, color: '#64748b', letterSpacing: 1, textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, color: 'var(--meta)', letterSpacing: 1, textTransform: 'uppercase' }}>
             Step {currentStep + 1} of {STEPS.length}
           </div>
         </div>
@@ -806,7 +806,7 @@ export default function SetupWizard({
         </div>
       )}
 
-      <div style={{ maxWidth: 720, margin: '32px auto 0', textAlign: 'center', fontSize: 11, color: '#475569' }}>
+      <div style={{ maxWidth: 720, margin: '32px auto 0', textAlign: 'center', fontSize: 11, color: 'var(--meta)' }}>
         Your changes save automatically. You can leave and come back any time.
       </div>
 
@@ -1095,7 +1095,7 @@ function StepHeader({ step, index, done, liveSubtitle }) {
     <div>
       <div style={{ fontSize: 11, fontWeight: 600, color: eyebrowColor, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
         <span>Step {index + 1}</span>
-        {step.optional && <span style={{ color: '#64748b', letterSpacing: 1 }}>· optional</span>}
+        {step.optional && <span style={{ color: 'var(--meta)', letterSpacing: 1 }}>· optional</span>}
         {done && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -1103,7 +1103,7 @@ function StepHeader({ step, index, done, liveSubtitle }) {
             background: 'rgba(16,185,129,0.15)',
             border: '1px solid rgba(16,185,129,0.35)',
             borderRadius: 'var(--r-sm)',
-            color: '#6ee7b7', fontSize: 10, letterSpacing: 1,
+            color: '#6ee7b7', fontSize:11, letterSpacing: 1,
           }}>
             ✓ Done
           </span>
@@ -1115,7 +1115,7 @@ function StepHeader({ step, index, done, liveSubtitle }) {
             background: 'rgba(245,158,11,0.12)',
             border: '1px solid rgba(245,158,11,0.35)',
             borderRadius: 'var(--r-sm)',
-            color: '#fbbf24', fontSize: 10, letterSpacing: 1,
+            color: '#fbbf24', fontSize:11, letterSpacing: 1,
           }}>
             ! Required
           </span>
@@ -1216,7 +1216,7 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
           placeholder="e.g. 11000"
           style={inputStyle}
         />
-        <div className="text-caption text-slate-500 mt-1.5">
+        <div className="text-caption text-slate-400 mt-1.5">
           The number of registered patients at your practice.
         </div>
       </div>
@@ -1227,7 +1227,7 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
         </div>
       )}
 
-      {savingField && <div className="text-caption text-slate-500">Saving {savingField}…</div>}
+      {savingField && <div className="text-caption text-slate-400">Saving {savingField}…</div>}
       {error && <div style={errorText}>{error}</div>}
     </div>
   );
@@ -1402,7 +1402,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           marginTop: 6,
           fontSize: 11,
           display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-          color: '#64748b',
+          color: 'var(--meta)',
         }}>
           {/* Format check — shown as soon as the user types anything */}
           {urlState && (
@@ -1418,7 +1418,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           )}
           {/* Save state — separate from format check so the user sees both */}
           <span style={{
-            color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b'),
+            color: saving ? '#94a3b8' : (savedAt ? '#10b981' : 'var(--meta)'),
           }}>
             {saving ? 'Saving…' : (savedAt ? '· ✓ Saved' : (urlState ? '· Auto-saves' : 'Auto-saves as you type'))}
           </span>
@@ -1442,7 +1442,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
             padding: '8px 14px',
             background: (teamnetUrl && !syncing) ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
             border: `1px solid ${(teamnetUrl && !syncing) ? 'rgba(34,211,238,0.4)' : 'rgba(255,255,255,0.1)'}`,
-            color: (teamnetUrl && !syncing) ? '#67e8f9' : '#64748b',
+            color: (teamnetUrl && !syncing) ? '#67e8f9' : 'var(--meta)',
             borderRadius: 'var(--r-md)',
             fontSize: 13, fontWeight: 500,
             cursor: (teamnetUrl && !syncing) ? 'pointer' : 'not-allowed',
@@ -1451,7 +1451,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
         >
           {syncing ? 'Syncing…' : 'Sync now'}
         </button>
-        <span className="text-meta text-slate-500">
+        <span className="text-meta text-slate-400">
           Otherwise we sync once a day automatically.
         </span>
       </div>
@@ -1847,7 +1847,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
             <div className="text-body text-slate-300 mb-1">
               {uploading ? 'Reading CSV…' : 'Drop your CSV here or click to browse'}
             </div>
-            <div className="text-caption text-slate-500">
+            <div className="text-caption text-slate-400">
               The file should end in .csv and come from the EMIS report you just imported.
             </div>
             <input
@@ -2149,7 +2149,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
             ✨ Autofill from my data
           </button>
           <button type="button" onClick={startManual} style={pillButton('#6366f1')}>Enter manually</button>
-          <span style={{ fontSize: 12, color: '#64748b', alignSelf: 'center' }}>or skip — it is optional</span>
+          <span style={{ fontSize: 12, color: 'var(--meta)', alignSelf: 'center' }}>or skip — it is optional</span>
         </div>
       )}
 
@@ -2189,7 +2189,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
                   <button type="button" onClick={startManual} style={pillButton('#6366f1')}>Edit</button>
                   <button type="button" onClick={autofill} disabled={!hasUrgent} style={{ ...pillButton('#f97316'), opacity: hasUrgent ? 1 : 0.4, cursor: hasUrgent ? 'pointer' : 'not-allowed' }}>Re-autofill</button>
                 </>}
-            <span style={{ fontSize: 11, color: savedAt ? '#10b981' : '#64748b' }}>{saving ? 'Saving…' : (savedAt ? '✓ Saved' : '')}</span>
+            <span style={{ fontSize: 11, color: savedAt ? '#10b981' : 'var(--meta)' }}>{saving ? 'Saving…' : (savedAt ? '✓ Saved' : '')}</span>
           </div>
         </div>
       )}
@@ -2460,7 +2460,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         <SummaryPill colour="#f97316" label="Urgent" count={summary.urgent} />
         <SummaryPill colour="#475569" label="Other" count={summary.other} />
         <SummaryPill colour="#8b5cf6" label="Duty doctor" count={summary.duty} />
-        <span style={{ marginLeft: 'auto', fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b') }}>
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : 'var(--meta)') }}>
           {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves on change')}
         </span>
       </div>
@@ -2537,7 +2537,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
                       once the user clicks the picker. */}
                   {isAutoApplied && confidence === 'high' && cat !== 'other' && (
                     <span title="Confident auto-suggestion based on the slot name" style={{
-                      fontSize: 9.5, padding: '1px 7px', borderRadius: 'var(--r-pill)',
+                      fontSize:11, padding: '1px 7px', borderRadius: 'var(--r-pill)',
                       background: 'rgba(16,185,129,0.12)',
                       border: '1px solid rgba(16,185,129,0.3)',
                       color: '#6ee7b7', letterSpacing: 0.4, fontFamily: 'inherit',
@@ -2545,7 +2545,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
                   )}
                   {isAutoApplied && confidence === 'medium' && cat !== 'other' && (
                     <span title="Educated guess — worth double-checking" style={{
-                      fontSize: 9.5, padding: '1px 7px', borderRadius: 'var(--r-pill)',
+                      fontSize:11, padding: '1px 7px', borderRadius: 'var(--r-pill)',
                       background: 'rgba(251,191,36,0.10)',
                       border: '1px solid rgba(251,191,36,0.3)',
                       color: '#fbbf24', letterSpacing: 0.4, fontFamily: 'inherit',
@@ -2569,7 +2569,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
 
       {error && <div style={errorText}>{error}</div>}
 
-      <div className="text-caption text-slate-500 leading-normal">
+      <div className="text-caption text-slate-400 leading-normal">
         These can be changed any time from Practice settings → Demand.
       </div>
     </div>
@@ -2968,7 +2968,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
       </p>
 
       <div className="flex items-center justify-end">
-        <span style={{ fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : '#64748b') }}>
+        <span style={{ fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : 'var(--meta)') }}>
           {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves on change')}
         </span>
       </div>
@@ -3019,7 +3019,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
 
       {error && <div style={errorText}>{error}</div>}
 
-      <div className="text-caption text-slate-500 leading-normal">
+      <div className="text-caption text-slate-400 leading-normal">
         Sites can also be edited later from the v3 Room Settings page (rooms, grid size, etc.).
       </div>
     </div>
@@ -3248,7 +3248,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
         )}
       </div>
 
-      <div className="text-caption text-slate-500 leading-normal">
+      <div className="text-caption text-slate-400 leading-normal">
         Don't have a demand CSV handy? Skip for now — you can upload it any time from the
         Demand tab on your practice settings page.
       </div>
@@ -3379,7 +3379,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
           placeholder="anna@example.com, ben@example.com&#10;chris@example.com"
           style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }}
         />
-        <div className="text-caption text-slate-500 mt-1.5">
+        <div className="text-caption text-slate-400 mt-1.5">
           Comma, space, or newline-separated. We'll figure it out.
         </div>
       </div>
@@ -3534,7 +3534,7 @@ function FeatureRow({ on, label, hint }) {
           {label}
         </div>
         {hint && (
-          <div style={{ fontSize: 11, color: on ? '#94a3b8' : '#64748b', marginTop: 1 }}>
+          <div style={{ fontSize: 11, color: on ? '#94a3b8' : 'var(--meta)', marginTop: 1 }}>
             {hint}
           </div>
         )}
@@ -3715,7 +3715,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
         </div>
       )}
 
-      <p style={{ ...fieldHelp, fontSize: 13, color: '#64748b' }}>
+      <p style={{ ...fieldHelp, fontSize: 13, color: 'var(--meta)' }}>
         You can change this any time from Practice settings → Buddy cover.
       </p>
     </div>

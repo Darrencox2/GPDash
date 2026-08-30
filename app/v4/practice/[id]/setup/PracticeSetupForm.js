@@ -408,17 +408,17 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               {lookup && (
                 <>
                   <div>
-                    <span className="text-slate-500">Local authority:</span>{' '}
+                    <span className="text-slate-400">Local authority:</span>{' '}
                     <span>{lookup.admin_district || '—'}</span>
                     {lookup.region && <>
                       {' · '}
-                      <span className="text-slate-500">NHS region:</span>{' '}
+                      <span className="text-slate-400">NHS region:</span>{' '}
                       <span>{lookup.region}</span>
                     </>}
                   </div>
                   {holidays && (
                     <div>
-                      <span className="text-slate-500">Holiday calendar:</span>{' '}
+                      <span className="text-slate-400">Holiday calendar:</span>{' '}
                       <span style={{ color: holidays.isFallback ? '#fcd34d' : '#cbd5e1' }}>
                         {holidays.name}{holidays.isFallback && ' (fallback — no specific data for your LEA)'}
                       </span>
@@ -441,17 +441,17 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
               marginBottom: 12,
               lineHeight: 1.6,
             }}>
-              <div style={{ fontSize: 14, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+              <div style={{ fontSize: 14, color: 'var(--meta)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                 NHS England — {formatMonthYear(nhsDetails.month)}
               </div>
               {nhsDetails.pcn_name && (
-                <div><span className="text-slate-500">PCN:</span> {nhsDetails.pcn_name}</div>
+                <div><span className="text-slate-400">PCN:</span> {nhsDetails.pcn_name}</div>
               )}
               {nhsDetails.icb_name && (
-                <div><span className="text-slate-500">ICB:</span> {nhsDetails.icb_name}</div>
+                <div><span className="text-slate-400">ICB:</span> {nhsDetails.icb_name}</div>
               )}
               {nhsDetails.total != null && (
-                <div><span className="text-slate-500">Submissions that month:</span> {nhsDetails.total.toLocaleString()} across {nhsDetails.days_with_data} days</div>
+                <div><span className="text-slate-400">Submissions that month:</span> {nhsDetails.total.toLocaleString()} across {nhsDetails.days_with_data} days</div>
               )}
             </div>
           )}
@@ -468,7 +468,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           }}>
             <div style={{
               fontSize: 12,
-              color: '#64748b',
+              color: 'var(--meta)',
               textTransform: 'uppercase',
               letterSpacing: 0.5,
               marginBottom: 8,
@@ -501,7 +501,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                 No matches. Try a different word — names are matched in order, so "Banwell" might find practices that "Winscombe" doesn't.
               </p>
               {practiceMatchDebug?.attempts?.length > 0 && (
-                <details style={{ marginTop: 8, fontSize: 15, color: '#64748b' }}>
+                <details style={{ marginTop: 8, fontSize: 15, color: 'var(--meta)' }}>
                   <summary className="cursor-pointer">Show what was searched (debug)</summary>
                   <div style={{ marginTop: 6, padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--r-sm)', fontFamily: 'ui-monospace, Menlo, monospace', whiteSpace: 'pre-wrap', fontSize: 12 }}>
                     {practiceMatchDebug.attempts.map((a, i) => (
@@ -557,7 +557,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
                         <div style={{ fontSize: 15, color: '#e2e8f0', fontWeight: 500, marginBottom: 2 }}>
                           {p.name}
                         </div>
-                        <div style={{ fontSize: 15, color: '#64748b', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: 15, color: 'var(--meta)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                           <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{p.odsCode}</span>
                           {p.listSize != null ? (
                             <span>
@@ -634,15 +634,15 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
             {lookup && !lookupBusy && (
               <div style={lookupBox}>
                 <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 6, fontSize: 14 }}>
-                  <span className="text-slate-500">Local authority</span>
+                  <span className="text-slate-400">Local authority</span>
                   <span className="text-slate-300">{lookup.admin_district || '—'}</span>
-                  <span className="text-slate-500">Region</span>
+                  <span className="text-slate-400">Region</span>
                   <span className="text-slate-300">{lookup.region || '—'}</span>
-                  <span className="text-slate-500">Country</span>
+                  <span className="text-slate-400">Country</span>
                   <span className="text-slate-300">{lookup.country || '—'}</span>
                   {holidays && (
                     <>
-                      <span className="text-slate-500">Holiday calendar</span>
+                      <span className="text-slate-400">Holiday calendar</span>
                       <span style={{ color: holidays.isFallback ? '#fcd34d' : '#cbd5e1' }}>
                         {holidays.name}{holidays.isFallback && ' (fallback — no specific data for your LEA)'}
                       </span>
@@ -688,7 +688,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           style={{
             padding: '10px 20px',
             background: allRequired ? '#0891b2' : 'rgba(255,255,255,0.05)',
-            color: allRequired ? 'white' : '#64748b',
+            color: allRequired ? 'white' : 'var(--meta)',
             border: 'none',
             borderRadius: 'var(--r-md)',
             fontSize: 15,
@@ -713,7 +713,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           Skip for now
         </button>
         {!allRequired && (
-          <span style={{ alignSelf: 'center', fontSize: 15, color: '#64748b' }}>
+          <span style={{ alignSelf: 'center', fontSize: 15, color: 'var(--meta)' }}>
             Fill in name, postcode, and list size to mark complete
           </span>
         )}
@@ -746,7 +746,7 @@ function Card({ title, status, children }) {
     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', padding: 18 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
         <h3 style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1' }}>{title}</h3>
-        {status === 'saving' && <span style={{ fontSize: 15, color: '#64748b' }}>Saving…</span>}
+        {status === 'saving' && <span style={{ fontSize: 15, color: 'var(--meta)' }}>Saving…</span>}
         {status === 'saved' && <span style={{ fontSize: 15, color: '#34d399' }}>✓ Saved</span>}
       </div>
       {children}
@@ -763,7 +763,7 @@ function Stat({ label, value, mono, editable, inputType, inputValue, onInputChan
     <div>
       <div style={{
         fontSize: 14,
-        color: '#64748b',
+        color: 'var(--meta)',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
         marginBottom: 4,
@@ -808,7 +808,7 @@ const input = {
   color: '#e2e8f0',
   fontSize: 15,
 };
-const hint = { fontSize: 13, color: '#64748b', marginTop: 8, lineHeight: 1.6 };
+const hint = { fontSize: 13, color: 'var(--meta)', marginTop: 8, lineHeight: 1.6 };
 const lookupBox = {
   marginTop: 10,
   padding: 12,

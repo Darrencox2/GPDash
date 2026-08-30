@@ -301,7 +301,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
 function SummaryStat({ label, value, colour }) {
   return (
     <div style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)', padding: '6px 12px' }}>
-      <div style={{ fontSize: 9, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize:11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ fontSize: 16, fontWeight: 600, color: colour, fontFamily: "'Outfit', sans-serif" }}>{value}</div>
     </div>
   );

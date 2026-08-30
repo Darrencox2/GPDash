@@ -67,7 +67,7 @@ export default async function SetupInProgressPage({ params }) {
           <strong className="text-white">{practice.name}</strong> on GPDash.
           Check back shortly — they'll have it ready soon.
         </p>
-        <p className="text-meta text-slate-500 leading-body">
+        <p className="text-meta text-slate-400 leading-body">
           Once setup is complete you'll be able to access the dashboard at this URL.
         </p>
       </div>

@@ -196,7 +196,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             <span style={{fontSize:11,color:'var(--g-text-mid)',textTransform:'uppercase',letterSpacing:'1px'}}>Today&apos;s summary · {targetDate.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</span>
           </div>
-          <button onClick={()=>setShowSettings(!showSettings)} style={{color:'var(--g-text-faint)',background:'none',border:'none',cursor:'pointer',padding:2}} title="Settings">
+          <button onClick={()=>setShowSettings(!showSettings)} style={{color:'var(--meta)',background:'none',border:'none',cursor:'pointer',padding:2}} title="Settings">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06c.5.5 1.21.71 1.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
           </button>
         </div>
@@ -205,7 +205,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
             <path d="M 10 68 A 50 50 0 0 1 110 68" fill="none" style={{stroke:'var(--g-divider)'}} strokeWidth="9" strokeLinecap="round"/>
             <path d="M 10 68 A 50 50 0 0 1 110 68" fill="none" stroke={arcColour} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${arcPct*157} 157`}/>
             <text x="60" y="56" textAnchor="middle" fill={verdictText} style={{fontSize:26,fontWeight:800}}>{coverage}%</text>
-            <text x="60" y="69" textAnchor="middle" style={{fill:'var(--g-text-mid)'}} style={{fontSize:9}}>coverage</text>
+            <text x="60" y="69" textAnchor="middle" style={{fill:'var(--g-text-mid)'}} style={{fontSize:11}}>coverage</text>
           </svg>
           <div className="flex-1">
             <div className="flex items-center gap-2">
@@ -225,9 +225,9 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
               {demandDelta!==null&&demandDelta!==0&&<span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:'var(--r-sm)',background:demandDelta>0?'rgba(251,113,133,0.1)':'rgba(52,211,153,0.1)',color:demandDelta>0?'#fb7185':'#34d399'}}>{demandDelta>0?'↑':'↓'}{Math.abs(demandDelta)} vs typical</span>}
             </div>
             <div className="flex items-center gap-1 justify-end" style={{marginTop:6}}>
-              <span style={{fontSize:11,color:'var(--g-text-faint)'}}>{t.confidence.low}</span>
+              <span style={{fontSize:11,color:'var(--meta)'}}>{t.confidence.low}</span>
               <div style={{width:70,height:5,background:'var(--g-surface-2)',borderRadius:3,position:'relative'}}><div style={{position:'absolute',top:'50%',left:`${rangePct}%`,transform:'translate(-50%,-50%)',width:7,height:7,borderRadius:'50%',background:demandCol.text}}/></div>
-              <span style={{fontSize:11,color:'var(--g-text-faint)'}}>{t.confidence.high}</span>
+              <span style={{fontSize:11,color:'var(--meta)'}}>{t.confidence.high}</span>
             </div>
           </div>
         </div>
@@ -262,10 +262,10 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
             <div className="flex-shrink-0" style={{width:30,height:30,borderRadius:'50%',background:`${col}20`,display:'flex',alignItems:'center',justifyContent:'center'}}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill={col} stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
             </div>
-            <div className="flex-1 min-w-0"><div style={{fontSize:9,color:'var(--g-text-mid)',textTransform:'uppercase',letterSpacing:'0.5px'}}>{sess} duty</div><div className="font-bold truncate" style={{fontSize:13,color:'var(--g-text-hi)'}}>{doc.title?`${doc.title} `:''}{doc.name}</div></div>
+            <div className="flex-1 min-w-0"><div style={{fontSize:11,color:'var(--g-text-mid)',textTransform:'uppercase',letterSpacing:'0.5px'}}>{sess} duty</div><div className="font-bold truncate" style={{fontSize:13,color:'var(--g-text-hi)'}}>{doc.title?`${doc.title} `:''}{doc.name}</div></div>
             <div className="flex-shrink-0 text-center rounded-md" style={{background:`${col}20`,border:`1px solid ${col}40`,padding:'4px 8px'}}>
               <div style={{fontSize:16,fontWeight:800,color:col,lineHeight:1}}>{sl}</div>
-              <div style={{fontSize:8,color:'var(--g-text-mid)',marginTop:1}}>slots</div>
+              <div style={{fontSize:11,color:'var(--g-text-mid)',marginTop:1}}>slots</div>
             </div>
           </div>;
         })}
@@ -282,9 +282,9 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
         </button>
         {showChart && <div style={{padding:'0 24px 16px'}}><div style={{position:'relative',height:180}}><canvas ref={chartRef}/></div>
           <div className="flex justify-center gap-3 flex-wrap" style={{marginTop:8}}>
-            <span className="flex items-center gap-1" style={{fontSize:10,color:'var(--g-text-mid)'}}><span style={{width:12,height:2,background:'var(--g-text-mid)',display:'inline-block'}}/>Past</span>
-            <span className="flex items-center gap-1" style={{fontSize:10,color:'var(--g-text-mid)'}}><span style={{width:12,height:2,background:'#38bdf8',display:'inline-block'}}/>Forecast</span>
-            <span className="flex items-center gap-1" style={{fontSize:10,color:'var(--g-text-mid)'}}><span style={{width:12,height:6,borderRadius:2,background:'rgba(56,189,248,0.12)',display:'inline-block'}}/>Range</span>
+            <span className="flex items-center gap-1" style={{fontSize:11,color:'var(--g-text-mid)'}}><span style={{width:12,height:2,background:'var(--g-text-mid)',display:'inline-block'}}/>Past</span>
+            <span className="flex items-center gap-1" style={{fontSize:11,color:'var(--g-text-mid)'}}><span style={{width:12,height:2,background:'#38bdf8',display:'inline-block'}}/>Forecast</span>
+            <span className="flex items-center gap-1" style={{fontSize:11,color:'var(--g-text-mid)'}}><span style={{width:12,height:6,borderRadius:2,background:'rgba(56,189,248,0.12)',display:'inline-block'}}/>Range</span>
           </div>
         </div>}
       </div>
@@ -294,7 +294,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
         <div style={{marginBottom:12}}><label style={{fontSize:12,fontWeight:600,color:'var(--g-text-mid)',display:'block',marginBottom:6}}>Conversion rate</label>
           <div className="flex items-center gap-3"><input type="range" min="0.05" max="0.60" step="0.01" value={convRate} onChange={e=>updateSetting('conversionRate',parseFloat(e.target.value))} className="flex-1"/>
             <span style={{fontSize:13,fontWeight:700,color:'var(--g-text-hi)',background:'var(--g-surface-2)',padding:'4px 12px',borderRadius:'var(--r-sm)',minWidth:52,textAlign:'center'}}>{convRate.toFixed(2)}</span></div>
-          <div style={{fontSize:10,color:'var(--g-text-faint)',marginTop:4}}>{predicted} × {convRate.toFixed(2)} = {needed} est. appointments</div></div>
+          <div style={{fontSize:11,color:'var(--meta)',marginTop:4}}>{predicted} × {convRate.toFixed(2)} = {needed} est. appointments</div></div>
         <div className="flex gap-4">
           <div className="flex-1"><label style={{fontSize:12,fontWeight:600,color:'var(--g-text-mid)',display:'block',marginBottom:6}}>Green (%)</label>
             <input type="number" value={greenPct} onChange={e=>updateSetting('greenPct',parseInt(e.target.value)||100)} style={{width:'100%',padding:'6px 10px',borderRadius:'var(--r-sm)',border:'1px solid var(--g-divider)',background:'var(--g-surface-2)',color:'var(--g-text-hi)',fontSize:13}}/></div>

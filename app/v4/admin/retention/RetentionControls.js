@@ -197,7 +197,7 @@ export default function RetentionControls({ lastRunResults }) {
                     ? <span className="text-red-300">{r.error}</span>
                     : r.capped
                     ? <span className="text-amber-400">capped at {r.rows_deleted || r.rows_to_delete}</span>
-                    : <span className="text-slate-500">ok</span>}
+                    : <span className="text-slate-400">ok</span>}
                 </td>
               </tr>
             ))}
@@ -205,7 +205,7 @@ export default function RetentionControls({ lastRunResults }) {
         </table>
       )}
 
-      <div className="text-caption text-slate-500 mt-3.5 leading-body">
+      <div className="text-caption text-slate-400 mt-3.5 leading-body">
         Each run is logged to <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 'var(--r-sm)' }}>platform_audit_events</code> with the full per-table result set for GDPR Art 5(2) accountability — including dry runs.
         Hard cap of 5000 rows deleted per table per run as a safety net.
       </div>

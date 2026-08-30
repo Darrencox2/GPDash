@@ -115,13 +115,13 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
           <div className="flex items-start justify-between mb-2">
             <div>
               <div className="text-base font-medium text-slate-100">{title || 'Slot filter'}</div>
-              <div className="text-sm text-slate-500 mt-0.5">
+              <div className="text-sm text-slate-400 mt-0.5">
                 Choose which slot types count toward urgent capacity
               </div>
             </div>
             <button
               onClick={() => setShow(false)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/8 transition-colors flex-shrink-0"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/8 transition-colors flex-shrink-0"
               aria-label="Close"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -168,7 +168,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
           >
             {/* Title */}
             <div>
-              <label className="text-sm text-slate-500 uppercase tracking-wider">Title</label>
+              <label className="text-sm text-slate-400 uppercase tracking-wider">Title</label>
               <input
                 type="text"
                 value={cardSettings.card.title}
@@ -180,7 +180,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
 
             {/* Colour */}
             <div>
-              <label className="text-sm text-slate-500 uppercase tracking-wider">Accent colour</label>
+              <label className="text-sm text-slate-400 uppercase tracking-wider">Accent colour</label>
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 {cardSettings.palette.map(c => {
                   const isActive = cardSettings.card.colour === c.key;
@@ -202,7 +202,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
 
             {/* Period */}
             <div>
-              <label className="text-sm text-slate-500 uppercase tracking-wider">Period</label>
+              <label className="text-sm text-slate-400 uppercase tracking-wider">Period</label>
               <div className="flex gap-1 mt-1.5">
                 {[7, 14, 21, 28].map(d => {
                   const isActive = (cardSettings.card.days || 14) === d;
@@ -228,7 +228,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
               <label className="flex items-center justify-between cursor-pointer text-base text-slate-300">
                 <span>
                   <span className="block">Full-width card</span>
-                  <span className="block text-sm text-slate-500 mt-0.5">Spans the full row instead of half</span>
+                  <span className="block text-sm text-slate-400 mt-0.5">Spans the full row instead of half</span>
                 </span>
                 <input
                   type="checkbox"
@@ -359,7 +359,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
               >
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
@@ -379,7 +379,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
         {/* Slot list */}
         <div className="flex-1 overflow-y-auto px-3 py-2" style={{ scrollbarWidth: 'thin' }}>
           {filteredSlots.length === 0 && (
-            <div className="text-center py-8 text-sm text-slate-500">
+            <div className="text-center py-8 text-sm text-slate-400">
               No slot types match {search ? `"${search}"` : 'the filter'}.
             </div>
           )}
@@ -418,7 +418,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
         >
           <button
             onClick={() => { setOverrides(null); setShow(false); }}
-            className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
           >
             Reset to defaults
           </button>

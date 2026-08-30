@@ -165,7 +165,7 @@ export default async function DashboardPage() {
               <div>
                 <div className="text-body font-medium text-slate-200">{m.practices.name}</div>
                 {m.practices.ods_code && (
-                  <div className="text-caption text-slate-500 mt-0.5">{m.practices.ods_code}</div>
+                  <div className="text-caption text-slate-400 mt-0.5">{m.practices.ods_code}</div>
                 )}
               </div>
               <span style={{
@@ -181,7 +181,7 @@ export default async function DashboardPage() {
         )}
       </Card>
 
-      <p className="text-slate-500 text-caption mt-6 text-center">
+      <p className="text-slate-400 text-caption mt-6 text-center">
         v4-rebuild branch · this is a preview environment
       </p>
     </div>
@@ -223,7 +223,7 @@ function Field({ label, children }) {
       padding: '10px 0',
       borderBottom: '1px solid rgba(255,255,255,0.04)',
     }}>
-      <span className="text-body-sm text-slate-500">{label}</span>
+      <span className="text-body-sm text-slate-400">{label}</span>
       <span className="text-body-sm text-slate-300">{children}</span>
     </div>
   );

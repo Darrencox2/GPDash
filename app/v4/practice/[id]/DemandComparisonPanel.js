@@ -163,11 +163,11 @@ export default function DemandComparisonPanel({
               borderRadius: 'var(--r-sm)',
               textAlign: 'center',
             }}>
-              <div style={{ fontSize: 10, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.label}</div>
+              <div style={{ fontSize:11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.label}</div>
               <div style={{ fontSize: 13, color: d.meanError == null ? 'var(--g-text-faint)' : (Math.abs(d.meanError) < 1 ? 'var(--g-text-mid)' : (d.meanError > 0 ? '#fcd34d' : '#67e8f9')), fontWeight: 500, marginTop: 2 }}>
                 {d.meanError == null ? '—' : (d.meanError > 0 ? '+' : '') + d.meanError.toFixed(0)}
               </div>
-              <div style={{ fontSize: 9, color: 'var(--g-text-faint)', marginTop: 1 }}>{d.count} day{d.count === 1 ? '' : 's'}</div>
+              <div style={{ fontSize:11, color: 'var(--meta)', marginTop: 1 }}>{d.count} day{d.count === 1 ? '' : 's'}</div>
             </div>
           ))}
         </div>
@@ -193,7 +193,7 @@ export default function DemandComparisonPanel({
                     {p.error > 0 ? '+' : ''}{p.error} ({p.error > 0 ? 'higher' : 'lower'} than predicted)
                   </span>
                 </div>
-                <div style={{ display: 'flex', gap: 16, color: 'var(--g-text-mid)', fontSize: 10, marginBottom: 4 }}>
+                <div style={{ display: 'flex', gap: 16, color: 'var(--g-text-mid)', fontSize:11, marginBottom: 4 }}>
                   <span>Predicted: <span className="text-hi">{p.predicted}</span></span>
                   <span>Actual: <span className="text-hi">{p.actual}</span></span>
                 </div>
@@ -264,7 +264,7 @@ function ComparisonChart({ points }) {
         ))}
       </svg>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, fontSize: 10, color: 'var(--g-text-mid)', marginTop: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, fontSize:11, color: 'var(--g-text-mid)', marginTop: 4 }}>
         <span className="flex items-center gap-1">
           <span style={{ width: 12, height: 2, background: '#a78bfa', display: 'inline-block' }} />
           Predicted
@@ -288,7 +288,7 @@ function FactorBreakdown({ factors }) {
   if (factors.firstWeekBack) parts.push(`first week back ${fmtNum(factors.firstWeekBack.effect || 0)}`);
   if (factors.trend?.effect != null) parts.push(`trend ${fmtNum(factors.trend.effect)}`);
   if (parts.length === 0) return null;
-  return <div style={{ color: 'var(--g-text-mid)', fontSize: 10, marginTop: 2 }}>{parts.join(' · ')}</div>;
+  return <div style={{ color: 'var(--g-text-mid)', fontSize:11, marginTop: 2 }}>{parts.join(' · ')}</div>;
 }
 
 function fmtNum(n) {

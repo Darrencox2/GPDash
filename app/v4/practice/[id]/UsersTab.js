@@ -244,7 +244,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
             <span style={{ fontSize: 14, color: 'var(--g-text-hi)', fontWeight: isMe ? 600 : 400 }}>
               {m.email || '—'}
             </span>
-            {isMe && <span style={{ fontSize: 10, padding: '1px 7px', background: 'rgba(34,211,238,0.18)', color: '#67e8f9', borderRadius: 'var(--r-pill)', fontWeight: 600, letterSpacing: 0.4 }}>YOU</span>}
+            {isMe && <span style={{ fontSize:11, padding: '1px 7px', background: 'rgba(34,211,238,0.18)', color: '#67e8f9', borderRadius: 'var(--r-pill)', fontWeight: 600, letterSpacing: 0.4 }}>YOU</span>}
           </div>
           {m.name && <div className="text-meta text-mid mt-0.5">{m.name}</div>}
           {/* Clinician-link status. Three states:
@@ -479,7 +479,7 @@ function Stat({ label, value, colour, tooltip }) {
         cursor: tooltip ? 'help' : 'default',
       }}
     >
-      <div style={{ fontSize: 9, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize:11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ fontSize: 16, fontWeight: 600, color: colour || 'var(--g-text-hi)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>{value}</div>
     </div>
   );

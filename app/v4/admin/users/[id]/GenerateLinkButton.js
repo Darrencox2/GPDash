@@ -138,7 +138,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed, type, labe
         </div>
       )}
 
-      <p className="text-slate-500 text-caption mt-2 leading-normal">
+      <p className="text-slate-400 text-caption mt-2 leading-normal">
         {emailUnconfirmed
           ? 'Use this when the user signed up but never received the confirmation email. The link signs them in and confirms their email in one step.'
           : 'Use this for users who can\'t access their email or have lost their password reset email.'}

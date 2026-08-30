@@ -205,15 +205,15 @@ export default function UserActions({ user, allPractices }) {
           </div>
         ) : (
           <>
-            <Row label="Forename">{user.first_name || <em className="text-slate-600">not set</em>}</Row>
-            <Row label="Surname">{user.last_name || <em className="text-slate-600">not set</em>}</Row>
-            <Row label="Display name">{user.name || <em className="text-slate-600">not set</em>}</Row>
+            <Row label="Forename">{user.first_name || <em className="text-slate-400">not set</em>}</Row>
+            <Row label="Surname">{user.last_name || <em className="text-slate-400">not set</em>}</Row>
+            <Row label="Display name">{user.name || <em className="text-slate-400">not set</em>}</Row>
             <Row label="Platform admin">{user.is_platform_admin ? 'Yes' : 'No'}</Row>
             {/* Admin notes shown read-only here too — quick to scan without
                 clicking Edit. Empty notes hidden so the row isn't noise. */}
             {user.admin_notes && (
               <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 'var(--r-md)' }}>
-                <div style={{ fontSize: 10, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Admin notes</div>
+                <div style={{ fontSize:11, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Admin notes</div>
                 <div style={{ fontSize: 13, color: '#fde68a', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                   {user.admin_notes}
                 </div>
@@ -228,7 +228,7 @@ export default function UserActions({ user, allPractices }) {
         <h3 style={cardHeader}>Practice memberships ({user.memberships.length})</h3>
 
         {user.memberships.length === 0 ? (
-          <p className="text-slate-500 text-body-sm mb-4">
+          <p className="text-slate-400 text-body-sm mb-4">
             Not a member of any practice yet.
           </p>
         ) : (
@@ -250,7 +250,7 @@ export default function UserActions({ user, allPractices }) {
               >
                 <div className="min-w-0 flex-1">
                   <div className="text-slate-200 text-body-sm font-medium">{m.practice_name}</div>
-                  <div className="text-slate-500 text-caption mt-0.5">
+                  <div className="text-slate-400 text-caption mt-0.5">
                     <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{m.practice_slug}</span>
                   </div>
                 </div>
@@ -312,7 +312,7 @@ export default function UserActions({ user, allPractices }) {
             </div>
           </div>
         ) : (
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12, fontSize: 12, color: '#64748b' }}>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12, fontSize: 12, color: 'var(--meta)' }}>
             User is already a member of every practice on the platform.
           </div>
         )}
@@ -381,7 +381,7 @@ function Banner({ kind, children }) {
 function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0', gap: 12 }}>
-      <span style={{ color: '#64748b', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
+      <span style={{ color: 'var(--meta)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
       <span className="text-slate-300 text-body-sm">{children}</span>
     </div>
   );

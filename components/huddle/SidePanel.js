@@ -96,7 +96,7 @@ export default function SidePanel({ open, onClose, onBack, title, subtitle, acce
           {onBack && (
             <button
               onClick={onBack}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0 mr-2 -ml-1"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0 mr-2 -ml-1"
               aria-label="Back"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -109,12 +109,12 @@ export default function SidePanel({ open, onClose, onBack, title, subtitle, acce
               <div className="text-base font-medium text-slate-100 truncate">{title}</div>
             ) : title}
             {subtitle && (typeof subtitle === 'string' ? (
-              <div className="text-xs text-slate-500 mt-0.5 truncate">{subtitle}</div>
+              <div className="text-xs text-slate-400 mt-0.5 truncate">{subtitle}</div>
             ) : <div className="mt-0.5">{subtitle}</div>)}
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0 ml-2"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0 ml-2"
             aria-label="Close"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -114,7 +114,7 @@ export default function SuspensionCard({ user }) {
           <button onClick={() => setShowSuspendForm(true)} style={btnSubtle}>
             Suspend user
           </button>
-          <p className="text-slate-500 text-caption mt-2 leading-normal">
+          <p className="text-slate-400 text-caption mt-2 leading-normal">
             Blocks sign-in without deleting any data. Reversible at any time.
             Use for investigations, compliance holds, or temporary cooling-off
             periods. Use the danger zone below for permanent deletion.

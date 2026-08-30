@@ -29,6 +29,7 @@
 // aggressively and validate the payload shape before logging.
 
 import { NextResponse } from 'next/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { checkRateLimit, getRateLimitIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -87,6 +88,8 @@ export async function POST(request) {
       continue;
     }
     // Structured log — Vercel can index/search these fields.
+    // ALSO persisted below: a console.warn is where the open-meteo block
+    // hid for months. Anything worth reporting is worth storing.
     console.warn('[csp-violation]', {
       documentUri: v?.['document-uri'] || v?.documentURL,
       blockedUri: blocked,
@@ -97,6 +100,27 @@ export async function POST(request) {
       // userAgent helps diagnose browser-specific issues
       userAgent: request.headers.get('user-agent')?.slice(0, 200) || null,
     });
+
+    // Persist to app_errors so it surfaces on /v4/admin/errors alongside
+    // JS crashes. Best-effort: a reporting endpoint must never throw.
+    try {
+      const admin = createAdminClient();
+      if (admin) {
+        const directive = v?.['violated-directive'] || v?.effectiveDirective || 'unknown';
+        await admin.from('app_errors').insert({
+          source: 'csp',
+          message: `CSP blocked ${blocked || 'a resource'} (${directive})`,
+          stack: [
+            v?.['source-file'] || v?.sourceFile,
+            v?.['line-number'] || v?.lineNumber,
+          ].filter(Boolean).join(':') || null,
+          path: String(v?.['document-uri'] || v?.documentURL || '').slice(0, 500) || null,
+          user_agent: request.headers.get('user-agent')?.slice(0, 500) || null,
+        });
+      }
+    } catch (e) {
+      console.warn('[csp-report] could not persist violation:', e?.message);
+    }
   }
 
   // 204 No Content — the browser doesn't care about the response body

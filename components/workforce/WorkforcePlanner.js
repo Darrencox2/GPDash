@@ -512,7 +512,7 @@ export default function WorkforcePlanner({ data, toast }) {
           <p style={{ margin: '5px 0 0', fontSize: 14, color: 'var(--g-text-mid)', maxWidth: 720, lineHeight: 1.5 }}>
             Drag clinicians across the week, allocate activities, and see where each session sits against demand. Use it to plan recruitment: spot the gaps against demand and work out how many sessions, and which role, to hire.
           </p>
-          <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-4)', maxWidth: 680, lineHeight: 1.5 }}>
+          <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--meta)', maxWidth: 680, lineHeight: 1.5 }}>
             The base contract comes from your live working patterns (set in Buddy Cover / staff settings). Changes here are a planning overlay and never affect them — to change the underlying contract, edit it under{' '}
             <a href={`/v4/practice/${data?._v4?.practiceSlug || practiceId}?tab=clinicians`} style={{ color: 'var(--accent-2)', textDecoration: 'underline' }}>Manage practice → Clinicians</a>.
           </p>
@@ -535,14 +535,14 @@ export default function WorkforcePlanner({ data, toast }) {
             <span style={{ fontSize: 34, fontWeight: 700, color: 'var(--text-1)', fontFamily: "'Space Mono', monospace", lineHeight: 1 }}>{totalCount}</span>
             <span style={{ fontSize: 14, color: 'var(--text-3)' }}>total sessions / week</span>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 4 }}>Every clinician-session on the grid, including those on activities · editing {activeName}</div>
+          <div style={{ fontSize: 12, color: 'var(--meta)', marginTop: 4 }}>Every clinician-session on the grid, including those on activities · editing {activeName}</div>
         </div>
         {!onCurrent && (
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: totalDelta < 0 ? '#f87171' : totalDelta > 0 ? '#38bdf8' : 'var(--text-3)' }}>
               {totalDelta > 0 ? '+' : ''}{totalDelta} vs Current
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 2 }}>Current has {currentTotal} · this scenario has {totalCount}</div>
+            <div style={{ fontSize: 12, color: 'var(--meta)', marginTop: 2 }}>Current has {currentTotal} · this scenario has {totalCount}</div>
           </div>
         )}
       </div>
@@ -565,7 +565,7 @@ export default function WorkforcePlanner({ data, toast }) {
         <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--g-field)', borderRadius: 'var(--r-md)' }}>
           {['a', 'b'].map(w => <button key={w} onClick={() => setViewWeek(w)} style={{ ...S.toggle, background: viewWeek === w ? 'var(--accent)' : 'transparent', color: viewWeek === w ? '#fff' : 'var(--text-3)' }}>Week {w.toUpperCase()}</button>)}
         </div>
-        <span style={{ fontSize: 12, color: 'var(--text-4)' }}>only activities alternate — staff work the same each week</span>
+        <span style={{ fontSize: 12, color: 'var(--meta)' }}>only activities alternate — staff work the same each week</span>
         <button onClick={() => setHolidayOn(v => !v)} title={`Reduce each session by ${holidayAllowance} to model maximum staff on holiday`}
           style={{ ...S.btnGhost, marginLeft: 'auto', background: holidayOn ? 'rgba(245,158,11,0.2)' : 'var(--surface-2)', border: `1px solid ${holidayOn ? '#f59e0b' : 'var(--border-2)'}`, color: holidayOn ? '#fcd34d' : 'var(--text-1)' }}>
           {holidayOn ? `✓ Holiday cover (−${holidayAllowance}/session)` : 'Holiday cover'}
@@ -582,7 +582,7 @@ export default function WorkforcePlanner({ data, toast }) {
       <div style={{ ...S.card, overflowX: 'auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '64px repeat(5, minmax(180px, 1fr))', gap: 9 }}>
           <div />
-          {WF_DAYS.map(day => (<div key={day} style={{ textAlign: 'center', fontSize: 15, fontWeight: 600, color: 'var(--text-2)', paddingBottom: 4 }}>{WF_DAY_NAMES[day].slice(0, 3)}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-4)', marginLeft: 6 }}>~{demand[day] || 0}</span></div>))}
+          {WF_DAYS.map(day => (<div key={day} style={{ textAlign: 'center', fontSize: 15, fontWeight: 600, color: 'var(--text-2)', paddingBottom: 4 }}>{WF_DAY_NAMES[day].slice(0, 3)}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--meta)', marginLeft: 6 }}>~{demand[day] || 0}</span></div>))}
 
           {WF_SESSIONS.map(session => (
             <FragmentRow key={session}>
@@ -611,7 +611,7 @@ export default function WorkforcePlanner({ data, toast }) {
                               background: assigned ? 'rgba(56,189,248,0.16)' : 'rgba(245,158,11,0.14)' }}>
                             <div className="flex justify-between items-center gap-1.5">
                               <span style={{ fontSize: 13, color: assigned ? '#7dd3fc' : '#fcd34d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label || 'Activity'}</span>
-                              <span style={{ fontSize: 10, color: assigned ? '#7dd3fc' : '#fcd34d', flexShrink: 0 }}>{durLbl}{(a.week || 'all') !== 'all' ? ` · Wk ${(a.week || 'all').toUpperCase()}` : ''}</span>
+                              <span style={{ fontSize:11, color: assigned ? '#7dd3fc' : '#fcd34d', flexShrink: 0 }}>{durLbl}{(a.week || 'all') !== 'all' ? ` · Wk ${(a.week || 'all').toUpperCase()}` : ''}</span>
                             </div>
                             <div style={{ marginTop: 5 }} onPointerDown={e => e.stopPropagation()}>
                               {assigned ? <Chip clinId={assigned} day={day} session={session} activityId={a.id} /> : <span className="text-meta text-amber-400">Drop a clinician</span>}
@@ -640,16 +640,16 @@ export default function WorkforcePlanner({ data, toast }) {
           ))}
 
           {/* Totals strip */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-4)', paddingTop: 6 }}>Total</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: 'var(--meta)', paddingTop: 6 }}>Total</div>
           {WF_DAYS.map(day => {
             const w = grid[day].am.working + grid[day].pm.working;
             const g = grid[day].am.general + grid[day].pm.general;
-            return (<div key={day} style={{ textAlign: 'center', paddingTop: 6, fontFamily: "'Space Mono', monospace", fontSize: 12, color: 'var(--text-3)' }}>{w} working<br /><span style={{ color: 'var(--text-4)' }}>{fmt(g)} general</span></div>);
+            return (<div key={day} style={{ textAlign: 'center', paddingTop: 6, fontFamily: "'Space Mono', monospace", fontSize: 12, color: 'var(--text-3)' }}>{w} working<br /><span style={{ color: 'var(--meta)' }}>{fmt(g)} general</span></div>);
           })}
         </div>
         <div className="flex gap-4 flex-wrap mt-3.5">
           {[['Overstaffed', RC.blue.solid], ['Good', RC.green.solid], ['Tight', RC.amber.solid], ['Short', RC.red.solid]].map(([l, col]) => (<div key={l} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--text-3)' }}><span style={{ width: 14, height: 14, borderRadius: 'var(--r-sm)', background: col }} />{l}</div>))}
-          <span style={{ fontSize: 13, color: 'var(--text-4)', marginLeft: 'auto' }}>Cards shade red→green across the week · ratio header is absolute</span>
+          <span style={{ fontSize: 13, color: 'var(--meta)', marginLeft: 'auto' }}>Cards shade red→green across the week · ratio header is absolute</span>
         </div>
       </div>
 
@@ -659,7 +659,7 @@ export default function WorkforcePlanner({ data, toast }) {
           {panel.clinicians && (
             <Popout title="Clinicians" onClose={() => togglePanel('clinicians')} highlight={overKey === 'bench'}>
               <button onClick={() => setAddOpen(true)} style={{ ...S.btnGhost, width: '100%', marginBottom: 10 }}>+ Add person</button>
-              <p style={{ fontSize: 12, color: 'var(--text-4)', margin: '0 0 10px' }}>Drag a name onto the grid to roster them; drag a chip here to bench them. Tap D to mark someone duty-capable (red ring).</p>
+              <p style={{ fontSize: 12, color: 'var(--meta)', margin: '0 0 10px' }}>Drag a name onto the grid to roster them; drag a chip here to bench them. Tap D to mark someone duty-capable (red ring).</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {tracker.map(({ c, allocated, contracted }) => {
                   const mismatch = !additiveIds.has(c.id) && allocated !== contracted;
@@ -667,17 +667,17 @@ export default function WorkforcePlanner({ data, toast }) {
                   return (
                     <div key={c.id} style={{ borderRadius: 'var(--r-md)', background: open ? 'var(--surface)' : 'transparent' }}>
                       <div className="flex items-center gap-2 px-1.5 py-1">
-                        <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 'var(--r-pill)', background: c._added ? 'transparent' : 'var(--accent)', border: c._added ? '1px dashed var(--accent-2)' : 'none', color: c._added ? 'var(--accent-text)' : '#fff', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(c.id) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
-                        <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 14, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize: 10, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize: 10, marginLeft: 5 }}>edited</span>}</span>
+                        <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 'var(--r-pill)', background: c._added ? 'transparent' : 'var(--accent)', border: c._added ? '1px dashed var(--accent-2)' : 'none', color: c._added ? 'var(--accent-text)' : '#fff', fontSize:11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(c.id) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
+                        <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 14, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize:11, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize:11, marginLeft: 5 }}>edited</span>}</span>
                         <button onClick={() => toggleDuty(c.id)} title={dutySet.has(c.id) ? 'Duty-capable — click to unset' : 'Mark as duty-capable'}
-                          style={{ width: 22, height: 22, borderRadius: 'var(--r-pill)', cursor: 'pointer', fontSize: 10, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
-                            background: dutySet.has(c.id) ? 'rgba(248,113,113,0.18)' : 'transparent', border: `1px solid ${dutySet.has(c.id) ? 'rgba(248,113,113,0.7)' : 'var(--border-2)'}`, color: dutySet.has(c.id) ? '#fca5a5' : 'var(--text-4)' }}>D</button>
+                          style={{ width: 22, height: 22, borderRadius: 'var(--r-pill)', cursor: 'pointer', fontSize:11, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
+                            background: dutySet.has(c.id) ? 'rgba(248,113,113,0.18)' : 'transparent', border: `1px solid ${dutySet.has(c.id) ? 'rgba(248,113,113,0.7)' : 'var(--border-2)'}`, color: dutySet.has(c.id) ? '#fca5a5' : 'var(--meta)' }}>D</button>
                         <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, color: mismatch ? '#f87171' : 'var(--text-3)' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
                         {c._added ? <button onClick={() => deleteAdded(c.id)} title="Delete" style={S.xBtn}>×</button> : <button onClick={() => removeReal(c.id)} title="Mark as leaving" style={S.xBtn}>×</button>}
                       </div>
                       {open && (
                         <div style={{ padding: '4px 6px 10px 38px' }}>
-                          <p style={{ fontSize: 11, color: 'var(--text-4)', margin: '0 0 5px' }}>Tick a clinician's contracted sessions:</p>
+                          <p style={{ fontSize: 11, color: 'var(--meta)', margin: '0 0 5px' }}>Tick a clinician's contracted sessions:</p>
                           <MiniWeek pattern={effPattern[c.id]} onToggle={(d, s) => togglePattern(c.id, d, s)} />
                           <div className="flex gap-2.5 mt-2">
                             <button onClick={() => acceptAllocAsContract(c.id)} style={S.linkBtn} title="Set their contract to where they're currently allocated">Use allocation</button>
@@ -691,12 +691,12 @@ export default function WorkforcePlanner({ data, toast }) {
               </div>
               {removedIds.length > 0 && (
                 <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
-                  <p style={{ fontSize: 11, color: 'var(--text-4)', margin: '0 0 5px' }}>Removed (leaving)</p>
-                  {removedIds.map(id => { const c = realClinicians.find(x => x.id === id); if (!c) return null; return (<div key={id} className="flex justify-between items-center px-1.5 py-0.5"><span style={{ fontSize: 13, color: 'var(--text-4)', textDecoration: 'line-through' }}>{c.name}</span><button onClick={() => restoreReal(id)} style={S.linkBtn}>undo</button></div>); })}
+                  <p style={{ fontSize: 11, color: 'var(--meta)', margin: '0 0 5px' }}>Removed (leaving)</p>
+                  {removedIds.map(id => { const c = realClinicians.find(x => x.id === id); if (!c) return null; return (<div key={id} className="flex justify-between items-center px-1.5 py-0.5"><span style={{ fontSize: 13, color: 'var(--meta)', textDecoration: 'line-through' }}>{c.name}</span><button onClick={() => restoreReal(id)} style={S.linkBtn}>undo</button></div>); })}
                 </div>
               )}
               <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <p style={{ fontSize: 11, color: 'var(--text-4)', margin: 0 }}>Contracts (planner overlay — never changes EMIS)</p>
+                <p style={{ fontSize: 11, color: 'var(--meta)', margin: 0 }}>Contracts (planner overlay — never changes EMIS)</p>
                 <button onClick={acceptAllAsContract} style={{ ...S.btnGhost, width: '100%', fontSize: 13 }}>Accept whole plan as contract</button>
                 {editedCount > 0 && <button onClick={resetAllContractsToEmis} style={{ ...S.btnGhost, width: '100%', fontSize: 13 }}>Reset all contracts to EMIS</button>}
               </div>
@@ -722,7 +722,7 @@ export default function WorkforcePlanner({ data, toast }) {
             <Popout title="Settings" onClose={() => togglePanel('settings')}>
               <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Include roles</p>
               <div className="flex flex-wrap gap-1.5 mb-3.5">
-                {allRoles.map(role => { const on = includedRoles == null || includedRoles.includes(role); return (<button key={role} onClick={() => toggleRole(role)} style={{ padding: '6px 12px', borderRadius: 'var(--r-pill)', fontSize: 13, cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface)', color: on ? 'var(--accent-text)' : 'var(--text-4)' }}>{on ? '✓ ' : ''}{role}</button>); })}
+                {allRoles.map(role => { const on = includedRoles == null || includedRoles.includes(role); return (<button key={role} onClick={() => toggleRole(role)} style={{ padding: '6px 12px', borderRadius: 'var(--r-pill)', fontSize: 13, cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface)', color: on ? 'var(--accent-text)' : 'var(--meta)' }}>{on ? '✓ ' : ''}{role}</button>); })}
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 0.4 }}>Ratio thresholds (requests / general clinician)</p>
               <div className="flex flex-col gap-2">
@@ -736,25 +736,25 @@ export default function WorkforcePlanner({ data, toast }) {
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text-2)' }}>Staff allowed off per day</span>
                 <input type="number" min={0} value={holidayAllowance} onChange={e => { setHolidayAllowance(Math.max(0, parseInt(e.target.value, 10) || 0)); markDirty(); }} style={{ width: 60, ...S.numInput }} />
               </div>
-              <p style={{ fontSize: 11, color: 'var(--text-4)', margin: '6px 0 0' }}>The Holiday cover toggle on the grid reduces each session by this many to show capacity when the most staff are away.</p>
+              <p style={{ fontSize: 11, color: 'var(--meta)', margin: '6px 0 0' }}>The Holiday cover toggle on the grid reduces each session by this many to show capacity when the most staff are away.</p>
             </Popout>
           )}
           {panel.scenarios && (
             <Popout title="Scenarios" onClose={() => togglePanel('scenarios')}>
-              <p style={{ fontSize: 12, color: 'var(--text-4)', margin: '0 0 10px' }}>Current is your live plan and loads by default. Save a copy to explore a what-if (for example losing a clinician), then switch back to Current any time.</p>
+              <p style={{ fontSize: 12, color: 'var(--meta)', margin: '0 0 10px' }}>Current is your live plan and loads by default. Save a copy to explore a what-if (for example losing a clinician), then switch back to Current any time.</p>
               <div className="flex flex-col gap-1 mb-3">
                 {scenarios.map(sc => {
                   const active = sc.id === activeScenarioId;
                   return (
                     <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', borderRadius: 'var(--r-md)', background: active ? 'var(--accent-soft)' : 'var(--surface)', border: `1px solid ${active ? 'var(--accent-2)' : 'transparent'}` }}>
-                      <span style={{ flex: 1, fontSize: 14, color: active ? 'var(--accent-text)' : 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}{sc.pinned && <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 6 }}>live</span>}{active && <span style={{ fontSize: 10, color: 'var(--accent-2)', marginLeft: 6 }}>editing</span>}</span>
+                      <span style={{ flex: 1, fontSize: 14, color: active ? 'var(--accent-text)' : 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}{sc.pinned && <span style={{ fontSize:11, color: 'var(--text-3)', marginLeft: 6 }}>live</span>}{active && <span style={{ fontSize:11, color: 'var(--accent-2)', marginLeft: 6 }}>editing</span>}</span>
                       {!active && <button onClick={() => switchScenario(sc.id)} style={S.linkBtn}>edit</button>}
                       {!sc.pinned && <button onClick={() => deleteScenario(sc.id)} title="Delete" style={S.xBtn}>×</button>}
                     </div>
                   );
                 })}
               </div>
-              <p style={{ fontSize: 11, color: 'var(--text-4)', margin: '0 0 5px' }}>Save current plan as a new scenario</p>
+              <p style={{ fontSize: 11, color: 'var(--meta)', margin: '0 0 5px' }}>Save current plan as a new scenario</p>
               <div className="flex gap-1.5">
                 <input type="text" value={scenarioName} placeholder="e.g. If Dr X leaves" onChange={e => setScenarioName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveAsNewScenario(); }} style={{ ...S.input, flex: 1 }} />
                 <button disabled={!scenarioName.trim()} onClick={saveAsNewScenario} style={{ ...S.btnGhost, background: scenarioName.trim() ? 'var(--accent)' : 'rgba(99,102,241,0.4)', border: 'none', color: '#fff' }}>Save</button>
@@ -763,14 +763,14 @@ export default function WorkforcePlanner({ data, toast }) {
           )}
           {panel.audit && (
             <Popout title={`Audit · ${activeName}`} onClose={() => togglePanel('audit')}>
-              <p style={{ fontSize: 12, color: 'var(--text-4)', margin: '0 0 10px' }}>Every change made to reach this scenario, starting from its origin. Newest at the top.</p>
+              <p style={{ fontSize: 12, color: 'var(--meta)', margin: '0 0 10px' }}>Every change made to reach this scenario, starting from its origin. Newest at the top.</p>
               {auditLog.length === 0 ? <span style={S.muted}>No changes recorded yet.</span> : (
                 <div className="flex flex-col gap-0">
                   {[...auditLog].reverse().map((e, i) => {
                     const start = i === auditLog.length - 1;
                     return (
                       <div key={`${e.t}-${i}`} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i === auditLog.length - 1 ? 'none' : '1px solid var(--surface-2)' }}>
-                        <span style={{ flexShrink: 0, width: 56, fontSize: 11, color: 'var(--text-4)', fontFamily: "'Space Mono', monospace" }}>{e.t ? new Date(e.t).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : ''}</span>
+                        <span style={{ flexShrink: 0, width: 56, fontSize: 11, color: 'var(--meta)', fontFamily: "'Space Mono', monospace" }}>{e.t ? new Date(e.t).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : ''}</span>
                         <span style={{ fontSize: 13, color: start ? 'var(--text-3)' : 'var(--text-1)', fontStyle: start ? 'italic' : 'normal', lineHeight: 1.4 }}>{e.text}</span>
                       </div>
                     );
@@ -809,13 +809,13 @@ export default function WorkforcePlanner({ data, toast }) {
 
 function FragmentRow({ children }) { return <>{children}</>; }
 function Metric({ label, value, bg }) {
-  return (<div style={{ background: bg, borderRadius: 'var(--r-sm)', padding: '5px 4px', textAlign: 'center' }}><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', fontFamily: "'Space Mono', monospace" }}>{value}</div><div style={{ fontSize: 10, color: 'var(--text-3)' }}>{label}</div></div>);
+  return (<div style={{ background: bg, borderRadius: 'var(--r-sm)', padding: '5px 4px', textAlign: 'center' }}><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', fontFamily: "'Space Mono', monospace" }}>{value}</div><div style={{ fontSize:11, color: 'var(--text-3)' }}>{label}</div></div>);
 }
 function MiniWeek({ pattern, onToggle }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 18px)', gap: 3, alignItems: 'center' }}>
-      <span />{WF_DAYS.map(d => <span key={d} style={{ fontSize: 9, color: 'var(--text-4)', textAlign: 'center' }}>{WF_DAY_NAMES[d][0]}</span>)}
-      {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize: 9, color: 'var(--text-4)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern?.[d]?.[s] === 'in'; return <span key={d} onClick={onToggle ? () => onToggle(d, s) : undefined} style={{ width: 16, height: 16, borderRadius: 3, background: on ? 'var(--accent)' : 'var(--border)', cursor: onToggle ? 'pointer' : 'default', border: onToggle ? '1px solid var(--border-2)' : 'none' }} />; })}</FragmentRow>))}
+      <span />{WF_DAYS.map(d => <span key={d} style={{ fontSize:11, color: 'var(--meta)', textAlign: 'center' }}>{WF_DAY_NAMES[d][0]}</span>)}
+      {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize:11, color: 'var(--meta)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern?.[d]?.[s] === 'in'; return <span key={d} onClick={onToggle ? () => onToggle(d, s) : undefined} style={{ width: 16, height: 16, borderRadius: 3, background: on ? 'var(--accent)' : 'var(--border)', cursor: onToggle ? 'pointer' : 'default', border: onToggle ? '1px solid var(--border-2)' : 'none' }} />; })}</FragmentRow>))}
     </div>
   );
 }
@@ -856,7 +856,7 @@ function AddStaffModal({ roles, onClose, onAdd }) {
       <select value={role} onChange={e => setRole(e.target.value)} style={{ ...S.input, appearance: 'auto' }}>
         {roles.map(r => <option key={r} value={r} style={{ background: 'var(--surface-solid)' }}>{r}</option>)}
       </select>
-      <p style={S.modalLabel}>Contracted sessions <span style={{ color: 'var(--text-4)', textTransform: 'none', letterSpacing: 0 }}>(leave blank for ad-hoc / locum)</span></p>
+      <p style={S.modalLabel}>Contracted sessions <span style={{ color: 'var(--meta)', textTransform: 'none', letterSpacing: 0 }}>(leave blank for ad-hoc / locum)</span></p>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 1fr)', gap: 4, alignItems: 'center', marginBottom: 6 }}>
         <span />{WF_DAYS.map(d => <span key={d} style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center' }}>{WF_DAY_NAMES[d].slice(0, 3)}</span>)}
         {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize: 12, color: 'var(--text-3)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern[d][s] === 'in'; return <button key={d} onClick={() => toggle(d, s)} style={{ height: 26, borderRadius: 'var(--r-sm)', cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent)' : 'var(--surface)' }} />; })}</FragmentRow>))}

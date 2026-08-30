@@ -10,6 +10,42 @@ import { createClient } from '@/utils/supabase/client';
 import BuddyOverrideModal from './BuddyOverrideModal';
 import ChangeHistoryPanel from './ChangeHistoryPanel';
 
+// Chip styling for the two absence states.
+//
+// These used to be solid #ef4444 and #f59e0b with white text — 3.76:1 and
+// 2.15:1 against white, both under the 4.5:1 AA floor, on text that is
+// people's initials. They were also distinguished by hue ALONE, which is
+// the one cue a red-green colour-deficient reader does not have.
+//
+// Now: absent is solid and dark enough for white text; day off is outlined
+// with amber text on the card. Fill-vs-outline carries the state as well as
+// the colour, so the board still reads without colour vision.
+const CHIP = {
+  absent: { bg: '#b91c1c', bd: '#ef4444', fg: '#ffffff', label: 'Absent' },
+  dayOff: { bg: 'transparent', bd: '#f59e0b', fg: '#fbbf24', label: 'Day off' },
+};
+
+// The board is a wall of coloured initials with no explanation. Capacity
+// planning carries a key; this screen did not, which is how a normal week
+// came to look like an emergency.
+function BuddyKey() {
+  return (
+    <div className="flex items-center gap-4 flex-wrap" style={{ fontSize: 12, color: 'var(--meta)' }}>
+      <span style={{ fontWeight: 500 }}>Key:</span>
+      {Object.values(CHIP).map((c) => (
+        <span key={c.label} className="flex items-center gap-1.5">
+          <span className="rounded font-bold" style={{ background: c.bg, border: `1px solid ${c.bd}`, color: c.fg, fontSize: 11, padding: '1px 5px' }}>AB</span>
+          {c.label}
+        </span>
+      ))}
+      <span className="flex items-center gap-1.5">
+        <span className="rounded font-bold" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--meta)', fontSize: 11, padding: '1px 5px' }}>AB</span>
+        Covering
+      </span>
+    </div>
+  );
+}
+
 export default function BuddyDaily({ data, saveData, password, toast, selectedWeek, setSelectedWeek, selectedDay, setSelectedDay, syncStatus, setSyncStatus, isGenerating, setIsGenerating, helpers, huddleData, setActiveSection, onRevertChange }) {
   const canEdit = canEditPracticeData(data);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -544,7 +580,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold" style={{fontFamily:"'Outfit',sans-serif", color:'var(--g-pill-text)'}}>Buddy Cover</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-slate-400 mt-0.5">
             {data.lastSyncTime ? `TeamNet synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'TeamNet not synced'}
             {syncStatus && <span className="ml-2 text-emerald-600">{syncStatus}</span>}
           </p>
@@ -680,7 +716,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 <div className="px-3 py-2 flex items-center justify-between flex-shrink-0">
                   <div>
                     <div className="text-lg font-bold" style={{color: isSel ? '#a78bfa' : closed ? 'var(--g-text-faint)' : 'var(--g-text-hi)'}}>{day.slice(0, 3)}</div>
-                    <div className="text-sm" style={{color: isSel ? '#a78bfa' : 'var(--g-text-faint)'}}>{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
+                    <div className="text-sm" style={{color: isSel ? '#a78bfa' : 'var(--meta)'}}>{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                   </div>
                   {closed ? (
                     <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{background:'rgba(100,116,139,0.15)',color:'var(--g-text-mid)'}}>Closed</span>
@@ -706,12 +742,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           <span className="font-bold text-slate-200 flex-shrink-0 text-right" style={{fontFamily:"'Outfit',sans-serif",fontSize:'clamp(11px,1.2vw,14px)',width:28}}>{b.initials}</span>
                           <svg width="6" height="6" viewBox="0 0 6 6" style={{flexShrink:0,opacity:0.3}}><path d="M1 3h4M3 1l2 2-2 2" style={{stroke:'var(--g-text-mid)'}} strokeWidth="1" fill="none"/></svg>
                           <div className="flex gap-1 flex-wrap flex-1 min-w-0">
-                            {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="rounded font-bold text-white flex-shrink-0" style={{background:'#ef4444',fontSize:'clamp(10px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
-                            {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} className="rounded font-bold text-white flex-shrink-0" style={{background:'#f59e0b',fontSize:'clamp(10px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
+                            {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} title={`${x.name} — absent`} className="rounded font-bold text-white flex-shrink-0" style={{background:CHIP.absent.bg,border:`1px solid ${CHIP.absent.bd}`,fontSize:'clamp(11px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
+                            {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} title={`${x.name} — day off`} className="rounded font-bold flex-shrink-0" style={{background:CHIP.dayOff.bg,border:`1px solid ${CHIP.dayOff.bd}`,color:CHIP.dayOff.fg,fontSize:'clamp(11px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
                           </div>
                         </div>
                       ))}
-                      {rows.length > 10 && <div className="text-xs text-slate-600">+{rows.length - 10} more</div>}
+                      {rows.length > 10 && <div className="text-xs text-slate-400">+{rows.length - 10} more</div>}
                     </div>
                   ) : null;
                 })()}
@@ -720,12 +756,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 {dayAbs.length > 0 && !closed && (
                   <div className="px-2 pb-2 mt-auto flex-shrink-0">
                     <div className="pt-2 flex gap-1.5 flex-wrap" style={{borderTop:'1px solid var(--g-border)'}}>
-                      <span className="text-xs text-slate-500 mr-1" style={{lineHeight:'24px'}}>Leave:</span>
+                      <span className="text-xs text-slate-400 mr-1" style={{lineHeight:'24px'}}>Leave:</span>
                       {dayAbs.slice(0, 4).map((a, i) => {
                         const ccStyle = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? {background:'rgba(59,130,246,0.15)',color:'#60a5fa'} : a.reason === 'Training' || a.reason === 'Study' ? {background:'rgba(245,158,11,0.15)',color:'#fbbf24'} : a.reason === 'Sick' ? {background:'rgba(239,68,68,0.15)',color:'#f87171'} : {background:'rgba(100,116,139,0.15)',color:'var(--g-text-mid)'};
                         return <span key={i} className="text-xs font-medium px-1.5 py-0.5 rounded" style={ccStyle} title={`${a.clinician.name} — ${a.reason}`}>{a.clinician.initials}</span>;
                       })}
-                      {dayAbs.length > 4 && <span className="text-xs text-slate-500">+{dayAbs.length - 4}</span>}
+                      {dayAbs.length > 4 && <span className="text-xs text-slate-400">+{dayAbs.length - 4}</span>}
                     </div>
                   </div>
                 )}
@@ -735,13 +771,19 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         </div></div>
       </div>
 
+      {/* Key for the chips above. Without it the board is a wall of coloured
+          initials that a reader has to already understand. */}
+      <div className="mt-2.5 mb-1">
+        <BuddyKey />
+      </div>
+
       {/* ═══ DAILY DETAIL ═══ */}
       {isClosedDay(getDateKey()) ? (
         <div className="glass rounded-xl p-8 text-center">
           <div className="text-2xl mb-2">🏠</div>
           <div className="text-lg font-medium text-white mb-1" style={{fontFamily:"'Outfit',sans-serif"}}>Practice Closed</div>
-          <div className="text-sm text-slate-500">{getClosedReason(getDateKey())}</div>
-          {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-600 hover:text-purple-800">Mark as open →</button>}
+          <div className="text-sm text-slate-400">{getClosedReason(getDateKey())}</div>
+          {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-400 hover:text-purple-300">Mark as open →</button>}
         </div>
       ) : (
         <>
@@ -754,11 +796,11 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-4 text-xs">
-                  <span><strong className="text-emerald-400">{presentClinicians.length}</strong> <span className="text-slate-500">present</span></span>
-                  <span><strong className="text-red-400">{absentClinicians.length}</strong> <span className="text-slate-500">absent</span></span>
-                  <span><strong className="text-amber-400">{dayOffClinicians.length}</strong> <span className="text-slate-500">day off</span></span>
+                  <span><strong className="text-emerald-400">{presentClinicians.length}</strong> <span className="text-slate-400">present</span></span>
+                  <span><strong className="text-red-400">{absentClinicians.length}</strong> <span className="text-slate-400">absent</span></span>
+                  <span><strong className="text-amber-400">{dayOffClinicians.length}</strong> <span className="text-slate-400">day off</span></span>
                 </div>
-                {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded" style={{border:'1px solid var(--g-divider)'}}>Mark closed</button>}
+                {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey(), 'Bank Holiday')} className="text-xs text-slate-400 hover:text-slate-300 px-2 py-1 rounded" style={{border:'1px solid var(--g-divider)'}}>Mark closed</button>}
               </div>
             </div>
             <div className="px-5 pb-5">
@@ -798,10 +840,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-slate-200 truncate">{c.name}</span>
-                            {isOverridden && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>}
-                            {hasCsvFlag && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>}
+                            {isOverridden && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:11,fontWeight:800,lineHeight:1}}>!</span>}
+                            {hasCsvFlag && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:11,fontWeight:800,lineHeight:1}}>?</span>}
                           </div>
-                          <div className="text-xs text-slate-500 truncate">{c.role}{dayPatternLabels[c.id] && dayPatternLabels[c.id] !== 'Not in' ? ` · ${dayPatternLabels[c.id]}` : ''}</div>
+                          <div className="text-xs text-slate-400 truncate">{c.role}{dayPatternLabels[c.id] && dayPatternLabels[c.id] !== 'Not in' ? ` · ${dayPatternLabels[c.id]}` : ''}</div>
                         </div>
                       </div>
                       {past ? (
@@ -830,7 +872,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         <button
                         title={canEdit ? 'Click to adjust or undo this status' : windDownLabel(wd)}
                         onClick={canEdit ? (e) => { e.stopPropagation(); setWdMenuOpen(m => m === c.id ? null : c.id); } : undefined}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                        className="px-1.5 py-0.5 rounded text-[11px] font-medium"
                         style={{background:'#64748b25', border:'1px solid #64748b50', color:'#94a3b8', cursor: canEdit ? 'pointer' : 'default'}}>{windDownLabel(wd)}</button>
                         {wdMenuOpen === c.id && canEdit && (
                           <span className="absolute left-0 top-full mt-1 z-20 flex flex-col rounded-md overflow-hidden"
@@ -841,14 +883,14 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           </span>
                         )}
                       </span>}
-                        {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'#7dd3fc'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
+                        {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'#7dd3fc'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
                         {hasPlanned && !wd && (
-                          <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium truncate" title={`${plannedReason || 'Leave'}${cov?.endDate ? ' until ' + cov.endDate : ''}`} style={{background:'#f59e0b1a', border:'1px solid #f59e0b40', color:'#fbbf24', maxWidth: '100%'}}>
+                          <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium truncate" title={`${plannedReason || 'Leave'}${cov?.endDate ? ' until ' + cov.endDate : ''}`} style={{background:'#f59e0b1a', border:'1px solid #f59e0b40', color:'#fbbf24', maxWidth: '100%'}}>
                             {plannedReason || 'Leave'}{cov?.endDate && cov.endDate !== getDateKey() ? ` until ${new Date(cov.endDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
                           </span>
                         )}
-                        {halfDay && cov?.reason && !hasPlanned && <span className="text-[10px] text-slate-500 truncate">{cov.reason}</span>}
-                        {lta && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{background:'#a78bfa1f', border:'1px solid #a78bfa45', color:'#c4b5fd'}}>Long term absence</span>}
+                        {halfDay && cov?.reason && !hasPlanned && <span className="text-[11px] text-slate-400 truncate">{cov.reason}</span>}
+                        {lta && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:'#a78bfa1f', border:'1px solid #a78bfa45', color:'#c4b5fd'}}>Long term absence</span>}
                       </div>
                     )}
                   </div>
@@ -856,16 +898,16 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               })}
               </div>
               {(overriddenIds.size > 0 || hasCsvMismatches) && (
-                <div className="flex items-center gap-4 mt-3 pt-3 text-xs text-slate-500 flex-wrap" style={{borderTop:'1px solid var(--g-divider)'}}>
-                  {overriddenIds.size > 0 && <span className="flex items-center gap-1.5"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>!</span>Manually overridden</span>}
-                  {hasCsvMismatches && <span className="flex items-center gap-1.5"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800,lineHeight:1}}>?</span>EMIS / Rota mismatch</span>}
+                <div className="flex items-center gap-4 mt-3 pt-3 text-xs text-slate-400 flex-wrap" style={{borderTop:'1px solid var(--g-divider)'}}>
+                  {overriddenIds.size > 0 && <span className="flex items-center gap-1.5"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white flex-shrink-0" style={{fontSize:11,fontWeight:800,lineHeight:1}}>!</span>Manually overridden</span>}
+                  {hasCsvMismatches && <span className="flex items-center gap-1.5"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:11,fontWeight:800,lineHeight:1}}>?</span>EMIS / Rota mismatch</span>}
                 </div>
               )}
             </div>
           </div>
 
           {/* KEY */}
-          <div className="flex gap-4 text-xs text-slate-500 flex-wrap px-1">
+          <div className="flex gap-4 text-xs text-slate-400 flex-wrap px-1">
             <span className="flex items-center gap-1.5"><span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:'rgba(16,185,129,0.15)',color:'#34d399'}}>Ready</span>Generated</span>
             <span className="flex items-center gap-1.5"><span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:'rgba(245,158,11,0.15)',color:'#fbbf24'}}>Pending</span>Not generated</span>
             <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{background:'rgba(239,68,68,0.15)',color:'#f87171'}}>XX</span>File & action</span>
@@ -878,7 +920,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             <div className="flex items-center justify-between" style={{background:'var(--g-panel-2)',padding:'12px 20px',borderBottom:'1px solid var(--g-tile)'}}>
               <div>
                 <h2 className="text-base font-semibold text-white">Buddy Allocations — {selectedDay}</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Workload balanced across present clinicians</p>
+                <p className="text-xs text-slate-400 mt-0.5">Workload balanced across present clinicians</p>
               </div>
               <div className="flex items-center gap-2">
                 {canEdit && hasAllocations && <button onClick={handleCopyDay} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5" style={{background:'rgba(16,185,129,0.6)',border:'1px solid rgba(16,185,129,0.3)'}}>Copy Day</button>}
@@ -887,7 +929,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             </div>
             <div className="p-5">
             {!hasAllocations ? (
-              <div className="text-center py-8 text-slate-500">
+              <div className="text-center py-8 text-slate-400">
                 <div className="text-2xl mb-2">📋</div>
                 <div className="text-sm">No allocations yet for {selectedDay}</div>
                 {presentClinicians.length > 0 && !isPastDate(getDateKey()) && <div className="text-xs mt-1">Click Generate to create buddy assignments</div>}
@@ -1000,16 +1042,16 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           };
                           return (
                             <tr key={clinician.id} style={{borderBottom:"1px solid var(--g-tile)"}} className={!canCover ? "opacity-50" : ""}>
-                              <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{background:"#10b981",fontFamily:"'Outfit',sans-serif"}}>{clinician.initials}</div><div><div className="text-sm font-medium text-slate-200">{clinician.name}</div><div className="text-xs text-slate-500">{clinician.role}</div></div></div></td>
-                              <td className="py-3 px-4">{tasks.absent.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.absent.map(id => renderBadge(id, 'absent', '#ef4444'))}</div> : <span className="text-slate-600">—</span>}</td>
-                              <td className="py-3 px-4">{tasks.dayOff.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.dayOff.map(id => renderBadge(id, 'dayOff', '#f59e0b'))}</div> : <span className="text-slate-600">—</span>}</td>
+                              <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{background:"#10b981",fontFamily:"'Outfit',sans-serif"}}>{clinician.initials}</div><div><div className="text-sm font-medium text-slate-200">{clinician.name}</div><div className="text-xs text-slate-400">{clinician.role}</div></div></div></td>
+                              <td className="py-3 px-4">{tasks.absent.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.absent.map(id => renderBadge(id, 'absent', '#ef4444'))}</div> : <span className="text-slate-400">—</span>}</td>
+                              <td className="py-3 px-4">{tasks.dayOff.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.dayOff.map(id => renderBadge(id, 'dayOff', '#f59e0b'))}</div> : <span className="text-slate-400">—</span>}</td>
                             </tr>
                           );
                         });
                       })()}
                     </tbody>
                   </table></div>
-                <div className="mt-4 pt-4 flex gap-6 text-xs text-slate-500" style={{borderTop:"1px solid var(--g-border)"}}>
+                <div className="mt-4 pt-4 flex gap-6 text-xs text-slate-400" style={{borderTop:"1px solid var(--g-border)"}}>
                   <span><strong className="text-emerald-600">{presentClinicians.length}</strong> present</span>
                   <span><strong className="text-red-600">{absentClinicians.length}</strong> absent</span>
                   <span><strong className="text-amber-600">{dayOffClinicians.length}</strong> day off</span>
@@ -1164,7 +1206,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                             onClick={() => setSuggestMenuOpen(suggestMenuOpen === g.id ? null : g.id)}
                             className="text-caption font-semibold px-3 py-1.5 rounded-lg cursor-pointer inline-flex items-center gap-1.5"
                             style={{ background: 'rgba(103,232,249,0.12)', color: '#67e8f9', border: '1px solid rgba(103,232,249,0.35)' }}
-                          >Set status <span style={{ fontSize: 9 }}>▾</span></button>
+                          >Set status <span style={{ fontSize:11 }}>▾</span></button>
                           {suggestMenuOpen === g.id && (
                             <div className="mt-1.5 rounded-lg overflow-hidden border border-edge bg-card">
                               {Object.values(STATUS_TRANSITIONS).map((t) => (
@@ -1285,7 +1327,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         <div className="fixed z-50 pointer-events-none" style={{ left: slotTip.x, top: slotTip.y - 8, transform: 'translate(-50%, -100%)' }}>
           <div className="rounded-xl p-3 shadow-2xl text-left" style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.16)', minWidth: 210, maxWidth: 280 }}>
             <div className="text-caption font-semibold text-hi">{slotTip.name} - {slotTip.day}</div>
-            <div className="text-[10px] uppercase tracking-wide text-slate-500 mt-1 mb-0.5">EMIS appointments that day</div>
+            <div className="text-[11px] uppercase tracking-wide text-slate-400 mt-1 mb-0.5">EMIS appointments that day</div>
             {slotTip.lines.length === 0 && <div className="text-caption text-mid">None found</div>}
             {slotTip.lines.map((l) => <div key={l} className="text-caption text-slate-300 leading-normal">{l}</div>)}
           </div>
@@ -1363,7 +1405,7 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
       {lines.map((l, i) => (
         <div key={i} style={{ fontSize: 13, color: i === 0 ? 'var(--g-text-hi)' : 'var(--g-text-mid)', lineHeight: 1.5, marginTop: i === 0 ? 0 : 6 }}>{l}</div>
       ))}
-      <div style={{ fontSize: 11, color: 'var(--g-text-faint)', marginTop: 9 }}>{c.role}{c.initials ? ` · ${c.initials}` : ''}</div>
+      <div style={{ fontSize: 11, color: 'var(--meta)', marginTop: 9 }}>{c.role}{c.initials ? ` · ${c.initials}` : ''}</div>
     </div>
   );
   return createPortal(tip, document.body);

@@ -15,7 +15,27 @@ import { createClient } from '@/utils/supabase/client';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const VB = { over:{bg:'#3b82f6',text:'#fff'}, good:{bg:'#10b981',text:'#fff'}, tight:{bg:'#f59e0b',text:'#fff'}, short:{bg:'#ef4444',text:'#fff'}, none:{bg:'var(--g-text-faint)',text:'var(--g-text-mid)'} };
+// Tile fills. The vivid 500-weights (#3b82f6 / #10b981 / #f59e0b / #ef4444)
+// put white text at 3.68, 2.54, 2.15 and 3.76:1 — all under the 4.5:1 AA
+// floor, on the numbers this whole screen exists to communicate. These are
+// the darkest-but-one shades that clear it: 5.17, 5.48, 5.02 and 4.83:1.
+//
+// `short` also carries a diagonal stripe. Status was encoded in hue alone,
+// which is the one cue a red-green colour-deficient reader does not have —
+// so the state that demands action is now textured as well as coloured,
+// reusing the repeating-gradient idiom already used for "Booked" below.
+const SHORT_STRIPE = 'repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,0.16) 3px,rgba(0,0,0,0.16) 6px)';
+//
+// `bg`/`text` are the tile (white on a dark fill). `fg` is the SAME state
+// rendered as text directly on the dark card — the pale variants, because a
+// fill dark enough for white text is far too dark to read as type.
+const VB = {
+  over:  { bg:'#2563eb', text:'#fff', fg:'#93c5fd' },
+  good:  { bg:'#047857', text:'#fff', fg:'#6ee7b7' },
+  tight: { bg:'#b45309', text:'#fff', fg:'#fcd34d' },
+  short: { bg:`${SHORT_STRIPE},#dc2626`, text:'#fff', fg:'#fca5a5' },
+  none:  { bg:'var(--g-text-faint)', text:'var(--g-text-mid)', fg:'var(--meta)' },
+};
 function vBand(s,t) { if(t<=0)return VB.none; const p=(s/t)*100; return p>=120?VB.over:p>=90?VB.good:p>=80?VB.tight:VB.short; }
 
 // DOW-relative demand colouring. Caller passes the per-practice dow-specific
@@ -26,9 +46,9 @@ function dowDemandColour(predicted, dowBaseline) {
   if (!predicted || !dowBaseline || dowBaseline <= 0) return { bg: 'var(--g-text-faint)', text: '#fff', label: '–' };
   const ratio = predicted / dowBaseline;
   if (ratio <= 0.9) return { bg: '#0ea5e9', text: '#fff', label: 'Low' };
-  if (ratio <= 1.1) return { bg: '#10b981', text: '#fff', label: 'Normal' };
-  if (ratio <= 1.25) return { bg: '#f59e0b', text: '#fff', label: 'High' };
-  return { bg: '#ef4444', text: '#fff', label: 'V.High' };
+  if (ratio <= 1.1) return { bg: '#047857', text: '#fff', fg: '#6ee7b7', label: 'Normal' };
+  if (ratio <= 1.25) return { bg: '#b45309', text: '#fff', fg: '#fcd34d', label: 'High' };
+  return { bg: '#dc2626', text: '#fff', fg: '#fca5a5', label: 'V.High' };
 }
 
 // PredictionBand — sits at the top of the day-detail panel and explains
@@ -76,31 +96,31 @@ function PredictionBand({ day, convRate }) {
       <div className="flex items-center gap-4 flex-wrap">
         {/* Headline number + band */}
         <div className="flex items-baseline gap-2">
-          <span className="font-mono-data text-2xl font-bold" style={{ color: dc.bg }}>{predicted}</span>
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider">predicted</span>
-          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: dc.bg, color: dc.text }}>{dc.label}</span>
+          <span className="font-mono-data text-2xl font-bold" style={{ color: dc.fg || dc.bg }}>{predicted}</span>
+          <span className="text-[11px] text-slate-400 uppercase tracking-wider">predicted</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: dc.bg, color: dc.text }}>{dc.label}</span>
         </div>
         {/* Conversion-implied urgent need */}
         <div className="flex items-baseline gap-1.5">
           <span className="font-mono-data text-base font-bold text-amber-400">{needed}</span>
-          <span className="text-[10px] text-slate-500">urgent slots needed</span>
+          <span className="text-[11px] text-slate-400">urgent slots needed</span>
         </div>
         {/* Confidence band */}
         {confLow !== null && confHigh !== null && (
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] text-slate-500">range</span>
+            <span className="text-[11px] text-slate-400">range</span>
             <span className="font-mono-data text-xs text-slate-400">{confLow}–{confHigh}</span>
           </div>
         )}
         {/* Fallback warning — practice hasn't calibrated its model */}
         {pred.usingFallback && (
-          <span className="text-[10px] text-amber-400 italic">estimate (no calibration)</span>
+          <span className="text-[11px] text-amber-400 italic">estimate (no calibration)</span>
         )}
       </div>
       {/* Top factors row */}
       {topFactors.length > 0 && (
         <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider">Drivers:</span>
+          <span className="text-[11px] text-slate-400 uppercase tracking-wider">Drivers:</span>
           {topFactors.map((tf, i) => {
             const sign = tf.effect > 0 ? '+' : '';
             const colour = tf.effect > 0 ? '#fbbf24' : '#34d399';
@@ -119,7 +139,7 @@ function PredictionBand({ day, convRate }) {
 
 function DonutGauge({ avail, emb, booked }) {
   const total = avail + emb + booked;
-  if (total === 0) return <div className="text-xs text-slate-500 text-center py-4">No routine data</div>;
+  if (total === 0) return <div className="text-xs text-slate-400 text-center py-4">No routine data</div>;
   const r = 30, c = 2 * Math.PI * r;
   const aLen = (avail/total)*c, eLen = (emb/total)*c, bLen = (booked/total)*c;
   return (
@@ -130,7 +150,7 @@ function DonutGauge({ avail, emb, booked }) {
         <circle cx="40" cy="40" r={r} fill="none" stroke="#f59e0b" strokeWidth="8" strokeDasharray={`${eLen} ${c}`} strokeDashoffset={`${-aLen}`} transform="rotate(-90 40 40)"/>
         <circle cx="40" cy="40" r={r} fill="none" stroke="#ef4444" strokeWidth="8" strokeDasharray={`${bLen} ${c}`} strokeDashoffset={`${-(aLen+eLen)}`} transform="rotate(-90 40 40)"/>
         <text x="40" y="38" textAnchor="middle" style={{fill:'var(--g-text-hi)',fontSize:14,fontWeight:800}}>{total}</text>
-        <text x="40" y="49" textAnchor="middle" style={{fontSize:8, fill:'var(--g-text-mid)'}}>total</text>
+        <text x="40" y="49" textAnchor="middle" style={{fontSize:11, fill:'var(--g-text-mid)'}}>total</text>
       </svg>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/><span className="text-[11px] text-slate-400">Available</span><span className="text-xs font-bold text-emerald-400 ml-auto">{avail}</span></div>
@@ -171,16 +191,16 @@ function DonutGauge({ avail, emb, booked }) {
 function WeeklyRoutineBullet({ wk, rTarget }) {
   const offered = wk.wR || 0;
   const booked = wk.wRB || 0;
-  if (offered <= 0) return <div className="h-full flex items-center justify-center"><span className="text-[10px] text-slate-600">—</span></div>;
+  if (offered <= 0) return <div className="h-full flex items-center justify-center"><span className="text-[11px] text-slate-400">—</span></div>;
   const fillPct = offered > 0 ? Math.round((booked / offered) * 100) : 0;
   if (rTarget <= 0) {
     return (
       <div className="h-full flex flex-col justify-center px-2" title={`Routine — ${offered} slots offered, ${booked} booked (${fillPct}% fill)`}>
         <div className="flex items-baseline gap-1.5">
           <span className="text-base font-bold text-emerald-400 leading-none font-mono-data">{offered}</span>
-          <span className="text-[9px] text-slate-500">offered</span>
+          <span className="text-[11px] text-slate-400">offered</span>
         </div>
-        <div className="text-[9px] text-slate-500 mt-1">{booked} booked · {fillPct}% fill</div>
+        <div className="text-[11px] text-slate-400 mt-1">{booked} booked · {fillPct}% fill</div>
       </div>
     );
   }
@@ -195,8 +215,8 @@ function WeeklyRoutineBullet({ wk, rTarget }) {
   return (
     <div className="h-full flex flex-col justify-center px-2.5" title={`Routine — ${offered} offered vs ${rTarget} target · ${booked} booked (${fillPct}% fill)`}>
       <div className="flex items-baseline gap-1.5 mb-2">
-        <span className="text-base font-bold leading-none font-mono-data" style={{color: band.bg}}>{offered}</span>
-        <span className="text-[9px] text-slate-500">/ {rTarget} offered</span>
+        <span className="text-base font-bold leading-none font-mono-data" style={{color: band.fg || band.bg}}>{offered}</span>
+        <span className="text-[11px] text-slate-400">/ {rTarget} offered</span>
       </div>
       <div className="relative" style={{height: 10}}>
         {/* Track */}
@@ -210,9 +230,9 @@ function WeeklyRoutineBullet({ wk, rTarget }) {
         {/* Target tick */}
         <div className="absolute" style={{left: `${targetPct}%`, top: -2, bottom: -2, width: 2, background: '#a78bfa', transform: 'translateX(-1px)', borderRadius: 1}}/>
       </div>
-      <div className="text-[9px] mt-1.5 flex items-center gap-2">
-        <span style={{color: band.bg, opacity: 0.85}}>{delta >= 0 ? '+' : ''}{delta} vs target</span>
-        <span className="text-slate-600 ml-auto">{booked} booked · {fillPct}%</span>
+      <div className="text-[11px] mt-1.5 flex items-center gap-2">
+        <span style={{color: band.fg || band.bg, opacity: 0.9}}>{delta >= 0 ? '+' : ''}{delta} vs target</span>
+        <span className="text-slate-400 ml-auto">{booked} booked · {fillPct}%</span>
       </div>
     </div>
   );
@@ -564,12 +584,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           <div className="px-5 py-4 flex items-center gap-2 border-b border-white/10">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             <span className="text-base font-semibold text-white font-heading">Capacity planning</span>
-            <span className="text-xs text-slate-500 ml-2">6-week forward view</span>
+            <span className="text-xs text-slate-400 ml-2">6-week forward view</span>
             <div className="ml-auto flex items-center gap-2 relative">
               <div className="flex rounded-md overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.12)'}}>
                 {[['month','6 weeks'],['week','Week detail']].map(([v,label]) => (
                   <button key={v} onClick={() => setCapView(v)}
-                    className="px-2 py-1 text-[10px] font-semibold"
+                    className="px-2 py-1 text-[11px] font-semibold"
                     style={{background: capView===v ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', color: capView===v ? '#a5b4fc' : '#94a3b8', border:'none', cursor:'pointer'}}>
                     {label}
                   </button>
@@ -578,7 +598,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               {sites.length > 0 && (
                 <button onClick={() => setShowStaffing(v => !v)}
                   title="Show or hide per-site clinician staffing in each day"
-                  className="px-2 py-1 rounded-md text-[10px] font-semibold transition-colors"
+                  className="px-2 py-1 rounded-md text-[11px] font-semibold transition-colors"
                   style={{
                     background: showStaffing ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)',
                     border: `1px solid ${showStaffing ? '#6366f180' : 'rgba(255,255,255,0.12)'}`,
@@ -586,7 +606,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   }}>
                   Site staffing
                   {staffingWarnDays > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold"
+                    <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[11px] font-bold"
                       style={{background:'#f59e0b30', border:'1px solid #f59e0b60', color:'#fbbf24'}}
                       title={`${staffingWarnDays} day${staffingWarnDays === 1 ? '' : 's'} in the next 6 weeks below a staffing minimum`}>
                       {staffingWarnDays}
@@ -597,7 +617,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               {showStaffing && canEdit && (
                 <button onClick={() => setStaffingPanelOpen((v) => !v)}
                   title="Set the minimum clinician count per site"
-                  className="px-2 py-1 rounded-md text-[10px] font-semibold"
+                  className="px-2 py-1 rounded-md text-[11px] font-semibold"
                   style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', color:'#94a3b8'}}>
                   Minimums
                 </button>
@@ -660,11 +680,11 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 </div>
               )}
               <div className="flex items-center gap-1">
-                <span className="text-[10px] text-slate-500">Urgent</span>
+                <span className="text-[11px] text-slate-400">Urgent</span>
                 <SlotFilter overrides={urgOv} setOverrides={(v) => persistFilter('urgent', v)} knownSlotTypes={knownSlotTypes} title="Urgent slot types" readOnly={!canEdit} />
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-[10px] text-slate-500">Routine</span>
+                <span className="text-[11px] text-slate-400">Routine</span>
                 <SlotFilter overrides={routOv} setOverrides={(v) => persistFilter('routine', v)} knownSlotTypes={knownSlotTypes} title="Routine slot types" readOnly={!canEdit} />
               </div>
             </div>
@@ -681,12 +701,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <div className="p-3"/>
             {['Mon','Tue','Wed','Thu','Fri'].map(d => (
               <div key={d} className="p-3 text-center border-l border-white/5">
-                <div className="text-[9px] text-red-400 font-bold uppercase tracking-wider">Urgent · AM | PM</div>
+                <div className="text-[11px] text-red-400 font-bold uppercase tracking-wider">Urgent · AM | PM</div>
                 <div className="text-xs font-semibold text-slate-300 mt-0.5">{d}</div>
               </div>
             ))}
             <div className="p-3 border-l border-purple-900/30" style={{background:'rgba(167,139,250,0.05)'}}>
-              <div className="text-[9px] text-purple-300 font-bold uppercase tracking-wider">Routine</div>
+              <div className="text-[11px] text-purple-300 font-bold uppercase tracking-wider">Routine</div>
               <div className="text-xs font-semibold text-slate-300 mt-0.5">vs weekly target</div>
             </div>
           </div>
@@ -696,7 +716,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <div key={wi} className="grid border-b border-white/5" style={{gridTemplateColumns:'62px repeat(5, 1fr) 190px'}}>
               <div className="p-3 border-r border-white/5 flex flex-col justify-center">
                 <div className="text-xs font-bold text-slate-300 font-mono-data">Wk {wi+1}</div>
-                <div className="text-[10px] text-slate-600">{wk.label}</div>
+                <div className="text-[11px] text-slate-400">{wk.label}</div>
               </div>
               {wk.days.map((d,di)=>{
                 const sel = selectedDay===d.isoKey;
@@ -710,7 +730,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 if(!d.hasData) return (
                   <div key={di} className="p-2 border-l border-white/5">
                     <div className="rounded-lg h-full flex items-center justify-center" style={{background:'var(--g-tile-2)'}}>
-                      <span className="text-[10px] text-slate-600">No data</span>
+                      <span className="text-[11px] text-slate-400">No data</span>
                     </div>
                   </div>
                 );
@@ -763,21 +783,21 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       }}>
                       <div className="flex items-center justify-between mb-2">
                         {d.isToday
-                          ? <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider font-mono-data" style={{background:'#10b981',color:'white',letterSpacing:'0.05em'}}>Today · {d.dayNum}</span>
+                          ? <span className="text-[11px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider font-mono-data" style={{background:'#10b981',color:'white',letterSpacing:'0.05em'}}>Today · {d.dayNum}</span>
                           : <span className="text-xs font-bold text-slate-300 font-mono-data">{d.dayNum}</span>}
                         <div className="flex items-center gap-1">
-                          {annotations[d.isoKey] && <span title={annotations[d.isoKey].note} className="text-[10px] leading-none cursor-help">📝</span>}
-                          {d.predicted && <span title={demandTip} className="text-[9px] font-bold px-1.5 py-0.5 rounded cursor-help font-mono-data" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
+                          {annotations[d.isoKey] && <span title={annotations[d.isoKey].note} className="text-[11px] leading-none cursor-help">📝</span>}
+                          {d.predicted && <span title={demandTip} className="text-[11px] font-bold px-1.5 py-0.5 rounded cursor-help font-mono-data" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
                         </div>
                       </div>
                       <div className="flex gap-1">
                         <div title={amTip} className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg}}>
                           <div className="text-base font-bold leading-none font-mono-data" style={{color:amV.text}}>{d.amS}</div>
-                          <div className="text-[8px] font-bold mt-0.5" style={{color:amV.text,opacity:0.8}}>AM</div>
+                          <div className="text-[11px] font-bold mt-0.5" style={{color:amV.text,opacity:0.8}}>AM</div>
                         </div>
                         <div title={pmTip} className="flex-1 text-center rounded-md py-1.5" style={{background:pmV.bg}}>
                           <div className="text-base font-bold leading-none font-mono-data" style={{color:pmV.text}}>{d.pmS}</div>
-                          <div className="text-[8px] font-bold mt-0.5" style={{color:pmV.text,opacity:0.8}}>PM</div>
+                          <div className="text-[11px] font-bold mt-0.5" style={{color:pmV.text,opacity:0.8}}>PM</div>
                         </div>
                       </div>
                     {showStaffing && (() => {
@@ -800,9 +820,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                                 <div onMouseEnter={(ev) => tipOn(ev, tot)} onMouseLeave={() => setStaffTip(null)}
                                   className="flex items-center px-1.5 py-0.5 rounded-md"
                                   style={{background: C.bg, border: `1px solid ${C.bd}`, borderLeft: '3px solid #818cf8'}}>
-                                  <span className="text-[9px] font-bold uppercase" style={{color: C.fg, opacity: 0.85}}>All</span>
+                                  <span className="text-[11px] font-bold uppercase" style={{color: C.fg, opacity: 0.85}}>All</span>
                                   <span className="ml-auto text-xs font-bold font-mono-data" style={{color: C.fg}}>
-                                    {tot.counted.length}{short > 0 && <span className="text-[9px]"> ({'\u2212'}{short})</span>}
+                                    {tot.counted.length}{short > 0 && <span className="text-[11px]"> ({'\u2212'}{short})</span>}
                                   </span>
                                 </div>
                               );
@@ -819,9 +839,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                                     className="flex-1 text-center rounded-md py-1"
                                     style={{background: C.bg, border: `1px solid ${C.bd}`, borderLeft: `3px solid ${e.site.colour || '#64748b'}`}}>
                                     <div className="text-xs font-bold leading-none font-mono-data" style={{color: C.fg}}>
-                                      {e.counted.length}{short > 0 && <span className="text-[9px]"> {'\u2212'}{short}</span>}
+                                      {e.counted.length}{short > 0 && <span className="text-[11px]"> {'\u2212'}{short}</span>}
                                     </div>
-                                    <div className="text-[8px] font-mono-data mt-0.5" style={{color: C.fg, opacity: 0.75}}>{split || '\u00a0'}</div>
+                                    <div className="text-[11px] font-mono-data mt-0.5" style={{color: C.fg, opacity: 0.75}}>{split || '\u00a0'}</div>
                                   </div>
                                 );
                               })}
@@ -841,18 +861,18 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           ))}
 
           {/* Footer: key + target edit */}
-          <div className="px-5 py-3 flex items-center gap-5 flex-wrap text-[10px] text-slate-500">
+          <div className="px-5 py-3 flex items-center gap-5 flex-wrap text-[11px] text-slate-400">
             <span className="font-semibold text-slate-400">Key:</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#3b82f6'}}/>Over</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#10b981'}}/>On target</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#f59e0b'}}/>Tight</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#ef4444'}}/>Short</span>
-            <span className="text-slate-700">|</span>
+            <span className="text-slate-400">|</span>
             <span className="text-slate-400">Demand pill colour = vs typical for this weekday</span>
-            <span className="text-slate-700">|</span>
+            <span className="text-slate-400">|</span>
             {rTarget>0
               ? <span className="text-slate-400">Routine target: <strong className="text-slate-300">{rTarget}</strong>/wk {canEdit && <button onClick={()=>{const v=prompt('Weekly routine target:',rTarget);if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer ml-1" style={{background:'none',border:'none',fontSize:'inherit'}}>edit</button>}</span>
-              : canEdit ? <button onClick={()=>{const v=prompt('Set weekly routine slot target:','200');if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer" style={{background:'none',border:'none',fontSize:'inherit'}}>Set routine target</button> : <span className="text-slate-500 text-xs">Routine target not set</span>}
+              : canEdit ? <button onClick={()=>{const v=prompt('Set weekly routine slot target:','200');if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer" style={{background:'none',border:'none',fontSize:'inherit'}}>Set routine target</button> : <span className="text-slate-400 text-xs">Routine target not set</span>}
           </div>
           </>)}
           {capView === 'week' && (
@@ -882,7 +902,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold" style={{color: isActive ? '#fca5a5' : 'var(--g-text-hi)'}}>Urgent below target</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">{shortDays.length} day{shortDays.length===1?'':'s'} flagged</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">{shortDays.length} day{shortDays.length===1?'':'s'} flagged</div>
                   </div>
                   <span className="text-base font-bold text-red-400 font-mono-data">{shortDays.length}</span>
                 </button>
@@ -900,7 +920,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold" style={{color: isActive ? '#fcd34d' : 'var(--g-text-hi)'}}>Highest demand days</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Top {Math.min(topDemand.length,5)} predicted-busiest</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">Top {Math.min(topDemand.length,5)} predicted-busiest</div>
                   </div>
                   <span className="text-base font-bold text-amber-400 font-mono-data">{topDemand.length}</span>
                 </button>
@@ -925,7 +945,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold" style={{color: isActive ? '#c4b5fd' : 'var(--g-text-hi)'}}>Routine by week</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">{disabled ? 'No target set' : `vs ${rTarget}/wk target`}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">{disabled ? 'No target set' : `vs ${rTarget}/wk target`}</div>
                   </div>
                   <span className="text-base font-bold text-purple-300 font-mono-data">{disabled ? '—' : weeks.filter(w=>w.wR>0).length}</span>
                 </button>
@@ -943,7 +963,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold" style={{color: isActive ? 'var(--g-text-hi)' : 'var(--g-text-hi)'}}>Week-on-week</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Urgent + routine deltas</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">Urgent + routine deltas</div>
                   </div>
                   <span className="text-base font-bold text-slate-300 font-mono-data">{weeks.filter(w=>w.wU>0).length}</span>
                 </button>
@@ -962,7 +982,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold" style={{color: isActive ? '#a5b4fc' : 'var(--g-text-hi)'}}>Patterns</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">{patterns.length===0?'Nothing flagged':highCount>0?`${highCount} high · ${patterns.length-highCount} other`:`${patterns.length} insight${patterns.length===1?'':'s'}`}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">{patterns.length===0?'Nothing flagged':highCount>0?`${highCount} high · ${patterns.length-highCount} other`:`${patterns.length} insight${patterns.length===1?'':'s'}`}</div>
                   </div>
                   <span className="text-base font-bold font-mono-data" style={{color:highCount>0?'#fca5a5':'#a5b4fc'}}>{patterns.length}</span>
                 </button>
@@ -983,7 +1003,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           <div className="h-full rounded-full" style={{width:`${Math.min((u/t)*100,100)}%`,background:u<t*0.8?'#ef4444':'#f59e0b'}}/>
                         </div>
                         <span className="text-xs font-bold text-red-400 flex-shrink-0">{u}</span>
-                        <span className="text-[10px] text-slate-400 flex-shrink-0">/ {t}</span>
+                        <span className="text-[11px] text-slate-400 flex-shrink-0">/ {t}</span>
                       </button>
                     );})}</div>
               )}
@@ -998,11 +1018,11 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       return (
                         <button key={i} onClick={()=>pickDay(d.isoKey)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
                           <span className="text-xs font-semibold text-slate-300 w-20 flex-shrink-0">{d.dayShort} {d.dayNum} {d.monthStr}</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>
-                          <span className="text-[10px] text-slate-500 flex-1">need {d.needed}</span>
+                          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>
+                          <span className="text-[11px] text-slate-400 flex-1">need {d.needed}</span>
                           <div className="text-right flex-shrink-0">
                             <div className="text-xs font-bold" style={{color:col}}>{verdict}</div>
-                            <div className="text-[10px] text-slate-400">{u} / {d.needed}</div>
+                            <div className="text-[11px] text-slate-400">{u} / {d.needed}</div>
                           </div>
                         </button>
                       );
@@ -1019,8 +1039,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'var(--g-border-2)'}}>
                             <div className="h-full rounded-full" style={{width:`${Math.min((w.wR/rTarget)*100,100)}%`,background:vb.bg}}/>
                           </div>
-                          <span className="text-xs font-bold flex-shrink-0" style={{color:vb.bg}}>{w.wR}</span>
-                          <span className="text-[10px] text-slate-400 flex-shrink-0">/ {rTarget}</span>
+                          <span className="text-xs font-bold flex-shrink-0" style={{color:vb.fg || vb.bg}}>{w.wR}</span>
+                          <span className="text-[11px] text-slate-400 flex-shrink-0">/ {rTarget}</span>
                         </div>
                       );})}</div>
               )}
@@ -1030,8 +1050,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   : <div className="grid grid-cols-2 gap-2">{weeks.filter(w=>w.wU>0).map((w,i,arr)=>{const delta=i>0?w.wU-arr[i-1].wU:0;return(
                       <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
                         <span className="text-xs font-semibold text-slate-300 w-12 flex-shrink-0">Wk {weeks.indexOf(w)+1}</span>
-                        <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[10px] text-slate-400">urg</span></div>
-                        <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'#a78bfa'}}>{w.wR}</span><span className="text-[10px] text-slate-400">rout</span></div>
+                        <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[11px] text-slate-400">urg</span></div>
+                        <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'#a78bfa'}}>{w.wR}</span><span className="text-[11px] text-slate-400">rout</span></div>
                         {delta!==0 && <span className={`text-xs font-bold ml-auto ${delta>0?'text-emerald-500':'text-red-500'}`}>{delta>0?'↑':'↓'}{Math.abs(delta)} urg</span>}
                       </div>
                     );})}</div>
@@ -1040,7 +1060,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 patterns.length===0
                   ? <div className="text-center py-8">
                       <div className="text-sm text-slate-300 mb-2">Nothing flagged.</div>
-                      <div className="text-[11px] text-slate-500 max-w-md mx-auto">No recurring capacity issues detected in the current data. Patterns become more reliable once you have several weeks of CSV uploads — the detector looks across all available data to spot weekday-level imbalances, single-clinician concentration risk, routine target streaks, and a handful of other things.</div>
+                      <div className="text-[11px] text-slate-400 max-w-md mx-auto">No recurring capacity issues detected in the current data. Patterns become more reliable once you have several weeks of CSV uploads — the detector looks across all available data to spot weekday-level imbalances, single-clinician concentration risk, routine target streaks, and a handful of other things.</div>
                     </div>
                   : <div className="grid grid-cols-1 gap-3">
                       {patterns.map((p, i) => {
@@ -1057,12 +1077,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{background: sevColour, color: 'white'}}>{sevLabel}</span>
+                                  <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{background: sevColour, color: 'white'}}>{sevLabel}</span>
                                 </div>
                                 <div className="text-sm font-semibold text-slate-100 leading-snug">{p.title}</div>
                               </div>
                               {p.affectedDates.length > 0 && (
-                                <button onClick={()=>pickDay(p.affectedDates[0])} className="text-[10px] px-2 py-1 rounded text-slate-400 hover:text-white hover:bg-white/5 flex-shrink-0" style={{background:'none',border:'1px solid var(--g-border-2)',cursor:'pointer'}}>
+                                <button onClick={()=>pickDay(p.affectedDates[0])} className="text-[11px] px-2 py-1 rounded text-slate-400 hover:text-white hover:bg-white/5 flex-shrink-0" style={{background:'none',border:'1px solid var(--g-border-2)',cursor:'pointer'}}>
                                   See day →
                                 </button>
                               )}
@@ -1072,7 +1092,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                               <p className="text-[12px] text-slate-300 leading-relaxed">{p.detail}</p>
                               {p.evidence && p.evidence.length > 0 && (
                                 <div>
-                                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Evidence</div>
+                                  <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Evidence</div>
                                   <div className="space-y-1">
                                     {p.evidence.map((ev, j) => (
                                       <div key={j} className="flex items-center gap-3 px-2.5 py-1.5 rounded text-[11px]" style={{background:'var(--g-tile-2)'}}>
@@ -1085,7 +1105,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                               )}
                               {p.suggestion && (
                                 <div className="rounded p-2.5" style={{background:'var(--g-tile-2)', borderLeft: `2px solid ${p.iconColor}`}}>
-                                  <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color: p.iconColor}}>Suggestion</div>
+                                  <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{color: p.iconColor}}>Suggestion</div>
                                   <p className="text-[12px] text-slate-300 leading-relaxed">{p.suggestion}</p>
                                 </div>
                               )}
@@ -1120,9 +1140,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             {/* Annotation — sticky note for this day */}
             <div className="rounded-lg p-3" style={{background:'rgba(251,191,36,0.06)',border:'1px solid rgba(251,191,36,0.18)'}}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300">📝 Note</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300">📝 Note</span>
                 {!annEditing && canEdit && (
-                  <button onClick={()=>{setAnnDraft(annotations[detailDay.isoKey]?.note||'');setAnnEditing(true);}} className="ml-auto text-[10px] text-amber-300/70 hover:text-amber-300" style={{background:'none',border:'none',cursor:'pointer'}}>
+                  <button onClick={()=>{setAnnDraft(annotations[detailDay.isoKey]?.note||'');setAnnEditing(true);}} className="ml-auto text-[11px] text-amber-300/70 hover:text-amber-300" style={{background:'none',border:'none',cursor:'pointer'}}>
                     {annotations[detailDay.isoKey] ? 'Edit' : 'Add note'}
                   </button>
                 )}
@@ -1150,15 +1170,15 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               ) : annotations[detailDay.isoKey] ? (
                 <p className="text-[12px] text-slate-200 leading-relaxed whitespace-pre-wrap">{annotations[detailDay.isoKey].note}</p>
               ) : (
-                <p className="text-[11px] text-slate-500 italic">{canEdit ? 'No note for this day. Click "Add note" to jot down context (locum cover, training, expected surge, etc).' : 'No note for this day.'}</p>
+                <p className="text-[11px] text-slate-400 italic">{canEdit ? 'No note for this day. Click "Add note" to jot down context (locum cover, training, expected surge, etc).' : 'No note for this day.'}</p>
               )}
             </div>
             {/* AM urgent section */}
             <div className="rounded-lg p-3" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">AM urgent</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-red-400">AM urgent</span>
                 <span className="text-base font-bold text-red-400 ml-auto">{detailDay.amS}</span>
-                {detailDay.amT>0 && <span className="text-[10px] text-slate-400">/ {detailDay.amT}</span>}
+                {detailDay.amT>0 && <span className="text-[11px] text-slate-400">/ {detailDay.amT}</span>}
               </div>
               {detailDay.amDuty && (
                 <div className="flex items-center gap-1.5 px-2 py-1.5 rounded mb-2" style={{background:'rgba(239,68,68,0.12)',border:'1px solid rgba(239,68,68,0.25)'}}>
@@ -1174,15 +1194,15 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
                   </div>
                 );})}
-                {detailClin.am.length===0 && <div className="text-[11px] text-slate-500 py-2 text-center">No slots</div>}
+                {detailClin.am.length===0 && <div className="text-[11px] text-slate-400 py-2 text-center">No slots</div>}
               </div>
             </div>
             {/* PM urgent section */}
             <div className="rounded-lg p-3" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">PM urgent</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400">PM urgent</span>
                 <span className="text-base font-bold text-blue-400 ml-auto">{detailDay.pmS}</span>
-                {detailDay.pmT>0 && <span className="text-[10px] text-slate-400">/ {detailDay.pmT}</span>}
+                {detailDay.pmT>0 && <span className="text-[11px] text-slate-400">/ {detailDay.pmT}</span>}
               </div>
               {detailDay.pmDuty && (
                 <div className="flex items-center gap-1.5 px-2 py-1.5 rounded mb-2" style={{background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.25)'}}>
@@ -1198,13 +1218,13 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
                   </div>
                 );})}
-                {detailClin.pm.length===0 && <div className="text-[11px] text-slate-500 py-2 text-center">No slots</div>}
+                {detailClin.pm.length===0 && <div className="text-[11px] text-slate-400 py-2 text-center">No slots</div>}
               </div>
             </div>
             {/* Routine section */}
             <div className="rounded-lg p-3" style={{background:'rgba(167,139,250,0.05)',border:'1px solid rgba(167,139,250,0.15)'}}>
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300">Routine</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-300">Routine</span>
                 <span className="text-base font-bold text-purple-300 ml-auto">{detailDay.rTotal}</span>
               </div>
               <div className="mb-3"><DonutGauge avail={detailDay.rA} emb={detailDay.rE} booked={detailDay.rB}/></div>
@@ -1216,7 +1236,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <span className="text-[11px] font-bold text-slate-300">{c.slots+c.bkd}</span>
                   </div>
                 );})}
-                {detailClin.rout.length===0 && <div className="text-[11px] text-slate-500 py-2 text-center">No slots</div>}
+                {detailClin.rout.length===0 && <div className="text-[11px] text-slate-400 py-2 text-center">No slots</div>}
               </div>
             </div>
           </div>
@@ -1230,7 +1250,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           <div className="px-4 py-2.5 flex items-center justify-between" style={{background:"var(--g-panel-2)",borderBottom:"1px solid var(--g-tile)"}}>
             <div>
               <div className="font-heading text-sm font-medium text-slate-200">Capacity planning</div>
-              <div className="text-[11px] text-slate-600">Tap any day · 6-week forward view</div>
+              <div className="text-[11px] text-slate-400">Tap any day · 6-week forward view</div>
             </div>
           </div>
 
@@ -1241,8 +1261,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             return (
               <div key={wi} style={{borderTop: wi > 0 ? '1px solid var(--g-tile)' : 'none'}}>
                 <div className="flex items-baseline justify-between px-4 py-2">
-                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{wkLabel}</div>
-                  <div className="text-[9px] text-slate-700">{wcStr}</div>
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{wkLabel}</div>
+                  <div className="text-[11px] text-slate-400">{wcStr}</div>
                 </div>
                 <div className="grid grid-cols-5 gap-1 px-3 pb-3">
                   {wk.days.map((d, di) => {
@@ -1263,18 +1283,18 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           opacity: d.isPast ? 0.5 : 1,
                           cursor: (d.hasData && !d.isBH) ? 'pointer' : 'default'
                         }}>
-                        <div className="text-[10px] font-bold text-slate-400">{d.dayShort}</div>
-                        <div className="text-[10px] text-slate-600 leading-none -mt-1">{d.dayNum}</div>
+                        <div className="text-[11px] font-bold text-slate-400">{d.dayShort}</div>
+                        <div className="text-[11px] text-slate-400 leading-none -mt-1">{d.dayNum}</div>
                         {d.isBH ? (
-                          <div className="text-[8px] font-bold text-amber-400 mt-1">BH</div>
+                          <div className="text-[11px] font-bold text-amber-400 mt-1">BH</div>
                         ) : !d.hasData ? (
-                          <div className="text-[8px] text-slate-700 mt-1">—</div>
+                          <div className="text-[11px] text-slate-400 mt-1">—</div>
                         ) : (<>
                           <div className="font-mono-data text-base font-bold leading-none" style={{color: fillCol}}>{u}</div>
                           <div className="w-full h-1 rounded-sm overflow-hidden" style={{background: 'var(--g-border)'}}>
                             <div className="h-full" style={{width: `${fillPct}%`, background: fillCol}}/>
                           </div>
-                          <div className="font-mono-data text-[10px] font-bold leading-none" style={{color: predCol}}>{d.predicted || '—'}</div>
+                          <div className="font-mono-data text-[11px] font-bold leading-none" style={{color: predCol}}>{d.predicted || '—'}</div>
                         </>)}
                       </button>
                     );
@@ -1286,7 +1306,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <div className="rounded-lg overflow-hidden" style={{background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)'}}>
                       <div className="px-3 py-2 flex items-center justify-between" style={{borderBottom: '1px solid rgba(99,102,241,0.15)'}}>
                         <div className="text-xs font-semibold text-slate-200">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</div>
-                        <button onClick={() => setSelectedDay(null)} className="text-slate-500 hover:text-white text-xs" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
+                        <button onClick={() => setSelectedDay(null)} className="text-slate-400 hover:text-white text-xs" style={{background:'none',border:'none',cursor:'pointer'}}>✕</button>
                       </div>
                       {/* Full prediction band — driver factors, confidence
                           range, and demand level all visible at the top of
@@ -1299,13 +1319,13 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           return (
                             <div className="rounded-md p-2.5" style={{background: 'var(--g-tile)'}}>
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold uppercase tracking-wider" style={{color: amCol}}>AM urgent</span>
+                                <span className="text-[11px] font-bold uppercase tracking-wider" style={{color: amCol}}>AM urgent</span>
                                 <div className="flex items-baseline gap-1">
                                   <span className="font-mono-data text-base font-bold" style={{color: amCol}}>{detailDay.amS}</span>
-                                  {detailDay.amT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.amT}</span>}
+                                  {detailDay.amT > 0 && <span className="text-[11px] text-slate-400">/ {detailDay.amT}</span>}
                                 </div>
                               </div>
-                              {detailDay.amDuty && <div className="text-[10px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.amDuty.name?.split(',')[0]}</span></div>}
+                              {detailDay.amDuty && <div className="text-[11px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.amDuty.name?.split(',')[0]}</span></div>}
                             </div>
                           );
                         })()}
@@ -1315,23 +1335,23 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           return (
                             <div className="rounded-md p-2.5" style={{background: 'var(--g-tile)'}}>
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold uppercase tracking-wider" style={{color: pmCol}}>PM urgent</span>
+                                <span className="text-[11px] font-bold uppercase tracking-wider" style={{color: pmCol}}>PM urgent</span>
                                 <div className="flex items-baseline gap-1">
                                   <span className="font-mono-data text-base font-bold" style={{color: pmCol}}>{detailDay.pmS}</span>
-                                  {detailDay.pmT > 0 && <span className="text-[10px] text-slate-500">/ {detailDay.pmT}</span>}
+                                  {detailDay.pmT > 0 && <span className="text-[11px] text-slate-400">/ {detailDay.pmT}</span>}
                                 </div>
                               </div>
-                              {detailDay.pmDuty && <div className="text-[10px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.pmDuty.name?.split(',')[0]}</span></div>}
+                              {detailDay.pmDuty && <div className="text-[11px] text-slate-400">Duty: <span className="font-semibold text-slate-300">{detailDay.pmDuty.name?.split(',')[0]}</span></div>}
                             </div>
                           );
                         })()}
                         {/* Routine total */}
                         <div className="rounded-md p-2.5" style={{background: 'var(--g-tile)'}}>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Routine</span>
+                            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Routine</span>
                             <span className="font-mono-data text-base font-bold text-emerald-400">{detailDay.rTotal}</span>
                           </div>
-                          <div className="flex items-center gap-3 text-[10px]">
+                          <div className="flex items-center gap-3 text-[11px]">
                             <span className="text-slate-400">Avail <span className="text-emerald-400 font-bold">{detailDay.rA}</span></span>
                             <span className="text-slate-400">Emb <span className="text-amber-400 font-bold">{detailDay.rE}</span></span>
                             <span className="text-slate-400">Booked <span className="text-slate-300 font-bold">{detailDay.rB}</span></span>
@@ -1347,9 +1367,9 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
 
           {/* Strip key */}
           <div className="px-4 py-3 flex items-center gap-3 flex-wrap" style={{borderTop: '1px solid var(--g-tile)'}}>
-            <span className="text-[9px] text-slate-600">Top: urgent slots</span>
-            <span className="text-[9px] text-slate-600">·</span>
-            <span className="text-[9px] text-slate-600">Bottom: predicted demand</span>
+            <span className="text-[11px] text-slate-400">Top: urgent slots</span>
+            <span className="text-[11px] text-slate-400">·</span>
+            <span className="text-[11px] text-slate-400">Bottom: predicted demand</span>
           </div>
         </div>
 
@@ -1371,7 +1391,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={active ? t.col : 'var(--g-text-mid)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={t.icon}/></svg>
                 <span className="text-xs font-semibold" style={{color: active ? t.col : 'var(--g-text-mid)'}}>{t.label}</span>
-                <span className="text-[10px] ml-auto" style={{color: active ? t.col : 'var(--g-text-faint)'}}>{t.count}</span>
+                <span className="text-[11px] ml-auto" style={{color: active ? t.col : 'var(--g-text-faint)'}}>{t.count}</span>
               </button>
             );
           })}
@@ -1394,7 +1414,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       <div className="h-full rounded-full" style={{width: `${Math.min((u/t)*100, 100)}%`, background: u < t * 0.8 ? '#ef4444' : '#f59e0b'}}/>
                     </div>
                     <span className="text-xs font-bold text-red-400">{u}</span>
-                    <span className="text-[10px] text-slate-400">/ {t}</span>
+                    <span className="text-[11px] text-slate-400">/ {t}</span>
                   </button>
                 );
               })}
@@ -1414,8 +1434,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 return (
                   <button key={i} onClick={() => setSelectedDay(d.isoKey)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left" style={{background: 'var(--g-tile)'}}>
                     <span className="text-xs font-semibold text-slate-300 w-16">{d.dayShort} {d.dayNum} {d.monthStr}</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{background: d.dc.bg, color: d.dc.text}}>{d.predicted}</span>
-                    <span className="text-[10px] text-slate-500 ml-auto">urg {u}</span>
+                    <span className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{background: d.dc.bg, color: d.dc.text}}>{d.predicted}</span>
+                    <span className="text-[11px] text-slate-400 ml-auto">urg {u}</span>
                   </button>
                 );
               })}
@@ -1437,8 +1457,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background: 'var(--g-border-2)'}}>
                       <div className="h-full rounded-full" style={{width: `${Math.min((w.wR/rTarget)*100, 100)}%`, background: vb.bg}}/>
                     </div>
-                    <span className="text-xs font-bold" style={{color: vb.bg}}>{w.wR}</span>
-                    <span className="text-[10px] text-slate-400">/ {rTarget}</span>
+                    <span className="text-xs font-bold" style={{color: vb.fg || vb.bg}}>{w.wR}</span>
+                    <span className="text-[11px] text-slate-400">/ {rTarget}</span>
                   </div>
                 );
               })}
@@ -1457,8 +1477,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 return (
                   <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: 'var(--g-tile)'}}>
                     <span className="text-xs font-semibold text-slate-300 w-12">Wk {weeks.indexOf(w)+1}</span>
-                    <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[9px] text-slate-500">urg</span></div>
-                    <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-emerald-400">{w.wR}</span><span className="text-[9px] text-slate-500">rout</span></div>
+                    <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[11px] text-slate-400">urg</span></div>
+                    <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-emerald-400">{w.wR}</span><span className="text-[11px] text-slate-400">rout</span></div>
                     {delta !== 0 && <span className={`text-xs font-bold ml-auto ${delta > 0 ? 'text-emerald-500' : 'text-red-500'}`}>{delta > 0 ? '↑' : '↓'}{Math.abs(delta)} urg</span>}
                   </div>
                 );
@@ -1490,14 +1510,14 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             )}
             {staffTip.entry.counted.length > 0 && (
               <div className="mt-2">
-                <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Counted - routine slots here</div>
+                <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-0.5">Counted - routine slots here</div>
                 {staffTip.entry.counted.map((n) => <div key={n} className="text-caption text-slate-300 leading-normal">{n}</div>)}
               </div>
             )}
             {staffTip.entry.basedButOut.length > 0 && (
               <div className="mt-2">
-                <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Based here - no routine slots today</div>
-                {staffTip.entry.basedButOut.map((n) => <div key={n} className="text-caption text-slate-500 leading-normal">{n}</div>)}
+                <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-0.5">Based here - no routine slots today</div>
+                {staffTip.entry.basedButOut.map((n) => <div key={n} className="text-caption text-slate-400 leading-normal">{n}</div>)}
               </div>
             )}
           </div>

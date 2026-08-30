@@ -268,7 +268,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
   const hasAnyOverrides = sites.some(s => ra.dailyOverrides?.[s.id]?.[`${dateStr}-${session}`]);
 
   if (sites.length === 0) return (
-    <div className="card p-12 text-center"><div className="text-2xl mb-2">🏥</div><h3 className="text-sm font-semibold text-slate-600 mb-1">Room allocation not configured</h3><p className="text-xs text-slate-400">Set up sites and rooms in Settings → Room Allocation</p></div>
+    <div className="card p-12 text-center"><div className="text-2xl mb-2">🏥</div><h3 className="text-sm font-semibold text-slate-400 mb-1">Room allocation not configured</h3><p className="text-xs text-slate-400">Set up sites and rooms in Settings → Room Allocation</p></div>
   );
 
   return (
@@ -296,11 +296,11 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
 
         <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
           <div className="flex gap-1">{sites.map(s => (
-            <button key={s.id} onClick={() => setSelectedSiteId(s.id)} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedSiteId === s.id ? 'text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`} style={selectedSiteId === s.id ? {background: s.colour || '#6366f1'} : undefined}>{s.name}</button>
+            <button key={s.id} onClick={() => setSelectedSiteId(s.id)} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedSiteId === s.id ? 'text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`} style={selectedSiteId === s.id ? {background: s.colour || '#6366f1'} : undefined}>{s.name}</button>
           ))}</div>
           <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
-            <button onClick={() => setSession('am')} className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${session === 'am' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>AM</button>
-            <button onClick={() => setSession('pm')} className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${session === 'pm' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>PM</button>
+            <button onClick={() => setSession('am')} className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${session === 'am' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>AM</button>
+            <button onClick={() => setSession('pm')} className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${session === 'pm' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>PM</button>
           </div>
         </div>
 
@@ -356,7 +356,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
 
                       if (nc) return (
                         <div key={room.id} className="absolute rounded-lg flex items-center justify-center text-center" style={{left: rx * cellSize + 2, top: ry * cellSize + 2, width: w * cellSize - 4, height: h * cellSize - 4, background:'#e2e8f0', opacity:0.7}}>
-                          <span className="text-[10px] font-semibold text-slate-500 leading-tight px-1">{room.name}</span>
+                          <span className="text-[11px] font-semibold text-slate-400 leading-tight px-1">{room.name}</span>
                         </div>
                       );
 
@@ -369,22 +369,22 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                             ${isHovered ? 'ring-2 ring-indigo-500 ring-offset-1 scale-[1.03] shadow-lg' : ''}`}
                           style={{left: visX * cellSize + 2, top: ry * cellSize + 2, width: visW * cellSize - 4, height: h * cellSize - 4, background: assigned && !beingDraggedFrom ? '#fff' : '#fafafa', border: isOv ? '2px solid #f59e0b' : assigned ? `2px solid ${siteColour}40` : '2px dashed #e2e8f0', opacity: beingDraggedFrom ? 0.25 : 1}}>
                           <div className="flex items-center gap-1 px-2 py-1" style={{background: assigned && !beingDraggedFrom ? siteColour + '15' : '#f8fafc', borderBottom:'1px solid #f1f5f9'}}>
-                            <span className="text-[10px] font-bold truncate flex-1" style={{color: assigned && !beingDraggedFrom ? siteColour : '#94a3b8'}}>{room.name}</span>
+                            <span className="text-[11px] font-bold truncate flex-1" style={{color: assigned && !beingDraggedFrom ? siteColour : '#94a3b8'}}>{room.name}</span>
                             {typeDots.map(rt => <span key={rt.id} className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background:rt.colour}} title={rt.label} />)}
                           </div>
                           <div className="px-2 py-1 flex items-center gap-2" style={{minHeight: h * cellSize - 30}}>
                             {assigned && !beingDraggedFrom ? (<>
-                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{background: siteColour}}>{assigned.initials || '?'}</div>
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{background: siteColour}}>{assigned.initials || '?'}</div>
                               <div className="flex-1 min-w-0">
                                 <div className="text-xs font-semibold text-slate-900 truncate">{assigned.name}</div>
                                 <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                                  {isOv && <span className="text-[8px] px-1 py-px rounded bg-amber-50 text-amber-600 font-medium">Override</span>}
-                                  {procSlots && <span className="text-[8px] px-1 py-px rounded bg-sky-50 text-sky-600 font-medium" title={procSlots.join(', ')}>Procedure</span>}
-                                  {assigned.isPreferred === false && <span className="text-[8px] px-1 py-px rounded bg-orange-50 text-orange-600 font-medium">Not pref</span>}
+                                  {isOv && <span className="text-[11px] px-1 py-px rounded bg-amber-50 text-amber-600 font-medium">Override</span>}
+                                  {procSlots && <span className="text-[11px] px-1 py-px rounded bg-sky-50 text-sky-600 font-medium" title={procSlots.join(', ')}>Procedure</span>}
+                                  {assigned.isPreferred === false && <span className="text-[11px] px-1 py-px rounded bg-orange-50 text-orange-600 font-medium">Not pref</span>}
                                 </div>
                               </div>
                             </>) : (
-                              <span className="text-[10px] text-slate-300 w-full text-center">{isDragging ? 'Drop here' : 'Vacant'}</span>
+                              <span className="text-[11px] text-slate-300 w-full text-center">{isDragging ? 'Drop here' : 'Vacant'}</span>
                             )}
                           </div>
                         </div>
@@ -397,7 +397,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
               {/* RIGHT — Clinician cards sorted by role */}
               {cliniciansAtSite.length > 0 && (
                 <div className="w-52 flex-shrink-0">
-                  <div className="text-xs text-slate-500 font-medium mb-2">{session.toUpperCase()} · {cliniciansAtSite.length} at {selectedSite.name}</div>
+                  <div className="text-xs text-slate-400 font-medium mb-2">{session.toUpperCase()} · {cliniciansAtSite.length} at {selectedSite.name}</div>
                   <div className="space-y-3">
                     {[{group:'gp',label:'Clinicians',col:'#3b82f6'},{group:'nursing',label:'Nursing',col:'#10b981'},{group:'allied',label:'Allied',col:'#8b5cf6'}].map(g => {
                       const members = cliniciansAtSite.map(c => {
@@ -407,7 +407,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                       if (members.length === 0) return null;
                       return (
                         <div key={g.group}>
-                          <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-1 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{background:g.col}}/>{g.label}</div>
+                          <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold mb-1 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{background:g.col}}/>{g.label}</div>
                           <div className="space-y-1">
                             {members.map(({clin, ...c}) => {
                               const hasRoom = assignedIds.has(c.id);
@@ -422,10 +422,10 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                                   <span className={`w-2 h-2 rounded-full flex-shrink-0 ${hasRoom ? 'bg-emerald-500' : 'bg-red-400'}`} />
                                   <div className="flex-1 min-w-0">
                                     <div className="font-semibold text-slate-800 truncate">{clin.name}</div>
-                                    <div className="text-[10px] text-slate-400">{clin.role}</div>
+                                    <div className="text-[11px] text-slate-400">{clin.role}</div>
                                   </div>
                                   {procSlots && (
-                                    <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold bg-sky-500 text-white flex-shrink-0 cursor-default" title={`Procedure room needed: ${procSlots.join(', ')}`}>P</span>
+                                    <span className="w-5 h-5 rounded flex items-center justify-center text-[11px] font-bold bg-sky-500 text-white flex-shrink-0 cursor-default" title={`Procedure room needed: ${procSlots.join(', ')}`}>P</span>
                                   )}
                                 </div>
                               );
@@ -454,7 +454,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
               <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-200">
                 <div className="flex items-center gap-2 mb-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><span className="text-sm font-semibold text-red-700">Unassigned ({allocation.conflicts.length})</span></div>
                 <div className="space-y-1.5">{allocation.conflicts.map((c, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white"><div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white bg-red-400">{c.initials}</div><span className="text-sm text-slate-700 flex-1">{c.name}</span><span className="text-xs text-red-500">{c.message}</span></div>
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white"><div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white bg-red-400">{c.initials}</div><span className="text-sm text-slate-400 flex-1">{c.name}</span><span className="text-xs text-red-500">{c.message}</span></div>
                 ))}</div>
               </div>
             )}
@@ -463,12 +463,12 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
               <div className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
                 <div className="text-xs font-semibold text-blue-700 mb-2">Allocation notes</div>
                 <div className="space-y-1">{allocation.flags.map((f, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs text-blue-600"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:10,fontWeight:800}}>?</span><span><strong>{f.name}:</strong> {f.message}</span></div>
+                  <div key={i} className="flex items-center gap-2 text-xs text-blue-600"><span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white flex-shrink-0" style={{fontSize:11,fontWeight:800}}>?</span><span><strong>{f.name}:</strong> {f.message}</span></div>
                 ))}</div>
               </div>
             )}
 
-            <div className="flex items-center gap-4 pt-3 border-t border-slate-100 text-[10px] text-slate-500 flex-wrap">
+            <div className="flex items-center gap-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex-wrap">
               {roomTypes.map(rt => <span key={rt.id} className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{background:rt.colour}} />{rt.label}</span>)}
               <span className="text-slate-300">|</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" />Room assigned</span>
@@ -492,14 +492,14 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
           <div className="p-4 overflow-x-auto">
             <table className="w-full text-xs">
               <thead><tr className="border-b border-slate-200 text-left">
-                <th className="py-2 px-2 font-semibold text-slate-500">CSV Name</th>
-                <th className="py-2 px-2 font-semibold text-slate-500">Matched To</th>
-                <th className="py-2 px-2 font-semibold text-slate-500">Locations</th>
-                <th className="py-2 px-2 font-semibold text-slate-500 text-center">AM</th>
-                <th className="py-2 px-2 font-semibold text-slate-500 text-center">PM</th>
-                <th className="py-2 px-2 font-semibold text-slate-500">AM Detail</th>
-                <th className="py-2 px-2 font-semibold text-slate-500">PM Detail</th>
-                <th className="py-2 px-2 font-semibold text-slate-500">Status</th>
+                <th className="py-2 px-2 font-semibold text-slate-400">CSV Name</th>
+                <th className="py-2 px-2 font-semibold text-slate-400">Matched To</th>
+                <th className="py-2 px-2 font-semibold text-slate-400">Locations</th>
+                <th className="py-2 px-2 font-semibold text-slate-400 text-center">AM</th>
+                <th className="py-2 px-2 font-semibold text-slate-400 text-center">PM</th>
+                <th className="py-2 px-2 font-semibold text-slate-400">AM Detail</th>
+                <th className="py-2 px-2 font-semibold text-slate-400">PM Detail</th>
+                <th className="py-2 px-2 font-semibold text-slate-400">Status</th>
               </tr></thead>
               <tbody>{debugInfo.map((d, i) => {
                 const inSession = session === 'am' ? d.amTotal > 0 : d.pmTotal > 0;
@@ -508,11 +508,11 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                   <tr key={i} className={`border-b border-slate-50 ${inSession && matchesSite && !d.isAdmin ? 'bg-emerald-50' : d.isAdmin ? 'bg-slate-100 opacity-50' : inSession && !matchesSite ? 'bg-amber-50/50' : ''}`}>
                     <td className="py-1.5 px-2 font-mono">{d.csvName}</td>
                     <td className="py-1.5 px-2">{d.matchedTo}</td>
-                    <td className="py-1.5 px-2 text-[10px]">{d.locations || '—'}</td>
+                    <td className="py-1.5 px-2 text-[11px]">{d.locations || '—'}</td>
                     <td className="py-1.5 px-2 text-center font-bold" style={{color: d.amTotal > 0 ? '#059669' : '#94a3b8'}}>{d.amTotal}</td>
                     <td className="py-1.5 px-2 text-center font-bold" style={{color: d.pmTotal > 0 ? '#059669' : '#94a3b8'}}>{d.pmTotal}</td>
-                    <td className="py-1.5 px-2 text-[10px] text-slate-400">{Object.entries(d.amSlots).map(([k,v]) => `${k}:${v}`).join(', ') || '—'}</td>
-                    <td className="py-1.5 px-2 text-[10px] text-slate-400">{Object.entries(d.pmSlots).map(([k,v]) => `${k}:${v}`).join(', ') || '—'}</td>
+                    <td className="py-1.5 px-2 text-[11px] text-slate-400">{Object.entries(d.amSlots).map(([k,v]) => `${k}:${v}`).join(', ') || '—'}</td>
+                    <td className="py-1.5 px-2 text-[11px] text-slate-400">{Object.entries(d.pmSlots).map(([k,v]) => `${k}:${v}`).join(', ') || '—'}</td>
                     <td className="py-1.5 px-2">
                       {d.isAdmin ? <span className="text-slate-400">Admin</span>
                       : !inSession ? <span className="text-slate-400">No {session.toUpperCase()} slots</span>
@@ -548,12 +548,12 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
               {recurringBookings.length === 0 && adHocBookings.length === 0 && <p className="text-sm text-slate-400 text-center py-3">No bookings configured</p>}
               {recurringBookings.map(b => { const site = sites.find(s => s.id === b.siteId); return <div key={b.id} className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                 {site && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: site.colour || '#94a3b8'}} />}
-                <span className="text-sm font-medium text-slate-700 flex-1">{b.name}</span><span className="text-xs text-slate-400">{site?.name}</span><span className="text-xs text-slate-500">{describeRecurrence(b.recurrence)}</span><span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-600">{b.session.toUpperCase()}</span>
+                <span className="text-sm font-medium text-slate-400 flex-1">{b.name}</span><span className="text-xs text-slate-400">{site?.name}</span><span className="text-xs text-slate-400">{describeRecurrence(b.recurrence)}</span><span className="text-[11px] px-2 py-0.5 rounded bg-slate-200 text-slate-400">{b.session.toUpperCase()}</span>
                 <button onClick={() => setEditBooking({ ...b, type: 'recurring' })} className="text-xs text-indigo-500 hover:text-indigo-700">Edit</button><button onClick={() => deleteBooking(b.id, 'recurring')} className="text-xs text-red-400 hover:text-red-600">×</button>
               </div>; })}
               {adHocBookings.map(b => { const site = sites.find(s => s.id === b.siteId); return <div key={b.id} className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
                 {site && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: site.colour || '#94a3b8'}} />}
-                <span className="text-sm font-medium text-slate-700 flex-1">{b.name}</span><span className="text-xs text-slate-400">{site?.name}</span><span className="text-xs text-amber-600">{b.date}</span><span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-600">{b.session.toUpperCase()}</span>
+                <span className="text-sm font-medium text-slate-400 flex-1">{b.name}</span><span className="text-xs text-slate-400">{site?.name}</span><span className="text-xs text-amber-600">{b.date}</span><span className="text-[11px] px-2 py-0.5 rounded bg-slate-200 text-slate-400">{b.session.toUpperCase()}</span>
                 <button onClick={() => setEditBooking({ ...b, type: 'adhoc' })} className="text-xs text-indigo-500 hover:text-indigo-700">Edit</button><button onClick={() => deleteBooking(b.id, 'adhoc')} className="text-xs text-red-400 hover:text-red-600">×</button>
               </div>; })}
             </div>
@@ -578,21 +578,21 @@ function BookingEditModal({ booking, sites, roomTypes, onSave, onCancel }) {
     <div className="bg-white rounded-xl shadow-2xl p-5 w-[420px]" onClick={e => e.stopPropagation()}>
       <h3 className="text-sm font-semibold text-slate-900 mb-4">{b.type === 'recurring' ? 'Recurring booking' : 'Ad hoc booking'}</h3>
       <div className="space-y-4">
-        <div><label className="text-xs text-slate-500 block mb-1">Name</label><input type="text" value={b.name} onChange={e => update('name', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g. Podiatry" autoFocus /></div>
+        <div><label className="text-xs text-slate-400 block mb-1">Name</label><input type="text" value={b.name} onChange={e => update('name', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g. Podiatry" autoFocus /></div>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="text-xs text-slate-500 block mb-1">Site</label><select value={b.siteId || ''} onChange={e => { update('siteId', e.target.value); update('preferredRoom', null); }} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="">Select site</option>{sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-          <div><label className="text-xs text-slate-500 block mb-1">Session</label><select value={b.session} onChange={e => update('session', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="am">AM</option><option value="pm">PM</option></select></div>
+          <div><label className="text-xs text-slate-400 block mb-1">Site</label><select value={b.siteId || ''} onChange={e => { update('siteId', e.target.value); update('preferredRoom', null); }} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="">Select site</option>{sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+          <div><label className="text-xs text-slate-400 block mb-1">Session</label><select value={b.session} onChange={e => update('session', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="am">AM</option><option value="pm">PM</option></select></div>
         </div>
-        {b.type === 'adhoc' && <div><label className="text-xs text-slate-500 block mb-1">Date</label><input type="date" value={b.date || ''} onChange={e => update('date', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>}
+        {b.type === 'adhoc' && <div><label className="text-xs text-slate-400 block mb-1">Date</label><input type="date" value={b.date || ''} onChange={e => update('date', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>}
         {b.type === 'recurring' && <div className="space-y-3">
-          <div><label className="text-xs text-slate-500 block mb-1">Frequency</label><select value={b.recurrence?.frequency || 'weekly'} onChange={e => updateRec('frequency', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{Object.entries(RECURRENCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
-          {['weekly','biweekly','monthly_day'].includes(b.recurrence?.frequency) && <div><label className="text-xs text-slate-500 block mb-1">Day</label><select value={b.recurrence?.day ?? 1} onChange={e => updateRec('day', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{[1,2,3,4,5].map(d => <option key={d} value={d}>{DAY_LABELS[d]}</option>)}</select></div>}
-          {b.recurrence?.frequency === 'monthly_day' && <div><label className="text-xs text-slate-500 block mb-1">Which week</label><select value={b.recurrence?.nth ?? 1} onChange={e => updateRec('nth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{[1,2,3,4].map(n => <option key={n} value={n}>{['','1st','2nd','3rd','4th'][n]}</option>)}</select></div>}
-          {b.recurrence?.frequency === 'monthly_date' && <div><label className="text-xs text-slate-500 block mb-1">Date of month</label><input type="number" min={1} max={31} value={b.recurrence?.dateOfMonth ?? 1} onChange={e => updateRec('dateOfMonth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>}
-          <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-slate-500 block mb-1">Start date</label><input type="date" value={b.recurrence?.startDate || ''} onChange={e => updateRec('startDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div><div><label className="text-xs text-slate-500 block mb-1">End date</label><input type="date" value={b.recurrence?.endDate || ''} onChange={e => updateRec('endDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div></div>
+          <div><label className="text-xs text-slate-400 block mb-1">Frequency</label><select value={b.recurrence?.frequency || 'weekly'} onChange={e => updateRec('frequency', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{Object.entries(RECURRENCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+          {['weekly','biweekly','monthly_day'].includes(b.recurrence?.frequency) && <div><label className="text-xs text-slate-400 block mb-1">Day</label><select value={b.recurrence?.day ?? 1} onChange={e => updateRec('day', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{[1,2,3,4,5].map(d => <option key={d} value={d}>{DAY_LABELS[d]}</option>)}</select></div>}
+          {b.recurrence?.frequency === 'monthly_day' && <div><label className="text-xs text-slate-400 block mb-1">Which week</label><select value={b.recurrence?.nth ?? 1} onChange={e => updateRec('nth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2">{[1,2,3,4].map(n => <option key={n} value={n}>{['','1st','2nd','3rd','4th'][n]}</option>)}</select></div>}
+          {b.recurrence?.frequency === 'monthly_date' && <div><label className="text-xs text-slate-400 block mb-1">Date of month</label><input type="number" min={1} max={31} value={b.recurrence?.dateOfMonth ?? 1} onChange={e => updateRec('dateOfMonth', parseInt(e.target.value))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div>}
+          <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-slate-400 block mb-1">Start date</label><input type="date" value={b.recurrence?.startDate || ''} onChange={e => updateRec('startDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div><div><label className="text-xs text-slate-400 block mb-1">End date</label><input type="date" value={b.recurrence?.endDate || ''} onChange={e => updateRec('endDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div></div>
         </div>}
-        <div><label className="text-xs text-slate-500 block mb-1">Preferred room</label><select value={b.preferredRoom || ''} onChange={e => update('preferredRoom', e.target.value || null)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="">Any suitable room</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
-        <div><label className="text-xs text-slate-500 block mb-2">Room type (fallback)</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${(b.roomTypes || []).includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-500'}`} style={(b.roomTypes || []).includes(rt.id) ? {background:rt.colour} : undefined}>{rt.label}</button>)}</div></div>
+        <div><label className="text-xs text-slate-400 block mb-1">Preferred room</label><select value={b.preferredRoom || ''} onChange={e => update('preferredRoom', e.target.value || null)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="">Any suitable room</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
+        <div><label className="text-xs text-slate-400 block mb-2">Room type (fallback)</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${(b.roomTypes || []).includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-400'}`} style={(b.roomTypes || []).includes(rt.id) ? {background:rt.colour} : undefined}>{rt.label}</button>)}</div></div>
       </div>
       <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100"><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button><button onClick={() => b.name.trim() && b.siteId && onSave(b)} disabled={!b.name.trim() || !b.siteId} className="btn-primary text-sm">Save</button></div>
     </div>

@@ -94,7 +94,7 @@ export default async function RetentionAdminPage() {
                   <span className="text-slate-400">{lastRun.description}</span>
                 </>
               ) : (
-                <span className="text-slate-500">No runs recorded yet</span>
+                <span className="text-slate-400">No runs recorded yet</span>
               )}
             </div>
           </div>
@@ -129,7 +129,7 @@ export default async function RetentionAdminPage() {
               ))}
             </tbody>
           </table>
-          <div className="text-meta text-slate-500 mt-3.5 leading-body">
+          <div className="text-meta text-slate-400 mt-3.5 leading-body">
             CSV operational data (huddle_csv_data) is pruned in-band by mergeHuddleData on every
             upload — 4 months rolling window — and isn&apos;t covered by this cron.
             Rate-limit counters are TTL&apos;d by Upstash directly (minutes).

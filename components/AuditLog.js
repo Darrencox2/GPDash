@@ -50,7 +50,7 @@ export default function AuditLog({ data, saveData }) {
       <div className="rounded-xl p-8 text-center" style={{background:'rgba(15,23,42,0.5)',border:'1px solid rgba(255,255,255,0.06)'}}>
         <div className="text-2xl mb-2">📋</div>
         <h3 className="text-sm font-semibold text-slate-300 mb-1">No audit events yet</h3>
-        <p className="text-xs text-slate-500">Events will appear here as you upload CSVs, generate allocations, and change settings.</p>
+        <p className="text-xs text-slate-400">Events will appear here as you upload CSVs, generate allocations, and change settings.</p>
       </div>
     );
   }
@@ -60,7 +60,7 @@ export default function AuditLog({ data, saveData }) {
       <div className="px-4 py-3 flex items-center justify-between" style={{background:'rgba(15,23,42,0.85)',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
         <div>
           <div className="font-heading text-base font-medium text-slate-200">Audit log</div>
-          <div className="text-[11px] text-slate-600">{log.length} event{log.length !== 1 ? 's' : ''} · last {Math.min(log.length, 500)} kept</div>
+          <div className="text-[11px] text-slate-400">{log.length} event{log.length !== 1 ? 's' : ''} · last {Math.min(log.length, 500)} kept</div>
         </div>
         <button onClick={handleClear} className="text-[11px] text-red-400 hover:text-red-300 transition-colors">Clear log</button>
       </div>
@@ -69,7 +69,7 @@ export default function AuditLog({ data, saveData }) {
       <div className="px-4 py-2 flex gap-1.5 flex-wrap" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
         <button onClick={() => setFilterType('all')} className="text-[11px] px-2.5 py-1 rounded-full transition-colors" style={{
           background: filterType === 'all' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
-          color: filterType === 'all' ? '#e2e8f0' : '#64748b',
+          color: filterType === 'all' ? '#e2e8f0' : 'var(--meta)',
         }}>All ({log.length})</button>
         {Object.entries(types).map(([type, count]) => {
           const meta = TYPE_META[type] || TYPE_META.system;
@@ -77,7 +77,7 @@ export default function AuditLog({ data, saveData }) {
           return (
             <button key={type} onClick={() => setFilterType(type)} className="text-[11px] px-2.5 py-1 rounded-full transition-colors" style={{
               background: isActive ? meta.bg : 'rgba(255,255,255,0.04)',
-              color: isActive ? meta.colour : '#64748b',
+              color: isActive ? meta.colour : 'var(--meta)',
             }}>{meta.label} ({count})</button>
           );
         })}
@@ -94,7 +94,7 @@ export default function AuditLog({ data, saveData }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-slate-300 leading-snug">{entry.description}</div>
-                <div className="text-[10px] text-slate-600 mt-0.5">{formatRelativeTime(entry.timestamp)} · {new Date(entry.timestamp).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{formatRelativeTime(entry.timestamp)} · {new Date(entry.timestamp).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
               </div>
             </div>
           );

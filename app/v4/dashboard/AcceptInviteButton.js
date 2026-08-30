@@ -49,7 +49,7 @@ export default function AcceptInviteButton({ inviteId }) {
       >
         {loading ? 'Accepting...' : 'Accept'}
       </button>
-      {error && <span style={{ fontSize: 10, color: '#fca5a5' }}>{error}</span>}
+      {error && <span style={{ fontSize:11, color: '#fca5a5' }}>{error}</span>}
     </div>
   );
 }

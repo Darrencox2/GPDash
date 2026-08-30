@@ -258,7 +258,7 @@ function SortableTh({ col, label, sortKey, sortDir, onClick, align }) {
       }}
     >
       {label}
-      <span style={{ marginLeft: 6, fontSize: 10, color: active ? '#22d3ee' : '#64748b' }}>
+      <span style={{ marginLeft: 6, fontSize:11, color: active ? '#22d3ee' : 'var(--meta)' }}>
         {active ? (sortDir === 'asc' ? '▲' : '▼') : '◇'}
       </span>
     </th>

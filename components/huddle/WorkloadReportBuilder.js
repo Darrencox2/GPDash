@@ -82,7 +82,7 @@ function MultiSelect({ label, options, selected, onChange }) {
     <div>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between text-xs rounded-md px-2 py-1.5"
         style={{ background: 'var(--g-field)', border: `1px solid ${sel.length ? 'rgba(99,102,241,0.5)' : 'var(--g-line)'}`, color: 'var(--g-text-hi)' }}>
-        <span>{label}{sel.length ? ` · ${sel.length}` : ''}</span><span className="text-slate-500">{open ? '▲' : '▼'}</span>
+        <span>{label}{sel.length ? ` · ${sel.length}` : ''}</span><span className="text-slate-400">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div className="mt-1 rounded-md p-2 space-y-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)' }}>
@@ -98,7 +98,7 @@ function MultiSelect({ label, options, selected, onChange }) {
                 <span className="text-xs text-slate-300 truncate">{o.label}</span>
               </label>
             ))}
-            {filtered.length === 0 && <div className="text-xs text-slate-600 px-1 py-1">No matches</div>}
+            {filtered.length === 0 && <div className="text-xs text-slate-400 px-1 py-1">No matches</div>}
           </div>
         </div>
       )}
@@ -111,7 +111,7 @@ function StepSection({ n, title, children, right }) {
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center text-[10px] font-bold rounded-full" style={{ width: 17, height: 17, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{n}</span>
+          <span className="flex items-center justify-center text-[11px] font-bold rounded-full" style={{ width: 17, height: 17, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{n}</span>
           <span className="text-sm font-semibold text-slate-200">{title}</span>
         </div>
         {right}
@@ -126,8 +126,8 @@ function Collapsible({ title, badge, defaultOpen = false, children }) {
   return (
     <div>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 text-sm font-semibold text-slate-300" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-        <span className="text-slate-500">{open ? '▾' : '▸'}</span><span>{title}</span>
-        {badge ? <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{badge}</span> : null}
+        <span className="text-slate-400">{open ? '▾' : '▸'}</span><span>{title}</span>
+        {badge ? <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{badge}</span> : null}
       </button>
       {open && <div className="mt-2 pl-[18px] space-y-2.5">{children}</div>}
     </div>
@@ -392,7 +392,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             <div className="flex items-center gap-2 mb-3">
               <span className="rounded-full" style={{ width: 4, height: 15, background: gold.bar }} />
               <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: gold.head }}>★ Favourites</h2>
-              <span className="text-xs text-slate-500">Your pinned reports</span>
+              <span className="text-xs text-slate-400">Your pinned reports</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {favResolved.map(({ ref, kind, item }) => kind === 'preset'
@@ -413,7 +413,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             <div className="flex items-center gap-2 mb-3">
               <span className="rounded-full" style={{ width: 4, height: 15, background: emerald.bar }} />
               <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: emerald.head }}>Your saved reports</h2>
-              <span className="text-xs text-slate-500">Reports your practice has saved</span>
+              <span className="text-xs text-slate-400">Reports your practice has saved</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {savedReports.filter(r => !favourites.has(`saved:${r.id}`)).map(r => card(
@@ -421,7 +421,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                 <><div className="text-sm font-semibold text-slate-100">{r.name}</div>
                   <div className="text-xs text-slate-400 mt-0.5 line-clamp-2">{describeMeasure(r.config)}</div></>,
                 <>{star(`saved:${r.id}`)}
-                  {canEdit && <button onClick={(e) => { e.stopPropagation(); deleteReport(r.id); }} className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-opacity" style={{ background: 'none', border: 'none', cursor: 'pointer' }} title="Delete report">✕</button>}</>
+                  {canEdit && <button onClick={(e) => { e.stopPropagation(); deleteReport(r.id); }} className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 transition-opacity" style={{ background: 'none', border: 'none', cursor: 'pointer' }} title="Delete report">✕</button>}</>
               ))}
             </div>
           </div>
@@ -437,7 +437,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span className="rounded-full" style={{ width: 4, height: 15, background: accent.bar }} />
                 <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: accent.head }}>{g.group}</h2>
-                <span className="text-xs text-slate-500">{g.blurb}</span>
+                <span className="text-xs text-slate-400">{g.blurb}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {presets.map(p => card(
@@ -561,7 +561,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               <button onClick={copyTable} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-mid)' }}>Copy</button>
               <button onClick={downloadCsv} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-mid)' }}>CSV</button>
               {dirty && loadedSavedId && <span className="text-xs text-amber-300/80">Unsaved changes</span>}
-              {origin === 'preset' && !loadedSavedId && <span className="text-xs text-slate-500">Save keeps this report, with your changes, for your whole practice</span>}
+              {origin === 'preset' && !loadedSavedId && <span className="text-xs text-slate-400">Save keeps this report, with your changes, for your whole practice</span>}
             </div>
             {showSaveBox && canEdit && (
               <div className="flex items-center gap-2 mt-2">
@@ -595,29 +595,29 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
         <div className="w-full lg:w-80 lg:flex-shrink-0 rounded-xl p-4 space-y-4" style={{ background: 'var(--g-panel)', border: '1px solid var(--g-border)' }}>
           <StepSection n="1" title="Measure">
             <Segmented options={[{ id: 'slots', label: 'Slots' }, { id: 'sessions', label: 'Sessions' }]} value={grain} onChange={setGrain} />
-            <div className="text-xs text-slate-500 font-medium mt-1">{isSession ? 'Count sessions that are…' : 'Count slots…'}</div>
+            <div className="text-xs text-slate-400 font-medium mt-1">{isSession ? 'Count sessions that are…' : 'Count slots…'}</div>
             {isSession ? (
               <>
                 <Segmented options={SESSION_MODE_OPTS} value={num.mode} onChange={(m) => setNum(n => ({ ...n, mode: m }))} />
                 {num.mode === 'slottype' && (
                   <MultiSelect label="Slot types to include" options={filterOpts.slotTypes} selected={num.slotTypes} onChange={(v) => setNum(n => ({ ...n, slotTypes: v }))} />
                 )}
-                {num.mode === 'busiest' && <div className="text-xs text-slate-500">The session each day with the most urgent slots — the de-facto on-call.</div>}
-                {num.mode === 'duty' && <div className="text-xs text-slate-500">The session where the clinician was the duty doctor, using the duty slots set on the Today page.</div>}
-                <div className="text-xs text-slate-600 mt-1">Restrict to</div>
+                {num.mode === 'busiest' && <div className="text-xs text-slate-400">The session each day with the most urgent slots — the de-facto on-call.</div>}
+                {num.mode === 'duty' && <div className="text-xs text-slate-400">The session where the clinician was the duty doctor, using the duty slots set on the Today page.</div>}
+                <div className="text-xs text-slate-400 mt-1">Restrict to</div>
                 <ChipGroup options={SESSION_OPTS} selected={num.sessions} onChange={(v) => setNum(n => ({ ...n, sessions: v }))} allLabel="AM+PM" />
               </>
             ) : (
               <>
-                <div className="text-xs text-slate-600">Slot types</div>
+                <div className="text-xs text-slate-400">Slot types</div>
                 <MultiSelect label="All slot types" options={filterOpts.slotTypes} selected={globalFilter.slotTypes} onChange={(v) => setGlobalFilter(f => ({ ...f, slotTypes: v }))} />
-                <div className="text-xs text-slate-600 mt-1">Status</div>
+                <div className="text-xs text-slate-400 mt-1">Status</div>
                 <ChipGroup options={STATUS_OPTS} selected={num.statuses} onChange={(v) => setNum(n => ({ ...n, statuses: v }))} />
-                <div className="text-xs text-slate-600">Category</div>
+                <div className="text-xs text-slate-400">Category</div>
                 <ChipGroup options={CATEGORY_OPTS} selected={num.categories} onChange={(v) => setNum(n => ({ ...n, categories: v }))} />
               </>
             )}
-            <div className="text-xs text-slate-500 font-medium mt-2">Show as</div>
+            <div className="text-xs text-slate-400 font-medium mt-2">Show as</div>
             <select value={denomMode} onChange={e => setDenomMode(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
               <option value="none" style={{ background: 'var(--surface-2)' }}>Count (raw number)</option>
               <option value="group" style={{ background: 'var(--surface-2)' }}>% of each group&rsquo;s total</option>
@@ -626,7 +626,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             </select>
             {denomMode === 'custom' && (
               <div className="mt-1 pl-3 space-y-2" style={{ borderLeft: '2px solid rgba(99,102,241,0.3)' }}>
-                <div className="text-xs text-slate-600">…as a % of {isSession ? 'sessions' : 'slots'} that are:</div>
+                <div className="text-xs text-slate-400">…as a % of {isSession ? 'sessions' : 'slots'} that are:</div>
                 {isSession ? (
                   <>
                     <Segmented options={SESSION_MODE_OPTS} value={denom.mode} onChange={(m) => setDenom(d => ({ ...d, mode: m }))} />
@@ -637,9 +637,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                   </>
                 ) : (
                   <>
-                    <div className="text-xs text-slate-600">Status</div>
+                    <div className="text-xs text-slate-400">Status</div>
                     <ChipGroup options={STATUS_OPTS} selected={denom.statuses} onChange={(v) => setDenom(d => ({ ...d, statuses: v }))} />
-                    <div className="text-xs text-slate-600">Category</div>
+                    <div className="text-xs text-slate-400">Category</div>
                     <ChipGroup options={CATEGORY_OPTS} selected={denom.categories} onChange={(v) => setDenom(d => ({ ...d, categories: v }))} />
                   </>
                 )}
@@ -650,11 +650,11 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           <div style={{ borderTop: '1px solid var(--g-border)' }} />
 
           <StepSection n="2" title="Break down">
-            <div className="text-xs text-slate-600">Group by</div>
+            <div className="text-xs text-slate-400">Group by</div>
             <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
               {groupByOpts.map(o => <option key={o.id} value={o.id} style={{ background: 'var(--surface-2)' }}>{o.label}</option>)}
             </select>
-            <div className="text-xs text-slate-600 mt-1">Compare by (series)</div>
+            <div className="text-xs text-slate-400 mt-1">Compare by (series)</div>
             <select value={splitBy} onChange={e => setSplitBy(e.target.value)} className="w-full text-xs rounded-md px-2 py-1.5" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }}>
               {splitByOpts.filter(o => o.id !== groupBy).map(o => <option key={o.id} value={o.id} style={{ background: 'var(--surface-2)' }}>{o.label}</option>)}
             </select>
@@ -663,7 +663,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           <div style={{ borderTop: '1px solid var(--g-border)' }} />
 
           <StepSection n="3" title="View">
-            <div className="text-xs text-slate-600">Date range</div>
+            <div className="text-xs text-slate-400">Date range</div>
             <Segmented
               options={[...RANGE_OPTIONS, { id: 'custom', label: 'Custom' }]}
               value={typeof range === 'object' ? 'custom' : range}
@@ -679,36 +679,36 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                     <input type="number" min="0" max="104" value={range.backWeeks}
                       onChange={e => setRange(r => ({ ...r, backWeeks: Math.max(0, parseInt(e.target.value) || 0) }))}
                       className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
-                    <span className="text-xs text-slate-500">weeks back →</span>
+                    <span className="text-xs text-slate-400">weeks back →</span>
                     <input type="number" min="0" max="104" value={range.fwdWeeks}
                       onChange={e => setRange(r => ({ ...r, fwdWeeks: Math.max(0, parseInt(e.target.value) || 0) }))}
                       className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
-                    <span className="text-xs text-slate-500">weeks ahead</span>
+                    <span className="text-xs text-slate-400">weeks ahead</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 flex-wrap">
                     <input type="date" value={range.from || ''} onChange={e => setRange(r => ({ ...r, from: e.target.value }))}
                       className="text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none', colorScheme: 'dark' }} />
-                    <span className="text-xs text-slate-500">to</span>
+                    <span className="text-xs text-slate-400">to</span>
                     <input type="date" value={range.to || ''} onChange={e => setRange(r => ({ ...r, to: e.target.value }))}
                       className="text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none', colorScheme: 'dark' }} />
                   </div>
                 )}
-                <div className="text-xs text-slate-500">{rangeLabel(range)}</div>
+                <div className="text-xs text-slate-400">{rangeLabel(range)}</div>
               </div>
             )}
-            <div className="text-xs text-slate-600 mt-1">Chart</div>
+            <div className="text-xs text-slate-400 mt-1">Chart</div>
             <Segmented options={[{ id: 'bars', label: 'Bars' }, { id: 'stacked', label: 'Stacked' }, { id: 'trend', label: 'Trend' }, { id: 'table', label: 'Table' }]} value={chart} onChange={setChart} disabledIds={[...(timeDim(groupBy) ? [] : ['trend']), ...(result.hasSplit ? [] : ['stacked'])]} />
-            <div className="text-xs text-slate-600 mt-1">Bar colour</div>
+            <div className="text-xs text-slate-400 mt-1">Bar colour</div>
             <Segmented options={[{ id: 'multi', label: 'Multi' }, { id: 'single', label: 'Single' }, { id: 'conditional', label: 'Conditional' }]} value={colourMode} onChange={setColourMode} />
             {colourMode === 'conditional' && (
               <div className="pl-3 space-y-2" style={{ borderLeft: '2px solid rgba(99,102,241,0.3)' }}>
                 <Segmented options={[{ id: 'auto', label: 'Auto (vs reference)' }, { id: 'custom', label: 'Custom' }]} value={condMode} onChange={setCondMode} />
                 {condMode === 'custom' && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500">Red ≤</span>
+                    <span className="text-xs text-slate-400">Red ≤</span>
                     <input value={condLow} onChange={e => setCondLow(e.target.value)} placeholder="low" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--g-text-hi)', outline: 'none' }} />
-                    <span className="text-xs text-slate-500">Green ≥</span>
+                    <span className="text-xs text-slate-400">Green ≥</span>
                     <input value={condHigh} onChange={e => setCondHigh(e.target.value)} placeholder="high" className="w-14 text-xs rounded px-1.5 py-1" style={{ background: 'var(--g-field)', border: '1px solid rgba(16,185,129,0.4)', color: 'var(--g-text-hi)', outline: 'none' }} />
                   </div>
                 )}
@@ -725,9 +725,9 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           <StepSection n="4" title="Refine">
             <Collapsible title="Filter data" badge={filterCount || null} defaultOpen={filterCount > 0}>
               <MultiSelect label="Clinicians" options={filterOpts.clinicians} selected={globalFilter.clinicianIds} onChange={(v) => setGlobalFilter(f => ({ ...f, clinicianIds: v }))} />
-              {filterOpts.roles.length > 1 && (<><div className="text-xs text-slate-600">Role</div><ChipGroup options={filterOpts.roles.map((r, i) => ({ ...r, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.roles} onChange={(v) => setGlobalFilter(f => ({ ...f, roles: v }))} /></>)}
-              {!isSession && filterOpts.locations.length > 1 && (<><div className="text-xs text-slate-600">Site</div><ChipGroup options={filterOpts.locations.map((l, i) => ({ ...l, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.locations} onChange={(v) => setGlobalFilter(f => ({ ...f, locations: v }))} /></>)}
-              <div className="text-xs text-slate-600">Session</div>
+              {filterOpts.roles.length > 1 && (<><div className="text-xs text-slate-400">Role</div><ChipGroup options={filterOpts.roles.map((r, i) => ({ ...r, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.roles} onChange={(v) => setGlobalFilter(f => ({ ...f, roles: v }))} /></>)}
+              {!isSession && filterOpts.locations.length > 1 && (<><div className="text-xs text-slate-400">Site</div><ChipGroup options={filterOpts.locations.map((l, i) => ({ ...l, colour: PALETTE[i % PALETTE.length] }))} selected={globalFilter.locations} onChange={(v) => setGlobalFilter(f => ({ ...f, locations: v }))} /></>)}
+              <div className="text-xs text-slate-400">Session</div>
               <ChipGroup options={SESSION_OPTS} selected={globalFilter.sessions} onChange={(v) => setGlobalFilter(f => ({ ...f, sessions: v }))} allLabel="AM+PM" />
               {filterCount > 0 && <button onClick={() => setGlobalFilter({ clinicianIds: [], roles: [], locations: [], slotTypes: [], sessions: [] })} className="text-xs text-slate-400 hover:text-white mt-1" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear all filters</button>}
             </Collapsible>
@@ -770,7 +770,7 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick, co
                   return (
                     <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} className="relative h-4 rounded overflow-hidden cursor-pointer" style={{ background: 'var(--g-tile)' }} title="Click to drill down">
                       <div className="absolute left-0 top-0 bottom-0 rounded" style={{ width: `${Math.max(w, 0.5)}%`, background: PALETTE[si % PALETTE.length], opacity: 0.9 }} />
-                      <span className="absolute right-1.5 top-0 bottom-0 flex items-center text-[10px] font-medium text-slate-200">{fmt(cell.value)}</span>
+                      <span className="absolute right-1.5 top-0 bottom-0 flex items-center text-[11px] font-medium text-slate-200">{fmt(cell.value)}</span>
                     </div>
                   ); })}
               </div>
@@ -780,7 +780,7 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick, co
                 {refValue != null && <div className="absolute top-0 bottom-0" style={{ left: `${(refValue / maxVal) * 100}%`, width: 2, background: 'var(--g-marker)' }} title={refLabel} />}
                 <div className="absolute inset-0 flex items-center px-3">
                   <span className="text-sm font-bold text-white drop-shadow">{fmt(g.value)}</span>
-                  {isRatio && <span className="text-[10px] text-white/75 ml-2">{g.numerator}/{g.denominator}</span>}
+                  {isRatio && <span className="text-[11px] text-white/75 ml-2">{g.numerator}/{g.denominator}</span>}
                 </div>
               </div>
             )}
@@ -788,7 +788,7 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick, co
         </div>
       ))}
       {refValue != null && !multi && (
-        <div className="flex items-center gap-2 pt-2.5 mt-1 text-xs text-slate-500" style={{ borderTop: '1px solid var(--g-border)' }}>
+        <div className="flex items-center gap-2 pt-2.5 mt-1 text-xs text-slate-400" style={{ borderTop: '1px solid var(--g-border)' }}>
           <span className="inline-block align-middle" style={{ width: 2, height: 12, background: 'var(--g-marker)' }} />
           <span>{refLabel} · {result.groups.length} group{result.groups.length === 1 ? '' : 's'} · click a bar to drill down</span>
         </div>
@@ -836,8 +836,8 @@ function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal, onPick, c
       {multi && <div className="flex flex-wrap gap-3 mb-2">{result.series.map((s, i) => <span key={s.key} className="flex items-center gap-1 text-xs text-slate-400"><span className="w-3 h-0.5" style={{ background: PALETTE[i % PALETTE.length] }} />{s.label}</span>)}</div>}
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: 480 }}>
         <defs><linearGradient id="trendfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#818cf8" stopOpacity="0.28" /><stop offset="100%" stopColor="#818cf8" stopOpacity="0.02" /></linearGradient></defs>
-        {grid.map((gl, i) => (<g key={i}><line x1={padL} y1={gl.yy} x2={W - padR} y2={gl.yy} style={{ stroke: 'var(--g-border)' }} /><text x={padL - 8} y={gl.yy + 3} textAnchor="end" style={{ fontSize: 10, fill: 'var(--g-text-mid)' }}>{isRatio ? `${Math.round(gl.v)}%` : Math.round(gl.v)}</text></g>))}
-        {refValue != null && <g><line x1={padL} y1={y(refValue)} x2={W - padR} y2={y(refValue)} style={{ stroke: 'var(--g-label)' }} strokeDasharray="5 3" /><text x={W - padR} y={y(refValue) - 4} textAnchor="end" style={{ fontSize: 9, fill: 'var(--g-text-hi)' }}>{refLabel}</text></g>}
+        {grid.map((gl, i) => (<g key={i}><line x1={padL} y1={gl.yy} x2={W - padR} y2={gl.yy} style={{ stroke: 'var(--g-border)' }} /><text x={padL - 8} y={gl.yy + 3} textAnchor="end" style={{ fontSize:11, fill: 'var(--g-text-mid)' }}>{isRatio ? `${Math.round(gl.v)}%` : Math.round(gl.v)}</text></g>))}
+        {refValue != null && <g><line x1={padL} y1={y(refValue)} x2={W - padR} y2={y(refValue)} style={{ stroke: 'var(--g-label)' }} strokeDasharray="5 3" /><text x={W - padR} y={y(refValue) - 4} textAnchor="end" style={{ fontSize:11, fill: 'var(--g-text-hi)' }}>{refLabel}</text></g>}
         {multi ? result.series.map((s, si) => (
           <g key={s.key}>
             <path d={lineFor(g => g.cells[s.key]?.value || 0)} fill="none" stroke={PALETTE[si % PALETTE.length]} strokeWidth="2.5" strokeLinejoin="round" />
@@ -847,10 +847,10 @@ function TrendView({ result, fmt, isRatio, refValue, refLabel, maxVal, onPick, c
           <g>
             <path d={`${lineFor(g => g.value)} L ${x(groups.length - 1).toFixed(1)} ${(padT + innerH).toFixed(1)} L ${x(0).toFixed(1)} ${(padT + innerH).toFixed(1)} Z`} fill="url(#trendfill)" />
             <path d={lineFor(g => g.value)} fill="none" stroke={single} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
-            {groups.map((g, i) => (<g key={g.key} className="cursor-pointer" onClick={() => onPick && onPick(g.key, g.label)}><circle cx={x(i)} cy={y(g.value)} r="4.5" fill={colourFor ? colourFor(g.value, i) : single} style={{ stroke: 'var(--g-ink)' }} strokeWidth="2" /><text x={x(i)} y={y(g.value) - 11} textAnchor="middle" style={{ fontSize: 10, fontWeight: 700, fill: 'var(--g-text-hi)' }}>{fmt(g.value)}</text></g>))}
+            {groups.map((g, i) => (<g key={g.key} className="cursor-pointer" onClick={() => onPick && onPick(g.key, g.label)}><circle cx={x(i)} cy={y(g.value)} r="4.5" fill={colourFor ? colourFor(g.value, i) : single} style={{ stroke: 'var(--g-ink)' }} strokeWidth="2" /><text x={x(i)} y={y(g.value) - 11} textAnchor="middle" style={{ fontSize:11, fontWeight: 700, fill: 'var(--g-text-hi)' }}>{fmt(g.value)}</text></g>))}
           </g>
         )}
-        {groups.map((g, i) => <text key={g.key} x={x(i)} y={H - padB + 18} textAnchor="middle" style={{ fontSize: 10, fill: 'var(--g-text-mid)' }} transform={groups.length > 8 ? `rotate(-35 ${x(i)} ${H - padB + 18})` : undefined}>{g.label.replace('w/c ', '')}</text>)}
+        {groups.map((g, i) => <text key={g.key} x={x(i)} y={H - padB + 18} textAnchor="middle" style={{ fontSize:11, fill: 'var(--g-text-mid)' }} transform={groups.length > 8 ? `rotate(-35 ${x(i)} ${H - padB + 18})` : undefined}>{g.label.replace('w/c ', '')}</text>)}
       </svg>
     </div>
   );
@@ -864,9 +864,9 @@ function TableView({ result, groupLabel, fmt, onPick }) {
       <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--g-line)' }}>
-            <th className="text-xs font-semibold uppercase tracking-wider text-slate-500 py-2 pr-4">{groupLabel}</th>
-            {multi ? result.series.map(s => <th key={s.key} className="text-xs font-semibold uppercase tracking-wider text-slate-500 py-2 px-3 text-right">{s.label}</th>)
-              : (<>{result.isRatio && <th className="text-xs text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Num</th>}{result.isRatio && <th className="text-xs text-slate-500 py-2 px-3 text-right uppercase tracking-wider font-semibold">Denom</th>}<th className="text-xs text-slate-500 py-2 pl-3 text-right uppercase tracking-wider font-semibold">{result.isRatio ? '%' : 'Count'}</th></>)}
+            <th className="text-xs font-semibold uppercase tracking-wider text-slate-400 py-2 pr-4">{groupLabel}</th>
+            {multi ? result.series.map(s => <th key={s.key} className="text-xs font-semibold uppercase tracking-wider text-slate-400 py-2 px-3 text-right">{s.label}</th>)
+              : (<>{result.isRatio && <th className="text-xs text-slate-400 py-2 px-3 text-right uppercase tracking-wider font-semibold">Num</th>}{result.isRatio && <th className="text-xs text-slate-400 py-2 px-3 text-right uppercase tracking-wider font-semibold">Denom</th>}<th className="text-xs text-slate-400 py-2 pl-3 text-right uppercase tracking-wider font-semibold">{result.isRatio ? '%' : 'Count'}</th></>)}
           </tr>
         </thead>
         <tbody>
@@ -902,7 +902,7 @@ function DrillModal({ drill, isSession, onClose }) {
     <div onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
       <div onClick={e => e.stopPropagation()} className="w-full max-w-lg rounded-xl overflow-hidden flex flex-col" style={{ background: 'linear-gradient(180deg,var(--g-ink-2),var(--g-ink))', border: '1px solid var(--g-line)', maxHeight: '80vh' }}>
         <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
-          <div><div className="text-base font-semibold text-white">{groupLabel}{seriesLabel ? ` · ${seriesLabel}` : ''}</div><div className="text-xs text-slate-500">{totalCount} {isSession ? 'session' : 'slot'}{totalCount === 1 ? '' : 's'} across {dates.length} day{dates.length === 1 ? '' : 's'}</div></div>
+          <div><div className="text-base font-semibold text-white">{groupLabel}{seriesLabel ? ` · ${seriesLabel}` : ''}</div><div className="text-xs text-slate-400">{totalCount} {isSession ? 'session' : 'slot'}{totalCount === 1 ? '' : 's'} across {dates.length} day{dates.length === 1 ? '' : 's'}</div></div>
           <button onClick={onClose} className="ml-auto text-slate-400 hover:text-white" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }} aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
         </div>
         <div className="overflow-y-auto p-4 space-y-2">

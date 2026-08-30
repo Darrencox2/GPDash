@@ -86,11 +86,11 @@ export default async function AdminPracticeDetailPage({ params }) {
           </div>
 
           <Row label="ODS code">
-            {details.ods_code ? <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{details.ods_code}</span> : <em className="text-slate-500">not set</em>}
+            {details.ods_code ? <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{details.ods_code}</span> : <em className="text-slate-400">not set</em>}
           </Row>
-          <Row label="Postcode">{details.postcode || <em className="text-slate-500">not set</em>}</Row>
-          <Row label="Region">{details.region || <em className="text-slate-500">not set</em>}</Row>
-          <Row label="List size">{details.list_size ? details.list_size.toLocaleString('en-GB') : <em className="text-slate-500">not set</em>}</Row>
+          <Row label="Postcode">{details.postcode || <em className="text-slate-400">not set</em>}</Row>
+          <Row label="Region">{details.region || <em className="text-slate-400">not set</em>}</Row>
+          <Row label="List size">{details.list_size ? details.list_size.toLocaleString('en-GB') : <em className="text-slate-400">not set</em>}</Row>
           <Row label="Created">{new Date(details.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</Row>
           <Row label="Setup completed">{details.setup_completed_at ? new Date(details.setup_completed_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <em className="text-amber-400">not yet</em>}</Row>
         </div>
@@ -141,14 +141,14 @@ export default async function AdminPracticeDetailPage({ params }) {
           paddingTop: 20,
           borderTop: '1px solid rgba(255,255,255,0.06)',
           fontSize: 12,
-          color: '#64748b',
+          color: 'var(--meta)',
           display: 'flex',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 12,
         }}>
           <span>GPDash · Platform admin</span>
-          <Link href="/v4/admin" style={{ color: '#64748b', textDecoration: 'none' }}>← All practices</Link>
+          <Link href="/v4/admin" style={{ color: 'var(--meta)', textDecoration: 'none' }}>← All practices</Link>
         </div>
       </div>
     </div>

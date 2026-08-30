@@ -47,7 +47,7 @@ export default function BrandHeader({ subtitle, compact = false, href = '/v4' })
         </div>
       )}
       {subtitle && (
-        <span style={{ fontSize: 12, color: '#475569', marginLeft: 8, paddingLeft: 12, borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
+        <span style={{ fontSize: 12, color: 'var(--meta)', marginLeft: 8, paddingLeft: 12, borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
           {subtitle}
         </span>
       )}
