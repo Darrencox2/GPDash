@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { confirmDialog } from '@/components/ui';
 import { GRID_SIZES, getRoomTypes, SITE_COLOUR_PRESETS } from '@/lib/roomAllocation';
+import { onKeyActivate } from '@/lib/a11y';
 
 export default function RoomSettings({ data, saveData, toast, huddleData }) {
   const ra = data?.roomAllocation || {};
@@ -104,14 +105,14 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
           <span className="text-sm font-semibold text-white">Site Room Layout</span>
         </div>
         <div className="border-b border-slate-200"><div className="flex items-center gap-1 px-4 pt-3">
-          {sites.map(s => <button key={s.id} onClick={() => setSelectedSiteId(s.id)} className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${selectedSiteId === s.id ? 'bg-white border border-b-0 border-slate-200 text-slate-900' : 'text-slate-400 hover:text-slate-400 hover:bg-slate-50'}`}><span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{background: s.colour || '#94a3b8'}} />{s.name}</button>)}
+          {sites.map(s => <button key={s.id} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setSelectedSiteId(s.id)} className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${selectedSiteId === s.id ? 'bg-white border border-b-0 border-slate-200 text-slate-900' : 'text-slate-400 hover:text-slate-400 hover:bg-slate-50'}`}><span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{background: s.colour || '#94a3b8'}} />{s.name}</button>)}
           <button onClick={() => setShowAddSite(true)} className="px-3 py-2 text-sm text-slate-400 hover:text-slate-400">+ Add site</button>
         </div></div>
         {showAddSite && <AddSiteForm csvLocations={csvLocations} existingSites={sites} onSave={addSite} onCancel={() => setShowAddSite(false)} />}
         {selectedSite && <div className="p-5">
           <div className="flex items-center gap-3 mb-3 flex-wrap">
             <label className="text-xs text-slate-400">Colour:</label>
-            <div className="flex gap-1.5">{SITE_COLOUR_PRESETS.map(c => <button key={c} onClick={() => updateSite(selectedSite.id, { colour: c })} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background: c, outline: selectedSite.colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={selectedSite.colour || '#8c64c3'} onChange={e => updateSite(selectedSite.id, { colour: e.target.value })} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div>
+            <div className="flex gap-1.5">{SITE_COLOUR_PRESETS.map(c => <button key={c} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => updateSite(selectedSite.id, { colour: c })} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background: c, outline: selectedSite.colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={selectedSite.colour || '#8c64c3'} onChange={e => updateSite(selectedSite.id, { colour: e.target.value })} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div>
             <span className="text-slate-300">|</span>
             <label className="text-xs text-slate-400">Grid:</label>
             <select value={selectedSite.gridSize} onChange={e => convertGridSize(selectedSite.id, e.target.value)} className="text-xs border border-slate-200 rounded px-2 py-1">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
@@ -167,7 +168,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
           </div>
           <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-400">{getRoomTypes(ra).map(rt => <span key={rt.id} className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{background:rt.colour}}/>{rt.label}</span>)}<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-300"/>Non-clinical</span></div>
         </div>}
-        {!selectedSite && !showAddSite && <div className="p-12 text-center"><div className="text-2xl mb-2">🏥</div><h3 className="text-sm font-semibold text-slate-400 mb-1">No sites configured</h3><p className="text-xs text-slate-400 mb-4">Add a site to start setting up rooms.</p><button onClick={() => setShowAddSite(true)} className="btn-primary">Add site</button></div>}
+        {!selectedSite && !showAddSite && <div className="p-12 text-center"><div className="text-2xl mb-2">🏥</div><h3 className="text-sm font-semibold text-slate-400 mb-1">No sites configured</h3><p className="text-xs text-slate-400 mb-4">Add a site to start setting up rooms.</p><button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setShowAddSite(true)} className="btn-primary">Add site</button></div>}
       </div>
 
       {/* ROOM TYPES CARD */}
@@ -321,10 +322,10 @@ function AddSiteForm({ csvLocations, existingSites, onSave, onCancel }) {
   return <div className="p-5 border-b border-slate-200 bg-slate-50">
     <h3 className="text-sm font-semibold text-slate-900 mb-3">Add site</h3>
     <div className="flex items-end gap-4 flex-wrap">
-      <div><label className="text-xs text-slate-400 block mb-1">Site name</label><div className="flex items-center gap-2"><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Winscombe" className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 w-48" />{suggestions.length > 0 && <div className="flex gap-1">{suggestions.map(s => <button key={s} onClick={() => setName(s)} className="text-xs px-2 py-1 rounded bg-slate-200 text-slate-400 hover:bg-slate-300">{s}</button>)}</div>}</div></div>
-      <div><label className="text-xs text-slate-400 block mb-1">Colour</label><div className="flex gap-1.5 items-center">{SITE_COLOUR_PRESETS.slice(0, 6).map(c => <button key={c} onClick={() => setColour(c)} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background:c, outline: colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={colour} onChange={e => setColour(e.target.value)} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div></div>
+      <div><label className="text-xs text-slate-400 block mb-1">Site name</label><div className="flex items-center gap-2"><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Winscombe" className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 w-48" />{suggestions.length > 0 && <div className="flex gap-1">{suggestions.map(s => <button key={s} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setName(s)} className="text-xs px-2 py-1 rounded bg-slate-200 text-slate-400 hover:bg-slate-300">{s}</button>)}</div>}</div></div>
+      <div><label className="text-xs text-slate-400 block mb-1">Colour</label><div className="flex gap-1.5 items-center">{SITE_COLOUR_PRESETS.slice(0, 6).map(c => <button key={c} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setColour(c)} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background:c, outline: colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={colour} onChange={e => setColour(e.target.value)} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div></div>
       <div><label className="text-xs text-slate-400 block mb-1">Grid size</label><select value={gridSize} onChange={e => setGridSize(e.target.value)} className="text-sm border border-slate-200 rounded-lg px-3 py-1.5">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
-      <div className="flex gap-2"><button onClick={() => name.trim() && onSave(name.trim(), colour, gridSize)} disabled={!name.trim()} className="btn-primary text-sm">Add</button><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button></div>
+      <div className="flex gap-2"><button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => name.trim() && onSave(name.trim(), colour, gridSize)} disabled={!name.trim()} className="btn-primary text-sm">Add</button><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button></div>
     </div>
   </div>;
 }
@@ -335,21 +336,21 @@ function RoomEditPopup({ room, site, roomTypes, onSave, onDelete, onCancel }) {
   const [isClinical, setIsClinical] = useState(room.isClinical !== false);
   const toggleType = (t) => setTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
   return <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={onCancel}>
-    <div className="bg-white rounded-xl shadow-2xl p-5 w-96" onClick={e => e.stopPropagation()}>
+    <div className="bg-white rounded-xl shadow-2xl p-5 w-96" role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={e => e.stopPropagation()}>
       <h3 className="text-sm font-semibold text-slate-900 mb-4">{!site?.rooms?.find(r => r.id === room.id) ? 'Add room' : 'Edit room'}</h3>
       <div className="space-y-4">
         <div><label className="text-xs text-slate-400 block mb-1">Room name</label><input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" autoFocus /></div>
         <div className="flex items-center gap-3">
           <label className="text-xs text-slate-400">Non-clinical space</label>
-          <button onClick={() => setIsClinical(!isClinical)} className={`w-8 h-5 rounded-full transition-colors ${isClinical ? 'bg-slate-300' : 'bg-amber-400'}`}><div className={`w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${isClinical ? 'translate-x-1' : 'translate-x-[17px]'}`} /></button>
+          <button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setIsClinical(!isClinical)} className={`w-8 h-5 rounded-full transition-colors ${isClinical ? 'bg-slate-300' : 'bg-amber-400'}`}><div className={`w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${isClinical ? 'translate-x-1' : 'translate-x-[17px]'}`} /></button>
           <span className="text-xs text-slate-400">{isClinical ? 'Clinical room' : 'Non-clinical'}</span>
         </div>
-        {isClinical && <div><label className="text-xs text-slate-400 block mb-2">Suitable for</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${types.includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`} style={types.includes(rt.id) ? {background: rt.colour} : undefined}>{rt.label}</button>)}</div></div>}
+        {isClinical && <div><label className="text-xs text-slate-400 block mb-2">Suitable for</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${types.includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`} style={types.includes(rt.id) ? {background: rt.colour} : undefined}>{rt.label}</button>)}</div></div>}
         {(room.w > 1 || room.h > 1) && <div className="text-xs text-slate-400">Size: {room.w || 1} x {room.h || 1} squares</div>}
       </div>
       <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
-        {site?.rooms?.find(r => r.id === room.id) ? <button onClick={() => onDelete(room.id)} className="text-xs text-red-400 hover:text-red-600">Delete room</button> : <div />}
-        <div className="flex gap-2"><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button><button onClick={() => name.trim() && onSave({ ...room, name: name.trim(), types: isClinical ? types : [], isClinical })} disabled={!name.trim()} className="btn-primary text-sm">Save</button></div>
+        {site?.rooms?.find(r => r.id === room.id) ? <button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => onDelete(room.id)} className="text-xs text-red-400 hover:text-red-600">Delete room</button> : <div />}
+        <div className="flex gap-2"><button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={onCancel} className="btn-secondary text-sm">Cancel</button><button onClick={() => name.trim() && onSave({ ...room, name: name.trim(), types: isClinical ? types : [], isClinical })} disabled={!name.trim()} className="btn-primary text-sm">Save</button></div>
       </div>
     </div>
   </div>;

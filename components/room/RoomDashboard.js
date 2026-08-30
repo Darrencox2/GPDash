@@ -5,6 +5,7 @@ import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 import { getCliniciansForSession } from '@/lib/huddle';
 import { predictDemand } from '@/lib/demandPredictor';
 import { canEditPracticeData } from '@/lib/permissions';
+import { onKeyActivate } from '@/lib/a11y';
 
 export default function RoomDashboard({ data, saveData, huddleData, toast }) {
   const canEdit = canEditPracticeData(data);
@@ -575,7 +576,7 @@ function BookingEditModal({ booking, sites, roomTypes, onSave, onCancel }) {
   const selectedSite = sites.find(s => s.id === b.siteId);
   const rooms = selectedSite ? (selectedSite.rooms || []).filter(r => r.isClinical !== false) : [];
   return <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={onCancel}>
-    <div className="bg-white rounded-xl shadow-2xl p-5 w-[420px]" onClick={e => e.stopPropagation()}>
+    <div className="bg-white rounded-xl shadow-2xl p-5 w-[420px]" role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={e => e.stopPropagation()}>
       <h3 className="text-sm font-semibold text-slate-900 mb-4">{b.type === 'recurring' ? 'Recurring booking' : 'Ad hoc booking'}</h3>
       <div className="space-y-4">
         <div><label className="text-xs text-slate-400 block mb-1">Name</label><input type="text" value={b.name} onChange={e => update('name', e.target.value)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g. Podiatry" autoFocus /></div>
@@ -592,9 +593,9 @@ function BookingEditModal({ booking, sites, roomTypes, onSave, onCancel }) {
           <div className="grid grid-cols-2 gap-3"><div><label className="text-xs text-slate-400 block mb-1">Start date</label><input type="date" value={b.recurrence?.startDate || ''} onChange={e => updateRec('startDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div><div><label className="text-xs text-slate-400 block mb-1">End date</label><input type="date" value={b.recurrence?.endDate || ''} onChange={e => updateRec('endDate', e.target.value || undefined)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" /></div></div>
         </div>}
         <div><label className="text-xs text-slate-400 block mb-1">Preferred room</label><select value={b.preferredRoom || ''} onChange={e => update('preferredRoom', e.target.value || null)} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2"><option value="">Any suitable room</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
-        <div><label className="text-xs text-slate-400 block mb-2">Room type (fallback)</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${(b.roomTypes || []).includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-400'}`} style={(b.roomTypes || []).includes(rt.id) ? {background:rt.colour} : undefined}>{rt.label}</button>)}</div></div>
+        <div><label className="text-xs text-slate-400 block mb-2">Room type (fallback)</label><div className="flex flex-wrap gap-2">{roomTypes.map(rt => <button key={rt.id} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => toggleType(rt.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${(b.roomTypes || []).includes(rt.id) ? 'text-white' : 'bg-slate-100 text-slate-400'}`} style={(b.roomTypes || []).includes(rt.id) ? {background:rt.colour} : undefined}>{rt.label}</button>)}</div></div>
       </div>
-      <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100"><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button><button onClick={() => b.name.trim() && b.siteId && onSave(b)} disabled={!b.name.trim() || !b.siteId} className="btn-primary text-sm">Save</button></div>
+      <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100"><button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={onCancel} className="btn-secondary text-sm">Cancel</button><button onClick={() => b.name.trim() && b.siteId && onSave(b)} disabled={!b.name.trim() || !b.siteId} className="btn-primary text-sm">Save</button></div>
     </div>
   </div>;
 }

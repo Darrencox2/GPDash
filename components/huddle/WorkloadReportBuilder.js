@@ -8,6 +8,7 @@ import {
 } from '@/lib/workload-report';
 import { createClient } from '@/utils/supabase/client';
 import { canEditPracticeData } from '@/lib/permissions';
+import { onKeyActivate } from '@/lib/a11y';
 
 const STATUS_OPTS = [
   { id: 'available', label: 'Available', colour: '#10b981' },
@@ -366,7 +367,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
       </button>
     );
     const card = (key, accent, onClick, body, extra) => (
-      <div key={key} onClick={onClick}
+      <div key={key} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={onClick}
         className="group relative rounded-xl p-4 pr-8 cursor-pointer flex flex-col transition-transform hover:-translate-y-0.5"
         style={{ background: 'var(--g-panel-2)', border: '1px solid var(--g-tile)', borderLeft: `3px solid ${accent.bar}`, minHeight: 84 }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = accent.ring; e.currentTarget.style.borderLeftColor = accent.bar; }}
@@ -768,14 +769,14 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick, co
               <div className="space-y-1">
                 {result.series.map((s, si) => { const cell = g.cells[s.key]; const w = (cell.value / maxVal) * 100;
                   return (
-                    <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} className="relative h-4 rounded overflow-hidden cursor-pointer" style={{ background: 'var(--g-tile)' }} title="Click to drill down">
+                    <div key={s.key} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} className="relative h-4 rounded overflow-hidden cursor-pointer" style={{ background: 'var(--g-tile)' }} title="Click to drill down">
                       <div className="absolute left-0 top-0 bottom-0 rounded" style={{ width: `${Math.max(w, 0.5)}%`, background: PALETTE[si % PALETTE.length], opacity: 0.9 }} />
                       <span className="absolute right-1.5 top-0 bottom-0 flex items-center text-[11px] font-medium text-slate-200">{fmt(cell.value)}</span>
                     </div>
                   ); })}
               </div>
             ) : (
-              <div onClick={() => onPick && onPick(g.key, g.label)} className="relative h-8 rounded-lg overflow-hidden cursor-pointer group" style={{ background: 'var(--g-tile)' }} title="Click to drill down">
+              <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => onPick && onPick(g.key, g.label)} className="relative h-8 rounded-lg overflow-hidden cursor-pointer group" style={{ background: 'var(--g-tile)' }} title="Click to drill down">
                 <div className="absolute left-0 top-0 bottom-0 rounded-lg transition-all group-hover:brightness-110" style={{ width: `${Math.max((g.value / maxVal) * 100, 1)}%`, background: colourFor(g.value, gi), opacity: 0.9 }} />
                 {refValue != null && <div className="absolute top-0 bottom-0" style={{ left: `${(refValue / maxVal) * 100}%`, width: 2, background: 'var(--g-marker)' }} title={refLabel} />}
                 <div className="absolute inset-0 flex items-center px-3">
@@ -810,7 +811,7 @@ function StackedView({ result, fmt, onPick }) {
             <div className="w-32 lg:w-40 text-sm font-medium text-slate-300 truncate text-right" title={g.label}>{g.label}</div>
             <div className="flex-1 relative h-8 rounded-lg overflow-hidden flex" style={{ background: 'var(--g-tile)' }}>
               {result.series.map((s, si) => { const v = g.cells[s.key]?.value || 0; const w = (v / maxTotal) * 100; if (w <= 0) return null;
-                return <div key={s.key} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} title={`${s.label}: ${fmt(v)} — click to drill down`} className="cursor-pointer hover:brightness-110 transition-all" style={{ width: `${w}%`, background: PALETTE[si % PALETTE.length], opacity: 0.9 }} />; })}
+                return <div key={s.key} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} title={`${s.label}: ${fmt(v)} — click to drill down`} className="cursor-pointer hover:brightness-110 transition-all" style={{ width: `${w}%`, background: PALETTE[si % PALETTE.length], opacity: 0.9 }} />; })}
               <span className="absolute right-2.5 top-0 bottom-0 flex items-center text-xs font-bold text-white drop-shadow pointer-events-none">{fmt(total)}</span>
             </div>
           </div>
@@ -871,7 +872,7 @@ function TableView({ result, groupLabel, fmt, onPick }) {
         </thead>
         <tbody>
           {result.groups.map(g => (
-            <tr key={g.key} onClick={() => onPick && onPick(g.key, g.label)} className="cursor-pointer hover:bg-white/5" style={{ borderBottom: '1px solid var(--g-tile)' }}>
+            <tr key={g.key} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => onPick && onPick(g.key, g.label)} className="cursor-pointer hover:bg-white/5" style={{ borderBottom: '1px solid var(--g-tile)' }}>
               <td className="text-sm text-slate-200 py-2 pr-4">{g.label}</td>
               {multi ? result.series.map(s => <td key={s.key} className="text-sm text-indigo-300 font-medium py-2 px-3 text-right tabular-nums">{fmt(g.cells[s.key]?.value || 0)}</td>)
                 : (<>{result.isRatio && <td className="text-sm text-slate-400 py-2 px-3 text-right tabular-nums">{g.numerator}</td>}{result.isRatio && <td className="text-sm text-slate-400 py-2 px-3 text-right tabular-nums">{g.denominator}</td>}<td className="text-sm font-bold text-indigo-300 py-2 pl-3 text-right tabular-nums">{fmt(g.value)}</td></>)}
@@ -900,7 +901,7 @@ function DrillModal({ drill, isSession, onClose }) {
   const dates = Object.keys(byDate).sort();
   return (
     <div onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
-      <div onClick={e => e.stopPropagation()} className="w-full max-w-lg rounded-xl overflow-hidden flex flex-col" style={{ background: 'linear-gradient(180deg,var(--g-ink-2),var(--g-ink))', border: '1px solid var(--g-line)', maxHeight: '80vh' }}>
+      <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={e => e.stopPropagation()} className="w-full max-w-lg rounded-xl overflow-hidden flex flex-col" style={{ background: 'linear-gradient(180deg,var(--g-ink-2),var(--g-ink))', border: '1px solid var(--g-line)', maxHeight: '80vh' }}>
         <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
           <div><div className="text-base font-semibold text-white">{groupLabel}{seriesLabel ? ` · ${seriesLabel}` : ''}</div><div className="text-xs text-slate-400">{totalCount} {isSession ? 'session' : 'slot'}{totalCount === 1 ? '' : 's'} across {dates.length} day{dates.length === 1 ? '' : 's'}</div></div>
           <button onClick={onClose} className="ml-auto text-slate-400 hover:text-white" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }} aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg></button>

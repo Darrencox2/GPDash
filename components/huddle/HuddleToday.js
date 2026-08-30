@@ -13,6 +13,7 @@ import { canEditPracticeData } from '@/lib/permissions';
 import { inferWeeklyRota } from '@/lib/auto-rota';
 import NhsBenchmarkRibbon from './NhsBenchmarkRibbon';
 import RoutineWaitTime from './RoutineWaitTime';
+import { onKeyActivate } from '@/lib/a11y';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -491,7 +492,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       {/* Date header with navigation */}
       <div className="flex items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-          <div className="glass-dark rounded-xl px-2 sm:px-4 py-2 sm:py-3 flex items-center gap-1 sm:gap-3 cursor-pointer relative flex-shrink-0" onClick={() => setShowCalendar(!showCalendar)}>
+          <div className="glass-dark rounded-xl px-2 sm:px-4 py-2 sm:py-3 flex items-center gap-1 sm:gap-3 cursor-pointer relative flex-shrink-0" role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setShowCalendar(!showCalendar)}>
             <button aria-label="Previous day" onClick={(e) => { e.stopPropagation(); navigateDay(-1); }} className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
               <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
@@ -503,7 +504,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
             </button>
             {showCalendar && (
-              <div className="absolute top-full left-0 mt-2 z-50 rounded-xl shadow-2xl p-3" style={{background:"var(--surface-solid)",border:"1px solid var(--border)"}} onClick={e => e.stopPropagation()}>
+              <div className="absolute top-full left-0 mt-2 z-50 rounded-xl shadow-2xl p-3" style={{background:"var(--surface-solid)",border:"1px solid var(--border)"}} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={e => e.stopPropagation()}>
                 <input type="date" value={toLocalIso(viewingDate)} min={toLocalIso(minDate)} max={toLocalIso(maxDate)} onChange={(e) => goToDate(e.target.value)}
                   className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" style={{background:"var(--surface-2)",border:"1px solid var(--border)",color:"var(--text-1)"}} />
               </div>

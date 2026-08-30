@@ -12,6 +12,7 @@ import { canEditPracticeData } from '@/lib/permissions';
 import { getSiteStaffingForDate, computeTotalEntry, STAFF_GROUP_LABELS, STATE_COLOURS } from '@/lib/site-staffing';
 import CapacityWeek from './CapacityWeek';
 import { createClient } from '@/utils/supabase/client';
+import { onKeyActivate } from '@/lib/a11y';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -46,9 +47,13 @@ function dowDemandColour(predicted, dowBaseline) {
   if (!predicted || !dowBaseline || dowBaseline <= 0) return { bg: 'var(--g-text-faint)', text: '#fff', label: '–' };
   const ratio = predicted / dowBaseline;
   if (ratio <= 0.9) return { bg: '#0ea5e9', text: '#fff', label: 'Low' };
-  if (ratio <= 1.1) return { bg: '#047857', text: '#fff', fg: '#6ee7b7', label: 'Normal' };
-  if (ratio <= 1.25) return { bg: '#b45309', text: '#fff', fg: '#fcd34d', label: 'High' };
-  return { bg: '#dc2626', text: '#fff', fg: '#fca5a5', label: 'V.High' };
+  // OPTION A: demand no longer competes with capacity for the red-amber-green
+  // palette. It is a neutral chip carrying a DIRECTION, so a busy day reads as
+  // "more than usual" rather than as a verdict about whether you can cope —
+  // which is what the tiles are for. `mark` is the non-colour cue.
+  if (ratio <= 1.1) return { bg: 'var(--g-tile)', text: 'var(--g-text-hi)', fg: 'var(--g-text-hi)', border: 'var(--g-border-2)', mark: '', label: 'Normal' };
+  if (ratio <= 1.25) return { bg: 'var(--g-tile)', text: 'var(--g-text-hi)', fg: 'var(--g-text-hi)', border: 'var(--g-border-2)', mark: '\u2191', label: 'High' };
+  return { bg: 'var(--g-tile)', text: 'var(--g-text-hi)', fg: 'var(--g-text-hi)', border: 'var(--g-border-2)', mark: '\u2191\u2191', label: 'V.High' };
 }
 
 // PredictionBand — sits at the top of the day-detail panel and explains
@@ -98,7 +103,7 @@ function PredictionBand({ day, convRate }) {
         <div className="flex items-baseline gap-2">
           <span className="font-mono-data text-2xl font-bold" style={{ color: dc.fg || dc.bg }}>{predicted}</span>
           <span className="text-[11px] text-slate-400 uppercase tracking-wider">predicted</span>
-          <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: dc.bg, color: dc.text }}>{dc.label}</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border || 'transparent'}` }}>{dc.mark ? `${dc.mark} ` : ''}{dc.label}</span>
         </div>
         {/* Conversion-implied urgent need */}
         <div className="flex items-baseline gap-1.5">
@@ -215,7 +220,7 @@ function WeeklyRoutineBullet({ wk, rTarget }) {
   return (
     <div className="h-full flex flex-col justify-center px-2.5" title={`Routine — ${offered} offered vs ${rTarget} target · ${booked} booked (${fillPct}% fill)`}>
       <div className="flex items-baseline gap-1.5 mb-2">
-        <span className="text-base font-bold leading-none font-mono-data" style={{color: band.fg || band.bg}}>{offered}</span>
+        <span className="text-base font-bold leading-none font-mono-data" style={{color: 'var(--g-text-hi)'}}>{offered}</span>
         <span className="text-[11px] text-slate-400">/ {rTarget} offered</span>
       </div>
       <div className="relative" style={{height: 10}}>
@@ -224,14 +229,16 @@ function WeeklyRoutineBullet({ wk, rTarget }) {
         {/* Comfort band — dashed-edge tinted zone around target */}
         <div className="absolute top-0 bottom-0" style={{left: `${comfortLowPct}%`, right: `${100 - comfortHighPct}%`, background: 'rgba(16,185,129,0.13)', borderLeft: '1px dashed rgba(16,185,129,0.35)', borderRight: '1px dashed rgba(16,185,129,0.35)'}}/>
         {/* Offered bar — primary, lighter fill of the band colour */}
-        <div className="absolute left-0 rounded-sm" style={{width: `${offeredPct}%`, top: 1, bottom: 1, background: `${band.bg}55`, border: `1px solid ${band.bg}`}}/>
+        {/* One accent, not the capacity ramp — the delta below is the judgement. */}
+        <div className="absolute left-0 rounded-sm" style={{width: `${offeredPct}%`, top: 1, bottom: 1, background: 'rgba(99,102,241,0.33)', border: '1px solid rgba(99,102,241,0.85)'}}/>
         {/* Booked fill — darker solid portion inside the offered bar */}
-        <div className="absolute left-0 rounded-sm" style={{width: `${bookedPct}%`, top: 3, bottom: 3, background: band.bg}}/>
+        <div className="absolute left-0 rounded-sm" style={{width: `${bookedPct}%`, top: 3, bottom: 3, background: 'rgba(99,102,241,0.95)'}}/>
         {/* Target tick */}
         <div className="absolute" style={{left: `${targetPct}%`, top: -2, bottom: -2, width: 2, background: '#a78bfa', transform: 'translateX(-1px)', borderRadius: 1}}/>
       </div>
       <div className="text-[11px] mt-1.5 flex items-center gap-2">
-        <span style={{color: band.fg || band.bg, opacity: 0.9}}>{delta >= 0 ? '+' : ''}{delta} vs target</span>
+        {/* Sign and size carry the meaning now, not hue. */}
+        <span style={{color: 'var(--g-text-hi)', fontWeight: 600, whiteSpace: 'nowrap'}}>{delta >= 0 ? '+' : ''}{delta}<span style={{color: 'var(--meta)', fontWeight: 400}}> vs target</span></span>
         <span className="text-slate-400 ml-auto">{booked} booked · {fillPct}%</span>
       </div>
     </div>
@@ -789,7 +796,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                           : <span className="text-xs font-bold text-slate-300 font-mono-data">{d.dayNum}</span>}
                         <div className="flex items-center gap-1">
                           {annotations[d.isoKey] && <span title={annotations[d.isoKey].note} className="text-[11px] leading-none cursor-help">📝</span>}
-                          {d.predicted && <span title={demandTip} className="text-[11px] font-bold px-1.5 py-0.5 rounded cursor-help font-mono-data" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>}
+                          {d.predicted && <span title={demandTip} className="text-[11px] font-bold px-1.5 py-0.5 rounded cursor-help font-mono-data" style={{background:d.dc.bg,color:d.dc.text,border:`1px solid ${d.dc.border || 'transparent'}`}}>{d.dc.mark}{d.predicted}</span>}
                         </div>
                       </div>
                       <div className="flex gap-1">
@@ -873,8 +880,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <span className="text-slate-400">Demand pill colour = vs typical for this weekday</span>
             <span className="text-slate-400">|</span>
             {rTarget>0
-              ? <span className="text-slate-400">Routine target: <strong className="text-slate-300">{rTarget}</strong>/wk {canEdit && <button onClick={()=>{const v=prompt('Weekly routine target:',rTarget);if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer ml-1" style={{background:'none',border:'none',fontSize:'inherit'}}>edit</button>}</span>
-              : canEdit ? <button onClick={()=>{const v=prompt('Set weekly routine slot target:','200');if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer" style={{background:'none',border:'none',fontSize:'inherit'}}>Set routine target</button> : <span className="text-slate-400 text-xs">Routine target not set</span>}
+              ? <span className="text-slate-400">Routine target: <strong className="text-slate-300">{rTarget}</strong>/wk {canEdit && <button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={()=>{const v=prompt('Weekly routine target:',rTarget);if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer ml-1" style={{background:'none',border:'none',fontSize:'inherit'}}>edit</button>}</span>
+              : canEdit ? <button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={()=>{const v=prompt('Set weekly routine slot target:','200');if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer" style={{background:'none',border:'none',fontSize:'inherit'}}>Set routine target</button> : <span className="text-slate-400 text-xs">Routine target not set</span>}
           </div>
           </>)}
           {capView === 'week' && (
@@ -1020,7 +1027,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       return (
                         <button key={i} onClick={()=>pickDay(d.isoKey)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
                           <span className="text-xs font-semibold text-slate-300 w-20 flex-shrink-0">{d.dayShort} {d.dayNum} {d.monthStr}</span>
-                          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{background:d.dc.bg,color:d.dc.text}}>{d.predicted}</span>
+                          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{background:d.dc.bg,color:d.dc.text,border:`1px solid ${d.dc.border || 'transparent'}`}}>{d.dc.mark}{d.predicted}</span>
                           <span className="text-[11px] text-slate-400 flex-1">need {d.needed}</span>
                           <div className="text-right flex-shrink-0">
                             <div className="text-xs font-bold" style={{color:col}}>{verdict}</div>

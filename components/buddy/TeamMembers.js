@@ -2,6 +2,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { confirmDialog } from '@/components/ui';
 import { STAFF_GROUPS, guessGroupFromRole, DAYS } from '@/lib/data';
+import { onKeyActivate } from '@/lib/a11y';
 
 const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof'];
 const ROLE_OPTIONS = ['GP Partner', 'Associate Partner', 'Salaried GP', 'GP Registrar', 'Locum', 'ANP', 'Paramedic Practitioner', 'Pharmacist', 'Physiotherapist', 'Practice Nurse', 'Nurse Associate', 'HCA', 'Medical Student', 'Admin'];
@@ -212,8 +213,8 @@ export default function TeamMembers({ data, saveData, toast, setActiveSection })
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           )}
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 cursor-pointer ${!c.confirmed ? 'bg-amber-100 text-amber-700' : gc.badge}`} onClick={() => setExpandedId(isExpanded ? null : c.id)}>{c.initials || '?'}</div>
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : c.id)}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 cursor-pointer ${!c.confirmed ? 'bg-amber-100 text-amber-700' : gc.badge}`} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setExpandedId(isExpanded ? null : c.id)}>{c.initials || '?'}</div>
+          <div className="flex-1 min-w-0 cursor-pointer" role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setExpandedId(isExpanded ? null : c.id)}>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold text-slate-900">{c.title ? `${c.title} ` : ''}{c.name}</span>
               {!c.confirmed && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">Unconfirmed</span>}

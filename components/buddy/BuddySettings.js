@@ -4,6 +4,7 @@ import { calculateHistoricalTargets } from '@/lib/huddle';
 import { getDefaultData } from '@/lib/data';
 import { Button, confirmDialog, PageHeader } from '@/components/ui';
 import AuditLog from '@/components/AuditLog';
+import { onKeyActivate } from '@/lib/a11y';
 
 export default function BuddySettings({ data, saveData, password, syncStatus, setSyncStatus, helpers, huddleData }) {
   const { ensureArray, getTodayKey, syncTeamNet } = helpers;
@@ -30,7 +31,7 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
         <p className="text-sm text-slate-400 mb-4">Import planned absences from your TeamNet calendar. The app syncs automatically when you open it.</p>
         <div className="space-y-4">
           <div><label className="block text-sm font-medium text-slate-400 mb-1">TeamNet Calendar URL</label><input type="url" value={data.teamnetUrl || ''} onChange={e => saveData({ ...data, teamnetUrl: e.target.value }, false)} onBlur={() => data.teamnetUrl && saveData(data)} placeholder="https://teamnet.clarity.co.uk/Diary/Sync/..." className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" /></div>
-          <div className="flex items-center gap-3"><button onClick={() => syncTeamNet()} className="btn-primary">Sync Now</button>{syncStatus && <span className={`text-sm ${syncStatus.includes('Error') || syncStatus.includes('failed') ? 'text-red-600' : 'text-emerald-600'}`}>{syncStatus}</span>}{data.lastSyncTime && <span className="text-xs text-slate-400">Last: {new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}</div>
+          <div className="flex items-center gap-3"><button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => syncTeamNet()} className="btn-primary">Sync Now</button>{syncStatus && <span className={`text-sm ${syncStatus.includes('Error') || syncStatus.includes('failed') ? 'text-red-600' : 'text-emerald-600'}`}>{syncStatus}</span>}{data.lastSyncTime && <span className="text-xs text-slate-400">Last: {new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}</div>
         </div>
         {(ensureArray(data.plannedAbsences).length > 0) && (
           <div className="mt-6 pt-4 border-t border-slate-200">
@@ -46,7 +47,7 @@ export default function BuddySettings({ data, saveData, password, syncStatus, se
                   const sd = new Date(a.startDate + 'T12:00:00');
                   const ed = new Date(a.endDate + 'T12:00:00');
                   const ds = a.startDate === a.endDate ? sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : `${sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${ed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-                  return <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded text-sm"><div><span className="font-medium">{c.initials}</span><span className="text-slate-400 ml-2">{ds}</span><span className="text-slate-400 ml-2">({a.reason})</span></div><button onClick={() => { const abs = ensureArray(data.plannedAbsences); saveData({ ...data, plannedAbsences: abs.filter((_, j) => j !== abs.indexOf(a)) }); }} className="text-xs text-red-500 hover:text-red-700">Remove</button></div>;
+                  return <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded text-sm"><div><span className="font-medium">{c.initials}</span><span className="text-slate-400 ml-2">{ds}</span><span className="text-slate-400 ml-2">({a.reason})</span></div><button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => { const abs = ensureArray(data.plannedAbsences); saveData({ ...data, plannedAbsences: abs.filter((_, j) => j !== abs.indexOf(a)) }); }} className="text-xs text-red-500 hover:text-red-700">Remove</button></div>;
                 })}
               </div>
             )}

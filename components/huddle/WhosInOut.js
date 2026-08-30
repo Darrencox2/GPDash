@@ -7,6 +7,7 @@ import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 import { ClinicianDayPanel } from './HuddleShared';
 import SidePanel from './SidePanel';
+import { onKeyActivate } from '@/lib/a11y';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -70,7 +71,7 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
           </span>
         )}
         {onHide && (
-          <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
+          <span role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
             role="button"
             title="Hide from Who's In"
             className="text-sm text-slate-400 hover:text-red-400 transition-colors cursor-pointer">✕</span>

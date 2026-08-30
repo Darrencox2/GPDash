@@ -24,6 +24,7 @@ import {
   activityFraction, activityHitsSession, activityInWeek,
   WF_DAYS, WF_DAY_NAMES, WF_SESSIONS, cellKey,
 } from '@/lib/workforce';
+import { onKeyActivate } from '@/lib/a11y';
 
 const SESSION_LABEL = { am: 'AM', pm: 'PM' };
 const DEFAULT_THRESHOLDS = { over: 12, tight: 20, short: 28 };
@@ -606,7 +607,7 @@ export default function WorkforcePlanner({ data, toast }) {
                         const aover = overKey === `act:${a.id}`; const assigned = a.assignedClinicianId;
                         const durLbl = a.duration === 'quarter' ? '¼ sess' : a.duration === 'half' ? '½ sess' : a.duration === 'fullday' ? 'full day' : '1 sess';
                         return (
-                          <div key={a.id} data-drop={`act:${a.id}`} onClick={() => setEditingId(a.id)}
+                          <div key={a.id} data-drop={`act:${a.id}`} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setEditingId(a.id)}
                             style={{ borderRadius: 'var(--r-md)', padding: '6px 8px', cursor: 'pointer', border: aover ? '1px solid var(--accent-2)' : `1px solid ${assigned ? 'rgba(56,189,248,0.35)' : 'rgba(245,158,11,0.3)'}`,
                               background: assigned ? 'rgba(56,189,248,0.16)' : 'rgba(245,158,11,0.14)' }}>
                             <div className="flex justify-between items-center gap-1.5">
@@ -668,7 +669,7 @@ export default function WorkforcePlanner({ data, toast }) {
                     <div key={c.id} style={{ borderRadius: 'var(--r-md)', background: open ? 'var(--surface)' : 'transparent' }}>
                       <div className="flex items-center gap-2 px-1.5 py-1">
                         <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 'var(--r-pill)', background: c._added ? 'transparent' : 'var(--accent)', border: c._added ? '1px dashed var(--accent-2)' : 'none', color: c._added ? 'var(--accent-text)' : '#fff', fontSize:11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(c.id) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
-                        <span onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 14, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize:11, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize:11, marginLeft: 5 }}>edited</span>}</span>
+                        <span role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 14, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize:11, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize:11, marginLeft: 5 }}>edited</span>}</span>
                         <button onClick={() => toggleDuty(c.id)} title={dutySet.has(c.id) ? 'Duty-capable — click to unset' : 'Mark as duty-capable'}
                           style={{ width: 22, height: 22, borderRadius: 'var(--r-pill)', cursor: 'pointer', fontSize:11, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
                             background: dutySet.has(c.id) ? 'rgba(248,113,113,0.18)' : 'transparent', border: `1px solid ${dutySet.has(c.id) ? 'rgba(248,113,113,0.7)' : 'var(--border-2)'}`, color: dutySet.has(c.id) ? '#fca5a5' : 'var(--meta)' }}>D</button>
@@ -692,7 +693,7 @@ export default function WorkforcePlanner({ data, toast }) {
               {removedIds.length > 0 && (
                 <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                   <p style={{ fontSize: 11, color: 'var(--meta)', margin: '0 0 5px' }}>Removed (leaving)</p>
-                  {removedIds.map(id => { const c = realClinicians.find(x => x.id === id); if (!c) return null; return (<div key={id} className="flex justify-between items-center px-1.5 py-0.5"><span style={{ fontSize: 13, color: 'var(--meta)', textDecoration: 'line-through' }}>{c.name}</span><button onClick={() => restoreReal(id)} style={S.linkBtn}>undo</button></div>); })}
+                  {removedIds.map(id => { const c = realClinicians.find(x => x.id === id); if (!c) return null; return (<div key={id} className="flex justify-between items-center px-1.5 py-0.5"><span style={{ fontSize: 13, color: 'var(--meta)', textDecoration: 'line-through' }}>{c.name}</span><button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => restoreReal(id)} style={S.linkBtn}>undo</button></div>); })}
                 </div>
               )}
               <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -815,12 +816,12 @@ function MiniWeek({ pattern, onToggle }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 18px)', gap: 3, alignItems: 'center' }}>
       <span />{WF_DAYS.map(d => <span key={d} style={{ fontSize:11, color: 'var(--meta)', textAlign: 'center' }}>{WF_DAY_NAMES[d][0]}</span>)}
-      {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize:11, color: 'var(--meta)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern?.[d]?.[s] === 'in'; return <span key={d} onClick={onToggle ? () => onToggle(d, s) : undefined} style={{ width: 16, height: 16, borderRadius: 3, background: on ? 'var(--accent)' : 'var(--border)', cursor: onToggle ? 'pointer' : 'default', border: onToggle ? '1px solid var(--border-2)' : 'none' }} />; })}</FragmentRow>))}
+      {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize:11, color: 'var(--meta)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern?.[d]?.[s] === 'in'; return <span key={d} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={onToggle ? () => onToggle(d, s) : undefined} style={{ width: 16, height: 16, borderRadius: 3, background: on ? 'var(--accent)' : 'var(--border)', cursor: onToggle ? 'pointer' : 'default', border: onToggle ? '1px solid var(--border-2)' : 'none' }} />; })}</FragmentRow>))}
     </div>
   );
 }
 function Segmented({ options, value, onChange }) {
-  return (<div className="flex gap-1">{options.map(([v, l]) => <button key={v} onClick={() => onChange(v)} style={{ flex: 1, padding: '7px 4px', fontSize: 13, borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${value === v ? 'var(--accent-2)' : 'var(--border-2)'}`, background: value === v ? 'rgba(99,102,241,0.2)' : 'var(--surface)', color: value === v ? 'var(--accent-text)' : 'var(--text-3)' }}>{l}</button>)}</div>);
+  return (<div className="flex gap-1">{options.map(([v, l]) => <button key={v} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => onChange(v)} style={{ flex: 1, padding: '7px 4px', fontSize: 13, borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${value === v ? 'var(--accent-2)' : 'var(--border-2)'}`, background: value === v ? 'rgba(99,102,241,0.2)' : 'var(--surface)', color: value === v ? 'var(--accent-text)' : 'var(--text-3)' }}>{l}</button>)}</div>);
 }
 function ThRow({ label, value, onChange, colour }) {
   return (<div className="flex items-center gap-2"><span style={{ width: 11, height: 11, borderRadius: 3, background: colour, flexShrink: 0 }} /><span style={{ flex: 1, fontSize: 13, color: 'var(--text-2)' }}>{label}</span><input type="number" min={0} value={value} onChange={e => onChange(e.target.value)} style={{ width: 60, ...S.numInput }} /></div>);
@@ -838,8 +839,8 @@ function Popout({ title, onClose, children, highlight }) {
 }
 function Modal({ children, onClose }) {
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ ...S.card, width: 360, maxWidth: '94vw', background: 'var(--panel)', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>{children}</div>
+    <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={e => e.stopPropagation()} style={{ ...S.card, width: 360, maxWidth: '94vw', background: 'var(--panel)', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>{children}</div>
     </div>
   );
 }
@@ -859,7 +860,7 @@ function AddStaffModal({ roles, onClose, onAdd }) {
       <p style={S.modalLabel}>Contracted sessions <span style={{ color: 'var(--meta)', textTransform: 'none', letterSpacing: 0 }}>(leave blank for ad-hoc / locum)</span></p>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 1fr)', gap: 4, alignItems: 'center', marginBottom: 6 }}>
         <span />{WF_DAYS.map(d => <span key={d} style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center' }}>{WF_DAY_NAMES[d].slice(0, 3)}</span>)}
-        {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize: 12, color: 'var(--text-3)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern[d][s] === 'in'; return <button key={d} onClick={() => toggle(d, s)} style={{ height: 26, borderRadius: 'var(--r-sm)', cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent)' : 'var(--surface)' }} />; })}</FragmentRow>))}
+        {WF_SESSIONS.map(s => (<FragmentRow key={s}><span style={{ fontSize: 12, color: 'var(--text-3)' }}>{SESSION_LABEL[s]}</span>{WF_DAYS.map(d => { const on = pattern[d][s] === 'in'; return <button key={d} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => toggle(d, s)} style={{ height: 26, borderRadius: 'var(--r-sm)', cursor: 'pointer', border: `1px solid ${on ? 'var(--accent-2)' : 'var(--border-2)'}`, background: on ? 'var(--accent)' : 'var(--surface)' }} />; })}</FragmentRow>))}
       </div>
       <div className="flex justify-end gap-2 mt-3.5">
         <button onClick={onClose} style={S.btnGhost}>Cancel</button>

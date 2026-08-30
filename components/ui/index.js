@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { onKeyActivate } from '@/lib/a11y';
 
 const HEAD = "'Outfit', sans-serif";
 const MONO = "'Space Mono', monospace";
@@ -183,7 +184,7 @@ export function EmptyState({ icon, title, description, action, onAction, actionV
       {icon && <div style={{ fontSize: compact ? 26 : 36, marginBottom: 10, opacity: 0.85 }}>{icon}</div>}
       <div style={{ fontFamily: HEAD, fontSize: compact ? 14.5 : 16.5, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 5 }}>{title}</div>
       {description && <p style={{ fontSize: 13, color: 'var(--g-text-mid)', maxWidth: 430, margin: '0 auto', lineHeight: 1.55 }}>{description}</p>}
-      {action && <div className="mt-3.5"><Button size="sm" variant={actionVariant} onClick={onAction}>{action}</Button></div>}
+      {action && <div className="mt-3.5"><Button size="sm" variant={actionVariant} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={onAction}>{action}</Button></div>}
     </div>
   );
 }
@@ -352,7 +353,7 @@ export function ConfirmHost() {
   const { title = 'Are you sure?', message = '', confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false } = req.opts || {};
 
   return createPortal(
-    <div onClick={() => close(false)} style={{ position: 'fixed', inset: 0, zIndex: 2147483600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)', padding: 16, animation: 'uiFadeIn 0.12s ease-out' }}>
+    <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => close(false)} style={{ position: 'fixed', inset: 0, zIndex: 2147483600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)', padding: 16, animation: 'uiFadeIn 0.12s ease-out' }}>
       <style>{`@keyframes uiFadeIn { from { opacity: 0 } to { opacity: 1 } } @keyframes uiPopIn { from { opacity: 0; transform: scale(0.97) translateY(4px) } to { opacity: 1; transform: none } }`}</style>
       <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{
         width: 'min(430px, 100%)', background: 'var(--surface-solid)', border: '1px solid var(--g-border-2)',

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/ui';
 import { DAYS } from '@/lib/data';
 import { inferWeeklyRota } from '@/lib/auto-rota';
+import { onKeyActivate } from '@/lib/a11y';
 
 export default function TeamRota({ data, saveData, helpers, huddleData }) {
   const { ensureArray, toggleRotaDay } = helpers;
@@ -184,7 +185,7 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
                 return (
                   <tr key={c.id} className={`border-b border-slate-100 last:border-0 ${isIncomplete ? 'bg-red-50' : ''}`}>
                     <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="initials-badge neutral">{c.initials}</div><div><div className="text-sm font-medium text-slate-900 flex items-center gap-2">{c.name} {isIncomplete && <span className="text-[11px] font-semibold uppercase text-red-600 px-1.5 py-0.5 bg-red-100 rounded">Set manually</span>}</div><div className="text-xs text-slate-400">{c.role}</div></div></div></td>
-                    {DAYS.map(d => { const w = ensureArray(data.weeklyRota[d]).includes(c.id); return <td key={d} className="text-center py-3 px-3"><button onClick={() => { const cur = currentSessions(c.id, d); saveSessionRota({ [c.id]: { ...(data.sessionRota?.[c.id] || {}), [d]: cur.length ? [] : ['M','A'] } }, `Working day for ${c.name}: ${d} turned ${cur.length ? 'OFF' : 'ON (morning + afternoon)'}`); }} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors mx-auto text-sm ${w ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{w ? '✓' : '—'}</button>{w && patterns[c.id] && (
+                    {DAYS.map(d => { const w = ensureArray(data.weeklyRota[d]).includes(c.id); return <td key={d} className="text-center py-3 px-3"><button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => { const cur = currentSessions(c.id, d); saveSessionRota({ [c.id]: { ...(data.sessionRota?.[c.id] || {}), [d]: cur.length ? [] : ['M','A'] } }, `Working day for ${c.name}: ${d} turned ${cur.length ? 'OFF' : 'ON (morning + afternoon)'}`); }} className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors mx-auto text-sm ${w ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>{w ? '✓' : '—'}</button>{w && patterns[c.id] && (
                       <div className="flex justify-center gap-0.5 mt-1">
                         {SLOTS.map(sl => {
                           const det = patterns[c.id][d]?.detail?.[sl];
