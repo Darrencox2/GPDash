@@ -21,6 +21,9 @@
 //                                tightened with per-request nonces via middleware
 //                                but that's a heavier lift; this is still a major
 //                                step up from no CSP at all.
+//      'unsafe-eval'             DEV ONLY (see isDev below) — React Refresh
+//                                needs eval() for hot updates. Never emitted
+//                                in a production build.
 //   style-src                  — same-origin + inline (we use style={{...}} pervasively)
 //      'unsafe-inline'           + Bunny Fonts stylesheet (privacy-respecting
 //      fonts.bunny.net           Google Fonts drop-in — no IP tracking, EU-hosted,
@@ -46,6 +49,14 @@
 //   preload = signals intent to be added to the HSTS preload list at
 //             https://hstspreload.org/. Doing so means the browser refuses
 //             plain-http connections to gpdash.net even on first visit.
+
+// Dev-only CSP relaxation: `next dev` compiles with React Refresh, which
+// evaluates hot-update modules via eval() — blocked outright by a CSP
+// without 'unsafe-eval', so the dashboard renders once and then dies on
+// the first edit. NODE_ENV is 'development' only under `next dev`;
+// `next build` (local gate and Vercel alike) sets 'production', so the
+// shipped header is byte-identical to what it was before this flag.
+const isDev = process.env.NODE_ENV !== 'production';
 
 const securityHeaders = [
   // ─── HSTS ─────────────────────────────────────────────────────────────
@@ -117,7 +128,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline'" + (isDev ? " 'unsafe-eval'" : ''),
       "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
       "font-src 'self' https://fonts.bunny.net data:",
       "img-src 'self' data: blob:",
