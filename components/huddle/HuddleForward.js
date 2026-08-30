@@ -714,7 +714,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#047857'}}/>On target</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#b45309'}}/>Tight</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(45deg,transparent,transparent 2px,rgba(0,0,0,0.16) 2px,rgba(0,0,0,0.16) 4px),#dc2626'}}/>Short</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{border:'1.5px dashed rgba(239,68,68,0.5)'}}/>Beyond horizon</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{border:'1.5px dashed var(--g-border-2)'}}/>No sessions on EMIS yet</span>
             <span>|</span>
             <span>Demand chip: &#8593; above typical &middot; &#8593;&#8593; well above</span>
           </div>
@@ -777,24 +777,19 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 );
                 let amV = vBand(d.amS,d.amT);
                 let pmV = vBand(d.pmS,d.pmT);
-                // #2: more than three weeks out, with essentially no
-                // bookings in yet, a "short" session is not a shortage —
-                // it is a book that has not opened. Wk 6 was solid red at
-                // 0% booked, which teaches people to ignore red. Dashed
-                // outline instead; full colour returns as the day enters
-                // the actionable window or takes real bookings.
-                const HORIZON_MS = 21 * 86400000;
-                const dayBooked = d.uCap ? ((d.uCap.am.booked||0)+(d.uCap.pm.booked||0)) : 0;
-                // d.isPast already exists for the other direction, so
-                // Date.now() is fine here — the horizon is 3 weeks, a few
-                // hours of same-day imprecision cannot matter.
-                const beyondHorizon = (d.date.getTime() - Date.now()) > HORIZON_MS && dayBooked <= 2;
-                const GHOST = { bg: 'transparent', text: '#fca5a5', ghost: true };
-                const GHOST_T = { bg: 'transparent', text: '#fcd34d', ghost: true };
-                if (beyondHorizon) {
-                  if (amV === VB.short) amV = GHOST; else if (amV === VB.tight) amV = GHOST_T;
-                  if (pmV === VB.short) pmV = GHOST; else if (pmV === VB.tight) pmV = GHOST_T;
-                }
+                // A session with NO urgent slots on EMIS at all is not short
+                // — it has not been templated yet, so there is nothing to
+                // judge. Dashed outline for those; every session with any
+                // slots offered gets the usual colours at any distance.
+                //
+                // This replaced a "booking horizon" heuristic (>21 days out
+                // + few bookings) that was an invented cutoff: urgent slots
+                // are barely pre-booked at any distance, so the bookings
+                // test was hollow, and a genuinely under-built far week was
+                // being hidden. Darren set this rule instead.
+                const GHOST = { bg: 'transparent', text: 'var(--meta)', ghost: true };
+                if (d.amS === 0 && amV === VB.short) amV = GHOST;
+                if (d.pmS === 0 && pmV === VB.short) pmV = GHOST;
                 // Tooltip strings — native browser tooltips (cheap; no popper needed).
                 // AM/PM tip: duty doctor + supplied/target. Demand tip: top
                 // 2 driver factors. teamClin lookup gives the friendly
@@ -850,12 +845,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         </div>
                       </div>
                       <div className="flex gap-1">
-                        <div title={amV.ghost ? amTip + '\nBeyond the booking horizon — not yet judged' : amTip} className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg, border: amV.ghost ? '1.5px dashed rgba(239,68,68,0.45)' : 'none'}}>
-                          <div className="text-base font-bold leading-none font-mono-data" style={{color:amV.text}}>{d.amS}</div>
+                        <div title={amV.ghost ? 'AM — no urgent sessions on EMIS yet' : amTip} className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg, border: amV.ghost ? '1.5px dashed var(--g-border-2)' : 'none'}}>
+                          <div className="text-base font-bold leading-none font-mono-data" style={{color:amV.text}}>{amV.ghost ? '\u2014' : d.amS}</div>
                           <div className="text-[11px] font-bold mt-0.5" style={{color:amV.text,opacity:0.8}}>AM</div>
                         </div>
-                        <div title={pmV.ghost ? pmTip + '\nBeyond the booking horizon — not yet judged' : pmTip} className="flex-1 text-center rounded-md py-1.5" style={{background:pmV.bg, border: pmV.ghost ? '1.5px dashed rgba(239,68,68,0.45)' : 'none'}}>
-                          <div className="text-base font-bold leading-none font-mono-data" style={{color:pmV.text}}>{d.pmS}</div>
+                        <div title={pmV.ghost ? 'PM — no urgent sessions on EMIS yet' : pmTip} className="flex-1 text-center rounded-md py-1.5" style={{background:pmV.bg, border: pmV.ghost ? '1.5px dashed var(--g-border-2)' : 'none'}}>
+                          <div className="text-base font-bold leading-none font-mono-data" style={{color:pmV.text}}>{pmV.ghost ? '\u2014' : d.pmS}</div>
                           <div className="text-[11px] font-bold mt-0.5" style={{color:pmV.text,opacity:0.8}}>PM</div>
                         </div>
                       </div>
