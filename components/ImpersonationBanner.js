@@ -18,7 +18,12 @@ import { createClient } from '@/utils/supabase/server';
 import EndImpersonationButton from './EndImpersonationButton';
 
 export default async function ImpersonationBanner() {
-  const cookieStore = cookies();
+  // MUST be awaited: in Next 15 cookies() returns a Promise and the sync
+  // shim only survives on a deprecation path that logs an error on every
+  // render; in Next 16 it throws outright. This banner is a security
+  // control - it is the only thing telling an admin they are acting as
+  // someone else - so it must never be the component that silently fails.
+  const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('gpdash_imp');
   if (!sessionCookie?.value) return null;
 

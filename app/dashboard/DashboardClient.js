@@ -28,6 +28,7 @@ import LinkClinicianSuggest from '@/components/LinkClinicianSuggest';
 import { canEditPracticeData, isPlatformAdmin } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 import { DashboardCompletenessStrip } from '@/app/v4/_lib/SectionStatus';
+import { reportError } from '@/lib/report-error';
 
 // Shows the REAL error on screen when a section crashes, instead of
 // Next.js's blank "client-side exception" page - a live diagnostic so a
@@ -35,7 +36,12 @@ import { DashboardCompletenessStrip } from '@/app/v4/_lib/SectionStatus';
 class SectionErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(error) { return { error }; }
-  componentDidCatch(error, info) { console.error('[gpdash] section crashed:', error, info?.componentStack); }
+  componentDidCatch(error, info) {
+    console.error('[gpdash] section crashed:', error, info?.componentStack);
+    // Also send it, so a crash no longer depends on someone screenshotting
+    // the box and remembering to pass it on.
+    reportError(error, { source: 'boundary', componentStack: info?.componentStack });
+  }
   render() {
     if (this.state.error) {
       return (

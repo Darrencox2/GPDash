@@ -16,6 +16,7 @@ import './globals.css'
 import ImpersonationBanner from '@/components/ImpersonationBanner';
 import { ConfirmHost } from '@/components/ui';
 import PwaSetup from '@/components/PwaSetup';
+import ErrorReporter from '@/app/_lib/ErrorReporter';
 
 export const metadata = {
   title: {
@@ -69,6 +70,9 @@ export default function RootLayout({ children }) {
             unless a valid gpdash_imp cookie is present. Sticky-positioned
             at the top of every page so it can't be hidden by other content. */}
         <ImpersonationBanner />
+        {/* Installs window-level error + unhandled-rejection reporting.
+            Renders nothing; catches what React boundaries cannot see. */}
+        <ErrorReporter />
         {children}
         {/* Singleton host for the awaitable confirmDialog() — replaces
             native window.confirm so confirmations match the app design. */}

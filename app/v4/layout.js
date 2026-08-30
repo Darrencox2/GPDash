@@ -1,5 +1,4 @@
 // Layout for all /v4/* pages — dark glass theme, consistent with existing app.
-// Doesn't apply to /v4-test (intentionally bare diagnostic page).
 //
 // We set the background on this wrapper rather than relying on globals.css
 // because globals.css ships a light slate (#f1f5f9) for the legacy v3 dashboard

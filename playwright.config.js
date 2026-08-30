@@ -27,7 +27,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 const isLocal = baseURL.includes('localhost') || baseURL.includes('127.0.0.1');
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -41,10 +41,15 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Pure-logic tests over lib/. No browser, no server - they import the
+    // modules directly. Kept first so a logic regression surfaces before
+    // anything spends time booting Chromium.
+    { name: 'unit', testDir: './tests/unit' },
+    { name: 'e2e', testDir: './tests/e2e', use: { ...devices['Desktop Chrome'] } },
   ],
 
-  ...(isLocal ? {
+  // PW_UNIT=1 skips the dev server entirely - unit tests never touch it.
+  ...(isLocal && process.env.PW_UNIT !== '1' ? {
     webServer: {
       command: 'npm run dev',
       url: baseURL,

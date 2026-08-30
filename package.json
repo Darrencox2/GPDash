@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:e2e": "playwright test",
+    "test": "playwright test",
+    "test:unit": "PW_UNIT=1 playwright test --project=unit",
+    "test:e2e": "playwright test --project=e2e",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
   },
