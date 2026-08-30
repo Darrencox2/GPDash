@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",
@@ -21,6 +24,7 @@
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "autoprefixer": "^10.4.17",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
