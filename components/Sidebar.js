@@ -303,84 +303,82 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
             </div>
           )}
 
-          {/* Version (practice logo removed — will be re-added per-practice later) */}
-          <div className="p-2.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-            <button onClick={handleVersionClick} className="block w-full text-center pb-1 hover:text-slate-400 transition-colors" style={{fontFamily:"'Space Mono',monospace",fontSize:sidebarOpen?12:10,color:'var(--text-3)'}}>{APP_VERSION}</button>
-          </div>
-
-          {/* Theme toggle */}
-          <div className="p-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-            <button onClick={toggleTheme}
-              aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-              className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-lg text-sm transition-colors"
-              style={{ color: 'var(--text-3)' }}
-              title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
-              {theme === 'dark' ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-              )}
-              {sidebarOpen && <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
-            </button>
-
-            {/* Reader scale, next to the theme toggle because it is the same
-                kind of setting: a personal display preference, not practice
-                data. Three steps rather than a slider — enough to matter,
-                few enough to choose without thinking. */}
-            {sidebarOpen ? (
-              <div className="mt-1" role="group" aria-label="Text size">
-                <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)' }}>
+          {/* ── Footer controls ─────────────────────────────────────
+              One section, two rows, one divider. This was four separately
+              bordered sections (~230px) stacking version, theme, text size
+              and collapse — tall enough to push the nav itself into
+              scrolling. Same features, half the height:
+                row 1: theme toggle + text size, side by side
+                row 2: version · collapse                            */}
+          {sidebarOpen ? (
+            <div className="px-2.5 py-2" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
+              <div className="flex items-center gap-1.5">
+                <button onClick={toggleTheme}
+                  aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                  className="flex items-center justify-center rounded-lg transition-colors hover:bg-white/5"
+                  style={{ color: 'var(--text-3)', width: 38, height: 34, flexShrink: 0, border: '1px solid var(--g-border-2)', background: 'var(--g-tile)' }}
+                  title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
+                  {theme === 'dark' ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+                  )}
+                </button>
+                <div className="flex gap-0.5 p-0.5 rounded-lg flex-1" role="group" aria-label="Text size" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', height: 34 }}>
                   {ZOOMS.map((z) => {
                     const active = zoom === z.id;
                     return (
                       <button
                         key={z.id}
                         onClick={() => applyZoom(z.id)}
-                        title={z.hint}
+                        title={`${z.label} text — ${z.hint}`}
                         aria-pressed={active}
-                        className="flex-1 rounded-md py-1 transition-colors"
+                        className="flex-1 rounded-md transition-colors"
                         style={{
                           background: active ? 'var(--accent-soft)' : 'transparent',
                           color: active ? 'var(--accent-text)' : 'var(--text-3)',
                           border: active ? '1px solid var(--accent)' : '1px solid transparent',
-                          // The button's own size previews what it does. A
-                          // wider spread than the actual 1.0/1.25/1.45 steps,
-                          // because at this size a 2px difference does not
-                          // read as a scale.
-                          fontSize: z.id === 'compact' ? 10 : z.id === 'default' ? 14 : 18,
-                          fontWeight: active ? 600 : 500,
-                          lineHeight: 1.2,
+                          fontSize: z.id === 'compact' ? 10 : z.id === 'default' ? 13 : 16,
+                          fontWeight: active ? 700 : 500,
+                          lineHeight: 1,
                         }}
                       >A</button>
                     );
                   })}
                 </div>
-                <div className="text-center mt-1" style={{ fontSize: 11, color: 'var(--meta)' }}>
-                  {ZOOMS.find((z) => z.id === zoom)?.label} text
-                </div>
               </div>
-            ) : (
-              // Collapsed rail: one button that cycles, since three will not fit.
+              <div className="flex items-center justify-between mt-1.5 px-0.5">
+                <button onClick={handleVersionClick} className="hover:text-slate-400 transition-colors" style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: 'var(--text-4)' }} title="View changelog">{APP_VERSION}</button>
+                <button onClick={() => setSidebarOpen(false)} aria-label="Collapse sidebar" className="rounded px-2 py-0.5 text-slate-400 hover:bg-white/5 text-xs transition-colors">&#9666;</button>
+              </div>
+            </div>
+          ) : (
+            <div className="px-1.5 py-2 flex flex-col items-center gap-1" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
+              <button onClick={toggleTheme}
+                aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                className="w-full flex items-center justify-center py-2 rounded-lg transition-colors hover:bg-white/5"
+                style={{ color: 'var(--text-3)' }}
+                title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
+                {theme === 'dark' ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+                )}
+              </button>
               <button
                 onClick={() => applyZoom(ZOOMS[(ZOOMS.findIndex((z) => z.id === zoom) + 1) % ZOOMS.length].id)}
                 title={`Text size: ${ZOOMS.find((z) => z.id === zoom)?.label} — click to change`}
                 aria-label={`Text size: ${ZOOMS.find((z) => z.id === zoom)?.label}. Click to change.`}
-                className="w-full flex items-center justify-center py-2 mt-1 rounded-lg transition-colors hover:bg-white/5"
+                className="w-full flex items-center justify-center py-2 rounded-lg transition-colors hover:bg-white/5"
                 style={{ color: 'var(--text-3)' }}
               >
-                <span style={{ fontSize: 11, fontWeight: 700 }}>A</span>
-                <span style={{ fontSize: 15, fontWeight: 700, marginLeft: 1 }}>A</span>
+                <span style={{ fontSize: 10, fontWeight: 700 }}>A</span>
+                <span style={{ fontSize: 14, fontWeight: 700, marginLeft: 1 }}>A</span>
               </button>
-            )}
-          </div>
-
-          {/* Collapse toggle */}
-          <div className="p-1.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-            <button onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="w-full flex items-center justify-center py-1.5 rounded-lg text-slate-400 hover:text-slate-400 hover:bg-white/5 text-xs transition-colors">
-              {sidebarOpen ? '◂' : '▸'}
-            </button>
-          </div>
+              <button onClick={handleVersionClick} className="w-full text-center hover:text-slate-400 transition-colors" style={{ fontFamily: "'Space Mono',monospace", fontSize: 9, color: 'var(--text-4)' }} title={`${APP_VERSION} — view changelog`}>{APP_VERSION.replace('v', '')}</button>
+              <button onClick={() => setSidebarOpen(true)} aria-label="Expand sidebar" className="w-full flex items-center justify-center py-1.5 rounded-lg text-slate-400 hover:bg-white/5 text-xs transition-colors">&#9656;</button>
+            </div>
+          )}
         </div>
       </aside>
 
