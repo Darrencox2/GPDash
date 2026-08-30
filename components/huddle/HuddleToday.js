@@ -978,13 +978,21 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     <button
                       onClick={() => setSelectedUrgentClinician({ name: dutyDocDisplay.csvName, accent: dutyLocCol || '#8b5cf6' })}
                       className="rounded-lg overflow-hidden mb-2 w-full text-left transition-transform hover:scale-[1.01]"
-                      style={{
-                        background: 'rgba(255,255,255,0.07)',
-                        border: '1px solid rgba(255,255,255,0.14)',
-                        borderLeft: `4px solid ${dutyLocCol || '#8b5cf6'}`,
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
-                        cursor: 'pointer',
-                      }}
+                      /* Tinted with the duty site's colour, as in the
+                         approved mockup — for Winscombe that is the purple.
+                         Fill at low alpha so the row reads as a role, not an
+                         alert; rail solid for identity. */
+                      style={(() => {
+                        const c = dutyLocCol || '#8b5cf6';
+                        const r = parseInt(c.slice(1, 3), 16), g = parseInt(c.slice(3, 5), 16), b = parseInt(c.slice(5, 7), 16);
+                        return {
+                          background: `rgba(${r},${g},${b},0.14)`,
+                          border: `1px solid rgba(${r},${g},${b},0.4)`,
+                          borderLeft: `4px solid ${c}`,
+                          boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+                          cursor: 'pointer',
+                        };
+                      })()}
                     >
                       <div className="flex items-center gap-2.5 px-3 py-2.5">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="#fbbf24" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
