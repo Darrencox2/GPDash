@@ -375,14 +375,16 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   // { id, key } when a row's "Left" / "Sick" option is open, plus the
   // editable cover period in weeks.
   const [transitionOpen, setTransitionOpen] = useState(null);
-  const [transitionWeeks, setTransitionWeeks] = useState(9);
+  // Dates, not week counts — "until 28 Sept" is how a practice actually
+  // talks about cover. Default seeds from the transition's old week preset.
+  const [transitionUntil, setTransitionUntil] = useState('');
   const [suggestMenuOpen, setSuggestMenuOpen] = useState(null); // clinicianId
 
   const confirmTransition = (clinicianId) => {
     const t = STATUS_TRANSITIONS[transitionOpen?.key];
     if (!t) return;
     const next = applyTransition(data, clinicianId, t.key, {
-      weeks: transitionWeeks,
+      untilDate: transitionUntil || undefined,
       by: data?._v4?.userDisplayName || null,
     });
     saveData(next);
@@ -1325,22 +1327,32 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           <div className="text-caption text-hi font-semibold mb-1.5">
                             {STATUS_TRANSITIONS[transitionOpen.key].label}: {g.name}
                           </div>
-                          <label className="flex items-center gap-2 text-caption text-mid mb-2">
-                            Period:
-                            <input
-                              type="number" min="1" max="52"
-                              value={transitionWeeks}
-                              onChange={(e) => setTransitionWeeks(e.target.value)}
-                              className="w-14 px-1.5 py-1 rounded-md bg-card border border-edge text-hi text-caption"
-                            />
-                            weeks
-                          </label>
-                          <div className="text-caption text-mid mb-2 leading-normal">
-                            {STATUS_TRANSITIONS[transitionOpen.key].describe(
-                              Math.max(1, Math.min(52, Number(transitionWeeks) || STATUS_TRANSITIONS[transitionOpen.key].defaultWeeks)),
-                              new Date(Date.now() + Math.max(1, Math.min(52, Number(transitionWeeks) || STATUS_TRANSITIONS[transitionOpen.key].defaultWeeks)) * 7 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                            )}
-                          </div>
+                          {(() => {
+                            const t = STATUS_TRANSITIONS[transitionOpen.key];
+                            const defIso = new Date(Date.now() + t.defaultWeeks * 7 * 86400000).toISOString().slice(0, 10);
+                            const until = transitionUntil || defIso;
+                            const untilPretty = new Date(until + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                            const weeksApprox = Math.max(1, Math.round((new Date(until + 'T12:00:00') - Date.now()) / (7 * 86400000)));
+                            return (
+                              <>
+                                <label className="flex items-center gap-2 text-caption text-mid mb-2">
+                                  Until:
+                                  <input
+                                    type="date"
+                                    value={until}
+                                    min={new Date().toISOString().slice(0, 10)}
+                                    onChange={(e) => setTransitionUntil(e.target.value)}
+                                    className="px-1.5 py-1 rounded-md bg-card border border-edge text-hi text-caption"
+                                    style={{ colorScheme: 'dark' }}
+                                  />
+                                  <span style={{ color: 'var(--meta)' }}>(~{weeksApprox} wk{weeksApprox === 1 ? '' : 's'})</span>
+                                </label>
+                                <div className="text-caption text-mid mb-2 leading-normal">
+                                  {t.describe(weeksApprox, untilPretty)}
+                                </div>
+                              </>
+                            );
+                          })()}
                           <div className="flex gap-1.5">
                             <button
                               onClick={() => confirmTransition(g.id)}

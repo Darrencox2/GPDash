@@ -1,0 +1,127 @@
+// Unit tests for lib/staff-plan.js — the timeline maths under Staff Changes.
+import { test, expect } from '@playwright/test';
+import { monthKey, addMonths, aprilStart, monthRange, derivePeople, sessionsByMonth, totalsByMonth, per1000ByMonth, planSummary, suggestedEventsFromWindDowns, monthEndDate } from '../../lib/staff-plan.js';
+
+const P = { id: 'a', name: 'Dr A', sessions: 6, kind: 'real' };
+const MONTHS = monthRange('2026-04', 13);
+
+test.describe('month helpers', () => {
+  test('april anchoring follows the financial year', () => {
+    expect(aprilStart(new Date(2026, 8, 1))).toBe('2026-04');   // Sept -> this April
+    expect(aprilStart(new Date(2026, 1, 1))).toBe('2025-04');   // Feb -> LAST April
+    expect(aprilStart(new Date(2026, 3, 1))).toBe('2026-04');   // April itself
+  });
+  test('addMonths crosses year ends', () => {
+    expect(addMonths('2026-11', 3)).toBe('2027-02');
+    expect(addMonths('2026-04', 12)).toBe('2027-04');
+  });
+  test('monthEndDate lands on the real month end', () => {
+    expect(monthEndDate('2026-11')).toBe('2026-11-30');
+    expect(monthEndDate('2028-02')).toBe('2028-02-29');   // leap year
+  });
+});
+
+test.describe('sessionsByMonth', () => {
+  test('no events means a flat line at base sessions', () => {
+    const s = sessionsByMonth(P, [], MONTHS);
+    expect(s['2026-04']).toBe(6);
+    expect(s['2027-04']).toBe(6);
+  });
+  test('a leave zeroes from its month onwards', () => {
+    const s = sessionsByMonth(P, [{ personRef: 'a', type: 'leave', month: '2026-09' }], MONTHS);
+    expect(s['2026-08']).toBe(6);
+    expect(s['2026-09']).toBe(0);
+    expect(s['2027-04']).toBe(0);
+  });
+  test('a change steps to the new value', () => {
+    const s = sessionsByMonth(P, [{ personRef: 'a', type: 'change', month: '2027-01', sessions: 4 }], MONTHS);
+    expect(s['2026-12']).toBe(6);
+    expect(s['2027-01']).toBe(4);
+  });
+  test('temporary leave zeroes the span and restores after', () => {
+    const s = sessionsByMonth(P, [{ personRef: 'a', type: 'temp_leave', month: '2026-11', toMonth: '2027-02' }], MONTHS);
+    expect(s['2026-10']).toBe(6);
+    expect(s['2026-11']).toBe(0);
+    expect(s['2027-02']).toBe(0);
+    expect(s['2027-03']).toBe(6);   // automatically back
+  });
+  test('a planned person is 0 until their join', () => {
+    const loc = { id: 'x', name: 'Dr Locum', sessions: 0, kind: 'planned' };
+    const s = sessionsByMonth(loc, [{ personRef: 'x', type: 'join', month: '2026-11', sessions: 4 }], MONTHS);
+    expect(s['2026-10']).toBe(0);
+    expect(s['2026-11']).toBe(4);
+  });
+  test('events for other people are ignored', () => {
+    const s = sessionsByMonth(P, [{ personRef: 'zzz', type: 'leave', month: '2026-05' }], MONTHS);
+    expect(s['2026-06']).toBe(6);
+  });
+});
+
+test.describe('totals and summaries', () => {
+  const B = { id: 'b', name: 'Dr B', sessions: 4, kind: 'real' };
+  test('totals sum every person per month', () => {
+    const { totals } = totalsByMonth([P, B], [{ personRef: 'a', type: 'leave', month: '2026-09' }], MONTHS);
+    expect(totals['2026-08']).toBe(10);
+    expect(totals['2026-09']).toBe(4);
+  });
+  test('planSummary finds the low point and end delta', () => {
+    const { totals } = totalsByMonth([P, B], [{ personRef: 'a', type: 'temp_leave', month: '2026-11', toMonth: '2026-12' }], MONTHS);
+    const sum = planSummary(totals, MONTHS, '2026-09');
+    expect(sum.low).toBe(4);
+    expect(sum.lowMk).toBe('2026-11');
+    expect(sum.endDelta).toBe(0);
+  });
+});
+
+test.describe('per-1000-patients', () => {
+  test('uses the nearest earlier known list size, then the current one', () => {
+    const totals = { '2026-04': 157, '2026-05': 157, '2026-06': 157 };
+    const out = per1000ByMonth(totals, ['2026-04', '2026-05', '2026-06'], { '2026-05': 10000 }, 11515);
+    expect(out['2026-04']).toBeCloseTo(13.6, 1);   // current size fallback
+    expect(out['2026-05']).toBeCloseTo(15.7, 1);   // NHS-known month
+    expect(out['2026-06']).toBeCloseTo(15.7, 1);   // carried forward
+  });
+  test('no list size at all yields null, never Infinity', () => {
+    const out = per1000ByMonth({ '2026-04': 157 }, ['2026-04'], null, null);
+    expect(out['2026-04']).toBe(null);
+  });
+});
+
+test.describe('derivePeople', () => {
+  test('counts in=1 and half=0.5 from the session rota detail', () => {
+    const data = {
+      clinicians: [{ id: 'a', name: 'Dr A', initials: 'DA', role: 'GP Partner', status: 'active' }],
+      sessionRotaDetail: { a: { Monday: { am: 'in', pm: 'half' }, Tuesday: { am: 'in' } } },
+    };
+    const people = derivePeople(data);
+    expect(people[0].sessions).toBe(2.5);
+    expect(people[0].group).toBe('gp');
+  });
+  test('drops the inactive and the sessionless', () => {
+    const data = {
+      clinicians: [
+        { id: 'a', name: 'A', status: 'left', role: 'GP' },
+        { id: 'b', name: 'B', status: 'active', role: 'GP' },
+      ],
+      sessionRotaDetail: { a: { Monday: { am: 'in' } } },
+    };
+    expect(derivePeople(data)).toHaveLength(0);
+  });
+});
+
+test.describe('wind-down bridge', () => {
+  test('a leaving wind-down suggests a leave event in its end month', () => {
+    const people = [{ id: 'a', name: 'Dr A', sessions: 6, kind: 'real', windDown: { type: 'left', startDate: '2026-08-01', endDate: '2026-09-28' } }];
+    const sugg = suggestedEventsFromWindDowns(people, []);
+    expect(sugg[0]).toMatchObject({ type: 'leave', month: '2026-09' });
+  });
+  test('a sickness wind-down suggests a temp span', () => {
+    const people = [{ id: 'a', name: 'Dr A', sessions: 6, kind: 'real', windDown: { type: 'sick', startDate: '2026-08-20', endDate: '2026-09-15' } }];
+    const sugg = suggestedEventsFromWindDowns(people, []);
+    expect(sugg[0]).toMatchObject({ type: 'temp_leave', month: '2026-08', toMonth: '2026-09' });
+  });
+  test('already-recorded events are not re-suggested', () => {
+    const people = [{ id: 'a', name: 'Dr A', sessions: 6, kind: 'real', windDown: { type: 'left', endDate: '2026-09-28' } }];
+    expect(suggestedEventsFromWindDowns(people, [{ personRef: 'a', type: 'leave', month: '2026-09' }])).toHaveLength(0);
+  });
+});

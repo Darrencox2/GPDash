@@ -447,6 +447,10 @@ export async function POST(request) {
     newExtras.savedSlotFilters = newData.savedSlotFilters;
     extrasChanged = true;
   }
+  if (newData.staffPlan !== undefined && JSON.stringify(newData.staffPlan) !== JSON.stringify(oldExtras.staffPlan || null)) {
+    newExtras.staffPlan = newData.staffPlan;
+    extrasChanged = true;
+  }
   if (newData.expectedCapacity !== undefined && JSON.stringify(newData.expectedCapacity) !== JSON.stringify(oldExtras.expectedCapacity || null)) {
     newExtras.expectedCapacity = newData.expectedCapacity;
     extrasChanged = true;
@@ -754,6 +758,7 @@ async function handleFastPath(supabase, practiceId, user, newData) {
   // For these we need to read current extras (so we don't clobber sibling
   // keys), but only the extras column — much lighter than loadPracticeData.
   const needsExtrasRead = newData.dailyOverrides !== undefined ||
+                          newData.staffPlan !== undefined ||
                           newData.lastSyncTime !== undefined ||
                           newData.savedSlotFilters !== undefined ||
                           newData.expectedCapacity !== undefined;
@@ -766,6 +771,7 @@ async function handleFastPath(supabase, practiceId, user, newData) {
     let changed = false;
     const newExtras = { ...oldExtras };
     if (newData.dailyOverrides !== undefined) { newExtras.dailyOverrides = newData.dailyOverrides; changed = true; }
+    if (newData.staffPlan !== undefined) { newExtras.staffPlan = newData.staffPlan; changed = true; }
     if (newData.lastSyncTime !== undefined) { newExtras.lastTeamnetSync = newData.lastSyncTime; changed = true; }
     if (newData.savedSlotFilters !== undefined) { newExtras.savedSlotFilters = newData.savedSlotFilters; changed = true; }
     if (newData.expectedCapacity !== undefined) { newExtras.expectedCapacity = newData.expectedCapacity; changed = true; }
