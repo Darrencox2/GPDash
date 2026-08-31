@@ -251,7 +251,7 @@ function SecurityPageInner() {
                   padding: '10px 12px',
                   background: 'rgba(0,0,0,0.3)',
                   borderRadius: 'var(--r-sm)',
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: 13,
                   color: '#67e8f9',
                   wordBreak: 'break-all',
@@ -324,12 +324,12 @@ function PageShell({ children }) {
 
 // ─── Styles ────────────────────────────────────────────────────────────
 const h1 = {
-  fontFamily: "'Outfit', sans-serif",
+  fontFamily: "var(--font-heading)",
   fontSize: 32, fontWeight: 500, color: 'white',
   marginBottom: 8,
 };
 const h2 = {
-  fontFamily: "'Outfit', sans-serif",
+  fontFamily: "var(--font-heading)",
   fontSize: 18, fontWeight: 500, color: 'white',
   marginBottom: 8,
 };
@@ -361,7 +361,7 @@ const otpInput = {
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 'var(--r-md)',
   color: 'white',
-  fontFamily: "'Space Mono', monospace",
+  fontFamily: "var(--font-mono)",
   fontSize: 22,
   letterSpacing: 4,
   textAlign: 'center',

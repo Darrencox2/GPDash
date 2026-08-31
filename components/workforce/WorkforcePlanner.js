@@ -509,7 +509,7 @@ export default function WorkforcePlanner({ data, toast }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 style={{ margin: 0, fontSize: 23, fontWeight: 600, color: 'var(--g-text-hi)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>Workforce planner</h2>
+          <h2 style={{ margin: 0, fontSize: 23, fontWeight: 600, color: 'var(--g-text-hi)', fontFamily: "var(--font-heading)", lineHeight: 1.2 }}>Workforce planner</h2>
           <p style={{ margin: '5px 0 0', fontSize: 14, color: 'var(--g-text-mid)', maxWidth: 720, lineHeight: 1.5 }}>
             Drag clinicians across the week, allocate activities, and see where each session sits against demand. Use it to plan recruitment: spot the gaps against demand and work out how many sessions, and which role, to hire.
           </p>
@@ -533,14 +533,14 @@ export default function WorkforcePlanner({ data, toast }) {
       <div style={{ ...S.card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 34, fontWeight: 700, color: 'var(--text-1)', fontFamily: "'Space Mono', monospace", lineHeight: 1 }}>{totalCount}</span>
+            <span style={{ fontSize: 34, fontWeight: 700, color: 'var(--text-1)', fontFamily: "var(--font-mono)", lineHeight: 1 }}>{totalCount}</span>
             <span style={{ fontSize: 14, color: 'var(--text-3)' }}>total sessions / week</span>
           </div>
           <div style={{ fontSize: 12, color: 'var(--meta)', marginTop: 4 }}>Every clinician-session on the grid, including those on activities · editing {activeName}</div>
         </div>
         {!onCurrent && (
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: totalDelta < 0 ? '#f87171' : totalDelta > 0 ? '#38bdf8' : 'var(--text-3)' }}>
+            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "var(--font-mono)", color: totalDelta < 0 ? '#f87171' : totalDelta > 0 ? '#38bdf8' : 'var(--text-3)' }}>
               {totalDelta > 0 ? '+' : ''}{totalDelta} vs Current
             </div>
             <div style={{ fontSize: 12, color: 'var(--meta)', marginTop: 2 }}>Current has {currentTotal} · this scenario has {totalCount}</div>
@@ -645,7 +645,7 @@ export default function WorkforcePlanner({ data, toast }) {
           {WF_DAYS.map(day => {
             const w = grid[day].am.working + grid[day].pm.working;
             const g = grid[day].am.general + grid[day].pm.general;
-            return (<div key={day} style={{ textAlign: 'center', paddingTop: 6, fontFamily: "'Space Mono', monospace", fontSize: 12, color: 'var(--text-3)' }}>{w} working<br /><span style={{ color: 'var(--meta)' }}>{fmt(g)} general</span></div>);
+            return (<div key={day} style={{ textAlign: 'center', paddingTop: 6, fontFamily: "var(--font-mono)", fontSize: 12, color: 'var(--text-3)' }}>{w} working<br /><span style={{ color: 'var(--meta)' }}>{fmt(g)} general</span></div>);
           })}
         </div>
         <div className="flex gap-4 flex-wrap mt-3.5">
@@ -673,7 +673,7 @@ export default function WorkforcePlanner({ data, toast }) {
                         <button onClick={() => toggleDuty(c.id)} title={dutySet.has(c.id) ? 'Duty-capable — click to unset' : 'Mark as duty-capable'}
                           style={{ width: 22, height: 22, borderRadius: 'var(--r-pill)', cursor: 'pointer', fontSize:11, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
                             background: dutySet.has(c.id) ? 'rgba(248,113,113,0.18)' : 'transparent', border: `1px solid ${dutySet.has(c.id) ? 'rgba(248,113,113,0.7)' : 'var(--border-2)'}`, color: dutySet.has(c.id) ? '#fca5a5' : 'var(--meta)' }}>D</button>
-                        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, color: mismatch ? '#f87171' : 'var(--text-3)' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: mismatch ? '#f87171' : 'var(--text-3)' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
                         {c._added ? <button onClick={() => deleteAdded(c.id)} title="Delete" style={S.xBtn}>×</button> : <button onClick={() => removeReal(c.id)} title="Mark as leaving" style={S.xBtn}>×</button>}
                       </div>
                       {open && (
@@ -771,7 +771,7 @@ export default function WorkforcePlanner({ data, toast }) {
                     const start = i === auditLog.length - 1;
                     return (
                       <div key={`${e.t}-${i}`} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i === auditLog.length - 1 ? 'none' : '1px solid var(--surface-2)' }}>
-                        <span style={{ flexShrink: 0, width: 56, fontSize: 11, color: 'var(--meta)', fontFamily: "'Space Mono', monospace" }}>{e.t ? new Date(e.t).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : ''}</span>
+                        <span style={{ flexShrink: 0, width: 56, fontSize: 11, color: 'var(--meta)', fontFamily: "var(--font-mono)" }}>{e.t ? new Date(e.t).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : ''}</span>
                         <span style={{ fontSize: 13, color: start ? 'var(--text-3)' : 'var(--text-1)', fontStyle: start ? 'italic' : 'normal', lineHeight: 1.4 }}>{e.text}</span>
                       </div>
                     );
@@ -810,7 +810,7 @@ export default function WorkforcePlanner({ data, toast }) {
 
 function FragmentRow({ children }) { return <>{children}</>; }
 function Metric({ label, value, bg }) {
-  return (<div style={{ background: bg, borderRadius: 'var(--r-sm)', padding: '5px 4px', textAlign: 'center' }}><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', fontFamily: "'Space Mono', monospace" }}>{value}</div><div style={{ fontSize:11, color: 'var(--text-3)' }}>{label}</div></div>);
+  return (<div style={{ background: bg, borderRadius: 'var(--r-sm)', padding: '5px 4px', textAlign: 'center' }}><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', fontFamily: "var(--font-mono)" }}>{value}</div><div style={{ fontSize:11, color: 'var(--text-3)' }}>{label}</div></div>);
 }
 function MiniWeek({ pattern, onToggle }) {
   return (
@@ -840,6 +840,7 @@ function Popout({ title, onClose, children, highlight }) {
 function Modal({ children, onClose }) {
   return (
     <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <h1 className="sr-only">Workforce planner</h1>
       <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={e => e.stopPropagation()} style={{ ...S.card, width: 360, maxWidth: '94vw', background: 'var(--panel)', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>{children}</div>
     </div>
   );

@@ -13,7 +13,7 @@ export default function LoginScreen({ password, setPassword, onLogin, loading, e
 
         {/* Login card */}
         <div className="rounded-2xl p-8" style={{background:'rgba(15,23,42,0.7)',border:'1px solid rgba(255,255,255,0.06)',backdropFilter:'blur(12px)'}}>
-          <h2 className="text-lg font-medium text-slate-300 text-center mb-6" style={{fontFamily:"'Outfit',sans-serif"}}>Sign in to your practice</h2>
+          <h2 className="text-lg font-medium text-slate-300 text-center mb-6" style={{fontFamily:"var(--font-heading)"}}>Sign in to your practice</h2>
 
           <form onSubmit={onLogin}>
             <div className="mb-5">
@@ -48,7 +48,7 @@ export default function LoginScreen({ password, setPassword, onLogin, loading, e
 
         {/* Footer */}
         <div className="text-center mt-6">
-          <span className="text-xs text-slate-400" style={{fontFamily:"'Space Mono',monospace"}}>{APP_VERSION}</span>
+          <span className="text-xs text-slate-400" style={{fontFamily:"var(--font-mono)"}}>{APP_VERSION}</span>
         </div>
       </div>
     </div>

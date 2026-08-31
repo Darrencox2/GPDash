@@ -136,9 +136,9 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm"
               style={{ background: 'rgba(34,211,238,0.12)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.2)' }}
             >
-              <span style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>{selectedCount}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>{selectedCount}</span>
               <span style={{ color: '#67e8f988' }}>of</span>
-              <span style={{ fontFamily: "'Space Mono', monospace" }}>{totalCount}</span>
+              <span style={{ fontFamily: "var(--font-mono)" }}>{totalCount}</span>
               <span>selected</span>
             </div>
             <button
@@ -272,7 +272,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                 Duty doctor slot{dutySelectedSet.size > 1 ? 's' : ''}
               </span>
               {dutySelectedSet.size > 0 && (
-                <span className="text-sm text-amber-400/70" style={{ fontFamily: "'Space Mono', monospace" }}>
+                <span className="text-sm text-amber-400/70" style={{ fontFamily: "var(--font-mono)" }}>
                   {dutySelectedSet.size}
                 </span>
               )}
@@ -295,7 +295,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                 </div>
                 <div>
                   <span className="opacity-80">Not found in current CSV:</span>{' '}
-                  <span style={{ fontFamily: "'Space Mono', monospace" }}>
+                  <span style={{ fontFamily: "var(--font-mono)" }}>
                     {staleSelectedDuty.map(s => `"${s}"`).join(', ')}
                   </span>
                 </div>

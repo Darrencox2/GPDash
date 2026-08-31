@@ -728,8 +728,8 @@ export function SpeedometerGauge({ percentage, width = 300, height = 165, viewBo
       <circle cx={needlePt.x.toFixed(1)} cy={needlePt.y.toFixed(1)} r={strokeW*0.45} fill={endCol} strokeWidth={strokeW*0.22} style={{filter:`drop-shadow(0 0 ${strokeW*0.6}px ${endCol})`, stroke:'var(--g-ink)'}}/>
       <circle cx={cx} cy={cy} r={strokeW*0.3} style={{fill:'var(--g-ink-2)',stroke:'var(--g-border-2)'}} strokeWidth={strokeW*0.08}/>
       <rect x={cx-pillW/2} y={cy-pillH-strokeW*0.1} width={pillW} height={pillH} rx={pillR} style={{fill:'var(--g-panel-strong)',stroke:'var(--g-border)'}} strokeWidth="0.5"/>
-      <text x={cx} y={cy-pillH*0.45} textAnchor="middle" style={{fontFamily:"'Space Mono',monospace",fontSize:pctSize,fontWeight:700,fill:'var(--g-pill-text)'}}>{percentage}%</text>
-      <text x={cx} y={cy-pillH*0.08} textAnchor="middle" fill={endCol} style={{fontFamily:"'Outfit',sans-serif",fontSize:labelSize,fontWeight:500}}>{band.label}</text>
+      <text x={cx} y={cy-pillH*0.45} textAnchor="middle" style={{fontFamily:"var(--font-mono)",fontSize:pctSize,fontWeight:700,fill:'var(--g-pill-text)'}}>{percentage}%</text>
+      <text x={cx} y={cy-pillH*0.08} textAnchor="middle" fill={endCol} style={{fontFamily:"var(--font-heading)",fontSize:labelSize,fontWeight:500}}>{band.label}</text>
       {slots !== undefined && target !== undefined && <text x={cx} y={cy+subSize*1.4} textAnchor="middle" style={{fontSize:subSize,fill:'var(--g-text-faint)'}}>{slots} / {target} target</text>}
     </svg>
   );

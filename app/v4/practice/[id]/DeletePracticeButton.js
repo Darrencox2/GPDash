@@ -76,7 +76,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
             borderRadius: 'var(--r-lg)',
             padding: 24,
           }}>
-            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: '#fca5a5', marginBottom: 8 }}>
+            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: '#fca5a5', marginBottom: 8 }}>
               ⚠ Delete practice
             </h2>
             <p className="text-body-sm text-hi leading-normal mb-3">

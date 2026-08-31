@@ -464,7 +464,7 @@ export default function SetupWizard({
               Welcome to GPDash
             </div>
             <h1 style={{
-              fontFamily: "'Outfit', sans-serif",
+              fontFamily: "var(--font-heading)",
               fontSize: 30, fontWeight: 600, color: 'white',
               lineHeight: 1.2, marginBottom: 14,
             }}>
@@ -837,7 +837,7 @@ export default function SetupWizard({
           </div>
           <div style={{
             fontSize: 32, fontWeight: 600, color: 'white',
-            fontFamily: "'Outfit', sans-serif", marginBottom: 8,
+            fontFamily: "var(--font-heading)", marginBottom: 8,
             animation: 'wizardCelebrateLift 0.5s ease-out 0.25s both',
             textAlign: 'center', padding: '0 24px',
           }}>
@@ -1121,7 +1121,7 @@ function StepHeader({ step, index, done, liveSubtitle }) {
           </span>
         )}
       </div>
-      <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 600, color: 'white', lineHeight: 1.15, marginBottom: 8 }}>
+      <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 32, fontWeight: 600, color: 'white', lineHeight: 1.15, marginBottom: 8 }}>
         {step.title}
       </h1>
       <p style={{ fontSize: 15, color: '#94a3b8', lineHeight: 1.5 }}>
@@ -1223,7 +1223,7 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
 
       {practiceOdsCode && (
         <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 'var(--r-md)', fontSize: 12, color: '#94a3b8' }}>
-          ODS code: <span style={{ color: '#cbd5e1', fontFamily: "'Space Mono', monospace" }}>{practiceOdsCode}</span>
+          ODS code: <span style={{ color: '#cbd5e1', fontFamily: "var(--font-mono)" }}>{practiceOdsCode}</span>
         </div>
       )}
 
@@ -2105,9 +2105,9 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
                       <td key={d} style={{ textAlign: 'center', padding: '4px' }}>
                         {mode === 'manual' ? (
                           <input type="number" min={0} max={999} value={expected[d]?.[session] ?? ''} onChange={e => updateCell(d, session, e.target.value)} placeholder="–"
-                            style={{ width: 56, padding: '6px 4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--r-sm)', color: '#e2e8f0', fontSize: 13, textAlign: 'center', fontFamily: "'Space Mono', monospace" }} />
+                            style={{ width: 56, padding: '6px 4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--r-sm)', color: '#e2e8f0', fontSize: 13, textAlign: 'center', fontFamily: "var(--font-mono)" }} />
                         ) : (
-                          <span style={{ fontFamily: "'Space Mono', monospace", color: '#e2e8f0' }}>{expected[d]?.[session] ?? 0}</span>
+                          <span style={{ fontFamily: "var(--font-mono)", color: '#e2e8f0' }}>{expected[d]?.[session] ?? 0}</span>
                         )}
                       </td>
                     ))}
@@ -2371,7 +2371,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           {(slotFilters.dutyDoctorSlot || []).map(slot => (
-            <span key={slot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'rgba(139,92,246,0.18)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 'var(--r-pill)', fontSize: 12, color: '#ddd6fe', fontFamily: "'Space Mono', monospace" }}>
+            <span key={slot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'rgba(139,92,246,0.18)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 'var(--r-pill)', fontSize: 12, color: '#ddd6fe', fontFamily: "var(--font-mono)" }}>
               {slot}
               <button type="button" onClick={() => toggleDuty(slot)} title="Remove" style={{ background: 'none', border: 'none', color: '#c4b5fd', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
             </span>
@@ -2462,7 +2462,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
               }}
             >
               <div>
-                <div style={{ fontSize: 13, color: '#cbd5e1', fontFamily: "'Space Mono', monospace", display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 13, color: '#cbd5e1', fontFamily: "var(--font-mono)", display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   {slot}
                   {/* Auto-applied tag: subtle confidence indicator
                       sitting next to the slot name. High confidence
@@ -3167,7 +3167,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
             <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <li>In Anima, go to <strong>Admin → Audit results</strong>.</li>
               <li>Filter by <strong>Event: patientReviewSubmit</strong> over the date range you want.</li>
-              <li>Click <strong>Export</strong> — the file is named <span style={{ fontFamily: "'Space Mono', monospace", color: '#94a3b8' }}>ExportedAuditResults_*.csv</span>.</li>
+              <li>Click <strong>Export</strong> — the file is named <span style={{ fontFamily: "var(--font-mono)", color: '#94a3b8' }}>ExportedAuditResults_*.csv</span>.</li>
               <li>Drop it onto the upload area above.</li>
             </ol>
             <p style={{ margin: '10px 0 0', color: '#94a3b8', fontSize: 12 }}>
@@ -3656,7 +3656,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
 function SummaryStat({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: '#6ee7b7', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: '#6ee7b7', fontFamily: "var(--font-heading)", lineHeight: 1 }}>
         {value}
       </div>
       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, letterSpacing: 0.3 }}>

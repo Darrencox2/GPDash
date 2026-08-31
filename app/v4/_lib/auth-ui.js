@@ -19,11 +19,11 @@ function AuthLogo() {
         <rect x="13.87" y="23.23" width="8.27" height="8.27" rx="3" fill="#f59e0b" opacity="0.5"/>
         <rect x="23.23" y="23.23" width="8.27" height="8.27" rx="3" fill="#334155"/>
       </svg>
-      <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, fontFamily: "'Space Mono', monospace" }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, fontFamily: "var(--font-mono)" }}>
         <span style={{ fontSize: 18, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>[</span>
         <span className="text-h3 font-bold text-white">GP</span>
         <span style={{ fontSize: 18, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>]</span>
-        <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 200, color: '#10b981', letterSpacing: '3px', marginLeft: 2 }}>DASH</span>
+        <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 200, color: '#10b981', letterSpacing: '3px', marginLeft: 2 }}>DASH</span>
       </div>
     </div>
   );
@@ -50,7 +50,7 @@ export function AuthCard({ title, subtitle, children }) {
         <AuthLogo />
         <div className="mb-6">
           <h1 style={{
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "var(--font-heading)",
             fontSize: 24,
             fontWeight: 600,
             color: 'white',

@@ -70,7 +70,7 @@ export default function AdminNav({ active }) {
 
       {/* Heading: clear hierarchy, generous size */}
       <h1 style={{
-        fontFamily: "'Outfit', sans-serif",
+        fontFamily: "var(--font-heading)",
         fontSize: 30,
         fontWeight: 600,
         color: 'white',

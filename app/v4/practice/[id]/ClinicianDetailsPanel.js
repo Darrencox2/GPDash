@@ -198,7 +198,7 @@ export default function ClinicianDetailsPanel({
               {(local.initials || '?').toUpperCase()}
             </div>
             <div className="min-w-0">
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'var(--g-text-hi)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: 'var(--g-text-hi)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {local.title ? `${local.title} ${local.name}` : local.name}
               </div>
               <div className="text-meta text-mid mt-0.5">
@@ -233,7 +233,7 @@ export default function ClinicianDetailsPanel({
               <input
                 type="text" value={local.initials || ''}
                 onChange={e => updateField('initials', e.target.value.toUpperCase().slice(0, 4))}
-                style={{ ...inputStyle, fontFamily: "'Space Mono', monospace", maxWidth: 100, textTransform: 'uppercase' }}
+                style={{ ...inputStyle, fontFamily: "var(--font-mono)", maxWidth: 100, textTransform: 'uppercase' }}
               />
             </Field>
             <Field label="Role">
@@ -482,7 +482,7 @@ function AliasEditor({ aliases, onAdd, onRemove }) {
             border: '1px solid rgba(34,211,238,0.25)',
             borderRadius: 'var(--r-pill)',
             fontSize: 12, color: '#67e8f9',
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
           }}>
             {a}
             <button onClick={() => onRemove(a)} aria-label={`Remove ${a}`} style={{

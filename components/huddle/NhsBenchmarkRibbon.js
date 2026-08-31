@@ -199,7 +199,7 @@ function Stat({ label, value, delta, colour, emphasised, estimated }) {
         fontSize: emphasised ? 14 : 13,
         fontWeight: emphasised ? 600 : 500,
         color: colour || '#cbd5e1',
-        fontFamily: "'Space Mono', monospace",
+        fontFamily: "var(--font-mono)",
       }}>
         {fmt(value)}
       </span>

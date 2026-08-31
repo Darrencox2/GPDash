@@ -119,7 +119,7 @@ export default function BuddyOverrideModal({
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
         }}
       >
-        <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>
+        <div style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>
           Reassign buddy cover
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 18, lineHeight: 1.5 }}>

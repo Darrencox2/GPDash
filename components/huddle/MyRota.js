@@ -363,7 +363,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
       return (
         <div className="flex items-center gap-2 text-sm">
           <span className="w-6 flex-shrink-0 text-slate-400 text-sm font-semibold uppercase tracking-wider">{label}</span>
-          <span className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{fontFamily:"'Outfit',sans-serif",background:groupBg(person.group)}}>{person.initials}</span>
+          <span className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{fontFamily:"var(--font-heading)",background:groupBg(person.group)}}>{person.initials}</span>
           <span className="text-slate-300 flex-1 truncate">{person.title ? `${person.title} ${person.name.split(',')[0]}` : person.name.split(',')[0]}</span>
         </div>
       );
@@ -418,13 +418,13 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                 {sess.dutyDoc && !isMeDuty && (
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold uppercase tracking-wider" style={{color: labelColour}}>Duty</span>
-                    <span className="px-1.5 py-0.5 rounded text-sm font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : 'var(--g-text-hi)'}}>{sess.dutyDoc.initials}</span>
+                    <span className="px-1.5 py-0.5 rounded text-sm font-bold leading-none" style={{fontFamily:"var(--font-heading)",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : 'var(--g-text-hi)'}}>{sess.dutyDoc.initials}</span>
                   </div>
                 )}
                 {sess.support && !isMeSupport && (
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold uppercase tracking-wider" style={{color: labelColour}}>Sup</span>
-                    <span className="px-1.5 py-0.5 rounded text-sm font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : 'var(--g-text-hi)'}}>{sess.support.initials}</span>
+                    <span className="px-1.5 py-0.5 rounded text-sm font-bold leading-none" style={{fontFamily:"var(--font-heading)",background: initialsBg,color: (isMeDuty || isMeSupport) ? 'white' : 'var(--g-text-hi)'}}>{sess.support.initials}</span>
                   </div>
                 )}
               </div>
@@ -752,13 +752,13 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                                       {sess.dutyDoc && !sess.isMeDuty && (
                                         <div className="flex items-center gap-1.5">
                                           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{color: labelColour}}>Duty</span>
-                                          <span className="px-1.5 py-0.5 rounded text-xs font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: initialsColour}}>{sess.dutyDoc.initials}</span>
+                                          <span className="px-1.5 py-0.5 rounded text-xs font-bold leading-none" style={{fontFamily:"var(--font-heading)",background: initialsBg,color: initialsColour}}>{sess.dutyDoc.initials}</span>
                                         </div>
                                       )}
                                       {sess.support && !sess.isMeSupport && (
                                         <div className="flex items-center gap-1.5">
                                           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{color: labelColour}}>Sup</span>
-                                          <span className="px-1.5 py-0.5 rounded text-xs font-bold leading-none" style={{fontFamily:"'Outfit',sans-serif",background: initialsBg,color: initialsColour}}>{sess.support.initials}</span>
+                                          <span className="px-1.5 py-0.5 rounded text-xs font-bold leading-none" style={{fontFamily:"var(--font-heading)",background: initialsBg,color: initialsColour}}>{sess.support.initials}</span>
                                         </div>
                                       )}
                                     </div>

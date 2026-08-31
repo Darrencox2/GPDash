@@ -26,7 +26,7 @@ export default function PendingInvitesCard({ invites, canManage }) {
       borderRadius: 'var(--r-lg)',
       padding: 20,
     }}>
-      <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>
+      <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>
         Pending invites
       </h3>
       {invites.map(inv => (

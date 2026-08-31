@@ -461,6 +461,7 @@ function ActionRow({ action, onUpdate, compact }) {
   const inProgress = action.status === 'in_progress';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: compact ? '8px 10px' : '10px 14px', borderRadius: 'var(--r-md)', background: compact ? 'var(--g-tile)' : 'var(--g-card)', border: '1px solid var(--g-border)', opacity: done ? 0.62 : 1, transition: 'opacity 0.2s' }}>
+      <h1 className="sr-only">Meetings</h1>
       <button
         onClick={() => onUpdate({ status: done ? 'open' : 'done' })}
         title={done ? 'Mark as not done' : 'Mark as done'}

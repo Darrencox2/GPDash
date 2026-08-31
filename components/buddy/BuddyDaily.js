@@ -33,7 +33,7 @@ function BuddyKey() {
     <div className="flex items-center gap-4 flex-wrap" style={{ fontSize: 12, color: 'var(--meta)' }}>
       <span style={{ fontWeight: 500 }}>Key:</span>
       <span className="flex items-center gap-1.5">
-        <span style={{ fontWeight: 700, color: 'var(--g-text-hi)', fontFamily: "'Outfit',sans-serif", fontSize: 12 }}>AB</span>
+        <span style={{ fontWeight: 700, color: 'var(--g-text-hi)', fontFamily: "var(--font-heading)", fontSize: 12 }}>AB</span>
         <span>in today &mdash; chips are who they cover</span>
       </span>
       {Object.values(CHIP).map((c) => (
@@ -585,7 +585,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       {/* ═══ HEADER ═══ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold" style={{fontFamily:"'Outfit',sans-serif", color:'var(--g-pill-text)'}}>Buddy Cover</h1>
+          <h1 className="text-xl font-semibold" style={{fontFamily:"var(--font-heading)", color:'var(--g-pill-text)'}}>Buddy Cover</h1>
           {(() => {
             // The board is generated FROM this sync, and a fortnight-old one
             // rendered identically to a fresh one — a stale sync silently
@@ -747,7 +747,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                  the real days share the space it frees. */
               closed && !isSel ? (
                 <button key={day} onClick={() => setSelectedDay(day)} title={`${day} ${dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'})} — closed`} className="transition-all duration-150 flex items-center justify-center hover:bg-white/5" style={{ flex: '0 0 40px', height: 320, background: 'var(--g-panel-soft)' }}>
-                  <span style={{ writingMode: 'vertical-rl', fontSize: 10, letterSpacing: '0.12em', color: 'var(--meta)', fontFamily: "'Space Mono',monospace", textTransform: 'uppercase' }}>{day.slice(0,3)} · closed</span>
+                  <span style={{ writingMode: 'vertical-rl', fontSize: 10, letterSpacing: '0.12em', color: 'var(--meta)', fontFamily: "var(--font-mono)", textTransform: 'uppercase' }}>{day.slice(0,3)} · closed</span>
                 </button>
               ) : (
               <button key={day} onClick={() => setSelectedDay(day)} className="text-left transition-all duration-150 flex flex-col hover:bg-white/5" style={{
@@ -782,10 +782,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                     <div className="px-2.5 flex-1 overflow-hidden flex flex-col" style={{gap:3}}>
                       {rows.slice(0, 10).map(({ bid, b, t }) => (
                         <div key={bid} className="flex items-center" style={{gap:6}}>
-                          <span className="font-bold text-slate-200 flex-shrink-0 text-right" style={{fontFamily:"'Outfit',sans-serif",fontSize:'clamp(11px,1.2vw,14px)',width:28}}>{b.initials}</span>
+                          <span className="font-bold text-slate-200 flex-shrink-0 text-right" style={{fontFamily:"var(--font-heading)",fontSize:'clamp(11px,1.2vw,14px)',width:28}}>{b.initials}</span>
                           {/* Was a 6px glyph nobody could read. One word
                               carries the whole row grammar. */}
-                          <span className="flex-shrink-0" style={{fontSize:9,color:'var(--meta)',fontFamily:"'Space Mono',monospace",letterSpacing:'0.02em'}}>covers</span>
+                          <span className="flex-shrink-0" style={{fontSize:9,color:'var(--meta)',fontFamily:"var(--font-mono)",letterSpacing:'0.02em'}}>covers</span>
                           <div className="flex gap-1 flex-wrap flex-1 min-w-0">
                             {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} title={`${x.name} — absent`} className="rounded font-bold text-white flex-shrink-0" style={{background:CHIP.absent.bg,border:`1px solid ${CHIP.absent.bd}`,fontSize:'clamp(11px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
                             {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} title={`${x.name} — day off`} className="rounded font-bold flex-shrink-0" style={{background:CHIP.dayOff.bg,border:`1px solid ${CHIP.dayOff.bd}`,color:CHIP.dayOff.fg,fontSize:'clamp(11px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
@@ -853,7 +853,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               <path d="M9 22V12h6v10" />
             </svg>
           </div>
-          <div className="text-lg font-medium text-white mb-1" style={{fontFamily:"'Outfit',sans-serif"}}>Practice Closed</div>
+          <div className="text-lg font-medium text-white mb-1" style={{fontFamily:"var(--font-heading)"}}>Practice Closed</div>
           <div className="text-sm text-slate-400">{getClosedReason(getDateKey())}</div>
           {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-400 hover:text-purple-300">Mark as open →</button>}
         </div>
@@ -995,7 +995,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 <p className="text-xs text-slate-400 mt-0.5">Workload balanced across present clinicians</p>
               </div>
               <div className="flex items-center gap-2">
-                {canEdit && hasAllocations && <button onClick={handleCopyDay} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5" style={{background:'rgba(16,185,129,0.6)',border:'1px solid rgba(16,185,129,0.3)'}}>Copy Day</button>}
+                {canEdit && hasAllocations && <button onClick={handleCopyDay} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5" style={{background:'rgba(16,185,129,0.12)',border:'1px solid rgba(16,185,129,0.45)',color:'var(--link)'}}>Copy Day</button>}
                 {canEdit && !isPastDate(getDateKey()) && <button onClick={handleGenerate} disabled={presentClinicians.length === 0} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40" style={{background:'rgba(124,58,237,0.7)',border:'1px solid rgba(124,58,237,0.3)'}}>{hasAllocations ? 'Regenerate' : 'Generate'}</button>}
               </div>
             </div>
@@ -1114,7 +1114,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           };
                           return (
                             <tr key={clinician.id} style={{borderBottom:"1px solid var(--g-tile)"}} className={!canCover ? "opacity-50" : ""}>
-                              <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{background:"#10b981",fontFamily:"'Outfit',sans-serif"}}>{clinician.initials}</div><div><div className="text-sm font-medium text-slate-200">{clinician.name}</div><div className="text-xs text-slate-400">{clinician.role}</div></div></div></td>
+                              <td className="py-3 px-4"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{background:"#10b981",fontFamily:"var(--font-heading)"}}>{clinician.initials}</div><div><div className="text-sm font-medium text-slate-200">{clinician.name}</div><div className="text-xs text-slate-400">{clinician.role}</div></div></div></td>
                               <td className="py-3 px-4">{tasks.absent.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.absent.map(id => renderBadge(id, 'absent', '#ef4444'))}</div> : <span className="text-slate-400">—</span>}</td>
                               <td className="py-3 px-4">{tasks.dayOff.length > 0 ? <div className="flex flex-wrap gap-1">{tasks.dayOff.map(id => renderBadge(id, 'dayOff', '#f59e0b'))}</div> : <span className="text-slate-400">—</span>}</td>
                             </tr>

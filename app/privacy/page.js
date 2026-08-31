@@ -29,7 +29,7 @@ export default function PrivacyNoticePage() {
 
         <header className="mb-8">
           <h1 style={{
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "var(--font-heading)",
             fontSize: 32, fontWeight: 600, marginBottom: 8, color: '#f1f5f9',
           }}>Privacy Notice</h1>
           <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
@@ -205,7 +205,7 @@ function DraftBanner() {
 function Section({ title, children }) {
   return (
     <section style={{ marginBottom: 36 }}>
-      <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 20, fontWeight: 600, marginBottom: 12, color: '#f1f5f9' }}>{title}</h2>
+      <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 600, marginBottom: 12, color: '#f1f5f9' }}>{title}</h2>
       <div style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.7 }}>{children}</div>
     </section>
   );

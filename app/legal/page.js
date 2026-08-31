@@ -30,7 +30,7 @@ export default function LegalLandingPage() {
     <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
       <article style={{ maxWidth: 720, margin: '0 auto', lineHeight: 1.65 }}>
         <header className="mb-8">
-          <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 600, marginBottom: 10, color: '#f1f5f9' }}>Legal &amp; compliance</h1>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 32, fontWeight: 600, marginBottom: 10, color: '#f1f5f9' }}>Legal &amp; compliance</h1>
           <p style={{ fontSize: 16, color: '#cbd5e1', lineHeight: 1.7, margin: 0 }}>
             Resources for practices considering or already using GPDash. If you&apos;re an Information Governance officer doing due diligence, the DPA and DSPT evidence pack are usually the documents you want.
           </p>
@@ -59,7 +59,7 @@ export default function LegalLandingPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
-                <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 20, fontWeight: 600, margin: 0, color: '#f1f5f9' }}>
+                <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 600, margin: 0, color: '#f1f5f9' }}>
                   {doc.title}
                 </h2>
                 <div className="flex items-center gap-2">

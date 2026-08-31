@@ -239,7 +239,7 @@ function Stat({ label, value, colour, tooltip }) {
       }}
     >
       <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 600, color: colour || '#e2e8f0', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 24, fontWeight: 600, color: colour || '#e2e8f0', fontFamily: "var(--font-heading)", lineHeight: 1 }}>{value}</div>
     </div>
   );
 }

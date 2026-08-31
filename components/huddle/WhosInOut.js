@@ -79,7 +79,7 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
       </div>
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-          style={{ fontFamily: "'Outfit',sans-serif", background: badgeCol, boxShadow: `0 0 6px ${badgeCol}30` }}>
+          style={{ fontFamily: "var(--font-heading)", background: badgeCol, boxShadow: `0 0 6px ${badgeCol}30` }}>
           {person.initials || '?'}
         </div>
         <div className="min-w-0">
@@ -402,7 +402,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
                 bottom of the card, after the entire staff list — you had to
                 scroll past the thing you could not read to learn how to
                 read it. Site colours stay in the footer. */}
-            <span className="text-xs hidden sm:inline" style={{ color: 'var(--meta)', fontFamily: "'Space Mono', monospace" }}>left = AM · right = PM</span>
+            <span className="text-xs hidden sm:inline" style={{ color: 'var(--meta)', fontFamily: "var(--font-mono)" }}>left = AM · right = PM</span>
           </div>
           <button onClick={() => setShowSettings(true)}
             className="glass-cog w-8 h-8 rounded-lg flex items-center justify-center"
@@ -613,7 +613,7 @@ function OffTodayModal({ person, onClose, onConfirm }) {
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
         }}
       >
-        <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>
+        <div style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>
           Mark off today
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 16 }}>

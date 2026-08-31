@@ -1021,7 +1021,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         Duty doctor not detected — diagnostic
                       </div>
                       <div className="opacity-80 mb-1">
-                        Looking for: <span style={{ fontFamily: "'Space Mono', monospace" }}>{(dutySlotNames || []).map(s => `"${s}"`).join(', ') || '(none)'}</span>
+                        Looking for: <span style={{ fontFamily: "var(--font-mono)" }}>{(dutySlotNames || []).map(s => `"${s}"`).join(', ') || '(none)'}</span>
                       </div>
                       {dutyDocDiag.candidates.length === 0 ? (
                         <div className="opacity-80">
@@ -1035,7 +1035,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                             {dutyDocDiag.candidates.map((c, i) => (
                               <li key={i} className="flex items-start gap-1.5">
                                 <span className="opacity-60">·</span>
-                                <span style={{ fontFamily: "'Space Mono', monospace" }}>{c.name}</span>
+                                <span style={{ fontFamily: "var(--font-mono)" }}>{c.name}</span>
                                 <span className="opacity-70">({c.count} slot{c.count === 1 ? '' : 's'})</span>
                                 <span className="opacity-70 ml-auto flex-shrink-0">
                                   {c.matchesStaff ? (
@@ -1067,7 +1067,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                           style={{ cursor: 'pointer' }}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{fontFamily:"'Outfit',sans-serif",background: band.colour, boxShadow:`0 0 6px ${band.colour}30`}}>{c.initials}</div>
+                            <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{fontFamily:"var(--font-heading)",background: band.colour, boxShadow:`0 0 6px ${band.colour}30`}}>{c.initials}</div>
                             <div className="min-w-0">
                               <span className="text-sm text-slate-200 truncate">{c.title ? `${c.title} ` : ''}{c.displayName}</span>
                               {c.role && <div className="text-xs text-slate-400">{c.role}</div>}

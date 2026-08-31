@@ -302,7 +302,7 @@ function SummaryStat({ label, value, colour }) {
   return (
     <div style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)', padding: '6px 12px' }}>
       <div style={{ fontSize:11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 600, color: colour, fontFamily: "'Outfit', sans-serif" }}>{value}</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: colour, fontFamily: "var(--font-heading)" }}>{value}</div>
     </div>
   );
 }
@@ -334,7 +334,7 @@ const closeBtn = {
   background: 'transparent', border: 'none', color: 'var(--g-text-mid)',
   fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 4,
 };
-const modalTitle = { fontSize: 16, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 8, fontFamily: "'Outfit', sans-serif" };
+const modalTitle = { fontSize: 16, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 8, fontFamily: "var(--font-heading)" };
 const modalDesc = { fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 };
 const textarea = {
   width: '100%',

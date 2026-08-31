@@ -96,7 +96,7 @@ export default async function CliniciansTab({ practiceId }) {
     <div>
       <div className="mb-4">
         <h2 style={{
-          fontFamily: "'Outfit', sans-serif",
+          fontFamily: "var(--font-heading)",
           fontSize: 22, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 6,
         }}>Clinicians</h2>
         <p style={{ fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.5, margin: 0 }}>

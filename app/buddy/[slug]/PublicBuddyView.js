@@ -11,6 +11,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { DAYS, groupAllocationsByCovering, toLocalIso, computeDayStatus } from '@/lib/data';
 import { APP_VERSION } from '@/lib/version';
+import { ClosedDayIcon } from '@/components/ui/ClosedDay';
 
 export default function PublicBuddyView({ slug, practiceName }) {
   const [data, setData] = useState(null);
@@ -150,7 +151,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
 
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>Buddy Cover</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: "var(--font-heading)" }}>Buddy Cover</h1>
             {practiceName && <div className="text-sm text-slate-400">{practiceName}</div>}
             <div className="flex items-center gap-2 mt-1">
               <button onClick={() => navigateDay(-1)} className="rounded text-slate-400 hover:text-white hover:bg-white/10 transition-colors" style={{ border: '1px solid rgba(255,255,255,0.06)', padding: '2px 6px', fontSize: 12, lineHeight: 1 }}>‹</button>
@@ -167,8 +168,10 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
 
         {(isClosed || isWeekend) && (
           <div className="rounded-xl p-10 text-center" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="text-3xl mb-3">🏠</div>
-            <div className="text-lg font-medium text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>Practice Closed</div>
+            {/* Shared closed-day language — same house icon as every other
+                surface, replacing the emoji. */}
+            <div className="mb-3 flex justify-center"><ClosedDayIcon /></div>
+            <div className="text-lg font-medium text-white" style={{ fontFamily: "var(--font-heading)" }}>Practice closed</div>
             <div className="text-sm text-slate-400 mt-1">{isClosed ? (typeof isClosed === 'string' ? isClosed : 'Closed') : 'Weekend'}</div>
           </div>
         )}
@@ -176,7 +179,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
         {!isClosed && !isWeekend && !hasAlloc && (
           <div className="rounded-xl p-10 text-center" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="text-3xl mb-3">📋</div>
-            <div className="text-lg font-medium text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>No Allocations Yet</div>
+            <div className="text-lg font-medium text-white" style={{ fontFamily: "var(--font-heading)" }}>No Allocations Yet</div>
             <div className="text-sm text-slate-400 mt-1">Buddy cover for today has not been generated yet</div>
           </div>
         )}
@@ -185,15 +188,15 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
           <div className="grid grid-cols-3 gap-3">
             <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.15)' }}>
               <div className="text-sm text-slate-400">Present</div>
-              <div className="text-2xl sm:text-3xl font-bold text-emerald-400" style={{ fontFamily: "'Space Mono',monospace" }}>{presentCount}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-emerald-400" style={{ fontFamily: "var(--font-mono)" }}>{presentCount}</div>
             </div>
             <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.15)' }}>
               <div className="text-sm text-slate-400">Absent</div>
-              <div className="text-2xl sm:text-3xl font-bold text-red-400" style={{ fontFamily: "'Space Mono',monospace" }}>{absentClinicians.length}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-red-400" style={{ fontFamily: "var(--font-mono)" }}>{absentClinicians.length}</div>
             </div>
             <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.15)' }}>
               <div className="text-sm text-slate-400">Day Off</div>
-              <div className="text-2xl sm:text-3xl font-bold text-amber-400" style={{ fontFamily: "'Space Mono',monospace" }}>{dayOffClinicians.length}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-amber-400" style={{ fontFamily: "var(--font-mono)" }}>{dayOffClinicians.length}</div>
             </div>
           </div>
         )}
@@ -223,7 +226,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
           <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="flex items-center justify-between" style={{ background: 'rgba(15,23,42,0.85)', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               <div>
-                <h2 className="text-base font-semibold text-white" style={{ fontFamily: "'Outfit',sans-serif" }}>Buddy Allocations</h2>
+                <h2 className="text-base font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>Buddy Allocations</h2>
                 <p className="text-xs text-slate-400 mt-0.5">Who is covering for whom today</p>
               </div>
             </div>
@@ -241,7 +244,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
                     <tr key={clinician.id} className={!canCover ? 'opacity-50' : ''} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: '#10b981', fontFamily: "'Outfit',sans-serif" }}>{clinician.initials}</div>
+                          <div className="w-9 h-9 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: '#10b981', fontFamily: "var(--font-heading)" }}>{clinician.initials}</div>
                           <div>
                             <div className="text-sm font-medium text-slate-200">{clinician.name}</div>
                             <div className="text-xs text-slate-400">{clinician.role}</div>

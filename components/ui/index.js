@@ -178,10 +178,21 @@ export function PageSkeleton() {
 
 // ─── Empty State ─────────────────────────────────────────────────
 // Same shape everywhere: icon, one-line title, short hint, ONE action.
+// Emoji-to-line-icon map. Call sites pass emoji (a long-standing API);
+// rendering them literally put coloured emoji in an otherwise line-icon
+// interface. The API is unchanged — the glyphs now draw in the house style.
+const EMPTY_ICONS = {
+  '📊': <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>,
+  '📈': <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M6 15l4-4 3 3 5-6"/></svg>,
+  '🔍': <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" strokeLinecap="round"/></svg>,
+  '🕐': <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>,
+  '📋': <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2M9 10h6M9 14h6"/></svg>,
+};
+
 export function EmptyState({ icon, title, description, action, onAction, actionVariant = 'secondary', compact = false }) {
   return (
     <div className="text-center" style={{ padding: compact ? '26px 18px' : '44px 22px' }}>
-      {icon && <div style={{ fontSize: compact ? 26 : 36, marginBottom: 10, opacity: 0.85 }}>{icon}</div>}
+      {icon && <div style={{ marginBottom: 10, color: 'var(--meta)', display: 'flex', justifyContent: 'center' }}>{EMPTY_ICONS[icon] || <span style={{ fontSize: compact ? 26 : 36, opacity: 0.85 }}>{icon}</span>}</div>}
       <div style={{ fontFamily: HEAD, fontSize: compact ? 14.5 : 16.5, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 5 }}>{title}</div>
       {description && <p style={{ fontSize: 13, color: 'var(--g-text-mid)', maxWidth: 430, margin: '0 auto', lineHeight: 1.55 }}>{description}</p>}
       {action && <div className="mt-3.5"><Button size="sm" variant={actionVariant} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={onAction}>{action}</Button></div>}

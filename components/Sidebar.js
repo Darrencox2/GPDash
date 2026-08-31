@@ -268,7 +268,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                     flexShrink: 0,
                     fontSize: 13, color: 'white', fontWeight: 500,
                     letterSpacing: 0.5,
-                    fontFamily: "'Outfit', sans-serif",
+                    fontFamily: "var(--font-heading)",
                   }}>
                     {initials}
                   </div>
@@ -296,7 +296,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 13, color: 'white', fontWeight: 500,
                     letterSpacing: 0.5,
-                    fontFamily: "'Outfit', sans-serif",
+                    fontFamily: "var(--font-heading)",
                   }}>{initials}</div>
                 </div>
               )}
@@ -348,7 +348,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                 </div>
               </div>
               <div className="flex items-center justify-between mt-1.5 px-0.5">
-                <button onClick={handleVersionClick} className="hover:text-slate-400 transition-colors" style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: 'var(--text-4)' }} title="View changelog">{APP_VERSION}</button>
+                <button onClick={handleVersionClick} className="hover:text-slate-400 transition-colors" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: 'var(--text-4)' }} title="View changelog">{APP_VERSION}</button>
                 <button onClick={() => setSidebarOpen(false)} aria-label="Collapse sidebar" className="rounded px-2 py-0.5 text-slate-400 hover:bg-white/5 text-xs transition-colors">&#9666;</button>
               </div>
             </div>
@@ -375,7 +375,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                 <span style={{ fontSize: 10, fontWeight: 700 }}>A</span>
                 <span style={{ fontSize: 14, fontWeight: 700, marginLeft: 1 }}>A</span>
               </button>
-              <button onClick={handleVersionClick} className="w-full text-center hover:text-slate-400 transition-colors" style={{ fontFamily: "'Space Mono',monospace", fontSize: 9, color: 'var(--text-4)' }} title={`${APP_VERSION} — view changelog`}>{APP_VERSION.replace('v', '')}</button>
+              <button onClick={handleVersionClick} className="w-full text-center hover:text-slate-400 transition-colors" style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: 'var(--text-4)' }} title={`${APP_VERSION} — view changelog`}>{APP_VERSION.replace('v', '')}</button>
               <button onClick={() => setSidebarOpen(true)} aria-label="Expand sidebar" className="w-full flex items-center justify-center py-1.5 rounded-lg text-slate-400 hover:bg-white/5 text-xs transition-colors">&#9656;</button>
             </div>
           )}

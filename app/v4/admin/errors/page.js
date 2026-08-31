@@ -45,7 +45,7 @@ export default async function AdminErrorsPage() {
     <div style={{ minHeight: '100vh' }}>
       <AdminNav active="errors" />
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px 64px' }}>
-        <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600, color: '#f1f5f9', margin: '0 0 6px' }}>
+        <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 600, color: '#f1f5f9', margin: '0 0 6px' }}>
           Errors
         </h1>
         <p style={{ fontSize: 14, color: 'var(--meta)', margin: '0 0 24px' }}>
@@ -74,7 +74,7 @@ export default async function AdminErrorsPage() {
                   <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', background: s.bg, border: `1px solid ${s.bd}`, color: s.fg }}>
                     {s.label}
                   </span>
-                  {e.path && <code style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: '#cbd5e1' }}>{e.path}</code>}
+                  {e.path && <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: '#cbd5e1' }}>{e.path}</code>}
                   {e.app_version && <span style={{ fontSize: 12, color: 'var(--meta)' }}>{e.app_version}</span>}
                   <span style={{ fontSize: 12, color: 'var(--meta)', marginLeft: 'auto' }}>{timeAgo(e.created_at)}</span>
                 </div>

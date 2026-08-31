@@ -45,7 +45,7 @@ export default async function NhsDataAdminPage() {
         <AdminNav active="nhs-data" />
 
         <div style={{ marginBottom: 26 }}>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 8, letterSpacing: -0.3 }}>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 8, letterSpacing: -0.3 }}>
             NHS Online Consultation submissions data
           </h2>
           <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6, maxWidth: 720 }}>
@@ -68,7 +68,7 @@ export default async function NhsDataAdminPage() {
           borderRadius: 'var(--r-lg)',
           marginBottom: 18,
         }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "'Outfit', sans-serif" }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "var(--font-heading)" }}>
             Months currently in the database
           </div>
           {months.length === 0 ? (
@@ -83,7 +83,7 @@ export default async function NhsDataAdminPage() {
                   borderRadius: 'var(--r-sm)',
                   fontSize: 13,
                 }}>
-                  <div style={{ fontFamily: "'Space Mono', monospace", color: '#e2e8f0' }}>
+                  <div style={{ fontFamily: "var(--font-mono)", color: '#e2e8f0' }}>
                     {formatMonthYear(m.month)}
                   </div>
                   <div className="flex gap-4 text-slate-400">

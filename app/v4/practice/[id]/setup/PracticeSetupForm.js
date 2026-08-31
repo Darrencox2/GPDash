@@ -313,7 +313,7 @@ export default function PracticeSetupForm({ practiceId, practiceSlug, initial })
           {/* Header: name + action buttons */}
           <div className="flex justify-between items-start gap-4 mb-[18px]">
             <h2 style={{
-              fontFamily: "'Outfit', sans-serif",
+              fontFamily: "var(--font-heading)",
               fontSize: 22,
               fontWeight: 600,
               color: 'white',

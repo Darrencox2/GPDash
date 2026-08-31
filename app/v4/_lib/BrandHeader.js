@@ -39,11 +39,11 @@ export default function BrandHeader({ subtitle, compact = false, href = '/v4' })
         <rect x="23.23" y="23.23" width="8.27" height="8.27" rx="3" fill="#334155"/>
       </svg>
       {!compact && (
-        <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, fontFamily: "'Space Mono', monospace" }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, fontFamily: "var(--font-mono)" }}>
           <span style={{ fontSize: 17, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>[</span>
           <span style={{ fontSize: 17, fontWeight: 700, color: 'white' }}>GP</span>
           <span style={{ fontSize: 17, fontWeight: 400, color: '#10b981', opacity: 0.4 }}>]</span>
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 200, color: '#10b981', letterSpacing: '3px', marginLeft: 2 }}>DASH</span>
+          <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 200, color: '#10b981', letterSpacing: '3px', marginLeft: 2 }}>DASH</span>
         </div>
       )}
       {subtitle && (

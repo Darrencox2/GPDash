@@ -59,7 +59,7 @@ export default async function SetupInProgressPage({ params }) {
         borderRadius: 'var(--r-lg)', padding: 28, textAlign: 'center',
       }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🛠️</div>
-        <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 10 }}>
+        <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 10 }}>
           Setup in progress
         </h1>
         <p className="text-body text-slate-300 leading-body mb-[18px]">

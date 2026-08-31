@@ -152,6 +152,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
 
   return (
     <div className="space-y-6">
+      <h1 className="sr-only">Locum spend</h1>
       <PageHeader title="Locum spend" subtitle="Month-on-month spend on locums and extra GP sessions">
         <div className="flex items-center gap-2">
           <select value={month} onChange={(e) => setMonth(e.target.value)}

@@ -69,7 +69,7 @@ export default async function AdminPracticeDetailPage({ params }) {
         <div style={card}>
           <div className="flex justify-between items-start mb-[18px] flex-wrap gap-3">
             <div className="min-w-0 flex-1">
-              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 6, letterSpacing: -0.3 }}>
+              <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 6, letterSpacing: -0.3 }}>
                 {details.name}
               </h2>
               <div style={{ fontSize: 13, color: '#94a3b8', fontFamily: 'ui-monospace, Menlo, monospace' }}>
@@ -156,7 +156,7 @@ export default async function AdminPracticeDetailPage({ params }) {
 }
 
 const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', padding: 22, marginBottom: 18 };
-const cardHeader = { fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "'Outfit', sans-serif" };
+const cardHeader = { fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "var(--font-heading)" };
 
 function Row({ label, children }) {
   return (
@@ -177,7 +177,7 @@ function Stat({ label, value }) {
       padding: '16px 18px',
     }}>
       <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 600, color: '#e2e8f0', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 28, fontWeight: 600, color: '#e2e8f0', fontFamily: "var(--font-heading)", lineHeight: 1 }}>{value}</div>
     </div>
   );
 }

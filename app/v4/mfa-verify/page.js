@@ -152,7 +152,7 @@ function MfaVerifyInner() {
           maxLength={6}
           style={{
             ...f.input,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 22,
             letterSpacing: 4,
             textAlign: 'center',

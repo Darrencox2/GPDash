@@ -44,7 +44,7 @@ export default function Changelog() {
               >
                 <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-slate-900 flex flex-col items-center justify-center">
                   <span className="text-xs text-slate-400 font-medium leading-none">v</span>
-                  <span className="text-lg font-bold text-white leading-tight" style={{fontFamily:"'Space Mono',monospace"}}>{release.version}</span>
+                  <span className="text-lg font-bold text-white leading-tight" style={{fontFamily:"var(--font-mono)"}}>{release.version}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

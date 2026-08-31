@@ -333,11 +333,11 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
         <div className="flex items-start justify-between mb-2">
           <div>
             <h2 style={{
-              fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600,
+              fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600,
               color: 'var(--g-text-hi)', margin: 0,
             }}>Working days grid</h2>
             <select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)}
-              style={{ marginTop: 8, background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--g-text-hi)', borderRadius: 8, padding: '4px 8px', fontSize: 12 }}>
+              style={{ marginTop: 8, background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--g-text-hi)', borderRadius: 'var(--r-md)', padding: '4px 8px', fontSize: 12 }}>
               <option value="buddy">Buddy cover clinicians</option>
               <option value="all">All staff</option>
               <option value="gp">GPs</option>

@@ -172,13 +172,13 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
               const d = clinicianData[c.id];
               return (
                 <button key={c.id} onClick={() => selectClinician(c)} className="w-full text-left px-3 py-2.5 flex items-center gap-2.5 hover:bg-white/5 transition-colors">
-                  <div className="w-7 h-7 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", background: c.group === 'gp' ? '#3b82f6' : c.group === 'nursing' ? '#10b981' : '#a855f7' }}>{c.initials}</div>
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ fontFamily: "var(--font-heading)", background: c.group === 'gp' ? '#3b82f6' : c.group === 'nursing' ? '#10b981' : '#a855f7' }}>{c.initials}</div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-slate-200 truncate">{c.name}</div>
                     <div className="text-sm text-slate-400">{c.role}</div>
                   </div>
                   {d && <div className="text-right flex-shrink-0">
-                    <div className="text-base font-bold text-emerald-400" style={{ fontFamily: "'Space Mono',monospace" }}>{d.total}</div>
+                    <div className="text-base font-bold text-emerald-400" style={{ fontFamily: "var(--font-mono)" }}>{d.total}</div>
                     <div className="text-sm text-slate-400">available</div>
                   </div>}
                 </button>
@@ -193,7 +193,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
         <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid var(--g-tile)' }}>
           {/* Clinician header */}
           <div className="flex items-center gap-3 pt-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-base font-bold text-white flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", background: selected.group === 'gp' ? '#3b82f6' : selected.group === 'nursing' ? '#10b981' : '#a855f7' }}>{selected.initials}</div>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-base font-bold text-white flex-shrink-0" style={{ fontFamily: "var(--font-heading)", background: selected.group === 'gp' ? '#3b82f6' : selected.group === 'nursing' ? '#10b981' : '#a855f7' }}>{selected.initials}</div>
             <div className="flex-1">
               <div className="text-base font-medium text-slate-200">{selected.title ? `${selected.title} ${selected.name}` : selected.name}</div>
               <div className="text-sm text-slate-400">{selected.role}{selected.sessions ? ` · ${selected.sessions} sessions/week` : ''}</div>
@@ -284,7 +284,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
                 const avgW = comparison.max > 0 ? (comparison.avg / comparison.max) * 100 : 0;
                 return (
                   <div key={e.id} className="flex items-center gap-2 py-1 px-2 rounded-md" style={{ background: isSel ? 'rgba(16,185,129,0.06)' : 'transparent' }}>
-                    <span className="text-sm font-bold w-7 text-right flex-shrink-0" style={{ fontFamily: "'Outfit',sans-serif", color: isSel ? '#34d399' : 'var(--g-text-mid)' }}>{e.initials}</span>
+                    <span className="text-sm font-bold w-7 text-right flex-shrink-0" style={{ fontFamily: "var(--font-heading)", color: isSel ? '#34d399' : 'var(--g-text-mid)' }}>{e.initials}</span>
                     <div className="flex-1 h-4 rounded overflow-hidden relative" style={{ background: 'var(--g-tile)' }}>
                       <div className="h-full rounded" style={{ width: `${barW}%`, background: aboveAvg ? 'rgba(16,185,129,0.4)' : 'rgba(245,158,11,0.4)' }} />
                       <div className="absolute top-0 bottom-0 w-px" style={{ left: `${avgW}%`, background: 'var(--g-text-hi)' }} />

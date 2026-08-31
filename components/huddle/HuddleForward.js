@@ -21,11 +21,11 @@ const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 // floor, on the numbers this whole screen exists to communicate. These are
 // the darkest-but-one shades that clear it: 5.17, 5.48, 5.02 and 4.83:1.
 //
-// `short` also carries a diagonal stripe. Status was encoded in hue alone,
-// which is the one cue a red-green colour-deficient reader does not have —
-// so the state that demands action is now textured as well as coloured,
-// reusing the repeating-gradient idiom already used for "Booked" below.
-const SHORT_STRIPE = 'repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,0.16) 3px,rgba(0,0,0,0.16) 6px)';
+// `short` used to carry a diagonal stripe as a non-colour cue. It collided
+// with the hatch meaning "booked" on the Today charts — same texture,
+// opposite meanings, one click apart — and confused the person who reads
+// this daily. The cue is now a −N deficit printed on the tile (see
+// `deficit` below), which says more than any texture could.
 //
 // `bg`/`text` are the tile (white on a dark fill). `fg` is the SAME state
 // rendered as text directly on the dark card — the pale variants, because a
@@ -34,7 +34,7 @@ const VB = {
   over:  { bg:'#2563eb', text:'#fff', fg:'#93c5fd' },
   good:  { bg:'#047857', text:'#fff', fg:'#6ee7b7' },
   tight: { bg:'#b45309', text:'#fff', fg:'#fcd34d' },
-  short: { bg:`${SHORT_STRIPE},#dc2626`, text:'#fff', fg:'#fca5a5' },
+  short: { bg:'#dc2626', text:'#fff', fg:'#fca5a5', deficit: true },
   none:  { bg:'var(--g-text-faint)', text:'var(--g-text-mid)', fg:'var(--meta)' },
 };
 function vBand(s,t) { if(t<=0)return VB.none; const p=(s/t)*100; return p>=120?VB.over:p>=90?VB.good:p>=80?VB.tight:VB.short; }
@@ -713,7 +713,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#2563eb'}}/>Over</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#047857'}}/>On target</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#b45309'}}/>Tight</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'repeating-linear-gradient(45deg,transparent,transparent 2px,rgba(0,0,0,0.16) 2px,rgba(0,0,0,0.16) 4px),#dc2626'}}/>Short</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{background:'#dc2626'}}/>Short &middot; shows {'−'}N vs target</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{border:'1.5px dashed var(--g-border-2)'}}/>No sessions on EMIS yet</span>
             <span>|</span>
             <span>Demand chip: &#8593; above typical &middot; &#8593;&#8593; well above</span>
@@ -846,11 +846,11 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       </div>
                       <div className="flex gap-1">
                         <div title={amV.ghost ? 'AM — no urgent sessions on EMIS yet' : amTip} className="flex-1 text-center rounded-md py-1.5" style={{background:amV.bg, border: amV.ghost ? '1.5px dashed var(--g-border-2)' : 'none'}}>
-                          <div className="text-base font-bold leading-none font-mono-data" style={{color:amV.text}}>{amV.ghost ? '\u2014' : d.amS}</div>
+                          <div className="text-base font-bold leading-none font-mono-data" style={{color:amV.text}}>{amV.ghost ? '\u2014' : d.amS}{amV.deficit && d.amT > d.amS ? <span style={{fontSize:'0.72em',opacity:0.85}}> {'\u2212'}{d.amT - d.amS}</span> : null}</div>
                           <div className="text-[11px] font-bold mt-0.5" style={{color:amV.text,opacity:0.8}}>AM</div>
                         </div>
                         <div title={pmV.ghost ? 'PM — no urgent sessions on EMIS yet' : pmTip} className="flex-1 text-center rounded-md py-1.5" style={{background:pmV.bg, border: pmV.ghost ? '1.5px dashed var(--g-border-2)' : 'none'}}>
-                          <div className="text-base font-bold leading-none font-mono-data" style={{color:pmV.text}}>{pmV.ghost ? '\u2014' : d.pmS}</div>
+                          <div className="text-base font-bold leading-none font-mono-data" style={{color:pmV.text}}>{pmV.ghost ? '\u2014' : d.pmS}{pmV.deficit && d.pmT > d.pmS ? <span style={{fontSize:'0.72em',opacity:0.85}}> {'\u2212'}{d.pmT - d.pmS}</span> : null}</div>
                           <div className="text-[11px] font-bold mt-0.5" style={{color:pmV.text,opacity:0.8}}>PM</div>
                         </div>
                       </div>

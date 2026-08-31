@@ -6,6 +6,7 @@ import { getCliniciansForSession } from '@/lib/huddle';
 import { predictDemand } from '@/lib/demandPredictor';
 import { canEditPracticeData } from '@/lib/permissions';
 import { onKeyActivate } from '@/lib/a11y';
+import { ClosedDayInline } from '@/components/ui/ClosedDay';
 
 export default function RoomDashboard({ data, saveData, huddleData, toast }) {
   const canEdit = canEditPracticeData(data);
@@ -305,7 +306,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
           </div>
         </div>
 
-        {isBH ? <div className="p-12 text-center"><span className="text-sm font-semibold text-amber-500">Bank holiday — practice closed</span></div>
+        {isBH ? <div className="p-12 flex justify-center"><ClosedDayInline label="Bank holiday — practice closed" /></div>
         : !selectedSite ? <div className="p-12 text-center text-sm text-slate-400">Select a site</div>
         : (
           <div className="p-5">

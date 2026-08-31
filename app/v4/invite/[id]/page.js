@@ -173,7 +173,7 @@ function Shell({ title, children }) {
         borderRadius: 'var(--r-lg)',
         padding: 28,
       }}>
-        {title && <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 16 }}>{title}</h1>}
+        {title && <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 16 }}>{title}</h1>}
         {children}
       </div>
     </div>

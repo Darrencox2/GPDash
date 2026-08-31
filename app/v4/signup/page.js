@@ -268,7 +268,7 @@ function SignupPageInner() {
                 fontSize: 20,
                 letterSpacing: '0.3em',
                 textAlign: 'center',
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
               }}
               placeholder="6 to 10 digits"
             />

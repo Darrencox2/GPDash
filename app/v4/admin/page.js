@@ -207,7 +207,7 @@ function Stat({ label, value }) {
       padding: '16px 18px',
     }}>
       <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 600, color: '#e2e8f0', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 28, fontWeight: 600, color: '#e2e8f0', fontFamily: "var(--font-heading)", lineHeight: 1 }}>{value}</div>
     </div>
   );
 }

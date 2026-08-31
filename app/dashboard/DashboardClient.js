@@ -90,7 +90,7 @@ class SectionErrorBoundary extends Component {
                 trying to load no longer exists. Reloading picks up the new version — nothing
                 is wrong and nothing is lost.
               </div>
-              <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: '8px 16px', borderRadius: 8, background: 'rgba(251,191,36,0.18)', border: '1px solid rgba(251,191,36,0.5)', color: '#fcd34d', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Reload GPDash</button>
+              <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: '8px 16px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.18)', border: '1px solid rgba(251,191,36,0.5)', color: '#fcd34d', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Reload GPDash</button>
             </div>
           </div>
         );
@@ -103,7 +103,7 @@ class SectionErrorBoundary extends Component {
               Copy the details and send them to Darren — that is more useful than a screenshot,
               because it includes what you were doing.
             </div>
-            <pre style={{ fontSize: 12, color: '#e2e8f0', whiteSpace: 'pre-wrap', marginTop: 10, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 8 }}>{String(this.state.error?.message || this.state.error)}</pre>
+            <pre style={{ fontSize: 12, color: '#e2e8f0', whiteSpace: 'pre-wrap', marginTop: 10, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 'var(--r-md)' }}>{String(this.state.error?.message || this.state.error)}</pre>
             {trail.length > 0 && (
               <div style={{ marginTop: 10, fontSize: 12, color: 'var(--meta)' }}>
                 <div style={{ fontWeight: 600, marginBottom: 3 }}>What you did just before</div>
@@ -113,10 +113,10 @@ class SectionErrorBoundary extends Component {
               </div>
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-              <button onClick={this.copy} style={{ padding: '7px 14px', borderRadius: 8, background: this.state.copied ? 'rgba(52,211,153,0.2)' : 'rgba(52,211,153,0.14)', border: `1px solid ${this.state.copied ? 'var(--link)' : 'rgba(52,211,153,0.45)'}`, color: 'var(--link)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={this.copy} style={{ padding: '7px 14px', borderRadius: 'var(--r-md)', background: this.state.copied ? 'rgba(52,211,153,0.2)' : 'rgba(52,211,153,0.14)', border: `1px solid ${this.state.copied ? 'var(--link)' : 'rgba(52,211,153,0.45)'}`, color: 'var(--link)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 {this.state.copied ? 'Copied \u2713' : 'Copy error details'}
               </button>
-              <button onClick={() => this.setState({ error: null, info: null })} style={{ padding: '7px 14px', borderRadius: 8, background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc', fontSize: 13, cursor: 'pointer' }}>Try again</button>
+              <button onClick={() => this.setState({ error: null, info: null })} style={{ padding: '7px 14px', borderRadius: 'var(--r-md)', background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc', fontSize: 13, cursor: 'pointer' }}>Try again</button>
             </div>
           </div>
         </div>

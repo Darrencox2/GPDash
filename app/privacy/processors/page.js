@@ -75,7 +75,7 @@ export default function ProcessorsPage() {
           <p className="text-body-sm text-slate-400 mb-2.5">
             <Link href="/privacy" style={inlineLink}>← Privacy Notice</Link>
           </p>
-          <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>Sub-processors</h1>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 32, fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>Sub-processors</h1>
           <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
             Last updated: <time dateTime={LEGAL_META.processorsLastUpdated}>{LEGAL_META.processorsLastUpdated}</time>
           </p>
@@ -95,7 +95,7 @@ export default function ProcessorsPage() {
               border: '1px solid rgba(255,255,255,0.08)',
             }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-                <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, margin: 0, color: '#f1f5f9' }}>{p.name}</h2>
+                <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, margin: 0, color: '#f1f5f9' }}>{p.name}</h2>
                 <a href={p.privacyUrl} target="_blank" rel="noopener noreferrer" style={{ ...inlineLink, fontSize: 12 }}>
                   Privacy notice ↗
                 </a>
@@ -114,7 +114,7 @@ export default function ProcessorsPage() {
         </div>
 
         <section style={{ marginTop: 32, fontSize: 14, color: '#cbd5e1', lineHeight: 1.7 }}>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, marginBottom: 10, color: '#f1f5f9' }}>What about other tools?</h2>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, marginBottom: 10, color: '#f1f5f9' }}>What about other tools?</h2>
           <p>Some tools are used by our development team (e.g. GitHub for source code, Claude for engineering assistance) but are <em>not</em> connected to the production data flow. They never see GPDash user data and are therefore not sub-processors. If that ever changes, this page will be updated and you&apos;ll be notified.</p>
         </section>
 

@@ -44,7 +44,7 @@ export default async function ChangelogPage({ searchParams }) {
     <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
       <article style={{ maxWidth: 760, margin: '0 auto', lineHeight: 1.65 }}>
         <header style={{ marginBottom: 36 }}>
-          <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 600, marginBottom: 10, color: '#f1f5f9' }}>Changelog</h1>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 32, fontWeight: 600, marginBottom: 10, color: '#f1f5f9' }}>Changelog</h1>
           <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.7, margin: 0 }}>
             Every change to GPDash, version by version. Current version: <strong style={{ color: '#f1f5f9' }}>{APP_VERSION}</strong>.
           </p>
@@ -56,7 +56,7 @@ export default async function ChangelogPage({ searchParams }) {
         {releases.map((rel) => (
           <section key={rel.version} style={{ marginBottom: 28, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
-              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 20, fontWeight: 600, color: '#f1f5f9', margin: 0 }}>v{rel.version}</h2>
+              <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 600, color: '#f1f5f9', margin: 0 }}>v{rel.version}</h2>
               <span className="text-body-sm text-slate-400">{rel.title}</span>
               {rel.date && <span style={{ fontSize: 12, color: 'var(--meta)', marginLeft: 'auto' }}>{rel.date}</span>}
             </div>

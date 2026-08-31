@@ -96,7 +96,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
             borderRadius: 'var(--r-sm)',
             minWidth: 64,
             textAlign: 'center',
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
           }}>
             {convRate.toFixed(2)}
           </span>
@@ -152,7 +152,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
                           color: 'var(--g-text-hi)',
                           fontSize: 14,
                           textAlign: 'center',
-                          fontFamily: "'Space Mono', monospace",
+                          fontFamily: "var(--font-mono)",
                         }}
                       />
                     </td>
@@ -187,7 +187,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
               color: 'var(--g-text-hi)',
               fontSize: 15,
               textAlign: 'center',
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "var(--font-mono)",
             }}
           />
         </div>

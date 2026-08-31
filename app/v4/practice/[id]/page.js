@@ -289,7 +289,7 @@ export default async function PracticeAdminPage({ params }) {
           </div>
           <div className="mb-5">
             <h1 style={{
-              fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 600,
+              fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 600,
               color: 'var(--g-text-hi)', marginBottom: 6,
             }}>{practice.name}</h1>
             <div className="flex gap-3 text-body-sm text-mid flex-wrap">
@@ -441,7 +441,7 @@ function DangerTab({ practiceId, practiceName }) {
         borderRadius: 'var(--r-lg)',
         padding: 24,
       }}>
-        <h3 style={{ color: '#fca5a5', fontSize: 16, fontWeight: 600, marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
+        <h3 style={{ color: '#fca5a5', fontSize: 16, fontWeight: 600, marginBottom: 8, fontFamily: "var(--font-heading)" }}>
           Delete this practice
         </h3>
         <p className="text-hi text-body leading-body mb-4">

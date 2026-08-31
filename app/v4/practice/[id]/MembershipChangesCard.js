@@ -164,7 +164,7 @@ function formatRelativeTime(iso) {
 }
 
 const titleStyle = {
-  fontFamily: "'Outfit', sans-serif",
+  fontFamily: "var(--font-heading)",
   fontSize: 14,
   fontWeight: 600,
   color: 'var(--g-text-hi)',

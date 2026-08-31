@@ -193,6 +193,6 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 };
 const modal = { background: 'var(--surface-solid)', border: '1px solid var(--g-line)', borderRadius: 'var(--r-lg)', padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' };
 const closeBtn = { position: 'absolute', top: 14, right: 14, background: 'transparent', border: 'none', color: 'var(--g-text-mid)', fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 4 };
-const modalTitle = { fontSize: 16, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 8, fontFamily: "'Outfit', sans-serif" };
+const modalTitle = { fontSize: 16, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 8, fontFamily: "var(--font-heading)" };
 const modalDesc = { fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.6, marginBottom: 14 };
 const btnSubtle = { padding: '8px 16px', background: 'var(--g-border)', color: 'var(--g-text-hi)', border: '1px solid var(--g-border-2)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };

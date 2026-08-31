@@ -376,7 +376,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
               <span className="text-body-sm text-mid">
                 {selCount} marked as {isAdminStep ? 'non-clinician' : current.role}
               </span>
-              <span style={{ fontSize: 12, color: 'var(--g-text-mid)', marginLeft: 'auto', fontFamily: "'Space Mono', monospace" }}>
+              <span style={{ fontSize: 12, color: 'var(--g-text-mid)', marginLeft: 'auto', fontFamily: "var(--font-mono)" }}>
                 Step {step + 1} / {COMMON_ROLES.length}
               </span>
             </div>

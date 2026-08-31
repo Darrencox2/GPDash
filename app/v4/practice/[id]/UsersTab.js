@@ -480,7 +480,7 @@ function Stat({ label, value, colour, tooltip }) {
       }}
     >
       <div style={{ fontSize:11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 600, color: colour || 'var(--g-text-hi)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>{value}</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: colour || 'var(--g-text-hi)', fontFamily: "var(--font-heading)", lineHeight: 1.2 }}>{value}</div>
     </div>
   );
 }
@@ -495,7 +495,7 @@ function Card({ title, children }) {
       borderRadius: 'var(--r-lg)',
       padding: 20,
     }}>
-      {title && <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>{title}</h3>}
+      {title && <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>{title}</h3>}
       {children}
     </div>
   );

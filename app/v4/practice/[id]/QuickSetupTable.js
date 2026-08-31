@@ -751,7 +751,7 @@ function Row({ c, zebra, needsAttn, selected, onToggleSelect, onChange, onOpenPa
             setLocalInitials(v);
             onChange('initials', v);
           }}
-          style={{ ...inputStyle, textAlign: 'center', fontFamily: "'Space Mono', monospace", letterSpacing: '0.05em' }}
+          style={{ ...inputStyle, textAlign: 'center', fontFamily: "var(--font-mono)", letterSpacing: '0.05em' }}
           placeholder="—"
         />
       </Td>

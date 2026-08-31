@@ -72,7 +72,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600, color: 'white' }}>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 600, color: 'white' }}>
             Your dashboard
           </h1>
           <p className="text-body-sm text-slate-400 mt-1">
@@ -203,7 +203,7 @@ function Card({ children }) {
 function SectionTitle({ children }) {
   return (
     <h2 style={{
-      fontFamily: "'Outfit', sans-serif",
+      fontFamily: "var(--font-heading)",
       fontSize: 14,
       fontWeight: 500,
       color: '#94a3b8',
