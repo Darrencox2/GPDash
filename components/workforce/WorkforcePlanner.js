@@ -25,9 +25,11 @@ import {
   WF_DAYS, WF_DAY_NAMES, WF_SESSIONS, cellKey,
 } from '@/lib/workforce';
 import { onKeyActivate } from '@/lib/a11y';
+import RotaDesignPanel from '@/components/workforce/RotaDesignPanel';
+import { ACTIVITY_KINDS } from '@/lib/rota-design';
 
 const SESSION_LABEL = { am: 'AM', pm: 'PM' };
-const DEFAULT_THRESHOLDS = { over: 12, tight: 20, short: 28 };
+const DEFAULT_THRESHOLDS = { over: 12, tight: 20, short: 28, apptsPerSession: 14 };
 const ANOM_LABEL = { off_contract: 'Off contract', missing: 'Contracted but not allocated', unassigned_activity: 'Activity unassigned', total: 'Sessions ≠ contract' };
 
 const RC = {
@@ -66,7 +68,7 @@ const fmt = (n) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
 const CURRENT_ID = 'sc_current';
 const COMMON_ROLES = ['GP', 'GP Partner', 'Salaried GP', 'GP Registrar', 'ANP', 'Nurse', 'Practice Nurse', 'Pharmacist', 'Paramedic', 'Physician Associate', 'HCA', 'Other'];
 function normalizeActivities(arr) {
-  return (Array.isArray(arr) ? arr : []).map(a => ({ assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one' }));
+  return (Array.isArray(arr) ? arr : []).map(a => ({ assignedClinicianId: null, ...a, week: a.week || 'all', duration: a.duration || 'one', kind: a.kind || (/(duty|triage)/i.test(a.label || '') ? 'duty' : 'other') }));
 }
 function healAlloc(alloc, acts) {
   for (const a of acts || []) {
@@ -275,7 +277,7 @@ export default function WorkforcePlanner({ data, toast }) {
 
   const addActivity = (day, session) => {
     const id = `act_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    setActivities(prev => [...prev, { id, day, session, label: '', duration: 'one', week: 'all', assignedClinicianId: null }]);
+    setActivities(prev => [...prev, { id, day, session, label: '', duration: 'one', week: 'all', kind: 'other', assignedClinicianId: null }]);
     setEditingId(id); markDirty();
   };
   const updateActivity = (id, patch) => { setActivities(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a)); markDirty(); };
@@ -654,6 +656,22 @@ export default function WorkforcePlanner({ data, toast }) {
         </div>
       </div>
 
+      {/* ═══ DESIGN CHECK — the template judged as a GP rota ═══ */}
+      <div className="mt-4">
+        <RotaDesignPanel
+          allocation={allocation}
+          activities={activities}
+          viewWeek={viewWeek}
+          includedIds={includedEffIds}
+          clinicians={effClinicians}
+          demandSettings={demandSettings}
+          listSize={listSize}
+          dutyCapableIds={dutySet}
+          apptsPerSession={thresholds.apptsPerSession}
+          onApptsChange={(v) => { setThresholds(t => ({ ...t, apptsPerSession: v })); markDirty(); }}
+        />
+      </div>
+
       {/* Floating popouts */}
       {(panel.clinicians || panel.anomalies || panel.settings || panel.scenarios || panel.audit) && (
         <div data-drop={panel.clinicians ? 'bench' : undefined} style={{ position: 'fixed', top: 90, right: 24, width: 320, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, zIndex: 60 }}>
@@ -789,6 +807,14 @@ export default function WorkforcePlanner({ data, toast }) {
             <input type="text" value={a.label} placeholder="Activity name (e.g. Duty doctor)" autoFocus onChange={e => updateActivity(a.id, { label: e.target.value })} style={S.input} />
             <p style={S.modalLabel}>Duration</p>
             <Segmented options={[['quarter', '¼'], ['half', '½'], ['one', '1 sess'], ['fullday', 'Full day']]} value={a.duration} onChange={v => updateActivity(a.id, { duration: v })} />
+            <p style={S.modalLabel}>Type</p>
+            {/* The type prices the activity in clinical yield for the design
+                check — duty closes a book, a special clinic halves one, admin
+                is fully non-clinical. See lib/rota-design.js. */}
+            <select value={a.kind || 'other'} onChange={e => updateActivity(a.id, { kind: e.target.value })}
+              style={{ ...S.input, cursor: 'pointer' }}>
+              {ACTIVITY_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}
+            </select>
             <p style={S.modalLabel}>Repeats</p>
             <Segmented options={[['all', 'Every week'], ['a', 'Week A'], ['b', 'Week B']]} value={a.week} onChange={v => updateActivity(a.id, { week: v })} />
             <div className="flex justify-between mt-4">
