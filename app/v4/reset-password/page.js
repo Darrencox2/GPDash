@@ -1,18 +1,37 @@
 'use client';
 export const dynamic = 'force-dynamic';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { AuthCard, formStyles as f } from '../_lib/auth-ui';
 import { getSiteUrl } from '@/lib/site-url';
 
+// Suspense wrapper: Next requires one around any client component using
+// useSearchParams, same as login and signup.
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<AuthCard title="Reset your password">{null}</AuthCard>}>
+      <ResetPasswordPageInner />
+    </Suspense>
+  );
+}
+
+function ResetPasswordPageInner() {
   const supabase = createClient();
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const searchParams = useSearchParams();
+  // /auth/callback sends spent or expired recovery links here with
+  // ?error=link_expired, and nothing read it - the user arrived at an
+  // ordinary form with no clue why their link had not worked.
+  const errorParam = searchParams.get('error') || '';
+  const [email, setEmail] = useState(searchParams.get('email') || '');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(
+    errorParam === 'link_expired'
+      ? 'That reset link has expired or had already been used - links in email are often opened by a scanner first, which spends them. Enter your email below for a fresh code.'
+      : ''
+  );
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);

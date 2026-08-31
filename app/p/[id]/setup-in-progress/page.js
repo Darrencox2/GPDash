@@ -22,7 +22,12 @@ export const dynamic = 'force-dynamic';
 
 export default async function SetupInProgressPage({ params }) {
   const { id } = await params;
-  const supabase = createClient(cookies());
+  // cookies() is a Promise in Next 16 - the sync-access shim is gone, so
+  // passing it unawaited made createClient call getAll() on a Promise and
+  // threw a 500 on the one page every new practice owner is sent to.
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  if (!supabase) redirect('/v4/login');
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/v4/login');

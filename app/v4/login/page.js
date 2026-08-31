@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { mapAuthError } from '@/lib/friendly-errors';
 import { AuthCard, formStyles as f } from '../_lib/auth-ui';
+import { getSiteUrl } from '@/lib/site-url';
 
 // Outer wrapper provides the Suspense boundary that Next 15 requires
 // around any client component using useSearchParams() (was a build
@@ -36,10 +37,38 @@ function LoginPageInner() {
   const emailParam = searchParams.get('email') || '';
   const next = searchParams.get('next') || '/v4/dashboard';
 
+  // /auth/callback sends failures here with ?error=... and nothing read
+  // it, so a user whose confirmation link had already been spent (NHS
+  // mail scanners open links before the human does) landed on a clean
+  // login form with no idea what had happened.
+  const CALLBACK_ERRORS = {
+    callback_failed: 'That link could not be used. Links in email are often opened by a scanner before you get to them, which uses them up. If you were confirming a new account, sign in below - or enter your email and we will send a fresh confirmation.',
+    link_expired: 'That link has expired. Request a fresh one below.',
+  };
+  const errorParam = searchParams.get('error') || '';
+
   const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(CALLBACK_ERRORS[errorParam] || '');
+
+  // "Email not confirmed" used to be a dead end: the message told people
+  // to find an email that, in every case we have seen, never arrived.
+  const [needsConfirm, setNeedsConfirm] = useState(false);
+  const [confirmSent, setConfirmSent] = useState('');
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const resendConfirmation = async () => {
+    if (!supabase || !email) return;
+    setConfirmBusy(true); setConfirmSent('');
+    const { error: err } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(next)}` },
+    });
+    setConfirmBusy(false);
+    if (err) { setError(mapAuthError(err.message)); return; }
+    setConfirmSent('Confirmation email sent. It contains a 6-digit code and a link - either works. Check your junk folder too.');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,6 +82,7 @@ function LoginPageInner() {
     if (err) {
       setLoading(false);
       setError(mapAuthError(err.message));
+      setNeedsConfirm(/email not confirmed/i.test(String(err.message || '')));
       // Audit: failed login attempt. Logged anonymously (no auth.uid()
       // because sign-in failed) — log_auth_event grants execute to
       // 'anon' specifically for this case. Best-effort; don't block
@@ -106,6 +136,17 @@ function LoginPageInner() {
     <AuthCard title="Sign in to GPDash" subtitle="Practice rota, capacity and huddle dashboard">
       <form onSubmit={handleSubmit}>
         {error && <div style={f.errorBox}>{error}</div>}
+        {(needsConfirm || errorParam === 'callback_failed') && !confirmSent && (
+          <button
+            type="button" onClick={resendConfirmation} disabled={confirmBusy || !email}
+            style={{ display: 'block', width: '100%', marginBottom: 12, padding: '9px 12px', fontSize: 13,
+              background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.45)',
+              color: '#a5b4fc', borderRadius: 8, cursor: confirmBusy ? 'default' : 'pointer', opacity: email ? 1 : 0.5 }}
+          >
+            {confirmBusy ? 'Sending…' : 'Send me a new confirmation email'}
+          </button>
+        )}
+        {confirmSent && <div style={{ ...f.errorBox, background: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.45)', color: '#6ee7b7' }}>{confirmSent}</div>}
 
         <div style={f.field}>
           <label style={f.label}>Email</label>

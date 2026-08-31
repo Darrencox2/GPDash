@@ -39,7 +39,8 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
-import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist } from '../_lib/auth-ui';
+import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist, PASSWORD_RULE_TEXT } from '../_lib/auth-ui';
+import { mapAuthError } from '@/lib/friendly-errors';
 import { getSiteUrl } from '@/lib/site-url';
 
 // Outer wrapper provides the Suspense boundary that Next 15 requires
@@ -75,6 +76,7 @@ function SignupPageInner() {
   const [code, setCode] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
+  const [existingAccount, setExistingAccount] = useState(false);
   const [resentAt, setResentAt] = useState(null);
 
   const passwordsMatch = !confirmPassword || password === confirmPassword;
@@ -84,7 +86,7 @@ function SignupPageInner() {
     setError('');
     if (!lastName.trim()) { setError('Please enter your surname.'); return; }
     if (!isPasswordValid(password)) {
-      setError('Password must be at least 8 characters and include a letter and a digit.');
+      setError(PASSWORD_RULE_TEXT + '.');
       return;
     }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
@@ -112,13 +114,25 @@ function SignupPageInner() {
     });
     setLoading(false);
 
-    if (err) { setError(err.message); return; }
+    if (err) { setError(mapAuthError(err.message)); return; }
 
     // If Supabase returned a session immediately, email confirmation is
     // OFF in the project. Skip the verify stage.
     if (data.session) {
       router.push(next);
       router.refresh();
+      return;
+    }
+
+    // Already registered. Supabase deliberately does NOT error here - to
+    // avoid telling strangers which addresses have accounts it returns a
+    // success-shaped response with an EMPTY identities array and sends no
+    // email at all. Taking that at face value sent the user to the "enter
+    // your code" screen to wait for a code that was never coming. Verified
+    // against the live API: an existing address returns identities: [].
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setExistingAccount(true);
+      setError('');
       return;
     }
     setStage('verify');
@@ -212,7 +226,7 @@ function SignupPageInner() {
         setCooldownUntil(Date.now() + secs * 1000);
         setError(`Hold on — Supabase asks us to wait ${secs} seconds between resends. Try again in a moment.`);
       } else {
-        setError(err.message || 'Resend failed. Try again in a moment.');
+        setError(mapAuthError(err.message) || 'Resend failed. Try again in a moment.');
       }
       return;
     }
@@ -328,6 +342,53 @@ function SignupPageInner() {
   if (emailParam) loginQs.set('email', emailParam);
   if (next !== '/v4/dashboard') loginQs.set('next', next);
   const loginHref = '/v4/login' + (loginQs.toString() ? `?${loginQs.toString()}` : '');
+
+  // Already-registered dead end, handled as its own screen rather than a
+  // red box on the form: the user does not need to correct anything, they
+  // need a different door.
+  if (existingAccount) {
+    const resetHref = `/v4/reset-password?email=${encodeURIComponent(email)}`;
+    return (
+      <AuthCard title="You already have an account" subtitle={email}>
+        <p style={{ fontSize: 14, color: 'var(--g-text-hi)', lineHeight: 1.55, marginBottom: 14 }}>
+          There is already a GPDash account for this email address, so we have not sent a new
+          verification code. Sign in with your existing password, or reset it if you cannot
+          remember it.
+        </p>
+        <a href={loginHref} style={{ ...f.button, display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 10 }}>
+          Sign in
+        </a>
+        <a href={resetHref} style={{ display: 'block', textAlign: 'center', fontSize: 13, color: 'var(--link)' }}>
+          Forgot your password?
+        </a>
+        {/* The same empty-identities response covers an account that
+            exists but was never confirmed, so offer that door too rather
+            than leaving those users telling us the code never came. */}
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--g-border)' }}>
+          {resentAt ? (
+            <div style={{ fontSize: 13, color: '#6ee7b7', textAlign: 'center' }}>
+              Confirmation email sent. Check your inbox, and your junk folder.
+            </div>
+          ) : (
+            <button
+              type="button" onClick={handleResend} disabled={resendBusy}
+              style={{ display: 'block', width: '100%', background: 'none', border: 'none', fontSize: 13, color: 'var(--meta)', cursor: 'pointer' }}
+            >
+              {resendBusy ? 'Sending…' : 'Never confirmed it? Send a new confirmation email'}
+            </button>
+          )}
+          {error && <div style={{ ...f.errorBox, marginTop: 10 }}>{error}</div>}
+        </div>
+        <button
+          type="button"
+          onClick={() => { setExistingAccount(false); setEmail(''); }}
+          style={{ display: 'block', margin: '14px auto 0', background: 'none', border: 'none', fontSize: 13, color: 'var(--meta)', cursor: 'pointer' }}
+        >
+          Use a different email address
+        </button>
+      </AuthCard>
+    );
+  }
 
   return (
     <AuthCard title="Create your account" subtitle="Join your practice on GPDash">

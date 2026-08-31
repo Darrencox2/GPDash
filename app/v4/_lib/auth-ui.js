@@ -155,30 +155,42 @@ export const formStyles = {
 
 // ─── Password validation ──────────────────────────────────────────────
 //
-// Beta-grade password policy. Deliberately not draconian — research is
-// pretty clear that "your password must contain a haiku and a Sanskrit
-// glyph" rules push users toward "Password1!" and post-it notes. We
-// require:
-//  - At least 8 characters
-//  - At least one letter
-//  - At least one digit
+// THIS LIST MUST MIRROR THE SUPABASE PROJECT POLICY (Authentication →
+// Providers → Email → Password Requirements). It did not, and that
+// silently broke sign-up: the project requires lower + upper + digit +
+// symbol, while this file asked only for a letter and a digit. A new
+// user ticked all three boxes green, pressed Create account, and the
+// server rejected the password - so no account was created and no
+// verification email was ever sent. They were left waiting for a code
+// that could not arrive. Proven against the live API on 31 Aug 2026:
+// "Winscombe1" is refused, "Winscombe1!" is accepted.
 //
-// Length is the only thing that genuinely matters for brute-force
-// resistance. The letter+digit minima are there as a small mistake-
-// catcher (catches "12345678" and "aaaaaaaa" without forcing real users
-// to memorise theatre).
+// The looser policy this file used to describe is the better one on the
+// evidence (length beats character classes, which push people towards
+// "Password1!" and post-it notes). If the project policy is relaxed to
+// match, relax these rules in the same commit - never leave the two
+// out of step again, because the user only ever sees this side.
+const SYMBOLS = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/;
+
 export function validatePassword(pw) {
+  const v = pw || '';
   return {
-    longEnough: (pw || '').length >= 8,
-    hasLetter: /[a-zA-Z]/.test(pw || ''),
-    hasDigit: /[0-9]/.test(pw || ''),
+    longEnough: v.length >= 8,
+    hasLower: /[a-z]/.test(v),
+    hasUpper: /[A-Z]/.test(v),
+    hasDigit: /[0-9]/.test(v),
+    hasSymbol: SYMBOLS.test(v),
   };
 }
 
 export function isPasswordValid(pw) {
   const v = validatePassword(pw);
-  return v.longEnough && v.hasLetter && v.hasDigit;
+  return v.longEnough && v.hasLower && v.hasUpper && v.hasDigit && v.hasSymbol;
 }
+
+// One sentence saying the whole rule, for error messages and hints.
+export const PASSWORD_RULE_TEXT =
+  'Passwords need at least 8 characters, a lower-case and an upper-case letter, a number, and a symbol such as ! or ?';
 
 // PasswordChecklist — small live-updating requirements box rendered under
 // the password field. Each rule turns green when satisfied. Used on
@@ -215,8 +227,9 @@ export function PasswordChecklist({ password }) {
       gap: 3,
     }}>
       <Item ok={v.longEnough} label="At least 8 characters" />
-      <Item ok={v.hasLetter} label="Includes a letter" />
-      <Item ok={v.hasDigit} label="Includes a digit" />
+      <Item ok={v.hasLower && v.hasUpper} label="Upper and lower case letters" />
+      <Item ok={v.hasDigit} label="A number" />
+      <Item ok={v.hasSymbol} label="A symbol, such as ! ? or #" />
     </div>
   );
 }
