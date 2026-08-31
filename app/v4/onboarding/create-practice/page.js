@@ -109,7 +109,8 @@ export default function CreatePracticePage() {
   }, [query, mode]);
 
   // ─── ODS direct lookup ───────────────────────────────────────────────
-  // Hits the same OpenPrescribing endpoint via the practice-lookup API.
+  // Hits the practice-lookup API, which tries OpenPrescribing first and
+  // falls back to NHS ODS (which resolves the code exactly, not by substring).
   // The API treats ODS codes as a substring search (the user might type
   // "L83012" and we'd match practices whose code contains that string),
   // so we filter for an exact match below.

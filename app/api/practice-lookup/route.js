@@ -12,10 +12,20 @@
 // OpenPrescribing's org_code endpoint, which is free, public, and proven
 // to work. Trade-off: user types their practice name instead of relying
 // on geographic match.
+//
+// UPDATE: OpenPrescribing later went behind a Cloudflare challenge and
+// began returning 403 to every server-side request, which left new-practice
+// sign-up with no working lookup at all. So there is now a fallback to the
+// NHS ODS ORD API (lib/nhs-ods.js) whenever OpenPrescribing yields nothing.
+// ODS has no list size, so in that mode patient numbers come from the
+// nhs_oc_baseline table instead. OpenPrescribing stays PRIMARY so that
+// behaviour is unchanged whenever it is healthy.
 
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
+import { searchPracticesByName, getPracticeByOdsCode, looksLikeOdsCode } from '@/lib/nhs-ods';
 import { checkRateLimit, RATE_LIMITS, getRateLimitIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -78,6 +88,10 @@ export async function GET(request) {
 
     let candidates = [];
     let usedUrl = null;
+    // Did OpenPrescribing answer us at all? A single 2xx is enough to call
+    // it healthy. If every variant 403s or times out we skip the per-practice
+    // org_details calls entirely rather than burning 10 x 5s on a dead host.
+    let opReachable = false;
     for (const opUrl of queries) {
       try {
         const opRes = await fetch(opUrl, {
@@ -92,6 +106,7 @@ export async function GET(request) {
         };
         let bodyText = '';
         if (opRes.ok) {
+          opReachable = true;
           // Read as text first so we can inspect malformed responses
           bodyText = await opRes.text();
           attempt.bodyLength = bodyText.length;
@@ -123,7 +138,30 @@ export async function GET(request) {
       }
     }
 
-    debug.steps.push({ step: 'op_search', usedUrl, candidatesFound: candidates.length });
+    debug.steps.push({ step: 'op_search', usedUrl, candidatesFound: candidates.length, opReachable });
+
+    // ─── Fallback: NHS ODS ────────────────────────────────────────────────
+    // Reached both when OpenPrescribing is down and when it is up but simply
+    // has no match. ODS is the upstream source of truth for practice identity,
+    // so a hit here is at least as trustworthy as the primary path.
+    let source = 'openprescribing_name_search';
+    if (candidates.length === 0) {
+      source = 'nhs_ods_fallback';
+
+      // ODS name search does not match on code (?Name=L81021 returns nothing),
+      // so a code-shaped query has to go to the per-organisation endpoint.
+      if (looksLikeOdsCode(query)) {
+        const { practice, error, url } = await getPracticeByOdsCode(query);
+        debug.steps.push({ step: 'ods_by_code', url, found: !!practice, error: error || null });
+        if (practice) candidates = [practice];
+      }
+
+      if (candidates.length === 0) {
+        const { practices, error, url } = await searchPracticesByName(query, { limit: MAX_PRACTICES });
+        debug.steps.push({ step: 'ods_by_name', url, found: practices.length, error: error || null });
+        candidates = practices;
+      }
+    }
 
     if (candidates.length === 0) {
       return NextResponse.json({
@@ -141,36 +179,51 @@ export async function GET(request) {
     // has a row per practice per month, so we also pick the latest
     // month per ODS to avoid duplicates.
     const nhsContextByOds = new Map();
+    // Baseline list size per ODS, used when OpenPrescribing cannot supply one.
+    const baselineListSizeByOds = new Map();
     if (odsCodes.length > 0) {
       const cookieStore = await cookies();
       const supabase = createClient(cookieStore);
-      if (supabase) {
-        // Run both queries in parallel — independent tables, same client.
-        const [existingRes, nhsRes] = await Promise.all([
-          supabase
-            .from('practices')
-            .select('id, name, slug, ods_code')
-            .in('ods_code', odsCodes),
-          supabase
-            .from('nhs_oc_baseline')
-            .select('ods_code, pcn_name, icb_name, region_name, month')
-            .in('ods_code', odsCodes)
-            .order('month', { ascending: false }),
-        ]);
+      // nhs_oc_baseline only grants SELECT to `authenticated`, but this route
+      // is anonymous by design (it runs before sign-in during practice
+      // creation). Read it with the service-role client — same pattern as the
+      // public buddy route. The data is public NHS reference data, the route
+      // is IP rate-limited, and nothing user-scoped is exposed by it.
+      const admin = createAdminClient();
 
-        for (const p of existingRes.data || []) {
-          if (p.ods_code) existingByOds.set(p.ods_code, p);
+      const [existingRes, nhsRes] = await Promise.all([
+        supabase
+          ? supabase.from('practices').select('id, name, slug, ods_code').in('ods_code', odsCodes)
+          : Promise.resolve({ data: [] }),
+        admin
+          ? admin
+              .from('nhs_oc_baseline')
+              .select('ods_code, pcn_name, icb_name, region_name, list_size, month')
+              .in('ods_code', odsCodes)
+              .order('month', { ascending: false })
+          : Promise.resolve({ data: [] }),
+      ]);
+      debug.steps.push({ step: 'baseline_read', adminClient: !!admin, rows: (nhsRes.data || []).length });
+
+      for (const p of existingRes.data || []) {
+        if (p.ods_code) existingByOds.set(p.ods_code, p);
+      }
+      // Take the latest row per ODS — query is sorted desc so the
+      // first one we see for a given ODS is the most recent.
+      for (const row of nhsRes.data || []) {
+        if (!row.ods_code) continue;
+        if (!nhsContextByOds.has(row.ods_code)) {
+          nhsContextByOds.set(row.ods_code, {
+            pcnName: row.pcn_name,
+            icbName: row.icb_name,
+            regionName: row.region_name,
+          });
         }
-        // Take the latest row per ODS — query is sorted desc so the
-        // first one we see for a given ODS is the most recent.
-        for (const row of nhsRes.data || []) {
-          if (row.ods_code && !nhsContextByOds.has(row.ods_code)) {
-            nhsContextByOds.set(row.ods_code, {
-              pcnName: row.pcn_name,
-              icbName: row.icb_name,
-              regionName: row.region_name,
-            });
-          }
+        // List size is tracked separately: the most recent month for a
+        // practice can carry a null list_size while an earlier one has a
+        // real figure, so take the latest month that actually has a number.
+        if (row.list_size != null && !baselineListSizeByOds.has(row.ods_code)) {
+          baselineListSizeByOds.set(row.ods_code, { listSize: row.list_size, asOf: row.month });
         }
       }
     }
@@ -195,37 +248,60 @@ export async function GET(request) {
         pcnName: nhsContext?.pcnName || null,
         icbName: nhsContext?.icbName || null,
         regionName: nhsContext?.regionName || null,
+        // Present only on the ODS path — lets the client skip the separate
+        // postcode round-trip when we already know the answer.
+        postcode: c.postcode || null,
       };
-      try {
-        const url = `${OPENPRESCRIBING_BASE}/org_details/?org_type=practice&keys=total_list_size&org=${encodeURIComponent(c.code)}&format=json`;
-        const res = await fetch(url, {
-          signal: AbortSignal.timeout(5000),
-          headers: FETCH_HEADERS,
-        });
-        if (res.ok) {
-          const json = await res.json();
-          const sorted = Array.isArray(json)
-            ? [...json].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-            : [];
-          const latest = sorted.find(r => r.total_list_size != null);
-          if (latest) {
-            result.listSize = latest.total_list_size;
-            result.listSizeAsOf = latest.date;
+      // Only ask OpenPrescribing for a list size if it answered the search.
+      // When it is down, 10 candidates x a 5s timeout is 5s of dead wait for
+      // a result we already know we cannot get.
+      if (opReachable) {
+        try {
+          const url = `${OPENPRESCRIBING_BASE}/org_details/?org_type=practice&keys=total_list_size&org=${encodeURIComponent(c.code)}&format=json`;
+          const res = await fetch(url, {
+            signal: AbortSignal.timeout(5000),
+            headers: FETCH_HEADERS,
+          });
+          if (res.ok) {
+            const json = await res.json();
+            const sorted = Array.isArray(json)
+              ? [...json].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+              : [];
+            const latest = sorted.find(r => r.total_list_size != null);
+            if (latest) {
+              result.listSize = latest.total_list_size;
+              result.listSizeAsOf = latest.date;
+            } else {
+              result.listSizeError = 'no_data_in_openprescribing';
+            }
           } else {
-            result.listSizeError = 'no_data_in_openprescribing';
+            result.listSizeError = `openprescribing_${res.status}`;
           }
-        } else {
-          result.listSizeError = `openprescribing_${res.status}`;
+        } catch (e) {
+          result.listSizeError = 'lookup_failed';
         }
-      } catch (e) {
-        result.listSizeError = 'lookup_failed';
+      } else {
+        result.listSizeError = 'openprescribing_unavailable';
+      }
+
+      // Baseline fallback — covers both a dead OpenPrescribing and a practice
+      // it simply has no figures for. Clears the error when it succeeds so the
+      // UI shows a number rather than a warning.
+      if (result.listSize == null) {
+        const baseline = baselineListSizeByOds.get(c.code);
+        if (baseline) {
+          result.listSize = baseline.listSize;
+          result.listSizeAsOf = baseline.asOf;
+          result.listSizeSource = 'nhs_oc_baseline';
+          result.listSizeError = null;
+        }
       }
       return result;
     }));
 
     return NextResponse.json({
       practices: enriched,
-      source: 'openprescribing_name_search',
+      source,
       debug,
     });
   } catch (e) {
