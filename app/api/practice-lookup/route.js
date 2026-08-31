@@ -22,8 +22,6 @@
 // behaviour is unchanged whenever it is healthy.
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { searchPracticesByName, getPracticeByOdsCode, looksLikeOdsCode } from '@/lib/nhs-ods';
 import { checkRateLimit, RATE_LIMITS, getRateLimitIp } from '@/lib/rate-limit';
@@ -182,18 +180,25 @@ export async function GET(request) {
     // Baseline list size per ODS, used when OpenPrescribing cannot supply one.
     const baselineListSizeByOds = new Map();
     if (odsCodes.length > 0) {
-      const cookieStore = await cookies();
-      const supabase = createClient(cookieStore);
-      // nhs_oc_baseline only grants SELECT to `authenticated`, but this route
-      // is anonymous by design (it runs before sign-in during practice
-      // creation). Read it with the service-role client — same pattern as the
-      // public buddy route. The data is public NHS reference data, the route
-      // is IP rate-limited, and nothing user-scoped is exposed by it.
+      // Both reads use the service-role client, for the same reason.
+      //
+      // nhs_oc_baseline grants SELECT to `authenticated` only, and `practices`
+      // is member-scoped — but this route is anonymous by design (it runs
+      // before sign-in during practice creation), so under RLS both come back
+      // empty with no error. That silently made every practice look brand new
+      // and every PCN/ICB/region blank.
+      //
+      // Nothing user-scoped leaks: the baseline is public NHS reference data,
+      // and the practices read is reduced to booleans below — the row itself
+      // is never returned. "Is this ODS code already on GPDash" is already
+      // public via the check_practice_exists_by_ods RPC, which the sign-up
+      // page calls anonymously and which deliberately bypasses RLS. The route
+      // is IP rate-limited.
       const admin = createAdminClient();
 
       const [existingRes, nhsRes] = await Promise.all([
-        supabase
-          ? supabase.from('practices').select('id, name, slug, ods_code').in('ods_code', odsCodes)
+        admin
+          ? admin.from('practices').select('id, ods_code').in('ods_code', odsCodes)
           : Promise.resolve({ data: [] }),
         admin
           ? admin
@@ -203,7 +208,12 @@ export async function GET(request) {
               .order('month', { ascending: false })
           : Promise.resolve({ data: [] }),
       ]);
-      debug.steps.push({ step: 'baseline_read', adminClient: !!admin, rows: (nhsRes.data || []).length });
+      debug.steps.push({
+        step: 'supabase_read',
+        adminClient: !!admin,
+        existing: (existingRes.data || []).length,
+        baselineRows: (nhsRes.data || []).length,
+      });
 
       for (const p of existingRes.data || []) {
         if (p.ods_code) existingByOds.set(p.ods_code, p);
