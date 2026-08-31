@@ -29,6 +29,8 @@ function practiceInitials(name) {
 const NAV_ITEMS = [
   { id: 'huddle-today', section: null, label: 'Today', colour: '#10b981',
     icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
+  { id: 'briefing', section: null, label: 'Morning briefing', colour: '#f59e0b',
+    icon: 'M12 3v2M12 19v2M4.2 5.6l1.4 1.4M18.4 17l1.4 1.4M3 12h2M19 12h2M5.6 19.8l1.4-1.4M17 6.4l1.4-1.4M12 8a4 4 0 100 8 4 4 0 000-8z' },
   { id: 'buddy-cover', section: null, label: 'Buddy cover', colour: '#a78bfa',
     icon: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z' },
 

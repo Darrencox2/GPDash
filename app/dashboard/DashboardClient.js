@@ -31,6 +31,7 @@ import { DashboardCompletenessStrip } from '@/app/v4/_lib/SectionStatus';
 import { reportError } from '@/lib/report-error';
 import { noteAction, getTrail, isStaleBuildError, buildErrorReport } from '@/lib/error-context';
 import { APP_VERSION } from '@/lib/version';
+import MorningBriefing from '@/components/huddle/MorningBriefing';
 
 // Shows the REAL error on screen when a section crashes, instead of
 // Next.js's blank "client-side exception" page - a live diagnostic so a
@@ -986,6 +987,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           <Suspense fallback={<div className="text-sm text-slate-400 py-12 text-center">Loading…</div>}>
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} onRevertChange={revertChange} />}
           {huddleLoading && ['huddle-today','huddle-rota','huddle-forward','reporting'].includes(activeSection) && <PageSkeleton />}
+          {activeSection === 'briefing' && <MorningBriefing data={data} huddleData={huddleData} huddleMessages={huddleMessages} />}
           {activeSection === 'huddle-today' && !huddleLoading && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-rota' && !huddleLoading && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'meetings' && <Meetings data={data} />}
