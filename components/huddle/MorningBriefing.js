@@ -103,16 +103,42 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
         </div>
       </div>
 
-      {/* Who's in */}
+      {/* Who's in, and where */}
       <div style={S.card} className="mb-3">
         <div style={S.h2} className="mb-2">Today&rsquo;s team <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--meta)' }}>— {b.present.length} in · {b.absent.length} absent · {b.dayOff.length} day off</span></div>
-        <div className="text-sm leading-relaxed" style={{ color: 'var(--g-text-hi)' }}>
-          {b.present.map(c => c.initials || c.name).join(' · ') || '—'}
-        </div>
+        {b.teamBySite.length === 0 && <div className="text-sm" style={{ color: 'var(--meta)' }}>—</div>}
+        {b.teamBySite.map((grp, gi) => (
+          <div key={gi} className="flex items-baseline gap-2.5 py-1" style={gi ? { borderTop: '1px solid var(--g-border)' } : undefined}>
+            <span className="flex items-center gap-1.5 shrink-0" style={{ minWidth: 108 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: grp.colour, display: 'inline-block' }} />
+              <span className="text-xs font-semibold" style={{ color: 'var(--g-text-hi)' }}>{grp.site || 'Site not set'}</span>
+              <span className="text-[11px]" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)' }}>{grp.members.length}</span>
+            </span>
+            <span className="text-sm leading-relaxed" style={{ color: 'var(--g-text-hi)' }}>
+              {grp.members.map((c, i) => (
+                <span key={c.id || i}>
+                  {i > 0 && <span style={{ color: 'var(--meta)' }}> · </span>}
+                  {c.name}
+                  {c.split && <span className="text-[11px]" style={{ color: 'var(--meta)' }}> (am {c.siteAm} / pm {c.sitePm})</span>}
+                </span>
+              ))}
+            </span>
+          </div>
+        ))}
         {(b.absent.length > 0 || b.dayOff.length > 0) && (
-          <div className="text-xs mt-2 print-rule" style={{ color: 'var(--meta)' }}>
-            {b.absent.length > 0 && <>Absent: {b.absent.map(c => c.name).join(', ')}. </>}
-            {b.dayOff.length > 0 && <>Day off: {b.dayOff.map(c => c.name).join(', ')}.</>}
+          <div className="mt-2 pt-2 print-rule" style={{ borderTop: '1px solid var(--g-border)' }}>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {b.absent.map((c, i) => (
+                <span key={`a${i}`} className="text-xs" style={{ color: 'var(--g-text-hi)' }}>
+                  {c.name} <span style={{ color: '#fca5a5' }}>· {c.reason}</span>
+                </span>
+              ))}
+              {b.dayOff.map((c, i) => (
+                <span key={`d${i}`} className="text-xs" style={{ color: 'var(--g-text-hi)' }}>
+                  {c.name} <span style={{ color: 'var(--meta)' }}>· Day off</span>
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -158,18 +184,41 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
         <div style={S.h2} className="mb-2">The week ahead</div>
         <div className="grid grid-cols-5 gap-2">
           {b.outlook.map((o, i) => (
-            <div key={i} className="text-center rounded-md py-1.5" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)' }}>
-              <div className="text-xs font-semibold" style={{ color: 'var(--g-text-hi)' }}>{o.dayName.slice(0, 3)} {o.date.getDate()}</div>
-              {o.isBankHoliday
-                ? <div className="text-[11px]" style={{ color: 'var(--meta)' }}>closed</div>
-                : <>
+            <div key={i} className="rounded-md overflow-hidden" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)' }}>
+              {/* The stripe is the day's urgent capacity against its own
+                  target — the same bands used on Today, so the colour
+                  carries the same meaning here. */}
+              <div style={{ height: 3, background: o.band ? o.band.colour : 'var(--g-border)' }} />
+              <div className="text-center py-1.5 px-1">
+                <div className="text-xs font-semibold" style={{ color: 'var(--g-text-hi)' }}>{o.dayName.slice(0, 3)} {o.date.getDate()}</div>
+                {o.isBankHoliday ? (
+                  <div className="text-[11px] py-1.5" style={{ color: 'var(--meta)' }}>closed</div>
+                ) : (
+                  <>
                     <div className="text-sm font-bold font-mono-data" style={{ color: 'var(--g-text-hi)' }}>{o.predicted ?? '—'}</div>
-                    <div className="text-[11px]" style={{ color: 'var(--meta)' }}>{o.urgentSlots != null ? `${o.urgentSlots} urgent` : 'requests'}</div>
-                  </>}
+                    <div className="text-[11px] leading-tight" style={{ color: 'var(--meta)' }}>expected</div>
+                    <div className="mt-1 pt-1 flex justify-center gap-2" style={{ borderTop: '1px solid var(--g-border)' }}>
+                      <span className="text-[11px] font-mono-data" title="Urgent slots on EMIS" style={{ color: o.band ? o.band.colour : 'var(--g-text-hi)' }}>
+                        {o.urgentSlots != null ? o.urgentSlots : '—'}<span style={{ color: 'var(--meta)' }}>u</span>
+                      </span>
+                      <span className="text-[11px] font-mono-data" title="Routine slots on EMIS" style={{ color: 'var(--g-text-hi)' }}>
+                        {o.routineSlots != null ? o.routineSlots : '—'}<span style={{ color: 'var(--meta)' }}>r</span>
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
-        <div className="text-[11px] mt-1.5" style={{ color: 'var(--meta)' }}>Predicted requests per day · urgent slots currently on EMIS</div>
+        <div className="text-[11px] mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1" style={{ color: 'var(--meta)' }}>
+          <span>Expected requests · <strong style={{ color: 'var(--g-text-hi)' }}>u</strong> urgent and <strong style={{ color: 'var(--g-text-hi)' }}>r</strong> routine slots on EMIS</span>
+          <span className="flex items-center gap-2">
+            {[['Short', '#ef4444'], ['Tight', '#f59e0b'], ['Good', '#10b981'], ['Over', '#3b82f6']].map(([l, c]) => (
+              <span key={l} className="flex items-center gap-1"><span style={{ width: 12, height: 3, background: c, display: 'inline-block', borderRadius: 2 }} />{l}</span>
+            ))}
+          </span>
+        </div>
       </div>
     </div>
   );

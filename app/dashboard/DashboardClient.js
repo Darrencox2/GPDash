@@ -822,7 +822,22 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   useEffect(() => {
     if (!data) return;
     const fp = coverInputsFingerprint(data);
-    if (coverFpRef.current === null) { coverFpRef.current = fp; return; } // baseline on load
+    if (coverFpRef.current === null) {
+      // Baseline on load - and fill the window while we are here. Watching
+      // only for CHANGES left a real gap: on a quiet week nothing changes,
+      // but the far edge of the rolling 4 weeks advances with the calendar,
+      // so days would silently arrive ungenerated. This is what the manual
+      // "generate 4 weeks" button was really for; now nobody has to press it.
+      coverFpRef.current = fp;
+      if (!canEditPracticeData(data)) return;
+      try {
+        const res = regenerateCoverWindow(data);
+        if (res.changed) saveData(res.data, false);
+      } catch (e) {
+        console.error('[gpdash] initial cover fill failed:', e?.message);
+      }
+      return;
+    }
     if (fp === coverFpRef.current) return;
     coverFpRef.current = fp;
     if (!canEditPracticeData(data)) return;

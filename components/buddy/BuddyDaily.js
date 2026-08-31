@@ -640,41 +640,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           {canEdit && (
           <button onClick={handleCopyWeek} className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5" style={{background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.45)",color:"var(--link)"}}>Copy Week</button>
           )}
-          {canEdit && (isGenerating ? (
-            <div className="flex items-center gap-2">
-              <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden"><div className="h-full w-1/3 bg-gradient-to-r from-violet-500 to-purple-600 rounded-full animate-progress" /></div>
-              <button onClick={() => setIsGenerating(false)} className="btn-secondary text-xs py-1 px-2">Stop</button>
-            </div>
-          ) : (
-            <button onClick={async () => {
-              setIsGenerating(true);
-              await new Promise(r => setTimeout(r, 50));
-              const currentData = data;
-              let generated = 0;
-              const newHistory = { ...currentData.allocationHistory };
-              const today = new Date();
-              const clins = (Array.isArray(currentData.clinicians) ? currentData.clinicians : Object.values(currentData.clinicians || {})).filter(c => c.buddyCover && c.status !== 'left' && c.status !== 'administrative');
-              const idxToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-              for (let i = 0; i < 28; i++) {
-                const checkDate = new Date(today); checkDate.setDate(checkDate.getDate() + i);
-                const dayIndex = checkDate.getDay(); if (dayIndex === 0 || dayIndex === 6) continue;
-                const dayName = idxToDay[dayIndex]; const dateKey = toLocalIso(checkDate);
-                if (currentData.closedDays?.[dateKey]) continue;
-                const status = computeDayStatus(currentData, dateKey, dayName);
-                const { allocations, dayOffAllocations } = generateBuddyAllocations(clins, status.present, status.absent, status.dayOff, currentData.settings || DEFAULT_SETTINGS);
-                newHistory[dateKey] = { date: dateKey, day: dayName, allocations, dayOffAllocations, presentIds: status.present, absentIds: status.absent, dayOffIds: status.dayOff, hasOverride: status.hasOverride, overriddenIds: status.overriddenIds };
-                generated++;
-                await new Promise(r => setTimeout(r, 10));
-              }
-              if (generated > 0) {
-                const nd = { ...currentData, allocationHistory: newHistory };
-                await saveData(nd, false);
-                setDataVersion(v => v + 1);
-              }
-              setIsGenerating(false);
-              setSyncStatus(`Done — ${generated} days`); setTimeout(() => setSyncStatus(''), 4000);
-            }} className="px-3 py-2 rounded-lg text-sm font-medium text-white" style={{background:"rgba(124,58,237,0.7)",border:"1px solid rgba(124,58,237,0.3)"}}>Generate 4 Weeks</button>
-          ))}
         </div>
       </div>
 
@@ -720,12 +685,26 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         {/* Arrows used to sit at the board's far corners, a full width
             apart from the date they change. Grouped now, snap-back beside. */}
         <div className="flex items-center justify-center gap-2.5 px-4 py-2.5 relative" style={{background:'var(--g-panel-2)',borderBottom:'1px solid var(--g-tile)'}}>
-          <button aria-label="Previous week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
-          <div className="text-sm font-semibold text-white" style={{minWidth:170,textAlign:'center'}}>{formatWeekRange(selectedWeek)}</div>
-          <button aria-label="Next week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
-          {selectedWeek.getTime() !== getActiveWeekStart().getTime() && (
-            <button onClick={() => { setSelectedWeek(getActiveWeekStart()); setSelectedDay(getCurrentDay()); }} className="text-xs font-medium ml-1" style={{color:'var(--link)'}}>This week</button>
-          )}
+          <button aria-label="Previous week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
+          <div className="text-sm font-semibold text-white shrink-0" style={{width:190,textAlign:'center'}}>{formatWeekRange(selectedWeek)}</div>
+          <button aria-label="Next week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
+          {/* The arrows must not move. They used to shift sideways as the
+              "This week" link appeared and the date text changed width, so a
+              second click landed somewhere else - clicking three times to skip
+              three weeks was impossible. Fixed widths, and the link keeps its
+              space when hidden. */}
+          {(() => {
+            const onThisWeek = selectedWeek.getTime() === getActiveWeekStart().getTime();
+            return (
+              <button
+                onClick={() => { setSelectedWeek(getActiveWeekStart()); setSelectedDay(getCurrentDay()); }}
+                aria-hidden={onThisWeek} tabIndex={onThisWeek ? -1 : 0}
+                className="text-xs font-medium ml-1 shrink-0"
+                style={{ color: 'var(--link)', width: 62, textAlign: 'left', visibility: onThisWeek ? 'hidden' : 'visible' }}>
+                This week
+              </button>
+            );
+          })()}
           {allReadyCount > 0 && (
             <span className="absolute right-4 text-xs" style={{color:'#34d399'}}>&#10003; All {allReadyCount} days ready</span>
           )}
@@ -998,7 +977,13 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               </div>
               <div className="flex items-center gap-2">
                 {canEdit && hasAllocations && <button onClick={handleCopyDay} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5" style={{background:'rgba(16,185,129,0.12)',border:'1px solid rgba(16,185,129,0.45)',color:'var(--link)'}}>Copy Day</button>}
-                {canEdit && !isPastDate(getDateKey()) && <button onClick={handleGenerate} disabled={presentClinicians.length === 0} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40" style={{background:'rgba(124,58,237,0.7)',border:'1px solid rgba(124,58,237,0.3)'}}>{hasAllocations ? 'Regenerate' : 'Generate'}</button>}
+                {/* Cover regenerates itself whenever anything that affects
+                    it moves, and the window is filled on load - so there is
+                    no routine reason to press anything. This stays only as
+                    the escape hatch for a day that somehow has nothing. */}
+                {canEdit && !hasAllocations && !isPastDate(getDateKey()) && presentClinicians.length > 0 && (
+                  <button onClick={handleGenerate} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }}>Generate now</button>
+                )}
               </div>
             </div>
             <div className="p-5">
@@ -1006,7 +991,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               <div className="text-center py-8 text-slate-400">
                 <div className="text-2xl mb-2">📋</div>
                 <div className="text-sm">No allocations yet for {selectedDay}</div>
-                {presentClinicians.length > 0 && !isPastDate(getDateKey()) && <div className="text-xs mt-1">Click Generate to create buddy assignments</div>}
+                {presentClinicians.length > 0 && !isPastDate(getDateKey()) && <div className="text-xs mt-1">Cover fills in automatically &mdash; use Generate now if this day stays empty</div>}
               </div>
             ) : (
               <>

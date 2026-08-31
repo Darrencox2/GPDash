@@ -8,6 +8,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { canEditPracticeData } from '@/lib/permissions';
+import MultiSelect from '@/components/ui/MultiSelect';
 import { applyTransition } from '@/lib/status-transitions';
 import {
   monthKey, monthLabel, addMonths, aprilStart, monthRange,
@@ -15,7 +16,7 @@ import {
   suggestedEventsFromWindDowns, eventTransitionKey, monthEndDate,
 } from '@/lib/staff-plan';
 
-const GROUPS = [['all', 'Everyone'], ['gp', 'GPs'], ['nursing', 'Nursing'], ['hca', 'HCAs'], ['other', 'Other']];
+const ROLE_FILTER_KEY = 'gpdash-staff-changes-roles';
 const EV_STYLE = {
   join:       { bg: 'rgba(52,211,153,0.16)', bd: 'rgba(52,211,153,0.5)', fg: '#34d399' },
   leave:      { bg: 'rgba(239,68,68,0.14)', bd: 'rgba(239,68,68,0.5)', fg: '#fca5a5' },
@@ -27,7 +28,17 @@ export default function StaffChanges({ data, saveData }) {
   const canEdit = canEditPracticeData(data);
   const todayMk = monthKey(new Date());
   const [viewStart, setViewStart] = useState(() => aprilStart());
-  const [group, setGroup] = useState('all');
+  // Roles are the real job titles from the register, not the four coarse
+  // groups - "GPs and ANPs" is one tick each, which grouping could not do.
+  // The choice is a per-viewer preference, so it lives in localStorage.
+  const [roles, setRoles] = useState([]);
+  useEffect(() => {
+    try { const raw = localStorage.getItem(ROLE_FILTER_KEY); if (raw) setRoles(JSON.parse(raw) || []); } catch { /* no stored preference */ }
+  }, []);
+  const setRolesPersisted = (next) => {
+    setRoles(next);
+    try { localStorage.setItem(ROLE_FILTER_KEY, JSON.stringify(next)); } catch { /* private mode */ }
+  };
   const [per1000, setPer1000] = useState(false);
   const [editor, setEditor] = useState(null);          // { personRef, month }
   const [addOpen, setAddOpen] = useState(false);
@@ -55,11 +66,39 @@ export default function StaffChanges({ data, saveData }) {
   }, [data?._v4?.practiceOds]);
 
   const realPeople = useMemo(() => derivePeople(data), [data]);
-  const people = useMemo(() => {
-    const planned = (plan.plannedPeople || []).map(p => ({ ...p, kind: 'planned', sessions: 0, group: p.group || 'gp' }));
-    const all = [...realPeople, ...planned];
-    return group === 'all' ? all : all.filter(p => p.group === group);
-  }, [realPeople, plan.plannedPeople, group]);
+  const allPeople = useMemo(() => {
+    const planned = (plan.plannedPeople || []).map(p => ({ ...p, kind: 'planned', sessions: 0, group: p.group || 'gp', role: p.role || 'Planned' }));
+    return [...realPeople, ...planned];
+  }, [realPeople, plan.plannedPeople]);
+
+  // Role options, each showing how many sessions a week it carries — the
+  // number is what makes a role worth ticking or leaving out.
+  const roleOptions = useMemo(() => {
+    const acc = {};
+    for (const p of allPeople) {
+      const r = p.role || 'Unspecified';
+      if (!acc[r]) acc[r] = { id: r, label: r, sessions: 0, group: p.group, n: 0 };
+      acc[r].sessions += p.sessions || 0;
+      acc[r].n += 1;
+    }
+    return Object.values(acc)
+      .sort((a, b) => b.sessions - a.sessions || a.label.localeCompare(b.label))
+      .map(o => ({ ...o, hint: `${o.n} · ${o.sessions}` }));
+  }, [allPeople]);
+
+  const rolePresets = useMemo(() => {
+    const inGroup = (g) => roleOptions.filter(o => o.group === g).map(o => o.id);
+    return [
+      { label: 'GPs', ids: inGroup('gp') },
+      { label: 'GPs + nursing', ids: [...inGroup('gp'), ...inGroup('nursing')] },
+      { label: 'Everyone', ids: [] },
+    ];
+  }, [roleOptions]);
+
+  const people = useMemo(
+    () => (roles.length === 0 ? allPeople : allPeople.filter(p => roles.includes(p.role || 'Unspecified'))),
+    [allPeople, roles]
+  );
 
   const { perPerson, totals } = useMemo(() => totalsByMonth(people, plan.events, months), [people, plan.events, months]);
   const perK = useMemo(() => per1000ByMonth(totals, months, listSizeByMonth, data?._v4?.practiceListSize), [totals, months, listSizeByMonth, data?._v4?.practiceListSize]);
@@ -124,15 +163,13 @@ export default function StaffChanges({ data, saveData }) {
       <h1 className="sr-only">Staff changes</h1>
       <div className="flex items-center gap-3 flex-wrap mb-3">
         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 600, color: 'var(--g-text-hi)', margin: 0 }}>Staff changes</h2>
-        <div className="flex gap-0.5 p-0.5 rounded-lg" role="group" aria-label="Role filter" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)' }}>
-          {GROUPS.map(([id, label]) => (
-            <button key={id} onClick={() => setGroup(id)} aria-pressed={group === id}
-              className="px-2.5 py-1 rounded-md text-xs font-semibold"
-              style={{ background: group === id ? 'var(--accent-soft)' : 'transparent', color: group === id ? 'var(--accent-text)' : 'var(--meta)', border: group === id ? '1px solid var(--accent)' : '1px solid transparent' }}>
-              {label}
-            </button>
-          ))}
-        </div>
+        <MultiSelect label="Roles" options={roleOptions} selected={roles} onChange={setRolesPersisted}
+          allLabel="Everyone" presets={rolePresets} width={230} hintLabel="people · sess/wk" />
+        {roles.length > 0 && (
+          <span className="text-xs" style={{ color: 'var(--meta)' }}>
+            {people.length} of {allPeople.length} people
+          </span>
+        )}
         <button onClick={() => setPer1000(v => !v)} aria-pressed={per1000}
           className="px-2.5 py-1 rounded-md text-xs font-semibold ml-auto"
           style={{ background: per1000 ? 'var(--accent-soft)' : 'var(--g-tile)', color: per1000 ? 'var(--accent-text)' : 'var(--meta)', border: `1px solid ${per1000 ? 'var(--accent)' : 'var(--g-border-2)'}` }}
