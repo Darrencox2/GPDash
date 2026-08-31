@@ -4,8 +4,13 @@
 //
 // Per row:
 //   - Email + role + sender + "expires X"
-//   - Copy invite link (since we don't auto-email yet, this is the
-//     primary delivery mechanism — admin sends the link via Slack/text)
+//   - Whether the invite email actually reached the provider, reported
+//     back by the send-invite-email Edge Function. This used to be
+//     invisible: the card claimed the email was on its way the moment
+//     the row was inserted, so a rejected address looked identical to a
+//     delivered one.
+//   - Copy invite link — the fallback when sending failed, and the way
+//     to deliver an invite by hand over Slack or text
 //   - Revoke button (calls revoke_practice_invite RPC)
 //
 // Owner/admin permissions handled at the RPC; UI just shows the buttons
@@ -33,9 +38,31 @@ export default function PendingInvitesCard({ invites, canManage }) {
         <InviteRow key={inv.id} invite={inv} canManage={canManage} />
       ))}
       <div className="mt-3 text-caption text-mid leading-normal">
-        Invite emails are sent automatically. The copy button gives you the same link if you also want to send it yourself.
+        Invite emails send automatically and each row shows whether that worked. If one says it failed, copy the link and send it yourself.
           </div>
     </div>
+  );
+}
+
+const EMAIL_STATUS = {
+  sent:    { label: 'Emailed',      colour: '#34d399', border: 'rgba(52,211,153,0.4)',  bg: 'rgba(16,185,129,0.12)' },
+  failed:  { label: 'Email failed', colour: '#fca5a5', border: 'rgba(239,68,68,0.45)',  bg: 'rgba(239,68,68,0.12)' },
+  pending: { label: 'Sending…',     colour: '#fbbf24', border: 'rgba(245,158,11,0.4)', bg: 'rgba(245,158,11,0.10)' },
+};
+
+function EmailStatusPill({ status, sentAt, error }) {
+  const s = EMAIL_STATUS[status] || EMAIL_STATUS.pending;
+  const title = status === 'failed'
+    ? (error || 'The email provider rejected this address.')
+    : status === 'sent'
+      ? (sentAt ? `Accepted by the email provider on ${new Date(sentAt).toLocaleString('en-GB')}` : 'Accepted by the email provider')
+      : 'Not confirmed yet. This normally settles within a few seconds.';
+  return (
+    <span title={title}
+      style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap',
+        color: s.colour, background: s.bg, border: `1px solid ${s.border}` }}>
+      {s.label}
+    </span>
   );
 }
 
@@ -85,7 +112,10 @@ function InviteRow({ invite: inv, canManage }) {
     <div style={{ padding: '12px 0', borderBottom: '1px solid var(--g-tile)' }}>
       <div className="flex justify-between items-center gap-3 flex-wrap">
         <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-          <div className="text-body text-hi">{inv.email}</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-body text-hi">{inv.email}</span>
+            <EmailStatusPill status={inv.email_status} sentAt={inv.email_sent_at} error={inv.email_error} />
+          </div>
           <div className="text-caption text-mid mt-0.5">
             Invited as <span style={{ textTransform: 'capitalize' }}>{inv.role}</span>
             {' · '}
@@ -95,6 +125,11 @@ function InviteRow({ invite: inv, canManage }) {
               <>expires {new Date(inv.expires_at).toLocaleDateString('en-GB')}</>
             )}
           </div>
+          {inv.email_status === 'failed' && (
+            <div className="text-caption mt-1" style={{ color: '#fca5a5' }}>
+              The email did not go out{inv.email_error ? `: ${inv.email_error}` : ''}. Copy the link below and send it to them yourself.
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           {!expired && (

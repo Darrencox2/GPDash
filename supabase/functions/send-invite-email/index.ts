@@ -59,6 +59,19 @@ Deno.serve(async (req) => {
 
   if (!RESEND_API_KEY) {
     console.error('RESEND_API_KEY is not set; refusing to send.');
+    // Record the failure where an admin will actually see it, if we can
+    // work out which invite this was for.
+    try {
+      const body = await req.clone().json();
+      const id = body?.record?.id;
+      if (id) {
+        await createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        }).from('practice_invites')
+          .update({ email_status: 'failed', email_error: 'Email sending is not configured for this project.' })
+          .eq('id', id);
+      }
+    } catch { /* best effort - the log line above is the fallback */ }
     return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), {
       status: 500, headers: { 'Content-Type': 'application/json' },
     });
@@ -137,8 +150,22 @@ Deno.serve(async (req) => {
 
   const resendBody = await resendRes.json().catch(() => ({}));
 
+  // Report the outcome back onto the invite row. Until this landed, a
+  // rejected address or a provider outage was visible only in these logs,
+  // while the admin who sent it was told the email was on its way.
+  const recordOutcome = async (fields: Record<string, unknown>) => {
+    const { error } = await supabase.from('practice_invites').update(fields).eq('id', record.id);
+    if (error) console.error(`Could not record email status for invite ${record.id}:`, error.message);
+  };
+
   if (!resendRes.ok) {
     console.error(`Resend rejected send for invite ${record.id}: ${resendRes.status}`, resendBody);
+    await recordOutcome({
+      email_status: 'failed',
+      email_error: String(
+        (resendBody as any)?.message || (resendBody as any)?.error || `Provider returned ${resendRes.status}`
+      ).slice(0, 500),
+    });
     return new Response(JSON.stringify({
       error: 'resend_send_failed',
       status: resendRes.status,
@@ -147,6 +174,13 @@ Deno.serve(async (req) => {
       status: 502, headers: { 'Content-Type': 'application/json' },
     });
   }
+
+  await recordOutcome({
+    email_status: 'sent',
+    email_sent_at: new Date().toISOString(),
+    email_error: null,
+    email_provider_id: (resendBody as any)?.id || null,
+  });
 
   console.log(`Sent invite email to ${record.email} for invite ${record.id} (Resend id: ${resendBody.id})`);
   return new Response(JSON.stringify({ ok: true, resend_id: resendBody.id }), {

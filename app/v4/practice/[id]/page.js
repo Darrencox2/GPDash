@@ -20,6 +20,7 @@ import PracticeSetupForm from './setup/PracticeSetupForm';
 import InviteForm from './InviteForm';
 import UsersTab from './UsersTab';
 import PendingInvitesCard from './PendingInvitesCard';
+import JoinRequestsCard from './JoinRequestsCard';
 import BulkInviteButton from './BulkInviteButton';
 import TransferOwnershipButton from './TransferOwnershipButton';
 import MembershipChangesCard from './MembershipChangesCard';
@@ -78,17 +79,19 @@ export default async function PracticeAdminPage({ params }) {
     { data: clinicianRows },
     { count: demandHistoryCount },
     { count: memberCount },
+    { data: joinRequests },
   ] = await Promise.all([
     supabase.from('practice_users').select('role').eq('practice_id', practiceId).eq('user_id', user.id).maybeSingle(),
     supabase.from('profiles').select('is_platform_admin').eq('id', user.id).maybeSingle(),
     supabase.from('practices').select('id, name, slug, ods_code, postcode, list_size, online_consult_tool, region, setup_completed_at, buddy_cover_public').eq('id', practiceId).maybeSingle(),
     supabase.rpc('list_practice_members', { target_practice_id: practiceId }),
-    supabase.from('practice_invites').select('id, email, role, invited_at, expires_at').eq('practice_id', practiceId).is('accepted_at', null).is('revoked_at', null).order('invited_at', { ascending: false }),
+    supabase.from('practice_invites').select('id, email, role, invited_at, expires_at, email_status, email_sent_at, email_error').eq('practice_id', practiceId).is('accepted_at', null).is('revoked_at', null).order('invited_at', { ascending: false }),
     supabase.from('practice_settings').select('demand_settings, buddy_settings, huddle_settings, teamnet_url, extras').eq('practice_id', practiceId).maybeSingle(),
     supabase.from('demand_history_summary').select('source, row_count, earliest_date, latest_date, last_uploaded_at').eq('practice_id', practiceId),
     supabase.from('clinicians').select('initials, role, status').eq('practice_id', practiceId),
     supabase.from('demand_history').select('practice_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
     supabase.from('practice_users').select('user_id', { count: 'exact', head: true }).eq('practice_id', practiceId),
+    supabase.from('practice_join_requests').select('id, email, name, message, requested_at').eq('practice_id', practiceId).eq('status', 'pending').order('requested_at', { ascending: true }),
   ]);
 
   const isPlatformAdmin = !!myProfile?.is_platform_admin;
@@ -187,7 +190,10 @@ export default async function PracticeAdminPage({ params }) {
             ) : null
           }
           pendingInviteList={
-            <PendingInvitesCard invites={invites || []} canManage={canManage} />
+            <>
+              <JoinRequestsCard requests={joinRequests || []} canManage={canManage} />
+              <PendingInvitesCard invites={invites || []} canManage={canManage} />
+            </>
           }
           transferOwnershipButton={
             /* Owner-only (or platform admin acting on owner's behalf). The

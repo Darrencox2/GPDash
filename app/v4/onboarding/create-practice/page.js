@@ -30,6 +30,22 @@ export default function CreatePracticePage() {
   const supabase = createClient();
   const [mode, setMode] = useState('name'); // 'name' | 'ods' | 'manual'
   const [error, setError] = useState('');
+  // Asking to join a practice that already exists.
+  const [joinState, setJoinState] = useState(null); // null | 'requested' | 'already_pending' | 'already_member'
+  const [joinMessage, setJoinMessage] = useState('');
+  const [joinBusy, setJoinBusy] = useState(false);
+  const [joinError, setJoinError] = useState('');
+
+  const askToJoin = async () => {
+    setJoinBusy(true); setJoinError('');
+    const { data, error: err } = await supabase.rpc('request_to_join_practice', {
+      p_practice_id: dupCheck?.practice_id,
+      p_message: joinMessage.trim() || null,
+    });
+    setJoinBusy(false);
+    if (err) { setJoinError(err.message || 'Could not send that request. Try again in a moment.'); return; }
+    setJoinState(data?.status || 'requested');
+  };
 
   // Search-by-name state
   const [query, setQuery] = useState('');
@@ -421,12 +437,44 @@ export default function CreatePracticePage() {
         }}>
           <strong className="text-amber-400">This practice is already on GPDash.</strong>
           {' '}
-          {dupCheck.owner_name ? (
-            <>Ask <strong style={{ color: '#fde68a' }}>{dupCheck.owner_name}</strong> to invite you from the practice's Users page.</>
+          {joinState === 'requested' || joinState === 'already_pending' ? (
+            <>Your request to join has been sent{dupCheck.owner_name ? <> to <strong style={{ color: '#fde68a' }}>{dupCheck.owner_name}</strong></> : null}.
+              {' '}They will see it on their Users page and you will be let in once they approve it.</>
+          ) : joinState === 'already_member' ? (
+            <>You are already a member of this practice &mdash; <a href="/v4/dashboard" style={{ color: '#fde68a', textDecoration: 'underline' }}>go to your dashboard</a>.</>
           ) : (
-            <>Ask whoever set it up to invite you from the practice's Users page.</>
+            <>
+              {dupCheck.owner_name
+                ? <>It is run by <strong style={{ color: '#fde68a' }}>{dupCheck.owner_name}</strong>. Ask to join and they can approve you from the practice&rsquo;s Users page.</>
+                : <>Ask to join and whoever set it up can approve you from the practice&rsquo;s Users page.</>}
+              {/* Asking used to be impossible from here: the screen told
+                  people to go and find the owner themselves, with no way
+                  to make contact and nothing on the owner's side to see. */}
+              <div style={{ marginTop: 10 }}>
+                <textarea
+                  value={joinMessage}
+                  onChange={(e) => setJoinMessage(e.target.value)}
+                  placeholder="Optional: say who you are, e.g. new salaried GP starting in October"
+                  rows={2}
+                  style={{ ...f.input, width: '100%', resize: 'vertical', marginBottom: 8 }}
+                />
+                <button
+                  type="button"
+                  onClick={askToJoin}
+                  disabled={joinBusy || !dupCheck.practice_id}
+                  style={{ ...f.button, opacity: joinBusy || !dupCheck.practice_id ? 0.6 : 1 }}
+                >
+                  {joinBusy ? 'Sending…' : 'Ask to join this practice'}
+                </button>
+                {!dupCheck.practice_id && (
+                  <div style={{ marginTop: 8, fontSize: 12 }}>
+                    Ask whoever set it up to invite you from the practice&rsquo;s Users page. They will need the email address you signed up with.
+                  </div>
+                )}
+                {joinError && <div style={{ marginTop: 8, fontSize: 12, color: '#fca5a5' }}>{joinError}</div>}
+              </div>
+            </>
           )}
-          {' '}They'll need the email address you signed up with.
         </div>
       )}
 
