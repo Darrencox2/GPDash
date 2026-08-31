@@ -10,6 +10,8 @@ import { createClient } from '@/utils/supabase/client';
 import { canEditPracticeData } from '@/lib/permissions';
 import MultiSelect from '@/components/ui/MultiSelect';
 import { applyTransition } from '@/lib/status-transitions';
+import { logEvent } from '@/lib/data';
+import { classifyStaffRole } from '@/lib/site-staffing';
 import {
   monthKey, monthLabel, addMonths, aprilStart, monthRange,
   derivePeople, totalsByMonth, per1000ByMonth, planSummary,
@@ -17,6 +19,29 @@ import {
 } from '@/lib/staff-plan';
 
 const ROLE_FILTER_KEY = 'gpdash-staff-changes-roles';
+
+const fmtDate = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return isNaN(d) ? iso : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+// One line describing an event, used for the audit trail, the running
+// list and the cell tooltip - so all three always say the same thing.
+export function eventTitle(e) {
+  if (!e) return '';
+  // Events recorded before exact dates existed only know their month, so
+  // fall back to the month rather than printing "from  to ".
+  const monthWord = (mk) => (mk ? `${monthLabel(mk)} ${mk.slice(0, 4)}` : 'an unknown date');
+  const from = e.startDate ? fmtDate(e.startDate) : monthWord(e.month);
+  const to = e.endDate ? fmtDate(e.endDate) : monthWord(e.toMonth || e.month);
+  switch (e.type) {
+    case 'join': return `Joins on ${e.sessions} sessions a week from ${from}`;
+    case 'leave': return `Leaves ${e.startDate ? 'on ' : 'in '}${e.startDate ? fmtDate(e.endDate || e.startDate) : monthWord(e.month)}`;
+    case 'temp_leave': return `${(e.reason || 'away').charAt(0).toUpperCase()}${(e.reason || 'away').slice(1)} from ${from} to ${to}`;
+    case 'change': return `Sessions change to ${e.sessions} a week from ${from}`;
+    default: return e.type;
+  }
+}
 const EV_STYLE = {
   join:       { bg: 'rgba(52,211,153,0.16)', bd: 'rgba(52,211,153,0.5)', fg: '#34d399' },
   leave:      { bg: 'rgba(239,68,68,0.14)', bd: 'rgba(239,68,68,0.5)', fg: '#fca5a5' },
@@ -42,6 +67,7 @@ export default function StaffChanges({ data, saveData }) {
   const [per1000, setPer1000] = useState(false);
   const [editor, setEditor] = useState(null);          // { personRef, month }
   const [addOpen, setAddOpen] = useState(false);
+  const [justAdded, setJustAdded] = useState(null);
   const [newPerson, setNewPerson] = useState({ name: '', role: 'Salaried GP' });
   const [listSizeByMonth, setListSizeByMonth] = useState(null);
 
@@ -105,35 +131,114 @@ export default function StaffChanges({ data, saveData }) {
   const summary = useMemo(() => planSummary(totals, months, todayMk), [totals, months, todayMk]);
   const suggestions = useMemo(() => suggestedEventsFromWindDowns(realPeople, plan.events), [realPeople, plan.events]);
 
-  const savePlan = (next) => saveData({ ...data, staffPlan: { ...next, savedAt: new Date().toISOString() } });
+  const whoAmI = data?._v4?.linkedClinicianName || data?._v4?.userEmail || 'someone';
+  const nameOfRef = (ref) => allPeople.find(p => p.id === ref)?.name || ref;
+  const savePlan = (next, auditLine = null) => {
+    let payload = { ...data, staffPlan: { ...next, savedAt: new Date().toISOString() } };
+    if (auditLine) payload = logEvent(payload, 'staff', auditLine);
+    saveData(payload);
+  };
+
   const addEvent = (ev, opts = {}) => {
-    const event = { id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...ev };
+    // Dates are the real record; the month is only where the square sits.
+    const startDate = ev.startDate || `${ev.month}-01`;
+    const endDate = ev.endDate || (ev.type === 'temp_leave' ? monthEndDate(ev.toMonth || ev.month) : monthEndDate(ev.month));
+    const event = {
+      id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      ...ev, startDate,
+      ...(ev.type === 'temp_leave' || ev.type === 'leave' ? { endDate } : {}),
+      by: whoAmI, at: new Date().toISOString(),
+    };
     let payload = { ...data, staffPlan: { ...plan, events: [...(plan.events || []), event], savedAt: new Date().toISOString() } };
+
     // Real person going away or leaving? Route through the same transition
     // the buddy board uses, so wind-down + absence + audit stay in step.
     const tKey = eventTransitionKey(event);
     const isReal = realPeople.some(p => p.id === event.personRef);
     if (tKey && isReal && !opts.skipSync) {
-      const untilDate = event.type === 'temp_leave' ? monthEndDate(event.toMonth || event.month) : monthEndDate(event.month);
-      const startDate = `${event.month}-01`;
-      try { payload = applyTransition(payload, event.personRef, tKey, { untilDate, startDate, by: data?._v4?.linkedClinicianName || data?._v4?.userEmail || null }); }
-      catch { /* the plan event still records even if the sync cannot */ }
+      try {
+        const before = (payload.plannedAbsences || []).length;
+        payload = applyTransition(payload, event.personRef, tKey, { untilDate: endDate, startDate, by: whoAmI });
+        // Remember which absence this event created so removing the event
+        // can take it back out of the buddy board again.
+        const created = (payload.plannedAbsences || [])[before];
+        if (created?.id) {
+          event.absenceId = created.id;
+          payload.staffPlan = { ...payload.staffPlan, events: payload.staffPlan.events.map(e => e.id === event.id ? event : e) };
+        }
+      } catch { /* the plan event still records even if the sync cannot */ }
     }
+    payload = logEvent(payload, 'staff', `${eventTitle(event)} for ${nameOfRef(event.personRef)} added in staff changes by ${whoAmI}`);
     saveData(payload);
     setEditor(null);
   };
-  const removeEvent = (id) => savePlan({ ...plan, events: (plan.events || []).filter(e => e.id !== id) });
+
+  // Removing has to undo everything the event switched on, or the buddy
+  // board keeps covering someone whose leave was deleted here.
+  const removeEvent = (id) => {
+    const ev = (plan.events || []).find(e => e.id === id);
+    if (!ev) return;
+    let payload = { ...data, staffPlan: { ...plan, events: (plan.events || []).filter(e => e.id !== id), savedAt: new Date().toISOString() } };
+    if (ev.absenceId) {
+      payload.plannedAbsences = (payload.plannedAbsences || []).filter(a => a.id !== ev.absenceId);
+    }
+    // Clear the wind-down marker only if it is the one this event set -
+    // never stamp on a marker somebody set by hand on the buddy board.
+    if (ev.absenceId && (ev.type === 'leave' || ev.type === 'temp_leave')) {
+      const clins = Array.isArray(payload.clinicians) ? payload.clinicians : Object.values(payload.clinicians || {});
+      payload.clinicians = clins.map(c => {
+        if (c.id !== ev.personRef || !c.windDown) return c;
+        const sameSpan = c.windDown.startDate === ev.startDate && c.windDown.endDate === ev.endDate;
+        if (!sameSpan) return c;
+        const { windDown, ...rest } = c;
+        return rest;
+      });
+    }
+    payload = logEvent(payload, 'staff', `${eventTitle(ev)} for ${nameOfRef(ev.personRef)} removed in staff changes by ${whoAmI}${ev.absenceId ? ' - buddy cover updated' : ''}`);
+    saveData(payload);
+  };
+
   const addPlannedPerson = () => {
-    if (!newPerson.name.trim()) return;
+    const name = newPerson.name.trim();
+    if (!name) return;
     const id = `plan-${Date.now()}`;
-    savePlan({ ...plan, plannedPeople: [...(plan.plannedPeople || []), { id, name: newPerson.name.trim(), role: newPerson.role, group: 'gp' }] });
+    const role = newPerson.role.trim() || 'Planned';
+    // If a role filter is on and the new person would not match it, they
+    // would be added and instantly hidden - which reads exactly like
+    // nothing happening. Widen the filter to include them.
+    if (roles.length > 0 && !roles.includes(role)) setRolesPersisted([...roles, role]);
+    savePlan(
+      { ...plan, plannedPeople: [...(plan.plannedPeople || []), { id, name, role, group: classifyStaffRole(role) }] },
+      `${name} (${role}) added as a planned person in staff changes by ${whoAmI}`
+    );
     setAddOpen(false); setNewPerson({ name: '', role: 'Salaried GP' });
+    // Planned people join the bottom of a long grid, well below the fold,
+    // so adding one looked like nothing happening at all. Take the eye
+    // there and hold it for a moment.
+    setJustAdded(id);
+    setTimeout(() => {
+      document.getElementById(`sc-row-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+    setTimeout(() => setJustAdded(null), 2600);
   };
   const removePlannedPerson = (id) => savePlan({
     ...plan,
     plannedPeople: (plan.plannedPeople || []).filter(p => p.id !== id),
     events: (plan.events || []).filter(e => e.personRef !== id),
-  });
+  }, `${nameOfRef(id)} removed from staff changes by ${whoAmI}`);
+
+  // Newest first, each labelled by where it sits relative to today.
+  const runningChanges = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return (plan.events || [])
+      .map(ev => {
+        const from = ev.startDate || `${ev.month}-01`;
+        const to = ev.endDate || (ev.type === 'temp_leave' ? monthEndDate(ev.toMonth || ev.month) : from);
+        const state = today < from ? 'upcoming' : (today <= to ? 'active' : 'past');
+        return { ev, state, from };
+      })
+      .sort((a, b) => (b.ev.at || b.from).localeCompare(a.ev.at || a.from));
+  }, [plan.events]);
 
   // ── chart geometry ──────────────────────────────────────────────────
   const series = per1000 ? months.map(mk => perK[mk]) : months.map(mk => totals[mk]);
@@ -156,7 +261,11 @@ export default function StaffChanges({ data, saveData }) {
 
   const cellEvents = (personRef, mk) => (plan.events || []).filter(e => e.personRef === personRef && (e.month === mk || (e.type === 'temp_leave' && mk > e.month && mk <= (e.toMonth || e.month))));
 
-  const S = { chip: (t) => ({ ...{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 5, whiteSpace: 'nowrap' }, background: EV_STYLE[t].bg, border: `1px solid ${EV_STYLE[t].bd}`, color: EV_STYLE[t].fg }) };
+  const S = { chip: (t) => ({
+    fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, padding: '1px 4px', borderRadius: 5,
+    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+    background: EV_STYLE[t].bg, border: `1px solid ${EV_STYLE[t].bd}`, color: EV_STYLE[t].fg,
+  }) };
 
   return (
     <div>
@@ -238,7 +347,7 @@ export default function StaffChanges({ data, saveData }) {
         </div>
         <div className="overflow-x-auto">
           <div style={{ minWidth: 1000 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, 1fr)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, minmax(0, 1fr))' }}>
               <div className="px-3 py-1.5 text-[11px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>Staff · sess/wk</div>
               {months.map(mk => (
                 <div key={mk} className="text-center py-1.5 text-[11px]" style={{ borderLeft: '1px solid var(--g-border)', fontFamily: 'var(--font-mono)', color: mk === todayMk ? '#34d399' : 'var(--meta)' }}>{monthLabel(mk)}</div>
@@ -247,7 +356,11 @@ export default function StaffChanges({ data, saveData }) {
             {people.map(p => {
               const gone = perPerson[p.id]?.[months[months.length - 1]] === 0 && (plan.events || []).some(e => e.personRef === p.id && e.type === 'leave');
               return (
-                <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, 1fr)', borderTop: p.kind === 'planned' ? '1px dashed var(--g-border-2)' : '1px solid var(--g-border)' }}>
+                <div key={p.id} id={`sc-row-${p.id}`}
+                  style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, minmax(0, 1fr))',
+                    borderTop: p.kind === 'planned' ? '1px dashed var(--g-border-2)' : '1px solid var(--g-border)',
+                    background: justAdded === p.id ? 'rgba(52,211,153,0.16)' : undefined,
+                    transition: 'background 0.6s ease' }}>
                   <div className="px-3 py-1 flex items-baseline gap-2 min-w-0">
                     <span className="text-[11px] font-bold" style={{ fontFamily: 'var(--font-mono)', color: p.kind === 'planned' ? 'var(--ok, #34d399)' : '#fff' }}>{p.initials || '＋'}</span>
                     <span className="text-xs truncate" style={{ color: 'var(--g-text-hi)', fontStyle: p.kind === 'planned' ? 'italic' : 'normal' }}>{p.name}</span>
@@ -264,7 +377,8 @@ export default function StaffChanges({ data, saveData }) {
                       <button key={mk} disabled={!canEdit}
                         onClick={() => canEdit && setEditor({ personRef: p.id, month: mk, personName: p.name, isPlanned: p.kind === 'planned' })}
                         aria-label={`${p.name}, ${monthLabel(mk)} ${mk.slice(0, 4)}`}
-                        className="min-h-[26px] flex items-center justify-center px-0.5"
+                        className="min-h-[26px] flex items-center justify-center px-0.5 overflow-hidden"
+                        title={starts.map(e => eventTitle(e)).join(' · ') || undefined}
                         style={{ borderLeft: '1px solid var(--g-border)', background: mk === todayMk ? 'rgba(52,211,153,0.05)' : 'transparent', cursor: canEdit ? 'pointer' : 'default', opacity: gone && perPerson[p.id]?.[mk] === 0 && !starts.length ? 0.4 : 1 }}>
                         {starts.map(e => (
                           <span key={e.id} style={S.chip(e.type)} title={`${e.note || e.type}${canEdit ? ' — click cell to edit' : ''}`}>
@@ -279,14 +393,14 @@ export default function StaffChanges({ data, saveData }) {
               );
             })}
             {canEdit && (
-              <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, 1fr)', borderTop: '1px solid var(--g-border)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, minmax(0, 1fr))', borderTop: '1px solid var(--g-border)' }}>
                 <div className="px-3 py-1.5">
                   <button onClick={() => setAddOpen(true)} className="text-xs" style={{ color: 'var(--link)' }}>＋ Add person…</button>
                 </div>
                 {months.map(mk => <div key={mk} style={{ borderLeft: '1px solid var(--g-border)' }} />)}
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, 1fr)', borderTop: '2px solid var(--g-border-2)', background: 'rgba(99,102,241,0.05)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, minmax(0, 1fr))', borderTop: '2px solid var(--g-border-2)', background: 'rgba(99,102,241,0.05)' }}>
               <div className="px-3 py-1.5 text-xs font-bold" style={{ color: 'var(--g-text-hi)' }}>TOTAL {per1000 ? '/1k patients' : '/ week'}</div>
               {months.map(mk => (
                 <div key={mk} className="text-center py-1.5 text-[11px] font-bold" style={{ borderLeft: '1px solid var(--g-border)', fontFamily: 'var(--font-mono)', color: 'var(--g-text-hi)' }}>
@@ -298,6 +412,44 @@ export default function StaffChanges({ data, saveData }) {
         </div>
       </div>
 
+      {/* ── Running changes ────────────────────────────────────────────
+          Every change on one list, newest first, so there is one place to
+          answer "what has been recorded, by whom, and is it still to
+          come". Removing here undoes the buddy-board side too. */}
+      <div className="rounded-xl mt-3" style={{ background: 'var(--g-panel-2)', border: '1px solid var(--g-border)' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: '1px solid var(--g-tile)' }}>
+          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', margin: 0 }}>Running changes</h3>
+          <span className="text-[11px]" style={{ color: 'var(--meta)' }}>{runningChanges.length} recorded</span>
+          <span className="ml-auto text-[11px]" style={{ color: 'var(--meta)' }}>Leave and temporary leave also drive buddy cover</span>
+        </div>
+        {runningChanges.length === 0 ? (
+          <div className="px-4 py-5 text-sm text-center" style={{ color: 'var(--meta)' }}>
+            Nothing recorded yet. Click a square in the grid above to add a join, a leave, temporary leave or a session change.
+          </div>
+        ) : (
+          <div className="divide-y" style={{ borderColor: 'var(--g-border)' }}>
+            {runningChanges.map(({ ev, state }) => (
+              <div key={ev.id} className="flex items-center gap-3 px-4 py-2" style={{ borderTop: '1px solid var(--g-border)' }}>
+                <span style={S.chip(ev.type)}>{ev.type === 'temp_leave' ? 'away' : ev.type === 'change' ? '±sess' : ev.type}</span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--g-text-hi)', minWidth: 150 }}>{nameOfRef(ev.personRef)}</span>
+                <span className="text-sm flex-1 min-w-0" style={{ color: 'var(--g-text-hi)' }}>{eventTitle(ev)}</span>
+                <span className="text-[11px] px-1.5 py-0.5 rounded" style={{
+                  color: state === 'active' ? '#fbbf24' : state === 'upcoming' ? 'var(--link)' : 'var(--meta)',
+                  border: `1px solid ${state === 'active' ? 'rgba(245,158,11,0.45)' : state === 'upcoming' ? 'rgba(52,211,153,0.35)' : 'var(--g-border-2)'}`,
+                }}>{state}</span>
+                {ev.absenceId && <span className="text-[11px]" title="Pushed to the buddy board" style={{ color: 'var(--link)' }}>buddy</span>}
+                <span className="text-[11px] hidden lg:inline" style={{ color: 'var(--meta)', minWidth: 120 }}>
+                  {ev.by ? `by ${ev.by}` : ''}
+                </span>
+                {canEdit && (
+                  <button onClick={() => removeEvent(ev.id)} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* cell editor */}
       {editor && (
         <CellEditor editor={editor} onClose={() => setEditor(null)} onAdd={addEvent} onRemove={removeEvent}
@@ -306,56 +458,80 @@ export default function StaffChanges({ data, saveData }) {
       {/* add person */}
       {addOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setAddOpen(false)}>
-          <div className="rounded-xl p-4 w-80" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border-2)' }} onClick={e => e.stopPropagation()}>
+          <form className="rounded-xl p-4 w-80" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border-2)' }}
+            onClick={e => e.stopPropagation()}
+            onSubmit={(e) => { e.preventDefault(); addPlannedPerson(); }}>
+            {/* A form, not loose inputs: pressing Enter after typing a name
+                did nothing at all, which read as the button being broken. */}
             <div className="text-sm font-semibold mb-2" style={{ color: 'var(--g-text-hi)' }}>Add a planned person</div>
             <input autoFocus value={newPerson.name} onChange={e => setNewPerson(p => ({ ...p, name: e.target.value }))}
               placeholder="e.g. Dr Locum, New salaried GP?" className="w-full rounded-md px-2.5 py-1.5 text-sm mb-2"
               style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }} />
-            <input value={newPerson.role} onChange={e => setNewPerson(p => ({ ...p, role: e.target.value }))}
+            <input value={newPerson.role} list="staff-changes-roles" onChange={e => setNewPerson(p => ({ ...p, role: e.target.value }))}
               placeholder="Role" className="w-full rounded-md px-2.5 py-1.5 text-sm mb-3"
               style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }} />
+            <datalist id="staff-changes-roles">
+              {roleOptions.map(o => <option key={o.id} value={o.id} />)}
+            </datalist>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setAddOpen(false)} className="px-3 py-1.5 rounded-lg text-sm" style={{ color: 'var(--meta)' }}>Cancel</button>
-              <button onClick={addPlannedPerson} className="px-3 py-1.5 rounded-lg text-sm font-semibold" style={{ background: 'var(--accent)', color: '#fff' }}>Add</button>
+              <button type="button" onClick={() => setAddOpen(false)} className="px-3 py-1.5 rounded-lg text-sm" style={{ color: 'var(--meta)' }}>Cancel</button>
+              <button type="submit" disabled={!newPerson.name.trim()}
+                className="px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-40"
+                style={{ background: 'var(--accent)', color: '#fff' }}>Add</button>
             </div>
             <p className="text-[11px] mt-2" style={{ color: 'var(--meta)' }}>Planned people are drawn italic. Give them a join event to add their sessions.</p>
-          </div>
+          </form>
         </div>
       )}
     </div>
   );
 }
 
-function CellEditor({ editor, onClose, onAdd, onRemove, existing, months }) {
+function CellEditor({ editor, onClose, onAdd, onRemove, existing }) {
   const [mode, setMode] = useState(null);
   const [sessions, setSessions] = useState(4);
-  const [toMonth, setToMonth] = useState(addMonths(editor.month, 2));
   const [reason, setReason] = useState('maternity');
+  // Exact dates, not just the month. The buddy board covers people day by
+  // day, so "October" is not enough to know who needs cover on the 3rd.
+  const firstOfMonth = `${editor.month}-01`;
+  const [startDate, setStartDate] = useState(firstOfMonth);
+  const [endDate, setEndDate] = useState(monthEndDate(addMonths(editor.month, 2)));
   const base = { personRef: editor.personRef, month: editor.month };
   const pretty = `${monthLabel(editor.month)} ${editor.month.slice(0, 4)}`;
+  const dateInput = {
+    background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)',
+    borderRadius: 6, padding: '4px 8px', fontSize: 13, colorScheme: 'dark',
+  };
+  const endsBeforeStart = endDate && startDate && endDate < startDate;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
-      <div className="rounded-xl p-4 w-96" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border-2)' }} onClick={e => e.stopPropagation()}>
+      <div className="rounded-xl p-4 w-[420px]" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border-2)' }} onClick={e => e.stopPropagation()}>
         <div className="text-[11px] mb-2" style={{ fontFamily: 'var(--font-mono)', color: 'var(--meta)' }}>{editor.personName.toUpperCase()} · {pretty.toUpperCase()}</div>
+
         {existing.length > 0 && (
           <div className="mb-3">
             {existing.map(e => (
-              <div key={e.id} className="flex items-center gap-2 text-sm py-1" style={{ color: 'var(--g-text-hi)' }}>
-                <span>{e.type === 'temp_leave' ? `Away (${e.reason || '—'}) until ${monthLabel(e.toMonth || e.month)}` : e.type === 'change' ? `Sessions → ${e.sessions}` : e.type === 'join' ? `Joins on ${e.sessions} sessions` : 'Leaves'}</span>
-                <button onClick={() => { onRemove(e.id); onClose(); }} className="ml-auto text-xs" style={{ color: '#fca5a5' }}>remove</button>
+              <div key={e.id} className="flex items-start gap-2 text-sm py-1" style={{ color: 'var(--g-text-hi)' }}>
+                <span className="flex-1">
+                  {eventTitle(e)}
+                  {e.by && <span className="block text-[11px]" style={{ color: 'var(--meta)' }}>added by {e.by}</span>}
+                </span>
+                <button onClick={() => { onRemove(e.id); onClose(); }} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
               </div>
             ))}
           </div>
         )}
+
         {!mode && (
           <div className="flex flex-col gap-1.5">
             {[
-              ['join', '▶ Joins', 'sets sessions from this month'],
-              ['leave', '■ Leaves', 'sessions end this month'],
-              ['temp_leave', '⏸ Temporary leave', 'maternity / sick / sabbatical'],
-              ['change', '± Change sessions', 'new weekly total from this month'],
+              ['join', '▶ Joins', 'sets sessions from a date'],
+              ['leave', '■ Leaves', 'last working day'],
+              ['temp_leave', '⏸ Temporary leave', 'maternity, sickness, sabbatical'],
+              ['change', '± Change sessions', 'new weekly total from a date'],
             ].map(([m, label, hint]) => (
-              <button key={m} onClick={() => (m === 'leave' ? onAdd({ ...base, type: 'leave' }) : setMode(m))}
+              <button key={m} onClick={() => setMode(m)}
                 className="text-left px-3 py-2 rounded-lg text-sm"
                 style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }}>
                 {label} <span style={{ color: 'var(--meta)' }}>— {hint}</span>
@@ -363,27 +539,65 @@ function CellEditor({ editor, onClose, onAdd, onRemove, existing, months }) {
             ))}
           </div>
         )}
-        {(mode === 'join' || mode === 'change') && (
-          <div className="flex items-center gap-2">
-            <label className="text-sm" style={{ color: 'var(--g-text-hi)' }}>{mode === 'join' ? 'Joins on' : 'New total'}</label>
-            <input type="number" min="0.5" max="12" step="0.5" value={sessions} onChange={e => setSessions(parseFloat(e.target.value) || 0)}
-              className="w-16 text-center rounded-md py-1 text-sm" style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }} />
-            <span className="text-sm" style={{ color: 'var(--meta)' }}>sessions/wk</span>
-            <button onClick={() => onAdd({ ...base, type: mode, sessions })} className="ml-auto px-3 py-1.5 rounded-lg text-sm font-semibold" style={{ background: 'var(--accent)', color: '#fff' }}>Add</button>
-          </div>
-        )}
-        {mode === 'temp_leave' && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--g-text-hi)' }}>
-              Until
-              <select value={toMonth} onChange={e => setToMonth(e.target.value)} className="rounded-md py-1 px-2 text-sm" style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }}>
-                {monthRange(editor.month, 18).map(mk => <option key={mk} value={mk}>{monthLabel(mk)} {mk.slice(0, 4)}</option>)}
-              </select>
-              <select value={reason} onChange={e => setReason(e.target.value)} className="rounded-md py-1 px-2 text-sm" style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }}>
-                {['maternity', 'sick', 'sabbatical', 'other'].map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
+
+        {mode && (
+          <div className="flex flex-col gap-2.5">
+            {(mode === 'join' || mode === 'change') && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-sm" style={{ color: 'var(--g-text-hi)' }}>{mode === 'join' ? 'Joins on' : 'New total'}</label>
+                <input type="number" min="0.5" max="12" step="0.5" value={sessions}
+                  onChange={e => setSessions(parseFloat(e.target.value) || 0)}
+                  className="w-16 text-center" style={dateInput} />
+                <span className="text-sm" style={{ color: 'var(--meta)' }}>sessions/wk from</span>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={dateInput} />
+              </div>
+            )}
+
+            {mode === 'leave' && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-sm" style={{ color: 'var(--g-text-hi)' }}>Last working day</label>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={dateInput} />
+              </div>
+            )}
+
+            {mode === 'temp_leave' && (
+              <>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select value={reason} onChange={e => setReason(e.target.value)} style={dateInput}>
+                    {['maternity', 'paternity', 'sickness', 'sabbatical', 'other'].map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <span className="text-sm" style={{ color: 'var(--meta)' }}>from</span>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={dateInput} />
+                  <span className="text-sm" style={{ color: 'var(--meta)' }}>to</span>
+                  <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} style={dateInput} />
+                </div>
+                {endsBeforeStart && <div className="text-xs" style={{ color: '#fca5a5' }}>The end date is before the start date.</div>}
+              </>
+            )}
+
+            <p className="text-[11px]" style={{ color: 'var(--meta)' }}>
+              {mode === 'leave' || mode === 'temp_leave'
+                ? 'These exact dates are pushed to the buddy board, so cover is arranged for the right days.'
+                : 'Sessions step from this date; the graph and totals follow.'}
+            </p>
+
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setMode(null)} className="px-3 py-1.5 rounded-lg text-sm" style={{ color: 'var(--meta)' }}>Back</button>
+              <button
+                disabled={mode === 'temp_leave' && endsBeforeStart}
+                onClick={() => {
+                  const month = monthKey(startDate);
+                  if (mode === 'temp_leave') {
+                    onAdd({ ...base, month, toMonth: monthKey(endDate), type: 'temp_leave', reason, startDate, endDate });
+                  } else if (mode === 'leave') {
+                    onAdd({ ...base, month, type: 'leave', startDate, endDate: startDate });
+                  } else {
+                    onAdd({ ...base, month, type: mode, sessions, startDate });
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-40"
+                style={{ background: 'var(--accent)', color: '#fff' }}>Add</button>
             </div>
-            <button onClick={() => onAdd({ ...base, type: 'temp_leave', toMonth, reason })} className="self-end px-3 py-1.5 rounded-lg text-sm font-semibold" style={{ background: 'var(--accent)', color: '#fff' }}>Add</button>
           </div>
         )}
       </div>

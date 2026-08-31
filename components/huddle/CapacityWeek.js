@@ -14,10 +14,21 @@
 //     marked as a projection rather than actuals
 import { useState, useMemo } from 'react';
 import { getCliniciansForDate, getDutyDoctor } from '@/lib/huddle';
-import { toHuddleDateStr, toLocalIso, getScheduledSessions } from '@/lib/data';
-import { getWeekDayDetail, classifyStaffRole, STATE_COLOURS, initialsFor } from '@/lib/site-staffing';
+import { toHuddleDateStr, toLocalIso, getScheduledSessions, matchesStaffMember, titleCaseName } from '@/lib/data';
+import { getWeekDayDetail, classifyStaffRole } from '@/lib/site-staffing';
+import { predictDemand } from '@/lib/demandPredictor';
+import { ClosedDayInline } from '@/components/ui/ClosedDay';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+// Full names read far faster than initials when there is room for them.
+// Prefer the register's own spelling; otherwise tidy the EMIS form
+// ("COX, Darren (Dr)" -> "Darren Cox").
+function displayName(csvName, clinicians) {
+  const match = (clinicians || []).find((x) => matchesStaffMember(csvName, x));
+  if (match?.name) return match.name;
+  return titleCaseName(String(csvName || '').replace(/\s*\([^)]*\)\s*$/, '').trim()) || csvName;
+}
 const SESSION_LABELS = { am: 'AM', pm: 'PM', eve: 'EVE' };
 
 function mondayOf(d) {
@@ -58,6 +69,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
         }
         detail = getWeekDayDetail(huddleData, csvStr, {
           sites, huddleSettings: hs, capacityStaffing, clinicians: teamClin, dutyByName,
+          includeEmpty: true,
         });
       }
       // Rota projection for days without export data: which GPs are
@@ -71,12 +83,19 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           const sess = getScheduledSessions(data, c.id, dayName) || [];
           for (const s of sess) {
             const key = String(s).toUpperCase().charAt(0);
-            if (bySession[key]) bySession[key].push(initialsFor(c.name, teamClin));
+            if (bySession[key]) bySession[key].push(c.name);
           }
         }
         if (bySession.M.length || bySession.A.length || bySession.E.length) projection = bySession;
       }
-      return { dayName, dt, iso, csvStr, hasData, detail, projection, isToday: iso === todayIso };
+      // A closed day has nobody in it by definition. Saying "nobody here"
+      // once per site invites the reader to hunt for a problem that is
+      // not there.
+      const pred = predictDemand(dt, null, undefined);
+      const declared = data?.closedDays?.[iso] || null;
+      const closed = !!pred?.isBankHoliday || !!declared;
+      const closedReason = declared || (pred?.isBankHoliday ? 'Bank holiday' : null);
+      return { dayName, dt, iso, csvStr, hasData, detail, projection, closed, closedReason, isToday: iso === todayIso };
     });
   }, [monday, huddleData, sites, hs, capacityStaffing, teamClin, data, todayIso]);
 
@@ -84,7 +103,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
   const shortfalls = [];
   for (const d of days) {
     for (const siteEntry of d.detail) {
-      for (const [k, s] of Object.entries(siteEntry.sessions)) {
+      for (const [k, s] of Object.entries(siteEntry.sessions || {})) {
         if (s.state === 'short') {
           shortfalls.push(`${d.dayName.slice(0, 3)} ${SESSION_LABELS[k]} ${siteEntry.site.name.split(' ')[0]} \u2212${siteEntry.threshold - s.offering}`);
         }
@@ -114,76 +133,102 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
         <span className="ml-auto text-[11px] text-slate-400">&#9733; duty &nbsp;&#183;&nbsp; dimmed = no bookable slots &nbsp;&#183;&nbsp; U urgent / R routine slots</span>
       </div>
 
-      <div className="grid grid-cols-5 gap-2" style={{minWidth: 900}}>
+      {/* One row of days. Every configured site appears in every day, in
+          the practice's own order, even when nobody is there - otherwise
+          the sites shuffle between columns and the week cannot be read
+          across. Colour is spent only on trouble: a session that meets
+          its minimum is left plain, so the red and amber mean something. */}
+      <div className="overflow-x-auto">
+      <div className="grid grid-cols-5 gap-2" style={{minWidth: 760}}>
         {days.map((d) => (
           <div key={d.iso} className="rounded-xl p-2 flex flex-col gap-2"
             style={{background:'rgba(255,255,255,0.03)', border: d.isToday ? '1px solid rgba(99,102,241,0.6)' : '1px solid rgba(255,255,255,0.08)'}}>
-            <div className="text-center">
-              <span className="text-xs font-semibold" style={{color: d.isToday ? '#a5b4fc' : '#cbd5e1'}}>{d.dayName.slice(0, 3)}</span>
+            <div className="text-center pb-1" style={{borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+              <span className="text-xs font-semibold" style={{color: d.isToday ? '#a5b4fc' : '#cbd5e1'}}>{d.dayName}</span>
               <span className="text-[11px] text-slate-400 ml-1.5">{d.dt.getDate()} {d.dt.toLocaleDateString('en-GB', { month: 'short' })}</span>
             </div>
 
-            {d.detail.map((siteEntry) => (
-              <div key={siteEntry.site.name} className="rounded-lg overflow-hidden" style={{borderLeft:`3px solid ${siteEntry.site.colour || '#64748b'}`, background:'rgba(0,0,0,0.15)'}}>
-                <div className="px-2 pt-1.5 text-[11px] font-semibold text-slate-300 truncate" title={siteEntry.site.name}>
-                  {siteEntry.site.name}
-                  {siteEntry.threshold != null && <span className="text-slate-400 font-normal"> &#183; min {siteEntry.threshold}</span>}
+            {d.closed && (
+              <div className="py-3 flex justify-center"><ClosedDayInline label={d.closedReason || 'Closed'} /></div>
+            )}
+
+            {!d.closed && d.detail.map((siteEntry) => (
+              <div key={siteEntry.site.name}>
+                {/* Site identity lives here once - a dot and a name - not
+                    as a stripe repeated on every session tile below. */}
+                <div className="flex items-baseline gap-1.5 px-0.5 pb-1">
+                  <span style={{width:7, height:7, borderRadius:999, background: siteEntry.site.colour || '#64748b', display:'inline-block'}} />
+                  <span className="text-[11px] font-semibold text-slate-300 truncate" title={siteEntry.site.name}>{siteEntry.site.name}</span>
+                  {siteEntry.threshold != null && <span className="text-[11px] text-slate-500 ml-auto">min {siteEntry.threshold}</span>}
                 </div>
-                <div className="p-1.5 flex flex-col gap-1">
-                  {['am', 'pm', 'eve'].filter((k) => siteEntry.sessions[k]).map((k) => {
-                    const s = siteEntry.sessions[k];
-                    const C = STATE_COLOURS[s.state] || STATE_COLOURS.none;
-                    return (
-                      <div key={k} className="rounded-md px-1.5 py-1" style={{background: C.bg, border:`1px solid ${C.bd}`}}>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[11px] font-bold w-6" style={{color: C.fg}}>{SESSION_LABELS[k]}</span>
-                          <span className="text-[11px] font-bold font-mono-data" style={{color: C.fg}}>
-                            {s.offering}
-                            {s.state === 'short' && siteEntry.threshold != null && <span> ({'\u2212'}{siteEntry.threshold - s.offering})</span>}
-                          </span>
-                          <span className="ml-auto text-[11px] font-mono-data text-slate-400">U{s.urgent} R{s.routine}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-0.5 mt-1">
-                          {s.clins.map((c, i) => (
-                            <span key={c.name + i}
-                              title={`${c.name}${c.duty ? ' \u2014 DUTY' : ''}\nUrgent ${c.urgent} \u00b7 Routine ${c.routine} \u00b7 Other ${c.other}${c.offering ? '' : '\nNo bookable slots this session'}`}
-                              className="px-1 py-0.5 rounded text-[11px] font-semibold cursor-default"
-                              style={c.duty
-                                ? {background:'rgba(245,158,11,0.25)', border:'1px solid #f59e0b80', color:'#fbbf24'}
-                                : {background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', color: c.offering ? '#cbd5e1' : 'var(--meta)'}}>
-                              {c.duty ? '\u2605 ' : ''}{c.initials}
+
+                {siteEntry.empty ? (
+                  <div className="rounded-md px-2 py-1 text-[11px]"
+                    style={{background:'rgba(255,255,255,0.02)', border:'1px dashed rgba(255,255,255,0.10)', color:'var(--meta)'}}>
+                    Nobody here
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    {['am', 'pm', 'eve'].filter((k) => siteEntry.sessions[k]).map((k) => {
+                      const s = siteEntry.sessions[k];
+                      const short = s.state === 'short';
+                      const tight = s.state === 'tight';
+                      const deficit = short && siteEntry.threshold != null ? siteEntry.threshold - s.offering : 0;
+                      return (
+                        <div key={k} className="rounded-md px-1.5 py-1"
+                          style={{
+                            background: short ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderLeft: short ? '3px solid #ef4444' : tight ? '3px solid #f59e0b' : '3px solid rgba(255,255,255,0.10)',
+                          }}>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-[11px] font-bold" style={{color: short ? '#fca5a5' : tight ? '#fbbf24' : '#94a3b8'}}>{SESSION_LABELS[k]}</span>
+                            <span className="text-[11px] font-bold font-mono-data" style={{color: short ? '#fca5a5' : '#cbd5e1'}}>
+                              {s.offering}{deficit > 0 && <span> ({'\u2212'}{deficit})</span>}
                             </span>
-                          ))}
+                            <span className="ml-auto text-[11px] font-mono-data text-slate-500">{s.urgent}u {s.routine}r</span>
+                          </div>
+                          <div className="mt-0.5">
+                            {s.clins.map((c, i) => (
+                              <div key={c.name + i}
+                                title={`${c.name}${c.duty ? ' — DUTY' : ''}\nUrgent ${c.urgent} · Routine ${c.routine} · Other ${c.other}${c.offering ? '' : '\nNo bookable slots this session'}`}
+                                className="text-[11px] leading-tight truncate"
+                                style={{color: c.duty ? '#fbbf24' : c.offering ? '#cbd5e1' : 'var(--meta)'}}>
+                                {c.duty ? '\u2605 ' : ''}{displayName(c.name, teamClin)}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
 
-            {!d.hasData && d.projection && (
+            {!d.closed && !d.hasData && d.projection && (
               <div className="rounded-lg p-1.5" style={{border:'1px dashed rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.02)'}}>
                 <div className="text-[11px] font-semibold text-slate-400 uppercase mb-1">Rota projection</div>
                 {[['M', 'AM'], ['A', 'PM'], ['E', 'EVE']].filter(([k]) => d.projection[k].length).map(([k, label]) => (
                   <div key={k} className="flex items-start gap-1 mt-0.5">
-                    <span className="text-[11px] font-bold text-slate-400 w-6 pt-0.5">{label}</span>
-                    <span className="flex flex-wrap gap-0.5">
-                      {d.projection[k].map((ini, i) => (
-                        <span key={ini + i} className="px-1 py-0.5 rounded text-[11px] font-semibold" style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'#94a3b8'}}>{ini}</span>
+                    <span className="text-[11px] font-bold text-slate-400 w-7 pt-0.5">{label}</span>
+                    <span className="flex-1">
+                      {d.projection[k].map((nm, i) => (
+                        <div key={nm + i} className="text-[11px] leading-tight text-slate-400 truncate">{nm}</div>
                       ))}
                     </span>
                   </div>
                 ))}
-                <div className="text-[11px] text-slate-400 mt-1">Scheduled GPs from the rota &#8212; no EMIS export for this date yet</div>
+                <div className="text-[11px] text-slate-500 mt-1">Scheduled GPs from the rota &#8212; no EMIS export for this date yet</div>
               </div>
             )}
 
-            {!d.hasData && !d.projection && (
+            {!d.closed && !d.hasData && !d.projection && (
               <div className="rounded-lg py-4 text-center text-[11px] text-slate-400" style={{background:'rgba(255,255,255,0.02)'}}>No data</div>
             )}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );
