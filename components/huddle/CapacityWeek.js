@@ -1,6 +1,13 @@
 'use client';
 // Week detail view for capacity planning.
 //
+// Laid out as SITE ROWS x DAY COLUMNS, not five independent day columns.
+// Sites used to sit at whatever height the sites above them happened to
+// need, so Banwell started lower on a busy day than a quiet one and the
+// week could not be read along a row. Here every site owns a row, and a
+// grid row is a single height, so "is Banwell fine all week?" is one
+// horizontal glance.
+//
 // Designed around the question a GP actually asks about next week: can we
 // function, session by session - who is offering appointments, who is
 // duty, and where is it thin. So:
@@ -12,7 +19,7 @@
 //     trouble before anything else
 //   - days beyond the EMIS export fall back to the session rota, clearly
 //     marked as a projection rather than actuals
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { getCliniciansForDate, getDutyDoctor } from '@/lib/huddle';
 import { toHuddleDateStr, toLocalIso, getScheduledSessions, matchesStaffMember, titleCaseName } from '@/lib/data';
 import { getWeekDayDetail, classifyStaffRole } from '@/lib/site-staffing';
@@ -111,6 +118,16 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
     }
   }
 
+  // The minimum is a property of the site, but it is carried on each day's
+  // entry - so read it off whichever day actually reported one.
+  const thresholdFor = (site) => {
+    for (const d of days) {
+      const e = d.detail.find((x) => x.site.name === site.name);
+      if (e && e.threshold != null) return e.threshold;
+    }
+    return null;
+  };
+
   const weekLabel = `${monday.getDate()} ${monday.toLocaleDateString('en-GB', { month: 'short' })}`;
 
   return (
@@ -130,7 +147,15 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
         ) : (
           <span className="text-[11px] text-slate-400">No sessions below minimum this week</span>
         )}
-        <span className="ml-auto text-[11px] text-slate-400">&#9733; duty &nbsp;&#183;&nbsp; dimmed = no bookable slots &nbsp;&#183;&nbsp; U urgent / R routine slots</span>
+        <span className="ml-auto text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
+          <span className="flex items-center gap-1">
+            <span style={{ width: 16, height: 4, borderRadius: 999, background: '#10b981', display: 'inline-block' }} />meets the minimum
+          </span>
+          <span className="flex items-center gap-1">
+            <span style={{ width: 9, height: 4, borderRadius: 999, background: '#ef4444', display: 'inline-block' }} />short
+          </span>
+          &#183; &#9733; duty &#183; dimmed = no bookable slots &#183; u urgent / r routine
+        </span>
       </div>
 
       {/* One row of days. Every configured site appears in every day, in
@@ -138,96 +163,129 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           the sites shuffle between columns and the week cannot be read
           across. Colour is spent only on trouble: a session that meets
           its minimum is left plain, so the red and amber mean something. */}
+      {/* One row per site, one column per day. Colour is spent only on
+          trouble: the bar under each session shows staffing against that
+          site's minimum, filled green when comfortable, amber when exactly
+          on it, and short in red when it is not met. */}
       <div className="overflow-x-auto">
-      <div className="grid grid-cols-5 gap-2" style={{minWidth: 760}}>
+      <div style={{ display: 'grid', gridTemplateColumns: `132px repeat(5, minmax(0, 1fr))`, gap: 6, minWidth: 880 }}>
+
+        {/* header row */}
+        <div />
         {days.map((d) => (
-          <div key={d.iso} className="rounded-xl p-2 flex flex-col gap-2"
-            style={{background:'rgba(255,255,255,0.03)', border: d.isToday ? '1px solid rgba(99,102,241,0.6)' : '1px solid rgba(255,255,255,0.08)'}}>
-            <div className="text-center pb-1" style={{borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-              <span className="text-xs font-semibold" style={{color: d.isToday ? '#a5b4fc' : '#cbd5e1'}}>{d.dayName}</span>
-              <span className="text-[11px] text-slate-400 ml-1.5">{d.dt.getDate()} {d.dt.toLocaleDateString('en-GB', { month: 'short' })}</span>
+          <div key={`h-${d.iso}`} className="text-center pb-1.5"
+            style={{ borderBottom: d.isToday ? '2px solid rgba(99,102,241,0.7)' : '1px solid rgba(255,255,255,0.10)' }}>
+            <div className="text-xs font-semibold" style={{ color: d.isToday ? '#a5b4fc' : '#cbd5e1' }}>{d.dayName}</div>
+            <div className="text-[11px]" style={{ color: 'var(--meta)' }}>
+              {d.dt.getDate()} {d.dt.toLocaleDateString('en-GB', { month: 'short' })}
             </div>
-
             {d.closed && (
-              <div className="py-3 flex justify-center"><ClosedDayInline label={d.closedReason || 'Closed'} /></div>
-            )}
-
-            {!d.closed && d.detail.map((siteEntry) => (
-              <div key={siteEntry.site.name}>
-                {/* Site identity lives here once - a dot and a name - not
-                    as a stripe repeated on every session tile below. */}
-                <div className="flex items-baseline gap-1.5 px-0.5 pb-1">
-                  <span style={{width:7, height:7, borderRadius:999, background: siteEntry.site.colour || '#64748b', display:'inline-block'}} />
-                  <span className="text-[11px] font-semibold text-slate-300 truncate" title={siteEntry.site.name}>{siteEntry.site.name}</span>
-                  {siteEntry.threshold != null && <span className="text-[11px] text-slate-500 ml-auto">min {siteEntry.threshold}</span>}
-                </div>
-
-                {siteEntry.empty ? (
-                  <div className="rounded-md px-2 py-1 text-[11px]"
-                    style={{background:'rgba(255,255,255,0.02)', border:'1px dashed rgba(255,255,255,0.10)', color:'var(--meta)'}}>
-                    Nobody here
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    {['am', 'pm', 'eve'].filter((k) => siteEntry.sessions[k]).map((k) => {
-                      const s = siteEntry.sessions[k];
-                      const short = s.state === 'short';
-                      const tight = s.state === 'tight';
-                      const deficit = short && siteEntry.threshold != null ? siteEntry.threshold - s.offering : 0;
-                      return (
-                        <div key={k} className="rounded-md px-1.5 py-1"
-                          style={{
-                            background: short ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderLeft: short ? '3px solid #ef4444' : tight ? '3px solid #f59e0b' : '3px solid rgba(255,255,255,0.10)',
-                          }}>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-[11px] font-bold" style={{color: short ? '#fca5a5' : tight ? '#fbbf24' : '#94a3b8'}}>{SESSION_LABELS[k]}</span>
-                            <span className="text-[11px] font-bold font-mono-data" style={{color: short ? '#fca5a5' : '#cbd5e1'}}>
-                              {s.offering}{deficit > 0 && <span> ({'\u2212'}{deficit})</span>}
-                            </span>
-                            <span className="ml-auto text-[11px] font-mono-data text-slate-500">{s.urgent}u {s.routine}r</span>
-                          </div>
-                          <div className="mt-0.5">
-                            {s.clins.map((c, i) => (
-                              <div key={c.name + i}
-                                title={`${c.name}${c.duty ? ' — DUTY' : ''}\nUrgent ${c.urgent} · Routine ${c.routine} · Other ${c.other}${c.offering ? '' : '\nNo bookable slots this session'}`}
-                                className="text-[11px] leading-tight truncate"
-                                style={{color: c.duty ? '#fbbf24' : c.offering ? '#cbd5e1' : 'var(--meta)'}}>
-                                {c.duty ? '\u2605 ' : ''}{displayName(c.name, teamClin)}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {!d.closed && !d.hasData && d.projection && (
-              <div className="rounded-lg p-1.5" style={{border:'1px dashed rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.02)'}}>
-                <div className="text-[11px] font-semibold text-slate-400 uppercase mb-1">Rota projection</div>
-                {[['M', 'AM'], ['A', 'PM'], ['E', 'EVE']].filter(([k]) => d.projection[k].length).map(([k, label]) => (
-                  <div key={k} className="flex items-start gap-1 mt-0.5">
-                    <span className="text-[11px] font-bold text-slate-400 w-7 pt-0.5">{label}</span>
-                    <span className="flex-1">
-                      {d.projection[k].map((nm, i) => (
-                        <div key={nm + i} className="text-[11px] leading-tight text-slate-400 truncate">{nm}</div>
-                      ))}
-                    </span>
-                  </div>
-                ))}
-                <div className="text-[11px] text-slate-500 mt-1">Scheduled GPs from the rota &#8212; no EMIS export for this date yet</div>
-              </div>
-            )}
-
-            {!d.closed && !d.hasData && !d.projection && (
-              <div className="rounded-lg py-4 text-center text-[11px] text-slate-400" style={{background:'rgba(255,255,255,0.02)'}}>No data</div>
+              <div className="text-[11px] mt-0.5" style={{ color: '#fbbf24' }}>{d.closedReason || 'Closed'}</div>
             )}
           </div>
         ))}
+
+        {/* one row per configured site */}
+        {sites.map((site) => (
+          <Fragment key={site.name}>
+            <div className="flex items-start gap-1.5 pt-1.5">
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: site.colour || '#64748b', marginTop: 4, flex: 'none' }} />
+              <div style={{ minWidth: 0 }}>
+                <div className="text-[11px] font-semibold text-slate-300 leading-tight">{site.name}</div>
+                {thresholdFor(site) != null && (
+                  <div className="text-[11px]" style={{ color: 'var(--meta)' }}>min {thresholdFor(site)}</div>
+                )}
+              </div>
+            </div>
+
+            {days.map((d) => {
+              const entry = d.detail.find((e) => e.site.name === site.name);
+              const keys = entry ? ['am', 'pm', 'eve'].filter((k) => entry.sessions[k]) : [];
+              return (
+                <div key={`${site.name}-${d.iso}`} className="rounded-lg p-1"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  {d.closed ? (
+                    <div className="text-[11px] text-center py-2" style={{ color: 'var(--meta)' }}>&mdash;</div>
+                  ) : keys.length === 0 ? (
+                    <div className="text-[11px] text-center py-2" style={{ color: 'var(--meta)' }}>Nobody here</div>
+                  ) : keys.map((k) => {
+                    const ses = entry.sessions[k];
+                    const min = entry.threshold;
+                    const short = ses.state === 'short';
+                    const deficit = short && min != null ? min - ses.offering : 0;
+                    // Two states, not three. Amber for "exactly on the
+                    // minimum" sounded right until it ran against real
+                    // thresholds of 1 and 2, where being exactly on the
+                    // minimum is the ordinary state - so amber fired on
+                    // almost every session and the three genuine
+                    // shortfalls stopped standing out. Met or short.
+                    const fill = short ? '#ef4444' : '#10b981';
+                    const pct = min ? Math.max(6, Math.min(100, (ses.offering / Math.max(min, ses.offering)) * 100)) : 100;
+                    return (
+                      <div key={k} className="rounded-md px-1.5 py-1 mb-1 last:mb-0"
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-[11px] font-bold" style={{ color: 'var(--meta)' }}>{SESSION_LABELS[k]}</span>
+                          <span className="text-[11px] font-bold font-mono-data" style={{ color: short ? '#fca5a5' : '#cbd5e1' }}>
+                            {ses.offering}{deficit > 0 && <span> ({'\u2212'}{deficit})</span>}
+                          </span>
+                          <span className="ml-auto text-[11px] font-mono-data" style={{ color: 'var(--meta)' }}>{ses.urgent}u {ses.routine}r</span>
+                        </div>
+                        <div className="mt-0.5">
+                          {ses.clins.map((c, i) => (
+                            <div key={c.name + i}
+                              title={`${c.name}${c.duty ? ' — DUTY' : ''}\nUrgent ${c.urgent} · Routine ${c.routine} · Other ${c.other}${c.offering ? '' : '\nNo bookable slots this session'}`}
+                              className="text-[11px] leading-tight truncate"
+                              style={{ color: c.duty ? '#fbbf24' : c.offering ? '#cbd5e1' : 'var(--meta)' }}>
+                              {c.duty ? '\u2605 ' : ''}{displayName(c.name, teamClin)}
+                            </div>
+                          ))}
+                        </div>
+                        {min != null && (
+                          <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.09)', marginTop: 4, overflow: 'hidden' }}>
+                            <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: fill }} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </Fragment>
+        ))}
+
+        {/* rota projection, only when some day has no export yet */}
+        {days.some((d) => !d.closed && !d.hasData) && (
+          <Fragment>
+            <div className="flex items-start gap-1.5 pt-1.5">
+              <span style={{ width: 8, height: 8, borderRadius: 999, border: '1px dashed rgba(255,255,255,0.35)', marginTop: 4, flex: 'none' }} />
+              <div className="text-[11px] font-semibold leading-tight" style={{ color: 'var(--meta)' }}>
+                Rota projection
+                <div className="font-normal">no export yet</div>
+              </div>
+            </div>
+            {days.map((d) => (
+              <div key={`proj-${d.iso}`} className="rounded-lg p-1"
+                style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.12)' }}>
+                {d.closed || d.hasData || !d.projection ? (
+                  <div className="text-[11px] text-center py-2" style={{ color: 'var(--meta)' }}>&mdash;</div>
+                ) : (
+                  [['M', 'AM'], ['A', 'PM'], ['E', 'EVE']].filter(([k]) => d.projection[k].length).map(([k, label]) => (
+                    <div key={k} className="px-1 py-0.5">
+                      <span className="text-[11px] font-bold" style={{ color: 'var(--meta)' }}>{label}</span>
+                      {d.projection[k].map((nm, i) => (
+                        <div key={nm + i} className="text-[11px] leading-tight truncate" style={{ color: 'var(--meta)' }}>
+                          {displayName(nm, teamClin)}
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </div>
+            ))}
+          </Fragment>
+        )}
       </div>
       </div>
     </div>
