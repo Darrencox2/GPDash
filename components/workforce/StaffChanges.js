@@ -8,7 +8,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { canEditPracticeData } from '@/lib/permissions';
-import StaffFilter, { staffRoleOptions } from '@/components/ui/StaffFilter';
+import StaffFilter, { staffRoleOptions, usePersistedRoles } from '@/components/ui/StaffFilter';
 import { applyTransition } from '@/lib/status-transitions';
 import { logEvent, toLocalIso } from '@/lib/data';
 import { classifyStaffRole } from '@/lib/site-staffing';
@@ -68,17 +68,6 @@ export default function StaffChanges({ data, saveData }) {
   const canEdit = canEditPracticeData(data);
   const todayMk = monthKey(new Date());
   const [viewStart, setViewStart] = useState(() => aprilStart());
-  // Roles are the real job titles from the register, not the four coarse
-  // groups - "GPs and ANPs" is one tick each, which grouping could not do.
-  // The choice is a per-viewer preference, so it lives in localStorage.
-  const [roles, setRoles] = useState([]);
-  useEffect(() => {
-    try { const raw = localStorage.getItem(ROLE_FILTER_KEY); if (raw) setRoles(JSON.parse(raw) || []); } catch { /* no stored preference */ }
-  }, []);
-  const setRolesPersisted = (next) => {
-    setRoles(next);
-    try { localStorage.setItem(ROLE_FILTER_KEY, JSON.stringify(next)); } catch { /* private mode */ }
-  };
   const [per1000, setPer1000] = useState(false);
   const [chartView, setChartView] = useState('level');
   const [editor, setEditor] = useState(null);          // { personRef, month }
@@ -124,6 +113,13 @@ export default function StaffChanges({ data, saveData }) {
     () => staffRoleOptions(allPeople, { sessionsOf: (p) => p.sessions }),
     [allPeople]
   );
+
+  // Roles are the real job titles from the register, not the four coarse
+  // groups - "GPs and ANPs" is one tick each, which grouping could not do.
+  // Remembered per screen by the shared hook; empty means everyone, which
+  // is also where a stored role that has since left the register lands.
+  const roleIds = useMemo(() => roleOptions.map(o => o.id), [roleOptions]);
+  const [roles, setRolesPersisted] = usePersistedRoles(ROLE_FILTER_KEY, { available: roleIds });
 
   const people = useMemo(
     () => (roles.length === 0 ? allPeople : allPeople.filter(p => roles.includes(p.role || 'Unspecified'))),

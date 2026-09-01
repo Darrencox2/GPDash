@@ -28,7 +28,7 @@ import { getCliniciansForDate, getDutyDoctor } from '@/lib/huddle';
 import { toHuddleDateStr, toLocalIso, getScheduledSessions, matchesStaffMember, titleCaseName } from '@/lib/data';
 import { getWeekDayDetail, classifyStaffRole } from '@/lib/site-staffing';
 import { predictDemand } from '@/lib/demandPredictor';
-import StaffFilter, { staffRoleOptions } from '@/components/ui/StaffFilter';
+import StaffFilter, { staffRoleOptions, usePersistedRoles } from '@/components/ui/StaffFilter';
 import { getRoutineTypeSet, getUrgentTypeSet } from '@/lib/site-staffing';
 
 // The house purple, as the Today page uses it for its own accents. The
@@ -37,6 +37,7 @@ import { getRoutineTypeSet, getUrgentTypeSet } from '@/lib/site-staffing';
 const DUTY = { bg: 'var(--duty-bg)', bd: 'var(--duty-bd)', fg: 'var(--duty-fg)' };
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const ROLE_FILTER_KEY = 'gpdash-capacity-week-roles';
 
 // Full names read far faster than initials when there is room for them.
 // Prefer the register's own spelling; otherwise tidy the EMIS form
@@ -92,7 +93,11 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
     () => roleOptions.filter((o) => configuredGroups.includes(o.group)).map((o) => o.id),
     [roleOptions, configuredGroups]
   );
-  const [roles, setRoles] = useState(null);            // null = follow the config
+  // The filter is remembered per screen, so the week opens the way it was
+  // left. With nothing stored it follows the configured groups, which is
+  // what makes the view agree with the minimums it draws against.
+  const roleIds = useMemo(() => roleOptions.map((o) => o.id), [roleOptions]);
+  const [roles, setRoles] = usePersistedRoles(ROLE_FILTER_KEY, { available: roleIds, fallback: configuredRoles });
   // Who the pointer is on. Native title tooltips are slow, unstyled, and
   // land on top of the thing you are reading; the strip above the grid is
   // always there, and pointing at a name fills it. It is deliberately
@@ -100,7 +105,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
   // the moment the pointer drifts, which is what made the floating
   // version feel unreliable.
   const [peek, setPeek] = useState(null);              // { c, site, day, session }
-  const activeRoles = roles && roles.length ? roles : configuredRoles;
+  const activeRoles = roles.length ? roles : configuredRoles;
   const monday = useMemo(() => {
     const m = mondayOf(new Date());
     m.setDate(m.getDate() + offset * 7);
@@ -263,7 +268,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           <button onClick={() => setOffset(o => o + 1)} className="px-2 py-1 rounded-md" style={{background:'var(--g-tile)', border:'1px solid var(--g-border-2)', color:'var(--g-text-mid)'}}>&#8250;</button>
         </div>
         <span className="text-xs" style={{ color: 'var(--meta)' }}>w/c {weekLabel}</span>
-        <StaffFilter options={roleOptions} selected={roles || configuredRoles}
+        <StaffFilter options={roleOptions} selected={activeRoles}
           onChange={(next) => setRoles(next.length ? next : configuredRoles)}
           allLabel="Counting all staff" width={230} hintLabel="people" />
         <span className="ml-auto text-[11px] flex items-center gap-2 flex-wrap" style={{ color: 'var(--meta)' }}>

@@ -13,7 +13,7 @@
 // really good for.
 //
 // Selecting nothing means everyone: an empty filter is not an empty screen.
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import MultiSelect from '@/components/ui/MultiSelect';
 import { classifyStaffRole } from '@/lib/site-staffing';
 
@@ -31,6 +31,44 @@ export function staffRoleOptions(people, { sessionsOf = null } = {}) {
   return Object.values(acc)
     .sort((a, b) => (b.sessions - a.sessions) || (b.n - a.n) || a.label.localeCompare(b.label))
     .map((o) => ({ ...o, hint: sessionsOf ? `${o.n} · ${o.sessions}` : String(o.n) }));
+}
+
+// ── Remembering the choice ────────────────────────────────────────────────
+// Every screen that filters staff should come back the way you left it, and
+// each one gets its own key: the roles you want on the capacity week are not
+// the roles you want on staff changes. The choice is a per-viewer preference,
+// not practice data, so it lives in localStorage rather than the database.
+//
+// `available` is the role ids currently on the register. A stored role that
+// has since been renamed or retired is dropped, and if nothing survives the
+// filter falls back rather than silently showing an empty screen - a stale
+// preference must never look like "nobody works here".
+export function usePersistedRoles(storageKey, { available = null, fallback = [] } = {}) {
+  const [roles, setRoles] = useState(null);   // null until localStorage is read
+  useEffect(() => {
+    let stored = null;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) stored = JSON.parse(raw);
+    } catch { /* private mode, or a value we did not write */ }
+    setRoles(Array.isArray(stored) ? stored : []);
+  }, [storageKey]);
+
+  const set = useCallback((next) => {
+    const clean = Array.isArray(next) ? next : [];
+    setRoles(clean);
+    try { localStorage.setItem(storageKey, JSON.stringify(clean)); } catch { /* private mode */ }
+  }, [storageKey]);
+
+  const live = useMemo(() => {
+    const chosen = roles || [];
+    if (!available) return chosen;
+    const known = new Set(available);
+    const kept = chosen.filter((r) => known.has(r));
+    return kept.length ? kept : fallback;
+  }, [roles, available, fallback]);
+
+  return [live, set, roles !== null];
 }
 
 export default function StaffFilter({
