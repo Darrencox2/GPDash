@@ -603,7 +603,15 @@ export async function POST(request) {
       const oc = oldById[nc.id];
       if (!oc) continue;
       const fields = {};
-      if (JSON.stringify(nc.windDown || null) !== JSON.stringify(oc.windDown || null)) {
+      // Only a save that KNOWS about the marker may change it. The loader
+      // omits windDown entirely when the column is null, so a client whose
+      // copy predates the transition has no key at all — and writing
+      // `nc.windDown || null` for those wiped the marker moments after it
+      // was set, then kept it wiped (no marker in the DB means no key in
+      // the next load, so every later save cleared it again). An explicit
+      // null still clears, which is how undo and the sweep work.
+      if (Object.prototype.hasOwnProperty.call(nc, 'windDown')
+        && JSON.stringify(nc.windDown || null) !== JSON.stringify(oc.windDown || null)) {
         fields.wind_down = nc.windDown || null;
       }
       if (nc.status && nc.status !== oc.status && ['active', 'left', 'administrative'].includes(nc.status)) {
@@ -645,9 +653,16 @@ export async function POST(request) {
       } else if (oldA.endDate !== newA.endDate || (oldA.reason || '') !== (newA.reason || '') || (oldA.session || null) !== (newA.session || null) || (oldA.source || null) !== (newA.source || null)) {
         // Match by clinician+startDate; update via the matching v4 row
         // Need to fetch existing absence row id
+        // Same rule as the wind-down marker above: `source` marks who owns
+        // the row (winddown / teamnet) and the loader drops it when null,
+        // so a save that does not carry it must leave it alone rather than
+        // null it. Without this every wind-down absence lost its provenance
+        // on the next unrelated save.
+        const patch = { end_date: newA.endDate, notes: newA.reason || null, session: newA.session || null };
+        if (newA.source) patch.source = newA.source;
         ops.push(
           supabase.from('absences')
-            .update({ end_date: newA.endDate, notes: newA.reason || null, source: newA.source || null, session: newA.session || null })
+            .update(patch)
             .eq('clinician_id', newA.clinicianId)
             .eq('start_date', newA.startDate)
         );

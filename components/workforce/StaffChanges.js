@@ -193,8 +193,12 @@ export default function StaffChanges({ data, saveData }) {
         // Remember which absence this event created so removing the event
         // can take it back out of the buddy board again.
         const created = (payload.plannedAbsences || [])[before];
-        if (created?.id) {
+        if (created) {
+          // The id here is client-side; the database assigns its own on
+          // insert, so an id alone never survives a reload. The span does:
+          // one person cannot have two wind-downs starting the same day.
           event.absenceId = created.id;
+          event.absenceStart = created.startDate;
           payload.staffPlan = { ...payload.staffPlan, events: payload.staffPlan.events.map(e => e.id === event.id ? event : e) };
         }
       } catch { /* the plan event still records even if the sync cannot */ }
@@ -210,19 +214,22 @@ export default function StaffChanges({ data, saveData }) {
     const ev = (plan.events || []).find(e => e.id === id);
     if (!ev) return;
     let payload = { ...data, staffPlan: { ...plan, events: (plan.events || []).filter(e => e.id !== id), savedAt: new Date().toISOString() } };
-    if (ev.absenceId) {
-      payload.plannedAbsences = (payload.plannedAbsences || []).filter(a => a.id !== ev.absenceId);
+    const linked = (a) => a.id === ev.absenceId
+      || (ev.absenceStart && a.clinicianId === ev.personRef && a.startDate === ev.absenceStart);
+    if (ev.absenceId || ev.absenceStart) {
+      payload.plannedAbsences = (payload.plannedAbsences || []).filter(a => !linked(a));
     }
     // Clear the wind-down marker only if it is the one this event set -
     // never stamp on a marker somebody set by hand on the buddy board.
-    if (ev.absenceId && (ev.type === 'leave' || ev.type === 'temp_leave')) {
+    if ((ev.absenceId || ev.absenceStart) && (ev.type === 'leave' || ev.type === 'temp_leave')) {
       const clins = Array.isArray(payload.clinicians) ? payload.clinicians : Object.values(payload.clinicians || {});
       payload.clinicians = clins.map(c => {
         if (c.id !== ev.personRef || !c.windDown) return c;
         const sameSpan = c.windDown.startDate === ev.startDate && c.windDown.endDate === ev.endDate;
         if (!sameSpan) return c;
-        const { windDown, ...rest } = c;
-        return rest;
+        // Explicit null - a dropped key reads to the save route as "this
+        // save knows nothing about the marker", which leaves it standing.
+        return { ...c, windDown: null };
       });
     }
     payload = logEvent(payload, 'staff', `${eventTitle(ev)} for ${nameOfRef(ev.personRef)} removed in staff changes by ${whoAmI}${ev.absenceId ? ' - buddy cover updated' : ''}`);
@@ -296,6 +303,44 @@ export default function StaffChanges({ data, saveData }) {
       })
       .sort((a, b) => (b.ev.at || b.from).localeCompare(a.ev.at || a.from));
   }, [plan.events]);
+
+  // Long-term absences that exist on the buddy board but have no event
+  // here: the ones recorded on the board itself, or before Staff changes
+  // existed. Without them this list claims to be every change and is not —
+  // which is how eight active long-term absences went unnoticed. They get
+  // the same row, marked as coming from the board.
+  const boardAbsences = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const claimed = new Set((plan.events || [])
+      .filter(e => e.absenceStart || e.absenceId)
+      .map(e => `${e.personRef}|${e.absenceStart || e.startDate || `${e.month}-01`}`));
+    const seen = new Set();
+    return (Array.isArray(data?.plannedAbsences) ? data.plannedAbsences : [])
+      .filter(a => /long term absence|wind[ -]?down/i.test(a.reason || ''))
+      .filter(a => a.endDate >= today)
+      .filter(a => !claimed.has(`${a.clinicianId}|${a.startDate}`))
+      .filter(a => {                       // duplicate rows collapse to one
+        const k = `${a.clinicianId}|${a.startDate}|${a.endDate}`;
+        if (seen.has(k)) return false;
+        seen.add(k); return true;
+      })
+      .map(a => ({ a, state: today < a.startDate ? 'upcoming' : 'active' }))
+      .sort((x, y) => x.a.startDate.localeCompare(y.a.startDate));
+  }, [data?.plannedAbsences, plan.events]);
+
+  // Removing one here takes the cover off the board and clears any marker
+  // that goes with it, the same as removing an event does.
+  const removeBoardAbsence = (a) => {
+    const clins = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians || {});
+    let payload = {
+      ...data,
+      plannedAbsences: (data.plannedAbsences || []).filter(x => !(x.clinicianId === a.clinicianId && x.startDate === a.startDate)),
+      clinicians: clins.map(c => (c.id === a.clinicianId && c.windDown && c.windDown.startDate === a.startDate)
+        ? { ...c, windDown: null } : c),
+    };
+    payload = logEvent(payload, 'staff', `${a.reason || 'Long absence'} from ${fmtDate(a.startDate)} to ${fmtDate(a.endDate)} for ${nameOfRef(a.clinicianId)} removed from the buddy board in staff changes by ${whoAmI}`);
+    saveData(payload);
+  };
 
   const cellEvents = (personRef, mk) => (plan.events || []).filter(e => e.personRef === personRef && (e.month === mk || (e.type === 'temp_leave' && mk > e.month && mk <= (e.toMonth || e.month))));
 
@@ -462,15 +507,35 @@ export default function StaffChanges({ data, saveData }) {
       <div className="rounded-xl mt-3" style={{ background: 'var(--g-panel-2)', border: '1px solid var(--g-border)' }}>
         <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: '1px solid var(--g-tile)' }}>
           <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', margin: 0 }}>Running changes</h3>
-          <span className="text-[11px]" style={{ color: 'var(--meta)' }}>{runningChanges.length} recorded</span>
+          <span className="text-[11px]" style={{ color: 'var(--meta)' }}>
+            {runningChanges.length} recorded{boardAbsences.length > 0 ? ` · ${boardAbsences.length} from the buddy board` : ''}
+          </span>
           <span className="ml-auto text-[11px]" style={{ color: 'var(--meta)' }}>Leave and temporary leave also drive buddy cover</span>
         </div>
-        {runningChanges.length === 0 ? (
+        {runningChanges.length === 0 && boardAbsences.length === 0 ? (
           <div className="px-4 py-5 text-sm text-center" style={{ color: 'var(--meta)' }}>
             Nothing recorded yet. Click a square in the grid above to add a join, a leave, temporary leave or a session change.
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: 'var(--g-border)' }}>
+            {boardAbsences.map(({ a, state }) => (
+              <div key={`${a.clinicianId}|${a.startDate}`} className="flex items-center gap-3 px-4 py-2" style={{ borderTop: '1px solid var(--g-border)' }}>
+                <span style={S.chip('temp_leave')}>away</span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--g-text-hi)', minWidth: 150 }}>{nameOfRef(a.clinicianId)}</span>
+                <span className="text-sm flex-1 min-w-0" style={{ color: 'var(--g-text-hi)' }}>
+                  {a.reason || 'Long absence'} from {fmtDate(a.startDate)} to {fmtDate(a.endDate)}
+                </span>
+                <span className="text-[11px] px-1.5 py-0.5 rounded" style={{
+                  color: state === 'active' ? '#fbbf24' : 'var(--link)',
+                  border: `1px solid ${state === 'active' ? 'rgba(245,158,11,0.45)' : 'rgba(52,211,153,0.35)'}`,
+                }}>{state}</span>
+                <span className="text-[11px]" title="Recorded on the buddy board rather than here" style={{ color: 'var(--link)' }}>buddy</span>
+                <span className="text-[11px] hidden lg:inline" style={{ color: 'var(--meta)', minWidth: 120 }}>from the board</span>
+                {canEdit && (
+                  <button onClick={() => removeBoardAbsence(a)} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
+                )}
+              </div>
+            ))}
             {runningChanges.map(({ ev, state }) => (
               <div key={ev.id} className="flex items-center gap-3 px-4 py-2" style={{ borderTop: '1px solid var(--g-border)' }}>
                 <span style={S.chip(ev.type)}>{ev.type === 'temp_leave' ? 'away' : ev.type === 'change' ? '±sess' : ev.type}</span>
