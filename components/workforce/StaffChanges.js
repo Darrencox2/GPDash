@@ -15,8 +15,9 @@ import { classifyStaffRole } from '@/lib/site-staffing';
 import {
   monthKey, monthLabel, addMonths, aprilStart, monthRange,
   derivePeople, totalsByMonth, per1000ByMonth, planSummary,
-  suggestedEventsFromWindDowns, eventTransitionKey, monthEndDate,
+  suggestedEventsFromWindDowns, eventTransitionKey, monthEndDate, capacityTimeline,
 } from '@/lib/staff-plan';
+import CapacityChart, { EVENT_TONE } from '@/components/workforce/CapacityChart';
 
 const ROLE_FILTER_KEY = 'gpdash-staff-changes-roles';
 
@@ -42,12 +43,7 @@ export function eventTitle(e) {
     default: return e.type;
   }
 }
-const EV_STYLE = {
-  join:       { bg: 'rgba(52,211,153,0.16)', bd: 'rgba(52,211,153,0.5)', fg: '#34d399' },
-  leave:      { bg: 'rgba(239,68,68,0.14)', bd: 'rgba(239,68,68,0.5)', fg: '#fca5a5' },
-  temp_leave: { bg: 'rgba(245,158,11,0.13)', bd: 'rgba(245,158,11,0.45)', fg: '#fbbf24' },
-  change:     { bg: 'rgba(129,140,248,0.15)', bd: 'rgba(129,140,248,0.5)', fg: '#a5b4fc' },
-};
+const EV_STYLE = EVENT_TONE;
 
 export default function StaffChanges({ data, saveData }) {
   const canEdit = canEditPracticeData(data);
@@ -65,6 +61,7 @@ export default function StaffChanges({ data, saveData }) {
     try { localStorage.setItem(ROLE_FILTER_KEY, JSON.stringify(next)); } catch { /* private mode */ }
   };
   const [per1000, setPer1000] = useState(false);
+  const [chartView, setChartView] = useState('level');
   const [editor, setEditor] = useState(null);          // { personRef, month }
   const [addOpen, setAddOpen] = useState(false);
   const [justAdded, setJustAdded] = useState(null);
@@ -129,6 +126,21 @@ export default function StaffChanges({ data, saveData }) {
   const { perPerson, totals } = useMemo(() => totalsByMonth(people, plan.events, months), [people, plan.events, months]);
   const perK = useMemo(() => per1000ByMonth(totals, months, listSizeByMonth, data?._v4?.practiceListSize), [totals, months, listSizeByMonth, data?._v4?.practiceListSize]);
   const summary = useMemo(() => planSummary(totals, months, todayMk), [totals, months, todayMk]);
+  // The chart walks the same events by DATE rather than by month, so a leave
+  // starting on the 28th only drops the line on the 28th.
+  const timeline = useMemo(() => capacityTimeline(people, plan.events, months), [people, plan.events, months]);
+  // The published sizes are sparse; the nearest earlier one carries forward,
+  // and the registered size is the final fallback.
+  const listSizeAt = useMemo(() => {
+    const sizes = listSizeByMonth || {};
+    const keys = Object.keys(sizes).sort();
+    return (date) => {
+      const mk = String(date).slice(0, 7);
+      let best = null;
+      for (const k of keys) { if (k > mk) break; best = k; }
+      return best ? sizes[best] : (data?._v4?.practiceListSize || null);
+    };
+  }, [listSizeByMonth, data?._v4?.practiceListSize]);
   const suggestions = useMemo(() => suggestedEventsFromWindDowns(realPeople, plan.events), [realPeople, plan.events]);
 
   const whoAmI = data?._v4?.linkedClinicianName || data?._v4?.userEmail || 'someone';
@@ -240,25 +252,6 @@ export default function StaffChanges({ data, saveData }) {
       .sort((a, b) => (b.ev.at || b.from).localeCompare(a.ev.at || a.from));
   }, [plan.events]);
 
-  // ── chart geometry ──────────────────────────────────────────────────
-  const series = per1000 ? months.map(mk => perK[mk]) : months.map(mk => totals[mk]);
-  const nums = series.filter(v => v != null);
-  const lo = Math.min(...nums, 0) === 0 && Math.min(...nums) > 20 ? Math.min(...nums) - 5 : Math.max(0, Math.min(...nums) - 5);
-  const hi = Math.max(...nums, 1) + 5;
-  const W = 1000, H = 150, PL = 36, PR = 26, PT = 14, PB = 20;
-  const X = (i) => PL + (W - PL - PR) * i / (months.length - 1);
-  const Y = (v) => PT + (H - PT - PB) * (1 - (v - lo) / (hi - lo || 1));
-  let path = '';
-  series.forEach((v, i) => {
-    if (v == null) return;
-    path += path === '' ? `M ${X(i)} ${Y(v)}` : ` L ${X(i)} ${Y(series[i - 1] ?? v)} L ${X(i)} ${Y(v)}`;
-  });
-  const area = path ? `${path} L ${X(months.length - 1)} ${Y(lo)} L ${X(0)} ${Y(lo)} Z` : '';
-  const eventDots = (plan.events || [])
-    .filter(e => months.includes(e.month))
-    .map(e => ({ i: months.indexOf(e.month), v: series[months.indexOf(e.month)], type: e.type }))
-    .filter(d => d.v != null);
-
   const cellEvents = (personRef, mk) => (plan.events || []).filter(e => e.personRef === personRef && (e.month === mk || (e.type === 'temp_leave' && mk > e.month && mk <= (e.toMonth || e.month))));
 
   const S = { chip: (t) => ({
@@ -300,9 +293,9 @@ export default function StaffChanges({ data, saveData }) {
         </div>
       )}
 
-      {/* summary chips + chart */}
+      {/* headline numbers; the chart itself sits on the grid's columns below */}
       <div className="rounded-xl p-4 mb-3" style={{ background: 'var(--g-panel-2)', border: '1px solid var(--g-border)' }}>
-        <div className="flex gap-2.5 flex-wrap mb-2">
+        <div className="flex gap-2.5 flex-wrap">
           {[
             ['Now', per1000 ? perK[todayMk] : summary.now, 'var(--g-text-hi)'],
             [`End of view`, per1000 ? perK[months[months.length - 1]] : summary.end, summary.endDelta < 0 ? '#fca5a5' : '#34d399', summary.endDelta !== 0 ? `${summary.endDelta > 0 ? '+' : ''}${per1000 ? '' : summary.endDelta}` : ''],
@@ -315,20 +308,6 @@ export default function StaffChanges({ data, saveData }) {
             </div>
           ))}
         </div>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }} role="img" aria-label="Total weekly sessions across the year">
-          <defs><linearGradient id="scg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="rgba(99,102,241,0.35)" /><stop offset="1" stopColor="rgba(99,102,241,0.02)" /></linearGradient></defs>
-          {area && <path d={area} fill="url(#scg)" />}
-          {path && <path d={path} fill="none" stroke="#818cf8" strokeWidth="2" />}
-          {months.includes(todayMk) && (
-            <line x1={X(months.indexOf(todayMk))} x2={X(months.indexOf(todayMk))} y1={PT} y2={H - PB} stroke="rgba(52,211,153,0.5)" strokeDasharray="3 3" />
-          )}
-          {eventDots.map((d, i) => <circle key={i} cx={X(d.i)} cy={Y(d.v)} r="3.5" fill={EV_STYLE[d.type].fg} stroke="var(--g-ink)" strokeWidth="1.5" />)}
-          {months.map((mk, i) => (
-            <text key={mk} x={X(i)} y={H - 5} fontSize="9" fill={mk === todayMk ? '#34d399' : 'var(--meta)'} fontFamily="var(--font-mono)" textAnchor="middle">
-              {monthLabel(mk)}{mk.endsWith('-04') ? ` ${mk.slice(2, 4)}` : ''}
-            </text>
-          ))}
-        </svg>
       </div>
 
       {/* timeline grid */}
@@ -347,6 +326,11 @@ export default function StaffChanges({ data, saveData }) {
         </div>
         <div className="overflow-x-auto">
           <div style={{ minWidth: 1000 }}>
+            {/* Inside the same scroll box and on the same column track as the
+                grid, so a step in the line sits over the square that caused
+                it and the two scroll together. */}
+            <CapacityChart months={months} todayMk={todayMk} timeline={timeline}
+              per1000={per1000} listSizeAt={listSizeAt} view={chartView} onViewChange={setChartView} />
             <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, minmax(0, 1fr))' }}>
               <div className="px-3 py-1.5 text-[11px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>Staff · sess/wk</div>
               {months.map(mk => (

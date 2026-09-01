@@ -1,6 +1,6 @@
 // Unit tests for lib/staff-plan.js — the timeline maths under Staff Changes.
 import { test, expect } from '@playwright/test';
-import { monthKey, addMonths, aprilStart, monthRange, derivePeople, sessionsByMonth, totalsByMonth, per1000ByMonth, planSummary, suggestedEventsFromWindDowns, monthEndDate } from '../../lib/staff-plan.js';
+import { monthKey, addMonths, aprilStart, monthRange, derivePeople, sessionsByMonth, totalsByMonth, per1000ByMonth, planSummary, suggestedEventsFromWindDowns, monthEndDate, capacityTimeline, absenceCode, monthFraction } from '../../lib/staff-plan.js';
 
 const P = { id: 'a', name: 'Dr A', sessions: 6, kind: 'real' };
 const MONTHS = monthRange('2026-04', 13);
@@ -123,5 +123,82 @@ test.describe('wind-down bridge', () => {
   test('already-recorded events are not re-suggested', () => {
     const people = [{ id: 'a', name: 'Dr A', sessions: 6, kind: 'real', windDown: { type: 'left', endDate: '2026-09-28' } }];
     expect(suggestedEventsFromWindDowns(people, [{ personRef: 'a', type: 'leave', month: '2026-09' }])).toHaveLength(0);
+  });
+});
+
+// ─── Day-level timeline (the chart) ───────────────────────────────────────
+test.describe('capacityTimeline', () => {
+  const PEOPLE = [
+    { id: 'a', name: 'Ann Adams', initials: 'AA', sessions: 6, group: 'gp', kind: 'real' },
+    { id: 'b', name: 'Bea Brown', initials: 'BB', sessions: 4, group: 'nursing', kind: 'real' },
+  ];
+  const flat = (t) => t.steps.map((s) => [s.date, s.value]);
+
+  test('no events is a single step at the window start', () => {
+    const t = capacityTimeline(PEOPLE, [], MONTHS);
+    expect(flat(t)).toEqual([['2026-04-01', 10]]);
+    expect(t.marks).toEqual([]);
+  });
+
+  test('temp leave starting mid-month steps on the day, not the 1st', () => {
+    const ev = [{ id: 'e', personRef: 'a', type: 'temp_leave', month: '2026-08', toMonth: '2027-08',
+                  startDate: '2026-08-28', endDate: '2027-08-28', reason: 'maternity' }];
+    const t = capacityTimeline(PEOPLE, ev, MONTHS);
+    expect(flat(t)).toEqual([['2026-04-01', 10], ['2026-08-28', 4]]);
+    // 4 whole months in, then 27/31 of August
+    expect(t.steps[1].x).toBeCloseTo(4 + 27 / 31, 5);
+  });
+
+  test('a mark carries the signed change and a short code, not the new total', () => {
+    const ev = [
+      { id: 'e1', personRef: 'a', type: 'change', month: '2026-06', startDate: '2026-06-15', sessions: 8 },
+      { id: 'e2', personRef: 'b', type: 'temp_leave', month: '2026-09', toMonth: '2026-10',
+        startDate: '2026-09-10', endDate: '2026-10-09', reason: 'long_term_sick' },
+    ];
+    const m = capacityTimeline(PEOPLE, ev, MONTHS).marks;
+    expect(m.map((x) => [x.date, x.tag, x.code, x.delta])).toEqual([
+      ['2026-06-15', 'AA', null, 2],      // 6 -> 8 reads as +2
+      ['2026-09-10', 'BB', 'SICK', -4],
+      ['2026-10-10', 'BB', 'BACK', 4],    // the return is a mark of its own
+    ]);
+  });
+
+  test('a leaving date is the last day worked; a month-only leave keeps the monthly rule', () => {
+    const dated = capacityTimeline(PEOPLE, [{ id: 'e', personRef: 'a', type: 'leave', month: '2026-07', endDate: '2026-07-20' }], MONTHS);
+    expect(flat(dated)).toEqual([['2026-04-01', 10], ['2026-07-21', 4]]);
+    const legacy = capacityTimeline(PEOPLE, [{ id: 'e', personRef: 'a', type: 'leave', month: '2026-07' }], MONTHS);
+    expect(flat(legacy)).toEqual([['2026-04-01', 10], ['2026-07-01', 4]]);
+  });
+
+  test('a change to the sessions someone already works is not a step', () => {
+    const t = capacityTimeline(PEOPLE, [{ id: 'e', personRef: 'a', type: 'change', month: '2026-06', startDate: '2026-06-04', sessions: 6 }], MONTHS);
+    expect(flat(t)).toEqual([['2026-04-01', 10]]);
+    expect(t.marks).toEqual([]);
+  });
+
+  test('planned people start at nothing and join on their date', () => {
+    const people = [...PEOPLE, { id: 'p1', name: 'Peter', sessions: 0, group: 'gp', kind: 'planned' }];
+    const t = capacityTimeline(people, [{ id: 'e', personRef: 'p1', type: 'join', month: '2026-09', startDate: '2026-09-07', sessions: 6 }], MONTHS);
+    expect(flat(t)).toEqual([['2026-04-01', 10], ['2026-09-07', 16]]);
+    expect(t.marks[0]).toMatchObject({ tag: 'Peter', code: 'JOIN', delta: 6 });
+  });
+
+  test('groups are split out, so a flat group reads as flat', () => {
+    const ev = [{ id: 'e', personRef: 'a', type: 'leave', month: '2026-05' }];
+    const t = capacityTimeline(PEOPLE, ev, MONTHS);
+    expect(t.steps[1].byGroup).toEqual({ gp: 0, nursing: 4, hca: 0, other: 0 });
+  });
+
+  test('absenceCode turns the stored reasons into labels', () => {
+    expect(absenceCode('maternity')).toBe('MAT');
+    expect(absenceCode('long_term_sick')).toBe('SICK');
+    expect(absenceCode('training')).toBe('TRG');
+    expect(absenceCode('')).toBe('AWAY');
+  });
+
+  test('monthFraction places a date inside its own month band', () => {
+    expect(monthFraction('2026-04-01', MONTHS)).toBe(0);
+    expect(monthFraction('2026-04-16', MONTHS)).toBeCloseTo(0.5, 5);
+    expect(monthFraction('2027-04-01', MONTHS)).toBe(12);
   });
 });
