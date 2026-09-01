@@ -139,9 +139,11 @@ export async function POST(request) {
       );
     }
 
-    // Replace existing teamnet-sourced absences. Find them by:
-    //   notes LIKE '[teamnet]%' AND clinician belongs to this practice.
-    // Then bulk-insert the fresh set.
+    // Replace existing teamnet-sourced absences. Find them by the notes
+    // marker OR by source='teamnet' - rows written before the source column
+    // existed only have the marker, and belt-and-braces the other way.
+    // Then bulk-insert the fresh set, stamped with BOTH, so provenance
+    // survives whichever field a future reader keys on.
     const clinicianIds = (clinicians || []).map(c => c.id);
     let removed = 0;
     if (clinicianIds.length > 0) {
@@ -149,28 +151,50 @@ export async function POST(request) {
         .from('absences')
         .delete({ count: 'exact' })
         .in('clinician_id', clinicianIds)
-        .like('notes', `${TEAMNET_MARKER}%`);
+        .or(`notes.like.${TEAMNET_MARKER}*,source.eq.teamnet`);
       removed = count || 0;
     }
 
     let imported = 0;
+    let skippedExisting = 0;
     if (absences.length > 0) {
-      const rows = absences.map(a => ({
-        clinician_id: a.clinicianId,
-        start_date: a.startDate,
-        end_date: a.endDate,
-        reason: mapReasonToEnum(a.reason),
-        notes: `${TEAMNET_MARKER} ${a.reason || ''}`.trim(),
-        created_by: user.id,
-        updated_by: user.id,
-      }));
-      const { error: insErr, count } = await supabase
+      // History left this table with unmarked copies of synced rows (the
+      // marker was being stripped by a separate bug, so every sync
+      // re-inserted the whole calendar - 42% of the table was duplicates).
+      // Never insert a row identical to one already there, whoever owns it.
+      const { data: existing } = await supabase
         .from('absences')
-        .insert(rows, { count: 'exact' });
-      if (insErr) {
-        return NextResponse.json({ error: `Insert error: ${insErr.message}` }, { status: 500 });
+        .select('clinician_id, start_date, end_date, reason, session')
+        .in('clinician_id', clinicianIds);
+      const have = new Set((existing || []).map(r =>
+        `${r.clinician_id}|${r.start_date}|${r.end_date}|${r.reason || ''}|${r.session || ''}`));
+
+      const rows = absences
+        .map(a => ({
+          clinician_id: a.clinicianId,
+          start_date: a.startDate,
+          end_date: a.endDate,
+          reason: mapReasonToEnum(a.reason),
+          notes: `${TEAMNET_MARKER} ${a.reason || ''}`.trim(),
+          source: 'teamnet',
+          created_by: user.id,
+          updated_by: user.id,
+        }))
+        .filter(r => {
+          const k = `${r.clinician_id}|${r.start_date}|${r.end_date}|${r.reason}|`;
+          if (have.has(k)) { skippedExisting += 1; return false; }
+          have.add(k);          // the feed itself can repeat an event
+          return true;
+        });
+      if (rows.length > 0) {
+        const { error: insErr, count } = await supabase
+          .from('absences')
+          .insert(rows, { count: 'exact' });
+        if (insErr) {
+          return NextResponse.json({ error: `Insert error: ${insErr.message}` }, { status: 500 });
+        }
+        imported = count || rows.length;
       }
-      imported = count || rows.length;
     }
 
     // Update last sync time in extras
@@ -200,6 +224,7 @@ export async function POST(request) {
       // we tried to match against. 0 events → URL/feed problem; events but
       // 0 clinicians → no team loaded; events + clinicians but 0 imported →
       // names in the calendar are not matching the clinician list.
+      skippedExisting,
       eventsParsed: (icsText.match(/BEGIN:VEVENT/g) || []).length,
       cliniciansConsidered: (clinicians || []).length,
     });

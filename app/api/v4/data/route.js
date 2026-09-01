@@ -630,10 +630,17 @@ export async function POST(request) {
     const oldAbs = oldData.plannedAbsences || [];
     const newAbs = newData.plannedAbsences;
     const keyOf = a => `${a.clinicianId}|${a.startDate}`;
+    // TeamNet rows are owned by the sync API (delete-by-marker, then
+    // re-insert). This diff must never touch them: an update from a stale
+    // client rewrote notes and STRIPPED the marker, after which the sync
+    // could not find its own rows to replace and duplicated the whole set
+    // on every run - 184 duplicate rows before this guard existed. The
+    // v3 loader maps reason from notes, so the marker shows up there.
+    const isTeamnet = a => a?.source === 'teamnet' || String(a?.reason || '').startsWith('[teamnet]');
     const oldByKey = {};
-    for (const a of oldAbs) oldByKey[keyOf(a)] = a;
+    for (const a of oldAbs) { if (!isTeamnet(a)) oldByKey[keyOf(a)] = a; }
     const newByKey = {};
-    for (const a of newAbs) newByKey[keyOf(a)] = a;
+    for (const a of newAbs) { if (!isTeamnet(a)) newByKey[keyOf(a)] = a; }
 
     // Insertions and updates
     for (const k of Object.keys(newByKey)) {
@@ -650,25 +657,32 @@ export async function POST(request) {
           source: newA.source || null,
           session: newA.session || null,
         }));
-      } else if (oldA.endDate !== newA.endDate || (oldA.reason || '') !== (newA.reason || '') || (oldA.session || null) !== (newA.session || null) || (oldA.source || null) !== (newA.source || null)) {
-        // Match by clinician+startDate; update via the matching v4 row
-        // Need to fetch existing absence row id
-        // Same rule as the wind-down marker above: `source` marks who owns
-        // the row (winddown / teamnet) and the loader drops it when null,
-        // so a save that does not carry it must leave it alone rather than
-        // null it. Without this every wind-down absence lost its provenance
-        // on the next unrelated save.
-        const patch = { end_date: newA.endDate, notes: newA.reason || null, session: newA.session || null };
-        if (newA.source) patch.source = newA.source;
-        ops.push(
-          supabase.from('absences')
-            .update(patch)
-            .eq('clinician_id', newA.clinicianId)
-            .eq('start_date', newA.startDate)
-        );
+      } else {
+        // Fields a stale client cannot legitimately clear are only compared
+        // and written when the incoming row actually carries them: the
+        // loader omits source and session when null, so their absence means
+        // "my copy predates this", not "clear it". That distinction is what
+        // kept wiping wind-down provenance and half-day flags.
+        const hasSession = Object.prototype.hasOwnProperty.call(newA, 'session');
+        const changed = oldA.endDate !== newA.endDate
+          || (oldA.reason || '') !== (newA.reason || '')
+          || (hasSession && (oldA.session || null) !== (newA.session || null))
+          || (newA.source && (oldA.source || null) !== newA.source);
+        if (changed) {
+          const patch = { end_date: newA.endDate, notes: newA.reason || null };
+          if (hasSession) patch.session = newA.session || null;
+          if (newA.source) patch.source = newA.source;
+          ops.push(
+            supabase.from('absences')
+              .update(patch)
+              .eq('clinician_id', newA.clinicianId)
+              .eq('start_date', newA.startDate)
+          );
+        }
       }
     }
-    // Deletions
+    // Deletions (teamnet rows are excluded above, so the sync's own rows
+    // can never be mass-deleted or resurrected from a stale client copy)
     for (const k of Object.keys(oldByKey)) {
       if (!newByKey[k]) {
         const a = oldByKey[k];

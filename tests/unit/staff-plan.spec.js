@@ -226,3 +226,38 @@ test.describe('a join applies to real people too', () => {
     expect(t.marks[0]).toMatchObject({ tag: 'PS', code: 'JOIN', delta: 6 });
   });
 });
+
+// A linked planned person leaves behind a join with NO session count - the
+// real clinician's rota is the truth from that date on.
+test.describe('a join without a number means the rota sessions', () => {
+  const REAL = { id: 'r', name: 'Peter Sandford', initials: 'PS', sessions: 6, group: 'gp', kind: 'real' };
+  const JOIN = [{ id: 'j', personRef: 'r', type: 'join', month: '2026-09', startDate: '2026-09-01' }];
+
+  test('monthly walk: zero before, rota sessions after', () => {
+    const s = sessionsByMonth(REAL, JOIN, MONTHS);
+    expect(s['2026-08']).toBe(0);
+    expect(s['2026-09']).toBe(6);
+  });
+  test('day-level walk agrees', () => {
+    const t = capacityTimeline([REAL], JOIN, MONTHS);
+    expect(t.steps.map((s) => [s.date, s.value])).toEqual([['2026-04-01', 0], ['2026-09-01', 6]]);
+  });
+  test('a planned person still needs the number, so nothing changes for them', () => {
+    const planned = { id: 'p', name: 'Posy', sessions: 0, group: 'gp', kind: 'planned' };
+    const s = sessionsByMonth(planned, [{ id: 'j', personRef: 'p', type: 'join', month: '2026-09' }], MONTHS);
+    expect(s['2026-09']).toBe(0);
+  });
+});
+
+test.describe('wind-down suggestions claim their board absence', () => {
+  test('a sickness suggestion carries the absence start date and exact span', () => {
+    const people = [{ id: 'c1', name: 'Trudi', windDown: { type: 'sick', startDate: '2026-10-07', endDate: '2027-01-07' } }];
+    const [sg] = suggestedEventsFromWindDowns(people, []);
+    expect(sg).toMatchObject({ type: 'temp_leave', absenceStart: '2026-10-07', startDate: '2026-10-07', endDate: '2027-01-07' });
+  });
+  test('a leaving suggestion carries the absence start date', () => {
+    const people = [{ id: 'c1', name: 'Alex', windDown: { type: 'left', startDate: '2026-08-10', endDate: '2026-09-28' } }];
+    const [sg] = suggestedEventsFromWindDowns(people, []);
+    expect(sg).toMatchObject({ type: 'leave', absenceStart: '2026-08-10' });
+  });
+});

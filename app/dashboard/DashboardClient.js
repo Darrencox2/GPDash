@@ -423,14 +423,18 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                 });
                 const result = await r.json().catch(() => ({}));
                 if (!r.ok || result.error) return;  // silent on error
-                const newAbsences = result.absences || [];
-                // Update state + persist new absences via saveData (writes to DB)
-                setData(prev => prev ? { ...prev, plannedAbsences: [...(Array.isArray(prev.plannedAbsences) ? prev.plannedAbsences : []).filter(a => a.source !== 'teamnet'), ...newAbsences], lastSyncTime: new Date().toISOString() } : prev);
-                // Persist quietly without a toast
+                // The sync API writes the absence rows itself. All this
+                // side has to do is remember when. It used to expect the
+                // rows back in the response (a shape the API dropped long
+                // ago) and re-POST them as the practice's ENTIRE absence
+                // list — an empty one — which the diff endpoint dutifully
+                // read as "delete every absence". Never send absences here.
+                const lastSyncTime = new Date().toISOString();
+                setData(prev => prev ? { ...prev, lastSyncTime } : prev);
                 fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ plannedAbsences: newAbsences, lastSyncTime: new Date().toISOString() }),
+                  body: JSON.stringify({ lastSyncTime }),
                 }).catch(() => {});
               } catch {
                 // background sync errors are silent
@@ -792,10 +796,10 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       if (result.error) {
         if (!silent) setSyncStatus(`Error: ${result.error}`);
       } else {
-        const newAbsences = result.absences || [];
-        // Merge — replace plannedAbsences with synced ones (matches v3 behaviour)
-        saveData({ ...data, plannedAbsences: [...(Array.isArray(data.plannedAbsences) ? data.plannedAbsences : []).filter(a => a.source !== 'teamnet'), ...newAbsences], lastSyncTime: new Date().toISOString() }, false);
-        if (!silent) setSyncStatus(`Synced — ${newAbsences.length} absences`);
+        // Rows are written by the sync API itself; only the timestamp is
+        // ours to save. The absences appear on the next data load.
+        saveData({ ...data, lastSyncTime: new Date().toISOString() }, false);
+        if (!silent) setSyncStatus(`Synced — ${result.imported ?? 0} absences imported, ${result.removed ?? 0} replaced`);
       }
     } catch (err) {
       if (!silent) setSyncStatus('Sync failed');

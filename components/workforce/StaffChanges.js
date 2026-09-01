@@ -10,7 +10,7 @@ import { createClient } from '@/utils/supabase/client';
 import { canEditPracticeData } from '@/lib/permissions';
 import MultiSelect from '@/components/ui/MultiSelect';
 import { applyTransition } from '@/lib/status-transitions';
-import { logEvent } from '@/lib/data';
+import { logEvent, toLocalIso } from '@/lib/data';
 import { classifyStaffRole } from '@/lib/site-staffing';
 import {
   monthKey, monthLabel, addMonths, aprilStart, monthRange,
@@ -54,7 +54,7 @@ export function eventTitle(e) {
   const from = e.startDate ? fmtDate(e.startDate) : monthWord(e.month);
   const to = e.endDate ? fmtDate(e.endDate) : monthWord(e.toMonth || e.month);
   switch (e.type) {
-    case 'join': return `Joins on ${e.sessions} sessions a week from ${from}`;
+    case 'join': return e.sessions != null ? `Joins on ${e.sessions} sessions a week from ${from}` : `Joins on their rota sessions from ${from}`;
     case 'leave': return `Leaves ${e.startDate ? 'on ' : 'in '}${e.startDate ? fmtDate(e.endDate || e.startDate) : monthWord(e.month)}`;
     case 'temp_leave': return `${(e.reason || 'away').charAt(0).toUpperCase()}${(e.reason || 'away').slice(1)} from ${from} to ${to}`;
     case 'change': return `Sessions change to ${e.sessions} a week from ${from}`;
@@ -83,6 +83,8 @@ export default function StaffChanges({ data, saveData }) {
   const [editor, setEditor] = useState(null);          // { personRef, month }
   const [addOpen, setAddOpen] = useState(false);
   const [plannedEdit, setPlannedEdit] = useState(null);   // { id, name, role }
+  const [showUpcoming, setShowUpcoming] = useState(false);
+  const [showPast, setShowPast] = useState(false);
   const [justAdded, setJustAdded] = useState(null);
   const [newPerson, setNewPerson] = useState({ name: '', role: 'Salaried GP' });
   const [listSizeByMonth, setListSizeByMonth] = useState(null);
@@ -163,7 +165,11 @@ export default function StaffChanges({ data, saveData }) {
   const suggestions = useMemo(() => suggestedEventsFromWindDowns(realPeople, plan.events), [realPeople, plan.events]);
 
   const whoAmI = data?._v4?.linkedClinicianName || data?._v4?.userEmail || 'someone';
-  const nameOfRef = (ref) => allPeople.find(p => p.id === ref)?.name || ref;
+  // Fall back to the raw register: wind-downs are precisely about people
+  // who are inactive or sessionless, whom derivePeople excludes.
+  const nameOfRef = (ref) => allPeople.find(p => p.id === ref)?.name
+    || (Array.isArray(data?.clinicians) ? data.clinicians : Object.values(data?.clinicians || {})).find(c => c.id === ref)?.name
+    || ref;
   const savePlan = (next, auditLine = null) => {
     let payload = { ...data, staffPlan: { ...next, savedAt: new Date().toISOString() } };
     if (auditLine) payload = logEvent(payload, 'staff', auditLine);
@@ -189,7 +195,15 @@ export default function StaffChanges({ data, saveData }) {
     if (tKey && isReal && !opts.skipSync) {
       try {
         const before = (payload.plannedAbsences || []).length;
-        payload = applyTransition(payload, event.personRef, tKey, { untilDate: endDate, startDate, by: whoAmI });
+        // temp leave carries its own end date. A LEAVE does not: its
+        // endDate is the last working day, and passing that as untilDate
+        // made applyTransition fall back to one week of cover - Harry,
+        // Nicola and Hayden all got 7-day wind-downs instead of the
+        // 8-week results run. Leave it to the transition's own default.
+        payload = applyTransition(payload, event.personRef, tKey, {
+          ...(event.type === 'temp_leave' ? { untilDate: endDate } : {}),
+          startDate, by: whoAmI,
+        });
         // Remember which absence this event created so removing the event
         // can take it back out of the buddy board again.
         const created = (payload.plannedAbsences || [])[before];
@@ -225,7 +239,10 @@ export default function StaffChanges({ data, saveData }) {
       const clins = Array.isArray(payload.clinicians) ? payload.clinicians : Object.values(payload.clinicians || {});
       payload.clinicians = clins.map(c => {
         if (c.id !== ev.personRef || !c.windDown) return c;
-        const sameSpan = c.windDown.startDate === ev.startDate && c.windDown.endDate === ev.endDate;
+        // Start date only: the transition may have chosen its own end date
+        // (a leave gets the 8-week default), and one person cannot have two
+        // wind-downs starting the same day.
+        const sameSpan = c.windDown.startDate === ev.startDate;
         if (!sameSpan) return c;
         // Explicit null - a dropped key reads to the save route as "this
         // save knows nothing about the marker", which leaves it standing.
@@ -281,7 +298,14 @@ export default function StaffChanges({ data, saveData }) {
     savePlan({
       ...plan,
       plannedPeople: (plan.plannedPeople || []).filter(p => p.id !== plannedId),
-      events: (plan.events || []).map(e => e.personRef === plannedId ? { ...e, personRef: clinicianId } : e),
+      events: (plan.events || []).map(e => {
+        if (e.personRef !== plannedId) return e;
+        // Drop the plan's GUESSED session count from the join: the real
+        // clinician's rota is the truth from here on, and a join without a
+        // number reads as "starts on this date at their rota sessions".
+        if (e.type === 'join') { const { sessions, ...rest } = e; return { ...rest, personRef: clinicianId }; }
+        return { ...e, personRef: clinicianId };
+      }),
     }, `Planned ${was.name} linked to ${real.name} in staff changes by ${whoAmI} - their planned changes now belong to the real clinician`);
     setPlannedEdit(null);
   };
@@ -293,7 +317,7 @@ export default function StaffChanges({ data, saveData }) {
 
   // Newest first, each labelled by where it sits relative to today.
   const runningChanges = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalIso(new Date());
     return (plan.events || [])
       .map(ev => {
         const from = ev.startDate || `${ev.month}-01`;
@@ -310,7 +334,7 @@ export default function StaffChanges({ data, saveData }) {
   // which is how eight active long-term absences went unnoticed. They get
   // the same row, marked as coming from the board.
   const boardAbsences = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalIso(new Date());
     const claimed = new Set((plan.events || [])
       .filter(e => e.absenceStart || e.absenceId)
       .map(e => `${e.personRef}|${e.absenceStart || e.startDate || `${e.month}-01`}`));
@@ -512,50 +536,76 @@ export default function StaffChanges({ data, saveData }) {
           </span>
           <span className="ml-auto text-[11px]" style={{ color: 'var(--meta)' }}>Leave and temporary leave also drive buddy cover</span>
         </div>
-        {runningChanges.length === 0 && boardAbsences.length === 0 ? (
-          <div className="px-4 py-5 text-sm text-center" style={{ color: 'var(--meta)' }}>
-            Nothing recorded yet. Click a square in the grid above to add a join, a leave, temporary leave or a session change.
-          </div>
-        ) : (
-          <div className="divide-y" style={{ borderColor: 'var(--g-border)' }}>
-            {boardAbsences.map(({ a, state }) => (
-              <div key={`${a.clinicianId}|${a.startDate}`} className="flex items-center gap-3 px-4 py-2" style={{ borderTop: '1px solid var(--g-border)' }}>
-                <span style={S.chip('temp_leave')}>away</span>
-                <span className="text-sm font-semibold" style={{ color: 'var(--g-text-hi)', minWidth: 150 }}>{nameOfRef(a.clinicianId)}</span>
-                <span className="text-sm flex-1 min-w-0" style={{ color: 'var(--g-text-hi)' }}>
-                  {a.reason || 'Long absence'} from {fmtDate(a.startDate)} to {fmtDate(a.endDate)}
-                </span>
-                <span className="text-[11px] px-1.5 py-0.5 rounded" style={{
-                  color: state === 'active' ? '#fbbf24' : 'var(--link)',
-                  border: `1px solid ${state === 'active' ? 'rgba(245,158,11,0.45)' : 'rgba(52,211,153,0.35)'}`,
-                }}>{state}</span>
-                <span className="text-[11px]" title="Recorded on the buddy board rather than here" style={{ color: 'var(--link)' }}>buddy</span>
-                <span className="text-[11px] hidden lg:inline" style={{ color: 'var(--meta)', minWidth: 120 }}>from the board</span>
-                {canEdit && (
-                  <button onClick={() => removeBoardAbsence(a)} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
-                )}
+        {(() => {
+          // One list, three shelves. What needs attention today is on the
+          // counter; what has happened and what is yet to come are a click
+          // away, so twenty past joins do not bury the one live absence.
+          const renderRow = (row) => row.kind === 'board' ? (
+            <div key={row.key} className="flex items-center gap-3 px-4 py-2" style={{ borderTop: '1px solid var(--g-border)' }}>
+              <span style={S.chip('temp_leave')}>away</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--g-text-hi)', minWidth: 150 }}>{nameOfRef(row.a.clinicianId)}</span>
+              <span className="text-sm flex-1 min-w-0" style={{ color: 'var(--g-text-hi)' }}>
+                {row.a.reason || 'Long absence'} from {fmtDate(row.a.startDate)} to {fmtDate(row.a.endDate)}
+              </span>
+              <span className="text-[11px]" title="Recorded on the buddy board rather than here" style={{ color: 'var(--link)' }}>buddy</span>
+              <span className="text-[11px] hidden lg:inline" style={{ color: 'var(--meta)', minWidth: 120 }}>from the board</span>
+              {canEdit && (
+                <button onClick={() => removeBoardAbsence(row.a)} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
+              )}
+            </div>
+          ) : (
+            <div key={row.key} className="flex items-center gap-3 px-4 py-2" style={{ borderTop: '1px solid var(--g-border)' }}>
+              <span style={S.chip(row.ev.type)}>{row.ev.type === 'temp_leave' ? 'away' : row.ev.type === 'change' ? '±sess' : row.ev.type}</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--g-text-hi)', minWidth: 150 }}>{nameOfRef(row.ev.personRef)}</span>
+              <span className="text-sm flex-1 min-w-0" style={{ color: 'var(--g-text-hi)' }}>{eventTitle(row.ev)}</span>
+              {(row.ev.absenceId || row.ev.absenceStart) && <span className="text-[11px]" title="Pushed to the buddy board" style={{ color: 'var(--link)' }}>buddy</span>}
+              <span className="text-[11px] hidden lg:inline" style={{ color: 'var(--meta)', minWidth: 120 }}>
+                {row.ev.by ? `by ${row.ev.by}` : ''}
+              </span>
+              {canEdit && (
+                <button onClick={() => removeEvent(row.ev.id)} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
+              )}
+            </div>
+          );
+
+          const rows = [
+            ...boardAbsences.map(({ a, state }) => ({ key: `b|${a.clinicianId}|${a.startDate}`, kind: 'board', state, from: a.startDate, a })),
+            ...runningChanges.map(({ ev, state, from }) => ({ key: `e|${ev.id}`, kind: 'event', state, from, ev })),
+          ];
+          if (rows.length === 0) {
+            return (
+              <div className="px-4 py-5 text-sm text-center" style={{ color: 'var(--meta)' }}>
+                Nothing recorded yet. Click a square in the grid above to add a join, a leave, temporary leave or a session change.
               </div>
-            ))}
-            {runningChanges.map(({ ev, state }) => (
-              <div key={ev.id} className="flex items-center gap-3 px-4 py-2" style={{ borderTop: '1px solid var(--g-border)' }}>
-                <span style={S.chip(ev.type)}>{ev.type === 'temp_leave' ? 'away' : ev.type === 'change' ? '±sess' : ev.type}</span>
-                <span className="text-sm font-semibold" style={{ color: 'var(--g-text-hi)', minWidth: 150 }}>{nameOfRef(ev.personRef)}</span>
-                <span className="text-sm flex-1 min-w-0" style={{ color: 'var(--g-text-hi)' }}>{eventTitle(ev)}</span>
-                <span className="text-[11px] px-1.5 py-0.5 rounded" style={{
-                  color: state === 'active' ? '#fbbf24' : state === 'upcoming' ? 'var(--link)' : 'var(--meta)',
-                  border: `1px solid ${state === 'active' ? 'rgba(245,158,11,0.45)' : state === 'upcoming' ? 'rgba(52,211,153,0.35)' : 'var(--g-border-2)'}`,
-                }}>{state}</span>
-                {ev.absenceId && <span className="text-[11px]" title="Pushed to the buddy board" style={{ color: 'var(--link)' }}>buddy</span>}
-                <span className="text-[11px] hidden lg:inline" style={{ color: 'var(--meta)', minWidth: 120 }}>
-                  {ev.by ? `by ${ev.by}` : ''}
-                </span>
-                {canEdit && (
-                  <button onClick={() => removeEvent(ev.id)} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+            );
+          }
+          const active = rows.filter(r => r.state === 'active').sort((x, y) => x.from.localeCompare(y.from));
+          const upcoming = rows.filter(r => r.state === 'upcoming').sort((x, y) => x.from.localeCompare(y.from));
+          const past = rows.filter(r => r.state === 'past').sort((x, y) => y.from.localeCompare(x.from));
+          const shelfHead = (label, colour) => (
+            <div className="px-4 pt-2.5 pb-1 text-[11px] uppercase" style={{ color: colour, fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>{label}</div>
+          );
+          const foldButton = (label, n, open, toggle) => (
+            <button onClick={toggle} aria-expanded={open}
+              className="w-full text-left px-4 py-2 text-xs flex items-center gap-2"
+              style={{ color: 'var(--meta)', borderTop: '1px solid var(--g-border)' }}>
+              <span style={{ display: 'inline-block', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>▶</span>
+              {label} <span className="font-mono-data" style={{ color: 'var(--g-text-faint)' }}>{n}</span>
+            </button>
+          );
+          return (
+            <div>
+              {shelfHead('Active now', '#fbbf24')}
+              {active.length > 0
+                ? active.map(renderRow)
+                : <div className="px-4 pb-2 text-sm" style={{ color: 'var(--meta)' }}>Nothing running today.</div>}
+              {upcoming.length > 0 && foldButton('Upcoming', upcoming.length, showUpcoming, () => setShowUpcoming(v => !v))}
+              {showUpcoming && upcoming.map(renderRow)}
+              {past.length > 0 && foldButton('Past', past.length, showPast, () => setShowPast(v => !v))}
+              {showPast && past.map(renderRow)}
+            </div>
+          );
+        })()}
       </div>
 
       {/* cell editor */}

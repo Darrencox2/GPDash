@@ -167,7 +167,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
                 ))}
                 {p.dayOff.map((c, j) => (
                   <span key={`d${j}`} className="rounded font-semibold" title={`${c.name} — day off`}
-                    style={{ background: 'transparent', border: '1px solid #f59e0b', color: '#fbbf24', fontSize: 12, padding: '1px 6px' }}>
+                    style={{ background: 'transparent', border: '1px solid #f59e0b', color: 'var(--c-amber)', fontSize: 12, padding: '1px 6px' }}>
                     {c.name} <span style={{ fontWeight: 400, fontSize: 10 }}>day off</span>
                   </span>
                 ))}
@@ -177,7 +177,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
           <div className="mt-2 pt-2 print-rule flex flex-wrap items-center" style={{ borderTop: '1px solid var(--g-border)', gap: 10 }}>
             <span className="rounded" style={{ background: '#b91c1c', border: '1px solid #ef4444', color: '#fff', fontSize: 10, padding: '0 5px' }}>absent</span>
             <span style={{ fontSize: 11, color: 'var(--meta)' }}>file their results</span>
-            <span className="rounded" style={{ border: '1px solid #f59e0b', color: '#fbbf24', fontSize: 10, padding: '0 5px' }}>day off</span>
+            <span className="rounded" style={{ border: '1px solid #f59e0b', color: 'var(--c-amber)', fontSize: 10, padding: '0 5px' }}>day off</span>
             <span style={{ fontSize: 11, color: 'var(--meta)' }}>view only</span>
           </div>
         </div>

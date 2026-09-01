@@ -15,6 +15,7 @@
 // HTML at real pixels; only the marks are SVG.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { monthLabel, monthFraction } from '@/lib/staff-plan';
+import { toLocalIso } from '@/lib/data';
 
 // Shared with the grid below, so a chip means the same thing in both places.
 export const EVENT_TONE = {
@@ -61,7 +62,7 @@ export default function CapacityChart({
     return () => ro.disconnect();
   }, []);
 
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayIso = useMemo(() => toLocalIso(new Date()), []);   // local day, the app's convention
   const steps = timeline.steps;
 
   // Per 1,000 patients divides by the list size in force on that date; the
@@ -84,11 +85,12 @@ export default function CapacityChart({
   );
   const isDelta = view === 'delta';
   const base = isDelta ? val(nowValue, todayIso) ?? 0 : 0;
-  const plotted = series.map((s) => ({ ...s, y: s.v - base }));
+  const plotted = series.map((s) => ({ ...s, y: Math.round((s.v - base) * 10) / 10 }));
 
   const vals = plotted.map((s) => s.y);
-  const rawLo = Math.min(...vals, isDelta ? 0 : Infinity);
-  const rawHi = Math.max(...vals, isDelta ? 0 : -Infinity);
+  const empty = vals.length === 0;
+  const rawLo = empty ? 0 : Math.min(...vals, isDelta ? 0 : Infinity);
+  const rawHi = empty ? 1 : Math.max(...vals, isDelta ? 0 : -Infinity);
   const pad = Math.max((rawHi - rawLo) * 0.22, per1000 ? 0.3 : 2);
   const lo = rawLo - pad, hi = rawHi + pad;
 
@@ -163,6 +165,11 @@ export default function CapacityChart({
 
         <div ref={plotRef} style={{ gridColumn: '2 / -1', position: 'relative' }}
           onMouseLeave={() => setHover(null)}>
+          {empty ? (
+            <div className="flex items-center justify-center text-sm" style={{ height: H, color: 'var(--meta)' }}>
+              Per 1,000 needs a list size and none is recorded for this practice yet.
+            </div>
+          ) : (
           <svg width={W} height={H} style={{ display: 'block' }} role="img"
             aria-label={isDelta
               ? `Sessions a week above or below today's ${val(nowValue, todayIso)}, across ${monthLabel(months[0])} to ${monthLabel(months[12])}`
@@ -236,8 +243,9 @@ export default function CapacityChart({
                 onMouseEnter={() => setHover(i)} style={{ cursor: 'crosshair' }} />
             ))}
           </svg>
+          )}
 
-          {hoverInfo && (
+          {!empty && hoverInfo && (
             <div className="rounded-lg px-2.5 py-2 text-xs" style={{
               position: 'absolute', top: 6, pointerEvents: 'none', zIndex: 5, width: 178,
               left: Math.max(4, Math.min(W - 182, X(hover) + X(0.5) - 89)),

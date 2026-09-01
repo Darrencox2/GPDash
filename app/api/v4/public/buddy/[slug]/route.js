@@ -138,7 +138,16 @@ export async function GET(request, ctx) {
       practiceSlug: practice.slug,
       clinicians: toPublicClinicians(v3Shape.clinicians),
       weeklyRota: v3Shape.weeklyRota,
-      plannedAbsences: v3Shape.plannedAbsences,
+      // Dates and half-day session only. The reason ("Long term absence",
+      // maternity...) is health information about named staff; the public
+      // view computes cover from the dates and never shows a reason.
+      plannedAbsences: (v3Shape.plannedAbsences || []).map(a => ({
+        id: a.id,
+        clinicianId: a.clinicianId,
+        startDate: a.startDate,
+        endDate: a.endDate,
+        ...(a.session ? { session: a.session } : {}),
+      })),
       settings: v3Shape.settings,        // buddy weights
       closedDays: v3Shape.closedDays,
       dailyOverrides: v3Shape.dailyOverrides,
