@@ -1,7 +1,11 @@
 'use client';
 // Week detail view for capacity planning.
 //
-// Laid out as SITE ROWS x DAY COLUMNS, not five independent day columns.
+// Laid out as SITE ROWS x SESSION COLUMNS: Mon AM, Mon PM, Tue AM, Tue PM
+// and so on, reading left to right the way the week is actually worked.
+// Sessions used to be stacked inside a day cell, which made a day a
+// variable-height block and buried the session - the unit that is actually
+// staffed, covered and short.
 // Sites used to sit at whatever height the sites above them happened to
 // need, so Banwell started lower on a busy day than a quiet one and the
 // week could not be read along a row. Here every site owns a row, and a
@@ -24,7 +28,14 @@ import { getCliniciansForDate, getDutyDoctor } from '@/lib/huddle';
 import { toHuddleDateStr, toLocalIso, getScheduledSessions, matchesStaffMember, titleCaseName } from '@/lib/data';
 import { getWeekDayDetail, classifyStaffRole } from '@/lib/site-staffing';
 import { predictDemand } from '@/lib/demandPredictor';
-import { ClosedDayInline } from '@/components/ui/ClosedDay';
+import MultiSelect from '@/components/ui/MultiSelect';
+
+// The house purple, as the Today page uses it for its own accents.
+const DUTY = { bg: 'rgba(139,92,246,0.16)', bd: 'rgba(139,92,246,0.45)', fg: '#c4b5fd' };
+const GROUPS = [
+  { id: 'gp', label: 'GPs' }, { id: 'nursing', label: 'Nursing' },
+  { id: 'hca', label: 'HCAs' }, { id: 'other', label: 'Other' },
+];
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -50,6 +61,18 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
   // initialOffset lets the 6-week grid deep-link a specific week (the parent
   // remounts with key={offset}, so useState's one-shot init is safe here).
   const [offset, setOffset] = useState(initialOffset);
+  // Which staff count towards the session. Defaults to whatever site
+  // staffing is configured with, so the view opens agreeing with the
+  // minimums; widening it is a question ("what if nursing counted?")
+  // rather than a silent change, so the header says when it differs.
+  const configuredGroups = useMemo(() => (
+    Array.isArray(capacityStaffing?.groups) && capacityStaffing.groups.length ? capacityStaffing.groups : ['gp']
+  ), [capacityStaffing?.groups]);
+  const [groups, setGroups] = useState(null);          // null = follow the config
+  const activeGroups = groups && groups.length ? groups : configuredGroups;
+  const filtered = groups != null && groups.length > 0
+    && (groups.length !== configuredGroups.length || groups.some((g) => !configuredGroups.includes(g)));
+  const staffing = useMemo(() => ({ ...capacityStaffing, groups: activeGroups }), [capacityStaffing, activeGroups]);
   const monday = useMemo(() => {
     const m = mondayOf(new Date());
     m.setDate(m.getDate() + offset * 7);
@@ -75,7 +98,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           }
         }
         detail = getWeekDayDetail(huddleData, csvStr, {
-          sites, huddleSettings: hs, capacityStaffing, clinicians: teamClin, dutyByName,
+          sites, huddleSettings: hs, capacityStaffing: staffing, clinicians: teamClin, dutyByName,
           includeEmpty: true,
         });
       }
@@ -104,19 +127,16 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
       const closedReason = declared || (pred?.isBankHoliday ? 'Bank holiday' : null);
       return { dayName, dt, iso, csvStr, hasData, detail, projection, closed, closedReason, isToday: iso === todayIso };
     });
-  }, [monday, huddleData, sites, hs, capacityStaffing, teamClin, data, todayIso]);
+  }, [monday, huddleData, sites, hs, staffing, teamClin, data, todayIso]);
 
-  // Name the trouble before anything else: every short session this week.
-  const shortfalls = [];
-  for (const d of days) {
-    for (const siteEntry of d.detail) {
-      for (const [k, s] of Object.entries(siteEntry.sessions || {})) {
-        if (s.state === 'short') {
-          shortfalls.push(`${d.dayName.slice(0, 3)} ${SESSION_LABELS[k]} ${siteEntry.site.name.split(' ')[0]} \u2212${siteEntry.threshold - s.offering}`);
-        }
-      }
-    }
-  }
+  // Which sessions the week actually uses. Evenings are rare, so a fixed
+  // three-per-day would spend a third of the width on empty columns.
+  const sessionKeys = useMemo(() => {
+    const used = new Set(['am', 'pm']);
+    for (const d of days) for (const e of d.detail) for (const k of Object.keys(e.sessions || {})) used.add(k);
+    for (const d of days) if (d.projection?.E?.length) used.add('eve');
+    return ['am', 'pm', 'eve'].filter((k) => used.has(k));
+  }, [days]);
 
   // The minimum is a property of the site, but it is carried on each day's
   // entry - so read it off whichever day actually reported one.
@@ -129,10 +149,14 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
   };
 
   const weekLabel = `${monday.getDate()} ${monday.toLocaleDateString('en-GB', { month: 'short' })}`;
+  const cols = days.length * sessionKeys.length;
+  const GRID = { display: 'grid', gridTemplateColumns: `142px repeat(${cols}, minmax(0, 1fr))`, gap: 4, minWidth: 142 + cols * 82 };
 
   return (
     <div className="p-4">
-      {/* Nav + attention strip */}
+      {/* Nav + filter. The red shortfall banner that used to sit here is
+          gone: every short session already carries a red bar and a deficit
+          in the grid, so the banner was the same alarm twice, louder. */}
       <div className="flex items-center gap-3 mb-3 flex-wrap">
         <div className="flex items-center gap-1">
           <button onClick={() => setOffset(o => o - 1)} className="px-2 py-1 rounded-md text-slate-400 hover:text-white" style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)'}}>&#8249;</button>
@@ -140,12 +164,13 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           <button onClick={() => setOffset(o => o + 1)} className="px-2 py-1 rounded-md text-slate-400 hover:text-white" style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)'}}>&#8250;</button>
         </div>
         <span className="text-xs text-slate-400">w/c {weekLabel}</span>
-        {shortfalls.length > 0 ? (
-          <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold" style={{background:'rgba(239,68,68,0.15)', border:'1px solid #ef444460', color:'#fca5a5'}}>
-            {shortfalls.length} session{shortfalls.length === 1 ? '' : 's'} below minimum: {shortfalls.join(' \u00b7 ')}
+        <MultiSelect label="Staff" options={GROUPS} selected={groups || configuredGroups}
+          onChange={(next) => setGroups(next.length ? next : configuredGroups)}
+          allLabel="Counting all staff" width={200} />
+        {filtered && (
+          <span className="text-[11px]" style={{ color: '#fcd34d' }}>
+            minimums are set for {configuredGroups.map((g) => GROUPS.find((x) => x.id === g)?.label || g).join(' + ')}
           </span>
-        ) : (
-          <span className="text-[11px] text-slate-400">No sessions below minimum this week</span>
         )}
         <span className="ml-auto text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1">
@@ -154,36 +179,34 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           <span className="flex items-center gap-1">
             <span style={{ width: 9, height: 4, borderRadius: 999, background: '#ef4444', display: 'inline-block' }} />short
           </span>
-          &#183; &#9733; duty &#183; dimmed = no bookable slots &#183; u urgent / r routine
+          <span className="px-1 rounded" style={{ background: DUTY.bg, border: `1px solid ${DUTY.bd}`, color: DUTY.fg }}>duty</span>
+          &#183; dimmed = no bookable slots
         </span>
       </div>
 
-      {/* One row of days. Every configured site appears in every day, in
-          the practice's own order, even when nobody is there - otherwise
-          the sites shuffle between columns and the week cannot be read
-          across. Colour is spent only on trouble: a session that meets
-          its minimum is left plain, so the red and amber mean something. */}
-      {/* One row per site, one column per day. Colour is spent only on
-          trouble: the bar under each session shows staffing against that
-          site's minimum, filled green when comfortable, amber when exactly
-          on it, and short in red when it is not met. */}
       <div className="overflow-x-auto">
-      <div style={{ display: 'grid', gridTemplateColumns: `132px repeat(5, minmax(0, 1fr))`, gap: 6, minWidth: 880 }}>
+      <div style={GRID}>
 
-        {/* header row */}
+        {/* day header, each spanning its own sessions */}
         <div />
         {days.map((d) => (
-          <div key={`h-${d.iso}`} className="text-center pb-1.5"
-            style={{ borderBottom: d.isToday ? '2px solid rgba(99,102,241,0.7)' : '1px solid rgba(255,255,255,0.10)' }}>
-            <div className="text-xs font-semibold" style={{ color: d.isToday ? '#a5b4fc' : '#cbd5e1' }}>{d.dayName}</div>
-            <div className="text-[11px]" style={{ color: 'var(--meta)' }}>
-              {d.dt.getDate()} {d.dt.toLocaleDateString('en-GB', { month: 'short' })}
+          <div key={`d-${d.iso}`} className="text-center pb-1"
+            style={{ gridColumn: `span ${sessionKeys.length}`, borderBottom: d.isToday ? '2px solid rgba(99,102,241,0.7)' : '1px solid rgba(255,255,255,0.10)' }}>
+            <div className="text-xs font-semibold" style={{ color: d.isToday ? '#a5b4fc' : '#cbd5e1' }}>
+              {d.dayName} <span className="font-normal" style={{ color: 'var(--meta)' }}>{d.dt.getDate()} {d.dt.toLocaleDateString('en-GB', { month: 'short' })}</span>
             </div>
-            {d.closed && (
-              <div className="text-[11px] mt-0.5" style={{ color: '#fbbf24' }}>{d.closedReason || 'Closed'}</div>
-            )}
+            {d.closed && <div className="text-[11px]" style={{ color: '#fbbf24' }}>{d.closedReason || 'Closed'}</div>}
           </div>
         ))}
+
+        {/* session header, the column the grid is actually keyed on */}
+        <div />
+        {days.map((d) => sessionKeys.map((k) => (
+          <div key={`s-${d.iso}-${k}`} className="text-center text-[11px] font-bold pb-1"
+            style={{ color: d.isToday ? '#a5b4fc' : 'var(--meta)', fontFamily: 'var(--font-mono)' }}>
+            {SESSION_LABELS[k]}
+          </div>
+        )))}
 
         {/* one row per configured site */}
         {sites.map((site) => (
@@ -197,60 +220,62 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
                 )}
               </div>
             </div>
-
             {days.map((d) => {
+              // A closed day is one statement across its sessions, not the
+              // same dash repeated per column.
+              if (d.closed) {
+                return (
+                  <div key={`${site.name}-${d.iso}-closed`} className="rounded-lg text-[11px] text-center py-2"
+                    style={{ gridColumn: `span ${sessionKeys.length}`, background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--meta)' }}>
+                    &mdash;
+                  </div>
+                );
+              }
               const entry = d.detail.find((e) => e.site.name === site.name);
-              const keys = entry ? ['am', 'pm', 'eve'].filter((k) => entry.sessions[k]) : [];
-              return (
-                <div key={`${site.name}-${d.iso}`} className="rounded-lg p-1"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  {d.closed ? (
-                    <div className="text-[11px] text-center py-2" style={{ color: 'var(--meta)' }}>&mdash;</div>
-                  ) : keys.length === 0 ? (
-                    <div className="text-[11px] text-center py-2" style={{ color: 'var(--meta)' }}>Nobody here</div>
-                  ) : keys.map((k) => {
-                    const ses = entry.sessions[k];
-                    const min = entry.threshold;
-                    const short = ses.state === 'short';
-                    const deficit = short && min != null ? min - ses.offering : 0;
-                    // Two states, not three. Amber for "exactly on the
-                    // minimum" sounded right until it ran against real
-                    // thresholds of 1 and 2, where being exactly on the
-                    // minimum is the ordinary state - so amber fired on
-                    // almost every session and the three genuine
-                    // shortfalls stopped standing out. Met or short.
-                    const fill = short ? '#ef4444' : '#10b981';
-                    const pct = min ? Math.max(6, Math.min(100, (ses.offering / Math.max(min, ses.offering)) * 100)) : 100;
-                    return (
-                      <div key={k} className="rounded-md px-1.5 py-1 mb-1 last:mb-0"
-                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-[11px] font-bold" style={{ color: 'var(--meta)' }}>{SESSION_LABELS[k]}</span>
-                          <span className="text-[11px] font-bold font-mono-data" style={{ color: short ? '#fca5a5' : '#cbd5e1' }}>
-                            {ses.offering}{deficit > 0 && <span> ({'\u2212'}{deficit})</span>}
-                          </span>
-                          <span className="ml-auto text-[11px] font-mono-data" style={{ color: 'var(--meta)' }}>{ses.urgent}u {ses.routine}r</span>
+              return sessionKeys.map((k) => {
+                const ses = entry?.sessions?.[k];
+                const min = entry?.threshold ?? null;
+                if (!ses) {
+                  return (
+                    <div key={`${site.name}-${d.iso}-${k}`} className="rounded-lg text-[11px] text-center py-2"
+                      style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--g-text-faint)' }}>
+                      &ndash;
+                    </div>
+                  );
+                }
+                const short = ses.state === 'short';
+                const deficit = short && min != null ? min - ses.offering : 0;
+                const fill = short ? '#ef4444' : '#10b981';
+                const pct = min ? Math.max(6, Math.min(100, (ses.offering / Math.max(min, ses.offering)) * 100)) : 100;
+                return (
+                  <div key={`${site.name}-${d.iso}-${k}`} className="rounded-lg px-1.5 py-1"
+                    style={{ background: short ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.025)', border: `1px solid ${short ? 'rgba(239,68,68,0.28)' : 'rgba(255,255,255,0.07)'}` }}>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[11px] font-bold font-mono-data" style={{ color: short ? '#fca5a5' : '#cbd5e1' }}>
+                        {ses.offering}{deficit > 0 && <span> ({'\u2212'}{deficit})</span>}
+                      </span>
+                      <span className="ml-auto text-[11px] font-mono-data" style={{ color: 'var(--g-text-faint)' }}>{ses.urgent}u {ses.routine}r</span>
+                    </div>
+                    <div className="mt-0.5">
+                      {ses.clins.map((c, i) => (
+                        <div key={c.name + i}
+                          title={`${c.name}${c.duty ? ' \u2014 DUTY' : ''}\nUrgent ${c.urgent} \u00b7 Routine ${c.routine} \u00b7 Other ${c.other}${c.offering ? '' : '\nNo bookable slots this session'}`}
+                          className="text-[11px] leading-tight truncate"
+                          style={c.duty
+                            ? { background: DUTY.bg, border: `1px solid ${DUTY.bd}`, color: DUTY.fg, borderRadius: 4, padding: '0 3px', fontWeight: 700 }
+                            : { color: c.offering ? '#cbd5e1' : 'var(--meta)' }}>
+                          {displayName(c.name, teamClin)}
                         </div>
-                        <div className="mt-0.5">
-                          {ses.clins.map((c, i) => (
-                            <div key={c.name + i}
-                              title={`${c.name}${c.duty ? ' — DUTY' : ''}\nUrgent ${c.urgent} · Routine ${c.routine} · Other ${c.other}${c.offering ? '' : '\nNo bookable slots this session'}`}
-                              className="text-[11px] leading-tight truncate"
-                              style={{ color: c.duty ? '#fbbf24' : c.offering ? '#cbd5e1' : 'var(--meta)' }}>
-                              {c.duty ? '\u2605 ' : ''}{displayName(c.name, teamClin)}
-                            </div>
-                          ))}
-                        </div>
-                        {min != null && (
-                          <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.09)', marginTop: 4, overflow: 'hidden' }}>
-                            <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: fill }} />
-                          </div>
-                        )}
+                      ))}
+                    </div>
+                    {min != null && (
+                      <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.09)', marginTop: 4, overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: fill }} />
                       </div>
-                    );
-                  })}
-                </div>
-              );
+                    )}
+                  </div>
+                );
+              });
             })}
           </Fragment>
         ))}
@@ -265,25 +290,27 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
                 <div className="font-normal">no export yet</div>
               </div>
             </div>
-            {days.map((d) => (
-              <div key={`proj-${d.iso}`} className="rounded-lg p-1"
-                style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.12)' }}>
-                {d.closed || d.hasData || !d.projection ? (
-                  <div className="text-[11px] text-center py-2" style={{ color: 'var(--meta)' }}>&mdash;</div>
-                ) : (
-                  [['M', 'AM'], ['A', 'PM'], ['E', 'EVE']].filter(([k]) => d.projection[k].length).map(([k, label]) => (
-                    <div key={k} className="px-1 py-0.5">
-                      <span className="text-[11px] font-bold" style={{ color: 'var(--meta)' }}>{label}</span>
-                      {d.projection[k].map((nm, i) => (
-                        <div key={nm + i} className="text-[11px] leading-tight truncate" style={{ color: 'var(--meta)' }}>
-                          {displayName(nm, teamClin)}
-                        </div>
-                      ))}
+            {days.map((d) => {
+              if (d.closed || d.hasData || !d.projection) {
+                return (
+                  <div key={`proj-${d.iso}`} className="rounded-lg text-[11px] text-center py-2"
+                    style={{ gridColumn: `span ${sessionKeys.length}`, background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.10)', color: 'var(--g-text-faint)' }}>
+                    &mdash;
+                  </div>
+                );
+              }
+              const KEY = { am: 'M', pm: 'A', eve: 'E' };
+              return sessionKeys.map((k) => (
+                <div key={`proj-${d.iso}-${k}`} className="rounded-lg px-1.5 py-1"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.12)' }}>
+                  {(d.projection[KEY[k]] || []).map((nm, i) => (
+                    <div key={nm + i} className="text-[11px] leading-tight truncate" style={{ color: 'var(--meta)' }}>
+                      {displayName(nm, teamClin)}
                     </div>
-                  ))
-                )}
-              </div>
-            ))}
+                  ))}
+                </div>
+              ));
+            })}
           </Fragment>
         )}
       </div>

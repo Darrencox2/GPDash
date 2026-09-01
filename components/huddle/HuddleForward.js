@@ -593,7 +593,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             {/* h1, not a span: this is the page heading a screen reader
                 announces on arrival. Classes unchanged, so nothing moves. */}
             <h1 className="text-base font-semibold text-white font-heading">Capacity planning</h1>
-            <span className="text-xs text-slate-400 ml-2">6-week forward view</span>
+            <span className="text-xs text-slate-400 ml-2">{capView === 'week' ? 'Week detail' : '6-week forward view'}</span>
             <div className="ml-auto flex items-center gap-2 relative">
               <div className="flex rounded-md overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.12)'}}>
                 {[['month','6 weeks'],['week','Week detail']].map(([v,label]) => (
@@ -604,7 +604,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   </button>
                 ))}
               </div>
-              {sites.length > 0 && (
+              {sites.length > 0 && capView !== 'week' && (
                 <button onClick={() => setShowStaffing(v => !v)}
                   title="Show or hide per-site clinician staffing in each day"
                   className="px-2 py-1 rounded-md text-[11px] font-semibold transition-colors"
@@ -623,7 +623,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   )}
                 </button>
               )}
-              {showStaffing && canEdit && (
+              {(showStaffing || capView === 'week') && canEdit && (
                 <button onClick={() => setStaffingPanelOpen((v) => !v)}
                   title="Set the minimum clinician count per site"
                   className="px-2 py-1 rounded-md text-[11px] font-semibold"
@@ -631,7 +631,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   Minimums
                 </button>
               )}
-              {staffingPanelOpen && showStaffing && canEdit && (
+              {staffingPanelOpen && (showStaffing || capView === 'week') && canEdit && (
                 <div className="absolute right-0 top-full mt-2 z-30 w-72 rounded-xl p-4 shadow-2xl"
                   style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.14)' }}
                   onClick={(e) => e.stopPropagation()}>
@@ -936,6 +936,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             exclusive with the day detail drawer — picking a marker
             clears any selected day. Days inside an expanded list are
             clickable and switch to the day drawer. */}
+        {/* Week detail answers one question - can we function next week -
+            and these cards answer a different, six-week one. Shown
+            together the page read as a wall, so they stand down there. */}
+        {capView !== 'week' && (
         <div className="rounded-2xl overflow-hidden" style={{background:'var(--g-panel)',border:'1px solid var(--g-border)'}}>
           <div className="grid grid-cols-5 gap-2 p-3" style={{borderBottom: selectedMarker ? '1px solid var(--g-border)' : 'none'}}>
             {/* Urgent below target */}
@@ -1166,6 +1170,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* ═══ DAY DETAIL DRAWER (desktop) ═══ */}
@@ -1536,8 +1541,11 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         )}
       </div>
 
-      {/* Clinician capacity detail */}
-      <ClinicianCapacity data={data} huddleData={huddleData} routineOverrides={routOv} />
+      {/* Clinician capacity detail - a 28-day per-clinician breakdown, which
+          is not the question the week detail is being asked. */}
+      {capView !== 'week' && (
+        <ClinicianCapacity data={data} huddleData={huddleData} routineOverrides={routOv} />
+      )}
       </div>
       {staffTip && (
         <div className="fixed z-50 pointer-events-none" style={{ left: staffTip.x, top: staffTip.y - 8, transform: 'translate(-50%, -100%)' }}>
