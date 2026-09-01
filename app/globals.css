@@ -103,6 +103,14 @@
        --meta replaces #64748b for small print: that was 3.5:1 on our dark
        cards, under the 4.5:1 WCAG AA floor for text below 24px. */
     --link: #34d399; --link-hover: #6ee7b7; --meta: #94a3b8;
+    /* Duty doctor purple — one vocabulary for the whole app. Hardcoded in
+       five places before this, which is why duty vanished in light mode:
+       #c4b5fd on a pale purple tint is 1.6:1. */
+    --duty-bg: rgba(139,92,246,0.16); --duty-bd: rgba(139,92,246,0.45); --duty-fg: #c4b5fd;
+    /* Staff-plan event tones — joins, returns, leavers, absence, session
+       changes. One vocabulary for the chart, its ribbon and the grid. */
+    --ev-join: #34d399; --ev-return: #6ee7b7; --ev-leave: #fca5a5;
+    --ev-away: #fbbf24; --ev-change: #a5b4fc;
     --c-blue: #93c5fd; --c-indigo: #818cf8; --c-purple: #d8b4fe; --c-pink: #f9a8d4;
     --sidebar-bg: linear-gradient(to bottom, #0f172a, #0f172a, #1e293b);
     --sidebar-border: rgba(255,255,255,0.05);
@@ -188,6 +196,14 @@
     --g-nodata: #e2e8f0; --g-ink: #cbd5e1; --g-ink-2: #cbd5e1; --g-track: #cbd5e1; --g-pill-text: #1e293b;
     --g-line: rgba(15,23,42,0.16); --g-marker: rgba(15,23,42,0.55);
     --g-surface: #f8fafc; --g-surface-2: #ffffff; --g-field: #ffffff;
+    /* These three had no light value at all, so they kept their dark ones
+       on a near-white page: --meta was #94a3b8 at 2.2:1 (209 uses across
+       45 files - every caption on the site), --link #34d399 at 1.7:1.
+       Both now clear the 4.5:1 AA floor for small text on --app-bg. */
+    --link: #047857; --link-hover: #065f46; --meta: #5b6779;
+    --duty-bg: rgba(139,92,246,0.13); --duty-bd: rgba(124,58,237,0.4); --duty-fg: #6d28d9;
+    --ev-join: #047857; --ev-return: #0f766e; --ev-leave: #b91c1c;
+    --ev-away: #b45309; --ev-change: #4338ca;
   }
 }
 

@@ -31,8 +31,10 @@ import { predictDemand } from '@/lib/demandPredictor';
 import StaffFilter, { staffRoleOptions } from '@/components/ui/StaffFilter';
 import { getRoutineTypeSet, getUrgentTypeSet } from '@/lib/site-staffing';
 
-// The house purple, as the Today page uses it for its own accents.
-const DUTY = { bg: 'rgba(139,92,246,0.16)', bd: 'rgba(139,92,246,0.45)', fg: '#c4b5fd' };
+// The house purple, as the Today page uses it for its own accents. The
+// values are tokens so the badge survives light mode, where the pale
+// #c4b5fd it used to hardcode was 1.6:1 on its own tint.
+const DUTY = { bg: 'var(--duty-bg)', bd: 'var(--duty-bd)', fg: 'var(--duty-fg)' };
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -43,6 +45,23 @@ function displayName(csvName, clinicians) {
   const match = (clinicians || []).find((x) => matchesStaffMember(csvName, x));
   if (match?.name) return match.name;
   return titleCaseName(String(csvName || '').replace(/\s*\([^)]*\)\s*$/, '').trim()) || csvName;
+}
+// Ten session columns leave about 110px for a name at 1440. "Benedict
+// Okonkwo" needs 124 and "Meera Patel-Hughes" 135, so at any legible size
+// the long ones wrapped onto a second line and the grid grew ragged. No
+// font size fixes that - 10px still overflows - so the long ones give up
+// their forename instead: the surname is what identifies the person, and
+// "B Okonkwo" is a form every practice already writes. Short names are
+// untouched, and the detail strip always shows the full name. The cut is
+// 13 rather than 15 because the duty badge carries bold text plus its own
+// padding, which is what pushed a 15-character name over on its own.
+const NAME_FITS = 13;
+function gridName(full) {
+  const s = String(full || '').trim();
+  if (s.length <= NAME_FITS) return s;
+  const i = s.indexOf(' ');
+  if (i < 1) return s;
+  return `${s[0]} ${s.slice(i + 1)}`;
 }
 const SESSION_LABELS = { am: 'AM', pm: 'PM', eve: 'EVE' };
 
@@ -168,7 +187,11 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
   const rowMin = Math.max(104, Math.min(200, Math.round(560 / Math.max(sites.length, 1))));
   // No minWidth: the week must fit the page. A horizontal scrollbar hides
   // Friday behind an edge, and Friday is the session people plan for.
-  const GRID = { display: 'grid', gridTemplateColumns: `132px repeat(${cols}, minmax(0, 1fr))`, gap: 3 };
+  // The label column, the gaps and the cell padding are all as narrow as
+  // they can be without crowding: every pixel they give up is a pixel of
+  // name, and a name that fits on one line is the difference between
+  // reading a session and parsing it.
+  const GRID = { display: 'grid', gridTemplateColumns: `112px repeat(${cols}, minmax(0, 1fr))`, gap: 2 };
 
   // ── the detail strip ──────────────────────────────────────────────────
   // It used to be a column down the right, which cost the grid 250px and
@@ -180,7 +203,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
     <div className="rounded-xl px-3 py-2 mb-3 flex items-center gap-4 flex-wrap"
       style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', minHeight: 58 }}>
       {!peek ? (
-        <div className="text-[12px]" style={{ color: 'var(--g-text-faint)' }}>
+        <div className="text-[12px]" style={{ color: 'var(--meta)' }}>
           <span className="text-[11px] uppercase mr-2" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>Clinician detail</span>
           Point at any name below to see the slot types they are running that session.
         </div>
@@ -201,10 +224,10 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           <div className="flex items-center gap-1.5 flex-wrap flex-1" style={{ minWidth: 0, borderLeft: '1px solid var(--g-border)', paddingLeft: 12 }}>
             {types.map(([type, n]) => {
               const kind = urgentSet.has(type) ? 'urgent' : routineSet.has(type) ? 'routine' : 'other';
-              const col = kind === 'urgent' ? '#fca5a5' : kind === 'routine' ? '#86efac' : 'var(--g-text-faint)';
+              const col = kind === 'urgent' ? 'var(--c-red)' : kind === 'routine' ? 'var(--c-green)' : 'var(--g-text-faint)';
               return (
                 <span key={type} className="text-[11.5px] rounded px-1.5 py-0.5 flex items-baseline gap-1.5"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: kind === 'other' ? 'var(--meta)' : 'var(--g-text-hi)' }}>
+                  style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: kind === 'other' ? 'var(--meta)' : 'var(--g-text-hi)' }}>
                   {type}
                   <span className="font-mono-data font-bold" style={{ color: col }}>{n}</span>
                 </span>
@@ -214,12 +237,12 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           </div>
           <div className="text-right" style={{ flex: 'none' }}>
             <div className="text-[11px]" style={{ color: 'var(--meta)' }}>bookable</div>
-            <div className="font-mono-data text-[15px] font-bold leading-tight" style={{ color: peek.c.offering ? '#86efac' : '#fcd34d' }}>
+            <div className="font-mono-data text-[15px] font-bold leading-tight" style={{ color: peek.c.offering ? 'var(--c-green)' : 'var(--c-amber)' }}>
               {peek.c.urgent + peek.c.routine}
             </div>
           </div>
           {!peek.c.offering && (
-            <div className="text-[11px]" style={{ color: '#fcd34d', maxWidth: 220, lineHeight: 1.4, flex: 'none' }}>
+            <div className="text-[11px]" style={{ color: 'var(--c-amber)', maxWidth: 220, lineHeight: 1.4, flex: 'none' }}>
               Here, but nothing bookable{peek.c.other > 0 ? ' - none of these types are on the urgent or routine lists' : ''}
             </div>
           )}
@@ -235,15 +258,15 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           in the grid, so the banner was the same alarm twice, louder. */}
       <div className="flex items-center gap-3 mb-3 flex-wrap">
         <div className="flex items-center gap-1">
-          <button onClick={() => setOffset(o => o - 1)} className="px-2 py-1 rounded-md text-slate-400 hover:text-white" style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)'}}>&#8249;</button>
-          <button onClick={() => setOffset(0)} className="px-2.5 py-1 rounded-md text-[11px] font-semibold" style={{background: offset === 0 ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', color: offset === 0 ? '#a5b4fc' : '#94a3b8'}}>This week</button>
-          <button onClick={() => setOffset(o => o + 1)} className="px-2 py-1 rounded-md text-slate-400 hover:text-white" style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)'}}>&#8250;</button>
+          <button onClick={() => setOffset(o => o - 1)} className="px-2 py-1 rounded-md" style={{background:'var(--g-tile)', border:'1px solid var(--g-border-2)', color:'var(--g-text-mid)'}}>&#8249;</button>
+          <button onClick={() => setOffset(0)} className="px-2.5 py-1 rounded-md text-[11px] font-semibold" style={{background: offset === 0 ? 'var(--accent-soft)' : 'var(--g-tile)', border:'1px solid var(--g-border-2)', color: offset === 0 ? 'var(--accent-text)' : 'var(--meta)'}}>This week</button>
+          <button onClick={() => setOffset(o => o + 1)} className="px-2 py-1 rounded-md" style={{background:'var(--g-tile)', border:'1px solid var(--g-border-2)', color:'var(--g-text-mid)'}}>&#8250;</button>
         </div>
-        <span className="text-xs text-slate-400">w/c {weekLabel}</span>
+        <span className="text-xs" style={{ color: 'var(--meta)' }}>w/c {weekLabel}</span>
         <StaffFilter options={roleOptions} selected={roles || configuredRoles}
           onChange={(next) => setRoles(next.length ? next : configuredRoles)}
           allLabel="Counting all staff" width={230} hintLabel="people" />
-        <span className="ml-auto text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
+        <span className="ml-auto text-[11px] flex items-center gap-2 flex-wrap" style={{ color: 'var(--meta)' }}>
           <span className="flex items-center gap-1">
             <span style={{ width: 16, height: 4, borderRadius: 999, background: '#10b981', display: 'inline-block' }} />meets the minimum
           </span>
@@ -263,11 +286,11 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
         <div />
         {days.map((d) => (
           <div key={`d-${d.iso}`} className="text-center pb-1"
-            style={{ gridColumn: `span ${sessionKeys.length}`, borderBottom: d.isToday ? '2px solid rgba(99,102,241,0.7)' : '1px solid rgba(255,255,255,0.10)' }}>
-            <div className="text-xs font-semibold" style={{ color: d.isToday ? '#a5b4fc' : '#cbd5e1' }}>
+            style={{ gridColumn: `span ${sessionKeys.length}`, borderBottom: d.isToday ? '2px solid var(--accent)' : '1px solid var(--g-border-2)' }}>
+            <div className="text-xs font-semibold" style={{ color: d.isToday ? 'var(--accent-text)' : 'var(--g-text-hi)' }}>
               {d.dayName} <span className="font-normal" style={{ color: 'var(--meta)' }}>{d.dt.getDate()} {d.dt.toLocaleDateString('en-GB', { month: 'short' })}</span>
             </div>
-            {d.closed && <div className="text-[11px]" style={{ color: '#fbbf24' }}>{d.closedReason || 'Closed'}</div>}
+            {d.closed && <div className="text-[11px]" style={{ color: 'var(--c-amber)' }}>{d.closedReason || 'Closed'}</div>}
           </div>
         ))}
 
@@ -275,7 +298,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
         <div />
         {days.map((d) => sessionKeys.map((k) => (
           <div key={`s-${d.iso}-${k}`} className="text-center text-[11px] font-bold pb-1"
-            style={{ color: d.isToday ? '#a5b4fc' : 'var(--meta)', fontFamily: 'var(--font-mono)' }}>
+            style={{ color: d.isToday ? 'var(--accent-text)' : 'var(--meta)', fontFamily: 'var(--font-mono)' }}>
             {SESSION_LABELS[k]}
           </div>
         )))}
@@ -288,7 +311,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
                   was doing almost nothing to tie a row to its site. */}
               <span style={{ width: 5, borderRadius: 3, background: site.colour || '#64748b', flex: 'none' }} />
               <div className="min-w-0 pt-1">
-                <div className="text-[13px] font-semibold leading-tight" style={{ color: '#e2e8f0' }}>{site.name}</div>
+                <div className="text-[13px] font-semibold leading-tight" style={{ color: 'var(--g-text-hi)' }}>{site.name}</div>
                 {thresholdFor(site) != null && (
                   <div className="text-[11px]" style={{ color: 'var(--meta)' }}>min {thresholdFor(site)}</div>
                 )}
@@ -300,7 +323,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
               if (d.closed) {
                 return (
                   <div key={`${site.name}-${d.iso}-closed`} className="rounded-lg text-[11px] text-center py-2"
-                    style={{ gridColumn: `span ${sessionKeys.length}`, background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--meta)' }}>
+                    style={{ gridColumn: `span ${sessionKeys.length}`, background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', color: 'var(--meta)' }}>
                     &mdash;
                   </div>
                 );
@@ -312,7 +335,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
                 if (!ses) {
                   return (
                     <div key={`${site.name}-${d.iso}-${k}`} className="rounded-lg text-[11px] text-center py-2"
-                      style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--g-text-faint)' }}>
+                      style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', color: 'var(--g-text-faint)' }}>
                       &ndash;
                     </div>
                   );
@@ -325,38 +348,38 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
                 // non-offering name is where the quiet half begins.
                 const firstDim = ses.clins.findIndex((c) => !c.offering);
                 return (
-                  <div key={`${site.name}-${d.iso}-${k}`} className="rounded-lg px-1.5 py-1 flex flex-col"
-                    style={{ minHeight: rowMin, background: short ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.025)', border: `1px solid ${short ? 'rgba(239,68,68,0.28)' : 'rgba(255,255,255,0.07)'}` }}>
+                  <div key={`${site.name}-${d.iso}-${k}`} className="rounded-lg px-1 py-1 flex flex-col"
+                    style={{ minHeight: rowMin, background: short ? 'rgba(239,68,68,0.08)' : 'var(--g-tile-3)', border: `1px solid ${short ? 'rgba(239,68,68,0.32)' : 'var(--g-border)'}` }}>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-[11px] font-bold font-mono-data" style={{ color: short ? '#fca5a5' : '#cbd5e1' }}>
+                      <span className="text-[11px] font-bold font-mono-data" style={{ color: short ? 'var(--c-red)' : 'var(--g-text-hi)' }}>
                         {ses.offering}{deficit > 0 && <span> ({'\u2212'}{deficit})</span>}
                       </span>
-                      <span className="ml-auto text-[11px] font-mono-data" style={{ color: 'var(--g-text-faint)' }}>{ses.urgent}u {ses.routine}r</span>
+                      <span className="ml-auto text-[11px] font-mono-data" style={{ color: 'var(--meta)' }}>{ses.urgent}u {ses.routine}r</span>
                     </div>
                     <div className="mt-0.5 flex-1">
                       {ses.clins.map((c, i) => (
                         <Fragment key={c.name + i}>
                           {i === firstDim && i > 0 && (
-                            <div style={{ borderTop: '1px dashed rgba(255,255,255,0.12)', margin: '3px 0 2px' }} />
+                            <div style={{ borderTop: '1px dashed var(--g-border-2)', margin: '3px 0 2px' }} />
                           )}
                           <div
                             onMouseEnter={() => setPeek({ c, site: site.name, day: d.dayName, session: SESSION_LABELS[k] })}
-                            className="text-[12.5px] leading-snug"
+                            className="text-[11.5px] leading-snug"
                             style={c.duty
                               ? { background: DUTY.bg, border: `1px solid ${DUTY.bd}`, color: DUTY.fg, borderRadius: 4, padding: '0 3px', fontWeight: 700, cursor: 'default' }
                               : c.offering
-                                ? { color: '#e2e8f0', cursor: 'default' }
+                                ? { color: 'var(--g-text-hi)', cursor: 'default' }
                                 // Was --meta against #cbd5e1 - barely a
                                 // difference. Faint ink, and struck through,
                                 // so "offering nothing" reads without colour.
                                 : { color: 'var(--g-text-faint)', fontStyle: 'italic', textDecoration: 'line-through', textDecorationThickness: '1px', cursor: 'default' }}>
-                            {displayName(c.name, teamClin)}
+                            {gridName(displayName(c.name, teamClin))}
                           </div>
                         </Fragment>
                       ))}
                     </div>
                     {min != null && (
-                      <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.09)', marginTop: 4, overflow: 'hidden', flex: 'none' }}>
+                      <div style={{ height: 4, borderRadius: 999, background: 'var(--g-line)', marginTop: 4, overflow: 'hidden', flex: 'none' }}>
                         <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: fill }} />
                       </div>
                     )}
@@ -371,7 +394,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
         {days.some((d) => !d.closed && !d.hasData) && (
           <Fragment>
             <div className="flex items-stretch gap-2 py-1">
-              <span style={{ width: 5, borderRadius: 3, border: '1px dashed rgba(255,255,255,0.3)', flex: 'none' }} />
+              <span style={{ width: 5, borderRadius: 3, border: '1px dashed var(--g-border-strong)', flex: 'none' }} />
               <div className="text-[12px] font-semibold leading-tight pt-1" style={{ color: 'var(--meta)' }}>
                 Rota projection
                 <div className="font-normal text-[11px]">no export yet</div>
@@ -381,18 +404,18 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
               if (d.closed || d.hasData || !d.projection) {
                 return (
                   <div key={`proj-${d.iso}`} className="rounded-lg text-[11px] text-center py-2"
-                    style={{ gridColumn: `span ${sessionKeys.length}`, background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.10)', color: 'var(--g-text-faint)' }}>
+                    style={{ gridColumn: `span ${sessionKeys.length}`, background: 'var(--g-tile-2)', border: '1px dashed var(--g-border-2)', color: 'var(--g-text-faint)' }}>
                     &mdash;
                   </div>
                 );
               }
               const KEY = { am: 'M', pm: 'A', eve: 'E' };
               return sessionKeys.map((k) => (
-                <div key={`proj-${d.iso}-${k}`} className="rounded-lg px-1.5 py-1"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.12)' }}>
+                <div key={`proj-${d.iso}-${k}`} className="rounded-lg px-1 py-1"
+                  style={{ background: 'var(--g-tile-2)', border: '1px dashed var(--g-border-2)' }}>
                   {(d.projection[KEY[k]] || []).map((nm, i) => (
-                    <div key={nm + i} className="text-[11px] leading-tight truncate" style={{ color: 'var(--meta)' }}>
-                      {displayName(nm, teamClin)}
+                    <div key={nm + i} className="text-[11px] leading-tight" style={{ color: 'var(--meta)' }}>
+                      {gridName(displayName(nm, teamClin))}
                     </div>
                   ))}
                 </div>

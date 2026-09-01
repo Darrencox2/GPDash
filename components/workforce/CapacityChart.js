@@ -19,11 +19,11 @@ import { toLocalIso } from '@/lib/data';
 
 // Shared with the grid below, so a chip means the same thing in both places.
 export const EVENT_TONE = {
-  join:       { bg: 'rgba(52,211,153,0.16)', bd: 'rgba(52,211,153,0.5)', fg: '#34d399' },
-  return:     { bg: 'rgba(52,211,153,0.10)', bd: 'rgba(52,211,153,0.35)', fg: '#6ee7b7' },
-  leave:      { bg: 'rgba(239,68,68,0.14)', bd: 'rgba(239,68,68,0.5)', fg: '#fca5a5' },
-  temp_leave: { bg: 'rgba(245,158,11,0.13)', bd: 'rgba(245,158,11,0.45)', fg: '#fbbf24' },
-  change:     { bg: 'rgba(129,140,248,0.15)', bd: 'rgba(129,140,248,0.5)', fg: '#a5b4fc' },
+  join:       { bg: 'rgba(52,211,153,0.16)', bd: 'rgba(52,211,153,0.5)', fg: 'var(--ev-join)' },
+  return:     { bg: 'rgba(52,211,153,0.10)', bd: 'rgba(52,211,153,0.35)', fg: 'var(--ev-return)' },
+  leave:      { bg: 'rgba(239,68,68,0.14)', bd: 'rgba(239,68,68,0.5)', fg: 'var(--ev-leave)' },
+  temp_leave: { bg: 'rgba(245,158,11,0.13)', bd: 'rgba(245,158,11,0.45)', fg: 'var(--ev-away)' },
+  change:     { bg: 'rgba(129,140,248,0.15)', bd: 'rgba(129,140,248,0.5)', fg: 'var(--ev-change)' },
 };
 // The one definition of the track the chart AND the grid rows sit on -
 // StaffChanges imports it, so the step-over-its-month alignment cannot be
@@ -167,7 +167,7 @@ export default function CapacityChart({
             <span key={t} className="font-mono-data" aria-hidden="true"
               style={{
                 position: 'absolute', right: 6, top: Y(t) - 7, fontSize: 10,
-                color: 'var(--g-text-faint)', lineHeight: '14px', whiteSpace: 'nowrap',
+                color: 'var(--meta)', lineHeight: '14px', whiteSpace: 'nowrap',
               }}>
               {isDelta && t > 0 ? `+${t}` : String(t).replace('-', MINUS)}
             </span>
@@ -210,14 +210,14 @@ export default function CapacityChart({
                 </div>
               ))}
               {hoverInfo.marks.length > 3 && (
-                <div className="text-[10px]" style={{ color: 'var(--g-text-faint)' }}>+{hoverInfo.marks.length - 3} more</div>
+                <div className="text-[10px]" style={{ color: 'var(--meta)' }}>+{hoverInfo.marks.length - 3} more</div>
               )}
             </div>
           ) : (
             <>
               {/* What the axis is counting - it had no unit anywhere except
                   the end-of-line label. */}
-              <div className="text-[10px] uppercase" style={{ color: 'var(--g-text-faint)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+              <div className="text-[10px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
                 {per1000 ? 'Per 1,000 patients' : 'Sessions a week'}
               </div>
               {/* The split today (or at the start of a paged-away year), which
@@ -256,7 +256,7 @@ export default function CapacityChart({
             {/* month bands, so the eye can drop from a step to its square */}
             {months.map((mk, i) => (
               <rect key={mk} x={X(i)} y="0" width={X(1)} height={H}
-                fill={hover === i ? 'rgba(255,255,255,0.055)' : mk === todayMk ? 'rgba(52,211,153,0.05)' : 'transparent'} />
+                fill={hover === i ? 'var(--g-tile)' : mk === todayMk ? 'rgba(52,211,153,0.05)' : 'transparent'} />
             ))}
             {months.map((mk, i) => i === 0 ? null : (
               <line key={mk} x1={X(i)} x2={X(i)} y1="0" y2={H} stroke="var(--g-border)" />
@@ -325,7 +325,7 @@ export default function CapacityChart({
             className="text-[11px] flex items-center gap-1.5" style={{ color: 'var(--meta)' }}>
             <span style={{ display: 'inline-block', transform: openRibbon ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>▶</span>
             What moves the line
-            <span className="font-mono-data" style={{ color: 'var(--g-text-faint)' }}>{timeline.marks.length}</span>
+            <span className="font-mono-data" style={{ color: 'var(--meta)' }}>{timeline.marks.length}</span>
           </button>
         </div>
         <div style={{ gridColumn: '2 / -1', position: 'relative', minHeight: 26, height: openRibbon ? laneCount * 30 + 8 : 26 }}>
@@ -347,7 +347,7 @@ export default function CapacityChart({
               </div>
             );
           }) : (
-            <div className="px-3 py-1.5 text-[11px]" style={{ color: 'var(--g-text-faint)' }}>
+            <div className="px-3 py-1.5 text-[11px]" style={{ color: 'var(--meta)' }}>
               {timeline.marks.length === 0 ? 'Nothing recorded in this year' : 'Every join, leave, absence and session change, on the day it lands'}
             </div>
           )}

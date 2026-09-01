@@ -415,7 +415,7 @@ export default function StaffChanges({ data, saveData }) {
       {/* wind-down suggestions */}
       {canEdit && suggestions.length > 0 && (
         <div className="mb-3 rounded-lg px-3 py-2 flex items-center gap-3 flex-wrap" style={{ border: '1px solid rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.06)' }}>
-          <span className="text-xs" style={{ color: '#fcd34d' }}>Already recorded on the buddy board:</span>
+          <span className="text-xs" style={{ color: 'var(--c-amber)' }}>Already recorded on the buddy board:</span>
           {suggestions.map((sg, i) => (
             <button key={i} onClick={() => addEvent(sg, { skipSync: true })}
               className="text-xs px-2 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }}>
@@ -430,8 +430,8 @@ export default function StaffChanges({ data, saveData }) {
         <div className="flex gap-2.5 flex-wrap">
           {[
             ['Now', per1000 ? perK[todayMk] : summary.now, 'var(--g-text-hi)'],
-            [`End of view`, per1000 ? perK[months[months.length - 1]] : summary.end, summary.endDelta < 0 ? '#fca5a5' : '#34d399', summary.endDelta !== 0 ? `${summary.endDelta > 0 ? '+' : ''}${per1000 ? '' : summary.endDelta}` : ''],
-            [`Low point · ${monthLabel(summary.lowMk)}`, per1000 ? perK[summary.lowMk] : summary.low, '#fbbf24'],
+            [`End of view`, per1000 ? perK[months[months.length - 1]] : summary.end, summary.endDelta < 0 ? 'var(--c-red)' : 'var(--ev-join)', summary.endDelta !== 0 ? `${summary.endDelta > 0 ? '+' : ''}${per1000 ? '' : summary.endDelta}` : ''],
+            [`Low point · ${monthLabel(summary.lowMk)}`, per1000 ? perK[summary.lowMk] : summary.low, 'var(--ev-away)'],
             ['Planned changes', (plan.events || []).length, 'var(--g-text-hi)', '', false],
           ].map(([label, val, col, extra, showUnit = true], i) => (
             <div key={i} className="rounded-lg px-3 py-1.5" style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)' }}>
@@ -466,7 +466,7 @@ export default function StaffChanges({ data, saveData }) {
             <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS }}>
               <div className="px-3 py-1.5 text-[11px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>Staff · sess/wk</div>
               {months.map(mk => (
-                <div key={mk} className="text-center py-1.5 text-[11px]" style={{ borderLeft: '1px solid var(--g-border)', fontFamily: 'var(--font-mono)', color: mk === todayMk ? '#34d399' : 'var(--meta)' }}>{monthLabel(mk)}</div>
+                <div key={mk} className="text-center py-1.5 text-[11px]" style={{ borderLeft: '1px solid var(--g-border)', fontFamily: 'var(--font-mono)', color: mk === todayMk ? 'var(--ev-join)' : 'var(--meta)' }}>{monthLabel(mk)}</div>
               ))}
             </div>
             {people.map(p => {
@@ -482,11 +482,11 @@ export default function StaffChanges({ data, saveData }) {
                       <span className="text-[10px] font-bold px-1 rounded" title={p.role}
                         style={{
                           fontFamily: 'var(--font-mono)',
-                          color: isTemporaryRole(p.role) ? '#fbbf24' : '#34d399',
+                          color: isTemporaryRole(p.role) ? 'var(--ev-away)' : 'var(--ev-join)',
                           border: `1px solid ${isTemporaryRole(p.role) ? 'rgba(245,158,11,0.45)' : 'rgba(52,211,153,0.4)'}`,
                         }}>{roleCode(p.role)}</span>
                     ) : (
-                      <span className="text-[11px] font-bold" style={{ fontFamily: 'var(--font-mono)', color: '#fff' }}>{p.initials}</span>
+                      <span className="text-[11px] font-bold" style={{ fontFamily: 'var(--font-mono)', color: 'var(--g-text-hi)' }}>{p.initials}</span>
                     )}
                     {p.kind === 'planned' && canEdit ? (
                       <button onClick={() => setPlannedEdit({ id: p.id, name: p.name, role: p.role || '' })}
@@ -568,7 +568,7 @@ export default function StaffChanges({ data, saveData }) {
               <span className="text-[11px]" title="Recorded on the buddy board rather than here" style={{ color: 'var(--link)' }}>buddy</span>
               <span className="text-[11px] hidden lg:inline" style={{ color: 'var(--meta)', minWidth: 120 }}>from the board</span>
               {canEdit && (
-                <button onClick={() => removeBoardAbsence(row.a)} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
+                <button onClick={() => removeBoardAbsence(row.a)} className="text-xs shrink-0" style={{ color: 'var(--c-red)' }}>remove</button>
               )}
             </div>
           ) : (
@@ -581,7 +581,7 @@ export default function StaffChanges({ data, saveData }) {
                 {row.ev.by ? `by ${row.ev.by}` : ''}
               </span>
               {canEdit && (
-                <button onClick={() => removeEvent(row.ev.id)} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
+                <button onClick={() => removeEvent(row.ev.id)} className="text-xs shrink-0" style={{ color: 'var(--c-red)' }}>remove</button>
               )}
             </div>
           );
@@ -608,12 +608,12 @@ export default function StaffChanges({ data, saveData }) {
               className="w-full text-left px-4 py-2 text-xs flex items-center gap-2"
               style={{ color: 'var(--meta)', borderTop: '1px solid var(--g-border)' }}>
               <span style={{ display: 'inline-block', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>▶</span>
-              {label} <span className="font-mono-data" style={{ color: 'var(--g-text-faint)' }}>{n}</span>
+              {label} <span className="font-mono-data" style={{ color: 'var(--meta)' }}>{n}</span>
             </button>
           );
           return (
             <div>
-              {shelfHead('Active now', '#fbbf24')}
+              {shelfHead('Active now', 'var(--ev-away)')}
               {active.length > 0
                 ? active.map(renderRow)
                 : <div className="px-4 pb-2 text-sm" style={{ color: 'var(--meta)' }}>Nothing running today.</div>}
@@ -709,7 +709,7 @@ function PlannedPersonEditor({ edit, onChange, roleOptions, candidates, onSave, 
         </div>
 
         <div className="flex gap-2 items-center">
-          <button type="button" onClick={onRemove} className="text-xs" style={{ color: '#fca5a5' }}>Remove person</button>
+          <button type="button" onClick={onRemove} className="text-xs" style={{ color: 'var(--c-red)' }}>Remove person</button>
           <button type="button" onClick={onClose} className="ml-auto px-3 py-1.5 rounded-lg text-sm" style={{ color: 'var(--meta)' }}>Cancel</button>
           <button type="submit" disabled={!edit.name.trim()}
             className="px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-40"
@@ -750,7 +750,7 @@ function CellEditor({ editor, onClose, onAdd, onRemove, existing }) {
                   {eventTitle(e)}
                   {e.by && <span className="block text-[11px]" style={{ color: 'var(--meta)' }}>added by {e.by}</span>}
                 </span>
-                <button onClick={() => { onRemove(e.id); onClose(); }} className="text-xs shrink-0" style={{ color: '#fca5a5' }}>remove</button>
+                <button onClick={() => { onRemove(e.id); onClose(); }} className="text-xs shrink-0" style={{ color: 'var(--c-red)' }}>remove</button>
               </div>
             ))}
           </div>
@@ -804,7 +804,7 @@ function CellEditor({ editor, onClose, onAdd, onRemove, existing }) {
                   <span className="text-sm" style={{ color: 'var(--meta)' }}>to</span>
                   <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} style={dateInput} />
                 </div>
-                {endsBeforeStart && <div className="text-xs" style={{ color: '#fca5a5' }}>The end date is before the start date.</div>}
+                {endsBeforeStart && <div className="text-xs" style={{ color: 'var(--c-red)' }}>The end date is before the start date.</div>}
               </>
             )}
 
