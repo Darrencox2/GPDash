@@ -1,6 +1,6 @@
 // Unit tests for lib/staff-plan.js — the timeline maths under Staff Changes.
 import { test, expect } from '@playwright/test';
-import { monthKey, addMonths, aprilStart, monthRange, derivePeople, sessionsByMonth, totalsByMonth, per1000ByMonth, planSummary, suggestedEventsFromWindDowns, monthEndDate, capacityTimeline, absenceCode, monthFraction, listSizeLookup } from '../../lib/staff-plan.js';
+import { monthKey, addMonths, aprilStart, monthRange, derivePeople, sessionsByMonth, totalsByMonth, per1000ByMonth, planSummary, suggestedEventsFromWindDowns, monthEndDate, capacityTimeline, absenceCode, monthFraction, listSizeLookup, changeDeltas, signedSessions } from '../../lib/staff-plan.js';
 
 const P = { id: 'a', name: 'Dr A', sessions: 6, kind: 'real' };
 const MONTHS = monthRange('2026-04', 13);
@@ -272,5 +272,52 @@ test.describe('listSizeLookup', () => {
   test('no sizes at all falls back to the registered size, or null', () => {
     expect(listSizeLookup(null, 9000)('2026-05-01')).toBe(9000);
     expect(listSizeLookup({}, null)('2026-05-01')).toBeNull();
+  });
+});
+
+test.describe('changeDeltas — the grid says what moved', () => {
+  const A = { id: 'a', name: 'Dr A', sessions: 6, kind: 'real' };
+  test('a change reads against what came before it, not zero', () => {
+    const evs = [
+      { id: 'e1', personRef: 'a', type: 'change', month: '2026-07', sessions: 8 },
+      { id: 'e2', personRef: 'a', type: 'change', month: '2026-10', sessions: 5 },
+    ];
+    const d = changeDeltas([A], evs);
+    expect(d.e1).toBe(2);     // 6 -> 8
+    expect(d.e2).toBe(-3);    // 8 -> 5
+  });
+  test('a joiner starts from nothing, and leaving gives it all back', () => {
+    const evs = [
+      { id: 'j', personRef: 'a', type: 'join', month: '2026-05', sessions: 4 },
+      { id: 'c', personRef: 'a', type: 'change', month: '2026-08', sessions: 6 },
+      { id: 'l', personRef: 'a', type: 'leave', month: '2026-11' },
+    ];
+    const d = changeDeltas([A], evs);
+    expect(d.j).toBe(4);
+    expect(d.c).toBe(2);
+    expect(d.l).toBe(-6);
+  });
+  test('a real person with no recorded join is already at their rota sessions', () => {
+    const d = changeDeltas([A], [{ id: 'l', personRef: 'a', type: 'leave', month: '2026-09' }]);
+    expect(d.l).toBe(-6);
+  });
+  test('exact dates order the walk, not the month they fall in', () => {
+    const evs = [
+      { id: 'late', personRef: 'a', type: 'change', month: '2026-07', startDate: '2026-07-28', sessions: 4 },
+      { id: 'early', personRef: 'a', type: 'change', month: '2026-07', startDate: '2026-07-02', sessions: 8 },
+    ];
+    const d = changeDeltas([A], evs);
+    expect(d.early).toBe(2);    // 6 -> 8
+    expect(d.late).toBe(-4);    // 8 -> 4
+  });
+  test('a change to the number already worked is no change at all', () => {
+    const d = changeDeltas([A], [{ id: 'e', personRef: 'a', type: 'change', month: '2026-07', sessions: 6 }]);
+    expect(d.e).toBe(0);
+  });
+  test('signedSessions signs it, with a real minus', () => {
+    expect(signedSessions(2)).toBe('+2');
+    expect(signedSessions(-1.5)).toBe('\u22121.5');
+    expect(signedSessions(0)).toBe('\u00b10');
+    expect(signedSessions(null)).toBe('');
   });
 });

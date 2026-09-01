@@ -74,13 +74,12 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
     [roleOptions, configuredGroups]
   );
   const [roles, setRoles] = useState(null);            // null = follow the config
-  // Who the pointer is on, and where to put the panel. Native title
-  // tooltips are slow, unstyled, and land on top of the thing you are
-  // reading; this one sits beside the column.
-  // The panel to the right is always there; pointing at a name fills it.
-  // It is deliberately sticky - it keeps the last person you pointed at
-  // rather than emptying the moment the pointer drifts, which is what made
-  // the floating version feel unreliable.
+  // Who the pointer is on. Native title tooltips are slow, unstyled, and
+  // land on top of the thing you are reading; the strip above the grid is
+  // always there, and pointing at a name fills it. It is deliberately
+  // sticky - it keeps the last person you pointed at rather than emptying
+  // the moment the pointer drifts, which is what made the floating
+  // version feel unreliable.
   const [peek, setPeek] = useState(null);              // { c, site, day, session }
   const activeRoles = roles && roles.length ? roles : configuredRoles;
   const monday = useMemo(() => {
@@ -167,7 +166,67 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
   // a tall page. Rows now claim a real height, which also gives the name
   // lists room to separate who is offering from who is not.
   const rowMin = Math.max(104, Math.min(200, Math.round(560 / Math.max(sites.length, 1))));
-  const GRID = { display: 'grid', gridTemplateColumns: `142px repeat(${cols}, minmax(0, 1fr))`, gap: 4, minWidth: 142 + cols * 84 };
+  // No minWidth: the week must fit the page. A horizontal scrollbar hides
+  // Friday behind an edge, and Friday is the session people plan for.
+  const GRID = { display: 'grid', gridTemplateColumns: `132px repeat(${cols}, minmax(0, 1fr))`, gap: 3 };
+
+  // ── the detail strip ──────────────────────────────────────────────────
+  // It used to be a column down the right, which cost the grid 250px and
+  // pushed Friday PM behind a horizontal scrollbar. Above the grid it is
+  // full width, always present, and covers nothing: pointing at a name
+  // fills it with what that person is actually booked to do, by slot type.
+  const types = peek ? Object.entries(peek.c.types || {}).sort((a, b) => b[1] - a[1]) : [];
+  const detailPanel = (
+    <div className="rounded-xl px-3 py-2 mb-3 flex items-center gap-4 flex-wrap"
+      style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', minHeight: 58 }}>
+      {!peek ? (
+        <div className="text-[12px]" style={{ color: 'var(--g-text-faint)' }}>
+          <span className="text-[11px] uppercase mr-2" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>Clinician detail</span>
+          Point at any name below to see the slot types they are running that session.
+        </div>
+      ) : (
+        <>
+          <div style={{ minWidth: 190 }}>
+            <div className="text-[11px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>
+              {peek.day} {peek.session} · {peek.site}
+            </div>
+            <div className="text-[14px] font-semibold leading-tight flex items-center gap-2" style={{ color: peek.c.duty ? DUTY.fg : 'var(--g-text-hi)' }}>
+              {displayName(peek.c.name, teamClin)}
+              {peek.c.duty && (
+                <span className="text-[10px] font-bold rounded px-1.5"
+                  style={{ background: DUTY.bg, border: `1px solid ${DUTY.bd}`, color: DUTY.fg }}>duty</span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap flex-1" style={{ minWidth: 0, borderLeft: '1px solid var(--g-border)', paddingLeft: 12 }}>
+            {types.map(([type, n]) => {
+              const kind = urgentSet.has(type) ? 'urgent' : routineSet.has(type) ? 'routine' : 'other';
+              const col = kind === 'urgent' ? '#fca5a5' : kind === 'routine' ? '#86efac' : 'var(--g-text-faint)';
+              return (
+                <span key={type} className="text-[11.5px] rounded px-1.5 py-0.5 flex items-baseline gap-1.5"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: kind === 'other' ? 'var(--meta)' : 'var(--g-text-hi)' }}>
+                  {type}
+                  <span className="font-mono-data font-bold" style={{ color: col }}>{n}</span>
+                </span>
+              );
+            })}
+            {!types.length && <span className="text-[12px]" style={{ color: 'var(--g-text-faint)' }}>No slots recorded.</span>}
+          </div>
+          <div className="text-right" style={{ flex: 'none' }}>
+            <div className="text-[11px]" style={{ color: 'var(--meta)' }}>bookable</div>
+            <div className="font-mono-data text-[15px] font-bold leading-tight" style={{ color: peek.c.offering ? '#86efac' : '#fcd34d' }}>
+              {peek.c.urgent + peek.c.routine}
+            </div>
+          </div>
+          {!peek.c.offering && (
+            <div className="text-[11px]" style={{ color: '#fcd34d', maxWidth: 220, lineHeight: 1.4, flex: 'none' }}>
+              Here, but nothing bookable{peek.c.other > 0 ? ' - none of these types are on the urgent or routine lists' : ''}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div className="p-4">
@@ -196,8 +255,8 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
         </span>
       </div>
 
-      <div className="flex items-start" style={{ gap: 12 }}>
-      <div className="overflow-x-auto" style={{ flex: 1, minWidth: 0 }}>
+      {detailPanel}
+
       <div style={GRID}>
 
         {/* day header, each spanning its own sessions */}
@@ -341,62 +400,6 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
             })}
           </Fragment>
         )}
-      </div>
-      </div>
-
-      {/* ── the detail column ────────────────────────────────────────────
-          Always present, so there is nowhere for it to fail to appear and
-          nothing for it to cover. Pointing at a name fills it with what
-          that person is actually booked to do, by slot type. */}
-      <aside className="rounded-xl p-3" style={{ width: 236, flex: 'none', background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', minHeight: 200 }}>
-        {!peek ? (
-          <div>
-            <div className="text-[11px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>Clinician detail</div>
-            <div className="text-[12px] mt-2" style={{ color: 'var(--g-text-faint)', lineHeight: 1.6 }}>
-              Point at any name in the week to see the slot types they are running that session.
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div className="text-[11px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>
-              {peek.day} {peek.session} · {peek.site}
-            </div>
-            <div className="text-[14px] font-semibold mt-1 leading-tight" style={{ color: peek.c.duty ? DUTY.fg : 'var(--g-text-hi)' }}>
-              {displayName(peek.c.name, teamClin)}
-            </div>
-            {peek.c.duty && (
-              <span className="inline-block mt-1 text-[11px] font-bold rounded px-1.5"
-                style={{ background: DUTY.bg, border: `1px solid ${DUTY.bd}`, color: DUTY.fg }}>duty</span>
-            )}
-            <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--g-border)' }}>
-              {Object.entries(peek.c.types || {}).sort((a, b) => b[1] - a[1]).map(([type, n]) => {
-                const kind = urgentSet.has(type) ? 'urgent' : routineSet.has(type) ? 'routine' : 'other';
-                const col = kind === 'urgent' ? '#fca5a5' : kind === 'routine' ? '#86efac' : 'var(--g-text-faint)';
-                return (
-                  <div key={type} className="flex items-baseline justify-between gap-2 py-0.5">
-                    <span className="text-[12px] truncate" style={{ color: kind === 'other' ? 'var(--meta)' : 'var(--g-text-hi)' }} title={type}>{type}</span>
-                    <span className="font-mono-data text-[12px] font-bold" style={{ color: col }}>{n}</span>
-                  </div>
-                );
-              })}
-              {!Object.keys(peek.c.types || {}).length && (
-                <div className="text-[12px]" style={{ color: 'var(--g-text-faint)' }}>No slots recorded.</div>
-              )}
-            </div>
-            <div className="mt-2 pt-2 flex justify-between text-[11px]" style={{ borderTop: '1px solid var(--g-border)', color: 'var(--meta)' }}>
-              <span>bookable</span>
-              <span className="font-mono-data font-bold" style={{ color: peek.c.offering ? '#86efac' : '#fcd34d' }}>
-                {peek.c.urgent + peek.c.routine}
-              </span>
-            </div>
-            {!peek.c.offering && (
-              <div className="mt-1.5 text-[11px]" style={{ color: '#fcd34d', lineHeight: 1.5 }}>
-                Here, but nothing bookable{peek.c.other > 0 ? ' - none of these types are on the urgent or routine lists' : ''}
-              </div>
-            )}
-          </div>
-        )}
-      </aside>
       </div>
     </div>
   );

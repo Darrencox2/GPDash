@@ -16,6 +16,7 @@ import {
   monthKey, monthLabel, addMonths, aprilStart, monthRange,
   derivePeople, totalsByMonth, per1000ByMonth, planSummary,
   suggestedEventsFromWindDowns, eventTransitionKey, monthEndDate, capacityTimeline, listSizeLookup,
+  changeDeltas, signedSessions,
 } from '@/lib/staff-plan';
 import CapacityChart, { EVENT_TONE, GRID_COLS } from '@/components/workforce/CapacityChart';
 
@@ -135,6 +136,8 @@ export default function StaffChanges({ data, saveData }) {
   // The chart walks the same events by DATE rather than by month, so a leave
   // starting on the 28th only drops the line on the 28th.
   const timeline = useMemo(() => capacityTimeline(people, plan.events, months), [people, plan.events, months]);
+  // Signed change per event, so a square can say "+2" rather than "6".
+  const deltas = useMemo(() => changeDeltas(people, plan.events), [people, plan.events]);
   // The published sizes are sparse; the nearest earlier one carries forward,
   // and the registered size is the final fallback.
   const listSizeAt = useMemo(
@@ -372,6 +375,17 @@ export default function StaffChanges({ data, saveData }) {
 
   const cellEvents = (personRef, mk) => (plan.events || []).filter(e => e.personRef === personRef && (e.month === mk || (e.type === 'temp_leave' && mk > e.month && mk <= (e.toMonth || e.month))));
 
+  // The square shows the MOVE. A join still names the level it starts at
+  // (starting on 6 is a fact about the person, not a change to them), but a
+  // sessions change reads "+2" — the absolute was being read as a workload.
+  const chipText = (e) => {
+    if (e.type === 'join') return `▶ ${e.sessions ?? ''}`;
+    if (e.type === 'leave') return '■ leaves';
+    if (e.type === 'temp_leave') return `⏸ ${e.reason || 'away'}`;
+    const d = deltas[e.id];
+    return Number.isFinite(d) ? signedSessions(d) : `${e.sessions}`;
+  };
+
   const S = { chip: (t) => ({
     fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, padding: '1px 4px', borderRadius: 5,
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
@@ -497,8 +511,8 @@ export default function StaffChanges({ data, saveData }) {
                         title={starts.map(e => eventTitle(e)).join(' · ') || undefined}
                         style={{ borderLeft: '1px solid var(--g-border)', background: mk === todayMk ? 'rgba(52,211,153,0.05)' : 'transparent', cursor: canEdit ? 'pointer' : 'default', opacity: gone && perPerson[p.id]?.[mk] === 0 && !starts.length ? 0.4 : 1 }}>
                         {starts.map(e => (
-                          <span key={e.id} style={S.chip(e.type)} title={`${e.note || e.type}${canEdit ? ' — click cell to edit' : ''}`}>
-                            {e.type === 'join' ? `▶ ${e.sessions ?? ''}` : e.type === 'leave' ? '■ leaves' : e.type === 'temp_leave' ? `⏸ ${e.reason || 'away'}` : `${e.sessions}`}
+                          <span key={e.id} style={S.chip(e.type)} title={`${eventTitle(e)}${e.note ? ` — ${e.note}` : ''}${canEdit ? ' — click cell to edit' : ''}`}>
+                            {chipText(e)}
                           </span>
                         ))}
                         {inSpan && !starts.length && <span style={{ display: 'block', width: '100%', height: 4, background: 'rgba(245,158,11,0.35)', borderTop: '1px solid rgba(245,158,11,0.55)', borderBottom: '1px solid rgba(245,158,11,0.55)' }} />}
