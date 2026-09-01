@@ -28,14 +28,10 @@ import { getCliniciansForDate, getDutyDoctor } from '@/lib/huddle';
 import { toHuddleDateStr, toLocalIso, getScheduledSessions, matchesStaffMember, titleCaseName } from '@/lib/data';
 import { getWeekDayDetail, classifyStaffRole } from '@/lib/site-staffing';
 import { predictDemand } from '@/lib/demandPredictor';
-import MultiSelect from '@/components/ui/MultiSelect';
+import StaffFilter, { staffRoleOptions } from '@/components/ui/StaffFilter';
 
 // The house purple, as the Today page uses it for its own accents.
 const DUTY = { bg: 'rgba(139,92,246,0.16)', bd: 'rgba(139,92,246,0.45)', fg: '#c4b5fd' };
-const GROUPS = [
-  { id: 'gp', label: 'GPs' }, { id: 'nursing', label: 'Nursing' },
-  { id: 'hca', label: 'HCAs' }, { id: 'other', label: 'Other' },
-];
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -68,11 +64,21 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
   const configuredGroups = useMemo(() => (
     Array.isArray(capacityStaffing?.groups) && capacityStaffing.groups.length ? capacityStaffing.groups : ['gp']
   ), [capacityStaffing?.groups]);
-  const [groups, setGroups] = useState(null);          // null = follow the config
-  const activeGroups = groups && groups.length ? groups : configuredGroups;
-  const filtered = groups != null && groups.length > 0
-    && (groups.length !== configuredGroups.length || groups.some((g) => !configuredGroups.includes(g)));
-  const staffing = useMemo(() => ({ ...capacityStaffing, groups: activeGroups }), [capacityStaffing, activeGroups]);
+  // Every role on the register is selectable; the configured groups are the
+  // starting point, so the view opens agreeing with the minimums it draws
+  // against, and widening past them says so.
+  const roleOptions = useMemo(() => staffRoleOptions(teamClin || []), [teamClin]);
+  const configuredRoles = useMemo(
+    () => roleOptions.filter((o) => configuredGroups.includes(o.group)).map((o) => o.id),
+    [roleOptions, configuredGroups]
+  );
+  const [roles, setRoles] = useState(null);            // null = follow the config
+  // Who the pointer is on, and where to put the panel. Native title
+  // tooltips are slow, unstyled, and land on top of the thing you are
+  // reading; this one sits beside the column.
+  const [peek, setPeek] = useState(null);              // { c, x, y, right }
+  const activeRoles = roles && roles.length ? roles : configuredRoles;
+  const widened = activeRoles.some((r) => !configuredRoles.includes(r));
   const monday = useMemo(() => {
     const m = mondayOf(new Date());
     m.setDate(m.getDate() + offset * 7);
@@ -98,8 +104,8 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           }
         }
         detail = getWeekDayDetail(huddleData, csvStr, {
-          sites, huddleSettings: hs, capacityStaffing: staffing, clinicians: teamClin, dutyByName,
-          includeEmpty: true,
+          sites, huddleSettings: hs, capacityStaffing, clinicians: teamClin, dutyByName,
+          includeEmpty: true, includeRoles: activeRoles,
         });
       }
       // Rota projection for days without export data: which GPs are
@@ -127,7 +133,7 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
       const closedReason = declared || (pred?.isBankHoliday ? 'Bank holiday' : null);
       return { dayName, dt, iso, csvStr, hasData, detail, projection, closed, closedReason, isToday: iso === todayIso };
     });
-  }, [monday, huddleData, sites, hs, staffing, teamClin, data, todayIso]);
+  }, [monday, huddleData, sites, hs, capacityStaffing, activeRoles, teamClin, data, todayIso]);
 
   // Which sessions the week actually uses. Evenings are rare, so a fixed
   // three-per-day would spend a third of the width on empty columns.
@@ -150,7 +156,11 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
 
   const weekLabel = `${monday.getDate()} ${monday.toLocaleDateString('en-GB', { month: 'short' })}`;
   const cols = days.length * sessionKeys.length;
-  const GRID = { display: 'grid', gridTemplateColumns: `142px repeat(${cols}, minmax(0, 1fr))`, gap: 4, minWidth: 142 + cols * 82 };
+  // Two sites over ten columns left the grid a thin strip across the top of
+  // a tall page. Rows now claim a real height, which also gives the name
+  // lists room to separate who is offering from who is not.
+  const rowMin = Math.max(96, Math.min(190, Math.round(520 / Math.max(sites.length, 1))));
+  const GRID = { display: 'grid', gridTemplateColumns: `142px repeat(${cols}, minmax(0, 1fr))`, gap: 4, minWidth: 142 + cols * 88 };
 
   return (
     <div className="p-4">
@@ -164,12 +174,12 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
           <button onClick={() => setOffset(o => o + 1)} className="px-2 py-1 rounded-md text-slate-400 hover:text-white" style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)'}}>&#8250;</button>
         </div>
         <span className="text-xs text-slate-400">w/c {weekLabel}</span>
-        <MultiSelect label="Staff" options={GROUPS} selected={groups || configuredGroups}
-          onChange={(next) => setGroups(next.length ? next : configuredGroups)}
-          allLabel="Counting all staff" width={200} />
-        {filtered && (
+        <StaffFilter options={roleOptions} selected={roles || configuredRoles}
+          onChange={(next) => setRoles(next.length ? next : configuredRoles)}
+          allLabel="Counting all staff" width={230} hintLabel="people" />
+        {widened && (
           <span className="text-[11px]" style={{ color: '#fcd34d' }}>
-            minimums are set for {configuredGroups.map((g) => GROUPS.find((x) => x.id === g)?.label || g).join(' + ')}
+            counting beyond the roles the minimums were set for
           </span>
         )}
         <span className="ml-auto text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
@@ -247,29 +257,47 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
                 const deficit = short && min != null ? min - ses.offering : 0;
                 const fill = short ? '#ef4444' : '#10b981';
                 const pct = min ? Math.max(6, Math.min(100, (ses.offering / Math.max(min, ses.offering)) * 100)) : 100;
+                // The engine returns anyone offering first, so the first
+                // non-offering name is where the quiet half begins.
+                const firstDim = ses.clins.findIndex((c) => !c.offering);
                 return (
-                  <div key={`${site.name}-${d.iso}-${k}`} className="rounded-lg px-1.5 py-1"
-                    style={{ background: short ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.025)', border: `1px solid ${short ? 'rgba(239,68,68,0.28)' : 'rgba(255,255,255,0.07)'}` }}>
+                  <div key={`${site.name}-${d.iso}-${k}`} className="rounded-lg px-1.5 py-1 flex flex-col"
+                    style={{ minHeight: rowMin, background: short ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.025)', border: `1px solid ${short ? 'rgba(239,68,68,0.28)' : 'rgba(255,255,255,0.07)'}` }}>
                     <div className="flex items-baseline gap-1">
                       <span className="text-[11px] font-bold font-mono-data" style={{ color: short ? '#fca5a5' : '#cbd5e1' }}>
                         {ses.offering}{deficit > 0 && <span> ({'\u2212'}{deficit})</span>}
                       </span>
                       <span className="ml-auto text-[11px] font-mono-data" style={{ color: 'var(--g-text-faint)' }}>{ses.urgent}u {ses.routine}r</span>
                     </div>
-                    <div className="mt-0.5">
+                    <div className="mt-0.5 flex-1">
                       {ses.clins.map((c, i) => (
-                        <div key={c.name + i}
-                          title={`${c.name}${c.duty ? ' \u2014 DUTY' : ''}\nUrgent ${c.urgent} \u00b7 Routine ${c.routine} \u00b7 Other ${c.other}${c.offering ? '' : '\nNo bookable slots this session'}`}
-                          className="text-[11px] leading-tight truncate"
-                          style={c.duty
-                            ? { background: DUTY.bg, border: `1px solid ${DUTY.bd}`, color: DUTY.fg, borderRadius: 4, padding: '0 3px', fontWeight: 700 }
-                            : { color: c.offering ? '#cbd5e1' : 'var(--meta)' }}>
-                          {displayName(c.name, teamClin)}
-                        </div>
+                        <Fragment key={c.name + i}>
+                          {i === firstDim && i > 0 && (
+                            <div style={{ borderTop: '1px dashed rgba(255,255,255,0.12)', margin: '3px 0 2px' }} />
+                          )}
+                          <div
+                            onMouseEnter={(e) => {
+                              const r = e.currentTarget.getBoundingClientRect();
+                              const right = r.right + 250 < window.innerWidth;
+                              setPeek({ c, x: right ? r.right + 8 : r.left - 8, y: r.top, right });
+                            }}
+                            onMouseLeave={() => setPeek(null)}
+                            className="text-[11px] leading-tight truncate"
+                            style={c.duty
+                              ? { background: DUTY.bg, border: `1px solid ${DUTY.bd}`, color: DUTY.fg, borderRadius: 4, padding: '0 3px', fontWeight: 700, cursor: 'default' }
+                              : c.offering
+                                ? { color: '#e2e8f0', cursor: 'default' }
+                                // Was --meta against #cbd5e1 - barely a
+                                // difference. Faint ink, and struck through,
+                                // so "offering nothing" reads without colour.
+                                : { color: 'var(--g-text-faint)', fontStyle: 'italic', textDecoration: 'line-through', textDecorationThickness: '1px', cursor: 'default' }}>
+                            {displayName(c.name, teamClin)}
+                          </div>
+                        </Fragment>
                       ))}
                     </div>
                     {min != null && (
-                      <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.09)', marginTop: 4, overflow: 'hidden' }}>
+                      <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.09)', marginTop: 4, overflow: 'hidden', flex: 'none' }}>
                         <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: fill }} />
                       </div>
                     )}
@@ -315,6 +343,33 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
         )}
       </div>
       </div>
+
+      {/* What that person is doing, beside the column rather than over it. */}
+      {peek && (
+        <div className="fixed z-50 pointer-events-none rounded-xl p-3 shadow-2xl"
+          style={{
+            left: peek.x, top: peek.y, width: 230,
+            transform: peek.right ? 'none' : 'translateX(-100%)',
+            background: 'var(--g-panel-strong)', border: '1px solid var(--g-border-2)',
+          }}>
+          <div className="text-xs font-semibold" style={{ color: peek.c.duty ? DUTY.fg : 'var(--g-text-hi)' }}>
+            {displayName(peek.c.name, teamClin)}{peek.c.duty ? ' \u00b7 duty' : ''}
+          </div>
+          <div className="mt-1.5" style={{ fontSize: 11, color: 'var(--meta)', lineHeight: 1.7 }}>
+            {[['Urgent', peek.c.urgent], ['Routine', peek.c.routine], ['Everything else', peek.c.other]].map(([k, v]) => (
+              <div key={k} className="flex justify-between gap-3">
+                <span>{k}</span>
+                <span className="font-mono-data" style={{ color: v > 0 ? 'var(--g-text-hi)' : 'var(--g-text-faint)', fontWeight: 700 }}>{v}</span>
+              </div>
+            ))}
+          </div>
+          {!peek.c.offering && (
+            <div className="mt-1.5 pt-1.5 text-[11px]" style={{ borderTop: '1px solid var(--g-border)', color: '#fcd34d' }}>
+              Here, but nothing bookable this session{peek.c.other > 0 ? ' - their slots are types the urgent and routine lists do not cover' : ''}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

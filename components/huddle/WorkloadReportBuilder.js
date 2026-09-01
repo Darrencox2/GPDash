@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
+import MultiSelect from '@/components/ui/MultiSelect';
 import { PageHeader, EmptyState } from '@/components/ui';
 import {
   buildFacts, buildSessionFacts, runReport, collectGroupFacts, describeMeasure, isTimeDimension,
@@ -73,39 +74,6 @@ function Segmented({ options, value, onChange, disabledIds = [] }) {
   );
 }
 
-function MultiSelect({ label, options, selected, onChange }) {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const sel = selected || [];
-  const filtered = q ? options.filter(o => o.label.toLowerCase().includes(q.toLowerCase())) : options;
-  const toggle = (id) => { const s = new Set(sel); if (s.has(id)) s.delete(id); else s.add(id); onChange(Array.from(s)); };
-  return (
-    <div>
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between text-xs rounded-md px-2 py-1.5"
-        style={{ background: 'var(--g-field)', border: `1px solid ${sel.length ? 'rgba(99,102,241,0.5)' : 'var(--g-line)'}`, color: 'var(--g-text-hi)' }}>
-        <span>{label}{sel.length ? ` · ${sel.length}` : ''}</span><span className="text-slate-400">{open ? '▲' : '▼'}</span>
-      </button>
-      {open && (
-        <div className="mt-1 rounded-md p-2 space-y-1" style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)' }}>
-          <div className="flex items-center gap-1">
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" className="flex-1 text-xs rounded px-2 py-1"
-              style={{ background: 'var(--g-field)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)', outline: 'none' }} />
-            {sel.length > 0 && <button onClick={() => onChange([])} className="text-xs text-slate-400 px-1">Clear</button>}
-          </div>
-          <div className="max-h-40 overflow-y-auto space-y-0.5">
-            {filtered.map(o => (
-              <label key={o.id} className="flex items-center gap-2 cursor-pointer px-1 py-0.5 rounded hover:bg-white/5">
-                <input type="checkbox" checked={sel.includes(o.id)} onChange={() => toggle(o.id)} className="accent-indigo-500" />
-                <span className="text-xs text-slate-300 truncate">{o.label}</span>
-              </label>
-            ))}
-            {filtered.length === 0 && <div className="text-xs text-slate-400 px-1 py-1">No matches</div>}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function StepSection({ n, title, children, right }) {
   return (

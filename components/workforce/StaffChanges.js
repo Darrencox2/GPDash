@@ -8,7 +8,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { canEditPracticeData } from '@/lib/permissions';
-import MultiSelect from '@/components/ui/MultiSelect';
+import StaffFilter, { staffRoleOptions } from '@/components/ui/StaffFilter';
 import { applyTransition } from '@/lib/status-transitions';
 import { logEvent, toLocalIso } from '@/lib/data';
 import { classifyStaffRole } from '@/lib/site-staffing';
@@ -117,27 +117,12 @@ export default function StaffChanges({ data, saveData }) {
 
   // Role options, each showing how many sessions a week it carries — the
   // number is what makes a role worth ticking or leaving out.
-  const roleOptions = useMemo(() => {
-    const acc = {};
-    for (const p of allPeople) {
-      const r = p.role || 'Unspecified';
-      if (!acc[r]) acc[r] = { id: r, label: r, sessions: 0, group: p.group, n: 0 };
-      acc[r].sessions += p.sessions || 0;
-      acc[r].n += 1;
-    }
-    return Object.values(acc)
-      .sort((a, b) => b.sessions - a.sessions || a.label.localeCompare(b.label))
-      .map(o => ({ ...o, hint: `${o.n} · ${o.sessions}` }));
-  }, [allPeople]);
-
-  const rolePresets = useMemo(() => {
-    const inGroup = (g) => roleOptions.filter(o => o.group === g).map(o => o.id);
-    return [
-      { label: 'GPs', ids: inGroup('gp') },
-      { label: 'GPs + nursing', ids: [...inGroup('gp'), ...inGroup('nursing')] },
-      { label: 'Everyone', ids: [] },
-    ];
-  }, [roleOptions]);
+  // The shared filter builds these; the sessions-per-role hint is what
+  // makes a role worth ticking or leaving out here.
+  const roleOptions = useMemo(
+    () => staffRoleOptions(allPeople, { sessionsOf: (p) => p.sessions }),
+    [allPeople]
+  );
 
   const people = useMemo(
     () => (roles.length === 0 ? allPeople : allPeople.filter(p => roles.includes(p.role || 'Unspecified'))),
@@ -398,8 +383,8 @@ export default function StaffChanges({ data, saveData }) {
       <h1 className="sr-only">Staff changes</h1>
       <div className="flex items-center gap-3 flex-wrap mb-3">
         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 600, color: 'var(--g-text-hi)', margin: 0 }}>Staff changes</h2>
-        <MultiSelect label="Roles" options={roleOptions} selected={roles} onChange={setRolesPersisted}
-          allLabel="Everyone" presets={rolePresets} width={230} hintLabel="people · sess/wk" />
+        <StaffFilter label="Roles" options={roleOptions} selected={roles} onChange={setRolesPersisted}
+          allLabel="Everyone" width={230} hintLabel="people · sess/wk" />
         {roles.length > 0 && (
           <span className="text-xs" style={{ color: 'var(--meta)' }}>
             {people.length} of {allPeople.length} people
