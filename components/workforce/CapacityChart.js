@@ -35,12 +35,21 @@ const CHIP_W = 74;        // ribbon chips are packed into lanes at this width
 const MINUS = '\u2212';   // a real minus, matching the chips
 const GROUP_ROWS = [['gp', 'GPs'], ['nursing', 'Nursing'], ['hca', 'HCAs'], ['other', 'Other']];
 
-// Ticks a person would choose: 4-ish round numbers covering the data.
-function niceTicks(lo, hi) {
-  const span = Math.max(hi - lo, 1);
-  const raw = span / 5;
-  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) || mag * 10;
+// Ticks a person would choose. Aims for a readable gridline every few
+// sessions rather than the three it used to draw: on a 13-session year a
+// step of 5 gave you 145/150/155 and nothing to measure a 2-session move
+// against. Sessions are whole numbers, so their steps are too - half a
+// session is not a thing anyone counts in.
+function niceTicks(lo, hi, integer) {
+  const span = Math.max(hi - lo, 1e-9);
+  const mag = Math.pow(10, Math.floor(Math.log10(span / 6)));
+  const bases = integer ? [1, 2, 5, 10] : [1, 2, 2.5, 5, 10];
+  let step = bases[bases.length - 1] * mag;
+  for (const b of bases) {
+    const s = b * mag;
+    if (integer && s < 1) continue;
+    if (span / s <= 10) { step = s; break; }
+  }
   const first = Math.ceil(lo / step) * step;
   const out = [];
   for (let v = first; v <= hi + 1e-9; v += step) out.push(Math.round(v * 100) / 100);
@@ -148,7 +157,21 @@ export default function CapacityChart({
     <div>
       {/* ── chart row: gutter carries the reading, plot sits on the months ── */}
       <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS, borderBottom: '1px solid var(--g-border)' }}>
-        <div className="px-3 py-2 flex flex-col justify-center gap-1.5" style={{ borderRight: '1px solid var(--g-border)' }}>
+        <div className="px-3 py-2 flex flex-col justify-center gap-1.5"
+          style={{ borderRight: '1px solid var(--g-border)', position: 'relative', paddingRight: 40 }}>
+          {/* A real y-axis, sitting in the gutter rather than over the plot.
+              Drawn as HTML so the numbers hold their size at any width, and
+              so a gridline value can never be crossed by the line it
+              describes - which is what happened when they lived inside. */}
+          {!empty && niceTicks(lo, hi, !per1000).map((t) => (
+            <span key={t} className="font-mono-data" aria-hidden="true"
+              style={{
+                position: 'absolute', right: 6, top: Y(t) - 7, fontSize: 10,
+                color: 'var(--g-text-faint)', lineHeight: '14px', whiteSpace: 'nowrap',
+              }}>
+              {isDelta && t > 0 ? `+${t}` : String(t).replace('-', MINUS)}
+            </span>
+          ))}
           <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--g-border-2)' }}>
             {[['level', 'Sessions'], ['delta', 'vs today']].map(([k, label]) => (
               <button key={k} onClick={() => onViewChange(k)} aria-pressed={isDelta === (k === 'delta')}
@@ -161,17 +184,55 @@ export default function CapacityChart({
                 }}>{label}</button>
             ))}
           </div>
-          {/* The split today (or at the start of a paged-away year), which
-              the line itself cannot show: it is what says a dip is GPs
-              rather than the practice as a whole. */}
-          <div className="font-mono-data" style={{ fontSize: 11, color: 'var(--meta)', lineHeight: 1.6 }}>
-            {GROUP_ROWS.filter(([k]) => nowGroups[k]).map(([k, label]) => (
-              <div key={k} className="flex justify-between gap-2">
-                <span>{label}</span>
-                <span style={{ color: 'var(--g-text-hi)', fontWeight: 700 }}>{val(nowGroups[k], todayIso) ?? '—'}</span>
+          {/* Hovering swaps this panel to that month's detail. The readout
+              used to float over the plot, hiding the very line it was
+              describing; the gutter is the chart's own reading space and
+              covers nothing. */}
+          {hoverInfo ? (
+            <div>
+              <div className="text-[10px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>
+                {monthLabel(hoverInfo.mk)} {hoverInfo.mk.slice(0, 4)}
               </div>
-            ))}
-          </div>
+              <div className="font-mono-data font-bold" style={{ fontSize: 16, color: 'var(--g-text-hi)', lineHeight: 1.25 }}>
+                {hoverInfo.end ? `${isDelta && hoverInfo.end.y > 0 ? '+' : ''}${String(hoverInfo.end.y).replace('-', MINUS)}` : '—'}
+                <span className="text-[11px] font-normal" style={{ color: 'var(--meta)' }}> {unit}</span>
+              </div>
+              {hoverInfo.start && hoverInfo.end && hoverInfo.start.y !== hoverInfo.end.y && (
+                <div className="text-[10px]" style={{ color: 'var(--meta)', lineHeight: 1.3 }}>
+                  from {String(hoverInfo.start.y).replace('-', MINUS)} on the 1st
+                </div>
+              )}
+              {hoverInfo.marks.slice(0, 3).map((m, i) => (
+                <div key={i} className="text-[10px] truncate" style={{ color: (EVENT_TONE[m.type] || EVENT_TONE.change).fg, lineHeight: 1.45 }}
+                  title={`${m.name}${m.code ? ` · ${m.code}` : ''} ${m.delta > 0 ? '+' : MINUS}${Math.abs(m.delta)} on ${Number(m.date.slice(8, 10))} ${monthLabel(m.date.slice(0, 7))}`}>
+                  {Number(m.date.slice(8, 10))} {m.tag}{m.code ? ` ${m.code}` : ''}{' '}
+                  <b style={{ fontFamily: 'var(--font-mono)' }}>{m.delta > 0 ? '+' : MINUS}{Math.abs(m.delta)}</b>
+                </div>
+              ))}
+              {hoverInfo.marks.length > 3 && (
+                <div className="text-[10px]" style={{ color: 'var(--g-text-faint)' }}>+{hoverInfo.marks.length - 3} more</div>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* What the axis is counting - it had no unit anywhere except
+                  the end-of-line label. */}
+              <div className="text-[10px] uppercase" style={{ color: 'var(--g-text-faint)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+                {per1000 ? 'Per 1,000 patients' : 'Sessions a week'}
+              </div>
+              {/* The split today (or at the start of a paged-away year), which
+                  the line itself cannot show: it is what says a dip is GPs
+                  rather than the practice as a whole. */}
+              <div className="font-mono-data" style={{ fontSize: 11, color: 'var(--meta)', lineHeight: 1.6 }}>
+                {GROUP_ROWS.filter(([k]) => nowGroups[k]).map(([k, label]) => (
+                  <div key={k} className="flex justify-between gap-2">
+                    <span>{label}</span>
+                    <span style={{ color: 'var(--g-text-hi)', fontWeight: 700 }}>{val(nowGroups[k], todayIso) ?? '—'}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div ref={plotRef} style={{ gridColumn: '2 / -1', position: 'relative' }}
@@ -201,14 +262,8 @@ export default function CapacityChart({
               <line key={mk} x1={X(i)} x2={X(i)} y1="0" y2={H} stroke="var(--g-border)" />
             ))}
 
-            {niceTicks(lo, hi).map((t) => (
-              <g key={t}>
-                <line x1="0" x2={W} y1={Y(t)} y2={Y(t)} stroke="var(--g-border-2)" />
-                <text x="4" y={Y(t) - 3} fontSize="10" fill="var(--meta)" fontFamily="var(--font-mono)"
-                  stroke="var(--g-panel-2)" strokeWidth="3" paintOrder="stroke">
-                  {isDelta && t > 0 ? `+${t}` : String(t).replace('-', MINUS)}
-                </text>
-              </g>
+            {niceTicks(lo, hi, !per1000).map((t) => (
+              <line key={t} x1="0" x2={W} y1={Y(t)} y2={Y(t)} stroke="var(--g-border-2)" />
             ))}
 
             {isDelta ? (
@@ -243,13 +298,13 @@ export default function CapacityChart({
             {plotted.length > 1 && low && low.y < endY && (
               <text x={Math.min(X(low.x) + 6, W - 46)} y={Y(low.y) + 15} fontSize="11" fontWeight="700"
                 fill="var(--c-amber)" fontFamily="var(--font-mono)"
-                stroke="var(--g-panel-2)" strokeWidth="3" paintOrder="stroke">
+                stroke="var(--g-panel-strong)" strokeWidth="3.5" paintOrder="stroke">
                 {isDelta && low.y > 0 ? '+' : ''}{String(low.y).replace('-', MINUS)}
               </text>
             )}
             <text x={W - 4} y={Y(endY) - 8} fontSize="12" fontWeight="700" textAnchor="end"
               fill="var(--g-text-hi)" fontFamily="var(--font-mono)"
-              stroke="var(--g-panel-2)" strokeWidth="3.5" paintOrder="stroke">
+              stroke="var(--g-panel-strong)" strokeWidth="4" paintOrder="stroke">
               {isDelta && endY > 0 ? '+' : ''}{String(endY).replace('-', MINUS)}{unit}
             </text>
 
@@ -260,31 +315,6 @@ export default function CapacityChart({
           </svg>
           )}
 
-          {!empty && hoverInfo && (
-            <div className="rounded-lg px-2.5 py-2 text-xs" style={{
-              position: 'absolute', top: 6, pointerEvents: 'none', zIndex: 5, width: 178,
-              left: Math.max(4, Math.min(W - 182, X(hover) + X(0.5) - 89)),
-              background: 'var(--g-panel-strong)', border: '1px solid var(--g-border-2)',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.45)',
-            }}>
-              <div className="text-[10px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>
-                {monthLabel(hoverInfo.mk)} {hoverInfo.mk.slice(0, 4)}
-              </div>
-              <div className="font-mono-data font-bold" style={{ fontSize: 15, color: 'var(--g-text-hi)' }}>
-                {hoverInfo.end ? `${isDelta && hoverInfo.end.y > 0 ? '+' : ''}${String(hoverInfo.end.y).replace('-', MINUS)}` : '—'}
-                <span className="text-[11px] font-normal" style={{ color: 'var(--meta)' }}> {unit}</span>
-              </div>
-              {hoverInfo.start && hoverInfo.end && hoverInfo.start.y !== hoverInfo.end.y && (
-                <div className="text-[11px]" style={{ color: 'var(--meta)' }}>from {hoverInfo.start.y} at the start of the month</div>
-              )}
-              {hoverInfo.marks.map((m, i) => (
-                <div key={i} className="text-[11px] mt-1" style={{ color: (EVENT_TONE[m.type] || EVENT_TONE.change).fg }}>
-                  {m.name}{m.code ? ` · ${m.code}` : ''} <b style={{ fontFamily: 'var(--font-mono)' }}>{m.delta > 0 ? '+' : MINUS}{Math.abs(m.delta)}</b>
-                  <span style={{ color: 'var(--meta)' }}> · {Number(m.date.slice(8, 10))} {monthLabel(m.date.slice(0, 7))}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
