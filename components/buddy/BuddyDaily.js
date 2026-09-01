@@ -387,10 +387,11 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       untilDate: transitionUntil || undefined,
       by: data?._v4?.userDisplayName || null,
     });
+    // saveData is the persistence path: the save route's Mutation 6b writes
+    // wind_down for any clinician whose incoming copy carries the field.
+    // (A persistWindDown helper was called here for months without ever
+    // being defined - every apply threw after saving.)
     saveData(next);
-    // Direct row write - the bulk route cannot persist clinician fields.
-    const marker = (Array.isArray(next.clinicians) ? next.clinicians : []).find((c) => c.id === clinicianId)?.windDown || null;
-    persistWindDown(clinicianId, marker);
     setTransitionOpen(null);
   };
 
@@ -531,7 +532,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     const label = c?.windDown?.type === 'sick' ? 'Long term absence' : 'Has left';
     if (!window.confirm(`Undo the ${label} status for ${c?.name || 'this clinician'}? The wind-down cover will be removed and they return to normal.`)) return;
     saveData(undoTransition(data, clinicianId, { by: data?._v4?.userDisplayName || null }));
-    persistWindDown(clinicianId, null);
     setWdMenuOpen(null);
   };
 
@@ -544,8 +544,6 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) { window.alert('Please use the format YYYY-MM-DD, for example 2026-10-01.'); return; }
     const adjusted = adjustTransition(data, clinicianId, v.trim(), { by: data?._v4?.userDisplayName || null });
     saveData(adjusted);
-    const adjMarker = (Array.isArray(adjusted.clinicians) ? adjusted.clinicians : []).find((cc) => cc.id === clinicianId)?.windDown || null;
-    persistWindDown(clinicianId, adjMarker);
     setWdMenuOpen(null);
   };
 

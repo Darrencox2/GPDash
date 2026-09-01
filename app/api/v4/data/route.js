@@ -693,6 +693,9 @@ export async function POST(request) {
               .update(patch)
               .eq('clinician_id', newA.clinicianId)
               .eq('start_date', newA.startDate)
+              // target by the OLD end date, so a sibling absence that merely
+              // shares the start day is not swept along
+              .eq('end_date', oldA.endDate)
           );
         }
       }
@@ -707,6 +710,8 @@ export async function POST(request) {
             .delete()
             .eq('clinician_id', a.clinicianId)
             .eq('start_date', a.startDate)
+            // never take out a different absence that starts the same day
+            .eq('end_date', a.endDate)
         );
       }
     }

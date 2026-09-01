@@ -25,7 +25,10 @@ export const EVENT_TONE = {
   temp_leave: { bg: 'rgba(245,158,11,0.13)', bd: 'rgba(245,158,11,0.45)', fg: '#fbbf24' },
   change:     { bg: 'rgba(129,140,248,0.15)', bd: 'rgba(129,140,248,0.5)', fg: '#a5b4fc' },
 };
-const GRID_COLS = '200px repeat(13, minmax(0, 1fr))';
+// The one definition of the track the chart AND the grid rows sit on -
+// StaffChanges imports it, so the step-over-its-month alignment cannot be
+// broken by editing one copy.
+export const GRID_COLS = '200px repeat(13, minmax(0, 1fr))';
 const H = 186;            // plot height; month names come from the grid header
 const PT = 16, PB = 10;
 const CHIP_W = 74;        // ribbon chips are packed into lanes at this width
@@ -64,6 +67,11 @@ export default function CapacityChart({
 
   const todayIso = useMemo(() => toLocalIso(new Date()), []);   // local day, the app's convention
   const steps = timeline.steps;
+  // Paged to a year that does not contain today? Then there is no "today"
+  // on this axis: the delta view would baseline against the window edge and
+  // call it today, which is a lie. Level view only, and the gutter split is
+  // labelled for what it shows.
+  const todayInWindow = todayIso >= `${months[0]}-01` && todayIso.slice(0, 7) <= months[months.length - 1];
 
   // Per 1,000 patients divides by the list size in force on that date; the
   // NHS-published sizes are sparse, so listSizeAt carries the last one on.
@@ -83,7 +91,7 @@ export default function CapacityChart({
     () => steps.map((s) => ({ ...s, v: val(s.value, s.date) })).filter((s) => s.v != null),
     [steps, val]
   );
-  const isDelta = view === 'delta';
+  const isDelta = view === 'delta' && todayInWindow;
   const base = isDelta ? val(nowValue, todayIso) ?? 0 : 0;
   const plotted = series.map((s) => ({ ...s, y: Math.round((s.v - base) * 10) / 10 }));
 
@@ -143,16 +151,19 @@ export default function CapacityChart({
         <div className="px-3 py-2 flex flex-col justify-center gap-1.5" style={{ borderRight: '1px solid var(--g-border)' }}>
           <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--g-border-2)' }}>
             {[['level', 'Sessions'], ['delta', 'vs today']].map(([k, label]) => (
-              <button key={k} onClick={() => onViewChange(k)} aria-pressed={view === k}
-                className="flex-1 px-2 py-1 text-[11px] font-semibold"
+              <button key={k} onClick={() => onViewChange(k)} aria-pressed={isDelta === (k === 'delta')}
+                disabled={k === 'delta' && !todayInWindow}
+                title={k === 'delta' && !todayInWindow ? 'Today is outside the year on view' : undefined}
+                className="flex-1 px-2 py-1 text-[11px] font-semibold disabled:opacity-40"
                 style={{
-                  background: view === k ? 'var(--accent-soft)' : 'transparent',
-                  color: view === k ? 'var(--accent-text)' : 'var(--meta)',
+                  background: isDelta === (k === 'delta') ? 'var(--accent-soft)' : 'transparent',
+                  color: isDelta === (k === 'delta') ? 'var(--accent-text)' : 'var(--meta)',
                 }}>{label}</button>
             ))}
           </div>
-          {/* The split today, which the line itself cannot show: it is what
-              says a dip is GPs rather than the practice as a whole. */}
+          {/* The split today (or at the start of a paged-away year), which
+              the line itself cannot show: it is what says a dip is GPs
+              rather than the practice as a whole. */}
           <div className="font-mono-data" style={{ fontSize: 11, color: 'var(--meta)', lineHeight: 1.6 }}>
             {GROUP_ROWS.filter(([k]) => nowGroups[k]).map(([k, label]) => (
               <div key={k} className="flex justify-between gap-2">
@@ -213,8 +224,12 @@ export default function CapacityChart({
             <path d={linePath} fill="none" strokeWidth="2.5" strokeLinejoin="round" strokeDasharray="5 4"
               stroke={isDelta ? 'var(--g-text-hi)' : 'var(--accent-2)'} clipPath="url(#cc-future)" />
 
-            <line x1={todayX} x2={todayX} y1="0" y2={H} stroke="rgba(52,211,153,0.5)" />
-            <text x={todayX + 5} y={PT - 4} fontSize="10" fill="var(--link)" fontFamily="var(--font-mono)">today</text>
+            {todayInWindow && (
+              <>
+                <line x1={todayX} x2={todayX} y1="0" y2={H} stroke="rgba(52,211,153,0.5)" />
+                <text x={todayX + 5} y={PT - 4} fontSize="10" fill="var(--link)" fontFamily="var(--font-mono)">today</text>
+              </>
+            )}
 
             {/* one dot per step, so a return is as visible as a departure */}
             {timeline.marks.map((m, i) => {

@@ -15,9 +15,9 @@ import { classifyStaffRole } from '@/lib/site-staffing';
 import {
   monthKey, monthLabel, addMonths, aprilStart, monthRange,
   derivePeople, totalsByMonth, per1000ByMonth, planSummary,
-  suggestedEventsFromWindDowns, eventTransitionKey, monthEndDate, capacityTimeline,
+  suggestedEventsFromWindDowns, eventTransitionKey, monthEndDate, capacityTimeline, listSizeLookup,
 } from '@/lib/staff-plan';
-import CapacityChart, { EVENT_TONE } from '@/components/workforce/CapacityChart';
+import CapacityChart, { EVENT_TONE, GRID_COLS } from '@/components/workforce/CapacityChart';
 
 const ROLE_FILTER_KEY = 'gpdash-staff-changes-roles';
 
@@ -152,16 +152,10 @@ export default function StaffChanges({ data, saveData }) {
   const timeline = useMemo(() => capacityTimeline(people, plan.events, months), [people, plan.events, months]);
   // The published sizes are sparse; the nearest earlier one carries forward,
   // and the registered size is the final fallback.
-  const listSizeAt = useMemo(() => {
-    const sizes = listSizeByMonth || {};
-    const keys = Object.keys(sizes).sort();
-    return (date) => {
-      const mk = String(date).slice(0, 7);
-      let best = null;
-      for (const k of keys) { if (k > mk) break; best = k; }
-      return best ? sizes[best] : (data?._v4?.practiceListSize || null);
-    };
-  }, [listSizeByMonth, data?._v4?.practiceListSize]);
+  const listSizeAt = useMemo(
+    () => listSizeLookup(listSizeByMonth, data?._v4?.practiceListSize),
+    [listSizeByMonth, data?._v4?.practiceListSize]
+  );
   const suggestions = useMemo(() => suggestedEventsFromWindDowns(realPeople, plan.events), [realPeople, plan.events]);
 
   const whoAmI = data?._v4?.linkedClinicianName || data?._v4?.userEmail || 'someone';
@@ -228,8 +222,14 @@ export default function StaffChanges({ data, saveData }) {
     const ev = (plan.events || []).find(e => e.id === id);
     if (!ev) return;
     let payload = { ...data, staffPlan: { ...plan, events: (plan.events || []).filter(e => e.id !== id), savedAt: new Date().toISOString() } };
+    // The absence must not merely share the start day - it must look like
+    // the cover this event created, or a holiday booked from the same date
+    // would be deleted alongside it.
+    const looksLikeCover = (a) => a.source === 'winddown'
+      || String(a.id || '').startsWith('winddown-')
+      || /long term absence|wind.?down/i.test(a.reason || '');
     const linked = (a) => a.id === ev.absenceId
-      || (ev.absenceStart && a.clinicianId === ev.personRef && a.startDate === ev.absenceStart);
+      || (ev.absenceStart && a.clinicianId === ev.personRef && a.startDate === ev.absenceStart && looksLikeCover(a));
     if (ev.absenceId || ev.absenceStart) {
       payload.plannedAbsences = (payload.plannedAbsences || []).filter(a => !linked(a));
     }
@@ -242,7 +242,7 @@ export default function StaffChanges({ data, saveData }) {
         // Start date only: the transition may have chosen its own end date
         // (a leave gets the 8-week default), and one person cannot have two
         // wind-downs starting the same day.
-        const sameSpan = c.windDown.startDate === ev.startDate;
+        const sameSpan = c.windDown.startDate === (ev.absenceStart || ev.startDate);
         if (!sameSpan) return c;
         // Explicit null - a dropped key reads to the save route as "this
         // save knows nothing about the marker", which leaves it standing.
@@ -295,6 +295,8 @@ export default function StaffChanges({ data, saveData }) {
     const was = (plan.plannedPeople || []).find(p => p.id === plannedId);
     const real = realPeople.find(p => p.id === clinicianId);
     if (!was || !real) return;
+    const today = toLocalIso(new Date());
+    let joinPulledBack = false;
     savePlan({
       ...plan,
       plannedPeople: (plan.plannedPeople || []).filter(p => p.id !== plannedId),
@@ -303,10 +305,18 @@ export default function StaffChanges({ data, saveData }) {
         // Drop the plan's GUESSED session count from the join: the real
         // clinician's rota is the truth from here on, and a join without a
         // number reads as "starts on this date at their rota sessions".
-        if (e.type === 'join') { const { sessions, ...rest } = e; return { ...rest, personRef: clinicianId }; }
+        // And someone being linked is on EMIS with bookable sessions NOW,
+        // so a join date still in the future would zero their capacity
+        // until a day that has already effectively happened.
+        if (e.type === 'join') {
+          const { sessions, ...rest } = e;
+          const start = rest.startDate || `${rest.month}-01`;
+          if (start > today) { joinPulledBack = true; return { ...rest, personRef: clinicianId, startDate: today, month: today.slice(0, 7) }; }
+          return { ...rest, personRef: clinicianId };
+        }
         return { ...e, personRef: clinicianId };
       }),
-    }, `Planned ${was.name} linked to ${real.name} in staff changes by ${whoAmI} - their planned changes now belong to the real clinician`);
+    }, `Planned ${was.name} linked to ${real.name} in staff changes by ${whoAmI} - their planned changes now belong to the real clinician${joinPulledBack ? ' - join date pulled back to today since they are already working' : ''}`);
     setPlannedEdit(null);
   };
   const removePlannedPerson = (id) => savePlan({
@@ -318,15 +328,24 @@ export default function StaffChanges({ data, saveData }) {
   // Newest first, each labelled by where it sits relative to today.
   const runningChanges = useMemo(() => {
     const today = toLocalIso(new Date());
+    const absList = Array.isArray(data?.plannedAbsences) ? data.plannedAbsences : [];
     return (plan.events || [])
       .map(ev => {
         const from = ev.startDate || `${ev.month}-01`;
-        const to = ev.endDate || (ev.type === 'temp_leave' ? monthEndDate(ev.toMonth || ev.month) : from);
+        let to = ev.endDate || (ev.type === 'temp_leave' ? monthEndDate(ev.toMonth || ev.month) : from);
+        // A leave's endDate is the last working day, but its results cover
+        // runs about eight weeks longer. While the board is still covering
+        // them the change is ACTIVE - otherwise a leaver mid wind-down
+        // dropped into the Past fold and vanished from first sight.
+        if (ev.type === 'leave' && ev.absenceStart) {
+          const cover = absList.find(a => a.clinicianId === ev.personRef && a.startDate === ev.absenceStart);
+          if (cover && cover.endDate > to) to = cover.endDate;
+        }
         const state = today < from ? 'upcoming' : (today <= to ? 'active' : 'past');
         return { ev, state, from };
       })
       .sort((a, b) => (b.ev.at || b.from).localeCompare(a.ev.at || a.from));
-  }, [plan.events]);
+  }, [plan.events, data?.plannedAbsences]);
 
   // Long-term absences that exist on the buddy board but have no event
   // here: the ones recorded on the board itself, or before Staff changes
@@ -358,7 +377,7 @@ export default function StaffChanges({ data, saveData }) {
     const clins = Array.isArray(data.clinicians) ? data.clinicians : Object.values(data.clinicians || {});
     let payload = {
       ...data,
-      plannedAbsences: (data.plannedAbsences || []).filter(x => !(x.clinicianId === a.clinicianId && x.startDate === a.startDate)),
+      plannedAbsences: (data.plannedAbsences || []).filter(x => !(x.clinicianId === a.clinicianId && x.startDate === a.startDate && x.endDate === a.endDate)),
       clinicians: clins.map(c => (c.id === a.clinicianId && c.windDown && c.windDown.startDate === a.startDate)
         ? { ...c, windDown: null } : c),
     };
@@ -445,7 +464,7 @@ export default function StaffChanges({ data, saveData }) {
                 it and the two scroll together. */}
             <CapacityChart months={months} todayMk={todayMk} timeline={timeline}
               per1000={per1000} listSizeAt={listSizeAt} view={chartView} onViewChange={setChartView} />
-            <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, minmax(0, 1fr))' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS }}>
               <div className="px-3 py-1.5 text-[11px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>Staff · sess/wk</div>
               {months.map(mk => (
                 <div key={mk} className="text-center py-1.5 text-[11px]" style={{ borderLeft: '1px solid var(--g-border)', fontFamily: 'var(--font-mono)', color: mk === todayMk ? '#34d399' : 'var(--meta)' }}>{monthLabel(mk)}</div>
@@ -455,7 +474,7 @@ export default function StaffChanges({ data, saveData }) {
               const gone = perPerson[p.id]?.[months[months.length - 1]] === 0 && (plan.events || []).some(e => e.personRef === p.id && e.type === 'leave');
               return (
                 <div key={p.id} id={`sc-row-${p.id}`}
-                  style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, minmax(0, 1fr))',
+                  style={{ display: 'grid', gridTemplateColumns: GRID_COLS,
                     borderTop: p.kind === 'planned' ? '1px dashed var(--g-border-2)' : '1px solid var(--g-border)',
                     background: justAdded === p.id ? 'rgba(52,211,153,0.16)' : undefined,
                     transition: 'background 0.6s ease' }}>
@@ -505,14 +524,14 @@ export default function StaffChanges({ data, saveData }) {
               );
             })}
             {canEdit && (
-              <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, minmax(0, 1fr))', borderTop: '1px solid var(--g-border)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS, borderTop: '1px solid var(--g-border)' }}>
                 <div className="px-3 py-1.5">
                   <button onClick={() => setAddOpen(true)} className="text-xs" style={{ color: 'var(--link)' }}>＋ Add person…</button>
                 </div>
                 {months.map(mk => <div key={mk} style={{ borderLeft: '1px solid var(--g-border)' }} />)}
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: '200px repeat(13, minmax(0, 1fr))', borderTop: '2px solid var(--g-border-2)', background: 'rgba(99,102,241,0.05)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS, borderTop: '2px solid var(--g-border-2)', background: 'rgba(99,102,241,0.05)' }}>
               <div className="px-3 py-1.5 text-xs font-bold" style={{ color: 'var(--g-text-hi)' }}>TOTAL {per1000 ? '/1k patients' : '/ week'}</div>
               {months.map(mk => (
                 <div key={mk} className="text-center py-1.5 text-[11px] font-bold" style={{ borderLeft: '1px solid var(--g-border)', fontFamily: 'var(--font-mono)', color: 'var(--g-text-hi)' }}>

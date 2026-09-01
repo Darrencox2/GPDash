@@ -436,6 +436,17 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ lastSyncTime }),
                 }).catch(() => {});
+                // ...and the absences the sync just rewrote, so this session
+                // is not a sync behind until the next reload.
+                (async () => {
+                  try {
+                    const full = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`);
+                    const fj = await full.json().catch(() => ({}));
+                    if (full.ok && Array.isArray(fj?.plannedAbsences)) {
+                      setData(prev => prev ? { ...prev, plannedAbsences: fj.plannedAbsences } : prev);
+                    }
+                  } catch { /* the next full load catches up */ }
+                })();
               } catch {
                 // background sync errors are silent
               }
@@ -797,8 +808,19 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
         if (!silent) setSyncStatus(`Error: ${result.error}`);
       } else {
         // Rows are written by the sync API itself; only the timestamp is
-        // ours to save. The absences appear on the next data load.
+        // ours to save. Then pull the fresh absence list straight back so
+        // the board, briefing and cover regeneration see the sync without
+        // waiting for a page reload.
         saveData({ ...data, lastSyncTime: new Date().toISOString() }, false);
+        (async () => {
+                  try {
+                    const full = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`);
+                    const fj = await full.json().catch(() => ({}));
+                    if (full.ok && Array.isArray(fj?.plannedAbsences)) {
+                      setData(prev => prev ? { ...prev, plannedAbsences: fj.plannedAbsences } : prev);
+                    }
+                  } catch { /* the next full load catches up */ }
+                })();
         if (!silent) setSyncStatus(`Synced — ${result.imported ?? 0} absences imported, ${result.removed ?? 0} replaced`);
       }
     } catch (err) {

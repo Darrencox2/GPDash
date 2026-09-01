@@ -1,6 +1,6 @@
 // Unit tests for lib/staff-plan.js — the timeline maths under Staff Changes.
 import { test, expect } from '@playwright/test';
-import { monthKey, addMonths, aprilStart, monthRange, derivePeople, sessionsByMonth, totalsByMonth, per1000ByMonth, planSummary, suggestedEventsFromWindDowns, monthEndDate, capacityTimeline, absenceCode, monthFraction } from '../../lib/staff-plan.js';
+import { monthKey, addMonths, aprilStart, monthRange, derivePeople, sessionsByMonth, totalsByMonth, per1000ByMonth, planSummary, suggestedEventsFromWindDowns, monthEndDate, capacityTimeline, absenceCode, monthFraction, listSizeLookup } from '../../lib/staff-plan.js';
 
 const P = { id: 'a', name: 'Dr A', sessions: 6, kind: 'real' };
 const MONTHS = monthRange('2026-04', 13);
@@ -259,5 +259,18 @@ test.describe('wind-down suggestions claim their board absence', () => {
     const people = [{ id: 'c1', name: 'Alex', windDown: { type: 'left', startDate: '2026-08-10', endDate: '2026-09-28' } }];
     const [sg] = suggestedEventsFromWindDowns(people, []);
     expect(sg).toMatchObject({ type: 'leave', absenceStart: '2026-08-10' });
+  });
+});
+
+test.describe('listSizeLookup', () => {
+  test('carries the nearest earlier size forward, even from before the window', () => {
+    const at = listSizeLookup({ '2026-01': 11400, '2026-04': 11515 }, 12000);
+    expect(at('2026-03-15')).toBe(11400);   // pre-window publication still applies
+    expect(at('2026-09-01')).toBe(11515);
+    expect(at('2025-06-01')).toBe(12000);   // nothing earlier -> registered size
+  });
+  test('no sizes at all falls back to the registered size, or null', () => {
+    expect(listSizeLookup(null, 9000)('2026-05-01')).toBe(9000);
+    expect(listSizeLookup({}, null)('2026-05-01')).toBeNull();
   });
 });
