@@ -60,7 +60,11 @@ export async function GET(request) {
       .eq('id', practiceId)
       .maybeSingle(),
     supabase.from('clinicians')
-      .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, show_whos_in, aliases, linked_user_id')
+      // metadata (buddy preferences) and wind_down were missing here, so a
+      // client refetch silently dropped both while the initial server load
+      // (lib/v4-data) carried them - markers and preferences seemed to
+      // vanish mid-session.
+      .select('id, name, title, initials, role, group_id, status, sessions, buddy_cover, can_provide_cover, show_whos_in, aliases, linked_user_id, metadata, wind_down')
       .eq('practice_id', practiceId)
       .order('name'),
     supabase.from('working_patterns')
@@ -264,7 +268,9 @@ export async function POST(request) {
         pattern[shortDay] = { am: keep('M', 'am'), pm: keep('A', 'pm'), eve: keep('E', 'eve') };
       }
       if (Object.prototype.hasOwnProperty.call(oldSR, cid)) {
-        ops.push(supabase.from('working_patterns').update({ pattern }).eq('clinician_id', cid));
+        // Only the live row: versioned history rows (effective_to set) are
+        // kept on purpose by migration 20260501120006.
+        ops.push(supabase.from('working_patterns').update({ pattern }).eq('clinician_id', cid).is('effective_to', null));
       } else {
         ops.push(supabase.from('working_patterns').insert({
           clinician_id: cid,
@@ -293,6 +299,12 @@ export async function POST(request) {
     // Read legacy long-key patterns gracefully — same logic as
     // normalizeWorkingPattern in lib/v4-data.js but inlined here to
     // keep the API route self-contained.
+    // Full fidelity: keep half and eve values verbatim. The old version
+    // coerced everything to am/pm in-or-off, which (a) mis-set the day
+    // comparison for half-only and evening-only days - the client counts
+    // those as working days, so sameSet was false on every save and the
+    // rewrite fired - and (b) the rewrite then "preserved" the LOSSY day,
+    // turning halves off and deleting evenings.
     const normalize = (pattern) => {
       if (!pattern || typeof pattern !== 'object') return {};
       const out = {};
@@ -300,11 +312,14 @@ export async function POST(request) {
         if (!v || typeof v !== 'object') continue;
         const short = LONG_TO_SHORT[k] || k.toLowerCase();
         if (SHORT_DAYS.includes(short)) {
-          out[short] = { am: v.am === 'in' ? 'in' : 'off', pm: v.pm === 'in' ? 'in' : 'off' };
+          const keep = (x) => (x === 'in' || x === 'half') ? x : 'off';
+          out[short] = { am: keep(v.am), pm: keep(v.pm), eve: keep(v.eve) };
         }
       }
       return out;
     };
+    // Working at all that day - same any-session rule the client uses.
+    const dayWorked = (d) => ['am', 'pm', 'eve'].some((k) => d?.[k] === 'in' || d?.[k] === 'half');
 
     // Build per-clinician new day-set (which days they're in per v3 rota)
     const newDaysByClinician = {};
@@ -331,8 +346,7 @@ export async function POST(request) {
         const existingPattern = normalize(existing.pattern);
         const existingDays = new Set();
         for (const sd of SHORT_DAYS) {
-          const day = existingPattern[sd];
-          if (day?.am === 'in' || day?.pm === 'in') existingDays.add(sd);
+          if (dayWorked(existingPattern[sd])) existingDays.add(sd);
         }
         // If the day-set hasn't changed, there's nothing to do — the
         // weeklyRota the client posted matches what working_patterns
@@ -421,7 +435,9 @@ export async function POST(request) {
   if (newData.closedDays && JSON.stringify(newData.closedDays) !== JSON.stringify(oldData.closedDays)) {
     settingsUpdate.closed_days = newData.closedDays;
   }
-  if (newData.teamnetUrl !== oldData.teamnetUrl) {
+  // undefined means the caller did not send the field (SetupWizard posts
+  // clinicians alone) - only an explicit value, including '', may change it.
+  if (newData.teamnetUrl !== undefined && newData.teamnetUrl !== oldData.teamnetUrl) {
     settingsUpdate.teamnet_url = newData.teamnetUrl || null;
   }
 

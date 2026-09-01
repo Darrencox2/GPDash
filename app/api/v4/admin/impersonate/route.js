@@ -34,6 +34,7 @@
 //     because doing so would effectively bypass the suspension.
 
 import { NextResponse } from 'next/server';
+import { adminApiAalProblem } from '@/lib/admin-guard';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
@@ -62,6 +63,13 @@ export async function POST(request) {
     .maybeSingle();
   if (!callerProfile?.is_platform_admin) {
     return NextResponse.json({ error: 'Forbidden: platform admin only' }, { status: 403 });
+  }
+
+  // MFA gate - same bar as the /v4/admin pages (see lib/admin-guard.js):
+  // a password-only session must not reach admin actions.
+  {
+    const aalProblem = await adminApiAalProblem(supabase);
+    if (aalProblem) return NextResponse.json({ error: aalProblem }, { status: 403 });
   }
 
   // Rate limit per admin user. Even legitimate use is rare — 10/min stops

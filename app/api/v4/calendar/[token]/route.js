@@ -40,6 +40,11 @@ export async function GET(request, ctx) {
     }
 
     const admin = createAdminClient();
+    if (!admin) {
+      // Same deliberate 503 as the public buddy route - a missing service
+      // key is a config problem, not a mystery 500.
+      return new Response('Calendar feeds are not configured on this server.', { status: 503 });
+    }
     const { data: clinician } = await admin
       .from('clinicians')
       .select('id, name, initials, practice_id')

@@ -25,6 +25,7 @@
 // (well, two sequential operations with clear error handling).
 
 import { NextResponse } from 'next/server';
+import { adminApiAalProblem } from '@/lib/admin-guard';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
@@ -52,6 +53,12 @@ async function requireAdminCaller() {
     .maybeSingle();
   if (!profile?.is_platform_admin) {
     return { error: 'Forbidden: platform admin only', status: 403 };
+  }
+
+  // MFA gate - same bar as the /v4/admin pages (see lib/admin-guard.js).
+  {
+    const aalProblem = await adminApiAalProblem(supabase);
+    if (aalProblem) return { error: aalProblem, status: 403 };
   }
   return { caller: user, supabase };
 }

@@ -46,12 +46,17 @@ export async function GET(request) {
         .eq('practice_id', practiceId)
         .eq('user_id', user.id)
         .maybeSingle();
-      isAdmin = ['owner', 'admin'].includes(membership?.role);
+      // The full management tier, same as every other practice-admin
+      // action - practice managers hand these links out.
+      isAdmin = ['owner', 'partner', 'practice_manager', 'admin'].includes(membership?.role);
     }
     if (!isSelf && !isAdmin) {
       return NextResponse.json({ error: 'Not allowed' }, { status: 403 });
     }
 
+    if (!clinician.calendar_token) {
+      return NextResponse.json({ error: 'This clinician has no calendar token yet - re-save them in the register to generate one.' }, { status: 409 });
+    }
     const origin = url.origin;
     const httpsUrl = `${origin}/api/v4/calendar/${clinician.calendar_token}`;
     return NextResponse.json({

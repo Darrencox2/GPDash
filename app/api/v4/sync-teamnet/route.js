@@ -41,6 +41,29 @@ function mapReasonToEnum(raw) {
 // without disturbing manually-entered absences. Stored as a notes prefix.
 const TEAMNET_MARKER = '[teamnet]';
 
+// The server fetches this URL itself, so it must not be talked into
+// probing its own network: cloud metadata endpoints, localhost, RFC1918
+// ranges. Calendar feeds live on the public internet over http(s).
+function calendarUrlProblem(raw) {
+  let u;
+  try { u = new URL(String(raw)); } catch { return 'That is not a valid URL.'; }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return 'The calendar URL must start with http or https.';
+  const h = u.hostname.toLowerCase();
+  if (h === 'localhost' || h === '0.0.0.0' || h === '::1' || h === '[::1]'
+    || h.endsWith('.local') || h.endsWith('.internal') || !h.includes('.')) {
+    return 'That address is not reachable from the server.';
+  }
+  const ip4 = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ip4) {
+    const [a, b] = [Number(ip4[1]), Number(ip4[2])];
+    if (a === 127 || a === 10 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) {
+      return 'That address is not reachable from the server.';
+    }
+  }
+  return null;
+}
+
+
 export async function POST(request) {
   const url = new URL(request.url);
   const practiceId = url.searchParams.get('practice');
@@ -61,6 +84,12 @@ export async function POST(request) {
     .eq('user_id', user.id)
     .maybeSingle();
   if (!membership) return NextResponse.json({ error: 'Not a member of this practice' }, { status: 403 });
+  // Same bar as writing practice data: the sync rewrites absence rows and
+  // makes the server fetch a URL, neither of which is a viewer action.
+  const MANAGEMENT_ROLES = ['owner', 'partner', 'practice_manager', 'admin'];
+  if (!MANAGEMENT_ROLES.includes(membership.role)) {
+    return NextResponse.json({ error: 'Syncing requires a management role' }, { status: 403 });
+  }
 
   // Rate limit per-practice. Legitimate use: occasional manual "Sync now"
   // clicks + the daily cron — well below 10/min. Anything past that is
@@ -114,6 +143,8 @@ export async function POST(request) {
 
     let icsText;
     try {
+      const urlProblem = calendarUrlProblem(calUrl);
+      if (urlProblem) return NextResponse.json({ error: urlProblem }, { status: 400 });
       const r = await fetch(calUrl);
       if (!r.ok) {
         return NextResponse.json({ error: `Failed to fetch calendar (HTTP ${r.status})` }, { status: 502 });
@@ -123,7 +154,7 @@ export async function POST(request) {
       return serverError(
         'Could not fetch the calendar. Check the URL and try again.',
         err,
-        { status: 502, context: { practiceId, mode: 'parse-only' } }
+        { status: 502, context: { practiceId, mode: 'full-sync' } }
       );
     }
 
@@ -135,7 +166,7 @@ export async function POST(request) {
       return serverError(
         'Could not parse the calendar — the format may be unsupported.',
         err,
-        { status: 500, context: { practiceId, mode: 'parse-only' } }
+        { status: 500, context: { practiceId, mode: 'full-sync' } }
       );
     }
 
@@ -238,6 +269,8 @@ export async function POST(request) {
     icsText = icsContent;
   } else if (calUrl) {
     try {
+      const urlProblem = calendarUrlProblem(calUrl);
+      if (urlProblem) return NextResponse.json({ error: urlProblem }, { status: 400 });
       const r = await fetch(calUrl);
       if (!r.ok) {
         return NextResponse.json({ error: `Failed to fetch calendar (HTTP ${r.status})` }, { status: 502 });
@@ -247,7 +280,7 @@ export async function POST(request) {
       return serverError(
         'Could not fetch the calendar. Check the URL and try again.',
         err,
-        { status: 502, context: { practiceId, mode: 'full-sync' } }
+        { status: 502, context: { practiceId, mode: 'parse-only' } }
       );
     }
   } else {
@@ -261,7 +294,7 @@ export async function POST(request) {
     return serverError(
       'Could not parse the calendar — the format may be unsupported.',
       err,
-      { status: 500, context: { practiceId, mode: 'full-sync' } }
+      { status: 500, context: { practiceId, mode: 'parse-only' } }
     );
   }
 
