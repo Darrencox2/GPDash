@@ -147,13 +147,39 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
       {b.coverPairs.length > 0 && (
         <div style={S.card} className="mb-3">
           <div style={S.h2} className="mb-2">Buddy cover</div>
+          {/* Same row grammar as the buddy board: initials, the word covers,
+              then a chip per person. The board separates absent from day off
+              by fill against outline, which this sheet cannot borrow — print
+              strips every background and border colour — so a day-off chip
+              says so in words as well. */}
           {b.coverPairs.map((p, i) => (
-            <div key={i} className="text-sm py-0.5" style={{ color: 'var(--g-text-hi)' }}>
-              <span className="font-semibold">{p.coverer.name}</span>
-              <span style={{ color: 'var(--meta)' }}> covers </span>
-              {[...p.absent.map(c => c.name), ...p.dayOff.map(c => `${c.name} (day off)`)].join(', ')}
+            <div key={i} className="flex items-baseline py-0.5" style={{ gap: 7 }}>
+              <span className="font-bold text-right shrink-0" style={{ fontFamily: 'var(--font-heading)', fontSize: 13, color: 'var(--g-text-hi)', width: 30 }}>
+                {p.coverer.initials || p.coverer.name?.slice(0, 2)}
+              </span>
+              <span className="shrink-0" style={{ fontSize: 9, color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.02em' }}>covers</span>
+              <span className="flex flex-wrap items-baseline" style={{ gap: 4 }}>
+                {p.absent.map((c, j) => (
+                  <span key={`a${j}`} className="rounded font-semibold" title={`${c.name} — absent`}
+                    style={{ background: '#b91c1c', border: '1px solid #ef4444', color: '#fff', fontSize: 12, padding: '1px 6px' }}>
+                    {c.name}
+                  </span>
+                ))}
+                {p.dayOff.map((c, j) => (
+                  <span key={`d${j}`} className="rounded font-semibold" title={`${c.name} — day off`}
+                    style={{ background: 'transparent', border: '1px solid #f59e0b', color: '#fbbf24', fontSize: 12, padding: '1px 6px' }}>
+                    {c.name} <span style={{ fontWeight: 400, fontSize: 10 }}>day off</span>
+                  </span>
+                ))}
+              </span>
             </div>
           ))}
+          <div className="mt-2 pt-2 print-rule flex flex-wrap items-center" style={{ borderTop: '1px solid var(--g-border)', gap: 10 }}>
+            <span className="rounded" style={{ background: '#b91c1c', border: '1px solid #ef4444', color: '#fff', fontSize: 10, padding: '0 5px' }}>absent</span>
+            <span style={{ fontSize: 11, color: 'var(--meta)' }}>file their results</span>
+            <span className="rounded" style={{ border: '1px solid #f59e0b', color: '#fbbf24', fontSize: 10, padding: '0 5px' }}>day off</span>
+            <span style={{ fontSize: 11, color: 'var(--meta)' }}>view only</span>
+          </div>
         </div>
       )}
 

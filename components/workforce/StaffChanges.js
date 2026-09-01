@@ -21,6 +21,24 @@ import CapacityChart, { EVENT_TONE } from '@/components/workforce/CapacityChart'
 
 const ROLE_FILTER_KEY = 'gpdash-staff-changes-roles';
 
+// Planned people have no initials, so the initials slot carries their role
+// instead — which is the only thing that tells a locum apart from a hire.
+// Temporary cover reads amber, a permanent appointment reads green: the
+// difference matters to a plan in a way the name alone cannot show.
+const isTemporaryRole = (role) => /locum|temp|bank|agency/i.test(String(role || ''));
+export function roleCode(role) {
+  const r = String(role || '').toLowerCase();
+  if (/locum/.test(r)) return 'LOC';
+  if (/partner/.test(r)) return 'PTR';
+  if (/salaried/.test(r)) return 'SAL';
+  if (/registrar|trainee|st[1-4]/.test(r)) return 'REG';
+  if (/nurse|anp|acp/.test(r)) return 'NUR';
+  if (/hca|healthcare assistant|phleb/.test(r)) return 'HCA';
+  if (/pharmac/.test(r)) return 'PHA';
+  if (/physio/.test(r)) return 'PHY';
+  return String(role || 'NEW').replace(/[^a-z]/gi, '').slice(0, 3).toUpperCase() || 'NEW';
+}
+
 const fmtDate = (iso) => {
   if (!iso) return '';
   const d = new Date(iso + 'T12:00:00');
@@ -64,6 +82,7 @@ export default function StaffChanges({ data, saveData }) {
   const [chartView, setChartView] = useState('level');
   const [editor, setEditor] = useState(null);          // { personRef, month }
   const [addOpen, setAddOpen] = useState(false);
+  const [plannedEdit, setPlannedEdit] = useState(null);   // { id, name, role }
   const [justAdded, setJustAdded] = useState(null);
   const [newPerson, setNewPerson] = useState({ name: '', role: 'Salaried GP' });
   const [listSizeByMonth, setListSizeByMonth] = useState(null);
@@ -233,6 +252,32 @@ export default function StaffChanges({ data, saveData }) {
     }, 120);
     setTimeout(() => setJustAdded(null), 2600);
   };
+  const savePlannedPerson = ({ id, name, role }) => {
+    const clean = name.trim();
+    if (!clean) return;
+    const r = role.trim() || 'Planned';
+    const was = (plan.plannedPeople || []).find(p => p.id === id);
+    savePlan(
+      { ...plan, plannedPeople: (plan.plannedPeople || []).map(p => p.id === id ? { ...p, name: clean, role: r, group: classifyStaffRole(r) } : p) },
+      `${was?.name || clean} edited in staff changes by ${whoAmI}${was && was.name !== clean ? ` - now ${clean}` : ''}${was && was.role !== r ? ` - role now ${r}` : ''}`
+    );
+    setPlannedEdit(null);
+  };
+  // When a planned person actually starts they appear in the register with
+  // their own working pattern. Left alone that is TWO rows for one person
+  // and their sessions counted twice, so linking moves the planned events
+  // onto the real clinician and retires the placeholder.
+  const linkPlannedPerson = (plannedId, clinicianId) => {
+    const was = (plan.plannedPeople || []).find(p => p.id === plannedId);
+    const real = realPeople.find(p => p.id === clinicianId);
+    if (!was || !real) return;
+    savePlan({
+      ...plan,
+      plannedPeople: (plan.plannedPeople || []).filter(p => p.id !== plannedId),
+      events: (plan.events || []).map(e => e.personRef === plannedId ? { ...e, personRef: clinicianId } : e),
+    }, `Planned ${was.name} linked to ${real.name} in staff changes by ${whoAmI} - their planned changes now belong to the real clinician`);
+    setPlannedEdit(null);
+  };
   const removePlannedPerson = (id) => savePlan({
     ...plan,
     plannedPeople: (plan.plannedPeople || []).filter(p => p.id !== id),
@@ -300,11 +345,11 @@ export default function StaffChanges({ data, saveData }) {
             ['Now', per1000 ? perK[todayMk] : summary.now, 'var(--g-text-hi)'],
             [`End of view`, per1000 ? perK[months[months.length - 1]] : summary.end, summary.endDelta < 0 ? '#fca5a5' : '#34d399', summary.endDelta !== 0 ? `${summary.endDelta > 0 ? '+' : ''}${per1000 ? '' : summary.endDelta}` : ''],
             [`Low point · ${monthLabel(summary.lowMk)}`, per1000 ? perK[summary.lowMk] : summary.low, '#fbbf24'],
-            ['Planned changes', (plan.events || []).length, 'var(--g-text-hi)'],
-          ].map(([label, val, col, extra], i) => (
+            ['Planned changes', (plan.events || []).length, 'var(--g-text-hi)', '', false],
+          ].map(([label, val, col, extra, showUnit = true], i) => (
             <div key={i} className="rounded-lg px-3 py-1.5" style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)' }}>
               <div className="text-[11px] uppercase" style={{ color: 'var(--meta)', letterSpacing: '0.06em' }}>{label}</div>
-              <div className="font-mono-data text-lg font-bold" style={{ color: col }}>{val ?? '—'}{extra ? <span className="text-xs"> {extra}</span> : null}<span className="text-[11px] font-normal" style={{ color: 'var(--meta)' }}> {per1000 ? '/1k' : '/wk'}</span></div>
+              <div className="font-mono-data text-lg font-bold" style={{ color: col }}>{val ?? '—'}{extra ? <span className="text-xs"> {extra}</span> : null}{showUnit && <span className="text-[11px] font-normal" style={{ color: 'var(--meta)' }}> {per1000 ? '/1k' : '/wk'}</span>}</div>
             </div>
           ))}
         </div>
@@ -346,10 +391,24 @@ export default function StaffChanges({ data, saveData }) {
                     background: justAdded === p.id ? 'rgba(52,211,153,0.16)' : undefined,
                     transition: 'background 0.6s ease' }}>
                   <div className="px-3 py-1 flex items-baseline gap-2 min-w-0">
-                    <span className="text-[11px] font-bold" style={{ fontFamily: 'var(--font-mono)', color: p.kind === 'planned' ? 'var(--ok, #34d399)' : '#fff' }}>{p.initials || '＋'}</span>
-                    <span className="text-xs truncate" style={{ color: 'var(--g-text-hi)', fontStyle: p.kind === 'planned' ? 'italic' : 'normal' }}>{p.name}</span>
-                    {p.kind === 'planned' && canEdit && (
-                      <button aria-label={`Remove ${p.name}`} onClick={() => removePlannedPerson(p.id)} className="text-[11px]" style={{ color: 'var(--meta)' }}>✕</button>
+                    {p.kind === 'planned' ? (
+                      <span className="text-[10px] font-bold px-1 rounded" title={p.role}
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          color: isTemporaryRole(p.role) ? '#fbbf24' : '#34d399',
+                          border: `1px solid ${isTemporaryRole(p.role) ? 'rgba(245,158,11,0.45)' : 'rgba(52,211,153,0.4)'}`,
+                        }}>{roleCode(p.role)}</span>
+                    ) : (
+                      <span className="text-[11px] font-bold" style={{ fontFamily: 'var(--font-mono)', color: '#fff' }}>{p.initials}</span>
+                    )}
+                    {p.kind === 'planned' && canEdit ? (
+                      <button onClick={() => setPlannedEdit({ id: p.id, name: p.name, role: p.role || '' })}
+                        title={`${p.name} — ${p.role || 'no role'}. Edit, or link them to a clinician once they start`}
+                        className="text-xs truncate text-left" style={{ color: 'var(--g-text-hi)', fontStyle: 'italic', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>
+                        {p.name}
+                      </button>
+                    ) : (
+                      <span className="text-xs truncate" style={{ color: 'var(--g-text-hi)', fontStyle: p.kind === 'planned' ? 'italic' : 'normal' }}>{p.name}</span>
                     )}
                     <span className="ml-auto text-[11px]" style={{ fontFamily: 'var(--font-mono)', color: 'var(--meta)' }}>{p.kind === 'planned' ? '—' : p.sessions}</span>
                   </div>
@@ -439,6 +498,13 @@ export default function StaffChanges({ data, saveData }) {
         <CellEditor editor={editor} onClose={() => setEditor(null)} onAdd={addEvent} onRemove={removeEvent}
           existing={cellEvents(editor.personRef, editor.month).filter(e => e.month === editor.month)} months={months} />
       )}
+      {/* edit a planned person, or retire them into the real clinician */}
+      {plannedEdit && (
+        <PlannedPersonEditor edit={plannedEdit} onChange={setPlannedEdit} roleOptions={roleOptions}
+          candidates={realPeople} onSave={savePlannedPerson} onLink={linkPlannedPerson}
+          onRemove={() => { removePlannedPerson(plannedEdit.id); setPlannedEdit(null); }}
+          onClose={() => setPlannedEdit(null)} />
+      )}
       {/* add person */}
       {addOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setAddOpen(false)}>
@@ -467,6 +533,56 @@ export default function StaffChanges({ data, saveData }) {
           </form>
         </div>
       )}
+    </div>
+  );
+}
+
+function PlannedPersonEditor({ edit, onChange, roleOptions, candidates, onSave, onLink, onRemove, onClose }) {
+  const [linkTo, setLinkTo] = useState('');
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
+      <form className="rounded-xl p-4 w-96" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border-2)' }}
+        onClick={e => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); onSave(edit); }}>
+        <div className="text-sm font-semibold mb-2" style={{ color: 'var(--g-text-hi)' }}>Planned person</div>
+        <input autoFocus value={edit.name} onChange={e => onChange({ ...edit, name: e.target.value })}
+          placeholder="Name" className="w-full rounded-md px-2.5 py-1.5 text-sm mb-2"
+          style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }} />
+        <input value={edit.role} list="staff-changes-roles-edit" onChange={e => onChange({ ...edit, role: e.target.value })}
+          placeholder="Role — Locum, Salaried GP…" className="w-full rounded-md px-2.5 py-1.5 text-sm mb-1"
+          style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }} />
+        <datalist id="staff-changes-roles-edit">
+          {roleOptions.map(o => <option key={o.id} value={o.id} />)}
+        </datalist>
+        <p className="text-[11px] mb-3" style={{ color: 'var(--meta)' }}>
+          The role shows on the row as {roleCode(edit.role)}, in {isTemporaryRole(edit.role) ? 'amber for temporary cover' : 'green for a permanent appointment'}.
+        </p>
+
+        <div className="rounded-lg p-2.5 mb-3" style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)' }}>
+          <div className="text-xs font-semibold mb-1" style={{ color: 'var(--g-text-hi)' }}>Have they started?</div>
+          <p className="text-[11px] mb-2" style={{ color: 'var(--meta)' }}>
+            Once they are on EMIS with their own sessions they are in the register twice — here as a plan, and there for real. Linking hands their planned changes to the real clinician and removes this row, so nobody is counted twice.
+          </p>
+          <div className="flex gap-2">
+            <select value={linkTo} onChange={e => setLinkTo(e.target.value)}
+              className="flex-1 rounded-md px-2 py-1.5 text-sm min-w-0"
+              style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }}>
+              <option value="">This person is now…</option>
+              {candidates.map(c => <option key={c.id} value={c.id}>{c.name} · {c.sessions}/wk</option>)}
+            </select>
+            <button type="button" disabled={!linkTo} onClick={() => onLink(edit.id, linkTo)}
+              className="px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-40 shrink-0"
+              style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--link)' }}>Link</button>
+          </div>
+        </div>
+
+        <div className="flex gap-2 items-center">
+          <button type="button" onClick={onRemove} className="text-xs" style={{ color: '#fca5a5' }}>Remove person</button>
+          <button type="button" onClick={onClose} className="ml-auto px-3 py-1.5 rounded-lg text-sm" style={{ color: 'var(--meta)' }}>Cancel</button>
+          <button type="submit" disabled={!edit.name.trim()}
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-40"
+            style={{ background: 'var(--accent)', color: '#fff' }}>Save</button>
+        </div>
+      </form>
     </div>
   );
 }

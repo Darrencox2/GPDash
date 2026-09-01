@@ -202,3 +202,27 @@ test.describe('capacityTimeline', () => {
     expect(monthFraction('2027-04-01', MONTHS)).toBe(12);
   });
 });
+
+// A recorded join means "not here before this" for anyone, not just for a
+// planned placeholder. This is what makes linking a planned person to the
+// real clinician safe: without it the starter reads as having worked all year.
+test.describe('a join applies to real people too', () => {
+  const REAL = { id: 'r', name: 'Peter Sandford', initials: 'PS', sessions: 6, group: 'gp', kind: 'real' };
+  const JOIN = [{ id: 'j', personRef: 'r', type: 'join', month: '2026-09', startDate: '2026-09-01', sessions: 6 }];
+
+  test('monthly walk: nothing before the join month', () => {
+    const s = sessionsByMonth(REAL, JOIN, MONTHS);
+    expect(s['2026-08']).toBe(0);
+    expect(s['2026-09']).toBe(6);
+    expect(s['2027-04']).toBe(6);
+  });
+  test('monthly walk: no join still means their full pattern all year', () => {
+    const s = sessionsByMonth(REAL, [], MONTHS);
+    expect(s['2026-04']).toBe(6);
+  });
+  test('day-level walk agrees, and steps on the join date', () => {
+    const t = capacityTimeline([REAL], JOIN, MONTHS);
+    expect(t.steps.map((s) => [s.date, s.value])).toEqual([['2026-04-01', 0], ['2026-09-01', 6]]);
+    expect(t.marks[0]).toMatchObject({ tag: 'PS', code: 'JOIN', delta: 6 });
+  });
+});
