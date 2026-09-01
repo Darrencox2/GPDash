@@ -14,7 +14,7 @@ where a.id <> b.id
   and a.clinician_id = b.clinician_id
   and a.start_date = b.start_date
   and a.end_date = b.end_date
-  and coalesce(a.reason, '') = coalesce(b.reason, '')
+  and coalesce(a.reason::text, '') = coalesce(b.reason::text, '')
   and coalesce(a.notes, '') = coalesce(b.notes, '')
   and coalesce(a.session, '') = coalesce(b.session, '')
   and (b.created_at < a.created_at or (b.created_at = a.created_at and b.id < a.id));
