@@ -239,7 +239,11 @@ function WeeklyRoutineBullet({ wk, rTarget, shortWeek = false }) {
   );
 }
 
-export default function HuddleForward({ data, saveData, huddleData, setActiveSection }) {
+// `view` comes from the sidebar: Capacity planning now has Monthly and
+// Weekly beneath it, which is where a choice of view belongs - it is a
+// place you navigate to, not a setting on the page. The in-page toggle it
+// replaces is gone.
+export default function HuddleForward({ data, saveData, huddleData, setActiveSection, view = 'month' }) {
   const canEdit = canEditPracticeData(data);
   const [selectedDay, setSelectedDay] = useState(null);
   // selectedMarker controls which "insight" (urgent below target / highest
@@ -275,7 +279,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   // clinician counts for a site only if they have routine slots there
   // that day - "based but out" people appear in the hover instead.
   const [showStaffing, setShowStaffing] = useState(false);
-  const [capView, setCapView] = useState('month'); // 'month' | 'week'
+  // Which view is showing is the sidebar's business, so it is read from the
+  // prop rather than held here. setCapView still exists because the month
+  // grid deep-links into a specific week; it now moves the sidebar too, so
+  // the nav never disagrees with the page.
+  const capView = view === 'week' ? 'week' : 'month';
+  const setCapView = (v) => setActiveSection?.(v === 'week' ? 'huddle-forward-week' : 'huddle-forward');
   const [staffingPanelOpen, setStaffingPanelOpen] = useState(false);
   const [staffTip, setStaffTip] = useState(null); // { x, y, entry }
   // Stored INSIDE huddleSettings so it persists: the save route only
@@ -595,15 +604,6 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <h1 className="text-base font-semibold text-white font-heading">Capacity planning</h1>
             <span className="text-xs text-slate-400 ml-2">{capView === 'week' ? 'Week detail' : '6-week forward view'}</span>
             <div className="ml-auto flex items-center gap-2 relative">
-              <div className="flex rounded-md overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.12)'}}>
-                {[['month','6 weeks'],['week','Week detail']].map(([v,label]) => (
-                  <button key={v} onClick={() => setCapView(v)}
-                    className="px-2 py-1 text-[11px] font-semibold"
-                    style={{background: capView===v ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', color: capView===v ? '#a5b4fc' : '#94a3b8', border:'none', cursor:'pointer'}}>
-                    {label}
-                  </button>
-                ))}
-              </div>
               {sites.length > 0 && capView !== 'week' && (
                 <button onClick={() => setShowStaffing(v => !v)}
                   title="Show or hide per-site clinician staffing in each day"

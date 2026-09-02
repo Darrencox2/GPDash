@@ -35,8 +35,16 @@ const NAV_ITEMS = [
     icon: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z' },
 
   { id: '_planning', section: 'PLANNING' },
+  // Capacity planning has two views. They live here rather than as a toggle
+  // on the page: which view you want is a place you go, and the sidebar is
+  // where the app says where you are. The children only appear once the
+  // branch is open, so the nav stays the same height the rest of the time.
   { id: 'huddle-forward', section: 'PLANNING', label: 'Capacity planning', colour: '#818cf8',
-    icon: 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5zm2 4h5v5H7v-5z' },
+    icon: 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5zm2 4h5v5H7v-5z',
+    children: [
+      { id: 'huddle-forward', label: 'Monthly' },
+      { id: 'huddle-forward-week', label: 'Weekly' },
+    ] },
   { id: 'reporting', section: 'PLANNING', label: 'Reporting', colour: '#a78bfa',
     icon: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' },
   { id: 'workforce-planner', section: 'PLANNING', label: 'Workforce planner', colour: '#c084fc',
@@ -220,7 +228,11 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                 );
               }
 
-              const isActive = activeSection === item.id;
+              const kids = item.children || [];
+              // A parent counts as active for any of its children, so the
+              // branch stays lit whichever view you are on.
+              const inBranch = kids.some(c => c.id === activeSection);
+              const isActive = activeSection === item.id || inBranch;
               const activeStyle = isActive ? {
                 background: `${item.colour}15`,
                 borderLeft: `3px solid ${item.colour}`,
@@ -244,15 +256,31 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
               // Expanded mode
               return (
-                <button key={item.id} onClick={() => handleItemClick(item)}
-                  className="w-full flex items-center gap-2.5 rounded-lg mb-0.5 transition-colors hover:bg-white/5"
-                  style={{...activeStyle, padding: '8px 10px'}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill={item.colour} style={{opacity: isActive ? 1 : 0.5, flexShrink: 0}}>
-                    <path d={item.icon} />
-                  </svg>
-                  <span style={{fontSize:13, color: isActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: isActive ? 500 : 400}}>{item.label}</span>
-                  {item.badge && <span style={{fontSize:11,padding:'1px 6px',borderRadius:'var(--r-md)',background:`${item.colour}20`,color:item.colour,marginLeft:'auto'}}>{item.badge}</span>}
-                </button>
+                <div key={item.id}>
+                  <button onClick={() => handleItemClick(item)}
+                    className="w-full flex items-center gap-2.5 rounded-lg mb-0.5 transition-colors hover:bg-white/5"
+                    style={{...activeStyle, padding: '8px 10px'}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill={item.colour} style={{opacity: isActive ? 1 : 0.5, flexShrink: 0}}>
+                      <path d={item.icon} />
+                    </svg>
+                    <span style={{fontSize:13, color: isActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: isActive ? 500 : 400}}>{item.label}</span>
+                    {item.badge && <span style={{fontSize:11,padding:'1px 6px',borderRadius:'var(--r-md)',background:`${item.colour}20`,color:item.colour,marginLeft:'auto'}}>{item.badge}</span>}
+                  </button>
+                  {isActive && kids.length > 0 && kids.map(child => {
+                    const kidActive = activeSection === child.id;
+                    return (
+                      <button key={child.id} onClick={() => handleItemClick(child)}
+                        className="w-full flex items-center rounded-lg mb-0.5 transition-colors hover:bg-white/5"
+                        style={{
+                          padding: '5px 10px 5px 41px',
+                          borderLeft: `3px solid ${kidActive ? item.colour : 'transparent'}`,
+                          background: kidActive ? `${item.colour}12` : 'transparent',
+                        }}>
+                        <span style={{fontSize:12.5, color: kidActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: kidActive ? 500 : 400}}>{child.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               );
             })}
           </nav>

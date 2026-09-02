@@ -253,6 +253,8 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   // Breadcrumb for crash reports: what the user navigated to, in order. Kept
   // in memory only — it exists so a pasted error says what led to it.
   useEffect(() => { noteAction(`Opened section: ${activeSection}`); }, [activeSection]);
+  // Capacity planning answers to two sidebar entries: monthly and weekly.
+  const isCapacity = activeSection === 'huddle-forward' || activeSection === 'huddle-forward-week';
   // Pick up `?section=X` after hydration. The previous useState initializer
   // pattern with `typeof window !== 'undefined'` doesn't work cross-page in
   // App Router — server renders with default, client hydrates with that
@@ -962,8 +964,11 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     <div className="min-h-screen flex" style={{ background: 'var(--app-bg)' }}>
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} data={data} />
       <main className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)' }}>
-        <SectionErrorBoundary key={activeSection} section={activeSection} practice={data?._v4?.practiceName}>
-        <div className={`${(activeSection === 'huddle-forward' || activeSection === 'workforce-planner') ? '' : 'max-w-6xl mx-auto '}px-4 pb-4 pt-14 lg:p-6 animate-in`}>
+        {/* The two capacity views are one section wearing two hats. They
+            share a boundary key so switching between them does not remount
+            the page and lose which week you were looking at. */}
+        <SectionErrorBoundary key={isCapacity ? 'huddle-forward' : activeSection} section={activeSection} practice={data?._v4?.practiceName}>
+        <div className={`${(isCapacity || activeSection === 'workforce-planner') ? '' : 'max-w-6xl mx-auto '}px-4 pb-4 pt-14 lg:p-6 animate-in`}>
           {/* "Is this you?" — auto-suggest matching clinician records when
               the signed-in user has a surname but isn't yet linked. */}
           <LinkClinicianSuggest data={data} />
@@ -1028,13 +1033,13 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           })()}
           <Suspense fallback={<div className="text-sm text-slate-400 py-12 text-center">Loading…</div>}>
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} onRevertChange={revertChange} />}
-          {huddleLoading && ['huddle-today','huddle-rota','huddle-forward','reporting'].includes(activeSection) && <PageSkeleton />}
+          {huddleLoading && ['huddle-today','huddle-rota','huddle-forward','huddle-forward-week','reporting'].includes(activeSection) && <PageSkeleton />}
           {activeSection === 'staff-changes' && <StaffChanges data={data} saveData={saveData} />}
           {activeSection === 'briefing' && <MorningBriefing data={data} huddleData={huddleData} huddleMessages={huddleMessages} />}
           {activeSection === 'huddle-today' && !huddleLoading && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-rota' && !huddleLoading && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
           {activeSection === 'meetings' && <Meetings data={data} />}
-          {activeSection === 'huddle-forward' && !huddleLoading && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
+          {isCapacity && !huddleLoading && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} view={activeSection === 'huddle-forward-week' ? 'week' : 'month'} />}
           {activeSection === 'reporting' && !huddleLoading && <WorkloadAudit data={data} huddleData={huddleData} />}
           {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
           {activeSection === 'spend' && !huddleLoading && <SpendTracker data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
