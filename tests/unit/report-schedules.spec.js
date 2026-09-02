@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 import {
   nextSendAt, nextSends, describeReportSchedule, londonToUtc,
   normaliseLayout, DEFAULT_LAYOUT, MINUTE_OPTIONS,
-  activeRecipients, unsubscribeUrls,
+  activeRecipients, unsubscribeUrls, recipientTokenFilter,
 } from '../../lib/report-schedules.js';
 import { renderUnsubscribeNotice } from '../../lib/report-email.js';
 import { renderReportEmail } from '../../lib/report-email.js';
@@ -445,6 +445,18 @@ test.describe('unsubscribe', () => {
     expect(u.page).toBe('https://gpdash.net/r/unsubscribe/tok123');
     expect(u.post).toBe('https://gpdash.net/api/v4/public/unsubscribe/tok123');
     expect(u.page).not.toBe(u.post);
+  });
+
+  // Guards a live failure: passing an array here makes supabase-js emit a
+  // Postgres array literal, which jsonb rejects, and the resulting error
+  // reads as "no match" — so every unsubscribe link looked expired.
+  test('the token lookup filter is JSON text, not a Postgres array literal', () => {
+    const f = recipientTokenFilter('abc123');
+    expect(f).toBe('[{"token":"abc123"}]');
+    expect(typeof f).toBe('string');
+    expect(f.startsWith('[')).toBe(true);
+    expect(f.startsWith('{')).toBe(false);
+    expect(JSON.parse(f)).toEqual([{ token: 'abc123' }]);
   });
 
   test('no address ever appears in an unsubscribe URL', () => {
