@@ -142,3 +142,140 @@ If nothing arrives, check in this order:
   invite triggers ~1 invocation.
 
 Both wildly more than a beta SaaS will ever use.
+
+---
+
+# Email automation: scheduled report emails
+
+A practice can have saved reports emailed to a list of people on a
+cadence — "these three reports, every Monday at 08:00, to these five".
+Set up from Reporting: open a saved report, click **Email on a schedule**.
+
+One schedule can carry several reports (`report_schedule_items`, ordered
+by `position`). They arrive as a single email with one header, one CTA
+and one footer, a contents list, and a titled section with its own chart
+per report — so a practice gets one Monday digest instead of four
+separate emails. Deleting a saved report cascades it out of every bundle
+that carried it; that is why it is a join table and not a `uuid[]`.
+
+Unlike invite emails, this does NOT go through an Edge Function. The
+send happens in the Next.js route `/api/cron/scheduled-reports`, because
+it has to import `lib/workload-report.js` — the same report engine the
+dashboard renders from. That is what guarantees the figures in the email
+match the figures on screen. A Deno Edge Function could not import it
+without a second, drifting copy.
+
+## How the clock works
+
+The Vercel project is on the **hobby** plan: cron is capped at two jobs
+at once-a-day granularity, and `retention-cleanup` already uses one.
+"Every Monday at 08:00" cannot be expressed there. So the clock lives in
+Postgres:
+
+```
+pg_cron (*/15 * * * *)
+  -> public.dispatch_report_schedules()
+  -> net.http_post  ->  https://<site>/api/cron/scheduled-reports
+  -> renders with lib/workload-report.js -> Resend -> report_send_log
+```
+
+`dispatch_report_schedules()` counts due rows before making any HTTP
+call, so 95 of every 96 daily wakeups do nothing and cost nothing.
+
+## One-time setup
+
+### Step 1: Vercel environment variables
+
+| Variable | Value | Notes |
+| -------- | ----- | ----- |
+| `RESEND_API_KEY` | your Resend API key | the same key the SMTP / invite function uses |
+| `CRON_SECRET` | a long random string | probably already set for retention-cleanup |
+| `REPORT_FROM_EMAIL` | `noreply@gpdash.net` | optional; falls back to `FROM_EMAIL`, then `noreply@gpdash.net` |
+| `FROM_NAME` | `GPDash` | optional; defaults to `GPDash` |
+
+`NEXT_PUBLIC_SITE_URL` should already be set — it is what the "Open in
+GPDash" button in the email points at.
+
+### Step 2: Supabase Vault secrets
+
+The database needs to know where to call and how to authenticate. In the
+Supabase SQL editor:
+
+```sql
+select vault.create_secret('<the same CRON_SECRET>', 'gpdash_cron_secret');
+select vault.create_secret('https://gpdash.net',     'gpdash_site_url');
+```
+
+Use `https://preview.gpdash.net` for the preview environment.
+
+**Until both secrets exist the dispatcher is a deliberate no-op.** It
+will not fire and it will not error every 15 minutes either; it raises a
+notice naming the missing secrets. So the migration is safe to ship
+before the secrets are set.
+
+### Step 3: confirm pg_cron came up
+
+The migration `20260902120100_report_schedule_cron.sql` enables pg_cron
+and schedules the job. Enabling an extension can fail on the migration
+role, so it is wrapped to warn rather than abort — a failure there must
+not take an unrelated deploy down with it. Confirm it worked:
+
+```sql
+select jobname, schedule, active from cron.job
+where jobname = 'gpdash-dispatch-report-schedules';
+```
+
+If that returns no rows, enable pg_cron once via
+**Dashboard -> Database -> Extensions**, then re-run the migration body.
+Everything in it is idempotent.
+
+## Verifying without waiting for Monday
+
+Two ways, both safe:
+
+1. **Send test to me** in the schedule setup screen. Runs the entire real
+   path — same data load, same engine, same renderer, same Resend call —
+   but delivers only to the signed-in user and does not touch
+   `next_send_at` or the delivery history. If the test arrives and looks
+   right, the scheduled send will too.
+
+2. **Dry run the dispatcher** as a platform admin:
+
+   ```
+   GET /api/cron/scheduled-reports?dry_run=true
+   ```
+
+   Lists what would be sent right now and sends nothing.
+
+## Failure model
+
+A failed send still advances `next_send_at`. A practice with one bad
+recipient address must not be retried every 15 minutes forever, and must
+not sit at the head of the queue blocking every other practice. The
+reason is written to `report_send_log` and onto the schedule itself
+(`last_status` / `last_error`), which is what the Reporting UI shows
+against each schedule — the same lesson as invite `email_status` in
+v4.139.0: a send that silently failed must never look like one that
+arrived.
+
+Sends are skipped, not failed, when there is nothing honest to send: no
+CSV uploaded for the practice, no valid recipients, no reports left in
+the schedule, or every report in it deleted. Each is recorded with its
+reason in `report_send_log`, alongside `report_names` for what the email
+actually carried.
+
+A single report inside a bundle that matches no data is NOT a skip — it
+gets its section with a note saying so, because dropping it silently
+would leave the recipient unaware it was meant to be there.
+
+## Data protection
+
+Recipients do not have to be practice members — a PCN or ICB contact is
+a real case. Recipients that are not members are flagged amber in the
+setup screen with an explicit warning, stored with `external: true`, and
+counted in `report_send_log.external_count`, so sends outside the
+practice boundary stay visible in the audit trail rather than being
+indistinguishable from internal ones.
+
+Every email carries a footer asking recipients not to forward it outside
+their organisation.

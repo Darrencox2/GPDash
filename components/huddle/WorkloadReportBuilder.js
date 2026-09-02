@@ -1,12 +1,13 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import MultiSelect from '@/components/ui/MultiSelect';
-import { PageHeader, EmptyState } from '@/components/ui';
+import { PageHeader, EmptyState, useToast } from '@/components/ui';
 import {
   buildFacts, buildSessionFacts, runReport, collectGroupFacts, describeMeasure, isTimeDimension,
   makeConditionalColour, PRESET_GROUPS, PRESETS, groupByOptionsForGrain, splitByOptionsForGrain, RANGE_OPTIONS, rangeLabel,
-  buildFilterOptions,
+  buildFilterOptions, buildReportRows, reportRowsToCsv, reportInsight, REPORT_PALETTE, REPORT_SINGLE,
 } from '@/lib/workload-report';
+import ReportScheduleModal from './ReportScheduleModal';
 import { createClient } from '@/utils/supabase/client';
 import { canEditPracticeData } from '@/lib/permissions';
 import { onKeyActivate } from '@/lib/a11y';
@@ -31,8 +32,10 @@ const SESSION_OPTS = [
   { id: 'am', label: 'AM', colour: '#f59e0b' },
   { id: 'pm', label: 'PM', colour: '#6366f1' },
 ];
-const PALETTE = ['#6366f1','#10b981','#f59e0b','#ef4444','#0ea5e9','#a78bfa','#ec4899','#14b8a6','#f97316','#84cc16'];
-const SINGLE = '#6366f1';
+// Bar colours come from lib/workload-report so the emailed chart and this
+// one cannot end up different colours.
+const PALETTE = REPORT_PALETTE;
+const SINGLE = REPORT_SINGLE;
 
 function ChipGroup({ options, selected, onChange, allLabel = 'Any', allowAll = true }) {
   const toggle = (id) => {
@@ -160,6 +163,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   const [newReportName, setNewReportName] = useState('');
   const [showSaveBox, setShowSaveBox] = useState(false);
   const [drill, setDrill] = useState(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const toast = useToast();
   // Per-user favourites (set of refs like 'preset:busiest-load' / 'saved:<uuid>').
   const [favourites, setFavourites] = useState(() => new Set());
 
@@ -244,6 +249,14 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   }), [grain, isSession, num, denomMode, denom, groupBy, splitBy, range, globalFilter, excludeSystem, sort, topN, chart, colourMode, condInvert, condMode, condLow, condHigh]);
 
   const result = useMemo(() => runReport(facts, config), [facts, config]);
+
+  // Lets the schedule modal compute figures for the other reports in a
+  // bundle without re-parsing the CSV — the facts are already built here
+  // for both grains, so this is just a second pass over them.
+  const runFor = useCallback((cfg) => {
+    const f = cfg?.grain === 'sessions' ? sessionData.facts : slotData.facts;
+    return runReport(f || [], cfg);
+  }, [slotData, sessionData]);
 
   useEffect(() => {
     if (!groupByOpts.map(o => o.id).includes(groupBy)) setGroupBy('clinician');
@@ -454,32 +467,16 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
   const dutyMissing = (usesBusiest && !sessionData.hasUrgent) || (usesDuty && !sessionData.hasDuty);
   const filterCount = ['clinicianIds','roles','locations','slotTypes','sessions'].reduce((n, k) => n + (globalFilter[k]?.length || 0), 0);
 
-  const insight = (() => {
-    if (!result.groups.length || result.hasSplit) return null;
-    const sorted = [...result.groups].sort((a, b) => b.value - a.value);
-    const top = sorted[0];
-    if (!top || top.value <= 0) return null;
-    if (result.isRatio) { const ratio = avg > 0 ? top.value / avg : 0; if (ratio >= 1.4) return `${top.label} is highest at ${fmt(top.value)} — about ${ratio.toFixed(1)}× the group average of ${fmt(avg)}.`; }
-    else { const share = result.totalNum > 0 ? (top.numerator / result.totalNum) * 100 : 0; if (share >= 25) return `${top.label} accounts for ${share.toFixed(0)}% of the total (${fmt(top.value)} of ${result.totalNum}).`; }
-    return null;
-  })();
+  // Same sentence the scheduled email prints, from the same function.
+  const insight = reportInsight(result);
 
-  const buildRows = () => {
-    const header = ['Group'];
-    if (result.hasSplit) result.series.forEach(s => header.push(s.label || 'Series')); else header.push(result.isRatio ? 'Percentage' : 'Count');
-    if (result.isRatio && !result.hasSplit) header.push('Numerator', 'Denominator');
-    const rows = result.groups.map(g => {
-      const r = [g.label];
-      if (result.hasSplit) result.series.forEach(s => r.push(result.isRatio ? g.cells[s.key].value.toFixed(1) : g.cells[s.key].value));
-      else { r.push(result.isRatio ? g.value.toFixed(1) : g.value); if (result.isRatio) r.push(g.numerator, g.denominator); }
-      return r;
-    });
-    return [header, ...rows];
-  };
-  const copyTable = () => navigator.clipboard?.writeText(buildRows().map(r => r.join('\t')).join('\n'));
+  // Rows come from lib/workload-report, shared with the CSV that scheduled
+  // report emails attach — the downloaded file and the emailed one are
+  // produced by the same code.
+  const copyTable = () => navigator.clipboard?.writeText(buildReportRows(result).map(r => r.join('\t')).join('\n'));
   const downloadCsv = () => {
-    const csv = buildRows().map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' }); const a = document.createElement('a');
+    const blob = new Blob([reportRowsToCsv(buildReportRows(result))], { type: 'text/csv' });
+    const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = `${reportName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.csv`; a.click(); URL.revokeObjectURL(a.href);
   };
 
@@ -529,6 +526,21 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
               {dirty && <button onClick={resetReport} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)' }}>↺ Reset</button>}
               <button onClick={copyTable} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-mid)' }}>Copy</button>
               <button onClick={downloadCsv} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-mid)' }}>CSV</button>
+              {canEdit && (loadedSavedId ? (
+                <button onClick={() => setScheduleOpen(true)} className="text-xs px-2.5 py-1 rounded-md font-medium"
+                  style={{ background: 'rgba(8,145,178,0.15)', border: '1px solid rgba(8,145,178,0.45)', color: '#67e8f9', cursor: 'pointer' }}
+                  title="Email this report to people on a regular basis">
+                  &#9993; Email on a schedule
+                </button>
+              ) : (
+                // A schedule follows a saved report, so there has to be one
+                // to follow. Say why rather than hiding the button.
+                <button disabled className="text-xs px-2.5 py-1 rounded-md"
+                  style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-faint)', cursor: 'not-allowed' }}
+                  title="Save this report first - a schedule follows the saved report, so your later edits reach the people it is emailed to">
+                  &#9993; Email on a schedule
+                </button>
+              ))}
               {dirty && loadedSavedId && <span className="text-xs text-amber-300/80">Unsaved changes</span>}
               {origin === 'preset' && !loadedSavedId && <span className="text-xs text-slate-400">Save keeps this report, with your changes, for your whole practice</span>}
             </div>
@@ -717,6 +729,24 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
       </div>
 
       {drill && <DrillModal drill={drill} isSession={isSession} onClose={() => setDrill(null)} />}
+
+      {scheduleOpen && (
+        <ReportScheduleModal
+          open={scheduleOpen}
+          onClose={() => setScheduleOpen(false)}
+          practiceId={practiceId}
+          userId={userId}
+          practiceName={data?._v4?.practiceName || 'your practice'}
+          savedReportId={loadedSavedId}
+          reportName={reportName}
+          result={result}
+          config={config}
+          savedReports={savedReports}
+          runFor={runFor}
+          canEdit={canEdit}
+          toast={toast}
+        />
+      )}
     </div>
   );
 }
