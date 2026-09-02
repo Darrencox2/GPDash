@@ -29,6 +29,7 @@
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "autoprefixer": "^10.4.17",
+    "esbuild": "^0.24.2",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "postcss": "^8.4.35",
