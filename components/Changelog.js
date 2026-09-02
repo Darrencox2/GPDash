@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { CHANGELOG } from '@/lib/changelog';
 import { APP_VERSION } from '@/lib/version';
+import { ARCHIVE_COUNT } from '@/lib/changelog-meta';
 
 const TYPE_STYLES = {
   feature: { label: 'New', bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
@@ -15,9 +16,24 @@ export default function Changelog() {
   // The public /changelog page was paginated in v4.119.0; this is the same
   // fix in the second place it was needed.
   const [showAll, setShowAll] = useState(false);
+  // The archive is a separate chunk: fetched the first time someone asks
+  // for it, never before.
+  const [archive, setArchive] = useState(null);
+  const [loadingArchive, setLoadingArchive] = useState(false);
   const RECENT_COUNT = 12;
-  const releases = showAll ? CHANGELOG : CHANGELOG.slice(0, RECENT_COUNT);
-  const hiddenCount = CHANGELOG.length - releases.length;
+  const all = archive ? [...CHANGELOG, ...archive] : CHANGELOG;
+  const releases = showAll ? all : CHANGELOG.slice(0, RECENT_COUNT);
+  const totalCount = CHANGELOG.length + (archive ? archive.length : ARCHIVE_COUNT);
+  const hiddenCount = totalCount - releases.length;
+  const showEverything = async () => {
+    if (!archive) {
+      setLoadingArchive(true);
+      try { const m = await import('@/lib/changelog-archive'); setArchive(m.CHANGELOG_ARCHIVE || []); }
+      catch { setArchive([]); }
+      finally { setLoadingArchive(false); }
+    }
+    setShowAll(true);
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -88,11 +104,12 @@ export default function Changelog() {
         {hiddenCount > 0 && (
           <button
             type="button"
-            onClick={() => setShowAll(true)}
+            onClick={showEverything}
+            disabled={loadingArchive}
             className="w-full mt-3 py-2.5 rounded-lg text-sm font-medium"
             style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--link)', cursor: 'pointer' }}
           >
-            Show all {CHANGELOG.length} releases
+            {loadingArchive ? 'Loading older releases…' : `Show all ${totalCount} releases`}
             <span style={{ color: 'var(--meta)', fontWeight: 400 }}> &middot; {hiddenCount} older hidden</span>
           </button>
         )}

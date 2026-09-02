@@ -26,7 +26,7 @@ function practiceInitials(name) {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   { id: 'huddle-today', section: null, label: 'Today', colour: '#10b981',
     icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
   { id: 'briefing', section: null, label: 'Morning briefing', colour: '#f59e0b',

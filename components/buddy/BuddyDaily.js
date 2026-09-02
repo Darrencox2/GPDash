@@ -527,6 +527,19 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     saveData({ ...data, huddleSettings: { ...hs, rotaSuggestionIgnores: ignores } }, false);
   };
 
+  // [ and ] step the week, unless someone is typing.
+  useEffect(() => {
+    const onKey = (e) => {
+      const t = e.target;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (e.key === '[') { e.preventDefault(); setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000)); }
+      else if (e.key === ']') { e.preventDefault(); setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000)); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedWeek, setSelectedWeek]);
+
   const undoWindDown = async (clinicianId) => {
     if (!canEdit) return;
     const c = cliniciansList.find((x) => x.id === clinicianId) || (data.clinicians || []).find?.((x) => x.id === clinicianId);

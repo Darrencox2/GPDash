@@ -52,7 +52,7 @@ const CARD_DURATIONS = [
 // ══════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════
-export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages, setActiveSection }) {
+export default function HuddleToday({ data, saveData, toast, huddleData, setHuddleData, huddleMessages, setHuddleMessages, setActiveSection, requestedDate }) {
   const canEdit = canEditPracticeData(data);
   const [newMsg, setNewMsg] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -140,6 +140,22 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
     const d = new Date(dateStr + 'T00:00:00');
     if (d >= minDate && d <= maxDate) { setViewingDate(d); setShowCalendar(false); }
   };
+  // The ⌘K palette asks for a date; each request carries a nonce so the
+  // same date twice still lands.
+  useEffect(() => { if (requestedDate?.iso) goToDate(requestedDate.iso); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [requestedDate]);
+  // [ and ] step the day, unless someone is typing.
+  useEffect(() => {
+    const onKey = (e) => {
+      const t = e.target;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (e.key === '[') { e.preventDefault(); navigateDay(-1); }
+      else if (e.key === ']') { e.preventDefault(); navigateDay(1); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingDate]);
 
   // For non-urgent cards, null overrides should mean ALL slots, not fall through to urgent filter
   const allSlotsOverrides = useMemo(() => {

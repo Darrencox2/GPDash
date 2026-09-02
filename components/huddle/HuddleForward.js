@@ -263,7 +263,7 @@ function WeeklyRoutineBullet({ wk, rTarget, shortWeek = false }) {
 // Weekly beneath it, which is where a choice of view belongs - it is a
 // place you navigate to, not a setting on the page. The in-page toggle it
 // replaces is gone.
-export default function HuddleForward({ data, saveData, huddleData, setActiveSection, view = 'month' }) {
+export default function HuddleForward({ data, saveData, huddleData, setActiveSection, view = 'month', requestedWeek }) {
   const canEdit = canEditPracticeData(data);
   const [selectedDay, setSelectedDay] = useState(null);
   // selectedMarker controls which "insight" (urgent below target / highest
@@ -571,6 +571,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   const patterns = useMemo(()=>detectPatterns(weeks, hs, teamClin, huddleData), [weeks, hs, teamClin, huddleData]);
   // #9: which week a grid-row click should land on in the detail view.
   const [weekDetailOffset, setWeekDetailOffset] = useState(0);
+  // The ⌘K palette asks for "week 3": weeks are 1-based on screen.
+  useEffect(() => { if (requestedWeek?.n) setWeekDetailOffset(Math.max(0, requestedWeek.n - 1)); }, [requestedWeek]);
   const blankFrom = trailingBlankFrom(weeks);
   const lastExported = lastExportedDay(weeks);
 

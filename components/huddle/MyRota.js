@@ -23,7 +23,7 @@ function LocSquare({ loc, size = 24, duty, colour }) {
   );
 }
 
-export default function MyRota({ data, saveData, huddleData, standalone, setActiveSection }) {
+export default function MyRota({ data, saveData, huddleData, standalone, setActiveSection, requestedInitials }) {
   const sites = data?.roomAllocation?.sites || [];
   const siteCol = (name) => getSiteColour(name, sites);
   const clinicians = useMemo(() => {
@@ -75,6 +75,14 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
   }, [clinicians, data?._v4?.linkedClinicianId]);
 
   const select = c => { setSelectedId(c.id); setSearch(''); setShowDropdown(false); setIsSearching(false); window.location.hash = `rota-${c.initials}`; };
+  // The ⌘K palette picks a clinician by initials, whether or not this page
+  // was already open.
+  useEffect(() => {
+    if (!requestedInitials?.initials) return;
+    const m = clinicians.find(c => c.initials === requestedInitials.initials);
+    if (m) select(m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedInitials, clinicians]);
   const selected = clinicians.find(c => c.id === selectedId);
 
   // Calendar subscription: personal ICS feed for the selected clinician.

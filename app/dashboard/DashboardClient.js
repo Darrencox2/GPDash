@@ -23,6 +23,9 @@ import { predictDemand } from '@/lib/demandPredictor';
 import { sweepWindDowns } from '@/lib/status-transitions';
 import { regenerateCoverWindow, coverInputsFingerprint } from '@/lib/cover-regen';
 import { ToastProvider, useToast, PageSkeleton, confirmDialog } from '@/components/ui';
+import CommandPalette from '@/components/CommandPalette';
+import { APP_VERSION } from '@/lib/version';
+import { CHANGELOG } from '@/lib/changelog';
 import Sidebar from '@/components/Sidebar';
 import LinkClinicianSuggest from '@/components/LinkClinicianSuggest';
 import { canEditPracticeData, isPlatformAdmin } from '@/lib/permissions';
@@ -30,7 +33,6 @@ import { createClient } from '@/utils/supabase/client';
 import { DashboardCompletenessStrip } from '@/app/v4/_lib/SectionStatus';
 import { reportError } from '@/lib/report-error';
 import { noteAction, getTrail, isStaleBuildError, buildErrorReport } from '@/lib/error-context';
-import { APP_VERSION } from '@/lib/version';
 import MorningBriefing from '@/components/huddle/MorningBriefing';
 import StaffChanges from '@/components/workforce/StaffChanges';
 
@@ -255,6 +257,28 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   useEffect(() => { noteAction(`Opened section: ${activeSection}`); }, [activeSection]);
   // Capacity planning answers to two sidebar entries: monthly and weekly.
   const isCapacity = activeSection === 'huddle-forward' || activeSection === 'huddle-forward-week';
+
+  // ⌘K requests. Each carries a nonce so repeating the same one still fires.
+  const [reqDate, setReqDate] = useState(null);       // { iso, n }
+  const [reqWeek, setReqWeek] = useState(null);       // { n, nonce }
+  const [reqRota, setReqRota] = useState(null);       // { initials, n }
+  const paletteDate = (isoDate) => { setActiveSection('huddle-today'); setReqDate({ iso: isoDate, n: Date.now() }); };
+  const paletteWeek = (n) => { setActiveSection('huddle-forward-week'); setReqWeek({ n, nonce: Date.now() }); };
+  const paletteClinician = (c) => { setActiveSection('huddle-rota'); setReqRota({ initials: c.initials, n: Date.now() }); };
+
+  // "New since you were last here": one line, once per version, once the
+  // practice has loaded. Nobody opens the changelog; everybody reads a toast.
+  useEffect(() => {
+    if (!data?._v4?.practiceName) return;
+    try {
+      const seen = localStorage.getItem('gpdash-seen-version');
+      if (seen && seen !== APP_VERSION && CHANGELOG[0]) {
+        toast(`New in ${APP_VERSION}: ${CHANGELOG[0].title}. Details under Changelog in the sidebar menu.`, 'success', 8000);
+      }
+      localStorage.setItem('gpdash-seen-version', APP_VERSION);
+    } catch { /* private mode */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?._v4?.practiceName]);
   // Pick up `?section=X` after hydration. The previous useState initializer
   // pattern with `typeof window !== 'undefined'` doesn't work cross-page in
   // App Router — server renders with default, client hydrates with that
@@ -963,6 +987,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--app-bg)' }}>
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} data={data} />
+      <CommandPalette data={data} activeSection={activeSection} onSection={setActiveSection} onDate={paletteDate} onWeek={paletteWeek} onClinician={paletteClinician} />
       <main className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)' }}>
         {/* The two capacity views are one section wearing two hats. They
             share a boundary key so switching between them does not remount
@@ -1036,10 +1061,10 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           {huddleLoading && ['huddle-today','huddle-rota','huddle-forward','huddle-forward-week','reporting'].includes(activeSection) && <PageSkeleton />}
           {activeSection === 'staff-changes' && <StaffChanges data={data} saveData={saveData} />}
           {activeSection === 'briefing' && <MorningBriefing data={data} huddleData={huddleData} huddleMessages={huddleMessages} />}
-          {activeSection === 'huddle-today' && !huddleLoading && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} />}
-          {activeSection === 'huddle-rota' && !huddleLoading && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}
+          {activeSection === 'huddle-today' && !huddleLoading && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} requestedDate={reqDate} />}
+          {activeSection === 'huddle-rota' && !huddleLoading && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} requestedInitials={reqRota} />}
           {activeSection === 'meetings' && <Meetings data={data} />}
-          {isCapacity && !huddleLoading && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} view={activeSection === 'huddle-forward-week' ? 'week' : 'month'} />}
+          {isCapacity && !huddleLoading && <HuddleForward data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} view={activeSection === 'huddle-forward-week' ? 'week' : 'month'} requestedWeek={reqWeek} />}
           {activeSection === 'reporting' && !huddleLoading && <WorkloadAudit data={data} huddleData={huddleData} />}
           {activeSection === 'workforce-planner' && <WorkforcePlanner data={data} toast={toast} />}
           {activeSection === 'spend' && !huddleLoading && <SpendTracker data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} />}

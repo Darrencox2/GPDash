@@ -4,6 +4,7 @@ GP practice dashboard for Winscombe & Banwell Family Practice. Next.js + Supabas
 
 ## Every build
 - Bump `lib/version.js` (semver: MAJOR breaking, MINOR feature, PATCH fix) and prepend an entry to `lib/changelog.js`. **No apostrophes in changelog text.**
+- `lib/changelog.js` holds only recent releases; older ones live in `lib/changelog-archive.js` (loaded on demand). When the recent list passes ~40, move the oldest into the archive and update `ARCHIVE_COUNT` in `lib/changelog-meta.js`.
 - Build gate before any commit: `rm -rf .next && NODE_OPTIONS="--max-old-space-size=2048" npx next build`
 - Commit identity: `git -c user.email="darrencox2@users.noreply.github.com" -c user.name="Darrencox2"`
 - Ask Darren before building new features and before committing/pushing.

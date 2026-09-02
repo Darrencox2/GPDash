@@ -1,7 +1,10 @@
 // Public changelog — renders lib/changelog.js (the same data shown in
 // the in-app sidebar) as a standalone page. Server component, no auth,
 // styled to match the /legal and /privacy public pages.
-import { CHANGELOG } from '@/lib/changelog';
+import { CHANGELOG as RECENT } from '@/lib/changelog';
+import { CHANGELOG_ARCHIVE } from '@/lib/changelog-archive';
+// Server component: the archive import costs the browser nothing.
+const CHANGELOG = [...RECENT, ...CHANGELOG_ARCHIVE];
 import { APP_VERSION } from '@/lib/version';
 
 export const metadata = {
