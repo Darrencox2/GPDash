@@ -9,7 +9,9 @@ import { test, expect } from '@playwright/test';
 import {
   nextSendAt, nextSends, describeReportSchedule, londonToUtc,
   normaliseLayout, DEFAULT_LAYOUT, MINUTE_OPTIONS,
+  activeRecipients, unsubscribeUrls,
 } from '../../lib/report-schedules.js';
+import { renderUnsubscribeNotice } from '../../lib/report-email.js';
 import { renderReportEmail } from '../../lib/report-email.js';
 import { buildReportRows, reportRowsToCsv, reportInsight } from '../../lib/workload-report.js';
 
@@ -130,13 +132,18 @@ function fakeResult({ isRatio = true, hasSplit = false, groups, series } = {}) {
     { key: 'c', label: 'Dr C', value: 10, numerator: 10, denominator: 100, cells: {} },
   ];
   const vals = gs.map(g => g.value);
+  // totalValue is DERIVED from the rows, not hardcoded. It is the pooled
+  // ratio the chart draws its reference line at, so a fixture that states it
+  // independently of its own rows can assert a baseline the data does not
+  // support — which is how a stale 33.3 here once hid a real mismatch.
+  const totalNum = gs.reduce((a, g) => a + (g.numerator || 0), 0);
+  const totalDenom = gs.reduce((a, g) => a + (g.denominator || 0), 0) || 300;
   return {
     groups: gs,
     series: series || [{ key: '_all', label: '' }],
     hasSplit, isRatio, denomMode: isRatio ? 'group' : 'none',
-    totalNum: gs.reduce((s, g) => s + g.numerator, 0),
-    totalDenom: 300, totalAll: 300,
-    totalValue: isRatio ? 33.3 : 100,
+    totalNum, totalDenom, totalAll: totalDenom,
+    totalValue: isRatio ? (totalNum / totalDenom) * 100 : totalNum,
     valueMin: Math.min(...vals), valueMax: Math.max(...vals),
     valueAvg: vals.reduce((a, b) => a + b, 0) / vals.length,
   };
@@ -355,6 +362,44 @@ test.describe('reportInsight', () => {
   test('names a genuine outlier', () => {
     expect(reportInsight(fakeResult())).toContain('Dr A is highest at 60.0%');
   });
+
+  // The regression this guards: the chart draws its reference line at
+  // totalValue and calls it "fair share", so the sentence must not quietly
+  // compare against valueAvg instead. The two only agree when everybody
+  // carries the same denominator, which is exactly when a bug here hides.
+  test('compares against the pooled fair share, not the mean of the rows', () => {
+    // Mirrors real Winscombe data: 52 duty of 255 worked = 20.39% pooled,
+    // while the mean of the eleven row percentages is 18.14%.
+    const rows = [
+      ['Darren Cox', 11, 32], ['Trudi Withey', 3, 10], ['Laura Walsh', 8, 29],
+      ['Justin Grandison', 9, 34], ['Katie Ellison', 7, 28], ['Elizabeth Puntis', 6, 27],
+      ['Alice Blackwell', 5, 24], ['Ruth Colson', 3, 23], ['Madeleine Edwards', 0, 17],
+      ['Nicola Howard', 0, 21], ['Rosemarie Potts', 0, 10],
+    ];
+    const groups = rows.map(([label, n, d], i) => ({
+      key: `k${i}`, label, numerator: n, denominator: d, value: (n / d) * 100, cells: {},
+    }));
+    const vals = groups.map(g => g.value);
+    const totalNum = rows.reduce((a, [, n]) => a + n, 0);
+    const totalDenom = rows.reduce((a, [, , d]) => a + d, 0);
+    const result = {
+      groups, series: [{ key: '_all', label: '' }], hasSplit: false, isRatio: true,
+      denomMode: 'custom', totalNum, totalDenom, totalAll: totalDenom,
+      totalValue: (totalNum / totalDenom) * 100,
+      valueMin: Math.min(...vals), valueMax: Math.max(...vals),
+      valueAvg: vals.reduce((a, b) => a + b, 0) / vals.length,
+    };
+
+    // Both statistics are real and they genuinely differ.
+    expect(result.totalValue).toBeCloseTo(20.39, 1);
+    expect(result.valueAvg).toBeCloseTo(18.14, 1);
+
+    const line = reportInsight(result);
+    expect(line).toContain('fair share of 20.4%');   // the chart's own number
+    expect(line).toContain('1.7×');                  // 34.4 / 20.4, not 34.4 / 18.1
+    expect(line).not.toContain('18.1');
+    expect(line).not.toContain('group average');
+  });
   test('says nothing when the group is level', () => {
     const level = fakeResult({ groups: [
       { key: 'a', label: 'A', value: 50, numerator: 50, denominator: 100, cells: {} },
@@ -364,5 +409,108 @@ test.describe('reportInsight', () => {
   });
   test('says nothing for split reports, where there is no single highest', () => {
     expect(reportInsight(fakeResult({ hasSplit: true }))).toBeNull();
+  });
+});
+
+
+test.describe('unsubscribe', () => {
+  const R = [
+    { email: 'a@nhs.net', token: 't1' },
+    { email: 'b@nhs.net', token: 't2', unsubscribedAt: '2026-09-02T10:00:00Z' },
+    { email: 'c@example.org', token: 't3' },
+  ];
+
+  test('people who opted out of this schedule stop receiving it', () => {
+    expect(activeRecipients(R).map(r => r.email)).toEqual(['a@nhs.net', 'c@example.org']);
+  });
+
+  test('the practice-wide suppression list wins even without a per-schedule opt-out', () => {
+    const out = activeRecipients(R, new Set(['c@example.org']));
+    expect(out.map(r => r.email)).toEqual(['a@nhs.net']);
+  });
+
+  test('suppression matching ignores case, because addresses are typed by hand', () => {
+    const out = activeRecipients([{ email: 'Jane.Doe@NHS.net', token: 'x' }], new Set(['jane.doe@nhs.net']));
+    expect(out).toHaveLength(0);
+  });
+
+  test('junk in the recipients array cannot crash a send', () => {
+    expect(activeRecipients([null, {}, { email: '' }, 'nope', { email: 'ok@nhs.net' }]).map(r => r.email))
+      .toEqual(['ok@nhs.net']);
+    expect(activeRecipients(null)).toEqual([]);
+  });
+
+  test('the two links are distinct: a page for humans, an endpoint for one-click', () => {
+    const u = unsubscribeUrls('https://gpdash.net/', 'tok123');
+    expect(u.page).toBe('https://gpdash.net/r/unsubscribe/tok123');
+    expect(u.post).toBe('https://gpdash.net/api/v4/public/unsubscribe/tok123');
+    expect(u.page).not.toBe(u.post);
+  });
+
+  test('no address ever appears in an unsubscribe URL', () => {
+    const u = unsubscribeUrls('https://gpdash.net', 'tok123');
+    expect(u.page + u.post).not.toContain('@');
+  });
+});
+
+test.describe('unsubscribe link in the email', () => {
+  const withToken = (over = {}) => renderReportEmail({
+    reportName: 'Fill rate', practiceName: 'Test Practice', result: fakeResult(),
+    config: CONFIG, layout: {}, siteUrl: 'https://gpdash.net', unsubscribeToken: 'tok123', ...over,
+  });
+
+  test('the footer link carries only the token', () => {
+    const { html } = withToken();
+    expect(html).toContain('https://gpdash.net/r/unsubscribe/tok123');
+    expect(html).toContain('Stop sending this to me');
+  });
+
+  test('mail clients get the RFC 8058 headers for their own unsubscribe button', () => {
+    const { headers } = withToken();
+    expect(headers['List-Unsubscribe']).toBe('<https://gpdash.net/api/v4/public/unsubscribe/tok123>');
+    expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+  });
+
+  test('the plain-text copy has a way out too', () => {
+    expect(withToken().text).toContain('Stop sending this to me: https://gpdash.net/r/unsubscribe/tok123');
+  });
+
+  test('a preview with no recipient has no link and no headers', () => {
+    const out = withToken({ unsubscribeToken: null });
+    expect(out.headers).toBeUndefined();
+    expect(out.html).not.toContain('/r/unsubscribe/');
+    expect(out.html).toContain('ask an administrator');
+  });
+});
+
+test.describe('the notice to whoever set the schedule up', () => {
+  const notice = (over = {}) => renderUnsubscribeNotice({
+    organiserName: 'Darren Cox', practiceName: 'Winscombe Surgery',
+    recipientEmail: 'jane@example.org', recipientName: 'Jane Doe',
+    reportNames: ['Fill rate', 'Duty share'], scheduleLabel: 'Every Monday at 08:00',
+    scope: 'schedule', paused: false, siteUrl: 'https://gpdash.net', ...over,
+  });
+
+  test('names who left and what they left', () => {
+    const { subject, html } = notice();
+    expect(subject).toContain('Jane Doe (jane@example.org)');
+    expect(html).toContain('Fill rate and Duty share');
+    expect(html).toContain('every monday at 08:00');
+  });
+
+  test('says whether it was this email or everything', () => {
+    expect(notice({ scope: 'schedule' }).html).toContain('this schedule only');
+    expect(notice({ scope: 'practice' }).html).toContain('all</strong> report emails');
+  });
+
+  test('calls out a schedule that switched itself off', () => {
+    expect(notice({ paused: false }).html).not.toContain('paused');
+    expect(notice({ paused: true }).html).toContain('<strong>paused</strong>');
+  });
+
+  test('escapes a name with markup in it', () => {
+    const { html } = notice({ recipientName: '<script>x</script>' });
+    expect(html).not.toContain('<script>x</script>');
+    expect(html).toContain('&lt;script&gt;');
   });
 });

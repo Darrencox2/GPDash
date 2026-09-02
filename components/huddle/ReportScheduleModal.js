@@ -105,6 +105,10 @@ export default function ReportScheduleModal({
   const [newEmail, setNewEmail] = useState('');
   // Ordered ids of the reports this email carries.
   const [reportIds, setReportIds] = useState([]);
+  // Addresses that opted out of every report email from this practice.
+  // Re-adding one has to be blocked, or the setup screen quietly undoes
+  // somebody's unsubscribe.
+  const [optedOut, setOptedOut] = useState(() => new Set());
   const [previewWide, setPreviewWide] = useState(true);
 
   const memberEmails = useMemo(
@@ -128,15 +132,17 @@ export default function ReportScheduleModal({
       // Every schedule for the practice, not just ones already carrying
       // this report — adding this report to an existing Monday email is
       // the whole point of bundling.
-      const [sch, mem] = await Promise.all([
+      const [sch, mem, outs] = await Promise.all([
         supabase.from('report_schedules')
           .select('*, report_schedule_items(saved_report_id, position)')
           .eq('practice_id', practiceId).order('created_at'),
         supabase.rpc('list_practice_members', { target_practice_id: practiceId }),
+        supabase.from('report_email_optouts').select('email').eq('practice_id', practiceId),
       ]);
       if (cancelled) return;
       setSchedules(sch.data || []);
       setMembers((mem.data || []).filter(m => m.email));
+      setOptedOut(new Set((outs.data || []).map(o => String(o.email).toLowerCase())));
       setReportIds(savedReportId ? [savedReportId] : []);
       setLoading(false);
     })();
@@ -215,15 +221,23 @@ export default function ReportScheduleModal({
     }
   }, [bundle, practiceName, layout, intro, subject, draft]);
 
-  const externalCount = recipients.filter(r => !memberEmails.has((r.email || '').toLowerCase())).length;
+  const externalCount = recipients
+    .filter(r => !r.unsubscribedAt)
+    .filter(r => !memberEmails.has((r.email || '').toLowerCase())).length;
 
   // ─── Recipients ────────────────────────────────────────────────────────
   const addRecipient = (email, name) => {
     const clean = (email || '').trim().toLowerCase();
     if (!isEmail(clean)) { toast?.('That does not look like an email address', 'error'); return; }
     if (recipients.some(r => (r.email || '').toLowerCase() === clean)) return;
+    if (optedOut.has(clean)) {
+      toast?.('That person asked to stop receiving report emails from this practice. They need to ask to be put back on.', 'error');
+      return;
+    }
     setRecipients(rs => [...rs, { email: clean, name: name || '', external: !memberEmails.has(clean) }]);
   };
+  const activeCount = recipients.filter(r => !r.unsubscribedAt).length;
+
   const moveReport = (i, delta) => setReportIds(ids => {
     const j = i + delta;
     if (j < 0 || j >= ids.length) return ids;
@@ -237,7 +251,7 @@ export default function ReportScheduleModal({
 
   // ─── Persist ───────────────────────────────────────────────────────────
   const save = async () => {
-    if (!canEdit || recipients.length === 0 || reportIds.length === 0) return;
+    if (!canEdit || activeCount === 0 || reportIds.length === 0) return;
     setSaving(true);
     try {
       const next = nextSends(draft, 1)[0];
@@ -250,9 +264,14 @@ export default function ReportScheduleModal({
         anchor_date: cadence === 'fortnightly' && next
           ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(next)
           : null,
+        // token and unsubscribedAt are carried through untouched: an edit
+        // must never resubscribe someone who opted out, and must never
+        // invalidate the link in an email already sitting in their inbox.
         recipients: recipients.map(r => ({
           email: r.email, name: r.name || '',
           external: !memberEmails.has((r.email || '').toLowerCase()),
+          ...(r.token ? { token: r.token } : {}),
+          ...(r.unsubscribedAt ? { unsubscribedAt: r.unsubscribedAt, unsubscribedScope: r.unsubscribedScope } : {}),
         })),
         layout: normaliseLayout(layout),
         subject: subject.trim() || null,
@@ -420,7 +439,7 @@ export default function ReportScheduleModal({
                           {describeReportSchedule(s)}
                         </span>
                         <span className="flex items-center gap-1.5 flex-shrink-0">
-                          {!s.active && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--g-field)', color: 'var(--g-text-faint)' }}>Paused</span>}
+                          {!s.active && <span className="text-[10px] px-1.5 py-0.5 rounded" title={s.pause_reason || 'Paused'} style={{ background: 'var(--g-field)', color: 'var(--g-text-faint)' }}>Paused</span>}
                           <button onClick={(e) => { e.stopPropagation(); togglePause(s); }} title={s.active ? 'Pause' : 'Resume'}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-text-mid)', fontSize: 12 }}>{s.active ? '⏸' : '▶'}</button>
                           <button onClick={(e) => { e.stopPropagation(); remove(s); }} title="Delete"
@@ -438,6 +457,9 @@ export default function ReportScheduleModal({
                         <div className="text-[11px] mt-1" style={{ color: '#67e8f9' }}>
                           Does not include this report — open it to add it
                         </div>
+                      )}
+                      {s.pause_reason && (
+                        <div className="text-[11px] mt-1" style={{ color: '#fcd34d' }}>{s.pause_reason}</div>
                       )}
                       {/* Delivery truth. A send that silently failed must not look like one that arrived. */}
                       {log && (
@@ -573,16 +595,31 @@ export default function ReportScheduleModal({
                 <div className="flex flex-wrap gap-1.5">
                   {recipients.map(r => {
                     const ext = !memberEmails.has((r.email || '').toLowerCase());
+                    const off = !!r.unsubscribedAt;
                     return (
                       <span key={r.email} className="text-[11px] px-2 py-1 rounded-md flex items-center gap-1.5"
-                        style={{ background: ext ? 'rgba(245,158,11,0.15)' : 'var(--g-tile)', border: `1px solid ${ext ? 'rgba(245,158,11,0.45)' : 'var(--g-border-2)'}`, color: 'var(--g-text-hi)' }}>
-                        {ext && <span title="Not a member of this practice">⚠</span>}
+                        style={{
+                          background: off ? 'var(--g-field)' : ext ? 'rgba(245,158,11,0.15)' : 'var(--g-tile)',
+                          border: `1px solid ${off ? 'var(--g-line)' : ext ? 'rgba(245,158,11,0.45)' : 'var(--g-border-2)'}`,
+                          color: off ? 'var(--g-text-faint)' : 'var(--g-text-hi)',
+                          textDecoration: off ? 'line-through' : 'none',
+                        }}
+                        title={off ? `Unsubscribed ${formatSendTime(r.unsubscribedAt)}${r.unsubscribedScope === 'practice' ? ' from all report emails' : ''}` : undefined}>
+                        {off ? <span title="Unsubscribed">⊘</span> : ext ? <span title="Not a member of this practice">⚠</span> : null}
                         {r.name ? `${r.name} · ${r.email}` : r.email}
                         <button onClick={() => removeRecipient(r.email)} aria-label={`Remove ${r.email}`}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-text-faint)' }}>×</button>
                       </span>
                     );
                   })}
+                </div>
+              )}
+
+              {recipients.some(r => r.unsubscribedAt) && (
+                <div className="text-[11px] rounded-md px-2.5 py-2 leading-snug"
+                  style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-mid)' }}>
+                  Struck-through people asked to stop receiving this. They are kept on the list so you can see who left and when.
+                  Only they can put themselves back on, from the link in an email they already have.
                 </div>
               )}
 
@@ -663,9 +700,9 @@ export default function ReportScheduleModal({
               <Toggle label="Send on this schedule" hint={active ? describeReportSchedule(draft) : 'Paused — nothing will be sent'}
                 checked={active} onChange={setActive} />
               <div className="flex items-center gap-2 flex-wrap">
-                <button onClick={save} disabled={!canEdit || saving || recipients.length === 0 || reportIds.length === 0}
+                <button onClick={save} disabled={!canEdit || saving || activeCount === 0 || reportIds.length === 0}
                   className="text-xs font-semibold px-3 py-1.5 rounded"
-                  style={{ background: ACCENT, color: '#fff', border: 'none', cursor: (canEdit && recipients.length && reportIds.length) ? 'pointer' : 'default', opacity: (!canEdit || saving || !recipients.length || !reportIds.length) ? 0.5 : 1 }}>
+                  style={{ background: ACCENT, color: '#fff', border: 'none', cursor: (canEdit && activeCount && reportIds.length) ? 'pointer' : 'default', opacity: (!canEdit || saving || !activeCount || !reportIds.length) ? 0.5 : 1 }}>
                   {saving ? '…' : editingId ? 'Save changes' : 'Create schedule'}
                 </button>
                 <button onClick={sendTest} disabled={testing}
@@ -674,8 +711,8 @@ export default function ReportScheduleModal({
                   {testing ? 'Sending…' : 'Send test to me'}
                 </button>
               </div>
-              {recipients.length === 0 && (
-                <p className="text-[11px]" style={{ color: 'var(--g-text-faint)' }}>Add at least one recipient to create the schedule. A test can be sent to yourself at any time.</p>
+              {activeCount === 0 && (
+                <p className="text-[11px]" style={{ color: 'var(--g-text-faint)' }}>Add at least one recipient who has not unsubscribed. A test can be sent to yourself at any time.</p>
               )}
               {!canEdit && (
                 <p className="text-[11px]" style={{ color: '#fcd34d' }}>Only a practice administrator can create or change schedules.</p>

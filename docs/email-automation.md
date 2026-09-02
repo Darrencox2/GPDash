@@ -279,3 +279,58 @@ indistinguishable from internal ones.
 
 Every email carries a footer asking recipients not to forward it outside
 their organisation.
+
+
+## Unsubscribing
+
+Every scheduled report email carries a per-recipient unsubscribe link. It has
+to work with no GPDash account, because the people most likely to use it —
+a PCN or ICB contact — will never have one.
+
+**Two URLs, deliberately different:**
+
+| URL | Method | Who calls it |
+| --- | --- | --- |
+| `/r/unsubscribe/<token>` | GET → page, then POST on click | the human, from the footer link |
+| `/api/v4/public/unsubscribe/<token>` | POST only | the mail client, via RFC 8058 one-click |
+
+The footer link **never acts on GET**. Mail scanners, link prefetchers and
+Outlook Safe Links follow links in email without a human involved, so a GET
+that unsubscribed would let a corporate scanner silently remove recipients.
+The page therefore changes nothing until its button is pressed.
+
+The one-click endpoint is POST-only for the same reason, and because RFC 8058
+defines it that way — it is what Gmail and Outlook call from their own native
+Unsubscribe button, which is surfaced via the `List-Unsubscribe` and
+`List-Unsubscribe-Post` headers the renderer emits.
+
+**Tokens.** An opaque random UUID per recipient, minted server-side in
+`ensureTokens()` on first send (which also back-fills schedules created before
+this existed). Possession of the token is the entire authorisation, so it is
+the only thing in the URL — no email address, which would otherwise land in
+server logs, proxies and browser history. A token can only ever unsubscribe
+the one recipient it was issued to.
+
+**Two scopes.** `schedule` marks `unsubscribedAt` on that recipient inside
+`report_schedules.recipients`; the person stays visible, struck through, so
+the admin can see who left and when. `practice` additionally writes to
+`report_email_optouts`, a suppression list checked on every send that
+outlives the schedules — otherwise an admin could undo somebody's unsubscribe
+just by adding them to a new schedule.
+
+**One message per recipient.** Since each copy carries its own token, sends
+are now one Resend call per person rather than one call with everyone in
+`to:`. That is what makes the per-recipient link possible, and it stops
+recipients seeing each other's addresses. A partial delivery is logged as
+`failed` with the count, not as a success.
+
+**Empty schedules pause themselves** with `pause_reason` set, rather than
+staying active and skipping every run.
+
+**The organiser is notified** (`created_by` only) on the transition, never on
+a repeat click and never about their own unsubscribe. A failure to notify
+never blocks or reverses the opt-out — the person asked to stop receiving
+email, and failing to tell somebody else is not a reason to keep sending.
+If the creator's account is gone, the opt-out still applies and the reason is
+returned in the API response, but nobody is told; the change is visible in the
+setup screen either way.
