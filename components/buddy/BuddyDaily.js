@@ -986,10 +986,13 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             </div>
             <div className="p-5">
             {!hasAllocations ? (
-              <div className="text-center py-8 text-slate-400">
-                <div className="text-2xl mb-2">📋</div>
-                <div className="text-sm">No allocations yet for {selectedDay}</div>
-                {presentClinicians.length > 0 && !isPastDate(getDateKey()) && <div className="text-xs mt-1">Cover fills in automatically &mdash; use Generate now if this day stays empty</div>}
+              <div className="py-5 px-4 rounded-lg" style={{ border: '1px dashed var(--g-border-2)' }}>
+                <div className="text-sm font-medium" style={{ color: 'var(--g-text-hi)' }}>Nothing allocated{selectedDay ? ` for ${selectedDay}` : ''} yet.</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--meta)' }}>
+                  {presentClinicians.length > 0 && !isPastDate(getDateKey())
+                    ? 'Cover fills in on its own once attendance is set. Generate now forces it if the day stays empty.'
+                    : 'Set who is in above and cover will be allocated.'}
+                </div>
               </div>
             ) : (
               <>
@@ -1188,7 +1191,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               <span style={{ color: '#34d399' }}>&#10003;</span>
               <span className="text-body-sm" style={{ color: 'var(--g-text-hi)' }}>Board matches EMIS</span>
               {data?._v4?.practiceId && (
-                <a href={`/v4/practice/${data._v4.practiceId}`} className="ml-auto text-caption" style={{ color: '#a5b4fc', textDecoration: 'none' }}>Edit working days &rarr;</a>
+                <a href={`/v4/practice/${data._v4.practiceId}`} className="ml-auto text-caption" style={{ color: 'var(--accent-text)', textDecoration: 'none' }}>Edit working days &rarr;</a>
               )}
             </div>
           </aside>
@@ -1200,7 +1203,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               {data?._v4?.practiceId && (
                 <a href={`/v4/practice/${data._v4.practiceId}`}
                   className="inline-block mb-2 text-caption font-medium"
-                  style={{ color: '#a5b4fc', textDecoration: 'none' }}
+                  style={{ color: 'var(--accent-text)', textDecoration: 'none' }}
                   title="Open the working days grid on the practice page - the three session rota that buddy cover runs on">
                   Edit working days &rarr;
                 </a>

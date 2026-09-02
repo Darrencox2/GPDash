@@ -715,7 +715,7 @@ export function SpeedometerGauge({ percentage, width = 300, height = 165, viewBo
 
   const arcs = [];
   const segCount = Math.round(fillFrac * segs);
-  for(let i=0;i<segCount;i++){const t0=i/segs;const t1=Math.min((i+1.2)/segs,fillFrac);const a0=Math.PI+t0*Math.PI;const a1=Math.PI+t1*Math.PI;if(a1<=a0)continue;const p0=arcPt(t0),p1={x:cx+r*Math.cos(a1),y:cy+r*Math.sin(a1)};arcs.push(<path key={i} d={`M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${r} ${r} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`} fill="none" stroke={interpColor(t0)} strokeWidth={strokeW} strokeLinecap="round"/>);}
+  for(let i=0;i<segCount;i++){const t0=i/segs;const t1=Math.min((i+1.2)/segs,fillFrac);const a0=Math.PI+t0*Math.PI;const a1=Math.PI+t1*Math.PI;if(a1<=a0)continue;const p0=arcPt(t0),p1={x:cx+r*Math.cos(a1),y:cy+r*Math.sin(a1)};arcs.push(<path key={i} d={`M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${r} ${r} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`} fill="none" stroke={endCol} strokeWidth={strokeW} strokeLinecap="round"/>);}
 
   const pillW = vbW * 0.37, pillH = vbH * 0.36, pillR = pillH * 0.23;
   const pctSize = vbH * 0.22, labelSize = vbH * 0.1, subSize = vbH * 0.09;

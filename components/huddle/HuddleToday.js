@@ -550,7 +550,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           {/* Secondary: two solid CTAs side by side meant neither led. This is
               a view switch, not the primary action on the screen. */}
           <button onClick={() => setIsFullscreen(true)} className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium transition-colors"
-            style={{ background: 'rgba(124,58,237,0.16)', border: '1px solid rgba(124,58,237,0.45)', color: '#c4b5fd' }}>
+            style={{ background: 'var(--duty-bg)', border: '1px solid var(--duty-bd)', color: 'var(--duty-fg)' }}>
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
             <span className="hidden sm:inline">Huddle board</span>
           </button>
@@ -781,7 +781,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         </span>
                       )}
                     </div>
-                    <div className="font-mono-data text-3xl lg:text-5xl font-bold text-amber-400 leading-none">{predTotal || '—'}</div>
+                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{predTotal || '—'}</div>
                     <div className="text-sm text-slate-400 mt-1">requests today</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
@@ -791,13 +791,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-400 mb-1">Routine 28 days</div>
-                    <div className="font-mono-data text-3xl lg:text-5xl font-bold text-emerald-400 leading-none">{routineAvail + routineEmb}</div>
+                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{routineAvail + routineEmb}</div>
                     <div className="text-sm text-slate-400 mt-1">{routineEmb > 0 ? `${routineAvail} avail · ${routineEmb} emb` : 'available'}</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-400 mb-1">Clinicians today</div>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-mono-data text-3xl lg:text-5xl font-bold text-slate-900 leading-none">{inCount}</span>
+                      <span className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{inCount}</span>
                       
                     </div>
                     <div className="text-sm text-slate-400 mt-1">of {visibleClinicians.length} active</div>
@@ -823,13 +823,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   <line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-amber-300 mb-0.5">Demand prediction is an estimate</div>
-                  <div className="text-xs text-amber-200/80 leading-relaxed">
+                  <div className="text-sm font-medium mb-0.5" style={{color:'var(--c-amber)'}}>Demand prediction is an estimate</div>
+                  <div className="text-xs leading-relaxed" style={{color:'var(--c-amber)', opacity:0.85}}>
                     Today's prediction uses national-average submission rates scaled to your list size of {(data._v4.practiceListSize || 0).toLocaleString()}.
                     For a tailored prediction reflecting your practice's actual demand pattern, upload an AskMyGP CSV (12+ weeks recommended) in{' '}
                     <a
                       href={`/v4/practice/${data._v4.practiceSlug}?tab=demand`}
-                      className="underline hover:text-amber-100 transition-colors"
+                      className="underline transition-colors"
                     >
                       Practice → Demand model
                     </a>.

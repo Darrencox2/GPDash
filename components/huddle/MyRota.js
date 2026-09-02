@@ -6,7 +6,7 @@ import { predictDemand } from '@/lib/demandPredictor';
 import { canEditRotaNote } from '@/lib/permissions';
 
 const GROUP_META = {
-  gp: { label: 'Clinicians', bg: 'rgba(99,102,241,0.15)', tx: '#a5b4fc', dot: '#6366f1' },
+  gp: { label: 'Clinicians', bg: 'rgba(99,102,241,0.15)', tx: 'var(--accent-text)', dot: '#6366f1' },
   nursing: { label: 'Nursing', bg: 'rgba(16,185,129,0.15)', tx: '#6ee7b7', dot: '#10b981' },
   allied: { label: 'Allied Health', bg: 'rgba(168,85,247,0.15)', tx: '#c4b5fd', dot: '#8b5cf6' },
 };
@@ -499,7 +499,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
             {!calFeed && (
               <button onClick={fetchCalFeed}
                 className="px-3 py-1.5 rounded-md text-sm font-medium"
-                style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc' }}>
+                style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: 'var(--accent-text)' }}>
                 Subscribe to this calendar
               </button>
             )}
@@ -518,7 +518,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                     {calCopied ? 'Copied' : 'Copy link'}
                   </button>
                   <a href={calFeed.webcal} className="px-2.5 py-1 rounded-md text-caption font-semibold"
-                    style={{ background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc' }}>
+                    style={{ background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: 'var(--accent-text)' }}>
                     Open in calendar app
                   </a>
                 </div>
@@ -589,7 +589,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                       </div>
                     )}
                   </div>
-                ) : day.inMonth ? <div className="text-xs text-slate-400">No data</div> : null}
+                ) : null}
               </div>
             );
           })}

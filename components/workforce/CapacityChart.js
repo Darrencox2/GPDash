@@ -190,7 +190,7 @@ export default function CapacityChart({
               covers nothing. */}
           {hoverInfo ? (
             <div>
-              <div className="text-[10px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>
+              <div className="label-caps" style={{ color: 'var(--meta)' }}>
                 {monthLabel(hoverInfo.mk)} {hoverInfo.mk.slice(0, 4)}
               </div>
               <div className="font-mono-data font-bold" style={{ fontSize: 16, color: 'var(--g-text-hi)', lineHeight: 1.25 }}>
@@ -217,7 +217,7 @@ export default function CapacityChart({
             <>
               {/* What the axis is counting - it had no unit anywhere except
                   the end-of-line label. */}
-              <div className="text-[10px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+              <div className="label-caps" style={{ color: 'var(--meta)', fontSize: 10 }}>
                 {per1000 ? 'Per 1,000 patients' : 'Sessions a week'}
               </div>
               {/* The split today (or at the start of a paged-away year), which

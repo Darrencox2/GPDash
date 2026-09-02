@@ -460,9 +460,9 @@ export default function StaffChanges({ data, saveData }) {
             <CapacityChart months={months} todayMk={todayMk} timeline={timeline}
               per1000={per1000} listSizeAt={listSizeAt} view={chartView} onViewChange={setChartView} />
             <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS }}>
-              <div className="px-3 py-1.5 text-[11px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>Staff · sess/wk</div>
+              <div className="px-3 py-1.5 label-caps" style={{ color: 'var(--meta)' }}>Staff · sess/wk</div>
               {months.map(mk => (
-                <div key={mk} className="text-center py-1.5 text-[11px]" style={{ borderLeft: '1px solid var(--g-border)', fontFamily: 'var(--font-mono)', color: mk === todayMk ? 'var(--ev-join)' : 'var(--meta)' }}>{monthLabel(mk)}</div>
+                <div key={mk} className="text-center py-1.5 label-caps" style={{ borderLeft: '1px solid var(--g-border)', color: mk === todayMk ? 'var(--ev-join)' : 'var(--meta)' }}>{monthLabel(mk)}</div>
               ))}
             </div>
             {people.map(p => {
@@ -597,7 +597,7 @@ export default function StaffChanges({ data, saveData }) {
           const upcoming = rows.filter(r => r.state === 'upcoming').sort((x, y) => x.from.localeCompare(y.from));
           const past = rows.filter(r => r.state === 'past').sort((x, y) => y.from.localeCompare(x.from));
           const shelfHead = (label, colour) => (
-            <div className="px-4 pt-2.5 pb-1 text-[11px] uppercase" style={{ color: colour, fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>{label}</div>
+            <div className="px-4 pt-2.5 pb-1 label-caps" style={{ color: colour }}>{label}</div>
           );
           const foldButton = (label, n, open, toggle) => (
             <button onClick={toggle} aria-expanded={open}

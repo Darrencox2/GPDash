@@ -67,8 +67,6 @@ const NAV_ITEMS = [
   // (incoming) side panel for deeper detail. One canonical home rather
   // than two slightly-different pages that drift apart.
   // Renamed from "Account" for clarity that it's the signed-in user's account
-  { id: 'account', section: 'PERSONAL', label: 'My account', colour: '#22d3ee',
-    icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' },
 
   { id: '_admin', section: 'ADMIN' },
   // Renamed from "Practice settings" — single entry point for all
@@ -80,8 +78,6 @@ const NAV_ITEMS = [
 
   { id: 'practice-settings', section: 'ADMIN', label: 'Practice', colour: '#22d3ee', requires: 'admin', external: true,
     icon: 'M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z' },
-  { id: 'changelog', section: 'ADMIN', label: 'Changelog', colour: '#94a3b8',
-    icon: 'M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z' },
 ];
 
 export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, setSidebarOpen, data, onNavigate }) {
@@ -121,6 +117,17 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
       localStorage.setItem('gpdash-zoom', next);
     } catch (e) {}
   };
+
+  // The footer menu. Closes on Escape or a click anywhere else.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    const onClick = (e) => { if (!e.target.closest?.('[role="menu"], [aria-haspopup="menu"]')) setMenuOpen(false); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onClick);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick); };
+  }, [menuOpen]);
 
   const router = useRouter();
   const practiceSlug = data?._v4?.practiceSlug;
@@ -198,10 +205,10 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
 
       <aside className={`
         fixed lg:sticky top-0 left-0 h-screen z-40 lg:z-auto
-        ${sidebarOpen ? 'w-[252px]' : 'w-0 lg:w-14'}
+        ${sidebarOpen ? 'w-[240px]' : 'w-0 lg:w-14'}
         flex-shrink-0 transition-all duration-200 overflow-hidden
       `} style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}>
-        <div className="h-full flex flex-col w-[252px] lg:w-auto">
+        <div className="h-full flex flex-col w-[240px] lg:w-auto">
           {/* Logo */}
           <div className="px-3 pt-4 pb-2">
             {sidebarOpen ? (
@@ -219,11 +226,11 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               // Section divider
               if (item.id.startsWith('_')) {
                 if (!sidebarOpen) return <div key={item.id} className="mx-2 my-2" style={{height:1,background:'var(--sidebar-divider)'}} />;
+                // A label, not a rule. The rules were a fourth kind of line on
+                // the page and the eye does not need them to see a gap.
                 return (
-                  <div key={item.id} className="flex items-center gap-2 mx-3 mt-4 mb-1.5">
-                    <div className="flex-1 h-px" style={{background:'var(--sidebar-divider)'}} />
-                    <span style={{fontSize:11,color:'#334155',letterSpacing:'1.5px'}}>{item.section}</span>
-                    <div className="flex-1 h-px" style={{background:'var(--sidebar-divider)'}} />
+                  <div key={item.id} style={{ fontFamily: 'var(--font-heading)', fontSize: 11, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--g-text-faint)', padding: '16px 12px 4px' }}>
+                    {item.section}
                   </div>
                 );
               }
@@ -233,12 +240,16 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               // branch stays lit whichever view you are on.
               const inBranch = kids.some(c => c.id === activeSection);
               const isActive = activeSection === item.id || inBranch;
+              // Icons are one ink, lit only on the active row, and the active
+              // row is the accent. Colour on this column was competing with
+              // the capacity states, which are the colours that mean something.
               const activeStyle = isActive ? {
-                background: `${item.colour}15`,
-                borderLeft: `3px solid ${item.colour}`,
+                background: 'var(--g-tile)',
+                borderLeft: '3px solid var(--accent)',
               } : {
                 borderLeft: '3px solid transparent',
               };
+              const iconInk = isActive ? 'var(--g-text-hi)' : 'var(--g-text-mid)';
 
               // Collapsed mode
               if (!sidebarOpen) {
@@ -246,10 +257,10 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                   <button key={item.id} onClick={() => handleItemClick(item)}
                     className="w-full flex justify-center py-2 rounded-lg mb-0.5 transition-colors hover:bg-white/5"
                     style={activeStyle} title={item.label}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill={isActive ? item.colour : item.colour} style={{opacity: isActive ? 1 : 0.5}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill={iconInk} style={{opacity: isActive ? 1 : 0.7}}>
                       <path d={item.icon} />
                     </svg>
-                    {item.badge && <div style={{position:'absolute',top:2,right:4,width:6,height:6,borderRadius:'50%',background:item.colour}} />}
+                    {item.badge && <div style={{position:'absolute',top:2,right:4,width:6,height:6,borderRadius:'50%',background:'var(--accent)'}} />}
                   </button>
                 );
               }
@@ -260,11 +271,11 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                   <button onClick={() => handleItemClick(item)}
                     className="w-full flex items-center gap-2.5 rounded-lg mb-0.5 transition-colors hover:bg-white/5"
                     style={{...activeStyle, padding: '8px 10px'}}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill={item.colour} style={{opacity: isActive ? 1 : 0.5, flexShrink: 0}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill={iconInk} style={{opacity: isActive ? 1 : 0.7, flexShrink: 0}}>
                       <path d={item.icon} />
                     </svg>
                     <span style={{fontSize:13, color: isActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: isActive ? 500 : 400}}>{item.label}</span>
-                    {item.badge && <span style={{fontSize:11,padding:'1px 6px',borderRadius:'var(--r-md)',background:`${item.colour}20`,color:item.colour,marginLeft:'auto'}}>{item.badge}</span>}
+                    {item.badge && <span style={{fontSize:11,padding:'1px 6px',borderRadius:'var(--r-md)',background:'var(--accent-soft)',color:'var(--accent-text)',marginLeft:'auto'}}>{item.badge}</span>}
                   </button>
                   {isActive && kids.length > 0 && kids.map(child => {
                     const kidActive = activeSection === child.id;
@@ -273,8 +284,8 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                         className="w-full flex items-center rounded-lg mb-0.5 transition-colors hover:bg-white/5"
                         style={{
                           padding: '5px 10px 5px 41px',
-                          borderLeft: `3px solid ${kidActive ? item.colour : 'transparent'}`,
-                          background: kidActive ? `${item.colour}12` : 'transparent',
+                          borderLeft: `3px solid ${kidActive ? 'var(--accent)' : 'transparent'}`,
+                          background: kidActive ? 'var(--g-tile)' : 'transparent',
                         }}>
                         <span style={{fontSize:12.5, color: kidActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: kidActive ? 500 : 400}}>{child.label}</span>
                       </button>
@@ -285,129 +296,74 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
             })}
           </nav>
 
-          {/* Practice tile — identity anchor at the bottom. Avatar +
-              name + role. Not clickable (yet) — sets up the slot for a
-              future multi-practice switcher. When sidebar is collapsed,
-              the avatar alone shows centred. */}
-          {practiceName && (
-            <div className="p-2.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-              {sidebarOpen ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '6px 6px' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 'var(--r-md)',
-                    background: 'linear-gradient(135deg, #0891b2, #0e7490)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                    fontSize: 13, color: 'white', fontWeight: 500,
-                    letterSpacing: 0.5,
-                    fontFamily: "var(--font-heading)",
-                  }}>
-                    {initials}
+          {/* ── Footer: one row ─────────────────────────────────────
+              Practice avatar, practice name, your role, and a menu. The
+              theme toggle, text size, account, changelog and version used
+              to stack here as a 230px block taller than the nav itself;
+              they are set once a year, not once a day, so they live behind
+              the three dots. */}
+          {sidebarOpen ? (
+            <div className="px-2.5 py-2 relative" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 4px' }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: 'var(--r-md)', flexShrink: 0,
+                  background: 'linear-gradient(135deg, #0891b2, #0e7490)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, color: 'white', fontWeight: 600, letterSpacing: 0.5, fontFamily: 'var(--font-heading)',
+                }}>{initials}</div>
+                <div className="min-w-0 flex-1">
+                  <div style={{ fontSize: 12.5, color: 'var(--text-1)', fontWeight: 500, lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }} title={practiceName || ''}>
+                    {practiceName || 'GPDash'}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div style={{
-                      fontSize: 15, color: 'var(--text-1)', fontWeight: 500,
-                      lineHeight: 1.25,
-                      overflow: 'hidden', textOverflow: 'ellipsis',
-                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                    }} title={practiceName}>
-                      {practiceName}
-                    </div>
-                    {roleLabel && (
-                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>
-                        {roleLabel}
-                      </div>
-                    )}
-                  </div>
+                  {roleLabel && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{roleLabel}</div>}
                 </div>
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0' }} title={practiceName}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 'var(--r-md)',
-                    background: 'linear-gradient(135deg, #0891b2, #0e7490)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13, color: 'white', fontWeight: 500,
-                    letterSpacing: 0.5,
-                    fontFamily: "var(--font-heading)",
-                  }}>{initials}</div>
+                <button onClick={() => setMenuOpen((v) => !v)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label="More"
+                  className="rounded-lg transition-colors hover:bg-white/5"
+                  style={{ width: 30, height: 30, flexShrink: 0, color: 'var(--text-3)', background: menuOpen ? 'var(--g-tile)' : 'transparent', border: '1px solid transparent', fontSize: 16, letterSpacing: 1, lineHeight: 1 }}>
+                  &middot;&middot;&middot;
+                </button>
+              </div>
+              {menuOpen && (
+                <div role="menu" className="absolute" style={{ left: 10, right: 10, bottom: 'calc(100% - 4px)', background: 'var(--g-panel-strong)', border: '1px solid var(--g-border-2)', borderRadius: 'var(--r-lg)', boxShadow: '0 14px 32px -12px rgba(0,0,0,0.6)', padding: 6, zIndex: 50 }}>
+                  <button role="menuitem" onClick={toggleTheme} className="w-full flex items-center gap-2.5 rounded-lg transition-colors hover:bg-white/5" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--text-1)' }}>
+                    {theme === 'dark' ? (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--text-3)' }}><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
+                    ) : (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--text-3)' }}><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+                    )}
+                    {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                  </button>
+                  <div className="flex items-center gap-2.5" style={{ padding: '6px 10px' }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-1)', flex: 1 }}>Text size</span>
+                    <div className="flex gap-0.5 p-0.5 rounded-lg" role="group" aria-label="Text size" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', height: 30 }}>
+                      {ZOOMS.map((z) => {
+                        const active = zoom === z.id;
+                        return (
+                          <button key={z.id} onClick={() => applyZoom(z.id)} title={`${z.label} text — ${z.hint}`} aria-pressed={active}
+                            className="rounded-md transition-colors" style={{ width: 30, background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-3)', border: active ? '1px solid var(--accent)' : '1px solid transparent', fontSize: z.id === 'compact' ? 10 : z.id === 'default' ? 13 : 16, fontWeight: active ? 700 : 500, lineHeight: 1 }}>A</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div style={{ height: 1, background: 'var(--sidebar-divider)', margin: '4px 6px' }} />
+                  <button role="menuitem" onClick={() => { setMenuOpen(false); handleItemClick({ id: 'account' }); }} className="w-full text-left rounded-lg transition-colors hover:bg-white/5" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--text-1)' }}>My account</button>
+                  <button role="menuitem" onClick={() => { setMenuOpen(false); handleVersionClick(); }} className="w-full text-left rounded-lg transition-colors hover:bg-white/5 flex items-center" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--text-1)' }}>
+                    Changelog <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-4)' }}>{APP_VERSION}</span>
+                  </button>
+                  <button role="menuitem" onClick={() => { setMenuOpen(false); setSidebarOpen(false); }} className="w-full text-left rounded-lg transition-colors hover:bg-white/5" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--text-1)' }}>Collapse sidebar</button>
                 </div>
               )}
             </div>
-          )}
-
-          {/* ── Footer controls ─────────────────────────────────────
-              One section, two rows, one divider. This was four separately
-              bordered sections (~230px) stacking version, theme, text size
-              and collapse — tall enough to push the nav itself into
-              scrolling. Same features, half the height:
-                row 1: theme toggle + text size, side by side
-                row 2: version · collapse                            */}
-          {sidebarOpen ? (
-            <div className="px-2.5 py-2" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-              <div className="flex items-center gap-1.5">
-                <button onClick={toggleTheme}
-                  aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                  className="flex items-center justify-center rounded-lg transition-colors hover:bg-white/5"
-                  style={{ color: 'var(--text-3)', width: 38, height: 34, flexShrink: 0, border: '1px solid var(--g-border-2)', background: 'var(--g-tile)' }}
-                  title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
-                  {theme === 'dark' ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-                  )}
-                </button>
-                <div className="flex gap-0.5 p-0.5 rounded-lg flex-1" role="group" aria-label="Text size" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', height: 34 }}>
-                  {ZOOMS.map((z) => {
-                    const active = zoom === z.id;
-                    return (
-                      <button
-                        key={z.id}
-                        onClick={() => applyZoom(z.id)}
-                        title={`${z.label} text — ${z.hint}`}
-                        aria-pressed={active}
-                        className="flex-1 rounded-md transition-colors"
-                        style={{
-                          background: active ? 'var(--accent-soft)' : 'transparent',
-                          color: active ? 'var(--accent-text)' : 'var(--text-3)',
-                          border: active ? '1px solid var(--accent)' : '1px solid transparent',
-                          fontSize: z.id === 'compact' ? 10 : z.id === 'default' ? 13 : 16,
-                          fontWeight: active ? 700 : 500,
-                          lineHeight: 1,
-                        }}
-                      >A</button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-1.5 px-0.5">
-                <button onClick={handleVersionClick} className="hover:text-slate-400 transition-colors" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: 'var(--text-4)' }} title="View changelog">{APP_VERSION}</button>
-                <button onClick={() => setSidebarOpen(false)} aria-label="Collapse sidebar" className="rounded px-2 py-0.5 text-slate-400 hover:bg-white/5 text-xs transition-colors">&#9666;</button>
-              </div>
-            </div>
           ) : (
             <div className="px-1.5 py-2 flex flex-col items-center gap-1" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-              <button onClick={toggleTheme}
-                aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                className="w-full flex items-center justify-center py-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ color: 'var(--text-3)' }}
-                title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
+              <div style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', background: 'linear-gradient(135deg, #0891b2, #0e7490)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'white', fontWeight: 600, fontFamily: 'var(--font-heading)' }} title={practiceName || ''}>{initials}</div>
+              <button onClick={toggleTheme} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} className="w-full flex items-center justify-center py-2 rounded-lg transition-colors hover:bg-white/5" style={{ color: 'var(--text-3)' }} title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
                 {theme === 'dark' ? (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
                 ) : (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
                 )}
               </button>
-              <button
-                onClick={() => applyZoom(ZOOMS[(ZOOMS.findIndex((z) => z.id === zoom) + 1) % ZOOMS.length].id)}
-                title={`Text size: ${ZOOMS.find((z) => z.id === zoom)?.label} — click to change`}
-                aria-label={`Text size: ${ZOOMS.find((z) => z.id === zoom)?.label}. Click to change.`}
-                className="w-full flex items-center justify-center py-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ color: 'var(--text-3)' }}
-              >
-                <span style={{ fontSize: 10, fontWeight: 700 }}>A</span>
-                <span style={{ fontSize: 14, fontWeight: 700, marginLeft: 1 }}>A</span>
-              </button>
-              <button onClick={handleVersionClick} className="w-full text-center hover:text-slate-400 transition-colors" style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: 'var(--text-4)' }} title={`${APP_VERSION} — view changelog`}>{APP_VERSION.replace('v', '')}</button>
               <button onClick={() => setSidebarOpen(true)} aria-label="Expand sidebar" className="w-full flex items-center justify-center py-1.5 rounded-lg text-slate-400 hover:bg-white/5 text-xs transition-colors">&#9656;</button>
             </div>
           )}

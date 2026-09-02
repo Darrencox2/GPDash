@@ -62,7 +62,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
       <div className="flex items-baseline gap-3 mb-4 flex-wrap">
         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 24, fontWeight: 600, color: 'var(--g-text-hi)', margin: 0 }}>Morning briefing</h1>
         <span className="text-sm" style={{ color: 'var(--meta)' }}>{b.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
-        <button onClick={() => window.print()} className="no-print ml-auto px-3 py-1.5 rounded-lg text-sm font-medium" style={{ background: 'rgba(99,102,241,0.16)', border: '1px solid rgba(99,102,241,0.45)', color: '#a5b4fc' }}>
+        <button onClick={() => window.print()} className="no-print ml-auto px-3 py-1.5 rounded-lg text-sm font-medium" style={{ background: 'var(--accent-soft)', border: '1px solid rgba(99,102,241,0.45)', color: 'var(--accent-text)' }}>
           Print for the huddle
         </button>
       </div>
@@ -79,7 +79,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
           <div style={S.h2} className="mb-2">Duty doctor</div>
           {['am', 'pm'].map(s => (
             <div key={s} className="flex items-baseline gap-2 py-0.5">
-              <span className="text-xs font-bold w-8" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)' }}>{s.toUpperCase()}</span>
+              <span className="label-caps w-8" style={{ color: 'var(--meta)' }}>{s}</span>
               <span className="text-sm font-semibold" style={{ color: 'var(--g-text-hi)' }}>{person(b.duty[s] ? { name: b.duty[s].name } : null)}</span>
               {b.duty[s]?.location && <span className="text-xs" style={{ color: 'var(--meta)' }}>· {b.duty[s].location}</span>}
             </div>
@@ -92,7 +92,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
             const u = b.urgent[s];
             return (
               <div key={s} className="flex items-baseline gap-2 py-0.5">
-                <span className="text-xs font-bold w-8" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)' }}>{s.toUpperCase()}</span>
+                <span className="label-caps w-8" style={{ color: 'var(--meta)' }}>{s}</span>
                 <span className="text-sm font-bold font-mono-data" style={{ color: 'var(--g-text-hi)' }}>{u.slots}</span>
                 {u.target > 0 && <span className="text-xs" style={{ color: 'var(--meta)' }}>/ {u.target} target</span>}
                 {u.target > 0 && u.band.label && <span className="text-xs font-semibold" style={{ color: u.band.colour }}>{u.band.label}</span>}
@@ -210,30 +210,28 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
         <div style={S.h2} className="mb-2">The week ahead</div>
         <div className="grid grid-cols-5 gap-2">
           {b.outlook.map((o, i) => (
-            <div key={i} className="rounded-md overflow-hidden" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)' }}>
-              {/* The stripe is the day's urgent capacity against its own
-                  target — the same bands used on Today, so the colour
-                  carries the same meaning here. */}
-              <div style={{ height: 3, background: o.band ? o.band.colour : 'var(--g-border)' }} />
-              <div className="text-center py-1.5 px-1">
-                <div className="text-xs font-semibold" style={{ color: 'var(--g-text-hi)' }}>{o.dayName.slice(0, 3)} {o.date.getDate()}</div>
-                {o.isBankHoliday ? (
-                  <div className="text-[11px] py-1.5" style={{ color: 'var(--meta)' }}>closed</div>
-                ) : (
-                  <>
-                    <div className="text-sm font-bold font-mono-data" style={{ color: 'var(--g-text-hi)' }}>{o.predicted ?? '—'}</div>
-                    <div className="text-[11px] leading-tight" style={{ color: 'var(--meta)' }}>expected</div>
-                    <div className="mt-1 pt-1 flex justify-center gap-2" style={{ borderTop: '1px solid var(--g-border)' }}>
-                      <span className="text-[11px] font-mono-data" title="Urgent slots on EMIS" style={{ color: o.band ? o.band.colour : 'var(--g-text-hi)' }}>
-                        {o.urgentSlots != null ? o.urgentSlots : '—'}<span style={{ color: 'var(--meta)' }}>u</span>
-                      </span>
-                      <span className="text-[11px] font-mono-data" title="Routine slots on EMIS" style={{ color: 'var(--g-text-hi)' }}>
-                        {o.routineSlots != null ? o.routineSlots : '—'}<span style={{ color: 'var(--meta)' }}>r</span>
-                      </span>
-                    </div>
-                  </>
-                )}
+            <div key={i} className="rounded-md" style={{ background: 'var(--g-tile)', padding: '8px 10px' }}>
+              {/* One mark, the same one Today and the week view draw: urgent
+                  slots offered against requests expected, as a bar, in the
+                  state colour. The gap is the empty part of the bar; nobody
+                  subtracts a chip from a tile. */}
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs font-semibold" style={{ color: 'var(--g-text-hi)' }}>{o.dayName.slice(0, 3)} {o.date.getDate()}</span>
+                {!o.isBankHoliday && <span className="text-[11px] font-mono-data" style={{ color: 'var(--meta)' }} title="Requests expected">{o.predicted ?? '—'}</span>}
               </div>
+              {o.isBankHoliday ? (
+                <div className="text-[11px] mt-1.5" style={{ color: 'var(--meta)' }}>closed</div>
+              ) : (
+                <>
+                  <div className="mt-1.5" style={{ height: 6, borderRadius: 999, background: 'var(--surface-3)', overflow: 'hidden' }} title={`${o.urgentSlots ?? '—'} urgent slots against ${o.predicted ?? '—'} expected`}>
+                    <div style={{ width: `${o.urgentSlots != null && o.predicted ? Math.max(4, Math.min(100, Math.round(o.urgentSlots / o.predicted * 100))) : 0}%`, height: '100%', background: o.band ? o.band.colour : 'var(--g-text-faint)' }} />
+                  </div>
+                  <div className="mt-1 flex justify-between text-[11px] font-mono-data" style={{ color: 'var(--meta)' }}>
+                    <span title="Urgent slots on EMIS" style={{ color: o.band ? o.band.colour : 'var(--g-text-hi)' }}>{o.urgentSlots != null ? o.urgentSlots : '—'}u</span>
+                    <span title="Routine slots on EMIS">{o.routineSlots != null ? o.routineSlots : '—'}r</span>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

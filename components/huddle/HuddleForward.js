@@ -15,6 +15,25 @@ import { createClient } from '@/utils/supabase/client';
 import { onKeyActivate } from '@/lib/a11y';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// The first week from which every remaining week has no export data, or -1.
+// Bank holidays do not count against a week: a week that is a bank holiday
+// plus four unexported days is still unexported.
+function trailingBlankFrom(weeks) {
+  let from = -1;
+  for (let i = weeks.length - 1; i >= 0; i--) {
+    const blank = weeks[i].days.every((d) => d.isBH || !d.hasData);
+    if (!blank) break;
+    from = i;
+  }
+  return from;
+}
+// The last day the export covers, as a Date, or null.
+function lastExportedDay(weeks) {
+  let last = null;
+  for (const wk of weeks) for (const d of wk.days) if (d.hasData) last = d.date;
+  return last;
+}
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 // Tile fills. The vivid 500-weights (#3b82f6 / #10b981 / #f59e0b / #ef4444)
 // put white text at 3.68, 2.54, 2.15 and 3.76:1 — all under the 4.5:1 AA
@@ -551,6 +570,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   const patterns = useMemo(()=>detectPatterns(weeks, hs, teamClin, huddleData), [weeks, hs, teamClin, huddleData]);
   // #9: which week a grid-row click should land on in the detail view.
   const [weekDetailOffset, setWeekDetailOffset] = useState(0);
+  const blankFrom = trailingBlankFrom(weeks);
+  const lastExported = lastExportedDay(weeks);
 
   const detailDay = selectedDay?weeks.flatMap(w=>w.days).find(d=>d.isoKey===selectedDay):null;
   const detailClin = useMemo(()=>{
@@ -601,7 +622,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-mid)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             {/* h1, not a span: this is the page heading a screen reader
                 announces on arrival. Classes unchanged, so nothing moves. */}
-            <h1 className="text-base font-semibold text-white font-heading">Capacity planning</h1>
+            <h1 className="text-base font-semibold font-heading" style={{color:'var(--g-text-hi)'}}>Capacity planning</h1>
             <span className="text-xs text-slate-400 ml-2">{capView === 'week' ? 'Week detail' : '6-week forward view'}</span>
             <div className="ml-auto flex items-center gap-2 relative">
               {sites.length > 0 && capView !== 'week' && (
@@ -611,7 +632,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   style={{
                     background: showStaffing ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)',
                     border: `1px solid ${showStaffing ? '#6366f180' : 'rgba(255,255,255,0.12)'}`,
-                    color: showStaffing ? '#a5b4fc' : '#94a3b8',
+                    color: showStaffing ? 'var(--accent-text)' : '#94a3b8',
                   }}>
                   Site staffing
                   {staffingWarnDays > 0 && (
@@ -647,7 +668,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         : (capacityStaffing.thresholds?.[row.key] ?? '');
                       return (
                         <div key={row.key} className="flex items-center gap-2">
-                          <span className="flex-1 text-caption truncate" style={{ color: row.key === '__total' ? '#a5b4fc' : '#cbd5e1', fontWeight: row.key === '__total' ? 600 : 400 }}>{row.label}</span>
+                          <span className="flex-1 text-caption truncate" style={{ color: row.key === '__total' ? 'var(--accent-text)' : '#cbd5e1', fontWeight: row.key === '__total' ? 600 : 400 }}>{row.label}</span>
                           <select value={String(cur)}
                             onChange={(e) => {
                               const v = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
@@ -742,7 +763,29 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           </div>
 
           {/* Weeks */}
-          {weeks.map((wk,wi)=>(
+          {weeks.map((wk,wi)=>{
+            if (blankFrom >= 0 && wi > blankFrom) return null;
+            if (wi === blankFrom) {
+              const n = weeks.length - blankFrom;
+              const reach = lastExported ? lastExported.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) : null;
+              return (
+                <div key="blank" className="px-4 py-4">
+                  <div className="rounded-lg px-4 py-3 flex items-center gap-4 flex-wrap" style={{ border: '1px dashed var(--g-border-2)' }}>
+                    <div className="flex-1 min-w-[260px]">
+                      <div className="text-sm font-medium" style={{ color: 'var(--g-text-hi)' }}>
+                        {reach ? `The EMIS export runs to ${reach}` : 'No EMIS export loaded for these weeks'}
+                      </div>
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--meta)' }}>
+                        {n === 1 ? `Week ${blankFrom + 1} is` : `Weeks ${blankFrom + 1} to ${weeks.length} are`} not exported yet. Slot numbers appear here when the next export is uploaded; the weekly view shows who the rota says is in until then.
+                      </div>
+                    </div>
+                    <button onClick={() => setActiveSection?.('huddle-today')} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }}>Upload an export</button>
+                    <button onClick={() => { setWeekDetailOffset(blankFrom); setCapView('week'); }} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: 'transparent', border: '1px solid transparent', color: 'var(--meta)' }}>Show the rota projection</button>
+                  </div>
+                </div>
+              );
+            }
+            return (
             <div key={wi} className="grid border-b border-white/5" style={{gridTemplateColumns:'62px repeat(5, 1fr) 190px'}}>
               {/* #9: the week label was inert while a week-detail view sat
                   behind a header toggle. The obvious thing to click now
@@ -912,7 +955,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 <WeeklyRoutineBullet wk={wk} rTarget={wk.effTarget || rTarget} shortWeek={wk.openDays < 5} />
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {/* Footer: target edit (the key moved to the top of the grid —
               #4: it sat below sixty tiles that it explained) */}
@@ -1033,10 +1077,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: isActive ? '#a5b4fc' : 'var(--g-text-hi)'}}>Patterns</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? 'var(--accent-text)' : 'var(--g-text-hi)'}}>Patterns</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{patterns.length===0?'Nothing flagged':highCount>0?`${highCount} high · ${patterns.length-highCount} other`:`${patterns.length} insight${patterns.length===1?'':'s'}`}</div>
                   </div>
-                  <span className="text-base font-bold font-mono-data" style={{color:highCount>0?'#fca5a5':'#a5b4fc'}}>{patterns.length}</span>
+                  <span className="text-base font-bold font-mono-data" style={{color:highCount>0?'#fca5a5':'var(--accent-text)'}}>{patterns.length}</span>
                 </button>
               );
             })()}
@@ -1550,7 +1594,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       {staffTip && (
         <div className="fixed z-50 pointer-events-none" style={{ left: staffTip.x, top: staffTip.y - 8, transform: 'translate(-50%, -100%)' }}>
           <div className="rounded-xl p-3 shadow-2xl text-left" style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.16)', minWidth: 200, maxWidth: 260 }}>
-            <div className="text-caption font-semibold" style={{ color: staffTip.entry.isTotal ? '#a5b4fc' : '#e2e8f0' }}>{staffTip.entry.site.name}</div>
+            <div className="text-caption font-semibold" style={{ color: staffTip.entry.isTotal ? 'var(--accent-text)' : '#e2e8f0' }}>{staffTip.entry.site.name}</div>
             <div className="text-caption mt-0.5" style={{ color: staffTip.entry.below ? '#fbbf24' : '#94a3b8' }}>
               {staffTip.entry.below
                 ? `Below minimum: ${staffTip.entry.counted.length} counted, minimum ${staffTip.entry.threshold}`

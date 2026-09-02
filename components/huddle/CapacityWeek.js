@@ -209,13 +209,13 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
       style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', minHeight: 58 }}>
       {!peek ? (
         <div className="text-[12px]" style={{ color: 'var(--meta)' }}>
-          <span className="text-[11px] uppercase mr-2" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>Clinician detail</span>
+          <span className="label-caps mr-2" style={{ color: 'var(--meta)' }}>Clinician detail</span>
           Point at any name below to see the slot types they are running that session.
         </div>
       ) : (
         <>
           <div style={{ minWidth: 190 }}>
-            <div className="text-[11px] uppercase" style={{ color: 'var(--meta)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>
+            <div className="label-caps" style={{ color: 'var(--meta)' }}>
               {peek.day} {peek.session} · {peek.site}
             </div>
             <div className="text-[14px] font-semibold leading-tight flex items-center gap-2" style={{ color: peek.c.duty ? DUTY.fg : 'var(--g-text-hi)' }}>
@@ -302,8 +302,8 @@ export default function CapacityWeek({ data, hs, huddleData, sites, capacityStaf
         {/* session header, the column the grid is actually keyed on */}
         <div />
         {days.map((d) => sessionKeys.map((k) => (
-          <div key={`s-${d.iso}-${k}`} className="text-center text-[11px] font-bold pb-1"
-            style={{ color: d.isToday ? 'var(--accent-text)' : 'var(--meta)', fontFamily: 'var(--font-mono)' }}>
+          <div key={`s-${d.iso}-${k}`} className="text-center label-caps pb-1"
+            style={{ color: d.isToday ? 'var(--accent-text)' : 'var(--meta)' }}>
             {SESSION_LABELS[k]}
           </div>
         )))}
