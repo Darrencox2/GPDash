@@ -12,7 +12,7 @@ import { confirmDialog } from '@/components/ui';
 // optional per-GP overrides. Monthly totals are live - the review queue is
 // the human control, so months need no separate sign-off.
 
-import { useMemo, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader, EmptyState } from '@/components/ui';
 import { canEditPracticeData } from '@/lib/permissions';
 import { logEvent } from '@/lib/data';
@@ -89,6 +89,46 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
     saveData(logEvent(next, 'settings',
       `Locum spend: ${cand.name} ${cand.slotLabel.toLowerCase()} session on ${cand.date} marked ${verdict === 'extra' ? 'as a PAID EXTRA' : 'as NOT an extra (e.g. a swap)'}`));
   };
+
+  // Decide a whole group (one clinician, one week) at once. Each session
+  // keeps its own decision so any one can be undone from Recent decisions;
+  // the audit log gets one line for the group.
+  const decideGroup = (group, verdict) => {
+    if (!canEdit) return;
+    const decisions = { ...(data.spendDecisions || {}) };
+    const at = new Date().toISOString();
+    const by = data?._v4?.userDisplayName || null;
+    group.items.forEach((c) => { decisions[c.key] = { verdict, name: c.name, slotLabel: c.slotLabel, date: c.date, by, at, group: true }; });
+    const next = { ...data, spendDecisions: decisions };
+    saveData(logEvent(next, 'settings',
+      `Locum spend: ${group.name}, ${group.items.length} session${group.items.length === 1 ? '' : 's'} in the week of ${group.weekStart} marked ${verdict === 'extra' ? 'as PAID EXTRAS' : 'as NOT extras (e.g. swaps)'}`));
+  };
+
+  // The queue reads as one row per clinician per week, not one per session.
+  // Twenty-seven rows that each said the same sentence about the same
+  // person were the queue at its worst; a person's week is the unit the
+  // decision is actually made at.
+  const groups = useMemo(() => {
+    const byKey = new Map();
+    for (const c of candidates) {
+      const d = new Date(c.date + 'T12:00:00');
+      const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      const weekStart = mon.toISOString().slice(0, 10);
+      const key = `${c.name}|${weekStart}`;
+      if (!byKey.has(key)) byKey.set(key, { key, name: c.name, weekStart, weekLabel: mon.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), items: [], weekTotal: c.weekTotal, expectedWeekly: c.expectedWeekly });
+      byKey.get(key).items.push(c);
+    }
+    const out = [...byKey.values()];
+    for (const g of out) {
+      g.items.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      g.allSwap = g.items.every((c) => c.likelySwap);
+      g.allExtra = g.items.every((c) => !c.likelySwap);
+    }
+    out.sort((a, b) => (a.weekStart < b.weekStart ? 1 : a.weekStart > b.weekStart ? -1 : a.name.localeCompare(b.name)));
+    return out;
+  }, [candidates]);
+  const [openGroups, setOpenGroups] = useState(() => new Set());
+  const toggleGroup = (key) => setOpenGroups((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
 
   // Bulk action: mark every likely-swap candidate as not-an-extra in one
   // go. Each decision is stored individually (so each is individually
@@ -295,7 +335,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
       <div className="rounded-xl overflow-hidden" style={{ background: 'var(--g-panel)', border: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <span className="text-sm font-semibold text-slate-200">Review queue</span>
-          <span className="text-xs text-slate-400">sessions outside a GP's usual pattern - confirm or deny each one</span>
+          <span className="text-xs text-slate-400">sessions outside a GP's usual pattern, one row per person per week. A week above their normal looks like paid extras; a week that matches it looks like swaps</span>
           {candidates.length > 0 && (
             <span className="ml-auto flex items-center gap-2">
               {canEdit && candidates.some((c) => c.likelySwap) && (
@@ -313,40 +353,62 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           <div className="px-4 py-6 text-sm text-slate-400">Nothing to review - no sessions outside anyone's usual pattern.</div>
         ) : (
           <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-            {candidates.slice(0, 30).map((c) => (
-              <div key={c.key} className="px-4 py-3 flex items-start gap-3 flex-wrap">
-                <div className="flex-1 min-w-[240px]">
-                  <div className="text-sm font-medium text-slate-200">
-                    {c.name} - {c.slotLabel.toLowerCase()} session, {new Date(c.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
+            {groups.slice(0, 20).map((g) => {
+              const open = openGroups.has(g.key);
+              const tone = g.allSwap ? { fg: '#60a5fa', word: 'probably swaps' } : g.allExtra ? { fg: 'var(--c-amber)', word: 'looks like paid extras' } : { fg: 'var(--g-text-mid)', word: 'mixed: open to decide one by one' };
+              return (
+                <div key={g.key}>
+                  <div className="px-4 py-3 flex items-center gap-3 flex-wrap">
+                    <button onClick={() => toggleGroup(g.key)} aria-expanded={open} className="flex-1 min-w-[260px] text-left flex items-start gap-2" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      <span className="text-slate-400 mt-1" style={{ display: 'inline-block', width: 12, transition: 'transform 0.15s', transform: open ? 'rotate(90deg)' : 'none' }}>&#9656;</span>
+                      <span>
+                        <span className="text-sm font-medium text-slate-200">{g.name}</span>
+                        <span className="text-sm text-slate-400"> · w/c {g.weekLabel} · </span>
+                        <span className="text-sm font-mono-data text-slate-200">{g.items.length}</span>
+                        <span className="text-sm text-slate-400"> session{g.items.length === 1 ? '' : 's'} outside their pattern</span>
+                        <span className="block text-xs mt-0.5" style={{ color: tone.fg }}>
+                          This week <span className="font-mono-data">{g.weekTotal}</span> sessions against a usual <span className="font-mono-data">{g.expectedWeekly}</span> &middot; {tone.word}
+                        </span>
+                      </span>
+                    </button>
+                    {canEdit && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button onClick={() => decideGroup(g, 'extra')}
+                          className="px-3 py-1.5 rounded-md text-xs font-semibold"
+                          style={{ background: '#f59e0b25', border: '1px solid #f59e0b60', color: 'var(--c-amber)' }}>
+                          All paid extras
+                        </button>
+                        <button onClick={() => decideGroup(g, 'not')}
+                          className="px-3 py-1.5 rounded-md text-xs font-semibold"
+                          style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-mid)' }}>
+                          None are extras
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    Usual {c.dayName}: {c.expectedThatDay.length ? c.expectedThatDay.map((s) => SLOT_LABELS[s].toLowerCase()).join(' + ') : 'not normally in'}.
-                    {' '}This week: {c.weekTotal} sessions vs usual {c.expectedWeekly}.
-                  </div>
-                  <div className="text-xs mt-1 font-medium" style={{ color: c.likelySwap ? '#60a5fa' : '#fbbf24' }}>
-                    {c.likelySwap
-                      ? 'Weekly total matches their normal - probably a swap, not a paid extra.'
-                      : 'Weekly total is above their normal - looks like a genuine extra.'}
-                  </div>
+                  {open && (
+                    <div className="pb-2" style={{ background: 'var(--g-tile-2)' }}>
+                      {g.items.map((c) => (
+                        <div key={c.key} className="pl-10 pr-4 py-2 flex items-center gap-3 flex-wrap" style={{ borderTop: '1px solid var(--g-border)' }}>
+                          <div className="flex-1 min-w-[220px]">
+                            <span className="text-sm text-slate-200">{new Date(c.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })} &middot; {c.slotLabel.toLowerCase()}</span>
+                            <span className="text-xs text-slate-400 ml-2">usual {c.dayName}: {c.expectedThatDay.length ? c.expectedThatDay.map((s) => SLOT_LABELS[s].toLowerCase()).join(' + ') : 'not in'}</span>
+                          </div>
+                          {canEdit && (
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <button onClick={() => decide(c, 'extra')} className="px-2.5 py-1 rounded-md text-[11px] font-semibold" style={{ background: '#f59e0b25', border: '1px solid #f59e0b60', color: 'var(--c-amber)' }}>Paid extra</button>
+                              <button onClick={() => decide(c, 'not')} className="px-2.5 py-1 rounded-md text-[11px] font-semibold" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-mid)' }}>Not an extra</button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {canEdit && (
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => decide(c, 'extra')}
-                      className="px-3 py-1.5 rounded-md text-xs font-semibold"
-                      style={{ background: '#f59e0b25', border: '1px solid #f59e0b60', color: '#fbbf24' }}>
-                      Yes - paid extra
-                    </button>
-                    <button onClick={() => decide(c, 'not')}
-                      className="px-3 py-1.5 rounded-md text-xs font-semibold"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8' }}>
-                      No - not an extra
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-            {candidates.length > 30 && (
-              <div className="px-4 py-2 text-[11px] text-slate-400">Showing the 30 most recent - decide these and older ones will surface.</div>
+              );
+            })}
+            {groups.length > 20 && (
+              <div className="px-4 py-2 text-[11px] text-slate-400">Showing the 20 most recent weeks - decide these and older ones will surface.</div>
             )}
           </div>
         )}
