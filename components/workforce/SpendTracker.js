@@ -1,4 +1,5 @@
 'use client';
+import { confirmDialog } from '@/components/ui';
 // Locum spend tracker.
 //
 // Month-on-month locum spend from two sources: actual locums (sessions x
@@ -93,11 +94,11 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
   // go. Each decision is stored individually (so each is individually
   // undoable from Recent decisions) but the audit log gets ONE summary
   // entry - dozens of identical lines would drown the 500-entry log.
-  const clearLikelySwaps = () => {
+  const clearLikelySwaps = async () => {
     if (!canEdit) return;
     const swaps = candidates.filter((c) => c.likelySwap);
     if (!swaps.length) return;
-    if (!window.confirm(`Mark all ${swaps.length} likely swaps as not extras? Each can still be undone individually afterwards.`)) return;
+    if (!(await confirmDialog({ title: `Mark ${swaps.length} likely swaps as not extras?`, message: 'Each one can still be undone individually afterwards.', confirmLabel: 'Mark all' }))) return;
     const decisions = { ...(data.spendDecisions || {}) };
     const at = new Date().toISOString();
     const by = data?._v4?.userDisplayName || null;

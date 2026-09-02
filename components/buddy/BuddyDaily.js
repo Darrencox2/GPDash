@@ -1,4 +1,5 @@
 'use client';
+import { confirmDialog, promptDialog } from '@/components/ui';
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence, getScheduledSessions } from '@/lib/data';
@@ -288,7 +289,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 
   const handleCopyWeek = () => {
     const missing = DAYS.filter(d => { const dk = getDateKeyForDay(d); return !isClosedDay(dk) && !data?.allocationHistory?.[dk]; });
-    if (missing.length > 0) { alert(`Missing allocations for: ${missing.join(', ')}`); return; }
+    if (missing.length > 0) { toast?.(`Nothing allocated yet for ${missing.join(', ')}`, 'warning', 4000); return; }
 
     let s = 'BUDDY COVER\n';
     const wcDate = new Date(getDateKeyForDay('Monday') + 'T12:00:00');
@@ -526,22 +527,25 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     saveData({ ...data, huddleSettings: { ...hs, rotaSuggestionIgnores: ignores } }, false);
   };
 
-  const undoWindDown = (clinicianId) => {
+  const undoWindDown = async (clinicianId) => {
     if (!canEdit) return;
     const c = cliniciansList.find((x) => x.id === clinicianId) || (data.clinicians || []).find?.((x) => x.id === clinicianId);
     const label = c?.windDown?.type === 'sick' ? 'Long term absence' : 'Has left';
-    if (!window.confirm(`Undo the ${label} status for ${c?.name || 'this clinician'}? The wind-down cover will be removed and they return to normal.`)) return;
+    if (!(await confirmDialog({ title: `Undo ${label.toLowerCase()}?`, message: `${c?.name || 'This clinician'} returns to normal and the wind-down cover is removed.`, confirmLabel: 'Undo', danger: true }))) return;
     saveData(undoTransition(data, clinicianId, { by: data?._v4?.userDisplayName || null }));
     setWdMenuOpen(null);
   };
 
-  const adjustWindDown = (clinicianId) => {
+  const adjustWindDown = async (clinicianId) => {
     if (!canEdit) return;
     const c = (data.clinicians || []).find((x) => x.id === clinicianId);
     if (!c?.windDown) return;
-    const v = window.prompt('New end date for the wind-down (YYYY-MM-DD):', c.windDown.endDate);
+    const v = await promptDialog({
+      title: 'Change the wind-down end date', message: `${c.name} is currently covered until ${c.windDown.endDate}.`,
+      label: 'New end date', type: 'date', defaultValue: c.windDown.endDate,
+      validate: (x) => (!/^\d{4}-\d{2}-\d{2}$/.test(x) ? 'Pick a date.' : x < (c.windDown.startDate || '') ? 'The end date is before the start date.' : ''),
+    });
     if (!v) { setWdMenuOpen(null); return; }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) { window.alert('Please use the format YYYY-MM-DD, for example 2026-10-01.'); return; }
     const adjusted = adjustTransition(data, clinicianId, v.trim(), { by: data?._v4?.userDisplayName || null });
     saveData(adjusted);
     setWdMenuOpen(null);

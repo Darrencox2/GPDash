@@ -17,7 +17,7 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
           </div>
           <button onClick={() => {
             const missing = DAYS.filter(d => { const dk = getDateKeyForDay(d); return !isClosedDay(dk) && !data?.allocationHistory?.[dk]; });
-            if (missing.length > 0) { alert(`Missing allocations for: ${missing.join(', ')}`); return; }
+            if (missing.length > 0) { toast?.(`Nothing allocated yet for ${missing.join(', ')}`, 'warning', 4000); return; }
             let s = `BUDDY ALLOCATIONS — ${formatWeekRange(selectedWeek)}\n${'='.repeat(50)}\n\n`;
             DAYS.forEach(d => {
               const dk = getDateKeyForDay(d);

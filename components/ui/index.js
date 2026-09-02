@@ -333,10 +333,27 @@ export function confirmDialog(opts = {}) {
   return _openConfirm(opts);
 }
 
+// Imperative, awaitable replacement for window.prompt():
+//   const v = await promptDialog({ title, message, label, type: 'number'|'date'|'text', defaultValue, validate });
+// Resolves with the string entered, or null if cancelled. `validate(v)`
+// returns an error message to block submit, or nothing to allow it.
+export function promptDialog(opts = {}) {
+  if (typeof opts === 'string') opts = { title: opts };
+  if (!_openConfirm) {
+    if (typeof window === 'undefined') return Promise.resolve(null);
+    const v = window.prompt(opts.message || opts.title || '', opts.defaultValue ?? '');
+    return Promise.resolve(v == null ? null : String(v));
+  }
+  return _openConfirm({ ...opts, input: true });
+}
+
 export function ConfirmHost() {
   const [req, setReq] = useState(null); // { opts, resolve }
   const [mounted, setMounted] = useState(false);
+  const [value, setValue] = useState('');
+  const [error, setError] = useState('');
   useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { setValue(req?.opts?.defaultValue != null ? String(req.opts.defaultValue) : ''); setError(''); }, [req]);
 
   useEffect(() => {
     _openConfirm = (opts) => new Promise(resolve => {
@@ -349,22 +366,35 @@ export function ConfirmHost() {
   const close = useCallback((val) => {
     setReq(prev => { prev?.resolve(val); return null; });
   }, []);
+  // For an input dialog, "confirm" means submit the value; cancel is null.
+  const submit = useCallback(() => {
+    setReq(prev => {
+      if (!prev) return null;
+      if (!prev.opts?.input) { prev.resolve(true); return null; }
+      const v = String(value ?? '').trim();
+      const err = prev.opts.validate ? prev.opts.validate(v) : (prev.opts.required !== false && !v ? 'Please enter a value.' : '');
+      if (err) { setError(err); return prev; }
+      prev.resolve(v); return null;
+    });
+  }, [value]);
+  const cancel = useCallback(() => close(req?.opts?.input ? null : false), [close, req]);
 
   useEffect(() => {
     if (!req) return;
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); close(false); }
-      if (e.key === 'Enter') { e.preventDefault(); close(true); }
+      if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      if (e.key === 'Enter') { e.preventDefault(); submit(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [req, close]);
+  }, [req, cancel, submit]);
 
   if (!mounted || !req || typeof document === 'undefined') return null;
-  const { title = 'Are you sure?', message = '', confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false } = req.opts || {};
+  const isInput = !!req.opts?.input;
+  const { title = isInput ? 'Enter a value' : 'Are you sure?', message = '', confirmLabel = isInput ? 'Save' : 'Confirm', cancelLabel = 'Cancel', danger = false, label = '', type = 'text', placeholder = '' } = req.opts || {};
 
   return createPortal(
-    <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => close(false)} style={{ position: 'fixed', inset: 0, zIndex: 2147483600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)', padding: 16, animation: 'uiFadeIn 0.12s ease-out' }}>
+    <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={cancel} style={{ position: 'fixed', inset: 0, zIndex: 2147483600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)', padding: 16, animation: 'uiFadeIn 0.12s ease-out' }}>
       <style>{`@keyframes uiFadeIn { from { opacity: 0 } to { opacity: 1 } } @keyframes uiPopIn { from { opacity: 0; transform: scale(0.97) translateY(4px) } to { opacity: 1; transform: none } }`}</style>
       <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{
         width: 'min(430px, 100%)', background: 'var(--surface-solid)', border: '1px solid var(--g-border-2)',
@@ -376,15 +406,24 @@ export function ConfirmHost() {
             width: 34, height: 34, borderRadius: 'var(--r-md)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
             background: danger ? 'rgba(239,68,68,0.14)' : 'rgba(99,102,241,0.14)',
             border: `1px solid ${danger ? 'rgba(239,68,68,0.35)' : 'rgba(99,102,241,0.35)'}`,
-          }}>{danger ? '⚠' : '?'}</div>
-          <div className="min-w-0">
+          }}>{danger ? '⚠' : isInput ? '✎' : '?'}</div>
+          <div className="min-w-0 flex-1">
             <div style={{ fontFamily: HEAD, fontSize: 16.5, fontWeight: 600, color: 'var(--g-text-hi)', lineHeight: 1.3 }}>{title}</div>
             {message && <div style={{ fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.55, marginTop: 6, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{message}</div>}
+            {isInput && (
+              <div style={{ marginTop: 12 }}>
+                {label && <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginBottom: 4 }}>{label}</div>}
+                <input autoFocus type={type} value={value} placeholder={placeholder} onChange={(e) => { setValue(e.target.value); setError(''); }}
+                  aria-invalid={!!error} aria-describedby={error ? 'ui-prompt-error' : undefined}
+                  style={{ width: '100%', padding: '8px 10px', fontSize: 14, borderRadius: 'var(--r-sm)', background: 'var(--g-field)', color: 'var(--g-text-hi)', border: `1px solid ${error ? '#ef4444' : 'var(--g-border-2)'}`, outline: 'none', fontVariantNumeric: 'tabular-nums' }} />
+                {error && <div id="ui-prompt-error" role="alert" style={{ fontSize: 12, color: 'var(--c-red)', marginTop: 6 }}>{error}</div>}
+              </div>
+            )}
           </div>
         </div>
         <div className="flex gap-2 justify-end mt-[18px]">
-          <Button variant="secondary" size="sm" onClick={() => close(false)}>{cancelLabel}</Button>
-          <Button variant={danger ? 'danger' : 'accent'} size="sm" onClick={() => close(true)} autoFocus>{confirmLabel}</Button>
+          <Button variant="secondary" size="sm" onClick={cancel}>{cancelLabel}</Button>
+          <Button variant={danger ? 'danger' : 'accent'} size="sm" onClick={submit} autoFocus={!isInput}>{confirmLabel}</Button>
         </div>
       </div>
     </div>,

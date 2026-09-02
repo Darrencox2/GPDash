@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { confirmDialog } from '@/components/ui';
+import { confirmDialog, promptDialog } from '@/components/ui';
 import { GRID_SIZES, getRoomTypes, SITE_COLOUR_PRESETS } from '@/lib/roomAllocation';
 import { onKeyActivate } from '@/lib/a11y';
 
@@ -175,8 +175,8 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-3 flex items-center justify-between">
           <span className="text-sm font-semibold text-white">Room Types</span>
-          <button onClick={() => {
-            const name = prompt('New room type name:');
+          <button onClick={async () => {
+            const name = await promptDialog({ title: 'New room type', label: 'Name', placeholder: 'e.g. Treatment room' });
             if (!name?.trim()) return;
             const colour = SITE_COLOUR_PRESETS[Math.floor(Math.random() * SITE_COLOUR_PRESETS.length)];
             const id = name.trim().toLowerCase().replace(/\s+/g, '_');

@@ -13,6 +13,7 @@ import { getSiteStaffingForDate, computeTotalEntry, STAFF_GROUP_LABELS, STATE_CO
 import CapacityWeek from './CapacityWeek';
 import { createClient } from '@/utils/supabase/client';
 import { onKeyActivate } from '@/lib/a11y';
+import { promptDialog } from '@/components/ui';
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
@@ -963,8 +964,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
           <div className="px-5 py-3 flex items-center gap-5 flex-wrap text-[11px] text-slate-400">
             <span className="text-slate-400">|</span>
             {rTarget>0
-              ? <span className="text-slate-400">Routine target: <strong className="text-slate-300">{rTarget}</strong>/wk {canEdit && <button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={()=>{const v=prompt('Weekly routine target:',rTarget);if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer ml-1" style={{background:'none',border:'none',fontSize:'inherit'}}>edit</button>}</span>
-              : canEdit ? <button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={()=>{const v=prompt('Set weekly routine slot target:','200');if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer" style={{background:'none',border:'none',fontSize:'inherit'}}>Set routine target</button> : <span className="text-slate-400 text-xs">Routine target not set</span>}
+              ? <span className="text-slate-400">Routine target: <strong className="text-slate-300">{rTarget}</strong>/wk {canEdit && <button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={async()=>{const v=await promptDialog({ title: 'Weekly routine target', label: 'Routine slots a week', type: 'number', defaultValue: rTarget, validate: (x)=> (!x || Number(x) <= 0 ? 'Enter a number above zero.' : '') });if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer ml-1" style={{background:'none',border:'none',fontSize:'inherit'}}>edit</button>}</span>
+              : canEdit ? <button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={async()=>{const v=await promptDialog({ title: 'Set a weekly routine target', message: 'The number of routine slots the practice aims to offer each week. The grid colours each week against it.', label: 'Routine slots a week', type: 'number', defaultValue: 200, validate: (x)=> (!x || Number(x) <= 0 ? 'Enter a number above zero.' : '') });if(v)updateTarget(v);}} className="text-indigo-400 underline cursor-pointer" style={{background:'none',border:'none',fontSize:'inherit'}}>Set routine target</button> : <span className="text-slate-400 text-xs">Routine target not set</span>}
           </div>
           </>)}
           {capView === 'week' && (

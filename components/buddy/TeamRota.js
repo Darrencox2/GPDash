@@ -1,4 +1,5 @@
 'use client';
+import { confirmDialog } from '@/components/ui';
 import { useState } from 'react';
 import { PageHeader } from '@/components/ui';
 import { DAYS } from '@/lib/data';
@@ -94,9 +95,9 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
     );
   };
 
-  const fillFromHistory = () => {
+  const fillFromHistory = async () => {
     if (!huddleData) return;
-    if (!window.confirm('Fill every clinicians working sessions from EMIS history? Days you have edited will be overwritten by what the history shows. This is audited.')) return;
+    if (!(await confirmDialog({ title: 'Fill working sessions from EMIS history?', message: 'Every clinician\'s sessions are set from what the history shows. Days you have edited by hand are overwritten. This is audited.', confirmLabel: 'Fill from history', danger: true }))) return;
     const nextSR = {};
     for (const c of buddyCoverClinicians) {
       const eff = getEffectivePattern(huddleData, c, hsPat); // pure inference (no data => history speaks)
