@@ -258,6 +258,25 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   // Capacity planning answers to two sidebar entries: monthly and weekly.
   const isCapacity = activeSection === 'huddle-forward' || activeSection === 'huddle-forward-week';
 
+  // Offline. The service worker answers from its last good copy when the
+  // network fails and says so in a header; the browser says when it has
+  // no connection at all. Either way the page says what it is showing and
+  // refuses to pretend a save went through.
+  const [offlineAt, setOfflineAt] = useState(null);   // ISO of the cached copy, or null
+  const [browserOffline, setBrowserOffline] = useState(false);
+  const noteResponse = useCallback((res) => {
+    const at = res?.headers?.get?.('x-gpdash-offline');
+    if (at != null) setOfflineAt(at || 'unknown');
+  }, []);
+  useEffect(() => {
+    const on = () => setBrowserOffline(false);
+    const off = () => setBrowserOffline(true);
+    setBrowserOffline(typeof navigator !== 'undefined' && navigator.onLine === false);
+    window.addEventListener('online', on); window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
+  const isOffline = browserOffline || !!offlineAt;
+
   // ⌘K requests. Each carries a nonce so repeating the same one still fires.
   const [reqDate, setReqDate] = useState(null);       // { iso, n }
   const [reqWeek, setReqWeek] = useState(null);       // { n, nonce }
@@ -335,6 +354,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       };
       const slim = async () => {
         const res = await fetch(`/api/v4/huddle-data?practice=${encodeURIComponent(practiceId)}`);
+        noteResponse(res);
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json?.error || `huddle-data ${res.status}`);
         return json;
@@ -393,6 +413,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       try {
         const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`);
         if (cancelled) return;
+        noteResponse(res);
 
         if (res.status === 401) {
           router.replace('/v4/login');
@@ -607,6 +628,12 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     // server's mutation 5 stays in place for compatibility with
     // anything else that might POST it (deprecated paths, scripts).
     const bodyToSend = { ...dataToSend, huddleCsvData: undefined };
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      toast('You are offline. That change was not saved; make it again when the connection is back.', 'error', 6000);
+      resolves.forEach(r => r({ error: 'offline' }));
+      return;
+    }
 
     try {
       const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, {
@@ -989,6 +1016,16 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} data={data} />
       <CommandPalette data={data} activeSection={activeSection} onSection={setActiveSection} onDate={paletteDate} onWeek={paletteWeek} onClinician={paletteClinician} />
       <main className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)' }}>
+        {isOffline && (
+          <div role="status" className="px-4 py-2 text-sm flex items-center gap-3 flex-wrap" style={{ background: 'rgba(245,158,11,0.12)', borderBottom: '1px solid rgba(245,158,11,0.35)', color: 'var(--c-amber)' }}>
+            <span className="font-semibold">You are offline.</span>
+            <span>
+              {offlineAt && offlineAt !== 'unknown'
+                ? `Showing the copy saved at ${new Date(offlineAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}. Changes will not save until the connection is back.`
+                : 'Showing the last copy this device saw. Changes will not save until the connection is back.'}
+            </span>
+          </div>
+        )}
         {/* The two capacity views are one section wearing two hats. They
             share a boundary key so switching between them does not remount
             the page and lose which week you were looking at. */}

@@ -527,6 +527,16 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
     saveData({ ...data, huddleSettings: { ...hs, rotaSuggestionIgnores: ignores } }, false);
   };
 
+  // Below the lg breakpoint the board shows one day at a time.
+  const [isPhone, setIsPhone] = useState(false);
+  const phoneDay = DAYS.includes(selectedDay) ? selectedDay : DAYS[0];
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const apply = () => setIsPhone(mq.matches);
+    apply(); mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
   // [ and ] step the week, unless someone is typing.
   useEffect(() => {
     const onKey = (e) => {
@@ -724,8 +734,28 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             <span className="absolute right-4 text-xs" style={{color:'#34d399'}}>&#10003; All {allReadyCount} days ready</span>
           )}
         </div>
-        <div className="overflow-x-auto"><div className="flex divide-x divide-white/5 min-w-[600px]">
-          {DAYS.map(day => {
+        {/* On a phone the five-column board is a horizontal scroll with
+            Wednesday cut in half. Show one day at a time instead: a row of
+            day chips, then the selected day's column at full width. */}
+        {isPhone && (
+          <div className="flex gap-1.5 px-3 py-2" style={{ borderBottom: '1px solid var(--g-border)' }}>
+            {DAYS.map((day) => {
+              const dk = getDateKeyForDay(day);
+              const sel = phoneDay === day;
+              const ready = !!data?.allocationHistory?.[dk];
+              return (
+                <button key={day} onClick={() => setSelectedDay(day)} aria-pressed={sel}
+                  className="flex-1 rounded-lg py-2 text-xs font-semibold"
+                  style={{ minHeight: 44, background: sel ? 'var(--duty-bg)' : 'var(--g-tile)', border: `1px solid ${sel ? 'var(--duty-bd)' : 'var(--g-border)'}`, color: sel ? 'var(--duty-fg)' : 'var(--g-text-hi)' }}>
+                  {day.slice(0, 3)}
+                  <span className="block text-[10px] font-normal" style={{ color: sel ? 'var(--duty-fg)' : 'var(--meta)' }}>{new Date(dk + 'T12:00:00').getDate()}{ready ? '' : ' ·'}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <div className="overflow-x-auto"><div className={`flex divide-x divide-white/5 ${isPhone ? '' : 'min-w-[600px]'}`}>
+          {(isPhone ? [phoneDay] : DAYS).map(day => {
             const dk = getDateKeyForDay(day);
             const dt = new Date(dk + 'T12:00:00');
             const closed = isClosedDay(dk);

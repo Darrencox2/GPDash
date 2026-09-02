@@ -208,7 +208,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
       {/* Outlook */}
       <div style={S.card}>
         <div style={S.h2} className="mb-2">The week ahead</div>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {b.outlook.map((o, i) => (
             <div key={i} className="rounded-md" style={{ background: 'var(--g-tile)', padding: '8px 10px' }}>
               {/* One mark, the same one Today and the week view draw: urgent
