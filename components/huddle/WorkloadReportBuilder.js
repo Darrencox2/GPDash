@@ -8,6 +8,7 @@ import {
   buildFilterOptions, buildReportRows, reportRowsToCsv, reportInsight, REPORT_PALETTE, REPORT_SINGLE,
 } from '@/lib/workload-report';
 import ReportScheduleModal from './ReportScheduleModal';
+import WeeklyDigest from './WeeklyDigest';
 import { createClient } from '@/utils/supabase/client';
 import { canEditPracticeData } from '@/lib/permissions';
 import { onKeyActivate } from '@/lib/a11y';
@@ -367,7 +368,11 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     }).filter(Boolean);
     return (
       <div className="space-y-7">
-        <PageHeader title="Reporting" subtitle="Pick a report to get started, or build your own. Every report is fully editable once open." className="mb-0" />
+        <PageHeader title="Reporting" subtitle="Last week at a glance, then every report. Each tile opens the report behind it; every report is fully editable once open." className="mb-0" />
+
+        {/* The landing answers first: last week against the week before,
+            from the same facts every report below is built on. */}
+        <WeeklyDigest slotData={slotData} sessionData={sessionData} onOpenPreset={openPreset} />
 
         {favResolved.length > 0 && (
           <div>

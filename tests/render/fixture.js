@@ -44,7 +44,9 @@ export function buildFixture() {
       const site = SITES[(idx + i) % SITES.length].name;
       const rows = [];
       const am = {}, pm = {}, amB = {}, pmB = {};
-      const push = (time, t, n, booked) => { for (let k = 0; k < n; k++) rows.push({ time, slotType: t, location: site, booked: k < booked }); };
+      // One row per slot, in the shape lib/huddle.js parses: status and count are
+      // what the report builder counts; the row itself is what site staffing counts.
+      const push = (time, t, n, booked) => { for (let k = 0; k < n; k++) rows.push({ time, slotType: t, location: site, status: k < booked ? 'booked' : 'available', count: 1 }); };
       const isGp = idx < 6;
       const t1 = isGp ? 'Book on the day' : TYPES[8 + (idx % 2)];
       const t2 = isGp ? 'Routine 15 min' : 'Blood test';
