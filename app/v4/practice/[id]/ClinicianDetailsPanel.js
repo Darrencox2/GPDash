@@ -55,10 +55,15 @@ export default function ClinicianDetailsPanel({
   const [error, setError] = useState('');
   const saveTimer = useRef(null);
 
-  // Reset local state if the clinician we're viewing changes
+  // Reset local state if the clinician we're viewing changes.
+  //
+  // Keyed on the id, NOT on the clinician object. The parent rebuilds that
+  // object on every render, so depending on it would blow away whatever the
+  // user has typed into this panel each time anything upstream re-rendered.
   useEffect(() => {
     setLocal(clinician);
     setError('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinician?.id]);
 
   // Escape key closes

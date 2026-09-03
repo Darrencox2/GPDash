@@ -290,8 +290,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
   const calendarRef = useRef(null);
   const [weather, setWeather] = useState(null);
   const [mobileTab, setMobileTab] = useState('short');
-  const hs = data?.huddleSettings || {};
-  const sites = data?.roomAllocation?.sites || [];
+  const hs = useMemo(() => data?.huddleSettings || {}, [data?.huddleSettings]);
+  const sites = useMemo(() => data?.roomAllocation?.sites || [], [data?.roomAllocation?.sites]);
   const siteCol = (name) => getSiteColour(name, sites);
 
   // --- Per-site staffing layer (toggled; hidden by default so the
@@ -536,7 +536,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       res.push({days,ws,label:`${ws.getDate()} ${ws.toLocaleString('en-GB',{month:'short'})}`,wU,wT,wR:wRA+wRE+wRB,wRA,wRE,wRB,openDays,effTarget});
     }
     return res;
-  }, [huddleData,hs,urgOv,routOv,weather,convRate,dutySlots,hasDuty,predictionOptions,rTarget]);
+  }, [huddleData,hs,urgOv,routOv,weather,convRate,dutySlots,hasDuty,predictionOptions,rTarget,teamClin]);
 
   // Below-minimum day count across the whole calendar window - shown as a
   // badge on the toggle button so warnings are visible WITHOUT opening the

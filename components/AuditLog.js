@@ -29,7 +29,7 @@ function formatRelativeTime(isoString) {
 export default function AuditLog({ data, saveData }) {
   const [filterType, setFilterType] = useState('all');
   const [showAll, setShowAll] = useState(false);
-  const log = Array.isArray(data?.auditLog) ? data.auditLog : [];
+  const log = useMemo(() => (Array.isArray(data?.auditLog) ? data.auditLog : []), [data?.auditLog]);
 
   const types = useMemo(() => {
     const counts = {};

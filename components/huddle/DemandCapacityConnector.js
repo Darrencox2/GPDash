@@ -87,7 +87,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
     }
     load();
     return () => { cancelled = true; };
-  }, [targetDate, data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict, data?._v4?.practiceLatitude, data?._v4?.practiceLongitude]);
+  }, [targetDate, data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict, data?._v4?.practiceLatitude, data?._v4?.practiceLongitude, data?._v4?.practiceListSize]);
 
   // Chart
   useEffect(() => {

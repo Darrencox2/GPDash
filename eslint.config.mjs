@@ -1,5 +1,12 @@
 import reactHooks from 'eslint-plugin-react-hooks';
 export default [
+  // Build output and vendor code are not ours to lint. Without this,
+  // `npx eslint .` returned ~98 errors from .next/ chunks and buried the
+  // handful of real warnings in project source - which is why nobody read
+  // the output and the real ones never got triaged.
+  {
+    ignores: ['.next/**', 'node_modules/**', 'test-results/**', 'playwright-report/**', 'public/sw.js'],
+  },
   {
     files: ['app/**/*.js', 'components/**/*.js', 'lib/**/*.js'],
     plugins: { 'react-hooks': reactHooks },

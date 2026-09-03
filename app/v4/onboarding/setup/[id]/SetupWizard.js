@@ -3244,8 +3244,8 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
   // parse (e.g. missing TLD). Without this, malformed input was just
   // silently dropped at send time which left users wondering why their
   // invite list was shorter than expected.
-  const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
   const parsed = useMemo(() => {
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     const tokens = emailsText.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
     const seen = new Set();
     const validEmails = [];

@@ -177,20 +177,25 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
   const dateKey = toLocalIso(today);
   const todayDateStr = useMemo(() => toHuddleDateStr(today), [today]);
-  const hs = data?.huddleSettings || {};
+  const hs = useMemo(() => data?.huddleSettings || {}, [data?.huddleSettings]);
   // Practice site list — used by useMemos and helpers further down. Must
   // be declared BEFORE any useMemo that references it: minified production
   // builds run dependency-array evaluation immediately, which hits the TDZ
   // for any const declared later in the function. (This was previously
   // declared near the bottom, which threw "Cannot access 'sites' before
   // initialization" once the file was minified.)
-  const sites = data?.roomAllocation?.sites || [];
+  const sites = useMemo(() => data?.roomAllocation?.sites || [], [data?.roomAllocation?.sites]);
   const siteCol = (name) => getSiteColour(name, sites);
   const messages = ensureArray(data?.huddleMessages || []);
 
   // Fullscreen API — skip in dual mode (use CSS overlay instead)
   const onExitRef = useRef(onExit);
   onExitRef.current = onExit;
+  // Same idiom for exitDual: it is rebuilt every render, so depending on it
+  // directly would tear down and re-register the fullscreen and keydown
+  // listeners on every render.
+  const exitDualRef = useRef(exitDual);
+  exitDualRef.current = exitDual;
   useEffect(() => {
     const el = containerRef.current;
     if (!dualMode && !screen) {
@@ -202,7 +207,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
       }
     };
     document.addEventListener('fullscreenchange', onFs);
-    const onKey = (e) => { if (e.key === 'Escape') { if (dualMode || screen) exitDual(); else onExitRef.current(); } };
+    const onKey = (e) => { if (e.key === 'Escape') { if (dualMode || screen) exitDualRef.current(); else onExitRef.current(); } };
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('fullscreenchange', onFs); document.removeEventListener('keydown', onKey); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
   }, [dualMode, screen]);
@@ -244,7 +249,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
       setDemandData({ today: { ...todayPred, weather: todayW }, chartDays });
     }
     load();
-  }, [today, data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict, data?._v4?.practiceLatitude, data?._v4?.practiceLongitude]);
+  }, [today, data?._v4?.demandSettings, data?._v4?.practiceAdminDistrict, data?._v4?.practiceLatitude, data?._v4?.practiceLongitude, data?._v4?.practiceListSize]);
 
   // Chart.js
   useEffect(() => {
@@ -295,7 +300,9 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
     };
     loadChart();
     return () => { if (chartInstance.current) chartInstance.current.destroy(); };
-  }, [demandData, isLight]);
+    // C is one of two module-level constants selected by isLight, so it is a
+    // stable reference and adding it changes nothing about when this reruns.
+  }, [demandData, isLight, C]);
 
   // ── Who's in ──────────────────────────────────────────────────
   const visibleStaff = allClinicians.filter(c => c.showWhosIn !== false && c.status !== 'left' && c.status !== 'administrative');
@@ -307,7 +314,10 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const absenceMap = useMemo(() => { const m = {}; ensureArray(data.plannedAbsences).forEach(a => { if (dateKey >= a.startDate && dateKey <= a.endDate) m[a.clinicianId] = a.reason || 'Leave'; }); return m; }, [data.plannedAbsences, dateKey]);
   const dayKey = `${dateKey}-${dayName}`;
   const manualOverride = data.dailyOverrides?.[dayKey];
-  const manualPresent = manualOverride?.present ? new Set(ensureArray(manualOverride.present)) : null;
+  const manualPresent = useMemo(
+    () => (manualOverride?.present ? new Set(ensureArray(manualOverride.present)) : null),
+    [manualOverride],
+  );
   const categories = useMemo(() => {
     const inP = [], leave = [], off = [];
     visibleStaff.forEach(p => {
@@ -344,7 +354,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const othersTeam = fsSortByLoc(categories.inPractice.filter(e => e.person.group !== 'gp' && e.person.group !== 'nursing'));
 
   // ── Capacity ──────────────────────────────────────────────────
-  const saved = hs?.savedSlotFilters || {};
+  const saved = useMemo(() => hs?.savedSlotFilters || {}, [hs]);
   const displayDate = huddleData?.dates?.includes(todayDateStr) ? todayDateStr : null;
   const capacity = huddleData && displayDate ? getHuddleCapacity(huddleData, displayDate, hs, saved.urgent || null) : null;
   const urgentAm = (capacity?.am?.total||0) + (capacity?.am?.embargoed||0) + (capacity?.am?.booked||0);
@@ -367,7 +377,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
   const pmBand = getBand(urgentPm, expectedPm);
 
   // ── Routine ───────────────────────────────────────────────────
-  const knownSlotTypes = hs?.knownSlotTypes || [];
+  const knownSlotTypes = useMemo(() => hs?.knownSlotTypes || [], [hs]);
   const allSlotsOverrides = useMemo(() => { const o={}; knownSlotTypes.forEach(s=>{o[s]=true;}); if(huddleData?.allSlotTypes) huddleData.allSlotTypes.forEach(s=>{o[s]=true;}); return o; }, [knownSlotTypes, huddleData]);
   const effectiveRoutineOverrides = saved.routine || allSlotsOverrides;
   const routineDays = useMemo(() => huddleData ? getNDayAvailability(huddleData, hs, 30, effectiveRoutineOverrides) : [], [huddleData, hs, effectiveRoutineOverrides]);

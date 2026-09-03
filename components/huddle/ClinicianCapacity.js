@@ -7,8 +7,8 @@ import { matchesStaffMember, toHuddleDateStr } from '@/lib/data';
 export default function ClinicianCapacity({ data, huddleData, routineOverrides }) {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
-  const hs = data?.huddleSettings || {};
-  const sites = data?.roomAllocation?.sites || [];
+  const hs = useMemo(() => data?.huddleSettings || {}, [data?.huddleSettings]);
+  const sites = useMemo(() => data?.roomAllocation?.sites || [], [data?.roomAllocation?.sites]);
   const siteCol = (name) => getSiteColour(name, sites);
 
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
@@ -116,7 +116,14 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
   const rank = selected ? comparison.entries.findIndex(e => e.id === selected.id) + 1 : 0;
   const nextAvail = cd ? cd.nextSlots.filter(s => s.type === 'available').slice(0, 3) : [];
   const nextEmb = cd ? cd.nextSlots.filter(s => s.type === 'embargoed').slice(0, 3) : [];
-  const nextAll = cd ? [...nextAvail, ...nextEmb].sort((a, b) => a.date - b.date).slice(0, 3) : [];
+  // Derived from cd alone. Keying this on nextAvail/nextEmb would not memoise
+  // anything — those are themselves fresh arrays on every render.
+  const nextAll = useMemo(() => {
+    if (!cd) return [];
+    const avail = cd.nextSlots.filter(s => s.type === 'available').slice(0, 3);
+    const emb = cd.nextSlots.filter(s => s.type === 'embargoed').slice(0, 3);
+    return [...avail, ...emb].sort((a, b) => a.date - b.date).slice(0, 3);
+  }, [cd]);
 
   // Weekly chart scale
   const weekMax = cd ? Math.max(...cd.weeks.map((w, i) => w + cd.weeksEmb[i]), 1) : 1;

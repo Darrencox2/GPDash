@@ -240,7 +240,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
     } finally {
       inFlight.current = false;
     }
-  }, [clinicians, practiceId]);
+  }, [clinicians]);
 
   useEffect(() => {
     if (!isDirty) return;

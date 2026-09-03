@@ -114,7 +114,7 @@ function PeopleGrid({ children, isEmpty }) {
 
 export default function WhosInOut({ data, saveData, huddleData, onNavigate, viewingDate: viewingDateProp }) {
   const canEdit = canEditPracticeData(data);
-  const sites = data?.roomAllocation?.sites || [];
+  const sites = useMemo(() => data?.roomAllocation?.sites || [], [data?.roomAllocation?.sites]);
   const siteCol = (name) => getSiteColour(name, sites);
   const [showSettings, setShowSettings] = useState(false);
   const [showAbsent, setShowAbsent] = useState(false);
@@ -169,7 +169,9 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
     return c.showWhosIn !== false;
   };
 
-  const vd = viewingDateProp || new Date();
+  // Stable per viewingDateProp. A bare `new Date()` fallback was a new object
+  // every render, so isViewingToday and the memos keyed on vd never memoised.
+  const vd = useMemo(() => viewingDateProp || new Date(), [viewingDateProp]);
   const dayIndex = vd.getDay();
   const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex];
   const dateKey = toLocalIso(vd);
@@ -230,7 +232,10 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
 
   // 3. Manual overrides from drag-drop (only if user has dragged today)
   const manualOverride = data.dailyOverrides?.[dayKey];
-  const manualPresent = manualOverride?.present ? new Set(ensureArray(manualOverride.present)) : null;
+  const manualPresent = useMemo(
+    () => (manualOverride?.present ? new Set(ensureArray(manualOverride.present)) : null),
+    [manualOverride],
+  );
 
   // 4. Rota (fallback when no CSV)
   const rotaScheduled = ensureArray(data.weeklyRota?.[dayName]);

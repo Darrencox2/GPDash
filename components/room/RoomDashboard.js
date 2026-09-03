@@ -10,7 +10,7 @@ import { ClosedDayInline } from '@/components/ui/ClosedDay';
 
 export default function RoomDashboard({ data, saveData, huddleData, toast }) {
   const canEdit = canEditPracticeData(data);
-  const ra = data?.roomAllocation || {};
+  const ra = useMemo(() => data?.roomAllocation || {}, [data?.roomAllocation]);
   const sites = ra.sites || [];
   const [selectedSiteId, setSelectedSiteId] = useState(sites[0]?.id || null);
   const [session, setSession] = useState('am');
@@ -148,6 +148,10 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
     const existing = ra.allocationHistory?.[historyKey];
     if (existing && JSON.stringify(existing.assignments) === JSON.stringify(allocation.assignments)) return;
     saveData({ ...data, roomAllocation: { ...ra, allocationHistory: { ...(ra.allocationHistory || {}), [historyKey]: allocation } } }, false);
+    // Same shape as the huddle autosave: this effect writes through saveData,
+    // so listing data / ra / saveData would loop. The guard above already
+    // makes it a no-op when the stored allocation matches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyKey, allocation]);
 
   const siteColour = selectedSite?.colour || '#6366f1';
@@ -209,6 +213,10 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
     return () => { document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp); };
+    // doPlace and doUnallocate are declared below this effect and rebuilt on
+    // every render. Depending on them would tear down and re-register the
+    // pointer listeners mid-drag, which drops the drag.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging, hoveredRoom, dragPerson]);
 
   // Compute natural allocation (without overrides) for override comparison

@@ -204,6 +204,9 @@ export default async function PracticePage({ params }) {
     practiceOnlineConsultTool: practice.online_consult_tool,
     practiceBuddyCoverPublic: !!practice.buddy_cover_public,
     setupCompletedAt: practice.setup_completed_at,
+    // Optimistic-lock token, so the first save after a server render already
+    // holds a version rather than falling through the legacy no-version path.
+    dataVersion: practice.data_version ?? null,
     demandSettings: settings?.demand_settings || null,
     userId: user.id,
     userEmail: user.email,

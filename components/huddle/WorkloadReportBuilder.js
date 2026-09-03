@@ -108,7 +108,7 @@ function Collapsible({ title, badge, defaultOpen = false, children }) {
 }
 
 export default function WorkloadReportBuilder({ data, huddleData }) {
-  const hs = data?.huddleSettings || {};
+  const hs = useMemo(() => data?.huddleSettings || {}, [data?.huddleSettings]);
   const canEdit = canEditPracticeData(data);
   const practiceId = data?._v4?.practiceId || null;
   const userId = data?._v4?.userId || null;

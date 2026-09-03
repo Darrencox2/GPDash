@@ -361,6 +361,11 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       }).filter(Boolean);
     });
     return abs;
+    // ensureArray and getDateKeyForDay come off the `helpers` prop object,
+    // which the parent rebuilds every render. Listing them would recompute
+    // this on every render, which is what the memo exists to avoid; the data
+    // they read is already in the dependency list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.plannedAbsences, selectedWeek, cliniciansList]);
 
   // ═══ Weekly inconsistency review ═══

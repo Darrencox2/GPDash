@@ -142,7 +142,15 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
   };
   // The ⌘K palette asks for a date; each request carries a nonce so the
   // same date twice still lands.
-  useEffect(() => { if (requestedDate?.iso) goToDate(requestedDate.iso); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [requestedDate]);
+  // The directive has to sit on its own line immediately before the dependency
+  // array. Inline inside the body it suppressed nothing, and the warning it
+  // was meant to silence had been firing unread ever since.
+  useEffect(() => {
+    if (requestedDate?.iso) goToDate(requestedDate.iso);
+    // goToDate is rebuilt every render; the nonce on requestedDate is what
+    // makes this fire, and depending on the function would fire it constantly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedDate]);
   // [ and ] step the day, unless someone is typing.
   useEffect(() => {
     const onKey = (e) => {
@@ -475,6 +483,10 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
       clinicianCount: (capacity.am.byClinician?.length || 0),
     };
     saveData({ ...data, predictionHistory: { ...(data.predictionHistory || {}), [todayKey]: snapshot } }, false);
+    // Deliberately keyed on the measurement, not on the document. This effect
+    // WRITES data via saveData, so depending on data or saveData would be a
+    // save-render-save loop against the live practice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isViewingToday, capacity, displayDate, huddleData]);
 
   // Smooth fade transition when changing dates

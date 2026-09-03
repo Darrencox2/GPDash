@@ -4,7 +4,7 @@ import { getHuddleCapacity } from '@/lib/huddle';
 import { matchesStaffMember, toHuddleDateStr } from '@/lib/data';
 
 export default function RoutineWaitTime({ data, huddleData, routineOverrides }) {
-  const hs = data?.huddleSettings || {};
+  const hs = useMemo(() => data?.huddleSettings || {}, [data?.huddleSettings]);
 
   const ensureArray = (val) => { if (!val) return []; if (Array.isArray(val)) return val; return Object.values(val); };
   const gpClinicians = useMemo(() =>

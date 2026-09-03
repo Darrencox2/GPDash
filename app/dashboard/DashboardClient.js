@@ -389,12 +389,21 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       if (!cancelled) setHuddleLoading(false);
     })();
     return () => { cancelled = true; };
-  }, []); // mount-only by design
+    // Mount-only by design: this is the one-shot CSV fetch. Re-running it when
+    // practiceId or initialData change would refetch a multi-megabyte blob on
+    // every practice switch, which the loader above already handles.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [huddleMessages, setHuddleMessages] = useState(() =>
     Array.isArray(initialData?.huddleMessages) ? initialData.huddleMessages : []
   );
   const huddleLoadedRef = useRef(false);
   const lastSentCsvRef = useRef(initialData?.huddleCsvData || null);  // tracks the last CSV reference we sent to the server, for save-time bandwidth optimisation
+  // Optimistic-lock token for structural saves. Seeded from the server render,
+  // refreshed by every load and every save. null means "unknown", which the
+  // API treats as a legacy client and lets through — see the migration
+  // 20260904120100_practice_data_version.sql.
+  const practiceVersionRef = useRef(initialData?._v4?.dataVersion ?? null);
 
   // Single load effect: fetch data immediately. The API endpoint handles
   // auth and returns 401 if not signed in; we redirect on that.
@@ -434,6 +443,8 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
         if (json._v4?.practices) {
           setAllPractices(json._v4.practices);
         }
+        // Adopt the lock token that goes with the data we just loaded.
+        practiceVersionRef.current = json._v4?.dataVersion ?? null;
         if (json.huddleCsvData) {
           setHuddleData(json.huddleCsvData);
           lastSentCsvRef.current = json.huddleCsvData;  // baseline for diff
@@ -509,7 +520,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
 
     load();
     return () => { cancelled = true; };
-  }, [practiceId, router, toast, initialData]);
+  }, [practiceId, router, toast, initialData, noteResponse]);
 
   // ─── Same normalization logic as v3 ──────────────────────────────
   const normalizeData = (d) => {
@@ -627,7 +638,10 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     // doesn't need to go through Vercel even when unchanged. The
     // server's mutation 5 stays in place for compatibility with
     // anything else that might POST it (deprecated paths, scripts).
-    const bodyToSend = { ...dataToSend, huddleCsvData: undefined };
+    // _dataVersion is the optimistic-lock token from the last GET or save.
+    // The server only consults it on a structural save; In/Out toggles and
+    // note edits take the fast path and are unaffected.
+    const bodyToSend = { ...dataToSend, huddleCsvData: undefined, _dataVersion: practiceVersionRef.current };
 
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       toast('You are offline. That change was not saved; make it again when the connection is back.', 'error', 6000);
@@ -642,8 +656,24 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
         body: JSON.stringify(bodyToSend),
       });
       const result = await res.json().catch(() => ({}));
+      // Keep the lock token current. Every successful structural save returns
+      // the version it claimed; without adopting it here the next save would
+      // send a stale token and 409 against our own write.
+      if (result.dataVersion != null) practiceVersionRef.current = result.dataVersion;
+
       if (csvWriteError) {
         toast(`CSV save failed: ${csvWriteError}`, 'error');
+      } else if (res.status === 409 && result.conflict) {
+        // Someone else saved between our load and this write. The old
+        // behaviour was to overwrite them without anyone noticing.
+        //
+        // Local edits are deliberately left on screen — throwing away work the
+        // user can see, to resolve a conflict they have not been told about
+        // yet, is the same failure in the other direction. Instead: say what
+        // happened, adopt their version, and let a deliberate repeat go
+        // through.
+        if (result.currentVersion != null) practiceVersionRef.current = result.currentVersion;
+        toast(result.error || 'Someone else saved first — reload before changing this again.', 'error', 12000);
       } else if (!res.ok) {
         toast(result.error || 'Save failed', 'error');
       } else if (result.errors?.length) {
@@ -721,6 +751,10 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
         try {
           const dataToSend = pending.latestData;
           if (dataToSend) {
+            // No _dataVersion on the beacon, on purpose. A 409 arriving after
+            // the page is gone can't be shown to anyone, so a refused unload
+            // save would be exactly the silent loss the lock exists to stop.
+            // The server treats a missing version as "bump unconditionally".
             const bodyToSend = { ...dataToSend, huddleCsvData: undefined };
             const blob = new Blob([JSON.stringify(bodyToSend)], { type: 'application/json' });
             navigator.sendBeacon(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, blob);
@@ -729,10 +763,14 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       }
     };
     window.addEventListener('beforeunload', onBeforeUnload);
+    // Hold the ref OBJECT, not its current value. Reading .current at cleanup
+    // time is the intent here — we want whatever is pending at unmount, not
+    // whatever was pending when the effect ran.
+    const pendingRef = pendingSaveRef;
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
       // Component unmounting — flush immediately
-      const pending = pendingSaveRef.current;
+      const pending = pendingRef.current;
       if (pending.timer) {
         clearTimeout(pending.timer);
         flushSave();

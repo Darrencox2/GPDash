@@ -72,6 +72,10 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
       const linked = linkedId ? clinicians.find(c => c.id === linkedId) : null;
       setSelectedId(linked ? linked.id : clinicians[0].id);
     }
+    // selectedId is read as a guard ("have we chosen yet?"), not as an input.
+    // Listing it would re-run this on every selection and let the hash branch
+    // above fight the user's own choice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinicians, data?._v4?.linkedClinicianId]);
 
   const select = c => { setSelectedId(c.id); setSearch(''); setShowDropdown(false); setIsSearching(false); window.location.hash = `rota-${c.initials}`; };
@@ -81,7 +85,6 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
     if (!requestedInitials?.initials) return;
     const m = clinicians.find(c => c.initials === requestedInitials.initials);
     if (m) select(m);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedInitials, clinicians]);
   const selected = clinicians.find(c => c.id === selectedId);
 
@@ -110,7 +113,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
   // Admins/owners can edit anyone's. Users can only edit their own (i.e.,
   // the clinician linked to their auth user).
   const canEditNotes = canEditRotaNote(data, selectedId);
-  const hs = data?.huddleSettings || {};
+  const hs = useMemo(() => data?.huddleSettings || {}, [data?.huddleSettings]);
   const dutySlots = hs?.dutyDoctorSlot;
   const hasDuty = dutySlots && (!Array.isArray(dutySlots) || dutySlots.length > 0);
   const gm = selected ? GROUP_META[selected.group] || GROUP_META.allied : GROUP_META.allied;

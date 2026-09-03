@@ -56,7 +56,7 @@ export async function GET(request) {
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from('practices')
-      .select('id, name, slug, ods_code, region, postcode, list_size, online_consult_tool, latitude, longitude, admin_district')
+      .select('id, name, slug, ods_code, region, postcode, list_size, online_consult_tool, latitude, longitude, admin_district, data_version')
       .eq('id', practiceId)
       .maybeSingle(),
     supabase.from('clinicians')
@@ -132,6 +132,9 @@ export async function GET(request) {
     practiceName: practice.name,
     practiceSlug: practice.slug,
     practiceListSize: practice.list_size,
+    // Optimistic-lock token. The client holds this and sends it back on the
+    // next structural save; POST refuses the write if it has moved on.
+    dataVersion: practice.data_version ?? null,
     practiceOds: practice.ods_code,
     practicePostcode: practice.postcode,
     practiceLatitude: practice.latitude,
@@ -216,6 +219,39 @@ export async function POST(request) {
   if (!hasSlowPathData) {
     return await handleFastPath(supabase, practiceId, user, newData);
   }
+
+  // ─── Optimistic lock on the structural save ───────────────────────────
+  //
+  // From here down we load the whole practice, diff it against the incoming
+  // document, and write the difference. Two people doing that at once means
+  // the second one's diff was computed against data that no longer exists,
+  // and the loser's edit disappears with no error shown to anybody.
+  //
+  // claim_practice_data_version does a compare-and-swap in the WHERE clause,
+  // so exactly one of two concurrent savers takes the next version. Called
+  // BEFORE any mutation, so a refusal has written nothing.
+  //
+  // A client that sends no version (a bundle from before this release, or the
+  // sendBeacon on unload) bumps unconditionally rather than being refused —
+  // a deploy mid-session must not start rejecting people's saves.
+  const claimedVersion = Number.isFinite(Number(newData._dataVersion))
+    ? Number(newData._dataVersion)
+    : null;
+  const { data: claim, error: claimError } = await supabase.rpc('claim_practice_data_version', {
+    target_practice_id: practiceId,
+    expected_version: claimedVersion,
+  });
+  if (claimError) {
+    return NextResponse.json({ error: claimError.message }, { status: 500 });
+  }
+  if (claim && claim.ok === false) {
+    return NextResponse.json({
+      error: 'Someone else saved a change to this practice while you were editing. Reload to pick up their version, then make your change again.',
+      conflict: true,
+      currentVersion: claim.version,
+    }, { status: 409 });
+  }
+  const nextVersion = claim?.version ?? null;
 
   // Only load CSV data when the incoming save actually contains CSV changes —
   // otherwise we're loading hundreds of KB just to throw it away. The presence
@@ -741,9 +777,12 @@ export async function POST(request) {
   }
 
   if (errors.length > 0) {
-    return NextResponse.json({ ok: false, errors, op_count: ops.length }, { status: 207 });
+    return NextResponse.json({ ok: false, errors, op_count: ops.length, dataVersion: nextVersion }, { status: 207 });
   }
-  return NextResponse.json({ ok: true, op_count: ops.length });
+  // Hand the claimed version back so the client can hold the new token without
+  // a refetch. Without this every save after the first would send a stale
+  // version and 409 against itself.
+  return NextResponse.json({ ok: true, op_count: ops.length, dataVersion: nextVersion });
 }
 
 
