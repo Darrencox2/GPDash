@@ -23,7 +23,7 @@ import ChangeHistoryPanel from './ChangeHistoryPanel';
 // the colour, so the board still reads without colour vision.
 const CHIP = {
   absent: { bg: '#b91c1c', bd: '#ef4444', fg: '#ffffff', label: 'Absent' },
-  dayOff: { bg: 'transparent', bd: '#f59e0b', fg: '#fbbf24', label: 'Day off' },
+  dayOff: { bg: 'transparent', bd: '#f59e0b', fg: 'var(--c-amber-2)', label: 'Day off' },
 };
 
 // The board is a wall of coloured initials with no explanation. Capacity
@@ -625,10 +625,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                   : `TeamNet synced: ${new Date(data.lastSyncTime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`)
               : 'TeamNet not synced';
             return (
-              <p className="text-sm mt-0.5" style={{ color: stale ? '#fbbf24' : 'var(--meta)' }}>
+              <p className="text-sm mt-0.5" style={{ color: stale ? 'var(--c-amber-2)' : 'var(--meta)' }}>
                 {stale && <span aria-hidden="true">&#9888; </span>}{label}
                 {stale && helpers?.syncTeamNet && (
-                  <button onClick={() => helpers.syncTeamNet()} className="ml-2 underline" style={{ color: '#fbbf24' }}>sync now</button>
+                  <button onClick={() => helpers.syncTeamNet()} className="ml-2 underline" style={{ color: 'var(--c-amber-2)' }}>sync now</button>
                 )}
                 {syncStatus && <span className="ml-2 text-emerald-600">{syncStatus}</span>}
               </p>
@@ -678,14 +678,14 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           <div className="flex items-start gap-3">
             <div className="text-2xl leading-none">👋</div>
             <div className="flex-1">
-              <h3 className="text-base font-semibold text-white">No one is in the buddy-cover pool yet</h3>
+              <h3 className="text-base font-semibold text-ink-max">No one is in the buddy-cover pool yet</h3>
               <p className="text-sm text-slate-300 mt-1 leading-relaxed">
                 Buddy cover works out who covers absent colleagues, but first you need to choose which clinicians are part of the pool. Head to clinician setup and switch on &ldquo;in buddy system&rdquo; for the GPs and other clinicians who take part. GP partners and salaried GPs are switched on by default.
               </p>
               {data?._v4?.practiceSlug && (
                 <a
                   href={`/v4/practice/${data._v4.practiceSlug}?tab=clinicians&grid=open`}
-                  className="inline-flex items-center gap-1.5 mt-3 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors hover:brightness-110"
+                  className="inline-flex items-center gap-1.5 mt-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-max transition-colors hover:brightness-110"
                   style={{ background: 'rgba(124,58,237,0.8)', border: '1px solid rgba(124,58,237,0.4)' }}
                 >
                   Set up clinicians →
@@ -710,9 +710,9 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         {/* Arrows used to sit at the board's far corners, a full width
             apart from the date they change. Grouped now, snap-back beside. */}
         <div className="flex items-center justify-center gap-2.5 px-4 py-2.5 relative" style={{background:'var(--g-panel-2)',borderBottom:'1px solid var(--g-tile)'}}>
-          <button aria-label="Previous week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
-          <div className="text-sm font-semibold text-white shrink-0" style={{width:190,textAlign:'center'}}>{formatWeekRange(selectedWeek)}</div>
-          <button aria-label="Next week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
+          <button aria-label="Previous week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-ink-max/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
+          <div className="text-sm font-semibold text-ink-max shrink-0" style={{width:190,textAlign:'center'}}>{formatWeekRange(selectedWeek)}</div>
+          <button aria-label="Next week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-ink-max/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
           {/* The arrows must not move. They used to shift sideways as the
               "This week" link appeared and the date text changed width, so a
               second click landed somewhere else - clicking three times to skip
@@ -731,7 +731,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             );
           })()}
           {allReadyCount > 0 && (
-            <span className="absolute right-4 text-xs" style={{color:'#34d399'}}>&#10003; All {allReadyCount} days ready</span>
+            <span className="absolute right-4 text-xs" style={{color:'var(--c-green-2)'}}>&#10003; All {allReadyCount} days ready</span>
           )}
         </div>
         {/* On a phone the five-column board is a horizontal scroll with
@@ -786,13 +786,13 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 {/* Day header */}
                 <div className="px-3 py-2 flex items-center justify-between flex-shrink-0">
                   <div>
-                    <div className="text-lg font-bold" style={{color: isSel ? '#a78bfa' : closed ? 'var(--g-text-faint)' : 'var(--g-text-hi)'}}>{day.slice(0, 3)}</div>
-                    <div className="text-sm" style={{color: isSel ? '#a78bfa' : 'var(--meta)'}}>{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
+                    <div className="text-lg font-bold" style={{color: isSel ? 'var(--c-violet)' : closed ? 'var(--g-text-faint)' : 'var(--g-text-hi)'}}>{day.slice(0, 3)}</div>
+                    <div className="text-sm" style={{color: isSel ? 'var(--c-violet)' : 'var(--meta)'}}>{dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                   </div>
                   {closed ? null : has ? (
-                    allReady ? null : <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{background:'rgba(16,185,129,0.15)',color:'#34d399'}}>Ready</span>
+                    allReady ? null : <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{background:'rgba(16,185,129,0.15)',color:'var(--c-green-2)'}}>Ready</span>
                   ) : (
-                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{background:'rgba(245,158,11,0.15)',color:'#fbbf24'}}>Pending</span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{background:'rgba(245,158,11,0.15)',color:'var(--c-amber-2)'}}>Pending</span>
                   )}
                 </div>
 
@@ -835,7 +835,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           team's list with no way in. */}
                       <span className="text-xs text-slate-400 mr-1" style={{lineHeight:'24px'}}>On leave ({dayAbs.length}):</span>
                       {shown.map((a, i) => {
-                        const ccStyle = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? {background:'rgba(59,130,246,0.15)',color:'#60a5fa'} : a.reason === 'Training' || a.reason === 'Study' ? {background:'rgba(245,158,11,0.15)',color:'#fbbf24'} : a.reason === 'Sick' ? {background:'rgba(239,68,68,0.15)',color:'#f87171'} : {background:'rgba(100,116,139,0.15)',color:'var(--g-text-mid)'};
+                        const ccStyle = a.reason === 'Holiday' || a.reason === 'Annual Leave' ? {background:'rgba(59,130,246,0.15)',color:'var(--c-blue-2)'} : a.reason === 'Training' || a.reason === 'Study' ? {background:'rgba(245,158,11,0.15)',color:'var(--c-amber-2)'} : a.reason === 'Sick' ? {background:'rgba(239,68,68,0.15)',color:'var(--c-red-2)'} : {background:'rgba(100,116,139,0.15)',color:'var(--g-text-mid)'};
                         return <span key={i} className="text-xs font-medium px-1.5 py-0.5 rounded" style={ccStyle} title={`${a.clinician.name} — ${a.reason}`}>{a.clinician.initials}</span>;
                       })}
                       {hidden.length > 0 && (
@@ -879,7 +879,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               <path d="M9 22V12h6v10" />
             </svg>
           </div>
-          <div className="text-lg font-medium text-white mb-1" style={{fontFamily:"var(--font-heading)"}}>Practice Closed</div>
+          <div className="text-lg font-medium text-ink-max mb-1" style={{fontFamily:"var(--font-heading)"}}>Practice Closed</div>
           <div className="text-sm text-slate-400">{getClosedReason(getDateKey())}</div>
           {canEdit && !isPastDate(getDateKey()) && <button onClick={() => toggleClosedDay(getDateKey())} className="mt-4 text-sm text-purple-400 hover:text-purple-300">Mark as open →</button>}
         </div>
@@ -889,7 +889,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
           <div className="glass overflow-hidden" style={{borderRadius:'var(--r-lg)', borderTop:'3px solid #7c3aed'}}>
             <div className="px-5 py-4 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold text-white">{selectedDay} — Attendance</h2>
+                <h2 className="text-base font-semibold text-ink-max">{selectedDay} — Attendance</h2>
                 <p className="text-xs text-slate-400 mt-0.5">{formatDate(getDateKey())}{!isPastDate(getDateKey()) && ' — Click to toggle'}</p>
               </div>
               <div className="flex items-center gap-3">
@@ -932,7 +932,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0" style={{
                           background: status === 'present' ? '#10b98130' : status === 'absent' ? '#ef444430' : '#f59e0b20',
-                          color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24',
+                          color: status === 'present' ? 'var(--c-green-2)' : status === 'absent' ? 'var(--c-red-2)' : 'var(--c-amber-2)',
                           border: `1px solid ${status === 'present' ? '#10b98150' : status === 'absent' ? '#ef444450' : '#f59e0b40'}`,
                         }}>{c.initials || '??'}</div>
                         <div className="min-w-0 flex-1">
@@ -949,8 +949,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           background: status === 'present' ? '#10b98125' : status === 'absent' ? '#ef444425' : '#f59e0b18',
                           border: `1px solid ${status === 'present' ? '#10b98140' : status === 'absent' ? '#ef444440' : '#f59e0b30'}`,
                         }}>
-                          <span style={{fontSize:12, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span>
-                          <span style={{fontSize:11, fontWeight:500, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}</span>
+                          <span style={{fontSize:12, color: status === 'present' ? 'var(--c-green-2)' : status === 'absent' ? 'var(--c-red-2)' : 'var(--c-amber-2)'}}>{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span>
+                          <span style={{fontSize:11, fontWeight:500, color: status === 'present' ? 'var(--c-green-2)' : status === 'absent' ? 'var(--c-red-2)' : 'var(--c-amber-2)'}}>{status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}</span>
                         </span>
                       ) : (
                         <button onClick={canEdit ? (e) => { e.stopPropagation(); togglePresence(c.id, selectedDay); } : undefined} className="flex items-center gap-1.5 rounded-full flex-shrink-0 transition-all duration-150" style={{
@@ -959,8 +959,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           border: `1px solid ${status === 'present' ? '#10b98160' : status === 'absent' ? '#ef444460' : '#f59e0b40'}`,
                           cursor: canEdit ? 'pointer' : 'default',
                         }}>
-                          <span style={{fontSize:13, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span>
-                          <span style={{fontSize:12, fontWeight:500, color: status === 'present' ? '#34d399' : status === 'absent' ? '#f87171' : '#fbbf24'}}>{status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}</span>
+                          <span style={{fontSize:13, color: status === 'present' ? 'var(--c-green-2)' : status === 'absent' ? 'var(--c-red-2)' : 'var(--c-amber-2)'}}>{status === 'present' ? '✓' : status === 'absent' ? '✗' : '—'}</span>
+                          <span style={{fontSize:12, fontWeight:500, color: status === 'present' ? 'var(--c-green-2)' : status === 'absent' ? 'var(--c-red-2)' : 'var(--c-amber-2)'}}>{status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Day off'}</span>
                         </button>
                       )}
                     </div>
@@ -971,24 +971,24 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                         title={canEdit ? 'Click to adjust or undo this status' : windDownLabel(wd)}
                         onClick={canEdit ? (e) => { e.stopPropagation(); setWdMenuOpen(m => m === c.id ? null : c.id); } : undefined}
                         className="px-1.5 py-0.5 rounded text-[11px] font-medium"
-                        style={{background:'#64748b25', border:'1px solid #64748b50', color:'#94a3b8', cursor: canEdit ? 'pointer' : 'default'}}>{windDownLabel(wd)}</button>
+                        style={{background:'#64748b25', border:'1px solid #64748b50', color:'var(--g-text-mid)', cursor: canEdit ? 'pointer' : 'default'}}>{windDownLabel(wd)}</button>
                         {wdMenuOpen === c.id && canEdit && (
                           <span className="absolute left-0 top-full mt-1 z-20 flex flex-col rounded-md overflow-hidden"
                             style={{background:'#1e293b', border:'1px solid rgba(255,255,255,0.15)', minWidth:150}}
                             onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => adjustWindDown(c.id)} className="px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-white/10">Adjust end date</button>
-                            <button onClick={() => undoWindDown(c.id)} className="px-3 py-1.5 text-left text-[11px] hover:bg-white/10" style={{color:'#fca5a5'}}>Undo status</button>
+                            <button onClick={() => undoWindDown(c.id)} className="px-3 py-1.5 text-left text-[11px] hover:bg-white/10" style={{color:'var(--c-red)'}}>Undo status</button>
                           </span>
                         )}
                       </span>}
-                        {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'#7dd3fc'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
+                        {halfDay && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:'#38bdf825', border:'1px solid #38bdf850', color:'var(--c-sky)'}}>{halfDay === 'pm' ? 'PM off - in AM' : 'AM off - in PM'}</span>}
                         {hasPlanned && !wd && (
-                          <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium truncate" title={`${plannedReason || 'Leave'}${cov?.endDate ? ' until ' + cov.endDate : ''}`} style={{background:'#f59e0b1a', border:'1px solid #f59e0b40', color:'#fbbf24', maxWidth: '100%'}}>
+                          <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium truncate" title={`${plannedReason || 'Leave'}${cov?.endDate ? ' until ' + cov.endDate : ''}`} style={{background:'#f59e0b1a', border:'1px solid #f59e0b40', color:'var(--c-amber-2)', maxWidth: '100%'}}>
                             {plannedReason || 'Leave'}{cov?.endDate && cov.endDate !== getDateKey() ? ` until ${new Date(cov.endDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
                           </span>
                         )}
                         {halfDay && cov?.reason && !hasPlanned && <span className="text-[11px] text-slate-400 truncate">{cov.reason}</span>}
-                        {lta && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:'#a78bfa1f', border:'1px solid #a78bfa45', color:'#c4b5fd'}}>Long term absence</span>}
+                        {lta && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:'#a78bfa1f', border:'1px solid #a78bfa45', color:'var(--duty-fg)'}}>Long term absence</span>}
                       </div>
                     )}
                   </div>
@@ -1006,18 +1006,18 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 
           {/* KEY */}
           <div className="flex gap-4 text-xs text-slate-400 flex-wrap px-1">
-            <span className="flex items-center gap-1.5"><span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:'rgba(16,185,129,0.15)',color:'#34d399'}}>Ready</span>Generated</span>
-            <span className="flex items-center gap-1.5"><span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:'rgba(245,158,11,0.15)',color:'#fbbf24'}}>Pending</span>Not generated</span>
-            <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{background:'rgba(239,68,68,0.15)',color:'#f87171'}}>XX</span>File & action</span>
-            <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{background:'rgba(245,158,11,0.1)',color:'#fbbf24'}}>XX</span>View only</span>
-            <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{background:'rgba(59,130,246,0.1)',color:'#60a5fa'}}>XX</span>On leave</span>
+            <span className="flex items-center gap-1.5"><span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:'rgba(16,185,129,0.15)',color:'var(--c-green-2)'}}>Ready</span>Generated</span>
+            <span className="flex items-center gap-1.5"><span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:'rgba(245,158,11,0.15)',color:'var(--c-amber-2)'}}>Pending</span>Not generated</span>
+            <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{background:'rgba(239,68,68,0.15)',color:'var(--c-red-2)'}}>XX</span>File & action</span>
+            <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{background:'rgba(245,158,11,0.1)',color:'var(--c-amber-2)'}}>XX</span>View only</span>
+            <span className="flex items-center gap-1.5"><span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{background:'rgba(59,130,246,0.1)',color:'var(--c-blue-2)'}}>XX</span>On leave</span>
           </div>
 
           {/* Allocations */}
           <div className="rounded-xl overflow-hidden" style={{background:'var(--g-panel-2)',border:'1px solid var(--g-border)'}}>
             <div className="flex items-center justify-between" style={{background:'var(--g-panel-2)',padding:'12px 20px',borderBottom:'1px solid var(--g-tile)'}}>
               <div>
-                <h2 className="text-base font-semibold text-white">Buddy Allocations — {selectedDay}</h2>
+                <h2 className="text-base font-semibold text-ink-max">Buddy Allocations — {selectedDay}</h2>
                 <p className="text-xs text-slate-400 mt-0.5">Workload balanced across present clinicians</p>
               </div>
               <div className="flex items-center gap-2">
@@ -1125,7 +1125,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                                   currentCovererId: clinician.id,
                                 }) : undefined}
                                 title={title}
-                                className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white"
+                                className="inline-flex items-center justify-center rounded-md text-sm font-bold text-ink-max"
                                 style={{
                                   padding: '4px 8px',
                                   background: bg,
@@ -1235,7 +1235,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         if (clean) return (
           <aside className="xl:w-[300px] xl:shrink-0">
             <div className="rounded-xl px-4 py-2.5 flex items-center gap-2" style={{ border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.05)' }}>
-              <span style={{ color: '#34d399' }}>&#10003;</span>
+              <span style={{ color: 'var(--c-green-2)' }}>&#10003;</span>
               <span className="text-body-sm" style={{ color: 'var(--g-text-hi)' }}>Board matches EMIS</span>
               {data?._v4?.practiceId && (
                 <a href={`/v4/practice/${data._v4.practiceId}`} className="ml-auto text-caption" style={{ color: 'var(--accent-text)', textDecoration: 'none' }}>Edit working days &rarr;</a>
@@ -1272,20 +1272,20 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
             {!huddleData ? (
               <div className="text-meta text-mid">Upload the appointment CSV to check the board against EMIS.</div>
             ) : (suggestions.length === 0 && singleMismatches.length === 0 && windDownAlerts.length === 0 && rotaSuggestions.length === 0) ? (
-              <div className="text-body-sm" style={{ color: '#6ee7b7' }}>✓ No inconsistencies — the board matches EMIS for this week&apos;s editable days.</div>
+              <div className="text-body-sm" style={{ color: 'var(--c-mint)' }}>✓ No inconsistencies — the board matches EMIS for this week&apos;s editable days.</div>
             ) : (
               <>
               {windDownAlerts.length > 0 && (
                 <div className="flex flex-col gap-2 mb-2">
                   {windDownAlerts.map((a) => (
                     <div key={a.clinicianId} className="px-3 py-2.5 rounded-lg border" style={{ background: '#ef444418', borderColor: '#ef444460' }}>
-                      <div className="text-body-sm font-semibold" style={{ color: '#fca5a5' }}>{a.name} - marked as left, but EMIS still shows sessions</div>
+                      <div className="text-body-sm font-semibold" style={{ color: 'var(--c-red)' }}>{a.name} - marked as left, but EMIS still shows sessions</div>
                       <div className="text-caption mt-0.5 leading-normal text-mid">
                         Someone who has left should not appear in EMIS at all, yet they have booked sessions on {a.days.join(', ')}. Something has gone wrong - either their EMIS rota was not removed, or the status was set in error.
                       </div>
                       <button onClick={() => undoWindDown(a.clinicianId)}
                         className="mt-2 px-2.5 py-1 rounded-md text-caption font-semibold"
-                        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: '#e2e8f0' }}>
+                        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'var(--g-text-hi)' }}>
                         Undo Has left
                       </button>
                     </div>
@@ -1296,19 +1296,19 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 <div className="flex flex-col gap-2 mb-2">
                   {rotaSuggestions.map((sug) => (
                     <div key={`${sug.clinicianId}-${sug.dayName}`} className="px-3 py-2.5 rounded-lg border" style={{ background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.4)' }}>
-                      <div className="text-body-sm font-semibold" style={{ color: '#86efac' }}>{sug.name} - {sug.dayName} looks like a working day</div>
+                      <div className="text-body-sm font-semibold" style={{ color: 'var(--c-green)' }}>{sug.name} - {sug.dayName} looks like a working day</div>
                       <div className="text-caption mt-0.5 leading-normal text-mid">
                         EMIS shows booked sessions on {sug.hits} of the last {sug.weeks} {sug.dayName}s, but {sug.dayName} is not one of their working days.
                       </div>
                       <div className="flex gap-2 mt-2">
                         <button onClick={() => applyRotaSuggestion(sug)}
                           className="px-2.5 py-1 rounded-md text-caption font-semibold"
-                          style={{ background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.5)', color: '#86efac' }}>
+                          style={{ background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.5)', color: 'var(--c-green)' }}>
                           Add {sug.dayName}
                         </button>
                         <button onClick={() => ignoreRotaSuggestion(sug)}
                           className="px-2.5 py-1 rounded-md text-caption font-semibold"
-                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8' }}>
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--g-text-mid)' }}>
                           Ignore
                         </button>
                       </div>
@@ -1321,7 +1321,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                   {suggestions.map((g) => (
                     <div key={g.id} className="px-3 py-2.5 rounded-lg border" style={{ background: 'rgba(251,191,36,0.06)', borderColor: 'rgba(251,191,36,0.4)' }}>
                       <div className="text-body-sm font-semibold text-hi">{g.name}</div>
-                      <div className="text-caption mt-0.5 leading-normal" style={{ color: '#fcd34d' }}>
+                      <div className="text-caption mt-0.5 leading-normal" style={{ color: 'var(--c-amber)' }}>
                         No booked EMIS sessions on any of their days this week ({g.days.join(', ')}).
                       </div>
                       <div className="text-caption text-mid mt-1 mb-2 leading-normal">
@@ -1332,7 +1332,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           <button
                             onClick={() => setSuggestMenuOpen(suggestMenuOpen === g.id ? null : g.id)}
                             className="text-caption font-semibold px-3 py-1.5 rounded-lg cursor-pointer inline-flex items-center gap-1.5"
-                            style={{ background: 'rgba(103,232,249,0.12)', color: '#67e8f9', border: '1px solid rgba(103,232,249,0.35)' }}
+                            style={{ background: 'rgba(103,232,249,0.12)', color: 'var(--c-cyan)', border: '1px solid rgba(103,232,249,0.35)' }}
                           >Set status <span style={{ fontSize:11 }}>▾</span></button>
                           {suggestMenuOpen === g.id && (
                             <div className="mt-1.5 rounded-lg overflow-hidden border border-edge bg-card">
@@ -1345,10 +1345,10 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                                     setTransitionWeeks(t.defaultWeeks);
                                   }}
                                   className="block w-full text-left px-3 py-2 text-caption cursor-pointer"
-                                  style={{ color: '#e2e8f0', background: 'transparent', border: 'none', borderBottom: '1px solid var(--g-divider)' }}
+                                  style={{ color: 'var(--g-text-hi)', background: 'transparent', border: 'none', borderBottom: '1px solid var(--g-divider)' }}
                                 >
                                   <span className="font-semibold block">{t.label}</span>
-                                  <span className="block mt-0.5" style={{ color: '#94a3b8' }}>{t.key === 'left_winddown' ? 'Covered while their work winds down, then removed' : 'Absent for an estimated period, auto-back when EMIS shows them'}</span>
+                                  <span className="block mt-0.5" style={{ color: 'var(--g-text-mid)' }}>{t.key === 'left_winddown' ? 'Covered while their work winds down, then removed' : 'Absent for an estimated period, auto-back when EMIS shows them'}</span>
                                 </button>
                               ))}
                             </div>
@@ -1390,12 +1390,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                             <button
                               onClick={() => confirmTransition(g.id)}
                               className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
-                              style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.35)' }}
+                              style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--c-mint)', border: '1px solid rgba(16,185,129,0.35)' }}
                             >Confirm</button>
                             <button
                               onClick={() => setTransitionOpen(null)}
                               className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
-                              style={{ background: 'rgba(148,163,184,0.1)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+                              style={{ background: 'rgba(148,163,184,0.1)', color: 'var(--g-text-mid)', border: '1px solid rgba(148,163,184,0.25)' }}
                             >Cancel</button>
                           </div>
                         </div>
@@ -1411,19 +1411,19 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                       <span className="text-body-sm font-semibold text-hi">{m.name}</span>
                       <span className="text-caption text-mid">{m.day}</span>
                     </div>
-                    <div className="text-caption mt-0.5 mb-2" style={{ color: '#fcd34d' }}>
+                    <div className="text-caption mt-0.5 mb-2" style={{ color: 'var(--c-amber)' }}>
                       {m.type === 'presentNoCSV' ? 'Marked present — EMIS has no sessions' : 'Marked absent — EMIS has sessions'}
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
                       <button
                         onClick={() => togglePresence(m.id, m.day, 'present')}
                         className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
-                        style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.35)' }}
+                        style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--c-mint)', border: '1px solid rgba(16,185,129,0.35)' }}
                       >Present</button>
                       <button
                         onClick={() => togglePresence(m.id, m.day, 'absent')}
                         className="text-caption font-semibold px-2.5 py-1 rounded-lg cursor-pointer"
-                        style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
+                        style={{ background: 'rgba(239,68,68,0.12)', color: 'var(--c-red)', border: '1px solid rgba(239,68,68,0.3)' }}
                       >Absent</button>
                     </div>
 
@@ -1441,7 +1441,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-caption font-semibold text-hi">{d.name}</span>
                         <span className="text-caption text-mid">{d.day}</span>
-                        <span className="text-caption font-semibold" style={{ color: d.to === 'present' ? '#6ee7b7' : d.to === 'absent' ? '#fca5a5' : 'var(--g-text-mid)' }}>
+                        <span className="text-caption font-semibold" style={{ color: d.to === 'present' ? 'var(--c-mint)' : d.to === 'absent' ? 'var(--c-red)' : 'var(--g-text-mid)' }}>
                           {d.to === 'present' ? 'Present' : d.to === 'absent' ? 'Absent' : 'Day off'}
                         </span>
                       </div>
@@ -1480,9 +1480,9 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
 // clipped by the buddy card grid's overflow, and positioned from the
 // hovered card's rect (placed below, or above if there is no room).
 const STATUS_META = {
-  present: { label: 'Present', colour: '#34d399', bg: 'rgba(16,185,129,0.18)', icon: '✓' },
-  absent:  { label: 'Absent',  colour: '#f87171', bg: 'rgba(239,68,68,0.18)',  icon: '✗' },
-  dayOff:  { label: 'Day off', colour: '#fbbf24', bg: 'rgba(251,191,36,0.16)',  icon: '—' },
+  present: { label: 'Present', colour: 'var(--c-green-2)', bg: 'rgba(16,185,129,0.18)', icon: '✓' },
+  absent:  { label: 'Absent',  colour: 'var(--c-red-2)', bg: 'rgba(239,68,68,0.18)',  icon: '✗' },
+  dayOff:  { label: 'Day off', colour: 'var(--c-amber-2)', bg: 'rgba(251,191,36,0.16)',  icon: '—' },
 };
 function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
   // Self-correcting horizontal clamp: the pill rect is measured inside the
@@ -1535,7 +1535,7 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
     >
       <style>{`@keyframes shtIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       <div className="flex items-center gap-2 mb-2">
-        <span style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 14 }}>{c.name}</span>
+        <span style={{ fontWeight: 600, color: 'var(--g-text-pale)', fontSize: 14 }}>{c.name}</span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto', padding: '2px 9px', borderRadius: 'var(--r-pill)', background: meta.bg, color: meta.colour, fontSize: 12, fontWeight: 600 }}>
           <span>{meta.icon}</span>{meta.label}
         </span>

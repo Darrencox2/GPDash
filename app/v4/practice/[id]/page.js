@@ -303,7 +303,7 @@ export default async function PracticeAdminPage({ params }) {
               {practice.region && <span>{practice.region}</span>}
               <span style={{
                 padding: '2px 10px', background: 'rgba(16,185,129,0.15)',
-                color: '#34d399', borderRadius: 'var(--r-pill)', fontWeight: 600, fontSize: 11,
+                color: 'var(--c-green-2)', borderRadius: 'var(--r-pill)', fontWeight: 600, fontSize: 11,
               }}>You: {myMembership?.role || (isPlatformAdmin ? 'platform admin' : 'guest')}</span>
             </div>
           </div>
@@ -353,7 +353,7 @@ function DetailsTab({ practiceId, practiceSlug, fullPractice, canManage }) {
           <a
             href={`/v4/onboarding/setup/${practiceId}`}
             style={{
-              fontSize: 12, fontWeight: 500, color: 'white',
+              fontSize: 12, fontWeight: 500, color: 'var(--g-text-max)',
               background: '#0891b2', padding: '8px 14px', borderRadius: 'var(--r-sm)',
               textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
             }}
@@ -392,7 +392,7 @@ function DemandTab({ practiceId, demandSettings, huddleSettings, history, canMan
           </div>
         )}
         {demandSettings?.source === 'nhs_oc_baseline' && (
-          <div style={{ marginTop: 14, padding: 12, background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.2)', borderRadius: 'var(--r-md)', fontSize: 13, color: '#a5f3fc', lineHeight: 1.5 }}>
+          <div style={{ marginTop: 14, padding: 12, background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.2)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--c-cyan-2)', lineHeight: 1.5 }}>
             ✨ Currently seeded from NHS England data ({demandSettings.sourceMonth?.slice(0,7)}).
             Upload your own AskMyGP history above to refine the model with your real numbers.
           </div>
@@ -447,7 +447,7 @@ function DangerTab({ practiceId, practiceName }) {
         borderRadius: 'var(--r-lg)',
         padding: 24,
       }}>
-        <h3 style={{ color: '#fca5a5', fontSize: 16, fontWeight: 600, marginBottom: 8, fontFamily: "var(--font-heading)" }}>
+        <h3 style={{ color: 'var(--c-red)', fontSize: 16, fontWeight: 600, marginBottom: 8, fontFamily: "var(--font-heading)" }}>
           Delete this practice
         </h3>
         <p className="text-hi text-body leading-body mb-4">

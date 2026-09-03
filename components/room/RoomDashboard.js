@@ -279,21 +279,21 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-3 flex items-center justify-between print:bg-white print:border-b print:border-slate-200">
           <div className="flex items-center gap-2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="print:stroke-slate-700"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            <span className="text-sm font-semibold text-white print:text-slate-900">Room Allocation</span>
+            <span className="text-sm font-semibold text-ink-max print:text-slate-900">Room Allocation</span>
           </div>
           <div className="flex items-center gap-2 print:hidden">
             <button onClick={() => setShowDebug(!showDebug)} className={`text-xs px-2 py-1 rounded transition-colors ${showDebug ? 'bg-amber-400 text-amber-900 font-medium' : 'bg-white/20 text-white/70 hover:text-white hover:bg-white/30'}`}>{showDebug ? '● Debug' : 'Debug'}</button>
-            <button onClick={() => window.print()} className="text-xs px-2 py-1 rounded bg-white/20 text-white hover:bg-white/30">Print</button>
-            {canEdit && hasAnyOverrides && <button onClick={resetAll} className="text-xs text-white/60 hover:text-white">Reset all</button>}
-            {canEdit && <button onClick={() => { setEditMode(!editMode); setDragPerson(null); }} className={`px-3 py-1 rounded text-xs font-medium transition-colors ${editMode ? 'bg-white text-indigo-600' : 'bg-white/20 text-white hover:bg-white/30'}`}>{editMode ? 'Done' : 'Edit'}</button>}
+            <button onClick={() => window.print()} className="text-xs px-2 py-1 rounded bg-white/20 text-ink-max hover:bg-white/30">Print</button>
+            {canEdit && hasAnyOverrides && <button onClick={resetAll} className="text-xs text-ink-max/60 hover:text-white">Reset all</button>}
+            {canEdit && <button onClick={() => { setEditMode(!editMode); setDragPerson(null); }} className={`px-3 py-1 rounded text-xs font-medium transition-colors ${editMode ? 'bg-white text-indigo-600' : 'bg-white/20 text-ink-max hover:bg-white/30'}`}>{editMode ? 'Done' : 'Edit'}</button>}
           </div>
         </div>
 
         <div className="px-5 py-2 border-b border-indigo-400/20 bg-indigo-700/30 flex items-center justify-center gap-3 print:bg-white print:border-slate-200">
-          <button onClick={() => navigateDay(-1)} className="text-white/60 hover:text-white text-sm font-bold px-2 print:hidden">◀</button>
-          <span className="text-sm font-semibold text-white min-w-[200px] text-center print:text-slate-900">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}</span>
-          <button onClick={() => navigateDay(1)} className="text-white/60 hover:text-white text-sm font-bold px-2 print:hidden">▶</button>
-          {!isToday && <button onClick={() => { const d = new Date(); d.setHours(12,0,0,0); setViewingDate(d); }} className="text-xs px-2 py-0.5 rounded bg-white/20 text-white hover:bg-white/30 ml-2 print:hidden">Today</button>}
+          <button onClick={() => navigateDay(-1)} className="text-ink-max/60 hover:text-white text-sm font-bold px-2 print:hidden">◀</button>
+          <span className="text-sm font-semibold text-ink-max min-w-[200px] text-center print:text-slate-900">{viewingDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}</span>
+          <button onClick={() => navigateDay(1)} className="text-ink-max/60 hover:text-white text-sm font-bold px-2 print:hidden">▶</button>
+          {!isToday && <button onClick={() => { const d = new Date(); d.setHours(12,0,0,0); setViewingDate(d); }} className="text-xs px-2 py-0.5 rounded bg-white/20 text-ink-max hover:bg-white/30 ml-2 print:hidden">Today</button>}
         </div>
 
         <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
@@ -371,7 +371,7 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                             ${isHovered ? 'ring-2 ring-indigo-500 ring-offset-1 scale-[1.03] shadow-lg' : ''}`}
                           style={{left: visX * cellSize + 2, top: ry * cellSize + 2, width: visW * cellSize - 4, height: h * cellSize - 4, background: assigned && !beingDraggedFrom ? '#fff' : '#fafafa', border: isOv ? '2px solid #f59e0b' : assigned ? `2px solid ${siteColour}40` : '2px dashed #e2e8f0', opacity: beingDraggedFrom ? 0.25 : 1}}>
                           <div className="flex items-center gap-1 px-2 py-1" style={{background: assigned && !beingDraggedFrom ? siteColour + '15' : '#f8fafc', borderBottom:'1px solid #f1f5f9'}}>
-                            <span className="text-[11px] font-bold truncate flex-1" style={{color: assigned && !beingDraggedFrom ? siteColour : '#94a3b8'}}>{room.name}</span>
+                            <span className="text-[11px] font-bold truncate flex-1" style={{color: assigned && !beingDraggedFrom ? siteColour : 'var(--g-text-mid)'}}>{room.name}</span>
                             {typeDots.map(rt => <span key={rt.id} className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background:rt.colour}} title={rt.label} />)}
                           </div>
                           <div className="px-2 py-1 flex items-center gap-2" style={{minHeight: h * cellSize - 30}}>
@@ -488,8 +488,8 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
       {showDebug && (
         <div className="card overflow-hidden">
           <div className="bg-gradient-to-r from-amber-600 to-amber-500 px-5 py-3 flex items-center justify-between">
-            <span className="text-sm font-semibold text-white">Session Debug — {csvDateStr} ({session.toUpperCase()})</span>
-            <button onClick={() => setShowDebug(false)} className="text-xs text-white/70 hover:text-white">Close</button>
+            <span className="text-sm font-semibold text-ink-max">Session Debug — {csvDateStr} ({session.toUpperCase()})</span>
+            <button onClick={() => setShowDebug(false)} className="text-xs text-ink-max/70 hover:text-white">Close</button>
           </div>
           <div className="p-4 overflow-x-auto">
             <table className="w-full text-xs">
@@ -511,8 +511,8 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
                     <td className="py-1.5 px-2 font-mono">{d.csvName}</td>
                     <td className="py-1.5 px-2">{d.matchedTo}</td>
                     <td className="py-1.5 px-2 text-[11px]">{d.locations || '—'}</td>
-                    <td className="py-1.5 px-2 text-center font-bold" style={{color: d.amTotal > 0 ? '#059669' : '#94a3b8'}}>{d.amTotal}</td>
-                    <td className="py-1.5 px-2 text-center font-bold" style={{color: d.pmTotal > 0 ? '#059669' : '#94a3b8'}}>{d.pmTotal}</td>
+                    <td className="py-1.5 px-2 text-center font-bold" style={{color: d.amTotal > 0 ? '#059669' : 'var(--g-text-mid)'}}>{d.amTotal}</td>
+                    <td className="py-1.5 px-2 text-center font-bold" style={{color: d.pmTotal > 0 ? '#059669' : 'var(--g-text-mid)'}}>{d.pmTotal}</td>
                     <td className="py-1.5 px-2 text-[11px] text-slate-400">{Object.entries(d.amSlots).map(([k,v]) => `${k}:${v}`).join(', ') || '—'}</td>
                     <td className="py-1.5 px-2 text-[11px] text-slate-400">{Object.entries(d.pmSlots).map(([k,v]) => `${k}:${v}`).join(', ') || '—'}</td>
                     <td className="py-1.5 px-2">
@@ -534,10 +534,10 @@ export default function RoomDashboard({ data, saveData, huddleData, toast }) {
       {/* Bookings card */}
       <div className="card overflow-hidden print:hidden">
         <button onClick={() => setShowBookings(!showBookings)} className="w-full bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-3 flex items-center justify-between">
-          <span className="text-sm font-semibold text-white">Room Bookings</span>
+          <span className="text-sm font-semibold text-ink-max">Room Bookings</span>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-white/50">{recurringBookings.length} recurring · {adHocBookings.length} ad hoc</span>
-            <span className="text-white/50 text-xs">{showBookings ? '▲' : '▼'}</span>
+            <span className="text-xs text-ink-max/50">{recurringBookings.length} recurring · {adHocBookings.length} ad hoc</span>
+            <span className="text-ink-max/50 text-xs">{showBookings ? '▲' : '▼'}</span>
           </div>
         </button>
         {showBookings && (

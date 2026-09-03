@@ -108,8 +108,8 @@ export default function InviteForm({ practiceId, canMakeOwner, canAssignLeadersh
                 style={{ marginTop: 3, accentColor: '#10b981' }}
               />
               <span>
-                <span className="block text-body-sm font-semibold" style={{ color: '#e2e8f0' }}>{roleLabels[r] || r}</span>
-                <span className="block text-caption mt-0.5" style={{ color: '#94a3b8' }}>{roleDescription[r] || ''}</span>
+                <span className="block text-body-sm font-semibold" style={{ color: 'var(--g-text-hi)' }}>{roleLabels[r] || r}</span>
+                <span className="block text-caption mt-0.5" style={{ color: 'var(--g-text-mid)' }}>{roleDescription[r] || ''}</span>
               </span>
             </label>
           ))}

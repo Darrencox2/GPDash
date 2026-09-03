@@ -76,7 +76,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14 }}>
           {error}
         </div>
       )}
@@ -151,7 +151,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
               href={publicUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: '#67e8f9', textDecoration: 'underline', wordBreak: 'break-all', fontFamily: 'ui-monospace, Menlo, monospace' }}
+              style={{ color: 'var(--c-cyan)', textDecoration: 'underline', wordBreak: 'break-all', fontFamily: 'ui-monospace, Menlo, monospace' }}
             >
               {publicUrl}
             </a>
@@ -164,7 +164,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
           border: '1px solid rgba(251,191,36,0.20)',
           borderRadius: 'var(--r-md)',
           fontSize: 12,
-          color: '#fde68a',
+          color: 'var(--c-sand)',
           lineHeight: 1.6,
         }}>
           <strong className="text-amber-300">What becomes visible:</strong>{' '}
@@ -217,7 +217,7 @@ export default function BuddyCoverSettings({ practiceId, practiceSlug, initialSe
           background: 'var(--g-field)',
           borderRadius: 'var(--r-md)',
           fontSize: 14,
-          color: '#a5b4fc',
+          color: 'var(--accent-pale)',
           fontFamily: 'ui-monospace, Menlo, monospace',
         }}>
           load = (absent × {absentWeight}) + (day-off × {dayOffWeight})

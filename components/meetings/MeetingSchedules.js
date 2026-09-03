@@ -110,7 +110,7 @@ export default function MeetingSchedules({ data, onChanged }) {
       </div>
 
       {error && (
-        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>
+        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--c-red)', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -147,7 +147,7 @@ export default function MeetingSchedules({ data, onChanged }) {
                   <button onClick={() => generate(s, 12)} disabled={busyId === s.id} style={primaryBtn}>
                     {busyId === s.id ? 'Working…' : 'Generate dates'}
                   </button>
-                  <button onClick={() => removeSchedule(s.id)} disabled={busyId === s.id} style={{ ...ghostBtn, color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }}>Delete</button>
+                  <button onClick={() => removeSchedule(s.id)} disabled={busyId === s.id} style={{ ...ghostBtn, color: 'var(--c-red)', borderColor: 'rgba(239,68,68,0.3)' }}>Delete</button>
                 </div>
               </div>
             </div>
@@ -195,7 +195,7 @@ function ScheduleForm({ practiceId, userId, onCancel, onCreated }) {
   return (
     <div style={{ padding: 18, borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: '1px solid var(--g-border)', marginBottom: 12 }}>
       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>New recurring schedule</div>
-      {err && <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: '#fca5a5', fontSize: 13 }}>{err}</div>}
+      {err && <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: 'var(--c-red)', fontSize: 13 }}>{err}</div>}
       <div className="flex flex-col gap-3">
         <div>
           <label style={labelStyle}>Title</label>

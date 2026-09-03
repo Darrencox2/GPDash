@@ -22,7 +22,7 @@ export default function LoginScreen({ password, setPassword, onLogin, loading, e
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                className="w-full px-4 py-3 rounded-xl text-sm text-ink-max placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                 style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)'}}
                 placeholder="Enter practice password"
                 autoFocus
@@ -38,7 +38,7 @@ export default function LoginScreen({ password, setPassword, onLogin, loading, e
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
+              className="w-full py-3 rounded-xl text-sm font-semibold text-ink-max transition-all disabled:opacity-50"
               style={{background:'linear-gradient(135deg, #10b981 0%, #059669 100%)',boxShadow:'0 4px 12px rgba(16,185,129,0.25)'}}
             >
               {loading ? 'Checking...' : 'Sign in'}

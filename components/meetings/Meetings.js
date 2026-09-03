@@ -18,9 +18,9 @@ const MEETING_TYPES = [
 ];
 
 const STATUS_META = {
-  scheduled: { label: 'Scheduled', bg: 'rgba(96,165,250,0.15)', tx: '#93c5fd' },
-  in_progress: { label: 'In progress', bg: 'rgba(251,191,36,0.15)', tx: '#fcd34d' },
-  minuted: { label: 'Minuted', bg: 'rgba(16,185,129,0.15)', tx: '#6ee7b7' },
+  scheduled: { label: 'Scheduled', bg: 'rgba(96,165,250,0.15)', tx: 'var(--c-blue)' },
+  in_progress: { label: 'In progress', bg: 'rgba(251,191,36,0.15)', tx: 'var(--c-amber)' },
+  minuted: { label: 'Minuted', bg: 'rgba(16,185,129,0.15)', tx: 'var(--c-mint)' },
   cancelled: { label: 'Cancelled', bg: 'rgba(148,163,184,0.15)', tx: 'var(--g-text-mid)' },
 };
 
@@ -128,7 +128,7 @@ export default function Meetings({ data }) {
       </div>
 
       {error && tab === 'meetings' && (
-        <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>
+        <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--c-red)', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -252,7 +252,7 @@ function NewMeetingForm({ practiceId, userId, onCancel, onCreated }) {
   return (
     <div style={{ marginTop: 16, padding: 18, borderRadius: 'var(--r-lg)', background: 'var(--g-card)', border: '1px solid var(--g-border)' }}>
       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14 }}>New meeting</div>
-      {err && <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: '#fca5a5', fontSize: 13 }}>{err}</div>}
+      {err && <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: 'var(--c-red)', fontSize: 13 }}>{err}</div>}
       <div className="flex flex-col gap-3">
         <div>
           <label style={label}>Title</label>

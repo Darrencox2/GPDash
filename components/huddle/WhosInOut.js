@@ -78,13 +78,13 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
         )}
       </div>
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+        <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold text-ink-max flex-shrink-0"
           style={{ fontFamily: "var(--font-heading)", background: badgeCol, boxShadow: `0 0 6px ${badgeCol}30` }}>
           {person.initials || '?'}
         </div>
         <div className="min-w-0">
           <div className={`text-base font-medium leading-tight truncate ${isAbsent ? 'text-slate-400' : 'text-slate-200'}`}>{displayName}</div>
-          <div className="text-sm leading-tight mt-0.5" style={{ color: isAbsent ? '#f87171' : isDayOff ? '#fbbf24' : 'var(--meta)' }}>
+          <div className="text-sm leading-tight mt-0.5" style={{ color: isAbsent ? 'var(--c-red-2)' : isDayOff ? 'var(--c-amber-2)' : 'var(--meta)' }}>
             {reason || person.role || 'Staff'}
           </div>
         </div>
@@ -433,8 +433,8 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
 
         {/* ROLE SECTIONS */}
         {[
-          { label: 'GPs', team: gpTeam, colour: '#3b82f6' },
-          { label: 'Nurses & HCAs', team: nursingTeam, colour: '#10b981' },
+          { label: 'GPs', team: gpTeam, colour: 'var(--state-over)' },
+          { label: 'Nurses & HCAs', team: nursingTeam, colour: 'var(--state-ok)' },
           { label: 'Other practitioners', team: othersTeam, colour: '#a855f7' },
         ].filter(s => s.team.length > 0).map(section => (
           <div key={section.label}>
@@ -513,7 +513,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
               <div className="space-y-1">
                 {groupPeople.map(c => (
                   <button key={c.id} onClick={() => isShowWhosIn(c) ? hidePerson(c.id) : showPerson(c.id)}
-                    className="w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center justify-between" style={{background: isShowWhosIn(c) ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: isShowWhosIn(c) ? '1px solid rgba(16,185,129,0.2)' : '1px solid var(--border)', color: isShowWhosIn(c) ? '#34d399' : 'var(--meta)'}}>
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center justify-between" style={{background: isShowWhosIn(c) ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', border: isShowWhosIn(c) ? '1px solid rgba(16,185,129,0.2)' : '1px solid var(--border)', color: isShowWhosIn(c) ? 'var(--c-green-2)' : 'var(--meta)'}}>
                     <span>{c.name}</span><span className="text-sm opacity-60">{c.role}</span>
                   </button>
                 ))}
@@ -688,7 +688,7 @@ function OffTodayModal({ person, onClose, onConfirm }) {
               background: busy ? 'rgba(245, 158, 11, 0.3)' : '#f59e0b',
               border: 'none',
               borderRadius: 'var(--r-sm)',
-              color: 'white',
+              color: 'var(--g-text-max)',
               fontSize: 13,
               fontWeight: 500,
               cursor: busy ? 'wait' : 'pointer',

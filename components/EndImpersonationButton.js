@@ -26,7 +26,7 @@ export default function EndImpersonationButton() {
       style={{
         padding: '6px 14px',
         background: 'rgba(0,0,0,0.25)',
-        color: 'white',
+        color: 'var(--g-text-max)',
         border: '1px solid rgba(255,255,255,0.3)',
         borderRadius: 'var(--r-sm)',
         fontSize: 12,

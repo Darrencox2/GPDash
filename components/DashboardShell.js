@@ -52,7 +52,7 @@ export default function DashboardShell({ shellData, activeSection, children }) {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#0f172a' }}>
+    <div className="min-h-screen flex" style={{ background: 'var(--app-bg)' }}>
       <Sidebar
         activeSection={activeSection}
         setActiveSection={() => {}}
@@ -61,7 +61,7 @@ export default function DashboardShell({ shellData, activeSection, children }) {
         data={shellData}
         onNavigate={onNavigate}
       />
-      <main className="flex-1 min-h-screen min-w-0" style={{ background: '#0f172a', color: '#e2e8f0' }}>
+      <main className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)', color: 'var(--app-text)' }}>
         <div className="max-w-6xl mx-auto px-4 pb-4 pt-14 lg:p-6">
           {children}
         </div>
@@ -71,15 +71,15 @@ export default function DashboardShell({ shellData, activeSection, children }) {
             {isPlatformAdmin(shellData) && (
               <>
                 {' · '}
-                <a href="/v4/admin" style={{ color: '#22d3ee', textDecoration: 'underline' }}>Platform admin</a>
+                <a href="/v4/admin" style={{ color: 'var(--c-cyan-3)', textDecoration: 'underline' }}>Platform admin</a>
               </>
             )}
             {' · '}
-            <a href="/v4/dashboard" style={{ color: '#94a3b8', textDecoration: 'underline' }}>Switch practice</a>
+            <a href="/v4/dashboard" style={{ color: 'var(--g-text-mid)', textDecoration: 'underline' }}>Switch practice</a>
             {' · '}
             <button
               onClick={signOut}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}
+              style={{ background: 'none', border: 'none', color: 'var(--g-text-mid)', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}
             >Sign out</button>
           </div>
         </footer>

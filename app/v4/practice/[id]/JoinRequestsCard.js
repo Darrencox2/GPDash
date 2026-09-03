@@ -28,7 +28,7 @@ export default function JoinRequestsCard({ requests, canManage }) {
     }}>
       <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 4 }}>
         Requests to join
-        <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: '#fbbf24' }}>
+        <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: 'var(--c-amber-2)' }}>
           {requests.length} waiting
         </span>
       </h3>
@@ -79,7 +79,7 @@ function RequestRow({ request: r, canManage }) {
               &ldquo;{r.message}&rdquo;
             </div>
           )}
-          {error && <div className="text-caption mt-1" style={{ color: '#fca5a5' }}>{error}</div>}
+          {error && <div className="text-caption mt-1" style={{ color: 'var(--c-red)' }}>{error}</div>}
         </div>
         {canManage && (
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>

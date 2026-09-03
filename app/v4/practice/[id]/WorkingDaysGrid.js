@@ -387,7 +387,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
               background: generating ? 'var(--g-tile)' : 'rgba(16,185,129,0.15)',
               border: '1px solid ' + (generating ? 'var(--g-line)' : 'rgba(16,185,129,0.30)'),
               borderRadius: 'var(--r-sm)',
-              color: generating ? 'var(--g-text-mid)' : '#34d399',
+              color: generating ? 'var(--g-text-mid)' : 'var(--c-green-2)',
               cursor: generating ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
             }}
@@ -418,7 +418,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
             marginTop: 8, padding: '8px 12px',
             background: generateStatus.ok ? 'rgba(16,185,129,0.10)' : 'rgba(245,158,11,0.10)',
             border: `1px solid ${generateStatus.ok ? 'rgba(16,185,129,0.30)' : 'rgba(245,158,11,0.30)'}`,
-            color: generateStatus.ok ? '#34d399' : '#fcd34d',
+            color: generateStatus.ok ? 'var(--c-green-2)' : 'var(--c-amber)',
             borderRadius: 'var(--r-sm)', fontSize: 12,
           }}>
             {generateStatus.text}
@@ -546,7 +546,7 @@ export default function WorkingDaysGrid({ practiceId, clinicians, initialPattern
               background: '#0891b2',
               border: '1px solid #06b6d4',
               borderRadius: 'var(--r-md)',
-              color: 'white', fontSize: 13, fontWeight: 500,
+              color: 'var(--g-text-max)', fontSize: 13, fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >Done</button>

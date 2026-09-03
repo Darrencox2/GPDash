@@ -44,7 +44,7 @@ export default function AdminNav({ active }) {
             borderRadius: 'var(--r-pill)',
             fontSize: 11,
             fontWeight: 600,
-            color: '#67e8f9',
+            color: 'var(--c-cyan)',
             textTransform: 'uppercase',
             letterSpacing: 0.8,
           }}>
@@ -56,7 +56,7 @@ export default function AdminNav({ active }) {
           href="/v4/dashboard"
           style={{
             fontSize: 13,
-            color: '#cbd5e1',
+            color: 'var(--g-text-soft)',
             textDecoration: 'none',
             padding: '7px 14px',
             borderRadius: 'var(--r-md)',
@@ -73,7 +73,7 @@ export default function AdminNav({ active }) {
         fontFamily: "var(--font-heading)",
         fontSize: 30,
         fontWeight: 600,
-        color: 'white',
+        color: 'var(--g-text-max)',
         marginBottom: 6,
         letterSpacing: -0.5,
       }}>
@@ -81,13 +81,13 @@ export default function AdminNav({ active }) {
       </h1>
       <p style={{
         fontSize: 14,
-        color: '#94a3b8',
+        color: 'var(--g-text-mid)',
         marginBottom: 22,
         lineHeight: 1.6,
         maxWidth: 720,
       }}>
         Platform-level oversight: every practice, every user, every NHS data import.
-        For day-to-day work in a single practice, click <em style={{ color: '#cbd5e1', fontStyle: 'normal', fontWeight: 500 }}>Open</em> on its row.
+        For day-to-day work in a single practice, click <em style={{ color: 'var(--g-text-soft)', fontStyle: 'normal', fontWeight: 500 }}>Open</em> on its row.
       </p>
 
       {/* Tabs */}
@@ -104,7 +104,7 @@ export default function AdminNav({ active }) {
               padding: '10px 18px',
               fontSize: 14,
               fontWeight: active === t.id ? 600 : 500,
-              color: active === t.id ? '#22d3ee' : '#cbd5e1',
+              color: active === t.id ? 'var(--c-cyan-3)' : 'var(--g-text-soft)',
               textDecoration: 'none',
               borderBottom: `2px solid ${active === t.id ? '#22d3ee' : 'transparent'}`,
               marginBottom: -1,

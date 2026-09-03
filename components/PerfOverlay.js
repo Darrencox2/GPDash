@@ -109,7 +109,7 @@ export default function PerfOverlay({ serverTimings }) {
         onClick={() => setCollapsed(false)}
         style={{
           position: 'fixed', bottom: 12, right: 12, zIndex: 9999,
-          background: 'rgba(15,23,42,0.95)', color: '#22d3ee',
+          background: 'rgba(15,23,42,0.95)', color: 'var(--c-cyan-3)',
           border: '1px solid rgba(34,211,238,0.4)', borderRadius: 'var(--r-sm)',
           padding: '6px 10px', fontFamily: 'monospace', fontSize: 11, cursor: 'pointer',
         }}>⚡ perf</button>
@@ -120,7 +120,7 @@ export default function PerfOverlay({ serverTimings }) {
     <div style={{
       position: 'fixed', bottom: 12, right: 12, zIndex: 9999,
       width: 360, maxHeight: '70vh', overflow: 'auto',
-      background: 'rgba(15,23,42,0.97)', color: '#e2e8f0',
+      background: 'rgba(15,23,42,0.97)', color: 'var(--g-text-hi)',
       border: '1px solid rgba(34,211,238,0.4)', borderRadius: 'var(--r-md)',
       padding: 12, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11,
       boxShadow: '0 10px 40px rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
@@ -128,10 +128,10 @@ export default function PerfOverlay({ serverTimings }) {
       <div className="flex items-center justify-between mb-2">
         <div className="text-cyan-400 font-semibold text-meta">⚡ Perf debug</div>
         <div className="flex gap-1.5">
-          <button onClick={copyAll} style={{ background: copied ? '#10b981' : '#1e293b', color: copied ? 'white' : '#cbd5e1', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize:11, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={copyAll} style={{ background: copied ? '#10b981' : '#1e293b', color: copied ? 'white' : 'var(--g-text-soft)', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize:11, cursor: 'pointer', fontFamily: 'inherit' }}>
             {copied ? '✓ copied' : 'copy all'}
           </button>
-          <button onClick={() => setCollapsed(true)} style={{ background: '#1e293b', color: '#cbd5e1', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize:11, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={() => setCollapsed(true)} style={{ background: '#1e293b', color: 'var(--g-text-soft)', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize:11, cursor: 'pointer', fontFamily: 'inherit' }}>
             hide
           </button>
         </div>
@@ -149,7 +149,7 @@ export default function PerfOverlay({ serverTimings }) {
         </div>
       ))}
 
-      <div style={{ marginTop: 6, padding: 8, background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 'var(--r-sm)', color: '#94a3b8', fontSize:11, lineHeight: 1.4 }}>
+      <div style={{ marginTop: 6, padding: 8, background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 'var(--r-sm)', color: 'var(--g-text-mid)', fontSize:11, lineHeight: 1.4 }}>
         <strong className="text-cyan-400">Hint:</strong> TTFB &gt; ~400 ms usually means cold start or slow server. DOM ready &gt; ~1000 ms means JS bundle is heavy.
       </div>
     </div>

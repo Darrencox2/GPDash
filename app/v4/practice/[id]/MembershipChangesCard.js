@@ -13,11 +13,11 @@ import { createClient } from '@/utils/supabase/client';
 
 // Map enum → display info: icon glyph + colour + verb
 const EVENT_DISPLAY = {
-  user_invited:      { glyph: '✉', colour: '#a5b4fc', label: 'Invited' },
-  invite_accepted:   { glyph: '✓', colour: '#34d399', label: 'Accepted invite' },
+  user_invited:      { glyph: '✉', colour: 'var(--accent-pale)', label: 'Invited' },
+  invite_accepted:   { glyph: '✓', colour: 'var(--c-green-2)', label: 'Accepted invite' },
   invite_revoked:    { glyph: '⊘', colour: 'var(--g-text-mid)', label: 'Revoked invite' },
-  user_role_changed: { glyph: '↔', colour: '#67e8f9', label: 'Role changed' },
-  user_removed:      { glyph: '−', colour: '#fca5a5', label: 'Removed' },
+  user_role_changed: { glyph: '↔', colour: 'var(--c-cyan)', label: 'Role changed' },
+  user_removed:      { glyph: '−', colour: 'var(--c-red)', label: 'Removed' },
 };
 
 export default function MembershipChangesCard({ practiceId }) {

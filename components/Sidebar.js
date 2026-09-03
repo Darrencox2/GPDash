@@ -27,11 +27,11 @@ function practiceInitials(name) {
 }
 
 export const NAV_ITEMS = [
-  { id: 'huddle-today', section: null, label: 'Today', colour: '#10b981',
+  { id: 'huddle-today', section: null, label: 'Today', colour: 'var(--state-ok)',
     icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
-  { id: 'briefing', section: null, label: 'Morning briefing', colour: '#f59e0b',
+  { id: 'briefing', section: null, label: 'Morning briefing', colour: 'var(--state-tight)',
     icon: 'M12 3v2M12 19v2M4.2 5.6l1.4 1.4M18.4 17l1.4 1.4M3 12h2M19 12h2M5.6 19.8l1.4-1.4M17 6.4l1.4-1.4M12 8a4 4 0 100 8 4 4 0 000-8z' },
-  { id: 'buddy-cover', section: null, label: 'Buddy cover', colour: '#a78bfa',
+  { id: 'buddy-cover', section: null, label: 'Buddy cover', colour: 'var(--c-violet)',
     icon: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z' },
 
   { id: '_planning', section: 'PLANNING' },
@@ -45,21 +45,21 @@ export const NAV_ITEMS = [
       { id: 'huddle-forward', label: 'Monthly' },
       { id: 'huddle-forward-week', label: 'Weekly' },
     ] },
-  { id: 'reporting', section: 'PLANNING', label: 'Reporting', colour: '#a78bfa',
+  { id: 'reporting', section: 'PLANNING', label: 'Reporting', colour: 'var(--c-violet)',
     icon: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' },
-  { id: 'workforce-planner', section: 'PLANNING', label: 'Workforce planner', colour: '#c084fc',
+  { id: 'workforce-planner', section: 'PLANNING', label: 'Workforce planner', colour: 'var(--c-purple-2)',
     icon: 'M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z' },
   { id: 'staff-changes', section: 'PLANNING', label: 'Staff changes', colour: '#f472b6',
     icon: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h9v-2.5c0-1.48.81-2.61 1.97-3.45A11 11 0 008 13zm11 1l1.5 3H22l-2.5 2 1 3.5L18 20l-2.5 2.5 1-3.5L14 17h2.5L18 14z' },
-  { id: 'spend', section: 'PLANNING', label: 'Locum spend', colour: '#fbbf24', requires: 'admin',
+  { id: 'spend', section: 'PLANNING', label: 'Locum spend', colour: 'var(--c-amber-2)', requires: 'admin',
     icon: 'M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z' },
   // Rooms hidden from navigation until the module is further developed
   // (2026-06, module + routes remain intact - re-enable by uncommenting):
-  // { id: 'room-dashboard', section: 'PLANNING', label: 'Rooms', colour: '#67e8f9',
+  // { id: 'room-dashboard', section: 'PLANNING', label: 'Rooms', colour: 'var(--c-cyan)',
   // icon: 'M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z' },
 
   { id: '_personal', section: 'PERSONAL' },
-  { id: 'huddle-rota', section: 'PERSONAL', label: 'My rota', colour: '#60a5fa',
+  { id: 'huddle-rota', section: 'PERSONAL', label: 'My rota', colour: 'var(--c-blue-2)',
     icon: 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5zm2 4h5v5H7v-5z' },
   // The old "Clinicians" entry (id: 'team-members') was removed in
   // v4.14.0 — all clinician editing lives in Practice → Clinicians now,
@@ -76,7 +76,7 @@ export const NAV_ITEMS = [
   { id: 'meetings', section: 'LEADERSHIP', label: 'Meetings', colour: '#f0abfc', requires: 'leadership',
     icon: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z' },
 
-  { id: 'practice-settings', section: 'ADMIN', label: 'Practice', colour: '#22d3ee', requires: 'admin', external: true,
+  { id: 'practice-settings', section: 'ADMIN', label: 'Practice', colour: 'var(--c-cyan-3)', requires: 'admin', external: true,
     icon: 'M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z' },
 ];
 
@@ -207,7 +207,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
         fixed lg:sticky top-0 left-0 h-screen z-40 lg:z-auto
         ${sidebarOpen ? 'w-[240px]' : 'w-0 lg:w-14'}
         flex-shrink-0 transition-all duration-200 overflow-hidden
-      `} style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}>
+      `} style={{ background: 'var(--sb-bg)', borderRight: '1px solid var(--sb-border)' }}>
         <div className="h-full flex flex-col w-[240px] lg:w-auto">
           {/* Logo */}
           <div className="px-3 pt-4 pb-2">
@@ -225,11 +225,11 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
             {filteredNav.map(item => {
               // Section divider
               if (item.id.startsWith('_')) {
-                if (!sidebarOpen) return <div key={item.id} className="mx-2 my-2" style={{height:1,background:'var(--sidebar-divider)'}} />;
+                if (!sidebarOpen) return <div key={item.id} className="mx-2 my-2" style={{height:1,background:'var(--sb-divider)'}} />;
                 // A label, not a rule. The rules were a fourth kind of line on
                 // the page and the eye does not need them to see a gap.
                 return (
-                  <div key={item.id} style={{ fontFamily: 'var(--font-heading)', fontSize: 11, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--g-text-faint)', padding: '16px 12px 4px' }}>
+                  <div key={item.id} style={{ fontFamily: 'var(--font-heading)', fontSize: 11, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--sb-text-faint)', padding: '16px 12px 4px' }}>
                     {item.section}
                   </div>
                 );
@@ -244,12 +244,12 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               // row is the accent. Colour on this column was competing with
               // the capacity states, which are the colours that mean something.
               const activeStyle = isActive ? {
-                background: 'var(--g-tile)',
-                borderLeft: '3px solid var(--accent)',
+                background: 'var(--sb-tile)',
+                borderLeft: '3px solid var(--sb-accent)',
               } : {
                 borderLeft: '3px solid transparent',
               };
-              const iconInk = isActive ? 'var(--g-text-hi)' : 'var(--g-text-mid)';
+              const iconInk = isActive ? 'var(--sb-text-hi)' : 'var(--sb-text-mid)';
 
               // Collapsed mode
               if (!sidebarOpen) {
@@ -260,7 +260,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                     <svg width="18" height="18" viewBox="0 0 24 24" fill={iconInk} style={{opacity: isActive ? 1 : 0.7}}>
                       <path d={item.icon} />
                     </svg>
-                    {item.badge && <div style={{position:'absolute',top:2,right:4,width:6,height:6,borderRadius:'50%',background:'var(--accent)'}} />}
+                    {item.badge && <div style={{position:'absolute',top:2,right:4,width:6,height:6,borderRadius:'50%',background:'var(--sb-accent)'}} />}
                   </button>
                 );
               }
@@ -274,8 +274,8 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                     <svg width="18" height="18" viewBox="0 0 24 24" fill={iconInk} style={{opacity: isActive ? 1 : 0.7, flexShrink: 0}}>
                       <path d={item.icon} />
                     </svg>
-                    <span style={{fontSize:13, color: isActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: isActive ? 500 : 400}}>{item.label}</span>
-                    {item.badge && <span style={{fontSize:11,padding:'1px 6px',borderRadius:'var(--r-md)',background:'var(--accent-soft)',color:'var(--accent-text)',marginLeft:'auto'}}>{item.badge}</span>}
+                    <span style={{fontSize:13, color: isActive ? 'var(--sb-text-hi)' : 'var(--sb-text-mid)', fontWeight: isActive ? 500 : 400}}>{item.label}</span>
+                    {item.badge && <span style={{fontSize:11,padding:'1px 6px',borderRadius:'var(--r-md)',background:'var(--sb-accent-soft)',color:'var(--sb-accent-text)',marginLeft:'auto'}}>{item.badge}</span>}
                   </button>
                   {isActive && kids.length > 0 && kids.map(child => {
                     const kidActive = activeSection === child.id;
@@ -284,10 +284,10 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                         className="w-full flex items-center rounded-lg mb-0.5 transition-colors hover:bg-white/5"
                         style={{
                           padding: '5px 10px 5px 41px',
-                          borderLeft: `3px solid ${kidActive ? 'var(--accent)' : 'transparent'}`,
-                          background: kidActive ? 'var(--g-tile)' : 'transparent',
+                          borderLeft: `3px solid ${kidActive ? 'var(--sb-accent)' : 'transparent'}`,
+                          background: kidActive ? 'var(--sb-tile)' : 'transparent',
                         }}>
-                        <span style={{fontSize:12.5, color: kidActive ? 'var(--text-1)' : 'var(--text-3)', fontWeight: kidActive ? 500 : 400}}>{child.label}</span>
+                        <span style={{fontSize:12.5, color: kidActive ? 'var(--sb-text-hi)' : 'var(--sb-text-mid)', fontWeight: kidActive ? 500 : 400}}>{child.label}</span>
                       </button>
                     );
                   })}
@@ -303,68 +303,68 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               they are set once a year, not once a day, so they live behind
               the three dots. */}
           {sidebarOpen ? (
-            <div className="px-2.5 py-2 relative" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
+            <div className="px-2.5 py-2 relative" style={{ borderTop: '1px solid var(--sb-border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 4px' }}>
                 <div style={{
                   width: 34, height: 34, borderRadius: 'var(--r-md)', flexShrink: 0,
                   background: 'linear-gradient(135deg, #0891b2, #0e7490)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, color: 'white', fontWeight: 600, letterSpacing: 0.5, fontFamily: 'var(--font-heading)',
+                  fontSize: 12, color: 'var(--g-text-max)', fontWeight: 600, letterSpacing: 0.5, fontFamily: 'var(--font-heading)',
                 }}>{initials}</div>
                 <div className="min-w-0 flex-1">
-                  <div style={{ fontSize: 12.5, color: 'var(--text-1)', fontWeight: 500, lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }} title={practiceName || ''}>
+                  <div style={{ fontSize: 12.5, color: 'var(--sb-text-hi)', fontWeight: 500, lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }} title={practiceName || ''}>
                     {practiceName || 'GPDash'}
                   </div>
-                  {roleLabel && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{roleLabel}</div>}
+                  {roleLabel && <div style={{ fontSize: 11, color: 'var(--sb-text-mid)', marginTop: 1 }}>{roleLabel}</div>}
                 </div>
                 <button onClick={() => setMenuOpen((v) => !v)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label="More"
                   className="rounded-lg transition-colors hover:bg-white/5"
-                  style={{ width: 30, height: 30, flexShrink: 0, color: 'var(--text-3)', background: menuOpen ? 'var(--g-tile)' : 'transparent', border: '1px solid transparent', fontSize: 16, letterSpacing: 1, lineHeight: 1 }}>
+                  style={{ width: 30, height: 30, flexShrink: 0, color: 'var(--sb-text-mid)', background: menuOpen ? 'var(--sb-tile)' : 'transparent', border: '1px solid transparent', fontSize: 16, letterSpacing: 1, lineHeight: 1 }}>
                   &middot;&middot;&middot;
                 </button>
               </div>
               {menuOpen && (
-                <div role="menu" className="absolute" style={{ left: 10, right: 10, bottom: 'calc(100% - 4px)', background: 'var(--g-panel-strong)', border: '1px solid var(--g-border-2)', borderRadius: 'var(--r-lg)', boxShadow: '0 14px 32px -12px rgba(0,0,0,0.6)', padding: 6, zIndex: 50 }}>
-                  <button role="menuitem" onClick={toggleTheme} className="w-full flex items-center gap-2.5 rounded-lg transition-colors hover:bg-white/5" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--text-1)' }}>
+                <div role="menu" className="absolute" style={{ left: 10, right: 10, bottom: 'calc(100% - 4px)', background: 'var(--sb-tile)', border: '1px solid var(--sb-border)', borderRadius: 'var(--r-lg)', boxShadow: '0 14px 32px -12px rgba(0,0,0,0.6)', padding: 6, zIndex: 50 }}>
+                  <button role="menuitem" onClick={toggleTheme} className="w-full flex items-center gap-2.5 rounded-lg transition-colors hover:bg-white/5" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--sb-text-hi)' }}>
                     {theme === 'dark' ? (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--text-3)' }}><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--sb-text-mid)' }}><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
                     ) : (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--text-3)' }}><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--sb-text-mid)' }}><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
                     )}
                     {theme === 'dark' ? 'Light mode' : 'Dark mode'}
                   </button>
                   <div className="flex items-center gap-2.5" style={{ padding: '6px 10px' }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-1)', flex: 1 }}>Text size</span>
-                    <div className="flex gap-0.5 p-0.5 rounded-lg" role="group" aria-label="Text size" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', height: 30 }}>
+                    <span style={{ fontSize: 13, color: 'var(--sb-text-hi)', flex: 1 }}>Text size</span>
+                    <div className="flex gap-0.5 p-0.5 rounded-lg" role="group" aria-label="Text size" style={{ background: 'var(--sb-tile)', border: '1px solid var(--sb-border)', height: 30 }}>
                       {ZOOMS.map((z) => {
                         const active = zoom === z.id;
                         return (
                           <button key={z.id} onClick={() => applyZoom(z.id)} title={`${z.label} text — ${z.hint}`} aria-pressed={active}
-                            className="rounded-md transition-colors" style={{ width: 30, background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-3)', border: active ? '1px solid var(--accent)' : '1px solid transparent', fontSize: z.id === 'compact' ? 10 : z.id === 'default' ? 13 : 16, fontWeight: active ? 700 : 500, lineHeight: 1 }}>A</button>
+                            className="rounded-md transition-colors" style={{ width: 30, background: active ? 'var(--sb-accent-soft)' : 'transparent', color: active ? 'var(--sb-accent-text)' : 'var(--sb-text-mid)', border: active ? '1px solid var(--sb-accent)' : '1px solid transparent', fontSize: z.id === 'compact' ? 10 : z.id === 'default' ? 13 : 16, fontWeight: active ? 700 : 500, lineHeight: 1 }}>A</button>
                         );
                       })}
                     </div>
                   </div>
-                  <div style={{ height: 1, background: 'var(--sidebar-divider)', margin: '4px 6px' }} />
-                  <button role="menuitem" onClick={() => { setMenuOpen(false); handleItemClick({ id: 'account' }); }} className="w-full text-left rounded-lg transition-colors hover:bg-white/5" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--text-1)' }}>My account</button>
-                  <button role="menuitem" onClick={() => { setMenuOpen(false); handleVersionClick(); }} className="w-full text-left rounded-lg transition-colors hover:bg-white/5 flex items-center" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--text-1)' }}>
-                    Changelog <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-4)' }}>{APP_VERSION}</span>
+                  <div style={{ height: 1, background: 'var(--sb-divider)', margin: '4px 6px' }} />
+                  <button role="menuitem" onClick={() => { setMenuOpen(false); handleItemClick({ id: 'account' }); }} className="w-full text-left rounded-lg transition-colors hover:bg-white/5" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--sb-text-hi)' }}>My account</button>
+                  <button role="menuitem" onClick={() => { setMenuOpen(false); handleVersionClick(); }} className="w-full text-left rounded-lg transition-colors hover:bg-white/5 flex items-center" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--sb-text-hi)' }}>
+                    Changelog <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sb-text-faint)' }}>{APP_VERSION}</span>
                   </button>
-                  <button role="menuitem" onClick={() => { setMenuOpen(false); setSidebarOpen(false); }} className="w-full text-left rounded-lg transition-colors hover:bg-white/5" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--text-1)' }}>Collapse sidebar</button>
+                  <button role="menuitem" onClick={() => { setMenuOpen(false); setSidebarOpen(false); }} className="w-full text-left rounded-lg transition-colors hover:bg-white/5" style={{ padding: '8px 10px', fontSize: 13, color: 'var(--sb-text-hi)' }}>Collapse sidebar</button>
                 </div>
               )}
             </div>
           ) : (
-            <div className="px-1.5 py-2 flex flex-col items-center gap-1" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
+            <div className="px-1.5 py-2 flex flex-col items-center gap-1" style={{ borderTop: '1px solid var(--sb-border)' }}>
               <div style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', background: 'linear-gradient(135deg, #0891b2, #0e7490)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'white', fontWeight: 600, fontFamily: 'var(--font-heading)' }} title={practiceName || ''}>{initials}</div>
-              <button onClick={toggleTheme} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} className="w-full flex items-center justify-center py-2 rounded-lg transition-colors hover:bg-white/5" style={{ color: 'var(--text-3)' }} title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
+              <button onClick={toggleTheme} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} className="w-full flex items-center justify-center py-2 rounded-lg transition-colors hover:bg-white/5" style={{ color: 'var(--sb-text-mid)' }} title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}>
                 {theme === 'dark' ? (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-6a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V2a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zM4.22 4.22a1 1 0 0 1 1.42 0l.7.7a1 1 0 1 1-1.41 1.42l-.71-.71a1 1 0 0 1 0-1.41zm12.73 12.73a1 1 0 0 1 1.41 0l.71.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42zM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM4.22 19.78a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0zM16.95 7.05a1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42 0z"/></svg>
                 ) : (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
                 )}
               </button>
-              <button onClick={() => setSidebarOpen(true)} aria-label="Expand sidebar" className="w-full flex items-center justify-center py-1.5 rounded-lg text-slate-400 hover:bg-white/5 text-xs transition-colors">&#9656;</button>
+              <button onClick={() => setSidebarOpen(true)} aria-label="Expand sidebar" className="w-full flex items-center justify-center py-1.5 rounded-lg hover:bg-white/5 text-xs transition-colors" style={{ color: 'var(--sb-text-mid)' }}>&#9656;</button>
             </div>
           )}
         </div>

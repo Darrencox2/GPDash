@@ -6,19 +6,19 @@ import { confirmDialog, useToast } from '@/components/ui';
 import AgendaDocument from './AgendaDocument';
 
 const OUTCOME_META = {
-  decision: { label: 'Decision', bg: 'rgba(16,185,129,0.15)', tx: '#6ee7b7' },
+  decision: { label: 'Decision', bg: 'rgba(16,185,129,0.15)', tx: 'var(--c-mint)' },
   noted: { label: 'Noted', bg: 'rgba(148,163,184,0.15)', tx: 'var(--g-text-mid)' },
-  deferred: { label: 'Deferred', bg: 'rgba(251,191,36,0.15)', tx: '#fcd34d' },
-  action: { label: 'Action', bg: 'rgba(96,165,250,0.15)', tx: '#93c5fd' },
+  deferred: { label: 'Deferred', bg: 'rgba(251,191,36,0.15)', tx: 'var(--c-amber)' },
+  action: { label: 'Action', bg: 'rgba(96,165,250,0.15)', tx: 'var(--c-blue)' },
 };
 
 const STATUSES = ['scheduled', 'in_progress', 'minuted', 'cancelled'];
 const STATUS_LABEL = { scheduled: 'Scheduled', in_progress: 'In progress', minuted: 'Minuted', cancelled: 'Cancelled' };
 
 const ACTION_STATUS_META = {
-  open: { label: 'Open', bg: 'rgba(96,165,250,0.15)', tx: '#93c5fd' },
-  in_progress: { label: 'In progress', bg: 'rgba(251,191,36,0.15)', tx: '#fcd34d' },
-  done: { label: 'Done', bg: 'rgba(16,185,129,0.15)', tx: '#6ee7b7' },
+  open: { label: 'Open', bg: 'rgba(96,165,250,0.15)', tx: 'var(--c-blue)' },
+  in_progress: { label: 'In progress', bg: 'rgba(251,191,36,0.15)', tx: 'var(--c-amber)' },
+  done: { label: 'Done', bg: 'rgba(16,185,129,0.15)', tx: 'var(--c-mint)' },
   cancelled: { label: 'Cancelled', bg: 'rgba(148,163,184,0.15)', tx: 'var(--g-text-mid)' },
 };
 
@@ -212,11 +212,11 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
     <div style={{ padding: 24, maxWidth: 920, margin: '0 auto' }}>
       <div className="flex items-center justify-between gap-3">
         <button onClick={onBack} style={backBtn}>← Back to meetings</button>
-        <button onClick={deleteMeeting} style={{ fontSize: 13, color: '#fca5a5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Delete meeting</button>
+        <button onClick={deleteMeeting} style={{ fontSize: 13, color: 'var(--c-red)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Delete meeting</button>
       </div>
 
       {error && (
-        <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>
+        <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--c-red)', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -276,7 +276,7 @@ export default function MeetingDetail({ meetingId, data, onBack }) {
                   ) : (
                     <button
                       onClick={() => updateCarried(a.id, { status: inProgress ? 'open' : 'in_progress' })}
-                      style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+                      style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? 'var(--c-amber)' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
                     >{inProgress ? 'In progress' : 'Start'}</button>
                   )}
                   {a.assignee_name && <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--g-text-mid)' }}>{a.assignee_name}</span>}
@@ -381,10 +381,10 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
         />
         {proposed && (
           <>
-            <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'rgba(251,191,36,0.15)', color: '#fcd34d' }}>
+            <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'rgba(251,191,36,0.15)', color: 'var(--c-amber)' }}>
               Proposed{item.added_by_name ? ` · ${item.added_by_name.split('@')[0]}` : ''}
             </span>
-            <button onClick={() => onUpdate({ item_status: 'confirmed' })} style={{ ...miniBtn, color: '#6ee7b7', borderColor: 'rgba(16,185,129,0.3)' }}>Add to agenda</button>
+            <button onClick={() => onUpdate({ item_status: 'confirmed' })} style={{ ...miniBtn, color: 'var(--c-mint)', borderColor: 'rgba(16,185,129,0.3)' }}>Add to agenda</button>
           </>
         )}
         {!proposed && outcome && (
@@ -448,7 +448,7 @@ function AgendaItem({ item, index, actions, onUpdate, onDelete, onAddAction, onU
           </div>
 
           <div className="mt-3 text-right">
-            <button onClick={onDelete} style={{ ...miniBtn, color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }}>Delete item</button>
+            <button onClick={onDelete} style={{ ...miniBtn, color: 'var(--c-red)', borderColor: 'rgba(239,68,68,0.3)' }}>Delete item</button>
           </div>
         </div>
       )}
@@ -479,7 +479,7 @@ function ActionRow({ action, onUpdate, compact }) {
         <>
           <button
             onClick={() => onUpdate({ status: inProgress ? 'open' : 'in_progress' })}
-            style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+            style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', minHeight: 34, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? 'var(--c-amber)' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
           >{inProgress ? 'In progress' : 'Start'}</button>
           <input
             style={{ flexShrink: 0, width: 140, fontSize: 13, padding: '7px 10px', borderRadius: 'var(--r-md)', minHeight: 34, background: 'var(--g-field)', border: '1px solid var(--g-border)', color: 'var(--g-text-hi)' }}

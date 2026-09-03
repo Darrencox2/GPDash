@@ -493,7 +493,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
             padding: '8px 14px', fontSize: 12, fontWeight: 500,
             background: 'rgba(16,185,129,0.10)',
             border: '1px solid rgba(16,185,129,0.30)',
-            borderRadius: 'var(--r-sm)', color: '#34d399',
+            borderRadius: 'var(--r-sm)', color: 'var(--c-green-2)',
             cursor: 'pointer', fontFamily: 'inherit',
             whiteSpace: 'nowrap',
           }}
@@ -506,7 +506,7 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
             padding: '8px 14px', fontSize: 12, fontWeight: 600,
             background: 'rgba(99,102,241,0.16)',
             border: '1px solid rgba(129,140,248,0.45)',
-            borderRadius: 'var(--r-sm)', color: '#a5b4fc',
+            borderRadius: 'var(--r-sm)', color: 'var(--accent-pale)',
             cursor: 'pointer', fontFamily: 'inherit',
             whiteSpace: 'nowrap',
           }}
@@ -520,14 +520,14 @@ export default function QuickSetupTable({ practiceId, initialClinicians, initial
           background: 'rgba(245,158,11,0.08)',
           border: '1px solid rgba(245,158,11,0.2)',
           borderRadius: 'var(--r-sm)',
-          fontSize: 12, color: '#fde68a', lineHeight: 1.5,
+          fontSize: 12, color: 'var(--c-sand)', lineHeight: 1.5,
         }}>
           <strong className="text-amber-400">{attentionCount} clinician{attentionCount === 1 ? '' : 's'} need{attentionCount === 1 ? 's' : ''} attention.</strong>{' '}
           Highlighted rows are missing initials or have a placeholder role.{' '}
           <button
             type="button"
             onClick={() => setShowQuickRole(true)}
-            style={{ background: 'none', border: 'none', padding: 0, color: '#a5b4fc', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline', fontFamily: 'inherit', fontSize: 12 }}
+            style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent-pale)', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline', fontFamily: 'inherit', fontSize: 12 }}
           >Sort roles fast →</button>
           {' '}or tick multiple rows and use the bulk actions toolbar.
         </div>
@@ -882,7 +882,7 @@ function BulkActionsBar({ count, onClear, onSetRole, onSetStatus, onSetBuddyCove
       transition: 'background 0.15s, border 0.15s',
     }}>
       {active ? (
-        <strong style={{ fontSize: 13, color: '#a5f3fc' }}>{count} selected</strong>
+        <strong style={{ fontSize: 13, color: 'var(--c-cyan-2)' }}>{count} selected</strong>
       ) : (
         <span className="text-body-sm text-mid">
           Bulk edit — <span className="text-mid">tick rows below to enable</span>
@@ -1026,7 +1026,7 @@ function SaveIndicator({ state, errorMsg, onRetry }) {
         <button onClick={onRetry} style={{
           padding: '3px 8px', fontSize: 11, background: 'rgba(239,68,68,0.15)',
           border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--r-sm)',
-          color: '#fca5a5', cursor: 'pointer',
+          color: 'var(--c-red)', cursor: 'pointer',
         }}>Retry</button>
       </span>
     );

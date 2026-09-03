@@ -83,12 +83,12 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
               but you won't be able to delete the practice, transfer ownership
               again, or remove the new owner.
             </p>
-            <p style={{ ...modalDesc, color: '#fde68a' }}>
+            <p style={{ ...modalDesc, color: 'var(--c-sand)' }}>
               This is reversible only if the new owner agrees to transfer back.
             </p>
 
             {candidates.length === 0 ? (
-              <div style={{ padding: 14, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--r-md)', color: '#fde68a', fontSize: 13, marginBottom: 14 }}>
+              <div style={{ padding: 14, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--r-md)', color: 'var(--c-sand)', fontSize: 13, marginBottom: 14 }}>
                 There are no other members to transfer ownership to. Invite someone first, then come back here once they've accepted.
               </div>
             ) : (
@@ -125,7 +125,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                     border: '1px solid rgba(34,211,238,0.2)',
                     borderRadius: 'var(--r-md)',
                     fontSize: 13,
-                    color: '#a5f3fc',
+                    color: 'var(--c-cyan-2)',
                     lineHeight: 1.5,
                     marginBottom: 16,
                   }}>
@@ -135,7 +135,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                 )}
 
                 <label style={{ display: 'block', fontSize: 11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-                  Type <code style={{ background: 'var(--g-border)', padding: '1px 6px', borderRadius: 'var(--r-sm)', color: '#fde68a' }}>transfer</code> to confirm
+                  Type <code style={{ background: 'var(--g-border)', padding: '1px 6px', borderRadius: 'var(--r-sm)', color: 'var(--c-sand)' }}>transfer</code> to confirm
                 </label>
                 <input
                   value={confirmText}
@@ -154,7 +154,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                 />
 
                 {error && (
-                  <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12, borderRadius: 'var(--r-sm)' }}>
+                  <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', fontSize: 12, borderRadius: 'var(--r-sm)' }}>
                     {error}
                   </div>
                 )}
@@ -170,7 +170,7 @@ export default function TransferOwnershipButton({ practiceId, practiceName, memb
                   style={{
                     padding: '8px 16px',
                     background: canSubmit ? '#d97706' : 'rgba(217,119,6,0.3)',
-                    color: 'white',
+                    color: 'var(--g-text-max)',
                     border: 'none',
                     borderRadius: 'var(--r-md)',
                     fontSize: 13,

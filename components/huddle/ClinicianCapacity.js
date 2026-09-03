@@ -126,21 +126,21 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
     if (!cd || !selected) return null;
     const parts = [];
     const diff = comparison.avg > 0 ? Math.round(((cd.total - comparison.avg) / comparison.avg) * 100) : 0;
-    if (diff > 5) parts.push({ text: `+${diff}% above average`, colour: '#34d399' });
-    else if (diff < -5) parts.push({ text: `${diff}% below average`, colour: '#f87171' });
+    if (diff > 5) parts.push({ text: `+${diff}% above average`, colour: 'var(--c-green-2)' });
+    else if (diff < -5) parts.push({ text: `${diff}% below average`, colour: 'var(--c-red-2)' });
     else parts.push({ text: 'Near average', colour: 'var(--g-text-mid)' });
 
-    parts.push({ text: `Booking rate ${bookingRate}%`, colour: bookingRate > 85 ? '#f87171' : bookingRate > 70 ? '#fbbf24' : '#34d399' });
+    parts.push({ text: `Booking rate ${bookingRate}%`, colour: bookingRate > 85 ? 'var(--c-red-2)' : bookingRate > 70 ? 'var(--c-amber-2)' : 'var(--c-green-2)' });
 
     const minWeek = cd.weeks.indexOf(Math.min(...cd.weeks));
-    if (cd.weeks[minWeek] < cd.total / 6) parts.push({ text: `Week ${minWeek + 1} has fewest slots`, colour: '#fbbf24' });
+    if (cd.weeks[minWeek] < cd.total / 6) parts.push({ text: `Week ${minWeek + 1} has fewest slots`, colour: 'var(--c-amber-2)' });
 
     if (nextAll.length > 0) {
       const first = nextAll[0];
       const isToday = first.date.toDateString() === new Date().toDateString();
       const isTomorrow = (() => { const t = new Date(); t.setDate(t.getDate() + 1); return first.date.toDateString() === t.toDateString(); })();
       const when = isToday ? 'today' : isTomorrow ? 'tomorrow' : first.date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-      parts.push({ text: `Next slot: ${when}`, colour: first.type === 'available' ? '#34d399' : '#fbbf24' });
+      parts.push({ text: `Next slot: ${when}`, colour: first.type === 'available' ? 'var(--c-green-2)' : 'var(--c-amber-2)' });
     }
     return parts;
   }, [cd, selected, comparison, bookingRate, nextAll]);
@@ -216,7 +216,7 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
             </div>
             <div className="glass-inner rounded-xl p-3">
               <div className="text-sm text-slate-400 mb-1">Booking rate</div>
-              <div className="font-mono-data text-2xl font-bold leading-none" style={{ color: bookingRate > 85 ? '#f87171' : bookingRate > 70 ? '#fbbf24' : '#60a5fa' }}>{bookingRate}%</div>
+              <div className="font-mono-data text-2xl font-bold leading-none" style={{ color: bookingRate > 85 ? 'var(--c-red-2)' : bookingRate > 70 ? 'var(--c-amber-2)' : 'var(--c-blue-2)' }}>{bookingRate}%</div>
               <div className="text-sm text-slate-400 mt-1">{cd.totalBooked} of {totalSlots} filled</div>
             </div>
           </div>
@@ -227,14 +227,14 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
             {nextAll.length === 0 && <div className="text-base text-slate-400 text-center py-4">No available slots in the next 28 days</div>}
             {nextAll.map((slot, i) => (
               <div key={i} className="glass-inner rounded-lg flex items-center gap-3 px-3 py-2.5">
-                <div className="font-mono-data text-base font-bold flex-shrink-0 w-5 text-center" style={{ color: slot.type === 'available' ? '#34d399' : '#fbbf24' }}>{i + 1}</div>
+                <div className="font-mono-data text-base font-bold flex-shrink-0 w-5 text-center" style={{ color: slot.type === 'available' ? 'var(--c-green-2)' : 'var(--c-amber-2)' }}>{i + 1}</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-base font-medium text-slate-200">{slot.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
                   <div className="text-sm text-slate-400">{slot.slotType} · {slot.session.toUpperCase()}{slot.loc ? ` · ${slot.loc}` : ''}</div>
                 </div>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{
                   background: slot.type === 'available' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
-                  color: slot.type === 'available' ? '#34d399' : '#fbbf24'
+                  color: slot.type === 'available' ? 'var(--c-green-2)' : 'var(--c-amber-2)'
                 }}>{slot.type === 'available' ? 'Available' : 'Embargoed'}</span>
               </div>
             ))}
@@ -284,12 +284,12 @@ export default function ClinicianCapacity({ data, huddleData, routineOverrides }
                 const avgW = comparison.max > 0 ? (comparison.avg / comparison.max) * 100 : 0;
                 return (
                   <div key={e.id} className="flex items-center gap-2 py-1 px-2 rounded-md" style={{ background: isSel ? 'rgba(16,185,129,0.06)' : 'transparent' }}>
-                    <span className="text-sm font-bold w-7 text-right flex-shrink-0" style={{ fontFamily: "var(--font-heading)", color: isSel ? '#34d399' : 'var(--g-text-mid)' }}>{e.initials}</span>
+                    <span className="text-sm font-bold w-7 text-right flex-shrink-0" style={{ fontFamily: "var(--font-heading)", color: isSel ? 'var(--c-green-2)' : 'var(--g-text-mid)' }}>{e.initials}</span>
                     <div className="flex-1 h-4 rounded overflow-hidden relative" style={{ background: 'var(--g-tile)' }}>
                       <div className="h-full rounded" style={{ width: `${barW}%`, background: aboveAvg ? 'rgba(16,185,129,0.4)' : 'rgba(245,158,11,0.4)' }} />
                       <div className="absolute top-0 bottom-0 w-px" style={{ left: `${avgW}%`, background: 'var(--g-text-hi)' }} />
                     </div>
-                    <span className="text-sm font-bold w-7 text-right flex-shrink-0 font-mono-data" style={{ color: aboveAvg ? '#34d399' : '#fbbf24' }}>{e.total}</span>
+                    <span className="text-sm font-bold w-7 text-right flex-shrink-0 font-mono-data" style={{ color: aboveAvg ? 'var(--c-green-2)' : 'var(--c-amber-2)' }}>{e.total}</span>
                   </div>
                 );
               })}

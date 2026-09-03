@@ -132,7 +132,7 @@ export default function LinkClinicianSuggest({ data }) {
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#94a3b8',
+            color: 'var(--g-text-mid)',
             fontSize: 18,
             cursor: 'pointer',
             padding: 0,
@@ -151,7 +151,7 @@ export default function LinkClinicianSuggest({ data }) {
           border: '1px solid rgba(239,68,68,0.3)',
           borderRadius: 'var(--r-sm)',
           fontSize: 12,
-          color: '#fca5a5',
+          color: 'var(--c-red)',
         }}>{error}</div>
       )}
 
@@ -165,7 +165,7 @@ export default function LinkClinicianSuggest({ data }) {
               padding: '8px 12px',
               fontSize: 13,
               fontWeight: 500,
-              color: 'white',
+              color: 'var(--g-text-max)',
               background: '#10b981',
               border: 'none',
               borderRadius: 'var(--r-sm)',
@@ -186,7 +186,7 @@ export default function LinkClinicianSuggest({ data }) {
             padding: '8px 12px',
             fontSize: 13,
             fontWeight: 500,
-            color: '#cbd5e1',
+            color: 'var(--g-text-soft)',
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid rgba(255,255,255,0.12)',
             borderRadius: 'var(--r-sm)',

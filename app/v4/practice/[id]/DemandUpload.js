@@ -213,7 +213,7 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
 
       {/* Results */}
       {error && (
-        <div style={{ marginTop: 12, padding: 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', borderRadius: 'var(--r-md)', fontSize: 12 }}>
+        <div style={{ marginTop: 12, padding: 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', borderRadius: 'var(--r-md)', fontSize: 12 }}>
           {error}
         </div>
       )}
@@ -260,7 +260,7 @@ export default function DemandUpload({ practiceId, demandSettings, history, onUp
               </div>
             </div>
           ) : (
-            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--g-border)', color: '#fcd34d' }}>
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--g-border)', color: 'var(--c-amber)' }}>
               Not enough data to calibrate yet — keep uploading. ({result.calibration?.reason})
             </div>
           )}

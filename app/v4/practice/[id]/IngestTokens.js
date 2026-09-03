@@ -73,7 +73,7 @@ export default function IngestTokens({ practiceId }) {
       {/* Freshly created token — shown once */}
       {freshToken && (
         <div className="mb-4 p-3.5 rounded-xl" style={statusSuccess}>
-          <div className="text-body-sm font-semibold mb-2" style={{ color: '#6ee7b7' }}>
+          <div className="text-body-sm font-semibold mb-2" style={{ color: 'var(--c-mint)' }}>
             Token created — copy it now, you will not see it again
           </div>
           <div className="flex gap-2 items-center flex-wrap">
@@ -123,7 +123,7 @@ export default function IngestTokens({ practiceId }) {
             <div key={t.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg bg-card border border-edge">
               <div className="min-w-0">
                 <div className="text-body font-semibold text-hi">
-                  {t.label || 'Token'} {!t.enabled && <span className="font-normal" style={{ color: '#fca5a5' }}>(disabled)</span>}
+                  {t.label || 'Token'} {!t.enabled && <span className="font-normal" style={{ color: 'var(--c-red)' }}>(disabled)</span>}
                 </div>
                 <div className="text-meta text-mid mt-0.5">
                   {t.last_used_at
@@ -143,5 +143,5 @@ export default function IngestTokens({ practiceId }) {
 
 // Status colours (semantic red/green alphas) stay inline — the one sanctioned
 // use of inline style in the unified system is dynamic/status values.
-const statusError = { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' };
+const statusError = { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--c-red)' };
 const statusSuccess = { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)' };

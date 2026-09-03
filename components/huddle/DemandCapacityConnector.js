@@ -6,11 +6,13 @@ import { getSchoolHolidaysForLEA } from '@/lib/school-holidays-by-lea';
 import { getHuddleCapacity, parseHuddleDateStr, getDutyDoctor, getBand } from '@/lib/huddle';
 import { matchesStaffMember, toLocalIso, toHuddleDateStr } from '@/lib/data';
 
+// DOM-only (JSX inline styles), so tokens are safe here. The text colours
+// were pale-on-dark literals and sat at 2-3.5:1 on a light card.
 const DEMAND_COLOURS = {
-  low: { bg: '#10b98122', text: '#34d399', label: 'Low' },
-  normal: { bg: '#3b82f622', text: '#60a5fa', label: 'Normal' },
-  high: { bg: '#f59e0b22', text: '#fbbf24', label: 'High' },
-  'very-high': { bg: '#ef444422', text: '#f87171', label: 'Very high' },
+  low: { bg: '#10b98122', text: 'var(--c-green-2)', label: 'Low' },
+  normal: { bg: '#3b82f622', text: 'var(--c-blue-2)', label: 'Normal' },
+  high: { bg: '#f59e0b22', text: 'var(--c-amber-2)', label: 'High' },
+  'very-high': { bg: '#ef444422', text: 'var(--c-red-2)', label: 'Very high' },
   closed: { bg: '#64748b22', text: 'var(--g-text-mid)', label: 'Closed' },
 };
 const FACTOR_TIPS = {
@@ -184,8 +186,8 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
   const todayDayName = dayNames[targetDate.getDay()];
   const amTarget = hs?.expectedCapacity?.[todayDayName]?.am || 0;
   const pmTarget = hs?.expectedCapacity?.[todayDayName]?.pm || 0;
-  const amDutyCol = amTarget > 0 ? getBand(amSlots, amTarget).colour : '#fbbf24';
-  const pmDutyCol = pmTarget > 0 ? getBand(pmSlots, pmTarget).colour : '#34d399';
+  const amDutyCol = amTarget > 0 ? getBand(amSlots, amTarget).ink : 'var(--c-amber-2)';
+  const pmDutyCol = pmTarget > 0 ? getBand(pmSlots, pmTarget).ink : 'var(--c-green-2)';
 
   return (
     <div className="glass rounded-xl overflow-hidden transition-opacity duration-300" style={{ opacity: loading ? 0.7 : 1 }}>
@@ -222,7 +224,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
             <div className="flex items-baseline gap-1.5 justify-end"><span style={{fontSize:42,fontWeight:800,color:demandCol.text,lineHeight:1}}>{predicted}</span><span style={{fontSize:13,color:'var(--g-text-mid)'}}>requests</span></div>
             <div className="flex items-center gap-1 justify-end" style={{marginTop:4}}>
               <span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:'var(--r-sm)',background:demandCol.bg,color:demandCol.text}}>{demandCol.label}</span>
-              {demandDelta!==null&&demandDelta!==0&&<span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:'var(--r-sm)',background:demandDelta>0?'rgba(251,113,133,0.1)':'rgba(52,211,153,0.1)',color:demandDelta>0?'#fb7185':'#34d399'}}>{demandDelta>0?'↑':'↓'}{Math.abs(demandDelta)} vs typical</span>}
+              {demandDelta!==null&&demandDelta!==0&&<span style={{fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:'var(--r-sm)',background:demandDelta>0?'rgba(251,113,133,0.1)':'rgba(52,211,153,0.1)',color:demandDelta>0?'#fb7185':'var(--c-green-2)'}}>{demandDelta>0?'↑':'↓'}{Math.abs(demandDelta)} vs typical</span>}
             </div>
             <div className="flex items-center gap-1 justify-end" style={{marginTop:6}}>
               <span style={{fontSize:11,color:'var(--meta)'}}>{t.confidence.low}</span>
@@ -239,7 +241,7 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
           <div className="flex items-center gap-1.5 flex-1 flex-wrap">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{stroke:'var(--g-text-faint)'}} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
             {topFactors.map((fac,i) => (
-              <span key={i} className="group relative" style={{fontSize:11,fontWeight:600,padding:'3px 8px',borderRadius:'var(--r-sm)',background:'var(--g-surface-2)',color:fac.effect>=0?'#60a5fa':'#34d399',cursor:'default'}}>
+              <span key={i} className="group relative" style={{fontSize:11,fontWeight:600,padding:'3px 8px',borderRadius:'var(--r-sm)',background:'var(--g-surface-2)',color:fac.effect>=0?'var(--c-blue-2)':'var(--c-green-2)',cursor:'default'}}>
                 {fac.effect>=0?'↑':'↓'} <span style={{color:'var(--g-text-mid)'}}>{fac.label}</span> {fac.effect>0?'+':''}{Math.round(fac.effect)}
                 <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-md text-xs font-normal text-slate-200 whitespace-nowrap z-10" style={{background:'var(--g-surface)',border:'1px solid var(--g-divider)'}}>{fac.tip}</span>
               </span>
@@ -247,9 +249,9 @@ export default function DemandCapacityConnector({ viewingDate, huddleData, capac
           </div>
           <div className="w-px self-stretch" style={{background:'var(--g-surface-2)'}}/>
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg><span style={{fontSize:22,fontWeight:800,color:'#a78bfa'}}>{needed}</span><span style={{fontSize:11,color:'var(--g-text-mid)'}}> need</span></div>
+            <div className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--c-violet)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg><span style={{fontSize:22,fontWeight:800,color:'var(--c-violet)'}}>{needed}</span><span style={{fontSize:11,color:'var(--g-text-mid)'}}> need</span></div>
             <div style={{width:60,height:12,display:'flex',gap:1,borderRadius:3,overflow:'hidden'}}><div style={{flex:Math.max(urgentTotal,1),background:'#34d399'}}/>{shortfall>0&&<div style={{flex:shortfall,background:arcColour}}/>}</div>
-            <div className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span style={{fontSize:22,fontWeight:800,color:'#34d399'}}>{urgentTotal}</span><span style={{fontSize:11,color:'var(--g-text-mid)'}}> have</span></div>
+            <div className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--c-green-2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span style={{fontSize:22,fontWeight:800,color:'var(--c-green-2)'}}>{urgentTotal}</span><span style={{fontSize:11,color:'var(--g-text-mid)'}}> have</span></div>
           </div>
         </div>
       </div>

@@ -50,7 +50,7 @@ export default function RetentionControls({ lastRunResults }) {
       borderRadius: 'var(--r-lg)',
       padding: 18,
     }}>
-      <h2 style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>
+      <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--g-text-pale)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>
         Manual run
       </h2>
 
@@ -62,7 +62,7 @@ export default function RetentionControls({ lastRunResults }) {
             padding: '8px 14px',
             background: 'rgba(34,211,238,0.12)',
             border: '1px solid rgba(34,211,238,0.30)',
-            color: '#67e8f9',
+            color: 'var(--c-cyan)',
             borderRadius: 'var(--r-md)',
             fontSize: 13,
             fontWeight: 500,
@@ -112,7 +112,7 @@ export default function RetentionControls({ lastRunResults }) {
                 padding: '5px 8px',
                 background: 'rgba(0,0,0,0.3)',
                 border: '1px solid rgba(255,255,255,0.15)',
-                color: '#f1f5f9',
+                color: 'var(--g-text-pale)',
                 borderRadius: 'var(--r-sm)',
                 fontSize: 13,
                 width: 90,
@@ -124,7 +124,7 @@ export default function RetentionControls({ lastRunResults }) {
               style={{
                 padding: '6px 12px',
                 background: confirmText === 'RUN' ? '#b91c1c' : '#64748b',
-                color: 'white',
+                color: 'var(--g-text-max)',
                 border: 'none',
                 borderRadius: 'var(--r-sm)',
                 fontSize: 12,
@@ -139,7 +139,7 @@ export default function RetentionControls({ lastRunResults }) {
               style={{
                 padding: '6px 10px',
                 background: 'transparent',
-                color: '#cbd5e1',
+                color: 'var(--g-text-soft)',
                 border: '1px solid rgba(255,255,255,0.15)',
                 borderRadius: 'var(--r-sm)',
                 fontSize: 12,
@@ -156,7 +156,7 @@ export default function RetentionControls({ lastRunResults }) {
         <div style={{
           background: 'rgba(239,68,68,0.10)',
           border: '1px solid rgba(239,68,68,0.30)',
-          color: '#fca5a5',
+          color: 'var(--c-red)',
           padding: 12,
           borderRadius: 'var(--r-md)',
           fontSize: 13,
@@ -175,7 +175,7 @@ export default function RetentionControls({ lastRunResults }) {
       {results && results.length > 0 && (
         <table className="w-full border-collapse text-body-sm">
           <thead>
-            <tr style={{ textAlign: 'left', color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+            <tr style={{ textAlign: 'left', color: 'var(--g-text-mid)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               <th style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Table</th>
               <th style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Cutoff</th>
               <th style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'right' }}>Past retention</th>
@@ -186,12 +186,12 @@ export default function RetentionControls({ lastRunResults }) {
           <tbody>
             {results.map((r, i) => (
               <tr key={i}>
-                <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#67e8f9' }}>{r.table}</td>
-                <td style={{ padding: '8px 10px', color: '#cbd5e1', fontFamily: 'monospace', fontSize: 11 }}>
+                <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: 'var(--c-cyan)' }}>{r.table}</td>
+                <td style={{ padding: '8px 10px', color: 'var(--g-text-soft)', fontFamily: 'monospace', fontSize: 11 }}>
                   {r.cutoff ? new Date(r.cutoff).toISOString().slice(0, 10) : '—'}
                 </td>
                 <td className="px-2.5 py-2 text-right text-slate-300">{r.rows_to_delete ?? '—'}</td>
-                <td style={{ padding: '8px 10px', textAlign: 'right', color: r.rows_deleted > 0 ? '#f87171' : '#cbd5e1' }}>{r.rows_deleted ?? 0}</td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', color: r.rows_deleted > 0 ? 'var(--c-red-2)' : 'var(--g-text-soft)' }}>{r.rows_deleted ?? 0}</td>
                 <td className="px-2.5 py-2 text-caption">
                   {r.error
                     ? <span className="text-red-300">{r.error}</span>

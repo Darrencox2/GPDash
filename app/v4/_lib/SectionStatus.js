@@ -52,7 +52,7 @@ export function SectionStatusStripe({ complete, hint, label }) {
       {hint && (
         <div style={{
           fontSize: 12,
-          color: complete ? '#6ee7b7' : '#fcd34d',
+          color: complete ? 'var(--c-mint)' : 'var(--c-amber)',
           marginTop: 8,
           lineHeight: 1.4,
         }}>
@@ -167,7 +167,7 @@ export function DashboardCompletenessStrip({ statuses, practicePath }) {
                 {it.label}
               </div>
               {it.hint && (
-                <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.3 }}>
+                <div style={{ fontSize: 11, color: 'var(--g-text-mid)', lineHeight: 1.3 }}>
                   {it.hint}
                 </div>
               )}

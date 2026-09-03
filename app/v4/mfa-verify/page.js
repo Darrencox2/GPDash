@@ -135,7 +135,7 @@ function MfaVerifyInner() {
 
   return (
     <AuthCard title="Two-factor verification">
-      <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>
+      <p style={{ color: 'var(--g-text-soft)', fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>
         Open your authenticator app and enter the current 6-digit code for GPDash.
       </p>
       <div style={f.field}>
@@ -165,7 +165,7 @@ function MfaVerifyInner() {
           marginBottom: 16, padding: '10px 14px',
           background: 'rgba(239,68,68,0.1)',
           border: '1px solid rgba(239,68,68,0.3)',
-          borderRadius: 'var(--r-md)', color: '#fca5a5', fontSize: 13,
+          borderRadius: 'var(--r-md)', color: 'var(--c-red)', fontSize: 13,
         }}>{error}</div>
       )}
 
@@ -181,7 +181,7 @@ function MfaVerifyInner() {
         Lost access to your authenticator?{' '}
         <button onClick={signOut} style={{
           background: 'transparent', border: 'none', padding: 0,
-          color: '#67e8f9', cursor: 'pointer', fontSize: 13, textDecoration: 'underline',
+          color: 'var(--c-cyan)', cursor: 'pointer', fontSize: 13, textDecoration: 'underline',
           fontFamily: 'inherit',
         }}>
           Sign out

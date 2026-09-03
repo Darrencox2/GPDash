@@ -70,7 +70,7 @@ export default function ListSizeBackfill() {
       padding: 18,
       marginTop: 16,
     }}>
-      <h3 style={{ fontSize: 15, fontWeight: 600, color: '#cbd5e1', marginBottom: 8 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-soft)', marginBottom: 8 }}>
         Practice list size backfill
       </h3>
       <p className="text-body text-slate-400 leading-body mb-3.5">
@@ -82,7 +82,7 @@ export default function ListSizeBackfill() {
       </p>
 
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 10, borderRadius: 'var(--r-sm)', fontSize: 13, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', padding: 10, borderRadius: 'var(--r-sm)', fontSize: 13, marginBottom: 12 }}>
           {error}
         </div>
       )}
@@ -96,7 +96,7 @@ export default function ListSizeBackfill() {
             padding: '8px 16px',
             background: running ? 'rgba(255,255,255,0.04)' : 'rgba(34,211,238,0.15)',
             border: `1px solid ${running ? 'rgba(255,255,255,0.1)' : 'rgba(34,211,238,0.4)'}`,
-            color: running ? '#64748b' : '#22d3ee',
+            color: running ? '#64748b' : 'var(--c-cyan-3)',
             borderRadius: 'var(--r-md)',
             fontSize: 14,
             fontWeight: 500,
@@ -122,7 +122,7 @@ export default function ListSizeBackfill() {
           background: 'rgba(0,0,0,0.2)',
           borderRadius: 'var(--r-md)',
           fontSize: 13,
-          color: '#cbd5e1',
+          color: 'var(--g-text-soft)',
           lineHeight: 1.7,
         }}>
           {pct != null && (
@@ -155,7 +155,7 @@ export default function ListSizeBackfill() {
               <div>Last batch: <strong>{progress.batch}</strong> practices fetched
                 {progress.elapsedMs != null ? ` in ${(progress.elapsedMs / 1000).toFixed(1)}s` : ''}
                 {progress.timedOut && (
-                  <span style={{ color: '#fbbf24', fontStyle: 'italic', marginLeft: 8 }}>
+                  <span style={{ color: 'var(--c-amber-2)', fontStyle: 'italic', marginLeft: 8 }}>
                     (stopped before 60s timeout — auto-loop will continue)
                   </span>
                 )}
@@ -166,7 +166,7 @@ export default function ListSizeBackfill() {
               {progress.errorSamples?.length > 0 && (
                 <details className="mt-1.5">
                   <summary className="text-slate-400 text-meta cursor-pointer">Show error samples</summary>
-                  <pre style={{ marginTop: 4, fontSize: 11, color: '#fca5a5', fontFamily: 'ui-monospace, monospace' }}>
+                  <pre style={{ marginTop: 4, fontSize: 11, color: 'var(--c-red)', fontFamily: 'ui-monospace, monospace' }}>
                     {JSON.stringify(progress.errorSamples, null, 2)}
                   </pre>
                 </details>

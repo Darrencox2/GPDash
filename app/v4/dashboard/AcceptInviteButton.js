@@ -38,7 +38,7 @@ export default function AcceptInviteButton({ inviteId }) {
           padding: '6px 14px',
           fontSize: 12,
           fontWeight: 600,
-          color: 'white',
+          color: 'var(--g-text-max)',
           background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
           border: 'none',
           borderRadius: 'var(--r-sm)',
@@ -49,7 +49,7 @@ export default function AcceptInviteButton({ inviteId }) {
       >
         {loading ? 'Accepting...' : 'Accept'}
       </button>
-      {error && <span style={{ fontSize:11, color: '#fca5a5' }}>{error}</span>}
+      {error && <span style={{ fontSize:11, color: 'var(--c-red)' }}>{error}</span>}
     </div>
   );
 }

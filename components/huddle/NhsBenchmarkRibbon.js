@@ -153,7 +153,7 @@ export default function NhsBenchmarkRibbon({ odsCode, listSize }) {
           NHS demand · {monthLabel}
         </span>
         <span className="text-slate-400">·</span>
-        <Stat label="You" value={yourPer1000} colour="#a5f3fc" emphasised />
+        <Stat label="You" value={yourPer1000} colour="var(--c-cyan-2)" emphasised />
         {pcnPer1000 != null && (
           <>
             <span className="text-slate-400">·</span>
@@ -198,21 +198,21 @@ function Stat({ label, value, delta, colour, emphasised, estimated }) {
       <span style={{
         fontSize: emphasised ? 14 : 13,
         fontWeight: emphasised ? 600 : 500,
-        color: colour || '#cbd5e1',
+        color: colour || 'var(--g-text-soft)',
         fontFamily: "var(--font-mono)",
       }}>
         {fmt(value)}
       </span>
       <span style={{ fontSize:11, color: 'var(--meta)' }}>/1k</span>
       {estimated && (
-        <span style={{ fontSize:11, color: '#fcd34d', fontStyle: 'italic' }} title="Estimated using UK average list size — refine by running the list-size backfill in /v4/admin/nhs-data">
+        <span style={{ fontSize:11, color: 'var(--c-amber)', fontStyle: 'italic' }} title="Estimated using UK average list size — refine by running the list-size backfill in /v4/admin/nhs-data">
           ~est
         </span>
       )}
       {delta != null && Math.abs(delta) >= 1 && (
         <span style={{
           fontSize: 11,
-          color: delta > 0 ? '#fcd34d' : '#7dd3fc',
+          color: delta > 0 ? 'var(--c-amber)' : 'var(--c-sky)',
           fontWeight: 500,
         }}>
           ({delta > 0 ? '+' : ''}{Math.round(delta)}%)

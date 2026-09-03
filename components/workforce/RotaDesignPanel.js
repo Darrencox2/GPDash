@@ -7,8 +7,8 @@ import { WF_DAYS, WF_DAY_NAMES } from '@/lib/workforce';
 import { designFindings, templateScore, DEFAULT_APPTS_PER_SESSION } from '@/lib/rota-design';
 
 const SEV = {
-  critical: { fg: '#fca5a5', bg: 'rgba(239,68,68,0.10)', bd: 'rgba(239,68,68,0.4)', label: 'Critical' },
-  warn:     { fg: '#fcd34d', bg: 'rgba(245,158,11,0.08)', bd: 'rgba(245,158,11,0.35)', label: 'Warning' },
+  critical: { fg: 'var(--c-red)', bg: 'rgba(239,68,68,0.10)', bd: 'rgba(239,68,68,0.4)', label: 'Critical' },
+  warn:     { fg: 'var(--c-amber)', bg: 'rgba(245,158,11,0.08)', bd: 'rgba(245,158,11,0.35)', label: 'Warning' },
   info:     { fg: 'var(--meta)', bg: 'var(--g-tile-2)', bd: 'var(--g-border-2)', label: 'Note' },
 };
 
@@ -22,6 +22,9 @@ export default function RotaDesignPanel({ allocation, activities, viewWeek, incl
   }), [allocation, activities, viewWeek, includedIds, clinicians, demandSettings, listSize, aps, dutyCapableIds]);
 
   const score = templateScore(result);
+  // Two values per band: an ink that flips with the theme, and the concrete
+  // hex the border and tint are mixed from (a var() cannot take an alpha suffix).
+  const scoreInk = score >= 85 ? 'var(--c-green-2)' : score >= 60 ? 'var(--c-amber-2)' : 'var(--c-red)';
   const scoreCol = score >= 85 ? '#34d399' : score >= 60 ? '#fbbf24' : '#fca5a5';
   const maxVal = Math.max(...WF_DAYS.map(d => Math.max(result.capacity.perDay[d].capacity, result.capacity.perDay[d].demand)), 1);
   const shown = showAll ? result.findings : result.findings.slice(0, 6);
@@ -37,7 +40,7 @@ export default function RotaDesignPanel({ allocation, activities, viewWeek, incl
             onChange={(e) => onApptsChange && onApptsChange(Math.max(4, Math.min(30, parseInt(e.target.value) || DEFAULT_APPTS_PER_SESSION)))}
             className="w-14 text-center rounded-md text-sm py-0.5"
             style={{ background: 'var(--g-field)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)' }} />
-          <span className="text-sm font-bold font-mono-data px-2 py-0.5 rounded-md" style={{ color: scoreCol, border: `1px solid ${scoreCol}55`, background: `${scoreCol}18` }}
+          <span className="text-sm font-bold font-mono-data px-2 py-0.5 rounded-md" style={{ color: scoreInk, border: `1px solid ${scoreCol}55`, background: `${scoreCol}18` }}
             title="100 = duty covered every session, capacity meets demand every day, no design findings">
             {score}/100
           </span>
@@ -59,10 +62,10 @@ export default function RotaDesignPanel({ allocation, activities, viewWeek, incl
                 <div className="absolute bottom-0 left-1/2 right-0 ml-px" style={{ height: `${demPct}%`, background: 'rgba(148,163,184,0.35)' }} />
               </div>
               <div className="flex items-baseline justify-between mt-1">
-                <span className="text-xs font-bold font-mono-data" style={{ color: ok ? '#34d399' : '#fca5a5' }}>{day.capacity}</span>
+                <span className="text-xs font-bold font-mono-data" style={{ color: ok ? 'var(--c-green-2)' : 'var(--c-red)' }}>{day.capacity}</span>
                 <span className="text-[11px] font-mono-data" style={{ color: 'var(--meta)' }}>vs {day.demand}</span>
               </div>
-              <div className="text-[11px]" style={{ color: ok ? 'var(--meta)' : '#fca5a5' }}>{day.surplus >= 0 ? `+${day.surplus}` : day.surplus}</div>
+              <div className="text-[11px]" style={{ color: ok ? 'var(--meta)' : 'var(--c-red)' }}>{day.surplus >= 0 ? `+${day.surplus}` : day.surplus}</div>
             </div>
           );
         })}
@@ -77,7 +80,7 @@ export default function RotaDesignPanel({ allocation, activities, viewWeek, incl
       <div className="px-4 pb-4">
         {result.findings.length === 0 ? (
           <div className="rounded-lg px-3 py-2 text-sm flex items-center gap-2" style={{ border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.05)', color: 'var(--g-text-hi)' }}>
-            <span style={{ color: '#34d399' }}>&#10003;</span> No design findings — duty covered, capacity meets demand.
+            <span style={{ color: 'var(--c-green-2)' }}>&#10003;</span> No design findings — duty covered, capacity meets demand.
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">

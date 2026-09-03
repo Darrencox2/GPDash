@@ -83,7 +83,7 @@ export default function PracticeTabs({ canManage, isPlatformAdmin, sectionStatus
                 padding: '10px 16px',
                 fontSize: 14,
                 fontWeight: t.id === effectiveTab ? 600 : 400,
-                color: t.id === effectiveTab ? (t.id === 'danger' ? '#fca5a5' : '#22d3ee') : 'var(--g-text-mid)',
+                color: t.id === effectiveTab ? (t.id === 'danger' ? 'var(--c-red)' : 'var(--c-cyan-3)') : 'var(--g-text-mid)',
                 background: 'none',
                 border: 'none',
                 borderBottom: `2px solid ${t.id === effectiveTab ? (t.id === 'danger' ? '#fca5a5' : '#22d3ee') : 'transparent'}`,

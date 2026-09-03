@@ -43,7 +43,7 @@ export default async function ImpersonationBanner() {
       top: 0,
       zIndex: 9999,
       background: '#dc2626',
-      color: 'white',
+      color: 'var(--g-text-max)',
       padding: '10px 16px',
       display: 'flex',
       alignItems: 'center',

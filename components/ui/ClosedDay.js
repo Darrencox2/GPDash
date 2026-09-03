@@ -19,7 +19,7 @@ export function ClosedDayCard({ reason, children, className = '' }) {
   return (
     <div className={`glass rounded-xl p-8 text-center ${className}`}>
       <div className="mb-3 flex justify-center"><ClosedDayIcon /></div>
-      <div className="text-lg font-medium text-white mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Practice closed</div>
+      <div className="text-lg font-medium text-ink-max mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Practice closed</div>
       {reason && <div className="text-sm" style={{ color: 'var(--meta)' }}>{reason}</div>}
       {children}
     </div>

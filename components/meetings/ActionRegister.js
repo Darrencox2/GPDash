@@ -5,13 +5,13 @@ import { createClient } from '@/utils/supabase/client';
 import { useToast, Skeleton, confirmDialog } from '@/components/ui';
 
 const STATUS_META = {
-  open: { label: 'Open', bg: 'rgba(96,165,250,0.15)', tx: '#93c5fd' },
-  in_progress: { label: 'In progress', bg: 'rgba(251,191,36,0.15)', tx: '#fcd34d' },
-  done: { label: 'Done', bg: 'rgba(16,185,129,0.15)', tx: '#6ee7b7' },
+  open: { label: 'Open', bg: 'rgba(96,165,250,0.15)', tx: 'var(--c-blue)' },
+  in_progress: { label: 'In progress', bg: 'rgba(251,191,36,0.15)', tx: 'var(--c-amber)' },
+  done: { label: 'Done', bg: 'rgba(16,185,129,0.15)', tx: 'var(--c-mint)' },
   cancelled: { label: 'Cancelled', bg: 'rgba(148,163,184,0.15)', tx: 'var(--g-text-mid)' },
 };
 const PRIORITY_META = {
-  high: { label: 'High', tx: '#fca5a5' },
+  high: { label: 'High', tx: 'var(--c-red)' },
   normal: { label: 'Normal', tx: 'var(--g-text-mid)' },
   low: { label: 'Low', tx: 'var(--g-text-mid)' },
 };
@@ -136,7 +136,7 @@ export default function ActionRegister({ data }) {
           Every action across all meetings, in one place. Click a status to cycle it.
         </p>
         {counts.overdue > 0 && (
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#fca5a5', padding: '3px 10px', borderRadius: 'var(--r-pill)', background: 'rgba(239,68,68,0.12)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-red)', padding: '3px 10px', borderRadius: 'var(--r-pill)', background: 'rgba(239,68,68,0.12)' }}>
             {counts.overdue} overdue
           </span>
         )}
@@ -151,7 +151,7 @@ export default function ActionRegister({ data }) {
             style={{
               fontSize: 13, fontWeight: 600, padding: '5px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
               background: filter === id ? 'var(--accent, #6366f1)' : 'transparent',
-              color: filter === id ? '#fff' : 'var(--g-text-mid)',
+              color: filter === id ? 'var(--g-text-max)' : 'var(--g-text-mid)',
               border: `1px solid ${filter === id ? 'transparent' : 'var(--g-border)'}`,
             }}
           >{label}</button>
@@ -159,7 +159,7 @@ export default function ActionRegister({ data }) {
       </div>
 
       {error && (
-        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>{error}</div>
+        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--c-red)', fontSize: 13 }}>{error}</div>
       )}
 
       {actions === null && <div className="flex flex-col gap-2">{[0,1,2,3].map((i) => <Skeleton key={i} variant="card" style={{ height: 54 }} />)}</div>}
@@ -208,7 +208,7 @@ export default function ActionRegister({ data }) {
                         {/* In-progress toggle */}
                         <button
                           onClick={() => updateAction(a.id, { status: inProgress ? 'open' : 'in_progress' })}
-                          style={{ ...miniSelect, cursor: 'pointer', fontWeight: 600, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? '#fcd34d' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
+                          style={{ ...miniSelect, cursor: 'pointer', fontWeight: 600, background: inProgress ? 'rgba(251,191,36,0.15)' : 'var(--g-field)', color: inProgress ? 'var(--c-amber)' : 'var(--g-text-mid)', border: `1px solid ${inProgress ? 'rgba(251,191,36,0.35)' : 'var(--g-border)'}` }}
                         >
                           {inProgress ? 'In progress' : 'Mark in progress'}
                         </button>
@@ -230,7 +230,7 @@ export default function ActionRegister({ data }) {
                           type="date"
                           value={a.due_date || ''}
                           onChange={(e) => updateAction(a.id, { due_date: e.target.value || null })}
-                          style={{ ...miniSelect, color: overdue ? '#fca5a5' : 'var(--g-text-mid)' }}
+                          style={{ ...miniSelect, color: overdue ? 'var(--c-red)' : 'var(--g-text-mid)' }}
                         />
                         {overdue && <span className="text-red-300 font-semibold">Overdue</span>}
                         {/* Priority */}

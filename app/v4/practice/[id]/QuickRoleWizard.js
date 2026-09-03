@@ -256,10 +256,10 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
                 <span key={i} aria-hidden style={{ position: 'absolute', top: 0, left: '50%', width: 8, height: 8, borderRadius: 2, background: c.c, '--dx': `${c.dx}px`, '--dy': `${c.dy}px`, animation: `qrwConf 0.9s ease-out ${c.d}s both` }} />
               ))}
               <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'qrwCheck 0.55s cubic-bezier(0.34,1.56,0.64,1)' }}>
-                <span style={{ color: 'white', fontSize: 38 }}>✓</span>
+                <span style={{ color: 'var(--g-text-max)', fontSize: 38 }}>✓</span>
               </div>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 600, color: '#f1f5f9', animation: 'qrwLift 0.45s ease-out 0.15s both' }}>
+            <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--g-text-pale)', animation: 'qrwLift 0.45s ease-out 0.15s both' }}>
               {withRole} of {allPeople.length} have a role
             </div>
             <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 6, animation: 'qrwLift 0.45s ease-out 0.25s both' }}>
@@ -279,7 +279,7 @@ export default function QuickRoleWizard({ clinicians, onAssign, onClose }) {
             <div key={headKey} style={{ marginBottom: 16, animation: 'qrwHeadIn 0.35s ease-out' }}>
               <div className="flex items-center gap-2.5">
                 <div style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(129,140,248,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>{current.ico}</div>
-                <div style={{ fontSize: 21, fontWeight: 600, color: '#f1f5f9' }}>{current.question || `Who are your ${current.role}s?`}</div>
+                <div style={{ fontSize: 21, fontWeight: 600, color: 'var(--g-text-pale)' }}>{current.question || `Who are your ${current.role}s?`}</div>
               </div>
               <div style={{ fontSize: 13, color: 'var(--g-text-mid)', marginTop: 6, marginLeft: 44 }}>{current.hint} {isAdminStep ? 'Anyone already administrative is ticked — adjust as needed.' : 'The people already on this role are ticked — adjust as needed.'}</div>
             </div>

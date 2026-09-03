@@ -198,19 +198,19 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
         <div className="flex items-center gap-2">
           <select value={month} onChange={(e) => setMonth(e.target.value)}
             className="rounded-md px-2 py-1.5 text-sm"
-            style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }}>
+            style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--g-text-hi)' }}>
             {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
           </select>
           <button onClick={exportCsv}
             title="Download this month as a CSV for your accountant"
             className="px-3 py-1.5 rounded-md text-sm font-medium"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#94a3b8' }}>
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--g-text-mid)' }}>
             Export CSV
           </button>
           {canEdit && (
             <button onClick={() => setShowRates((v) => !v)}
               className="px-3 py-1.5 rounded-md text-sm font-medium"
-              style={{ background: showRates ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: showRates ? '#a5b4fc' : '#94a3b8' }}>
+              style={{ background: showRates ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: showRates ? 'var(--accent-pale)' : 'var(--g-text-mid)' }}>
               Rates
             </button>
           )}
@@ -227,7 +227,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           ].map((t) => (
             <div key={t.label} className="rounded-xl p-4" style={{ background: 'var(--g-panel)', border: `1px solid ${t.big ? '#f59e0b50' : 'rgba(255,255,255,0.08)'}` }}>
               <div className="text-xs text-slate-400">{t.label}</div>
-              <div className="text-2xl font-bold font-mono-data mt-1" style={{ color: t.big ? '#fbbf24' : '#e2e8f0' }}>{gbp(t.value)}</div>
+              <div className="text-2xl font-bold font-mono-data mt-1" style={{ color: t.big ? 'var(--c-amber-2)' : 'var(--g-text-hi)' }}>{gbp(t.value)}</div>
               <div className="text-[11px] text-slate-400 mt-0.5">{t.sub}</div>
             </div>
           ))}
@@ -253,7 +253,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
                 <input type="number" min="0" defaultValue={currentRate(rates.locums?.[lc.id]) || ''}
                   onBlur={(e) => setRate('locums', lc.id, e.target.value)}
                   className="w-24 rounded-md px-2 py-1 text-sm text-right font-mono-data"
-                  style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
+                  style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--g-text-hi)' }} />
               </div>
             ))}
           </div>
@@ -265,7 +265,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
               <input type="number" min="0" defaultValue={currentRate(rates.gpExtraDefault) || ''}
                 onBlur={(e) => setRate('gpExtraDefault', null, e.target.value)}
                 className="w-24 rounded-md px-2 py-1 text-sm text-right font-mono-data"
-                style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
+                style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--g-text-hi)' }} />
             </div>
             <div className="text-[11px] text-slate-400">Used for every confirmed extra unless a GP has their own rate below. Rate changes apply from today - earlier months keep the rate that was in force at the time.</div>
             {clinicians.filter((c) => currentRate((rates.gpExtra || {})[c.id]) || spend?.extraLines.some((l) => l.id === c.id)).map((gp) => (
@@ -276,7 +276,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
                   placeholder="default"
                   onBlur={(e) => setRate('gpExtra', gp.id, e.target.value)}
                   className="w-24 rounded-md px-2 py-1 text-sm text-right font-mono-data"
-                  style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }} />
+                  style={{ background: 'var(--g-tile)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--g-text-hi)' }} />
               </div>
             ))}
           </div>
@@ -286,7 +286,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
       {/* Unclassified names - the biggest hole in the spend number */}
       {unclassified.length > 0 && (
         <div className="rounded-xl p-4" style={{ background: '#f59e0b12', border: '1px solid #f59e0b45' }}>
-          <div className="text-sm font-semibold" style={{ color: '#fbbf24' }}>
+          <div className="text-sm font-semibold" style={{ color: 'var(--c-amber-2)' }}>
             {unclassified.length} {unclassified.length === 1 ? 'person' : 'people'} worked sessions but cannot be classified
           </div>
           <div className="text-xs text-slate-400 mt-1 leading-normal">
@@ -294,7 +294,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {unclassified.slice(0, 12).map((u) => (
-              <span key={u.csvName} className="px-2 py-1 rounded-md text-xs" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0' }}
+              <span key={u.csvName} className="px-2 py-1 rounded-md text-xs" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--g-text-hi)' }}
                 title={`${u.dates} session day${u.dates === 1 ? '' : 's'} in the last 60 days${u.status === 'noRole' ? ' - on the register but no role set' : ' - not on the register'}`}>
                 {u.csvName}{u.status === 'noRole' ? ' (no role)' : ''}
               </span>
@@ -303,7 +303,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           {typeof setActiveSection === 'function' && (
             <button onClick={() => setActiveSection('team-members')}
               className="mt-3 px-3 py-1.5 rounded-md text-xs font-semibold"
-              style={{ background: '#f59e0b25', border: '1px solid #f59e0b60', color: '#fbbf24' }}>
+              style={{ background: '#f59e0b25', border: '1px solid #f59e0b60', color: 'var(--c-amber-2)' }}>
               Update the staff register
             </button>
           )}
@@ -321,9 +321,9 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
               const sel = t.month === month;
               return (
                 <button key={t.month} onClick={() => setMonth(t.month)} className="flex-1 flex flex-col items-center gap-1" title={`${monthLabel(t.month)}: ${gbp(t.total)}`}>
-                  <span className="text-[11px] font-mono-data" style={{ color: sel ? '#fbbf24' : 'var(--meta)' }}>{gbp(t.total)}</span>
+                  <span className="text-[11px] font-mono-data" style={{ color: sel ? 'var(--c-amber-2)' : 'var(--meta)' }}>{gbp(t.total)}</span>
                   <span className="w-full rounded-t-sm" style={{ height: h, background: sel ? '#f59e0b' : 'rgba(245,158,11,0.35)' }} />
-                  <span className="text-[11px]" style={{ color: sel ? '#e2e8f0' : 'var(--meta)' }}>{t.month.slice(5)}</span>
+                  <span className="text-[11px]" style={{ color: sel ? 'var(--g-text-hi)' : 'var(--meta)' }}>{t.month.slice(5)}</span>
                 </button>
               );
             })}
@@ -341,11 +341,11 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
               {canEdit && candidates.some((c) => c.likelySwap) && (
                 <button onClick={clearLikelySwaps}
                   className="px-2.5 py-1 rounded-md text-[11px] font-semibold"
-                  style={{ background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.4)', color: '#60a5fa' }}>
+                  style={{ background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.4)', color: 'var(--c-blue-2)' }}>
                   Mark all {candidates.filter((c) => c.likelySwap).length} likely swaps as not extras
                 </button>
               )}
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f59e0b25', border: '1px solid #f59e0b50', color: '#fbbf24' }}>{candidates.length}</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f59e0b25', border: '1px solid #f59e0b50', color: 'var(--c-amber-2)' }}>{candidates.length}</span>
             </span>
           )}
         </div>
@@ -355,7 +355,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
           <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
             {groups.slice(0, 20).map((g) => {
               const open = openGroups.has(g.key);
-              const tone = g.allSwap ? { fg: '#60a5fa', word: 'probably swaps' } : g.allExtra ? { fg: 'var(--c-amber)', word: 'looks like paid extras' } : { fg: 'var(--g-text-mid)', word: 'mixed: open to decide one by one' };
+              const tone = g.allSwap ? { fg: 'var(--c-blue-2)', word: 'probably swaps' } : g.allExtra ? { fg: 'var(--c-amber)', word: 'looks like paid extras' } : { fg: 'var(--g-text-mid)', word: 'mixed: open to decide one by one' };
               return (
                 <div key={g.key}>
                   <div className="px-4 py-3 flex items-center gap-3 flex-wrap">
@@ -432,14 +432,14 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
                 <span className="flex-1 text-slate-300 truncate">
                   {d.name || d.key} - {d.date || ''} {String(d.slotLabel || '').toLowerCase()}
                 </span>
-                <span className="text-xs font-semibold" style={{ color: d.verdict === 'extra' ? '#fbbf24' : '#94a3b8' }}>
+                <span className="text-xs font-semibold" style={{ color: d.verdict === 'extra' ? 'var(--c-amber-2)' : 'var(--g-text-mid)' }}>
                   {d.verdict === 'extra' ? 'Paid extra' : 'Not an extra'}
                 </span>
                 {d.by && <span className="text-[11px] text-slate-400">by {d.by}</span>}
                 {canEdit && (
                   <button onClick={() => undoDecision(d.key)}
                     className="px-2 py-1 rounded-md text-[11px] font-semibold"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8' }}>
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--g-text-mid)' }}>
                     Undo
                   </button>
                 )}
@@ -460,7 +460,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
               <div key={`${l.id}-${l.rate}`} className="px-4 py-2.5 flex items-center gap-3 text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <span className="flex-1 text-slate-300 truncate">{l.name}</span>
                 <span className="text-xs text-slate-400">{l.sessions} x {l.rateMissing ? 'no rate set' : gbp(l.rate)}</span>
-                <span className="font-mono-data font-semibold" style={{ color: l.rateMissing ? '#f87171' : '#e2e8f0' }}>{gbp(l.total)}</span>
+                <span className="font-mono-data font-semibold" style={{ color: l.rateMissing ? 'var(--c-red-2)' : 'var(--g-text-hi)' }}>{gbp(l.total)}</span>
               </div>
             ))}
           </div>
@@ -472,7 +472,7 @@ export default function SpendTracker({ data, saveData, huddleData, setActiveSect
               <div key={`${l.id}-${l.date}-${l.slot}`} className="px-4 py-2.5 flex items-center gap-3 text-sm" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <span className="flex-1 text-slate-300 truncate">{l.name}</span>
                 <span className="text-xs text-slate-400">{new Date(l.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {l.slotLabel.toLowerCase()}{l.rateMissing ? ' - no rate set' : ''}</span>
-                <span className="font-mono-data font-semibold" style={{ color: l.rateMissing ? '#f87171' : '#e2e8f0' }}>{gbp(l.total)}</span>
+                <span className="font-mono-data font-semibold" style={{ color: l.rateMissing ? 'var(--c-red-2)' : 'var(--g-text-hi)' }}>{gbp(l.total)}</span>
               </div>
             ))}
           </div>

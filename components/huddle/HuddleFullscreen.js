@@ -57,7 +57,7 @@ const FS_LIGHT = {
   label: 'rgba(15,23,42,0.5)', label2: 'rgba(15,23,42,0.7)', labelFaint: 'rgba(15,23,42,0.3)',
   textHi: '#334155', text: '#1e293b', textDim: '#64748b', textFaint: '#94a3b8',
   ink: '#cbd5e1', ink2: '#cbd5e1', gaugeTrack: '#cbd5e1',
-  grid: '#e2e8f0', gridBH: '#fde68a', amber: '#d97706', green: '#059669',
+  grid: '#e2e8f0', gridBH: '#fde68a', amber: '#8a5406', green: '#046a4a',
 };
 
 // ── Isolated clock ──────────────────────────────────────────────
@@ -80,7 +80,7 @@ const NoticeTicker = memo(function NoticeTicker({ messages, C }) {
   return (
     <div className="flex items-center gap-3 px-5 flex-shrink-0 overflow-hidden" style={{ height: H, background: C.headerBar }}>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-amber-2)" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
         <span style={{ fontSize: 'clamp(11px, 1.3vh, 14px)' }} className="font-semibold text-amber-400 uppercase tracking-wider">Noticeboard</span>
       </div>
       <div className="flex-1 overflow-hidden" style={{ height: H }}>
@@ -543,7 +543,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                   <rect x={gcx-38} y={gcy-38} width="76" height="36" rx="8" fill={C.panelStrong} stroke={C.border} strokeWidth="0.5"/>
                   <text x={gcx} y={gcy-16} textAnchor="middle" fill="white" style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:700}}>{cPct}%</text>
                   <text x={gcx} y={gcy-2} textAnchor="middle" fill={endC} style={{fontFamily:"var(--font-heading)",fontSize:11,fontWeight:500}}>{gBand.label}</text>
-                  <text x={gcx} y={gcy+14} textAnchor="middle" fill="#475569" style={{fontSize:11}}>{urgentTotal} / {totalTarget} target</text>
+                  <text x={gcx} y={gcy+14} textAnchor="middle" fill="var(--g-text-faint)" style={{fontSize:11}}>{urgentTotal} / {totalTarget} target</text>
                 </svg>;
               })()}
               </div>
@@ -747,8 +747,8 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 <div className="font-semibold" style={{fontSize:'clamp(11px, 1.4vh, 20px)',color:C.text}}>{c.title}</div>
                 <div style={{fontSize:'clamp(11px,0.8vh,11px)',color:cc.text,opacity:0.6,marginBottom:'clamp(11px,0.3vh,11px)'}}>14 days</div>
                 <div className="flex justify-center" style={{gap:'clamp(11px,0.3vw,11px)'}}>
-                  <div className="text-center"><div className="rounded-lg font-bold" style={{background:'rgba(16,185,129,0.15)',color:'#34d399',padding:'clamp(11px,0.2vh,11px) clamp(11px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.avail}</div><div className="text-slate-400" style={{fontSize:'clamp(11px,0.8vh,11px)',marginTop:'1px'}}>available</div></div>
-                  <div className="text-center"><div className="rounded-lg font-bold" style={{background:'rgba(245,158,11,0.15)',color:'#fbbf24',padding:'clamp(11px,0.2vh,11px) clamp(11px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.emb}</div><div className="text-slate-400" style={{fontSize:'clamp(11px,0.8vh,11px)',marginTop:'1px'}}>embargoed</div></div>
+                  <div className="text-center"><div className="rounded-lg font-bold" style={{background:'rgba(16,185,129,0.15)',color:'var(--c-green-2)',padding:'clamp(11px,0.2vh,11px) clamp(11px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.avail}</div><div className="text-slate-400" style={{fontSize:'clamp(11px,0.8vh,11px)',marginTop:'1px'}}>available</div></div>
+                  <div className="text-center"><div className="rounded-lg font-bold" style={{background:'rgba(245,158,11,0.15)',color:'var(--c-amber-2)',padding:'clamp(11px,0.2vh,11px) clamp(11px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.emb}</div><div className="text-slate-400" style={{fontSize:'clamp(11px,0.8vh,11px)',marginTop:'1px'}}>embargoed</div></div>
                   <div className="text-center"><div className="rounded-lg font-bold" style={{background:C.border2,color:C.textDim,padding:'clamp(11px,0.2vh,11px) clamp(11px,0.6vw,12px)',fontSize:'clamp(12px, 1.8vh, 24px)'}}>{c.booked}</div><div className="text-slate-400" style={{fontSize:'clamp(11px,0.8vh,11px)',marginTop:'1px'}}>booked</div></div>
                 </div>
               </div>

@@ -43,7 +43,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
         style={{
           padding: '8px 14px',
           background: '#dc2626',
-          color: 'white',
+          color: 'var(--g-text-max)',
           border: 'none',
           borderRadius: 'var(--r-sm)',
           fontSize: 12,
@@ -76,7 +76,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
             borderRadius: 'var(--r-lg)',
             padding: 24,
           }}>
-            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: '#fca5a5', marginBottom: 8 }}>
+            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: 'var(--c-red)', marginBottom: 8 }}>
               ⚠ Delete practice
             </h2>
             <p className="text-body-sm text-hi leading-normal mb-3">
@@ -105,7 +105,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
               }}
             />
             {error && (
-              <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 10, borderRadius: 'var(--r-sm)', fontSize: 12, marginBottom: 12 }}>
+              <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', padding: 10, borderRadius: 'var(--r-sm)', fontSize: 12, marginBottom: 12 }}>
                 {error}
               </div>
             )}
@@ -129,7 +129,7 @@ export default function DeletePracticeButton({ practiceId, practiceName }) {
                 style={{
                   padding: '8px 14px',
                   background: matches ? '#dc2626' : 'rgba(220,38,38,0.3)',
-                  color: matches ? 'white' : 'rgba(255,255,255,0.5)',
+                  color: matches ? 'var(--g-text-max)' : 'rgba(255,255,255,0.5)',
                   border: 'none',
                   borderRadius: 'var(--r-sm)',
                   fontSize: 13,

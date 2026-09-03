@@ -121,7 +121,7 @@ export default function PracticeMembers({ practice }) {
                         fontSize:11,
                         padding: '2px 6px',
                         background: 'rgba(34,211,238,0.15)',
-                        color: '#67e8f9',
+                        color: 'var(--c-cyan)',
                         border: '1px solid rgba(34,211,238,0.3)',
                         borderRadius: 'var(--r-pill)',
                       }}>Platform admin</span>
@@ -219,7 +219,7 @@ export default function PracticeMembers({ practice }) {
                         display: 'block', width: '100%', textAlign: 'left',
                         padding: '8px 10px', background: 'transparent', border: 'none',
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
-                        color: '#e2e8f0', fontSize: 13, cursor: 'pointer',
+                        color: 'var(--g-text-hi)', fontSize: 13, cursor: 'pointer',
                       }}
                       onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
                       onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
@@ -248,23 +248,23 @@ export default function PracticeMembers({ practice }) {
 
 // ─── Styles ──────────────────────────────────────────────────────────
 const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', padding: 20, marginBottom: 16 };
-const cardHeader = { fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 12 };
+const cardHeader = { fontSize: 13, fontWeight: 600, color: 'var(--g-text-soft)', marginBottom: 12 };
 const memberRow = {
   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
   padding: '10px 12px', background: 'rgba(255,255,255,0.03)',
   border: '1px solid rgba(255,255,255,0.06)', borderRadius: 'var(--r-md)',
   flexWrap: 'wrap', gap: 12,
 };
-const input = { width: '100%', padding: '8px 10px', fontSize: 13, color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', outline: 'none', fontFamily: 'inherit' };
-const selectStyle = { padding: '6px 10px', fontSize: 13, color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', outline: 'none', cursor: 'pointer' };
+const input = { width: '100%', padding: '8px 10px', fontSize: 13, color: 'var(--g-text-hi)', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', outline: 'none', fontFamily: 'inherit' };
+const selectStyle = { padding: '6px 10px', fontSize: 13, color: 'var(--g-text-hi)', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', outline: 'none', cursor: 'pointer' };
 const btnPrimary = { padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'white', background: '#0891b2', border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer' };
-const btnSubtle = { padding: '6px 12px', fontSize: 12, color: '#cbd5e1', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' };
-const btnDangerSubtle = { padding: '6px 10px', fontSize: 12, color: '#fca5a5', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)', cursor: 'pointer' };
+const btnSubtle = { padding: '6px 12px', fontSize: 12, color: 'var(--g-text-soft)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-sm)', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' };
+const btnDangerSubtle = { padding: '6px 10px', fontSize: 12, color: 'var(--c-red)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)', cursor: 'pointer' };
 
 function Banner({ kind, children }) {
   const palette = kind === 'error'
-    ? { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', fg: '#fca5a5' }
-    : { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', fg: '#6ee7b7' };
+    ? { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', fg: 'var(--c-red)' }
+    : { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', fg: 'var(--c-mint)' };
   return (
     <div style={{
       padding: '10px 14px',

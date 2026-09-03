@@ -7,8 +7,8 @@ import { canEditRotaNote } from '@/lib/permissions';
 
 const GROUP_META = {
   gp: { label: 'Clinicians', bg: 'rgba(99,102,241,0.15)', tx: 'var(--accent-text)', dot: '#6366f1' },
-  nursing: { label: 'Nursing', bg: 'rgba(16,185,129,0.15)', tx: '#6ee7b7', dot: '#10b981' },
-  allied: { label: 'Allied Health', bg: 'rgba(168,85,247,0.15)', tx: '#c4b5fd', dot: '#8b5cf6' },
+  nursing: { label: 'Nursing', bg: 'rgba(16,185,129,0.15)', tx: 'var(--c-mint)', dot: '#10b981' },
+  allied: { label: 'Allied Health', bg: 'rgba(168,85,247,0.15)', tx: 'var(--duty-fg)', dot: '#8b5cf6' },
 };
 
 function LocSquare({ loc, size = 24, duty, colour }) {
@@ -17,8 +17,8 @@ function LocSquare({ loc, size = 24, duty, colour }) {
     <div style={{width:size,height:size,borderRadius:'var(--r-sm)',background:colour||'var(--g-text-faint)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
       {/* Floor at 11px: size*0.45 gave 8.1px at the default 18px square,
           which is the site initial on every rota row. */}
-      <span style={{fontSize:Math.max(11, Math.round(size*0.45)),fontWeight:700,color:'#fff'}}>{loc.charAt(0)}</span>
-      {duty && <svg style={{position:'absolute',top:-2,right:-2,width:size*0.4,height:size*0.4}} viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
+      <span style={{fontSize:Math.max(11, Math.round(size*0.45)),fontWeight:700,color:'var(--g-text-max)'}}>{loc.charAt(0)}</span>
+      {duty && <svg style={{position:'absolute',top:-2,right:-2,width:size*0.4,height:size*0.4}} viewBox="0 0 24 24" fill="var(--c-amber-2)" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>}
     </div>
   );
 }
@@ -399,11 +399,11 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
             {isMeDuty && (
               <div className="flex items-center gap-1">
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
-                <span className="text-sm font-bold text-white uppercase tracking-wider">Duty</span>
+                <span className="text-sm font-bold text-ink-max uppercase tracking-wider">Duty</span>
               </div>
             )}
             {isMeSupport && !isMeDuty && (
-              <span className="text-sm font-bold text-white uppercase tracking-wider">Support</span>
+              <span className="text-sm font-bold text-ink-max uppercase tracking-wider">Support</span>
             )}
           </div>
 
@@ -413,7 +413,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
               {sess.myIn ? (
                 <div className="font-heading font-semibold leading-tight truncate" style={{
                   fontSize: 24,
-                  color: (isMeDuty || isMeSupport) ? 'white' : (myLocCol || 'var(--g-text-hi)')
+                  color: (isMeDuty || isMeSupport) ? 'var(--g-text-max)' : (myLocCol || 'var(--g-text-hi)')
                 }}>{sess.myLoc}</div>
               ) : (
                 <div className="text-base" style={{color: (isMeDuty || isMeSupport) ? 'var(--g-text-hi)' : 'var(--g-text-mid)'}}>Not in</div>
@@ -514,15 +514,15 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
             {calFeed === 'loading' && <span className="text-sm text-slate-400">Fetching link...</span>}
             {calFeed === 'denied' && <span className="text-sm text-slate-400">Only the linked user or an admin can fetch this link.</span>}
             {typeof calFeed === 'string' && calFeed.startsWith('error:') && (
-              <span className="text-sm" style={{ color: '#fca5a5' }}>Could not fetch the link ({calFeed.slice(6)}). Try again, and tell Darren the number if it persists.</span>
+              <span className="text-sm" style={{ color: 'var(--c-red)' }}>Could not fetch the link ({calFeed.slice(6)}). Try again, and tell Darren the number if it persists.</span>
             )}
             {calFeed && typeof calFeed === 'object' && (
               <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>
                 <div className="text-sm text-slate-300 mb-1.5">Personal calendar feed - every session with site and times, updates as EMIS data is uploaded.</div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <code className="text-[11px] px-2 py-1 rounded-md truncate max-w-full" style={{ background: 'rgba(0,0,0,0.3)', color: '#93c5fd' }}>{calFeed.url}</code>
+                  <code className="text-[11px] px-2 py-1 rounded-md truncate max-w-full" style={{ background: 'rgba(0,0,0,0.3)', color: 'var(--c-blue)' }}>{calFeed.url}</code>
                   <button onClick={copyCalFeed} className="px-2.5 py-1 rounded-md text-caption font-semibold"
-                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', color: '#e2e8f0' }}>
+                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', color: 'var(--g-text-hi)' }}>
                     {calCopied ? 'Copied' : 'Copy link'}
                   </button>
                   <a href={calFeed.webcal} className="px-2.5 py-1 rounded-md text-caption font-semibold"
@@ -553,9 +553,9 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
       {/* Key */}
       <div className="px-6 pb-4 flex gap-4 flex-wrap">
         {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1.5"><LocSquare loc={s.name} size={18} colour={siteCol(s.name)} /><span className="text-sm text-slate-400">{s.name}</span></div>)}
-        {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-sm text-slate-400">Duty</span></div>}
-        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #f87171',color:'#f87171'}}>AB</div><span className="text-sm text-slate-400">File & action</span></div>
-        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #60a5fa',color:'#60a5fa'}}>AB</div><span className="text-sm text-slate-400">View only</span></div>
+        {hasDuty && <div className="flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="var(--c-amber-2)" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-sm text-slate-400">Duty</span></div>}
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #f87171',color:'var(--c-red-2)'}}>AB</div><span className="text-sm text-slate-400">File & action</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:'1px solid #60a5fa',color:'var(--c-blue-2)'}}>AB</div><span className="text-sm text-slate-400">View only</span></div>
       </div>
 
       {/* Calendar grid */}
@@ -576,7 +576,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
 
             return (
               <div key={i} style={{background: isToday ? 'rgba(16,185,129,0.08)' : 'var(--g-surface-2)', minHeight: 96, opacity: !day.inMonth ? 0.3 : (isPast ? 0.4 : 1), padding: '6px 8px', borderTop: '1px solid var(--g-divider)'}}>
-                <div className="text-sm font-semibold mb-2" style={{color: isToday ? '#10b981' : isWeekend ? 'var(--g-text-mute)' : 'var(--g-text-mid)'}}>{day.dayNum}</div>
+                <div className="text-sm font-semibold mb-2" style={{color: isToday ? 'var(--state-ok)' : isWeekend ? 'var(--g-text-mute)' : 'var(--g-text-mid)'}}>{day.dayNum}</div>
                 {isWeekend ? null : dd?.isBH ? (
                   <div className="text-sm font-medium text-amber-500">Bank hol</div>
                 ) : dd?.absence && !dd?.amIn && !dd?.pmIn ? (
@@ -591,7 +591,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                       <div className="flex gap-1 flex-wrap">
                         {dd.covers.slice(0, 4).map((c, j) => {
                           const isFA = c.coverType === 'fileAction';
-                          return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>;
+                          return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? 'var(--c-red-2)' : 'var(--c-blue-2)'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>;
                         })}
                         {dd.covers.length > 4 && <span className="text-[11px] text-slate-400 self-center">+{dd.covers.length - 4}</span>}
                       </div>
@@ -621,7 +621,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
       {/* Key */}
       <div className="px-4 pb-3 flex gap-3 flex-wrap">
         {(data?.roomAllocation?.sites || []).map(s => <div key={s.name} className="flex items-center gap-1"><LocSquare loc={s.name} size={14} colour={siteCol(s.name)} /><span className="text-xs text-slate-400">{s.name}</span></div>)}
-        {hasDuty && <div className="flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-xs text-slate-400">Duty</span></div>}
+        {hasDuty && <div className="flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="var(--c-amber-2)" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg><span className="text-xs text-slate-400">Duty</span></div>}
       </div>
 
       {/* 4-week grid */}
@@ -689,7 +689,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                             <div className="text-base font-semibold leading-tight" style={{color: (isOff || noData || dd?.isBH) ? 'var(--g-text-mute)' : (isWorking ? 'var(--g-text-hi)' : 'var(--g-text-faint)')}}>{day.dayShort}</div>
                             <div className="text-sm text-slate-400 leading-tight">{day.dayNum} {day.monthStr}</div>
                           </div>
-                          {isToday && <span className="text-[11px] font-bold mt-0.5 self-start px-1.5 py-0.5 rounded-full" style={{background:'rgba(16,185,129,0.2)',color:'#34d399',letterSpacing:'0.5px'}}>TODAY</span>}
+                          {isToday && <span className="text-[11px] font-bold mt-0.5 self-start px-1.5 py-0.5 rounded-full" style={{background:'rgba(16,185,129,0.2)',color:'var(--c-green-2)',letterSpacing:'0.5px'}}>TODAY</span>}
                         </div>
                         {dd?.isBH ? (
                           <div className="col-span-2 py-3 px-4 flex items-center"><span className="text-sm font-medium text-amber-400">Bank holiday</span></div>
@@ -709,7 +709,7 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                       {covers.length > 0 && (
                         <div className="flex items-center gap-1.5 px-3 pb-2" style={{marginLeft:80}}>
                           <span className="text-xs text-slate-400">Covering:</span>
-                          {covers.map((c, j) => { const isFA = c.coverType === 'fileAction'; return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? '#f87171' : '#60a5fa'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>; })}
+                          {covers.map((c, j) => { const isFA = c.coverType === 'fileAction'; return <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold" style={{background:'var(--g-surface-2)',border:`1.5px solid ${isFA ? '#f87171' : '#60a5fa'}`,color: isFA ? 'var(--c-red-2)' : 'var(--c-blue-2)'}} title={`${c.name} — ${isFA ? 'File & action' : 'View only'}`}>{c.initials}</div>; })}
                         </div>
                       )}
 
@@ -743,16 +743,16 @@ export default function MyRota({ data, saveData, huddleData, standalone, setActi
                                   {sess.isMeDuty && (
                                     <div className="flex items-center gap-1">
                                       <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
-                                      <span className="text-xs font-bold text-white uppercase tracking-wider">Duty</span>
+                                      <span className="text-xs font-bold text-ink-max uppercase tracking-wider">Duty</span>
                                     </div>
                                   )}
-                                  {sess.isMeSupport && !sess.isMeDuty && <span className="text-xs font-bold text-white uppercase tracking-wider">Support</span>}
+                                  {sess.isMeSupport && !sess.isMeDuty && <span className="text-xs font-bold text-ink-max uppercase tracking-wider">Support</span>}
                                 </div>
                                 <div className="flex items-end justify-between gap-3">
                                   <div className="flex-1 min-w-0">
                                     <div className="font-heading font-semibold leading-tight truncate" style={{
                                       fontSize: 18,
-                                      color: (sess.isMeDuty || sess.isMeSupport) ? 'white' : (myLocCol || 'var(--g-text-hi)')
+                                      color: (sess.isMeDuty || sess.isMeSupport) ? 'var(--g-text-max)' : (myLocCol || 'var(--g-text-hi)')
                                     }}>{sess.myLoc}</div>
                                   </div>
                                   {(sess.dutyDoc || sess.support) && (

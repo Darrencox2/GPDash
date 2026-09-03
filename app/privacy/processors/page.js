@@ -69,19 +69,19 @@ const inlineLink = { color: 'var(--link)', textDecoration: 'underline', textUnde
 
 export default function ProcessorsPage() {
   return (
-    <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
+    <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: 'var(--g-text-hi)' }}>
       <article style={{ maxWidth: 760, margin: '0 auto', lineHeight: 1.65 }}>
         <header className="mb-8">
           <p className="text-body-sm text-slate-400 mb-2.5">
             <Link href="/privacy" style={inlineLink}>← Privacy Notice</Link>
           </p>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 32, fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>Sub-processors</h1>
-          <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 32, fontWeight: 600, marginBottom: 8, color: 'var(--g-text-pale)' }}>Sub-processors</h1>
+          <p style={{ fontSize: 13, color: 'var(--g-text-mid)', margin: 0 }}>
             Last updated: <time dateTime={LEGAL_META.processorsLastUpdated}>{LEGAL_META.processorsLastUpdated}</time>
           </p>
         </header>
 
-        <section style={{ marginBottom: 28, fontSize: 14, color: '#cbd5e1', lineHeight: 1.7 }}>
+        <section style={{ marginBottom: 28, fontSize: 14, color: 'var(--g-text-soft)', lineHeight: 1.7 }}>
           <p>These are the third-party services we use to provide GPDash. Each one is a <em>sub-processor</em> — they process personal data on our behalf under a data processing agreement, only on our instructions, and only for the purposes listed below.</p>
           <p>We&apos;ll update this page whenever the list changes and notify existing customers by email before adding a new sub-processor that materially changes data flows.</p>
         </section>
@@ -95,7 +95,7 @@ export default function ProcessorsPage() {
               border: '1px solid rgba(255,255,255,0.08)',
             }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-                <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, margin: 0, color: '#f1f5f9' }}>{p.name}</h2>
+                <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, margin: 0, color: 'var(--g-text-pale)' }}>{p.name}</h2>
                 <a href={p.privacyUrl} target="_blank" rel="noopener noreferrer" style={{ ...inlineLink, fontSize: 12 }}>
                   Privacy notice ↗
                 </a>
@@ -105,7 +105,7 @@ export default function ProcessorsPage() {
               <Row label="Region">{p.region}</Row>
               <Row label="Agreement">{p.dpa}</Row>
               {p.notes && (
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 12, paddingTop: 12, lineHeight: 1.6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: 12, color: 'var(--g-text-mid)', marginTop: 12, paddingTop: 12, lineHeight: 1.6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   {p.notes}
                 </div>
               )}
@@ -113,8 +113,8 @@ export default function ProcessorsPage() {
           ))}
         </div>
 
-        <section style={{ marginTop: 32, fontSize: 14, color: '#cbd5e1', lineHeight: 1.7 }}>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, marginBottom: 10, color: '#f1f5f9' }}>What about other tools?</h2>
+        <section style={{ marginTop: 32, fontSize: 14, color: 'var(--g-text-soft)', lineHeight: 1.7 }}>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, marginBottom: 10, color: 'var(--g-text-pale)' }}>What about other tools?</h2>
           <p>Some tools are used by our development team (e.g. GitHub for source code, Claude for engineering assistance) but are <em>not</em> connected to the production data flow. They never see GPDash user data and are therefore not sub-processors. If that ever changes, this page will be updated and you&apos;ll be notified.</p>
         </section>
 
@@ -130,7 +130,7 @@ function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '4px 0', alignItems: 'baseline' }}>
       <span style={{ fontSize: 11, color: 'var(--meta)', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600, flex: '0 0 110px' }}>{label}</span>
-      <span style={{ fontSize: 13, color: '#cbd5e1', flex: '1 1 300px' }}>{children}</span>
+      <span style={{ fontSize: 13, color: 'var(--g-text-soft)', flex: '1 1 300px' }}>{children}</span>
     </div>
   );
 }

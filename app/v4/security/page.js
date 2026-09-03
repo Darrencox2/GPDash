@@ -175,7 +175,7 @@ function SecurityPageInner() {
     <PageShell>
       <h1 style={h1}>Security</h1>
       {user?.email && (
-        <p style={{ color: '#94a3b8', marginTop: -8, marginBottom: 24, fontSize: 14 }}>
+        <p style={{ color: 'var(--g-text-mid)', marginTop: -8, marginBottom: 24, fontSize: 14 }}>
           Signed in as <strong className="text-slate-300">{user.email}</strong>
         </p>
       )}
@@ -183,7 +183,7 @@ function SecurityPageInner() {
       {required && factors.length === 0 && (
         <div style={requiredBanner}>
           <strong className="text-amber-400">Two-factor authentication is required</strong>
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: '#cbd5e1' }}>
+          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--g-text-soft)' }}>
             Platform admin accounts must have 2FA enrolled. Set up an authenticator
             below to continue.
           </p>
@@ -192,7 +192,7 @@ function SecurityPageInner() {
 
       <section style={section}>
         <h2 style={h2}>Two-factor authentication (TOTP)</h2>
-        <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.55 }}>
+        <p style={{ color: 'var(--g-text-soft)', fontSize: 14, lineHeight: 1.55 }}>
           Use an authenticator app such as <strong>Google Authenticator</strong>,
           <strong> 1Password</strong>, <strong>Authy</strong>, or your password manager's
           built-in TOTP support. After scanning the QR code, you'll need to enter a
@@ -207,7 +207,7 @@ function SecurityPageInner() {
 
         {factors.length > 0 && !enrolling && (
           <div className="mt-4">
-            <div style={{ fontSize: 11, letterSpacing: 1, color: '#94a3b8', fontWeight: 600, marginBottom: 8 }}>
+            <div style={{ fontSize: 11, letterSpacing: 1, color: 'var(--g-text-mid)', fontWeight: 600, marginBottom: 8 }}>
               ENROLLED AUTHENTICATORS
             </div>
             {factors.map(f => (
@@ -233,7 +233,7 @@ function SecurityPageInner() {
 
         {enrolling && (
           <div style={{ marginTop: 16, padding: 20, background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'white', margin: '0 0 12px' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--g-text-max)', margin: '0 0 12px' }}>
               Step 1 — Scan the QR code
             </h3>
             <div className="flex gap-5 items-start flex-wrap">
@@ -253,7 +253,7 @@ function SecurityPageInner() {
                   borderRadius: 'var(--r-sm)',
                   fontFamily: "var(--font-mono)",
                   fontSize: 13,
-                  color: '#67e8f9',
+                  color: 'var(--c-cyan)',
                   wordBreak: 'break-all',
                   userSelect: 'all',
                 }}>
@@ -262,7 +262,7 @@ function SecurityPageInner() {
               </div>
             </div>
 
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'white', margin: '20px 0 12px' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--g-text-max)', margin: '20px 0 12px' }}>
               Step 2 — Enter the 6-digit code your app shows
             </h3>
             <input
@@ -311,7 +311,7 @@ function PageShell({ children }) {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-      color: '#e2e8f0',
+      color: 'var(--g-text-hi)',
       padding: '32px 24px 64px',
       fontFamily: "'DM Sans', system-ui, sans-serif",
     }}>
@@ -325,12 +325,12 @@ function PageShell({ children }) {
 // ─── Styles ────────────────────────────────────────────────────────────
 const h1 = {
   fontFamily: "var(--font-heading)",
-  fontSize: 32, fontWeight: 500, color: 'white',
+  fontSize: 32, fontWeight: 500, color: 'var(--g-text-max)',
   marginBottom: 8,
 };
 const h2 = {
   fontFamily: "var(--font-heading)",
-  fontSize: 18, fontWeight: 500, color: 'white',
+  fontSize: 18, fontWeight: 500, color: 'var(--g-text-max)',
   marginBottom: 8,
 };
 const section = {
@@ -360,7 +360,7 @@ const otpInput = {
   background: 'rgba(0,0,0,0.3)',
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 'var(--r-md)',
-  color: 'white',
+  color: 'var(--g-text-max)',
   fontFamily: "var(--font-mono)",
   fontSize: 22,
   letterSpacing: 4,
@@ -369,7 +369,7 @@ const otpInput = {
 const btnPrimary = {
   padding: '10px 18px',
   background: '#0891b2',
-  color: 'white',
+  color: 'var(--g-text-max)',
   border: 'none',
   borderRadius: 'var(--r-md)',
   fontSize: 14,
@@ -381,7 +381,7 @@ const btnPrimary = {
 const btnSubtle = {
   padding: '10px 18px',
   background: 'rgba(255,255,255,0.05)',
-  color: '#cbd5e1',
+  color: 'var(--g-text-soft)',
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 'var(--r-md)',
   fontSize: 13,
@@ -392,7 +392,7 @@ const btnSubtle = {
 const btnDanger = {
   padding: '6px 12px',
   background: 'rgba(239,68,68,0.1)',
-  color: '#fca5a5',
+  color: 'var(--c-red)',
   border: '1px solid rgba(239,68,68,0.3)',
   borderRadius: 'var(--r-sm)',
   fontSize: 12,
@@ -405,6 +405,6 @@ const errorBox = {
   background: 'rgba(239,68,68,0.1)',
   border: '1px solid rgba(239,68,68,0.3)',
   borderRadius: 'var(--r-md)',
-  color: '#fca5a5',
+  color: 'var(--c-red)',
   fontSize: 13,
 };

@@ -67,7 +67,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed, type, labe
         style={{
           padding: '8px 14px',
           background: type === 'recovery' ? '#0891b2' : emailUnconfirmed ? '#d97706' : '#475569',
-          color: 'white',
+          color: 'var(--g-text-max)',
           border: 'none',
           borderRadius: 'var(--r-md)',
           fontSize: 13,
@@ -91,7 +91,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed, type, labe
           padding: '8px 12px',
           background: 'rgba(239,68,68,0.12)',
           border: '1px solid rgba(239,68,68,0.3)',
-          color: '#fca5a5',
+          color: 'var(--c-red)',
           fontSize: 12,
           borderRadius: 'var(--r-sm)',
         }}>{error}</div>
@@ -112,7 +112,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed, type, labe
                 padding: '7px 10px',
                 fontSize: 11,
                 fontFamily: 'ui-monospace, Menlo, monospace',
-                color: '#e2e8f0',
+                color: 'var(--g-text-hi)',
                 background: 'rgba(0,0,0,0.4)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 'var(--r-sm)',
@@ -124,7 +124,7 @@ export default function GenerateLinkButton({ email, emailUnconfirmed, type, labe
               style={{
                 padding: '7px 12px',
                 fontSize: 12,
-                color: copied ? '#34d399' : '#cbd5e1',
+                color: copied ? 'var(--c-green-2)' : 'var(--g-text-soft)',
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 'var(--r-sm)',

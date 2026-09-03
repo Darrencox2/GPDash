@@ -146,7 +146,7 @@ export default function BuddyOverrideModal({
           ))}
         </select>
         {eligibleCoverers.length === 0 && (
-          <div style={{ fontSize: 11, color: '#fbbf24', marginBottom: 14, marginTop: -8 }}>
+          <div style={{ fontSize: 11, color: 'var(--c-amber-2)', marginBottom: 14, marginTop: -8 }}>
             No other eligible coverers available today.
           </div>
         )}
@@ -193,7 +193,7 @@ export default function BuddyOverrideModal({
             style={{
               padding: '8px 14px',
               background: busy ? 'rgba(167, 139, 250, 0.3)' : '#a78bfa',
-              border: 'none', borderRadius: 'var(--r-sm)', color: 'white',
+              border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--g-text-max)',
               fontSize: 13, fontWeight: 500,
               cursor: busy ? 'wait' : (eligibleCoverers.length === 0 ? 'not-allowed' : 'pointer'),
               opacity: eligibleCoverers.length === 0 ? 0.5 : 1,

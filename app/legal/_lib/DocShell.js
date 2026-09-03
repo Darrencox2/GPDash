@@ -27,7 +27,7 @@ const inlineLink = { color: 'var(--link)', textDecoration: 'underline', textUnde
 
 export default function DocShell({ title, html, breadcrumb }) {
   return (
-    <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
+    <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: 'var(--g-text-hi)' }}>
       <article style={{ maxWidth: 720, margin: '0 auto', lineHeight: 1.65 }}>
         <nav className="mb-4 text-meta text-slate-400">
           <Link href="/legal" style={inlineLink}>Legal &amp; compliance</Link>
@@ -41,7 +41,7 @@ export default function DocShell({ title, html, breadcrumb }) {
             Questions about this document? <a href={`mailto:${LEGAL_META.privacyContactEmail}`} style={inlineLink}>{LEGAL_META.privacyContactEmail}</a>
           </p>
           <p style={{ margin: 0 }}>
-            <Link href="/legal" style={{ color: '#94a3b8', textDecoration: 'none' }}>← Back to Legal &amp; compliance</Link>
+            <Link href="/legal" style={{ color: 'var(--g-text-mid)', textDecoration: 'none' }}>← Back to Legal &amp; compliance</Link>
           </p>
         </footer>
       </article>
@@ -56,7 +56,7 @@ export default function DocShell({ title, html, breadcrumb }) {
       <style>{`
         .legal-doc {
           font-size: 14px;
-          color: #cbd5e1;
+          color: var(--g-text-soft);
         }
         .legal-doc h1 {
           font-family: 'Outfit', sans-serif;
@@ -64,7 +64,7 @@ export default function DocShell({ title, html, breadcrumb }) {
           font-weight: 600;
           margin-bottom: 8px;
           margin-top: 0;
-          color: #f1f5f9;
+          color: var(--g-text-pale);
         }
         .legal-doc h2 {
           font-family: 'Outfit', sans-serif;
@@ -72,7 +72,7 @@ export default function DocShell({ title, html, breadcrumb }) {
           font-weight: 600;
           margin-top: 36px;
           margin-bottom: 14px;
-          color: #f1f5f9;
+          color: var(--g-text-pale);
           padding-top: 16px;
           border-top: 1px solid rgba(255,255,255,0.06);
         }
@@ -87,24 +87,24 @@ export default function DocShell({ title, html, breadcrumb }) {
           font-weight: 600;
           margin-top: 24px;
           margin-bottom: 10px;
-          color: #e2e8f0;
+          color: var(--g-text-hi);
         }
         .legal-doc h4 {
           font-size: 14px;
           font-weight: 600;
           margin-top: 18px;
           margin-bottom: 8px;
-          color: #e2e8f0;
+          color: var(--g-text-hi);
         }
         .legal-doc p {
           font-size: 14px;
-          color: #cbd5e1;
+          color: var(--g-text-soft);
           margin-bottom: 12px;
           line-height: 1.75;
         }
         .legal-doc ul, .legal-doc ol {
           font-size: 14px;
-          color: #cbd5e1;
+          color: var(--g-text-soft);
           margin-bottom: 12px;
           padding-left: 24px;
           line-height: 1.8;
@@ -112,25 +112,25 @@ export default function DocShell({ title, html, breadcrumb }) {
         .legal-doc li {
           margin-bottom: 6px;
         }
-        .legal-doc strong { color: #f1f5f9; font-weight: 600; }
-        .legal-doc em { color: #94a3b8; font-style: italic; }
+        .legal-doc strong { color: var(--g-text-pale); font-weight: 600; }
+        .legal-doc em { color: var(--g-text-mid); font-style: italic; }
         .legal-doc a {
           color: var(--link);
           text-decoration: underline;
           text-underline-offset: 2px;
         }
-        .legal-doc a:hover { color: #a5f3fc; }
+        .legal-doc a:hover { color: var(--c-cyan-2); }
         .legal-doc code {
           background: rgba(255,255,255,0.06);
           padding: 1px 6px;
           border-radius: 4px;
           font-size: 12px;
-          color: #f1f5f9;
+          color: var(--g-text-pale);
           font-family: ui-monospace, 'SF Mono', Menlo, monospace;
         }
         .legal-doc pre {
           background: rgba(0,0,0,0.4);
-          color: #e2e8f0;
+          color: var(--g-text-hi);
           padding: 14px 16px;
           border-radius: 8px;
           overflow-x: auto;
@@ -147,22 +147,22 @@ export default function DocShell({ title, html, breadcrumb }) {
         .legal-doc blockquote {
           border-left: 4px solid #fbbf24;
           background: rgba(251,191,36,0.10);
-          color: #fde68a;
+          color: var(--c-sand);
           padding: 14px 18px;
           margin: 16px 0;
           border-radius: 0 8px 8px 0;
         }
         .legal-doc blockquote p {
-          color: #fde68a;
+          color: var(--c-sand);
           font-size: 13px;
           margin-bottom: 8px;
           line-height: 1.6;
         }
         .legal-doc blockquote p:last-child { margin-bottom: 0; }
-        .legal-doc blockquote strong { color: #fcd34d; }
+        .legal-doc blockquote strong { color: var(--c-amber); }
         .legal-doc blockquote code {
           background: rgba(251,191,36,0.15);
-          color: #fde68a;
+          color: var(--c-sand);
         }
         .legal-doc hr {
           margin: 32px 0;
@@ -187,13 +187,13 @@ export default function DocShell({ title, html, breadcrumb }) {
         .legal-doc th {
           background: rgba(255,255,255,0.05);
           font-weight: 600;
-          color: #f1f5f9;
+          color: var(--g-text-pale);
           font-size: 12px;
           text-transform: uppercase;
           letter-spacing: 0.4px;
         }
         .legal-doc td {
-          color: #cbd5e1;
+          color: var(--g-text-soft);
         }
         .legal-doc input[type="checkbox"] {
           margin-right: 8px;

@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic';
 export default async function RetentionAdminPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-ink-max">Configuration error.</div>;
   await requireAdmin(supabase, { returnTo: '/v4/admin/retention' });
 
   const summary = retentionSummary();
@@ -48,17 +48,17 @@ export default async function RetentionAdminPage() {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-      color: '#e2e8f0',
+      color: 'var(--g-text-hi)',
       padding: '32px 32px 64px',
     }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <AdminNav active="retention" />
 
         <div className="mb-6">
-          <h1 style={{ fontSize: 28, fontWeight: 600, marginBottom: 6, color: '#f1f5f9' }}>
+          <h1 style={{ fontSize: 28, fontWeight: 600, marginBottom: 6, color: 'var(--g-text-pale)' }}>
             Data retention
           </h1>
-          <p style={{ fontSize: 14, color: '#94a3b8', maxWidth: 720, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: 'var(--g-text-mid)', maxWidth: 720, lineHeight: 1.6 }}>
             How long GPDash keeps each category of personal data. Retention
             windows here are the binding policy — what the privacy notice
             says and what the scheduled cleanup job enforces. Update by
@@ -75,7 +75,7 @@ export default async function RetentionAdminPage() {
           marginBottom: 18,
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+            <div style={{ fontSize: 12, color: 'var(--g-text-mid)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               Schedule
             </div>
             <div className="text-body text-slate-300">
@@ -83,7 +83,7 @@ export default async function RetentionAdminPage() {
             </div>
           </div>
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+            <div style={{ fontSize: 12, color: 'var(--g-text-mid)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               Last run
             </div>
             <div className="text-body text-slate-300">
@@ -108,12 +108,12 @@ export default async function RetentionAdminPage() {
           padding: 18,
           marginBottom: 18,
         }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--g-text-pale)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>
             Retention windows
           </h2>
           <table className="w-full border-collapse text-body">
             <thead>
-              <tr style={{ textAlign: 'left', color: '#94a3b8', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+              <tr style={{ textAlign: 'left', color: 'var(--g-text-mid)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                 <th style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Table</th>
                 <th style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Description</th>
                 <th style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'right' }}>Keep for</th>
@@ -122,9 +122,9 @@ export default async function RetentionAdminPage() {
             <tbody>
               {summary.map(row => (
                 <tr key={row.name}>
-                  <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#67e8f9' }}>{row.name}</td>
+                  <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: 'var(--c-cyan)' }}>{row.name}</td>
                   <td className="px-2.5 py-2 text-slate-300">{row.description}</td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', color: '#f1f5f9', fontWeight: 500 }}>{row.retentionLabel}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--g-text-pale)', fontWeight: 500 }}>{row.retentionLabel}</td>
                 </tr>
               ))}
             </tbody>

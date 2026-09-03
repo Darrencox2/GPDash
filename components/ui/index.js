@@ -36,7 +36,7 @@ export function ToastProvider({ children }) {
     <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 2147483647, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none', maxWidth: 'min(420px, calc(100vw - 32px))' }}>
       {toasts.map(t => (
         <div key={t.id} className="pointer-events-auto px-4 py-2.5 shadow-lg text-sm font-medium animate-slide-up" style={{
-          borderRadius: 'var(--r-md)', wordBreak: 'break-word', color: '#fff',
+          borderRadius: 'var(--r-md)', wordBreak: 'break-word', color: 'var(--g-text-max)',
           background: t.type === 'error' ? '#dc2626' : t.type === 'warning' ? '#d97706' : '#0f172a',
           border: '1px solid rgba(255,255,255,0.08)',
         }}>
@@ -223,7 +223,7 @@ export function PillToggle({ options, selected, onChange, size = 'sm' }) {
 
 // ─── Stat Card ───────────────────────────────────────────────────
 export function StatCard({ label, value, accent, sub }) {
-  const accentColor = { emerald: '#10b981', amber: '#f59e0b', red: '#ef4444', blue: '#3b82f6', purple: '#8b5cf6', cyan: '#06b6d4' }[accent];
+  const accentColor = { emerald: 'var(--state-ok)', amber: 'var(--state-tight)', red: 'var(--state-short)', blue: 'var(--state-over)', purple: '#8b5cf6', cyan: '#06b6d4' }[accent];
   return (
     <div style={{ background: 'var(--g-tile-2)', border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)', padding: '10px 14px' }}>
       <div style={{ fontSize: 11, color: 'var(--g-label)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
@@ -285,9 +285,9 @@ export function Field({ label, hint, children, className = '' }) {
 export function SaveStatus({ state, savedLabel = '✓ Saved' }) {
   if (!state || state === 'idle') return null;
   const map = {
-    saving: { text: 'Saving…', color: '#fbbf24' },
-    saved:  { text: savedLabel, color: '#34d399' },
-    error:  { text: 'Save failed', color: '#f87171' },
+    saving: { text: 'Saving…', color: 'var(--c-amber-2)' },
+    saved:  { text: savedLabel, color: 'var(--c-green-2)' },
+    error:  { text: 'Save failed', color: 'var(--c-red-2)' },
   };
   const m = map[state] || map.saving;
   return <span style={{ fontSize: 13, color: m.color, minWidth: 58, display: 'inline-block' }}>{m.text}</span>;

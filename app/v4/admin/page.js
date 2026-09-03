@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminPracticesPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-ink-max">Configuration error.</div>;
 
   // Auth + platform-admin + MFA enforcement in one call. Redirects on
   // any failure; if we get past this line the user is fully cleared.
@@ -30,14 +30,14 @@ export default async function AdminPracticesPage() {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-      color: '#e2e8f0',
+      color: 'var(--g-text-hi)',
       padding: '32px 32px 64px',
     }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <AdminNav active="practices" />
 
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 14, borderRadius: 'var(--r-md)', marginBottom: 18, fontSize: 14 }}>
+          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', padding: 14, borderRadius: 'var(--r-md)', marginBottom: 18, fontSize: 14 }}>
             {error.message}
           </div>
         )}
@@ -64,17 +64,17 @@ export default async function AdminPracticesPage() {
             </thead>
             <tbody>
               {(practices || []).length === 0 && (
-                <tr><td colSpan={8} style={{ ...td, textAlign: 'center', padding: 36, color: '#94a3b8' }}>No practices yet.</td></tr>
+                <tr><td colSpan={8} style={{ ...td, textAlign: 'center', padding: 36, color: 'var(--g-text-mid)' }}>No practices yet.</td></tr>
               )}
               {(practices || []).map(p => (
                 <tr key={p.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ ...td, color: '#e2e8f0', fontWeight: 500 }}>{p.name}</td>
-                  <td style={{ ...td, color: '#cbd5e1', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>{p.slug}</td>
-                  <td style={{ ...td, color: '#cbd5e1', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>{p.ods_code || '—'}</td>
-                  <td style={{ ...td, color: '#cbd5e1' }}>{p.region || '—'}</td>
-                  <td style={{ ...td, textAlign: 'right', color: '#e2e8f0' }}>{p.member_count}</td>
-                  <td style={{ ...td, textAlign: 'right', color: '#e2e8f0' }}>{p.clinician_count}</td>
-                  <td style={{ ...td, color: '#94a3b8', fontSize: 13 }}>
+                  <td style={{ ...td, color: 'var(--g-text-hi)', fontWeight: 500 }}>{p.name}</td>
+                  <td style={{ ...td, color: 'var(--g-text-soft)', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>{p.slug}</td>
+                  <td style={{ ...td, color: 'var(--g-text-soft)', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>{p.ods_code || '—'}</td>
+                  <td style={{ ...td, color: 'var(--g-text-soft)' }}>{p.region || '—'}</td>
+                  <td style={{ ...td, textAlign: 'right', color: 'var(--g-text-hi)' }}>{p.member_count}</td>
+                  <td style={{ ...td, textAlign: 'right', color: 'var(--g-text-hi)' }}>{p.clinician_count}</td>
+                  <td style={{ ...td, color: 'var(--g-text-mid)', fontSize: 13 }}>
                     {new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td style={{ ...td, textAlign: 'right' }}>
@@ -123,8 +123,8 @@ function PublicLegalLinksCard() {
       padding: 22,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>Public legal pages</h2>
-        <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>Not linked from the public navigation</span>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--g-text-hi)', margin: 0 }}>Public legal pages</h2>
+        <span style={{ fontSize: 11, color: 'var(--g-text-mid)', fontStyle: 'italic' }}>Not linked from the public navigation</span>
       </div>
       <p className="text-meta text-slate-400 mt-1 mb-3.5 leading-body">
         For sharing with a practice&apos;s IG officer during due diligence. These pages render without auth — paste the URL into an email and the recipient can read straight away.
@@ -163,7 +163,7 @@ function PublicLegalLinksCard() {
   );
 }
 
-const th = { padding: '12px 16px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, color: '#94a3b8' };
+const th = { padding: '12px 16px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--g-text-mid)' };
 const td = { padding: '12px 16px', fontSize: 14 };
 
 // Buttons used on row-action cells. Primary = the more frequent action
@@ -176,7 +176,7 @@ const btnPrimary = {
   padding: '7px 14px',
   fontSize: 13,
   fontWeight: 600,
-  color: 'white',
+  color: 'var(--g-text-max)',
   background: '#0891b2',
   border: '1px solid #0891b2',
   borderRadius: 'var(--r-sm)',
@@ -188,7 +188,7 @@ const btnSubtle = {
   padding: '7px 14px',
   fontSize: 13,
   fontWeight: 500,
-  color: '#cbd5e1',
+  color: 'var(--g-text-soft)',
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 'var(--r-sm)',
@@ -206,8 +206,8 @@ function Stat({ label, value }) {
       borderRadius: 'var(--r-md)',
       padding: '16px 18px',
     }}>
-      <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 600, color: '#e2e8f0', fontFamily: "var(--font-heading)", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 12, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 600, color: 'var(--g-text-hi)', fontFamily: "var(--font-heading)", lineHeight: 1 }}>{value}</div>
     </div>
   );
 }

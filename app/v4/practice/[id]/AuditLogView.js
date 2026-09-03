@@ -13,32 +13,32 @@ const supabase = createClient();
 // Visual metadata per event type. Default colour for anything unmapped.
 const TYPE_META = {
   // Practice management
-  practice_created: { label: 'Practice', colour: '#22d3ee' },
-  practice_updated: { label: 'Practice', colour: '#22d3ee' },
-  user_invited: { label: 'Users', colour: '#a78bfa' },
-  invite_accepted: { label: 'Users', colour: '#a78bfa' },
-  invite_revoked: { label: 'Users', colour: '#a78bfa' },
-  user_role_changed: { label: 'Users', colour: '#a78bfa' },
-  user_removed: { label: 'Users', colour: '#a78bfa' },
+  practice_created: { label: 'Practice', colour: 'var(--c-cyan-3)' },
+  practice_updated: { label: 'Practice', colour: 'var(--c-cyan-3)' },
+  user_invited: { label: 'Users', colour: 'var(--c-violet)' },
+  invite_accepted: { label: 'Users', colour: 'var(--c-violet)' },
+  invite_revoked: { label: 'Users', colour: 'var(--c-violet)' },
+  user_role_changed: { label: 'Users', colour: 'var(--c-violet)' },
+  user_removed: { label: 'Users', colour: 'var(--c-violet)' },
   // Clinicians
-  clinician_added: { label: 'Clinician', colour: '#fbbf24' },
-  clinician_updated: { label: 'Clinician', colour: '#fbbf24' },
-  clinician_status_changed: { label: 'Clinician', colour: '#fbbf24' },
-  clinician_deleted: { label: 'Clinician', colour: '#fbbf24' },
+  clinician_added: { label: 'Clinician', colour: 'var(--c-amber-2)' },
+  clinician_updated: { label: 'Clinician', colour: 'var(--c-amber-2)' },
+  clinician_status_changed: { label: 'Clinician', colour: 'var(--c-amber-2)' },
+  clinician_deleted: { label: 'Clinician', colour: 'var(--c-amber-2)' },
   // Patterns / absences
-  working_pattern_changed: { label: 'Pattern', colour: '#60a5fa' },
-  absence_added: { label: 'Absence', colour: '#60a5fa' },
-  absence_updated: { label: 'Absence', colour: '#60a5fa' },
-  absence_deleted: { label: 'Absence', colour: '#60a5fa' },
-  daily_override_set: { label: 'Override', colour: '#60a5fa' },
+  working_pattern_changed: { label: 'Pattern', colour: 'var(--c-blue-2)' },
+  absence_added: { label: 'Absence', colour: 'var(--c-blue-2)' },
+  absence_updated: { label: 'Absence', colour: 'var(--c-blue-2)' },
+  absence_deleted: { label: 'Absence', colour: 'var(--c-blue-2)' },
+  daily_override_set: { label: 'Override', colour: 'var(--c-blue-2)' },
   // CSV
-  csv_uploaded: { label: 'CSV', colour: '#34d399' },
+  csv_uploaded: { label: 'CSV', colour: 'var(--c-green-2)' },
   // Buddy / rota
-  buddy_allocations_generated: { label: 'Buddy', colour: '#a78bfa' },
-  buddy_allocations_edited: { label: 'Buddy', colour: '#a78bfa' },
-  rota_note_added: { label: 'Rota', colour: '#a78bfa' },
-  rota_note_updated: { label: 'Rota', colour: '#a78bfa' },
-  rota_note_deleted: { label: 'Rota', colour: '#a78bfa' },
+  buddy_allocations_generated: { label: 'Buddy', colour: 'var(--c-violet)' },
+  buddy_allocations_edited: { label: 'Buddy', colour: 'var(--c-violet)' },
+  rota_note_added: { label: 'Rota', colour: 'var(--c-violet)' },
+  rota_note_updated: { label: 'Rota', colour: 'var(--c-violet)' },
+  rota_note_deleted: { label: 'Rota', colour: 'var(--c-violet)' },
   // Settings
   settings_changed: { label: 'Settings', colour: 'var(--g-text-mid)' },
   // Catch-all
@@ -129,7 +129,7 @@ export default function AuditLogView({ practiceId }) {
               fontSize: 13,
               background: filter === g.id ? 'rgba(34,211,238,0.15)' : 'var(--g-tile)',
               border: `1px solid ${filter === g.id ? 'rgba(34,211,238,0.4)' : 'var(--g-border-2)'}`,
-              color: filter === g.id ? '#22d3ee' : 'var(--g-text-mid)',
+              color: filter === g.id ? 'var(--c-cyan-3)' : 'var(--g-text-mid)',
               borderRadius: 'var(--r-pill)',
               cursor: 'pointer',
             }}>
@@ -139,7 +139,7 @@ export default function AuditLogView({ practiceId }) {
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
           {error}
         </div>
       )}
@@ -206,7 +206,7 @@ function EventRow({ event, userLabel }) {
             style={{
               background: 'none',
               border: 'none',
-              color: '#22d3ee',
+              color: 'var(--c-cyan-3)',
               fontSize: 12,
               cursor: 'pointer',
               padding: 0,

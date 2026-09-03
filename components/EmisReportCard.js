@@ -38,7 +38,7 @@ export default function EmisReportCard({ variant = 'card' }) {
           style={{
             padding: '7px 14px',
             background: '#0891b2',
-            color: 'white',
+            color: 'var(--g-text-max)',
             textDecoration: 'none',
             borderRadius: 'var(--r-sm)',
             fontSize: 12,
@@ -101,7 +101,7 @@ export default function EmisReportCard({ variant = 'card' }) {
               <li>Open GPDash, go to the <strong>Today</strong> page, and drop the CSV onto the upload area.</li>
             </ol>
 
-            <div style={{ marginTop: 14, padding: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--r-sm)', color: '#fcd34d', fontSize: 11 }}>
+            <div style={{ marginTop: 14, padding: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--r-sm)', color: 'var(--c-amber)', fontSize: 11 }}>
               The report covers the previous 2 months by default — the date filter is built into the XML. You don't need to set anything else.
             </div>
 

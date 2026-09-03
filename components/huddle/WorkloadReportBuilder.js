@@ -343,7 +343,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     const star = (ref) => (
       <button onClick={(e) => { e.stopPropagation(); toggleFav(ref); }}
         className="absolute top-2 right-2 transition-colors"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: favourites.has(ref) ? '#fbbf24' : 'var(--g-text-faint)', fontSize: 16, lineHeight: 1 }}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: favourites.has(ref) ? 'var(--c-amber-2)' : 'var(--g-text-faint)', fontSize: 16, lineHeight: 1 }}
         title={favourites.has(ref) ? 'Remove from favourites' : 'Add to favourites'} aria-label="Toggle favourite">
         {favourites.has(ref) ? '★' : '☆'}
       </button>
@@ -499,7 +499,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
           <div className="px-5 pt-5 pb-4" style={{ background: 'linear-gradient(180deg, rgba(99,102,241,0.10), rgba(99,102,241,0))' }}>
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-extrabold text-white tracking-tight leading-tight">{reportName}</h1>
+                <h1 className="text-2xl font-extrabold text-ink-max tracking-tight leading-tight">{reportName}</h1>
                 <p className="text-sm text-slate-400 mt-1">
                   {describeMeasure(config)} · by <span className="text-indigo-300">{groupByOpts.find(o => o.id === groupBy)?.label.toLowerCase()}</span>
                   {result.hasSplit && <> · split by <span className="text-indigo-300">{splitByOpts.find(o => o.id === splitBy)?.label.toLowerCase()}</span></>}
@@ -517,7 +517,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               {canEdit && loadedSavedId && (
                 <button onClick={saveChanges} disabled={savingReport || !dirty} className="text-xs px-2.5 py-1 rounded-md font-medium"
-                  style={{ background: dirty ? '#10b981' : 'rgba(16,185,129,0.12)', color: dirty ? '#06281e' : '#6ee7b7', border: '1px solid rgba(16,185,129,0.3)', cursor: dirty ? 'pointer' : 'default', opacity: savingReport ? 0.6 : 1 }}>
+                  style={{ background: dirty ? '#10b981' : 'rgba(16,185,129,0.12)', color: dirty ? '#06281e' : 'var(--c-mint)', border: '1px solid rgba(16,185,129,0.3)', cursor: dirty ? 'pointer' : 'default', opacity: savingReport ? 0.6 : 1 }}>
                   {savingReport ? '…' : dirty ? 'Save changes' : 'Saved'}
                 </button>
               )}
@@ -527,13 +527,13 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
                   {savingReport ? '…' : 'Save for my practice'}
                 </button>
               )}
-              {canEdit && <button onClick={() => setShowSaveBox(s => !s)} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }}>{(loadedSavedId || origin === 'preset') ? 'Save as new' : 'Save report'}</button>}
+              {canEdit && <button onClick={() => setShowSaveBox(s => !s)} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--c-mint)' }}>{(loadedSavedId || origin === 'preset') ? 'Save as new' : 'Save report'}</button>}
               {dirty && <button onClick={resetReport} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-hi)' }}>↺ Reset</button>}
               <button onClick={copyTable} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-mid)' }}>Copy</button>
               <button onClick={downloadCsv} className="text-xs px-2.5 py-1 rounded-md" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-line)', color: 'var(--g-text-mid)' }}>CSV</button>
               {canEdit && (loadedSavedId ? (
                 <button onClick={() => setScheduleOpen(true)} className="text-xs px-2.5 py-1 rounded-md font-medium"
-                  style={{ background: 'rgba(8,145,178,0.15)', border: '1px solid rgba(8,145,178,0.45)', color: '#67e8f9', cursor: 'pointer' }}
+                  style={{ background: 'rgba(8,145,178,0.15)', border: '1px solid rgba(8,145,178,0.45)', color: 'var(--c-cyan)', cursor: 'pointer' }}
                   title="Email this report to people on a regular basis">
                   &#9993; Email on a schedule
                 </button>
@@ -783,8 +783,8 @@ function BarsView({ result, fmt, maxVal, isRatio, refValue, refLabel, onPick, co
                 <div className="absolute left-0 top-0 bottom-0 rounded-lg transition-all group-hover:brightness-110" style={{ width: `${Math.max((g.value / maxVal) * 100, 1)}%`, background: colourFor(g.value, gi), opacity: 0.9 }} />
                 {refValue != null && <div className="absolute top-0 bottom-0" style={{ left: `${(refValue / maxVal) * 100}%`, width: 2, background: 'var(--g-marker)' }} title={refLabel} />}
                 <div className="absolute inset-0 flex items-center px-3">
-                  <span className="text-sm font-bold text-white drop-shadow">{fmt(g.value)}</span>
-                  {isRatio && <span className="text-[11px] text-white/75 ml-2">{g.numerator}/{g.denominator}</span>}
+                  <span className="text-sm font-bold text-ink-max drop-shadow">{fmt(g.value)}</span>
+                  {isRatio && <span className="text-[11px] text-ink-max/75 ml-2">{g.numerator}/{g.denominator}</span>}
                 </div>
               </div>
             )}
@@ -815,7 +815,7 @@ function StackedView({ result, fmt, onPick }) {
             <div className="flex-1 relative h-8 rounded-lg overflow-hidden flex" style={{ background: 'var(--g-tile)' }}>
               {result.series.map((s, si) => { const v = g.cells[s.key]?.value || 0; const w = (v / maxTotal) * 100; if (w <= 0) return null;
                 return <div key={s.key} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => onPick && onPick(g.key, g.label, s.key, s.label)} title={`${s.label}: ${fmt(v)} — click to drill down`} className="cursor-pointer hover:brightness-110 transition-all" style={{ width: `${w}%`, background: PALETTE[si % PALETTE.length], opacity: 0.9 }} />; })}
-              <span className="absolute right-2.5 top-0 bottom-0 flex items-center text-xs font-bold text-white drop-shadow pointer-events-none">{fmt(total)}</span>
+              <span className="absolute right-2.5 top-0 bottom-0 flex items-center text-xs font-bold text-ink-max drop-shadow pointer-events-none">{fmt(total)}</span>
             </div>
           </div>
         ); })}
@@ -906,7 +906,7 @@ function DrillModal({ drill, isSession, onClose }) {
     <div onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
       <div role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={e => e.stopPropagation()} className="w-full max-w-lg rounded-xl overflow-hidden flex flex-col" style={{ background: 'linear-gradient(180deg,var(--g-ink-2),var(--g-ink))', border: '1px solid var(--g-line)', maxHeight: '80vh' }}>
         <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
-          <div><div className="text-base font-semibold text-white">{groupLabel}{seriesLabel ? ` · ${seriesLabel}` : ''}</div><div className="text-xs text-slate-400">{totalCount} {isSession ? 'session' : 'slot'}{totalCount === 1 ? '' : 's'} across {dates.length} day{dates.length === 1 ? '' : 's'}</div></div>
+          <div><div className="text-base font-semibold text-ink-max">{groupLabel}{seriesLabel ? ` · ${seriesLabel}` : ''}</div><div className="text-xs text-slate-400">{totalCount} {isSession ? 'session' : 'slot'}{totalCount === 1 ? '' : 's'} across {dates.length} day{dates.length === 1 ? '' : 's'}</div></div>
           <button onClick={onClose} className="ml-auto text-slate-400 hover:text-white" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }} aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
         </div>
         <div className="overflow-y-auto p-4 space-y-2">

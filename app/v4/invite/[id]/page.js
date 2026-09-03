@@ -79,8 +79,8 @@ export default async function InviteAcceptPage({ params }) {
   return (
     <Shell title={`Join ${summary.practice_name}`}>
       <p className="text-body text-slate-300 leading-body mb-4">
-        <strong className="text-white">{summary.inviter_name}</strong> has invited you to join{' '}
-        <strong className="text-white">{summary.practice_name}</strong>{' '}
+        <strong className="text-ink-max">{summary.inviter_name}</strong> has invited you to join{' '}
+        <strong className="text-ink-max">{summary.practice_name}</strong>{' '}
         as <strong className="text-cyan-300">{summary.role}</strong>.
       </p>
 
@@ -121,7 +121,7 @@ function SignInPrompt({ invitedEmail, inviteId }) {
         </Link>
         <Link
           href={`/v4/signup?email=${encodeURIComponent(invitedEmail)}&next=${next}`}
-          style={{ ...btn, background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ ...btn, background: 'rgba(255,255,255,0.06)', color: 'var(--g-text-soft)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
           Create an account
         </Link>
@@ -138,7 +138,7 @@ function WrongAccountMessage({ callerEmail, invitedEmail }) {
       border: '1px solid rgba(245,158,11,0.25)',
       borderRadius: 'var(--r-md)',
       fontSize: 13,
-      color: '#fde68a',
+      color: 'var(--c-sand)',
       lineHeight: 1.5,
     }}>
       You're signed in as <strong>{callerEmail}</strong>, but this invite was sent to{' '}
@@ -156,7 +156,7 @@ function Shell({ title, children }) {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-      color: '#e2e8f0',
+      color: 'var(--g-text-hi)',
       padding: 32,
       display: 'flex',
       flexDirection: 'column',
@@ -173,7 +173,7 @@ function Shell({ title, children }) {
         borderRadius: 'var(--r-lg)',
         padding: 28,
       }}>
-        {title && <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 16 }}>{title}</h1>}
+        {title && <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'var(--g-text-max)', marginBottom: 16 }}>{title}</h1>}
         {children}
       </div>
     </div>

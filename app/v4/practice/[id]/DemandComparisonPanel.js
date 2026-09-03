@@ -130,7 +130,7 @@ export default function DemandComparisonPanel({
 
   return (
     <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--g-border)' }}>
-      <div style={{ color: '#a78bfa', fontWeight: 500, marginBottom: 8 }}>
+      <div style={{ color: 'var(--c-violet)', fontWeight: 500, marginBottom: 8 }}>
         {title}
       </div>
 
@@ -164,7 +164,7 @@ export default function DemandComparisonPanel({
               textAlign: 'center',
             }}>
               <div style={{ fontSize:11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.label}</div>
-              <div style={{ fontSize: 13, color: d.meanError == null ? 'var(--g-text-faint)' : (Math.abs(d.meanError) < 1 ? 'var(--g-text-mid)' : (d.meanError > 0 ? '#fcd34d' : '#67e8f9')), fontWeight: 500, marginTop: 2 }}>
+              <div style={{ fontSize: 13, color: d.meanError == null ? 'var(--g-text-faint)' : (Math.abs(d.meanError) < 1 ? 'var(--g-text-mid)' : (d.meanError > 0 ? 'var(--c-amber)' : 'var(--c-cyan)')), fontWeight: 500, marginTop: 2 }}>
                 {d.meanError == null ? '—' : (d.meanError > 0 ? '+' : '') + d.meanError.toFixed(0)}
               </div>
               <div style={{ fontSize:11, color: 'var(--meta)', marginTop: 1 }}>{d.count} day{d.count === 1 ? '' : 's'}</div>
@@ -189,7 +189,7 @@ export default function DemandComparisonPanel({
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                   <span className="text-hi font-medium">{formatDate(p.date)}</span>
-                  <span style={{ color: p.error > 0 ? '#67e8f9' : '#fcd34d' }}>
+                  <span style={{ color: p.error > 0 ? 'var(--c-cyan)' : 'var(--c-amber)' }}>
                     {p.error > 0 ? '+' : ''}{p.error} ({p.error > 0 ? 'higher' : 'lower'} than predicted)
                   </span>
                 </div>
@@ -248,7 +248,7 @@ function ComparisonChart({ points }) {
         ))}
 
         {/* Predicted (purple) */}
-        <path d={predPath} fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeOpacity="0.8" strokeLinejoin="round" />
+        <path d={predPath} fill="none" stroke="var(--c-violet)" strokeWidth="1.5" strokeOpacity="0.8" strokeLinejoin="round" />
         {/* Actual (cyan) */}
         <path d={actualPath} fill="none" stroke="#22d3ee" strokeWidth="1.5" strokeLinejoin="round" />
         {/* Actual data points */}

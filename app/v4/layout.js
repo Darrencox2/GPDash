@@ -13,7 +13,7 @@ export default function V4Layout({ children }) {
   return (
     <div style={{
       minHeight: '100vh',
-      color: '#e2e8f0',
+      color: 'var(--g-text-hi)',
       fontFamily: "'DM Sans', system-ui, sans-serif",
       background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
     }}>

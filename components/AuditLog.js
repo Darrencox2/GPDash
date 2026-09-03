@@ -3,13 +3,13 @@ import { useState, useMemo } from 'react';
 import { confirmDialog } from '@/components/ui';
 
 const TYPE_META = {
-  csv: { label: 'CSV', colour: '#34d399', bg: 'rgba(16,185,129,0.15)', icon: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12' },
-  allocation: { label: 'Allocation', colour: '#60a5fa', bg: 'rgba(59,130,246,0.15)', icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' },
-  settings: { label: 'Settings', colour: '#a78bfa', bg: 'rgba(167,139,250,0.15)', icon: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z' },
-  staff: { label: 'Staff', colour: '#fbbf24', bg: 'rgba(245,158,11,0.15)', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 22a8 8 0 0116 0' },
-  rooms: { label: 'Rooms', colour: '#f87171', bg: 'rgba(239,68,68,0.15)', icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z' },
-  auth: { label: 'Auth', colour: '#94a3b8', bg: 'rgba(148,163,184,0.15)', icon: 'M12 15v2m0 0v3m0-3h3m-3 0H9m3-12a9 9 0 11-9 9 9 9 0 019-9z' },
-  system: { label: 'System', colour: '#94a3b8', bg: 'rgba(148,163,184,0.15)', icon: 'M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z' },
+  csv: { label: 'CSV', colour: 'var(--c-green-2)', bg: 'rgba(16,185,129,0.15)', icon: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12' },
+  allocation: { label: 'Allocation', colour: 'var(--c-blue-2)', bg: 'rgba(59,130,246,0.15)', icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' },
+  settings: { label: 'Settings', colour: 'var(--c-violet)', bg: 'rgba(167,139,250,0.15)', icon: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z' },
+  staff: { label: 'Staff', colour: 'var(--c-amber-2)', bg: 'rgba(245,158,11,0.15)', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 22a8 8 0 0116 0' },
+  rooms: { label: 'Rooms', colour: 'var(--c-red-2)', bg: 'rgba(239,68,68,0.15)', icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z' },
+  auth: { label: 'Auth', colour: 'var(--g-text-mid)', bg: 'rgba(148,163,184,0.15)', icon: 'M12 15v2m0 0v3m0-3h3m-3 0H9m3-12a9 9 0 11-9 9 9 9 0 019-9z' },
+  system: { label: 'System', colour: 'var(--g-text-mid)', bg: 'rgba(148,163,184,0.15)', icon: 'M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z' },
 };
 
 function formatRelativeTime(isoString) {
@@ -69,7 +69,7 @@ export default function AuditLog({ data, saveData }) {
       <div className="px-4 py-2 flex gap-1.5 flex-wrap" style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
         <button onClick={() => setFilterType('all')} className="text-[11px] px-2.5 py-1 rounded-full transition-colors" style={{
           background: filterType === 'all' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
-          color: filterType === 'all' ? '#e2e8f0' : 'var(--meta)',
+          color: filterType === 'all' ? 'var(--g-text-hi)' : 'var(--meta)',
         }}>All ({log.length})</button>
         {Object.entries(types).map(([type, count]) => {
           const meta = TYPE_META[type] || TYPE_META.system;

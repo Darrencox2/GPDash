@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   if (!supabase) {
     return (
       <div style={{ padding: 32, maxWidth: 600, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 20, color: 'white', marginBottom: 12 }}>Configuration error</h1>
+        <h1 style={{ fontSize: 20, color: 'var(--g-text-max)', marginBottom: 12 }}>Configuration error</h1>
         <p className="text-body-sm text-slate-400">Supabase environment variables are not set.</p>
       </div>
     );
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 600, color: 'white' }}>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 600, color: 'var(--g-text-max)' }}>
             Your dashboard
           </h1>
           <p className="text-body-sm text-slate-400 mt-1">
@@ -125,7 +125,7 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <SectionTitle>Your practices</SectionTitle>
           {memberships && memberships.length > 0 && (
-            <Link href="/v4/onboarding/create-practice" style={{ fontSize: 12, color: '#34d399', textDecoration: 'none' }}>
+            <Link href="/v4/onboarding/create-practice" style={{ fontSize: 12, color: 'var(--c-green-2)', textDecoration: 'none' }}>
               + New practice
             </Link>
           )}
@@ -140,7 +140,7 @@ export default async function DashboardPage() {
               padding: '10px 16px',
               fontSize: 13,
               fontWeight: 600,
-              color: 'white',
+              color: 'var(--g-text-max)',
               background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               borderRadius: 'var(--r-md)',
               textDecoration: 'none',
@@ -172,7 +172,7 @@ export default async function DashboardPage() {
                 fontSize: 11,
                 padding: '3px 10px',
                 background: 'rgba(16,185,129,0.15)',
-                color: '#34d399',
+                color: 'var(--c-green-2)',
                 borderRadius: 'var(--r-pill)',
                 fontWeight: 600,
               }}>{m.role}</span>
@@ -206,7 +206,7 @@ function SectionTitle({ children }) {
       fontFamily: "var(--font-heading)",
       fontSize: 14,
       fontWeight: 500,
-      color: '#94a3b8',
+      color: 'var(--g-text-mid)',
       textTransform: 'uppercase',
       letterSpacing: 1,
       marginBottom: 16,

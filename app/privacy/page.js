@@ -23,16 +23,16 @@ const PAGE_BG = 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)';
 
 export default function PrivacyNoticePage() {
   return (
-    <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: '#e2e8f0' }}>
+    <main style={{ minHeight: '100vh', padding: '40px 24px 64px', background: PAGE_BG, color: 'var(--g-text-hi)' }}>
       <article style={{ maxWidth: 760, margin: '0 auto', lineHeight: 1.65 }}>
         <DraftBanner />
 
         <header className="mb-8">
           <h1 style={{
             fontFamily: "var(--font-heading)",
-            fontSize: 32, fontWeight: 600, marginBottom: 8, color: '#f1f5f9',
+            fontSize: 32, fontWeight: 600, marginBottom: 8, color: 'var(--g-text-pale)',
           }}>Privacy Notice</h1>
-          <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'var(--g-text-mid)', margin: 0 }}>
             Last updated: <time dateTime={LEGAL_META.privacyLastUpdated}>{LEGAL_META.privacyLastUpdated}</time>
             {' · '}
             <Link href="/privacy/processors" style={inlineLink}>Sub-processors</Link>
@@ -174,7 +174,7 @@ export default function PrivacyNoticePage() {
         </Section>
 
         <footer style={{ marginTop: 48, paddingTop: 24, fontSize: 12, color: 'var(--meta)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <Link href="/" style={{ color: '#94a3b8', textDecoration: 'none' }}>← Back to GPDash</Link>
+          <Link href="/" style={{ color: 'var(--g-text-mid)', textDecoration: 'none' }}>← Back to GPDash</Link>
         </footer>
       </article>
     </main>
@@ -186,16 +186,16 @@ export default function PrivacyNoticePage() {
 // public pages, and inline styles keep all the visual decisions visible
 // in one file when reviewing the markup.
 
-const ulStyle = { fontSize: 14, color: '#cbd5e1', paddingLeft: 24, marginTop: 8, marginBottom: 12, lineHeight: 1.8 };
+const ulStyle = { fontSize: 14, color: 'var(--g-text-soft)', paddingLeft: 24, marginTop: 8, marginBottom: 12, lineHeight: 1.8 };
 const inlineLink = { color: 'var(--link)', textDecoration: 'underline', textUnderlineOffset: 2 };
-const builtIn = { color: '#6ee7b7', fontWeight: 500 };
+const builtIn = { color: 'var(--c-mint)', fontWeight: 500 };
 
 function DraftBanner() {
   if (LEGAL_META.privacyReviewedByLegal) return null;
   return (
-    <div style={{ marginBottom: 32, padding: '14px 18px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.30)', color: '#fcd34d' }}>
+    <div style={{ marginBottom: 32, padding: '14px 18px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.30)', color: 'var(--c-amber)' }}>
       <div className="text-body-sm font-semibold mb-1.5">⚠ Draft — pending legal review</div>
-      <div style={{ fontSize: 12, lineHeight: 1.6, color: '#fde68a' }}>
+      <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--c-sand)' }}>
         This notice has been drafted by GPDash&apos;s engineering team and accurately reflects current processing. It hasn&apos;t yet been formally reviewed by a qualified data protection professional. We treat it as our binding statement of practice; the legal review will formalise the wording.
       </div>
     </div>
@@ -205,8 +205,8 @@ function DraftBanner() {
 function Section({ title, children }) {
   return (
     <section style={{ marginBottom: 36 }}>
-      <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 600, marginBottom: 12, color: '#f1f5f9' }}>{title}</h2>
-      <div style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.7 }}>{children}</div>
+      <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 600, marginBottom: 12, color: 'var(--g-text-pale)' }}>{title}</h2>
+      <div style={{ fontSize: 14, color: 'var(--g-text-soft)', lineHeight: 1.7 }}>{children}</div>
     </section>
   );
 }
@@ -214,7 +214,7 @@ function Section({ title, children }) {
 function SubSection({ title, children }) {
   return (
     <div className="mt-5">
-      <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, color: '#e2e8f0' }}>{title}</h3>
+      <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, color: 'var(--g-text-hi)' }}>{title}</h3>
       <div>{children}</div>
     </div>
   );
@@ -222,7 +222,7 @@ function SubSection({ title, children }) {
 
 function Basis({ children }) {
   return (
-    <p style={{ fontSize: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', marginTop: 10, marginBottom: 0, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: '#94a3b8', lineHeight: 1.6 }}>
+    <p style={{ fontSize: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', marginTop: 10, marginBottom: 0, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'var(--g-text-mid)', lineHeight: 1.6 }}>
       {children}
     </p>
   );
@@ -231,7 +231,7 @@ function Basis({ children }) {
 function Contact() {
   return (
     <div style={{ marginTop: 14, padding: '14px 18px', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13, lineHeight: 1.7 }}>
-      <div style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>Contact</div>
+      <div style={{ fontWeight: 600, color: 'var(--g-text-pale)', marginBottom: 6 }}>Contact</div>
       <div className="text-slate-300">
         For any data protection question — including subject access requests that you&apos;d rather not handle yourself in-app — email{' '}
         <a href={`mailto:${LEGAL_META.privacyContactEmail}`} style={inlineLink}>{LEGAL_META.privacyContactEmail}</a>.

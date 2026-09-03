@@ -136,6 +136,28 @@
     --g-text-hi: #e2e8f0; --g-text-mid: #94a3b8; --g-text-faint: #475569; --g-text-mute: #334155;
     --g-nodata: #334155; --g-ink: #0f172a; --g-ink-2: #1e293b; --g-track: #e2e8f0; --g-pill-text: #ffffff;
     --g-line: rgba(255,255,255,0.1); --g-marker: rgba(255,255,255,0.6);
+    /* Pale inks. These were hardcoded in ~470 places as literal hexes, which
+       is why light mode had pale text on a pale page. The dark values here
+       are EXACTLY the hexes they replace, so dark renders unchanged. */
+    --g-text-pale: #f1f5f9; --g-text-soft: #cbd5e1;
+    /* Capacity state chips (site staffing). Dark values are exactly what
+       STATE_COLOURS used to hardcode, so the dark page is unchanged. */
+    --st-short-bg: rgba(239,68,68,0.20);  --st-short-bd: #ef444480; --st-short-fg: #fca5a5;
+    --st-tight-bg: rgba(245,158,11,0.18); --st-tight-bd: #f59e0b70; --st-tight-fg: #fbbf24;
+    --st-ok-bg: rgba(16,185,129,0.14);    --st-ok-bd: #10b98150;    --st-ok-fg: #34d399;
+    --st-none-bg: rgba(255,255,255,0.05); --st-none-bd: rgba(255,255,255,0.14); --st-none-fg: #cbd5e1;
+    --c-red-2: #f87171; --c-amber-2: #fbbf24; --c-green-2: #34d399; --c-mint: #6ee7b7;
+    --c-violet: #a78bfa; --c-sand: #fde68a; --c-blue-2: #60a5fa;
+    --c-cyan-3: #22d3ee; --c-sky: #7dd3fc; --c-sky-2: #38bdf8; --c-purple-2: #c084fc;
+    --g-text-max: #ffffff;
+    --c-cyan-2: #a5f3fc; --accent-pale: #a5b4fc;
+    /* Sidebar inks. Deliberately theme-INDEPENDENT: the rail stays dark in
+       both themes, so it must not read the flipping text tokens. */
+    --sb-bg: linear-gradient(to bottom, #0f172a, #0f172a, #1e293b);
+    --sb-border: rgba(255,255,255,0.05); --sb-divider: #1e293b;
+    --sb-text-hi: #e2e8f0; --sb-text-mid: #94a3b8; --sb-text-faint: #475569;
+    --sb-tile: #1b2538; --sb-accent: #6366f1;
+    --sb-accent-soft: rgba(99,102,241,0.18); --sb-accent-text: #c7d2fe;
     --g-surface: #0f172a; --g-surface-2: #1b2538; --g-field: #0c1322;
     /* The four capacity states. The only colours that carry meaning. */
     --state-short: #ef4444; --state-tight: #f59e0b; --state-ok: #10b981; --state-over: #3b82f6;
@@ -174,46 +196,61 @@
   }
 
   [data-theme="light"] {
-    /* Paper. The app is read at 8am in a bright room; a warm off-white
-       page, cream cards and near-black ink suit that better than cool
-       grey. Dark stays for the huddle TV. */
-    --app-bg: #f6f3ee;
-    --app-text: #1c1917;
-    --surface: #fffdf9;
-    --surface-2: #f1ede6;
-    --surface-3: #e9e4db;
-    --surface-solid: #fffdf9;
-    --panel: #fffdf9;
-    --border: rgba(28,25,23,0.09);
-    --border-2: rgba(28,25,23,0.14);
+    /* Clear. The dark theme measured onto a light ground rather than
+       inverted onto it: the page is a cool grey-blue, cards are white, and
+       depth runs the same direction it does in dark - whatever is in front
+       is lighter. The sidebar stays dark (see --sb-* above), which is what
+       makes this a translation rather than a flip. */
+    --app-bg: #eef1f6;
+    --app-text: #131a26;
+    --surface: #ffffff;
+    --surface-2: #f5f7fa;
+    --surface-3: #e9edf4;
+    --surface-solid: #ffffff;
+    --panel: #ffffff;
+    --border: rgba(15,23,42,0.11);
+    --border-2: rgba(15,23,42,0.16);
     /* --text-1..4 inherit the --g-* aliases from the root block. */
-    --accent: #6366f1;
-    --accent-2: #6366f1;
-    --accent-soft: rgba(99,102,241,0.12);
-    --accent-text: #4f46e5;
-    --c-red: #b91c1c; --c-amber: #b45309; --c-green: #15803d; --c-cyan: #0e7490;
-    --state-short: #dc2626; --state-tight: #d97706; --state-ok: #059669; --state-over: #2563eb;
+    --accent: #4f46e5;
+    --accent-2: #4338ca;
+    --accent-soft: rgba(79,70,229,0.10);
+    --accent-text: #4338ca;
+    --c-red: #b91c1c; --c-amber: #a04d08; --c-green: #15803d; --c-cyan: #0e7490;
+    --c-red-2: #c92020; --c-amber-2: #8a5406; --c-green-2: #047857; --c-mint: #0f766e;
+    --c-violet: #6d28d9; --c-sand: #92400e; --c-blue-2: #1d4ed8;
+    --c-cyan-3: #0e7490; --c-sky: #0369a1; --c-sky-2: #0369a1; --c-purple-2: #7c3aed;
+    --g-text-max: #131a26;
+    --c-cyan-2: #0e7490; --accent-pale: #4338ca;
+    /* tight was #d97706 at 3.19:1 on a white card, under the 4.5:1 floor.
+       #b45309 is 5.02:1 and is the same hue one step down. */
+    --state-short: #c92020; --state-tight: #a04d08; --state-ok: #0f7a52; --state-over: #2563eb;
     --c-blue: #1d4ed8; --c-indigo: #4338ca; --c-purple: #7c3aed; --c-pink: #be185d;
-    --card-shadow: 0 1px 2px rgba(28,25,23,0.04), 0 8px 24px -12px rgba(28,25,23,0.12);
-    --header-bg: rgba(99,102,241,0.42);
-    --sidebar-bg: #fbf9f5;
-    --sidebar-border: rgba(28,25,23,0.09);
-    --sidebar-divider: rgba(28,25,23,0.1);
-    --g-tile: #f1ede6; --g-tile-2: #f6f3ee; --g-tile-3: #f1ede6;
-    --g-card: #fffdf9; --g-border-strong: rgba(28,25,23,0.35);
-    --g-border: rgba(28,25,23,0.09); --g-border-2: rgba(28,25,23,0.14); --g-divider: #d6d0c6;
-    --g-panel: #fffdf9; --g-panel-2: #fffdf9; --g-panel-soft: #fbf9f5; --g-panel-strong: #fffdf9;
-    --g-label: rgba(28,25,23,0.5); --g-label-faint: rgba(28,25,23,0.3);
-    --g-text-hi: #1c1917; --g-text-mid: #57534e; --g-text-faint: #78716c; --g-text-mute: #78716c;
-    --g-nodata: #e9e4db; --g-ink: #ece8e0; --g-ink-2: #f1ede6; --g-track: #d6d0c6; --g-pill-text: #1c1917;
-    --g-line: rgba(28,25,23,0.16); --g-marker: rgba(28,25,23,0.55);
-    --g-surface: #f6f3ee; --g-surface-2: #fffdf9; --g-field: #fffdf9;
-    /* These three had no light value at all, so they kept their dark ones
-       on a near-white page: --meta was #94a3b8 at 2.2:1 (209 uses across
-       45 files - every caption on the site), --link #34d399 at 1.7:1.
-       Both now clear the 4.5:1 AA floor for small text on --app-bg. */
-    --link: #047857; --link-hover: #065f46; --meta: #6b665f;
-    --duty-bg: rgba(139,92,246,0.13); --duty-bd: rgba(124,58,237,0.4); --duty-fg: #6d28d9;
+    --card-shadow: 0 1px 2px rgba(15,23,42,0.05), 0 10px 24px -14px rgba(15,23,42,0.28);
+    /* Neutral: the hue arrives from the hdr-* classes at 12%, not from here. */
+    --header-bg: #f5f7fa;
+    /* Kept for anything still reading the old names; the rail itself now
+       uses the theme-independent --sb-* set. */
+    --sidebar-bg: var(--sb-bg);
+    --sidebar-border: var(--sb-border);
+    --sidebar-divider: var(--sb-divider);
+    --g-tile: #f5f7fa; --g-tile-2: #eef1f6; --g-tile-3: #f5f7fa;
+    --g-card: #ffffff; --g-border-strong: rgba(15,23,42,0.35);
+    --g-border: rgba(15,23,42,0.09); --g-border-2: rgba(15,23,42,0.14); --g-divider: #d7dde8;
+    --g-panel: #ffffff; --g-panel-2: #ffffff; --g-panel-soft: #f8fafc; --g-panel-strong: #ffffff;
+    --g-label: rgba(15,23,42,0.5); --g-label-faint: rgba(15,23,42,0.3);
+    /* faint and mute were both #78716c in Paper, so the quiet end of the
+       ramp had nothing below it. Two values again, and both clear 4.5:1. */
+    --g-text-hi: #131a26; --g-text-mid: #4d576e; --g-text-faint: #5c6677; --g-text-mute: #616b7d;
+    --g-text-pale: #0c1220; --g-text-soft: #333d52;
+    --st-short-bg: rgba(220,38,38,0.10);  --st-short-bd: rgba(220,38,38,0.42); --st-short-fg: #b91c1c;
+    --st-tight-bg: rgba(180,83,9,0.10);   --st-tight-bd: rgba(180,83,9,0.40);  --st-tight-fg: #92400e;
+    --st-ok-bg: rgba(15,122,82,0.10);     --st-ok-bd: rgba(15,122,82,0.38);    --st-ok-fg: #0f6a47;
+    --st-none-bg: rgba(15,23,42,0.04);    --st-none-bd: rgba(15,23,42,0.14);   --st-none-fg: #56607a;
+    --g-nodata: #e4e8f0; --g-ink: #e9edf4; --g-ink-2: #eef1f6; --g-track: #d7dde8; --g-pill-text: #131a26;
+    --g-line: rgba(15,23,42,0.16); --g-marker: rgba(15,23,42,0.55);
+    --g-surface: #eef1f6; --g-surface-2: #ffffff; --g-field: #ffffff;
+    --link: #4338ca; --link-hover: #3730a3; --meta: #5c6577;
+    --duty-bg: rgba(124,58,237,0.09); --duty-bd: rgba(124,58,237,0.32); --duty-fg: #6d28d9;
     --ev-join: #047857; --ev-return: #0f766e; --ev-leave: #b91c1c;
     --ev-away: #b45309; --ev-change: #4338ca;
   }
@@ -330,6 +367,10 @@
      small caps, not mono. */
   .label-caps { font-family: 'DM Sans', system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
   .font-heading { font-family: 'Outfit', sans-serif; }
+  /* Brightest ink. text-white is correct on a saturated fill in either theme,
+     but as a heading colour it was pure white on a white card in light. This
+     is white in dark, exactly as before, and the darkest ink in light. */
+  .text-ink-max { color: var(--g-text-max); }
 }
 
 @media print {
@@ -380,11 +421,40 @@
   /* Light-mode: text-slate-200/300/400 are light greys authored for the dark
      page; on a light background they are near-invisible, so darken them to a
      readable hierarchy. (700/800/900 are handled in the dark block above.) */
-  [data-theme="light"] .text-slate-50  { color: #0f172a !important; }
-  [data-theme="light"] .text-slate-100 { color: #1e293b !important; }
-  [data-theme="light"] .text-slate-200 { color: #334155 !important; }
-  [data-theme="light"] .text-slate-300 { color: #475569 !important; }
-  [data-theme="light"] .text-slate-400 { color: #64748b !important; }
+  [data-theme="light"] .text-slate-50  { color: var(--g-text-pale) !important; }
+  [data-theme="light"] .text-slate-100 { color: var(--g-text-hi) !important; }
+  [data-theme="light"] .text-slate-200 { color: var(--g-text-hi) !important; }
+  [data-theme="light"] .text-slate-300 { color: var(--g-text-soft) !important; }
+  [data-theme="light"] .text-slate-400 { color: var(--g-text-mid) !important; }
+
+  /* The rest of Tailwind's pale palette, same problem as the slates: these
+     are 200-400 tints chosen against a dark page, and they had no light
+     value at all, so amber-300 sat at 1.3:1 on a white card. Each maps to
+     the token that already carries the right value in both themes. */
+  [data-theme="light"] .text-amber-200,
+  [data-theme="light"] .text-amber-300   { color: var(--c-amber) !important; }
+  [data-theme="light"] .text-amber-400   { color: var(--c-amber-2) !important; }
+  [data-theme="light"] .text-red-300     { color: var(--c-red) !important; }
+  [data-theme="light"] .text-red-400     { color: var(--c-red-2) !important; }
+  [data-theme="light"] .text-emerald-300 { color: var(--c-mint) !important; }
+  [data-theme="light"] .text-emerald-400 { color: var(--c-green-2) !important; }
+  [data-theme="light"] .text-cyan-300    { color: var(--c-cyan) !important; }
+  [data-theme="light"] .text-cyan-400    { color: var(--c-cyan-3) !important; }
+  [data-theme="light"] .text-sky-400     { color: var(--c-sky-2) !important; }
+  [data-theme="light"] .text-blue-400    { color: var(--c-blue-2) !important; }
+  [data-theme="light"] .text-purple-300,
+  [data-theme="light"] .text-purple-400  { color: var(--c-purple-2) !important; }
+  [data-theme="light"] .text-indigo-200,
+  [data-theme="light"] .text-indigo-300,
+  [data-theme="light"] .text-indigo-400  { color: var(--accent-text) !important; }
+  [data-theme="light"] .text-violet-300,
+  [data-theme="light"] .text-violet-400  { color: var(--c-violet) !important; }
+  /* The 600-weights are nominally light-mode colours but still land at
+     3.2-3.8:1 on a white card, under the floor for small text. */
+  [data-theme="light"] .text-amber-600   { color: var(--c-amber-2) !important; }
+  [data-theme="light"] .text-emerald-600 { color: var(--c-green-2) !important; }
+  [data-theme="light"] .text-red-600     { color: var(--c-red-2) !important; }
+  [data-theme="light"] .text-blue-600    { color: var(--c-blue-2) !important; }
 
   /* Coloured transparent header windows — each a single flat translucent
      colour (no gradients); applied per panel so headers vary in colour like
@@ -402,19 +472,20 @@
   [data-theme="light"] .glass:has(.glass-header.hdr-green),  [data-theme="light"] .glass-dark:has(.glass-header.hdr-green)  { --h: 5,150,105; }
   [data-theme="light"] .glass:has(.glass-header.hdr-amber),  [data-theme="light"] .glass-dark:has(.glass-header.hdr-amber)  { --h: 245,158,11; }
   [data-theme="light"] .glass:has(.glass-header.hdr-pink),   [data-theme="light"] .glass-dark:has(.glass-header.hdr-pink)   { --h: 219,39,119; }
+  /* Clear: the card is white and stays white. The hue lives on the header
+     band at 12%, flat, with a hairline of the same hue under it - the same
+     job the 18% fading band does in dark, at the strength a light ground
+     needs. The 52% band, the two radial gradients and the coloured glow are
+     gone: that treatment was nearly three times louder than its dark
+     counterpart, which is why the two themes never read as one design. */
   [data-theme="light"] .glass:has(.glass-header[class*="hdr-"]),
   [data-theme="light"] .glass-dark:has(.glass-header[class*="hdr-"]) {
-    background:
-      radial-gradient(130% 95% at 8% -20%, rgba(255,255,255,0.45), rgba(255,255,255,0) 46%),
-      radial-gradient(135% 130% at 108% 125%, rgba(var(--h),0.26), rgba(var(--h),0) 55%),
-      rgba(var(--h),0.06);
-    border-color: rgba(var(--h),0.32);
-    box-shadow: 0 14px 32px -12px rgba(var(--h),0.45), 0 2px 8px rgba(var(--h),0.15);
+    background: var(--g-card);
+    border-color: rgba(var(--h),0.20);
   }
   [data-theme="light"] .glass-header[class*="hdr-"] {
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 70%),
-      rgba(var(--h),0.52);
+    background: rgba(var(--h),0.12);
+    border-bottom-color: rgba(var(--h),0.22);
   }
   /* Dark gets the same fingerprint, quietly: the hue lives on the header
      band only, fading to nothing across it, so the body of the card stays
@@ -436,12 +507,8 @@
   [data-theme="light"] .panefx-blue   { --h: 37,99,235; }
   [data-theme="light"] .panefx-cyan   { --h: 6,182,212; }
   [data-theme="light"] .panefx-violet, [data-theme="light"] .panefx-blue, [data-theme="light"] .panefx-cyan {
-    background:
-      radial-gradient(130% 95% at 8% -20%, rgba(255,255,255,0.45), rgba(255,255,255,0) 46%),
-      radial-gradient(135% 130% at 108% 125%, rgba(var(--h),0.26), rgba(var(--h),0) 55%),
-      rgba(var(--h),0.06);
-    border-color: rgba(var(--h),0.32);
-    box-shadow: 0 14px 32px -12px rgba(var(--h),0.45), 0 2px 8px rgba(var(--h),0.15);
+    background: linear-gradient(rgba(var(--h),0.06), rgba(var(--h),0.06)), var(--g-card);
+    border-color: rgba(var(--h),0.20);
   }
 
 

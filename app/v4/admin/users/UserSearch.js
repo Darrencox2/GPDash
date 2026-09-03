@@ -29,14 +29,14 @@ export default function UserSearch({ initialSearch }) {
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 'var(--r-md)',
-          color: '#e2e8f0',
+          color: 'var(--g-text-hi)',
           fontSize: 14,
         }}
       />
       <button type="submit" style={{
         padding: '10px 20px',
         background: '#0891b2',
-        color: 'white',
+        color: 'var(--g-text-max)',
         border: 'none',
         borderRadius: 'var(--r-md)',
         fontSize: 14,
@@ -47,7 +47,7 @@ export default function UserSearch({ initialSearch }) {
         <button type="button" onClick={() => { setValue(''); router.push('/v4/admin/users'); }} style={{
           padding: '10px 16px',
           background: 'transparent',
-          color: '#cbd5e1',
+          color: 'var(--g-text-soft)',
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 'var(--r-md)',
           fontSize: 14,

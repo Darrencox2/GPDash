@@ -83,12 +83,12 @@ export default function DataCleanupActions({ practiceId }) {
         Clear specific datasets without deleting the whole practice. Each action is permanent.
       </p>
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 10, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', padding: 10, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
           {error}
         </div>
       )}
       {result && (
-        <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399', padding: 10, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--c-green-2)', padding: 10, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
           {result}
         </div>
       )}
@@ -140,7 +140,7 @@ function CleanupRow({ title, description, busy, onClick }) {
           padding: '8px 14px',
           background: 'rgba(245,158,11,0.1)',
           border: '1px solid rgba(245,158,11,0.3)',
-          color: '#fbbf24',
+          color: 'var(--c-amber-2)',
           borderRadius: 'var(--r-sm)',
           fontSize: 13,
           fontWeight: 500,

@@ -93,7 +93,7 @@ export default function ClinicianLinker({ practiceId, currentLinkedClinicianId, 
           disabled={busy || !selected || selected === currentLinkedClinicianId}
           style={{
             padding: '8px 16px', fontSize: 13, fontWeight: 600,
-            color: 'white',
+            color: 'var(--g-text-max)',
             background: 'rgba(99,102,241,0.4)',
             border: '1px solid rgba(99,102,241,0.6)',
             borderRadius: 'var(--r-md)',
@@ -108,7 +108,7 @@ export default function ClinicianLinker({ practiceId, currentLinkedClinicianId, 
             disabled={busy}
             style={{
               padding: '8px 16px', fontSize: 13, fontWeight: 500,
-              color: '#fca5a5',
+              color: 'var(--c-red)',
               background: 'transparent',
               border: '1px solid rgba(239,68,68,0.3)',
               borderRadius: 'var(--r-md)',
@@ -126,7 +126,7 @@ export default function ClinicianLinker({ practiceId, currentLinkedClinicianId, 
           borderRadius: 'var(--r-sm)',
           padding: 8,
           fontSize: 12,
-          color: '#fca5a5',
+          color: 'var(--c-red)',
         }}>{error}</div>
       )}
       {success && (
@@ -137,7 +137,7 @@ export default function ClinicianLinker({ practiceId, currentLinkedClinicianId, 
           borderRadius: 'var(--r-sm)',
           padding: 8,
           fontSize: 12,
-          color: '#86efac',
+          color: 'var(--c-green)',
         }}>{success}</div>
       )}
     </div>

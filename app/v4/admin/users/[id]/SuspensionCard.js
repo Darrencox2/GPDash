@@ -88,7 +88,7 @@ export default function SuspensionCard({ user }) {
           <div className="text-body-sm text-amber-400 font-semibold mb-1">
             Suspended
           </div>
-          <div style={{ fontSize: 12, color: '#fde68a', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, color: 'var(--c-sand)', lineHeight: 1.5 }}>
             Suspended on {new Date(user.suspended_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.
             {user.suspended_reason && (
               <>
@@ -122,7 +122,7 @@ export default function SuspensionCard({ user }) {
         </>
       ) : (
         <div>
-          <label style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>
+          <label style={{ fontSize: 11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>
             Reason (internal — only shown to platform admins)
           </label>
           <textarea
@@ -136,7 +136,7 @@ export default function SuspensionCard({ user }) {
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 'var(--r-sm)',
-              color: '#e2e8f0',
+              color: 'var(--g-text-hi)',
               fontSize: 13,
               fontFamily: 'inherit',
               resize: 'vertical',
@@ -164,7 +164,7 @@ function ErrorBox({ message }) {
       padding: '8px 12px',
       background: 'rgba(239,68,68,0.12)',
       border: '1px solid rgba(239,68,68,0.3)',
-      color: '#fca5a5',
+      color: 'var(--c-red)',
       fontSize: 12,
       borderRadius: 'var(--r-sm)',
       marginBottom: 10,
@@ -173,5 +173,5 @@ function ErrorBox({ message }) {
 }
 
 const btnPrimary = { padding: '8px 14px', background: '#0891b2', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-const btnSubtle = { padding: '8px 14px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const btnSubtle = { padding: '8px 14px', background: 'rgba(255,255,255,0.06)', color: 'var(--g-text-soft)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 const btnDanger = { padding: '8px 14px', background: '#d97706', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };

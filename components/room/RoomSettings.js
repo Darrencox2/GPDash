@@ -101,8 +101,8 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
     <div className="space-y-6">
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          <span className="text-sm font-semibold text-white">Site Room Layout</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--g-text-mid)" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span className="text-sm font-semibold text-ink-max">Site Room Layout</span>
         </div>
         <div className="border-b border-slate-200"><div className="flex items-center gap-1 px-4 pt-3">
           {sites.map(s => <button key={s.id} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setSelectedSiteId(s.id)} className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${selectedSiteId === s.id ? 'bg-white border border-b-0 border-slate-200 text-slate-900' : 'text-slate-400 hover:text-slate-400 hover:bg-slate-50'}`}><span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{background: s.colour || '#94a3b8'}} />{s.name}</button>)}
@@ -112,7 +112,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
         {selectedSite && <div className="p-5">
           <div className="flex items-center gap-3 mb-3 flex-wrap">
             <label className="text-xs text-slate-400">Colour:</label>
-            <div className="flex gap-1.5">{SITE_COLOUR_PRESETS.map(c => <button key={c} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => updateSite(selectedSite.id, { colour: c })} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background: c, outline: selectedSite.colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={selectedSite.colour || '#8c64c3'} onChange={e => updateSite(selectedSite.id, { colour: e.target.value })} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div>
+            <div className="flex gap-1.5">{SITE_COLOUR_PRESETS.map(c => <button key={c} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => updateSite(selectedSite.id, { colour: c })} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background: c, outline: selectedSite.colour === c ? '2px solid #1e293b' : '1px solid var(--g-text-hi)', outlineOffset: 1}} />)}<input type="color" value={selectedSite.colour || '#8c64c3'} onChange={e => updateSite(selectedSite.id, { colour: e.target.value })} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div>
             <span className="text-slate-300">|</span>
             <label className="text-xs text-slate-400">Grid:</label>
             <select value={selectedSite.gridSize} onChange={e => convertGridSize(selectedSite.id, e.target.value)} className="text-xs border border-slate-200 rounded px-2 py-1">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
@@ -174,7 +174,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
       {/* ROOM TYPES CARD */}
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-3 flex items-center justify-between">
-          <span className="text-sm font-semibold text-white">Room Types</span>
+          <span className="text-sm font-semibold text-ink-max">Room Types</span>
           <button onClick={async () => {
             const name = await promptDialog({ title: 'New room type', label: 'Name', placeholder: 'e.g. Treatment room' });
             if (!name?.trim()) return;
@@ -183,7 +183,7 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
             const current = getRoomTypes(ra);
             save({ ...ra, roomTypes: [...current, { id, label: name.trim(), colour }] });
             toast('Room type added', 'success');
-          }} className="text-xs px-2 py-1 rounded bg-white/20 text-white hover:bg-white/30">+ Add type</button>
+          }} className="text-xs px-2 py-1 rounded bg-white/20 text-ink-max hover:bg-white/30">+ Add type</button>
         </div>
         <div className="p-5">
           <div className="space-y-2">
@@ -203,8 +203,8 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-sky-600 to-cyan-500 px-5 py-3">
           <div>
-            <span className="text-sm font-semibold text-white">Procedure Slot Types</span>
-            <span className="text-xs text-white/50 ml-2">Slot types that require a procedure room for nurses</span>
+            <span className="text-sm font-semibold text-ink-max">Procedure Slot Types</span>
+            <span className="text-xs text-ink-max/50 ml-2">Slot types that require a procedure room for nurses</span>
           </div>
         </div>
         <div className="p-5">
@@ -242,8 +242,8 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
       {sites.length > 0 && allStaff.length > 0 && (
         <div className="card overflow-hidden">
           <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-5 py-3">
-            <span className="text-sm font-semibold text-white">Room Preferences</span>
-            <span className="text-xs text-white/50 ml-2">Set preferred & secondary rooms per clinician per site</span>
+            <span className="text-sm font-semibold text-ink-max">Room Preferences</span>
+            <span className="text-xs text-ink-max/50 ml-2">Set preferred & secondary rooms per clinician per site</span>
           </div>
           <div className="p-5 overflow-x-auto">
             <table className="w-full text-sm">
@@ -299,12 +299,12 @@ export default function RoomSettings({ data, saveData, toast, huddleData }) {
 
       {/* PRIORITY CARD */}
       <div className="card overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-3"><span className="text-sm font-semibold text-white">Clinician Priority</span><span className="text-xs text-white/50 ml-2">Drag to reorder — higher = gets preferred room first</span></div>
+        <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-3"><span className="text-sm font-semibold text-ink-max">Clinician Priority</span><span className="text-xs text-ink-max/50 ml-2">Drag to reorder — higher = gets preferred room first</span></div>
         <div className="p-5"><div className="space-y-1 max-w-lg">
           {sortedPriority.map((c, i) => <div key={c.id} draggable onDragStart={() => setDragPriorityId(c.id)} onDragOver={e => e.preventDefault()} onDrop={() => handlePriorityDrop(c.id)}
             className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors cursor-grab active:cursor-grabbing ${dragPriorityId === c.id ? 'bg-indigo-50 border border-indigo-200' : 'bg-slate-50 hover:bg-slate-100'}`}>
             <span className="text-xs font-bold text-slate-300 w-5">{i + 1}</span><span className="text-sm font-medium text-slate-400 flex-1">{c.name}</span><span className="text-xs text-slate-400">{c.role}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2"><circle cx="8" cy="6" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="6" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="16" cy="18" r="1.5"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--g-text-soft)" strokeWidth="2"><circle cx="8" cy="6" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="6" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="16" cy="18" r="1.5"/></svg>
           </div>)}
         </div></div>
       </div>
@@ -323,7 +323,7 @@ function AddSiteForm({ csvLocations, existingSites, onSave, onCancel }) {
     <h3 className="text-sm font-semibold text-slate-900 mb-3">Add site</h3>
     <div className="flex items-end gap-4 flex-wrap">
       <div><label className="text-xs text-slate-400 block mb-1">Site name</label><div className="flex items-center gap-2"><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Winscombe" className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 w-48" />{suggestions.length > 0 && <div className="flex gap-1">{suggestions.map(s => <button key={s} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setName(s)} className="text-xs px-2 py-1 rounded bg-slate-200 text-slate-400 hover:bg-slate-300">{s}</button>)}</div>}</div></div>
-      <div><label className="text-xs text-slate-400 block mb-1">Colour</label><div className="flex gap-1.5 items-center">{SITE_COLOUR_PRESETS.slice(0, 6).map(c => <button key={c} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setColour(c)} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background:c, outline: colour === c ? '2px solid #1e293b' : '1px solid #e2e8f0', outlineOffset: 1}} />)}<input type="color" value={colour} onChange={e => setColour(e.target.value)} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div></div>
+      <div><label className="text-xs text-slate-400 block mb-1">Colour</label><div className="flex gap-1.5 items-center">{SITE_COLOUR_PRESETS.slice(0, 6).map(c => <button key={c} role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setColour(c)} className="w-5 h-5 rounded-full hover:scale-125 transition-transform" style={{background:c, outline: colour === c ? '2px solid #1e293b' : '1px solid var(--g-text-hi)', outlineOffset: 1}} />)}<input type="color" value={colour} onChange={e => setColour(e.target.value)} className="w-5 h-5 rounded-full border-0 cursor-pointer" style={{padding:0}} /></div></div>
       <div><label className="text-xs text-slate-400 block mb-1">Grid size</label><select value={gridSize} onChange={e => setGridSize(e.target.value)} className="text-sm border border-slate-200 rounded-lg px-3 py-1.5">{Object.entries(GRID_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
       <div className="flex gap-2"><button role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => name.trim() && onSave(name.trim(), colour, gridSize)} disabled={!name.trim()} className="btn-primary text-sm">Add</button><button onClick={onCancel} className="btn-secondary text-sm">Cancel</button></div>
     </div>

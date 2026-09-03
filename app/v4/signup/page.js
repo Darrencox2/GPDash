@@ -309,7 +309,7 @@ function SignupPageInner() {
                   padding: '6px 12px', fontSize: 12,
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: 'var(--r-sm)', color: '#cbd5e1',
+                  borderRadius: 'var(--r-sm)', color: 'var(--g-text-soft)',
                   cursor: (resendBusy || cooldownSecsLeft > 0) ? 'not-allowed' : 'pointer',
                   opacity: (resendBusy || cooldownSecsLeft > 0) ? 0.5 : 1,
                 }}
@@ -323,7 +323,7 @@ function SignupPageInner() {
                   padding: '6px 12px', fontSize: 12,
                   background: 'transparent',
                   border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 'var(--r-sm)', color: '#94a3b8',
+                  borderRadius: 'var(--r-sm)', color: 'var(--g-text-mid)',
                   cursor: 'pointer',
                 }}
               >
@@ -366,7 +366,7 @@ function SignupPageInner() {
             than leaving those users telling us the code never came. */}
         <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--g-border)' }}>
           {resentAt ? (
-            <div style={{ fontSize: 13, color: '#6ee7b7', textAlign: 'center' }}>
+            <div style={{ fontSize: 13, color: 'var(--c-mint)', textAlign: 'center' }}>
               Confirmation email sent. Check your inbox, and your junk folder.
             </div>
           ) : (

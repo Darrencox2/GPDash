@@ -54,7 +54,7 @@ export default async function UnsubscribePage({ params }) {
 }
 
 const H1 = { margin: '0 0 12px', fontSize: 22, fontWeight: 600, color: '#0f172a', lineHeight: 1.3 };
-const P = { margin: '0 0 14px', fontSize: 14, lineHeight: 1.65, color: '#475569' };
+const P = { margin: '0 0 14px', fontSize: 14, lineHeight: 1.65, color: 'var(--g-text-faint)' };
 
 // Standalone light-mode shell. This page is opened from an inbox by people
 // who have never seen GPDash and have no session, so it does not use the
@@ -75,18 +75,18 @@ function Shell({ children }) {
             <rect width="36" height="36" rx="7.6" fill="#1e293b" />
             <rect x="4.5" y="4.5" width="8.27" height="8.27" rx="3" fill="#10b981" />
             <rect x="13.87" y="4.5" width="8.27" height="8.27" rx="3" fill="#10b981" opacity="0.7" />
-            <rect x="23.23" y="4.5" width="8.27" height="8.27" rx="3" fill="#334155" />
+            <rect x="23.23" y="4.5" width="8.27" height="8.27" rx="3" fill="var(--g-text-mute)" />
             <rect x="4.5" y="13.87" width="8.27" height="8.27" rx="3" fill="#10b981" opacity="0.7" />
             <rect x="13.87" y="13.87" width="8.27" height="8.27" rx="3" fill="#f59e0b" />
-            <rect x="23.23" y="13.87" width="8.27" height="8.27" rx="3" fill="#334155" />
+            <rect x="23.23" y="13.87" width="8.27" height="8.27" rx="3" fill="var(--g-text-mute)" />
             <rect x="4.5" y="23.23" width="8.27" height="8.27" rx="3" fill="#ef4444" />
             <rect x="13.87" y="23.23" width="8.27" height="8.27" rx="3" fill="#f59e0b" opacity="0.5" />
-            <rect x="23.23" y="23.23" width="8.27" height="8.27" rx="3" fill="#334155" />
+            <rect x="23.23" y="23.23" width="8.27" height="8.27" rx="3" fill="var(--g-text-mute)" />
           </svg>
           <span style={{ fontFamily: "ui-monospace,'SF Mono',Menlo,Consolas,monospace", fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
-            <span style={{ color: '#10b981', fontWeight: 400, opacity: 0.5 }}>[</span>GP
-            <span style={{ color: '#10b981', fontWeight: 400, opacity: 0.5 }}>]</span>
-            <span style={{ fontFamily: 'inherit', fontWeight: 300, color: '#10b981', letterSpacing: '0.18em', marginLeft: 2 }}>DASH</span>
+            <span style={{ color: 'var(--state-ok)', fontWeight: 400, opacity: 0.5 }}>[</span>GP
+            <span style={{ color: 'var(--state-ok)', fontWeight: 400, opacity: 0.5 }}>]</span>
+            <span style={{ fontFamily: 'inherit', fontWeight: 300, color: 'var(--state-ok)', letterSpacing: '0.18em', marginLeft: 2 }}>DASH</span>
           </span>
         </div>
         {children}

@@ -67,7 +67,7 @@ function Group({ n, title, children }) {
     <div className="space-y-2.5">
       <div className="flex items-center gap-2">
         <span className="flex items-center justify-center text-[11px] font-bold rounded-full"
-          style={{ width: 17, height: 17, background: 'rgba(8,145,178,0.25)', color: '#67e8f9' }}>{n}</span>
+          style={{ width: 17, height: 17, background: 'rgba(8,145,178,0.25)', color: 'var(--c-cyan)' }}>{n}</span>
         <span className="text-sm font-semibold" style={{ color: 'var(--g-text-hi)' }}>{title}</span>
       </div>
       <div className="pl-[25px] space-y-2.5">{children}</div>
@@ -443,7 +443,7 @@ export default function ReportScheduleModal({
                           <button onClick={(e) => { e.stopPropagation(); togglePause(s); }} title={s.active ? 'Pause' : 'Resume'}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-text-mid)', fontSize: 12 }}>{s.active ? '⏸' : '▶'}</button>
                           <button onClick={(e) => { e.stopPropagation(); remove(s); }} title="Delete"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 12 }}>✕</button>
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-red-2)', fontSize: 12 }}>✕</button>
                         </span>
                       </div>
                       <div className="text-[11px] mt-0.5" style={{ color: 'var(--g-text-faint)' }}>
@@ -454,16 +454,16 @@ export default function ReportScheduleModal({
                       {/* The reason to bundle: add the open report to an
                           email that already goes out, in one click. */}
                       {!itemIdsOf(s).includes(savedReportId) && (
-                        <div className="text-[11px] mt-1" style={{ color: '#67e8f9' }}>
+                        <div className="text-[11px] mt-1" style={{ color: 'var(--c-cyan)' }}>
                           Does not include this report — open it to add it
                         </div>
                       )}
                       {s.pause_reason && (
-                        <div className="text-[11px] mt-1" style={{ color: '#fcd34d' }}>{s.pause_reason}</div>
+                        <div className="text-[11px] mt-1" style={{ color: 'var(--c-amber)' }}>{s.pause_reason}</div>
                       )}
                       {/* Delivery truth. A send that silently failed must not look like one that arrived. */}
                       {log && (
-                        <div className="text-[11px] mt-1" style={{ color: log.status === 'sent' ? '#6ee7b7' : log.status === 'skipped' ? '#fcd34d' : '#fca5a5' }}
+                        <div className="text-[11px] mt-1" style={{ color: log.status === 'sent' ? 'var(--c-mint)' : log.status === 'skipped' ? 'var(--c-amber)' : 'var(--c-red)' }}
                           title={log.error || ''}>
                           {log.status === 'sent' ? '✓ Sent' : log.status === 'skipped' ? '⚠ Skipped' : '✕ Failed'} {formatSendTime(log.sent_at)}
                           {log.error ? ` — ${log.error}` : ''}
@@ -509,7 +509,7 @@ export default function ReportScheduleModal({
               )}
 
               {reportIds.length === 0 && (
-                <p className="text-[11px]" style={{ color: '#fcd34d' }}>Pick at least one report to send.</p>
+                <p className="text-[11px]" style={{ color: 'var(--c-amber)' }}>Pick at least one report to send.</p>
               )}
 
               {savedReports.filter(r => !reportIds.includes(r.id)).length > 0 && (
@@ -543,7 +543,7 @@ export default function ReportScheduleModal({
                   {[1, 2, 3, 4, 5].map(i => (
                     <button key={i} type="button" onClick={() => setDow(i)}
                       className="text-xs px-2 py-1 rounded-md"
-                      style={{ background: dow === i ? 'rgba(8,145,178,0.25)' : 'var(--g-tile)', border: `1px solid ${dow === i ? 'rgba(8,145,178,0.55)' : 'var(--g-border-2)'}`, color: dow === i ? '#67e8f9' : 'var(--g-text-mid)', cursor: 'pointer' }}>
+                      style={{ background: dow === i ? 'rgba(8,145,178,0.25)' : 'var(--g-tile)', border: `1px solid ${dow === i ? 'rgba(8,145,178,0.55)' : 'var(--g-border-2)'}`, color: dow === i ? 'var(--c-cyan)' : 'var(--g-text-mid)', cursor: 'pointer' }}>
                       {DOW_LABELS[i].slice(0, 3)}
                     </button>
                   ))}
@@ -625,7 +625,7 @@ export default function ReportScheduleModal({
 
               {externalCount > 0 && (
                 <div className="text-[11px] rounded-md px-2.5 py-2 leading-snug"
-                  style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.35)', color: '#fcd34d' }}>
+                  style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.35)', color: 'var(--c-amber)' }}>
                   {externalCount} recipient{externalCount === 1 ? ' is' : 's are'} not {externalCount === 1 ? 'a member' : 'members'} of {practiceName}.
                   They will receive practice appointment data, including named clinicians, on this schedule. Every send is recorded in the audit log.
                 </div>
@@ -715,7 +715,7 @@ export default function ReportScheduleModal({
                 <p className="text-[11px]" style={{ color: 'var(--g-text-faint)' }}>Add at least one recipient who has not unsubscribed. A test can be sent to yourself at any time.</p>
               )}
               {!canEdit && (
-                <p className="text-[11px]" style={{ color: '#fcd34d' }}>Only a practice administrator can create or change schedules.</p>
+                <p className="text-[11px]" style={{ color: 'var(--c-amber)' }}>Only a practice administrator can create or change schedules.</p>
               )}
             </div>
           </div>

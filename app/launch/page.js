@@ -34,7 +34,7 @@ function InlineLogo({ size = 64 }) {
   ];
   return (
     <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} aria-label="GPDash">
-      <rect width={s} height={s} rx={rad} fill="#1e293b" stroke="#334155" strokeWidth="0.5" />
+      <rect width={s} height={s} rx={rad} fill="#1e293b" stroke="var(--g-text-mute)" strokeWidth="0.5" />
       {cells.map(([x, y, fill, op], i) => (
         <rect key={i} x={pos(x)} y={pos(y)} width={tile} height={tile} rx={rad * 0.4} fill={fill} opacity={op} />
       ))}
@@ -55,11 +55,11 @@ export default function Launch() {
       <style>{`@keyframes gpdash-spin { to { transform: rotate(360deg); } }`}</style>
       <noscript><meta httpEquiv="refresh" content="0;url=/" /></noscript>
       <InlineLogo size={64} />
-      <div style={{ fontSize: 24, letterSpacing: 1, fontFamily: "'Space Mono', ui-monospace, monospace", color: '#e2e8f0' }}>
-        <span style={{ color: '#10b981', opacity: 0.8 }}>[</span>
+      <div style={{ fontSize: 24, letterSpacing: 1, fontFamily: "'Space Mono', ui-monospace, monospace", color: 'var(--g-text-hi)' }}>
+        <span style={{ color: 'var(--state-ok)', opacity: 0.8 }}>[</span>
         <span style={{ fontWeight: 700 }}>GP</span>
-        <span style={{ color: '#10b981', opacity: 0.8 }}>]</span>
-        <span style={{ fontWeight: 200, color: '#10b981' }}>DASH</span>
+        <span style={{ color: 'var(--state-ok)', opacity: 0.8 }}>]</span>
+        <span style={{ fontWeight: 200, color: 'var(--state-ok)' }}>DASH</span>
       </div>
       <div
         aria-label="Loading"

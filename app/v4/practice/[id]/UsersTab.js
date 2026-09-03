@@ -24,22 +24,22 @@ import LeavePracticeButton from './LeavePracticeButton';
 const ROLE_STYLES = {
   owner: {
     background: 'rgba(251,191,36,0.15)',
-    color: '#fcd34d',
+    color: 'var(--c-amber)',
     border: '1px solid rgba(251,191,36,0.35)',
   },
   partner: {
     background: 'rgba(167,139,250,0.15)',
-    color: '#c4b5fd',
+    color: 'var(--duty-fg)',
     border: '1px solid rgba(167,139,250,0.35)',
   },
   practice_manager: {
     background: 'rgba(96,165,250,0.15)',
-    color: '#93c5fd',
+    color: 'var(--c-blue)',
     border: '1px solid rgba(96,165,250,0.35)',
   },
   admin: {
     background: 'rgba(34,211,238,0.15)',
-    color: '#67e8f9',
+    color: 'var(--c-cyan)',
     border: '1px solid rgba(34,211,238,0.3)',
   },
   user: {
@@ -89,12 +89,12 @@ export default function UsersTab({
         {/* Stats strip */}
         <div className="flex flex-wrap gap-2 mb-3.5">
           <Stat label="Members" value={stats.total} />
-          <Stat label="Owners" value={stats.owners} colour="#fcd34d" />
-          <Stat label="Admins" value={stats.admins} colour="#67e8f9" />
+          <Stat label="Owners" value={stats.owners} colour="var(--c-amber)" />
+          <Stat label="Admins" value={stats.admins} colour="var(--c-cyan)" />
           <Stat label="Users" value={stats.users} colour="var(--g-text-hi)" />
-          {stats.unlinked > 0 && <Stat label="Unlinked" value={stats.unlinked} colour="#fbbf24" tooltip="Clinicians who haven't linked themselves to their record yet — their personal rota will be empty until they do. Non-clinical staff (practice managers, reception, etc.) don't count toward this." />}
+          {stats.unlinked > 0 && <Stat label="Unlinked" value={stats.unlinked} colour="var(--c-amber-2)" tooltip="Clinicians who haven't linked themselves to their record yet — their personal rota will be empty until they do. Non-clinical staff (practice managers, reception, etc.) don't count toward this." />}
           {stats.nonClinical > 0 && <Stat label="Non-clinical" value={stats.nonClinical} colour="var(--g-text-mid)" tooltip="Members who explicitly aren't clinicians at this practice (practice managers, reception, IT, finance, etc.)." />}
-          {stats.invites > 0 && <Stat label="Pending invites" value={stats.invites} colour="#a5b4fc" />}
+          {stats.invites > 0 && <Stat label="Pending invites" value={stats.invites} colour="var(--accent-pale)" />}
         </div>
 
         {members.length === 0 ? (
@@ -244,7 +244,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
             <span style={{ fontSize: 14, color: 'var(--g-text-hi)', fontWeight: isMe ? 600 : 400 }}>
               {m.email || '—'}
             </span>
-            {isMe && <span style={{ fontSize:11, padding: '1px 7px', background: 'rgba(34,211,238,0.18)', color: '#67e8f9', borderRadius: 'var(--r-pill)', fontWeight: 600, letterSpacing: 0.4 }}>YOU</span>}
+            {isMe && <span style={{ fontSize:11, padding: '1px 7px', background: 'rgba(34,211,238,0.18)', color: 'var(--c-cyan)', borderRadius: 'var(--r-pill)', fontWeight: 600, letterSpacing: 0.4 }}>YOU</span>}
           </div>
           {m.name && <div className="text-meta text-mid mt-0.5">{m.name}</div>}
           {/* Clinician-link status. Three states:
@@ -306,7 +306,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
               style={{
                 padding: '4px 8px',
                 fontSize: 11,
-                color: '#fca5a5',
+                color: 'var(--c-red)',
                 background: 'rgba(239,68,68,0.08)',
                 border: '1px solid rgba(239,68,68,0.2)',
                 borderRadius: 'var(--r-sm)',
@@ -333,7 +333,7 @@ function MemberRow({ member: m, practiceId, practiceName, myRole, myUserId, isPl
       </div>
 
       {error && (
-        <div style={{ marginTop: 8, fontSize: 11, color: '#fca5a5', padding: '6px 10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)' }}>
+        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--c-red)', padding: '6px 10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)' }}>
           {error}
         </div>
       )}
@@ -418,7 +418,7 @@ function ClinicianLinkStatus({ member: m, practiceId, isMe, canActOnTarget }) {
   // Unlinked and not marked → amber warning + action by viewer
   return (
     <div className="text-caption mt-1 flex items-center gap-2 flex-wrap">
-      <span style={{ color: '#fbbf24', opacity: 0.9 }} title="This member's account isn't linked to any clinician record. If they're a clinician, their personal rota will be empty until they link via Account → 'Your clinician record'. If they're not clinical, click the button to suppress this warning.">
+      <span style={{ color: 'var(--c-amber-2)', opacity: 0.9 }} title="This member's account isn't linked to any clinician record. If they're a clinician, their personal rota will be empty until they link via Account → 'Your clinician record'. If they're not clinical, click the button to suppress this warning.">
         ⚠ Not linked to a clinician
       </span>
       {isMe ? (

@@ -187,7 +187,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           background: r.include ? 'rgba(16,185,129,0.15)' : 'rgba(100,116,139,0.15)',
                           border: `1px solid ${r.include ? 'rgba(16,185,129,0.5)' : 'rgba(100,116,139,0.4)'}`,
-                          color: r.include ? '#34d399' : 'var(--g-text-mid)',
+                          color: r.include ? 'var(--c-green-2)' : 'var(--g-text-mid)',
                           fontSize: 13, fontWeight: 700, lineHeight: 1,
                           flexShrink: 0,
                         }}
@@ -254,9 +254,9 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
               <>
                 <h3 style={modalTitle}>Done</h3>
                 <div className="flex gap-2 mb-3.5 flex-wrap">
-                  <SummaryStat label="Created" value={results.created} colour="#34d399" />
+                  <SummaryStat label="Created" value={results.created} colour="var(--c-green-2)" />
                   {results.skipped > 0 && <SummaryStat label="Skipped" value={results.skipped} colour="var(--g-text-mid)" />}
-                  {results.errored > 0 && <SummaryStat label="Errored" value={results.errored} colour="#fca5a5" />}
+                  {results.errored > 0 && <SummaryStat label="Errored" value={results.errored} colour="var(--c-red)" />}
                 </div>
                 {(results.skipped > 0 || results.errored > 0) && (
                   <div style={{ maxHeight: 240, overflowY: 'auto', marginBottom: 14, border: '1px solid var(--g-border)', borderRadius: 'var(--r-md)' }}>
@@ -268,7 +268,7 @@ export default function BulkInviteButton({ practiceId, canMakeOwner, canAssignLe
                       }}>
                         <span className="text-hi">{r.email}</span>
                         {' · '}
-                        <span style={{ color: r.status === 'error' ? '#fca5a5' : 'var(--g-text-mid)' }}>
+                        <span style={{ color: r.status === 'error' ? 'var(--c-red)' : 'var(--g-text-mid)' }}>
                           {r.message || r.status}
                         </span>
                       </div>
@@ -362,7 +362,7 @@ const errorBox = {
   padding: '8px 12px',
   background: 'rgba(239,68,68,0.12)',
   border: '1px solid rgba(239,68,68,0.3)',
-  color: '#fca5a5',
+  color: 'var(--c-red)',
   fontSize: 12,
   borderRadius: 'var(--r-sm)',
   marginBottom: 12,

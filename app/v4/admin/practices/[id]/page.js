@@ -32,7 +32,7 @@ export default async function AdminPracticeDetailPage({ params }) {
 
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-ink-max">Configuration error.</div>;
 
   await requireAdmin(supabase, { returnTo: `/v4/admin/practices/${practiceId}` });
 
@@ -43,7 +43,7 @@ export default async function AdminPracticeDetailPage({ params }) {
     return (
       <div className="p-8">
         <AdminNav active="practices" />
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', padding: 16, borderRadius: 'var(--r-md)', color: '#fca5a5' }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', padding: 16, borderRadius: 'var(--r-md)', color: 'var(--c-red)' }}>
           {error.message}
         </div>
       </div>
@@ -55,13 +55,13 @@ export default async function AdminPracticeDetailPage({ params }) {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-      color: '#e2e8f0',
+      color: 'var(--g-text-hi)',
       padding: '32px 32px 64px',
     }}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <AdminNav active="practices" />
 
-        <Link href="/v4/admin" style={{ fontSize: 13, color: '#cbd5e1', textDecoration: 'none', display: 'inline-block', marginBottom: 18 }}>
+        <Link href="/v4/admin" style={{ fontSize: 13, color: 'var(--g-text-soft)', textDecoration: 'none', display: 'inline-block', marginBottom: 18 }}>
           ← All practices
         </Link>
 
@@ -69,16 +69,16 @@ export default async function AdminPracticeDetailPage({ params }) {
         <div style={card}>
           <div className="flex justify-between items-start mb-[18px] flex-wrap gap-3">
             <div className="min-w-0 flex-1">
-              <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 6, letterSpacing: -0.3 }}>
+              <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'var(--g-text-max)', marginBottom: 6, letterSpacing: -0.3 }}>
                 {details.name}
               </h2>
-              <div style={{ fontSize: 13, color: '#94a3b8', fontFamily: 'ui-monospace, Menlo, monospace' }}>
+              <div style={{ fontSize: 13, color: 'var(--g-text-mid)', fontFamily: 'ui-monospace, Menlo, monospace' }}>
                 {details.slug}
               </div>
             </div>
             <div className="flex gap-2 flex-wrap">
               {!details.setup_completed_at && (
-                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--r-pill)' }}>
+                <span style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(245,158,11,0.15)', color: 'var(--c-amber)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--r-pill)' }}>
                   Setup incomplete
                 </span>
               )}
@@ -128,7 +128,7 @@ export default async function AdminPracticeDetailPage({ params }) {
 
         {/* Danger zone */}
         <div style={{ ...card, borderColor: 'rgba(239,68,68,0.2)' }}>
-          <h3 style={{ ...cardHeader, color: '#fca5a5' }}>Danger zone</h3>
+          <h3 style={{ ...cardHeader, color: 'var(--c-red)' }}>Danger zone</h3>
           <DeletePracticeButton
             practiceId={details.id}
             practiceName={details.name}
@@ -156,12 +156,12 @@ export default async function AdminPracticeDetailPage({ params }) {
 }
 
 const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-lg)', padding: 22, marginBottom: 18 };
-const cardHeader = { fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "var(--font-heading)" };
+const cardHeader = { fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14, fontFamily: "var(--font-heading)" };
 
 function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', gap: 12 }}>
-      <span style={{ color: '#94a3b8', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600 }}>{label}</span>
+      <span style={{ color: 'var(--g-text-mid)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600 }}>{label}</span>
       <span className="text-slate-200 text-body">{children}</span>
     </div>
   );
@@ -176,8 +176,8 @@ function Stat({ label, value }) {
       borderRadius: 'var(--r-md)',
       padding: '16px 18px',
     }}>
-      <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 600, color: '#e2e8f0', fontFamily: "var(--font-heading)", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 12, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 600, color: 'var(--g-text-hi)', fontFamily: "var(--font-heading)", lineHeight: 1 }}>{value}</div>
     </div>
   );
 }
@@ -192,7 +192,7 @@ function SettingsLink({ href, label, kind, title }) {
         padding: '8px 14px',
         fontSize: 13,
         fontWeight: 500,
-        color: isPrimary ? 'white' : '#22d3ee',
+        color: isPrimary ? 'var(--g-text-max)' : 'var(--c-cyan-3)',
         background: isPrimary ? '#0891b2' : 'rgba(255,255,255,0.04)',
         border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.08)',
         borderRadius: 'var(--r-sm)',

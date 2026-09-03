@@ -44,12 +44,12 @@ export default function CopyableValue({ children, value, title }) {
           border: 'none',
           padding: 2,
           cursor: 'pointer',
-          color: copied ? '#34d399' : 'var(--meta)',
+          color: copied ? 'var(--c-green-2)' : 'var(--meta)',
           display: 'inline-flex',
           alignItems: 'center',
           transition: 'color 0.15s',
         }}
-        onMouseOver={(e) => { if (!copied) e.currentTarget.style.color = '#cbd5e1'; }}
+        onMouseOver={(e) => { if (!copied) e.currentTarget.style.color = 'var(--g-text-soft)'; }}
         onMouseOut={(e) => { if (!copied) e.currentTarget.style.color = '#64748b'; }}
       >
         {copied ? (

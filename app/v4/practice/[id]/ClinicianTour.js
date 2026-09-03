@@ -123,7 +123,7 @@ export default function ClinicianTour({ step, targets, stepIndex, totalSteps, pr
         <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#818cf8', fontWeight: 600, marginBottom: 6 }}>
           Step {stepIndex} of {totalSteps}
         </div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#f1f5f9', marginBottom: 5 }}>{copy.title}</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-pale)', marginBottom: 5 }}>{copy.title}</div>
         <div style={{ fontSize: 13, color: 'var(--g-text-hi)', lineHeight: 1.5, marginBottom: 13 }}>{copy.body}</div>
         <div className="flex items-center gap-2.5">
           {onPrimary && (

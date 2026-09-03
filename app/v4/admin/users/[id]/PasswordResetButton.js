@@ -69,7 +69,7 @@ export default function PasswordResetButton({ email }) {
         style={{
           padding: '8px 14px',
           background: '#0891b2',
-          color: 'white',
+          color: 'var(--g-text-max)',
           border: 'none',
           borderRadius: 'var(--r-md)',
           fontSize: 13,
@@ -103,7 +103,7 @@ export default function PasswordResetButton({ email }) {
           fontSize: 12,
           borderRadius: 'var(--r-sm)',
           background: status.kind === 'error' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
-          color: status.kind === 'error' ? '#fca5a5' : '#6ee7b7',
+          color: status.kind === 'error' ? 'var(--c-red)' : 'var(--c-mint)',
           border: `1px solid ${status.kind === 'error' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
         }}>{status.message}</div>
       )}

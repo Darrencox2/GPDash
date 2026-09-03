@@ -305,7 +305,7 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {showCountLabel && hasData && total > 0 && (
                 <div className="text-sm font-bold transition-all duration-150" style={{color: isToday ? 'var(--g-text-hi)' : isHovered ? availColour : 'var(--g-text-mid)'}}>
-                  {avail + emb}{book > 0 && <span style={{color:'#ef4444'}}>+{book}</span>}
+                  {avail + emb}{book > 0 && <span style={{color:'var(--state-short)'}}>+{book}</span>}
                 </div>
               )}
               <div className="w-full rounded-t-md overflow-hidden cursor-pointer transition-all duration-200"
@@ -638,8 +638,8 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => hasData && total > 0 && setSelectedDay(d.date)}>
               {hasData && total > 0 && (
-                <div className="text-sm font-bold transition-all duration-150" style={{color: isToday ? 'var(--g-text-hi)' : isHovered ? '#34d399' : 'var(--g-text-mid)'}}>
-                  {avail}{emb > 0 && <span style={{color:'#fbbf24'}}>+{emb}</span>}
+                <div className="text-sm font-bold transition-all duration-150" style={{color: isToday ? 'var(--g-text-hi)' : isHovered ? 'var(--c-green-2)' : 'var(--g-text-mid)'}}>
+                  {avail}{emb > 0 && <span style={{color:'var(--c-amber-2)'}}>+{emb}</span>}
                 </div>
               )}
               <div className="w-full rounded-t overflow-hidden cursor-pointer transition-all duration-200"
@@ -663,7 +663,7 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
                     <div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#10b981'}} />Available</span><span className="font-semibold text-emerald-400">{avail}</span></div>
                     {emb > 0 && <div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#f59e0b'}} />Embargoed</span><span className="font-semibold text-amber-400">{emb}</span></div>}
                     {book > 0 && <div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full" style={{background:'#ef4444'}} />Booked</span><span className="font-semibold text-red-400">{book}</span></div>}
-                    <div className="flex items-center justify-between gap-3 text-sm pt-0.5" style={{borderTop:'1px solid var(--g-divider)'}}><span className="text-slate-400">Total</span><span className="font-bold text-white">{total}</span></div>
+                    <div className="flex items-center justify-between gap-3 text-sm pt-0.5" style={{borderTop:'1px solid var(--g-divider)'}}><span className="text-slate-400">Total</span><span className="font-bold text-ink-max">{total}</span></div>
                   </div>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0" style={{borderLeft:'4px solid transparent',borderRight:'4px solid transparent',borderTop:'4px solid var(--g-divider)'}} />
                 </div>

@@ -281,7 +281,7 @@ export default function ClinicianDetailsPanel({
                   marginTop: 4, padding: '6px 12px',
                   background: 'rgba(16,185,129,0.10)',
                   border: '1px solid rgba(16,185,129,0.30)',
-                  borderRadius: 'var(--r-sm)', color: '#34d399',
+                  borderRadius: 'var(--r-sm)', color: 'var(--c-green-2)',
                   fontSize: 11, fontWeight: 500,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
@@ -382,7 +382,7 @@ export default function ClinicianDetailsPanel({
           </Section>
 
           {/* Save indicator */}
-          <div style={{ fontSize: 11, color: saving ? 'var(--g-text-mid)' : (savedAt ? '#10b981' : 'var(--g-text-mid)'), textAlign: 'right' }}>
+          <div style={{ fontSize: 11, color: saving ? 'var(--g-text-mid)' : (savedAt ? 'var(--state-ok)' : 'var(--g-text-mid)'), textAlign: 'right' }}>
             {error
               ? <span className="text-red-300">{error}</span>
               : (saving ? 'Saving…' : (savedAt ? '✓ All changes saved' : 'Edits save automatically'))
@@ -481,13 +481,13 @@ function AliasEditor({ aliases, onAdd, onRemove }) {
             background: 'rgba(34,211,238,0.10)',
             border: '1px solid rgba(34,211,238,0.25)',
             borderRadius: 'var(--r-pill)',
-            fontSize: 12, color: '#67e8f9',
+            fontSize: 12, color: 'var(--c-cyan)',
             fontFamily: "var(--font-mono)",
           }}>
             {a}
             <button onClick={() => onRemove(a)} aria-label={`Remove ${a}`} style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: '#67e8f9', fontSize: 12, padding: 0, opacity: 0.7,
+              color: 'var(--c-cyan)', fontSize: 12, padding: 0, opacity: 0.7,
             }}>×</button>
           </span>
         ))}
@@ -504,7 +504,7 @@ function AliasEditor({ aliases, onAdd, onRemove }) {
           background: draft.trim() ? 'rgba(34,211,238,0.15)' : 'var(--g-tile)',
           border: '1px solid ' + (draft.trim() ? 'rgba(34,211,238,0.30)' : 'var(--g-line)'),
           borderRadius: 'var(--r-sm)',
-          color: draft.trim() ? '#67e8f9' : 'var(--g-text-mid)',
+          color: draft.trim() ? 'var(--c-cyan)' : 'var(--g-text-mid)',
           fontSize: 12, fontWeight: 500,
           cursor: draft.trim() ? 'pointer' : 'not-allowed',
           fontFamily: 'inherit',

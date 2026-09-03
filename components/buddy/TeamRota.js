@@ -175,8 +175,8 @@ export default function TeamRota({ data, saveData, helpers, huddleData }) {
         <div className="overflow-x-auto">
           <div className="px-4 pt-3 pb-1 text-xs text-slate-400">
             Under each working day: M A E session segments - THE working rota, one source shared by buddy cover, the boards and Locum spend. Click a segment to toggle it.
-            <span style={{ color: '#b45309' }}> Amber outline = EMIS history disagrees or is uncertain</span> - review those first. All changes are audited.
-            <button onClick={fillFromHistory} className="ml-2 px-2 py-0.5 rounded-md text-[11px] font-semibold" style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc' }}>Fill from EMIS history</button>
+            <span style={{ color: 'var(--c-amber-2)' }}> Amber outline = EMIS history disagrees or is uncertain</span> - review those first. All changes are audited.
+            <button onClick={fillFromHistory} className="ml-2 px-2 py-0.5 rounded-md text-[11px] font-semibold" style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: 'var(--accent-pale)' }}>Fill from EMIS history</button>
           </div>
           <table className="w-full">
             <thead><tr className="border-b border-slate-200"><th className="text-left py-2.5 px-4 text-xs font-medium text-slate-400 uppercase tracking-wide">Clinician</th>{DAYS.map(d => <th key={d} className="text-center py-2.5 px-3 text-xs font-medium text-slate-400 uppercase tracking-wide w-20">{d.slice(0, 3)}</th>)}</tr></thead>

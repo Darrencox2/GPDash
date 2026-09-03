@@ -68,7 +68,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
       </div>
 
       {!b.hasCsv && (
-        <div className="mb-3 rounded-lg px-3 py-2 text-sm" style={{ border: '1px solid rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.07)', color: '#fcd34d' }}>
+        <div className="mb-3 rounded-lg px-3 py-2 text-sm" style={{ border: '1px solid rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.07)', color: 'var(--c-amber)' }}>
           No appointment CSV loaded — duty, capacity and wait figures will fill in once today&rsquo;s report is uploaded.
         </div>
       )}
@@ -95,7 +95,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
                 <span className="label-caps w-8" style={{ color: 'var(--meta)' }}>{s}</span>
                 <span className="text-sm font-bold font-mono-data" style={{ color: 'var(--g-text-hi)' }}>{u.slots}</span>
                 {u.target > 0 && <span className="text-xs" style={{ color: 'var(--meta)' }}>/ {u.target} target</span>}
-                {u.target > 0 && u.band.label && <span className="text-xs font-semibold" style={{ color: u.band.colour }}>{u.band.label}</span>}
+                {u.target > 0 && u.band.label && <span className="text-xs font-semibold" style={{ color: u.band.ink }}>{u.band.label}</span>}
               </div>
             );
           })}
@@ -130,7 +130,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               {b.absent.map((c, i) => (
                 <span key={`a${i}`} className="text-xs" style={{ color: 'var(--g-text-hi)' }}>
-                  {c.name} <span style={{ color: '#fca5a5' }}>· {c.reason}</span>
+                  {c.name} <span style={{ color: 'var(--c-red)' }}>· {c.reason}</span>
                 </span>
               ))}
               {b.dayOff.map((c, i) => (
@@ -227,7 +227,7 @@ export default function MorningBriefing({ data, huddleData, huddleMessages }) {
                     <div style={{ width: `${o.urgentSlots != null && o.predicted ? Math.max(4, Math.min(100, Math.round(o.urgentSlots / o.predicted * 100))) : 0}%`, height: '100%', background: o.band ? o.band.colour : 'var(--g-text-faint)' }} />
                   </div>
                   <div className="mt-1 flex justify-between text-[11px] font-mono-data" style={{ color: 'var(--meta)' }}>
-                    <span title="Urgent slots on EMIS" style={{ color: o.band ? o.band.colour : 'var(--g-text-hi)' }}>{o.urgentSlots != null ? o.urgentSlots : '—'}u</span>
+                    <span title="Urgent slots on EMIS" style={{ color: o.band ? o.band.ink : 'var(--g-text-hi)' }}>{o.urgentSlots != null ? o.urgentSlots : '—'}u</span>
                     <span title="Routine slots on EMIS">{o.routineSlots != null ? o.routineSlots : '—'}r</span>
                   </div>
                 </>

@@ -280,7 +280,7 @@ export default function CreatePracticePage() {
             {!searching && query.trim().length >= 2 && searchResults.length === 0 && (
               <div className="text-caption text-slate-400 mt-2">
                 No NHS practices match "{query}". Try a different spelling, or{' '}
-                <button type="button" onClick={() => { setManualName(query.trim()); setMode('manual'); }} style={{ background: 'none', border: 'none', padding: 0, color: '#34d399', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>enter details manually</button>.
+                <button type="button" onClick={() => { setManualName(query.trim()); setMode('manual'); }} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--c-green-2)', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>enter details manually</button>.
               </div>
             )}
             {searchResults.length > 0 && (
@@ -390,7 +390,7 @@ export default function CreatePracticePage() {
         borderRadius: 'var(--r-md)',
         marginBottom: 16,
       }}>
-        <div style={{ fontSize: 15, color: '#e2e8f0', fontWeight: 500, marginBottom: 4 }}>{picked.name}</div>
+        <div style={{ fontSize: 15, color: 'var(--g-text-hi)', fontWeight: 500, marginBottom: 4 }}>{picked.name}</div>
         {(picked.pcnName || picked.icbName) && (
           <div className="text-meta text-slate-300 mb-1">
             {[picked.pcnName, picked.icbName].filter(Boolean).join(' · ')}
@@ -433,20 +433,20 @@ export default function CreatePracticePage() {
           borderRadius: 'var(--r-md)',
           marginBottom: 16,
           fontSize: 13,
-          color: '#fde68a',
+          color: 'var(--c-sand)',
           lineHeight: 1.5,
         }}>
           <strong className="text-amber-400">This practice is already on GPDash.</strong>
           {' '}
           {joinState === 'requested' || joinState === 'already_pending' ? (
-            <>Your request to join has been sent{dupCheck.owner_name ? <> to <strong style={{ color: '#fde68a' }}>{dupCheck.owner_name}</strong></> : null}.
+            <>Your request to join has been sent{dupCheck.owner_name ? <> to <strong style={{ color: 'var(--c-sand)' }}>{dupCheck.owner_name}</strong></> : null}.
               {' '}They will see it on their Users page and you will be let in once they approve it.</>
           ) : joinState === 'already_member' ? (
-            <>You are already a member of this practice &mdash; <a href="/v4/dashboard" style={{ color: '#fde68a', textDecoration: 'underline' }}>go to your dashboard</a>.</>
+            <>You are already a member of this practice &mdash; <a href="/v4/dashboard" style={{ color: 'var(--c-sand)', textDecoration: 'underline' }}>go to your dashboard</a>.</>
           ) : (
             <>
               {dupCheck.owner_name
-                ? <>It is run by <strong style={{ color: '#fde68a' }}>{dupCheck.owner_name}</strong>. Ask to join and they can approve you from the practice&rsquo;s Users page.</>
+                ? <>It is run by <strong style={{ color: 'var(--c-sand)' }}>{dupCheck.owner_name}</strong>. Ask to join and they can approve you from the practice&rsquo;s Users page.</>
                 : <>Ask to join and whoever set it up can approve you from the practice&rsquo;s Users page.</>}
               {/* Asking used to be impossible from here: the screen told
                   people to go and find the owner themselves, with no way
@@ -472,7 +472,7 @@ export default function CreatePracticePage() {
                     Ask whoever set it up to invite you from the practice&rsquo;s Users page. They will need the email address you signed up with.
                   </div>
                 )}
-                {joinError && <div style={{ marginTop: 8, fontSize: 12, color: '#fca5a5' }}>{joinError}</div>}
+                {joinError && <div style={{ marginTop: 8, fontSize: 12, color: 'var(--c-red)' }}>{joinError}</div>}
               </div>
             </>
           )}
@@ -498,7 +498,7 @@ export default function CreatePracticePage() {
           ...f.button,
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.08)',
-          color: '#cbd5e1',
+          color: 'var(--g-text-soft)',
         }}
       >
         ← Pick a different practice
@@ -518,7 +518,7 @@ function ModeButton({ active, onClick, children }) {
         padding: '8px 12px',
         fontSize: 12,
         fontWeight: 500,
-        color: active ? 'white' : '#94a3b8',
+        color: active ? 'var(--g-text-max)' : 'var(--g-text-mid)',
         background: active ? 'rgba(34,211,238,0.15)' : 'transparent',
         border: active ? '1px solid rgba(34,211,238,0.3)' : '1px solid transparent',
         borderRadius: 'var(--r-sm)',
@@ -556,7 +556,7 @@ function ResultButton({ practice, onClick }) {
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 'var(--r-sm)',
         cursor: 'pointer',
-        color: '#e2e8f0',
+        color: 'var(--g-text-hi)',
         fontSize: 13,
         fontFamily: 'inherit',
       }}
@@ -565,11 +565,11 @@ function ResultButton({ practice, onClick }) {
     >
       <div className="font-medium">{practice.name}</div>
       {contextBits.length > 0 && (
-        <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 3 }}>
+        <div style={{ fontSize: 11, color: 'var(--g-text-soft)', marginTop: 3 }}>
           {contextBits.join(' · ')}
         </div>
       )}
-      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
+      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 3 }}>
         ODS: <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{practice.odsCode}</span>
         {practice.listSize ? <> · {practice.listSize.toLocaleString('en-GB')} patients</> : null}
         {practice.existsInDatabase && <span className="text-amber-400 ml-2">· Already on GPDash</span>}

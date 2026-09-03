@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminUsersPage({ searchParams }) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-ink-max">Configuration error.</div>;
 
   await requireAdmin(supabase, { returnTo: '/v4/admin/users' });
 
@@ -25,7 +25,7 @@ export default async function AdminUsersPage({ searchParams }) {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-      color: '#e2e8f0',
+      color: 'var(--g-text-hi)',
       padding: '32px 32px 64px',
     }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
@@ -36,7 +36,7 @@ export default async function AdminUsersPage({ searchParams }) {
         </div>
 
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 14, borderRadius: 'var(--r-md)', marginTop: 18, fontSize: 14 }}>
+          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', padding: 14, borderRadius: 'var(--r-md)', marginTop: 18, fontSize: 14 }}>
             {error.message}
           </div>
         )}

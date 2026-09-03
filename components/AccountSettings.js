@@ -89,7 +89,7 @@ export default function AccountSettings({ data }) {
   if (!v4.userId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-bold text-white" style={{fontFamily:"var(--font-heading)"}}>Account</h1>
+        <h1 className="text-xl font-bold text-ink-max" style={{fontFamily:"var(--font-heading)"}}>Account</h1>
         <div className="card p-5">
           <p className="text-sm text-slate-400">Account settings are not available in legacy mode.</p>
         </div>
@@ -100,7 +100,7 @@ export default function AccountSettings({ data }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-white" style={{fontFamily:"var(--font-heading)"}}>Account</h1>
+        <h1 className="text-xl font-bold text-ink-max" style={{fontFamily:"var(--font-heading)"}}>Account</h1>
         <p className="text-sm text-slate-400 mt-1">Settings for your sign-in, your linked clinician record, and personal preferences.</p>
       </div>
 
@@ -336,7 +336,7 @@ function DataAndPrivacy({ userEmail }) {
               className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50"
               style={{
                 background: '#0e7490',
-                color: 'white',
+                color: 'var(--g-text-max)',
                 border: 'none',
               }}
             >

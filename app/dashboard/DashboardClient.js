@@ -88,13 +88,13 @@ class SectionErrorBoundary extends Component {
         return (
           <div style={{ padding: 24 }}>
             <div className="glass" style={{ padding: 20, borderRadius: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#fbbf24' }}>GPDash has been updated</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-amber-2)' }}>GPDash has been updated</div>
               <div style={{ fontSize: 13, color: 'var(--meta)', marginTop: 6, maxWidth: '60ch', lineHeight: 1.6 }}>
                 This tab was open while a new version went out, so part of the app it was
                 trying to load no longer exists. Reloading picks up the new version — nothing
                 is wrong and nothing is lost.
               </div>
-              <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: '8px 16px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.18)', border: '1px solid rgba(251,191,36,0.5)', color: '#fcd34d', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Reload GPDash</button>
+              <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: '8px 16px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.18)', border: '1px solid rgba(251,191,36,0.5)', color: 'var(--c-amber)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Reload GPDash</button>
             </div>
           </div>
         );
@@ -102,12 +102,12 @@ class SectionErrorBoundary extends Component {
       return (
         <div style={{ padding: 24 }}>
           <div className="glass" style={{ padding: 20, borderRadius: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#fca5a5' }}>This section hit an error</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-red)' }}>This section hit an error</div>
             <div style={{ fontSize: 13, color: 'var(--meta)', marginTop: 6 }}>
               Copy the details and send them to Darren — that is more useful than a screenshot,
               because it includes what you were doing.
             </div>
-            <pre style={{ fontSize: 12, color: '#e2e8f0', whiteSpace: 'pre-wrap', marginTop: 10, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 'var(--r-md)' }}>{String(this.state.error?.message || this.state.error)}</pre>
+            <pre style={{ fontSize: 12, color: 'var(--g-text-hi)', whiteSpace: 'pre-wrap', marginTop: 10, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 'var(--r-md)' }}>{String(this.state.error?.message || this.state.error)}</pre>
             {trail.length > 0 && (
               <div style={{ marginTop: 10, fontSize: 12, color: 'var(--meta)' }}>
                 <div style={{ fontWeight: 600, marginBottom: 3 }}>What you did just before</div>
@@ -120,7 +120,7 @@ class SectionErrorBoundary extends Component {
               <button onClick={this.copy} style={{ padding: '7px 14px', borderRadius: 'var(--r-md)', background: this.state.copied ? 'rgba(52,211,153,0.2)' : 'rgba(52,211,153,0.14)', border: `1px solid ${this.state.copied ? 'var(--link)' : 'rgba(52,211,153,0.45)'}`, color: 'var(--link)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 {this.state.copied ? 'Copied \u2713' : 'Copy error details'}
               </button>
-              <button onClick={() => this.setState({ error: null, info: null })} style={{ padding: '7px 14px', borderRadius: 'var(--r-md)', background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc', fontSize: 13, cursor: 'pointer' }}>Try again</button>
+              <button onClick={() => this.setState({ error: null, info: null })} style={{ padding: '7px 14px', borderRadius: 'var(--r-md)', background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)', color: 'var(--accent-pale)', fontSize: 13, cursor: 'pointer' }}>Try again</button>
             </div>
           </div>
         </div>
@@ -1003,7 +1003,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     return <div className="min-h-screen flex items-center justify-center" style={{ background: '#f1f5f9' }}><PageSkeleton /></div>;
   }
   if (!data) {
-    return <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f172a', color: '#94a3b8', fontSize: 14 }}>No data loaded.</div>;
+    return <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f172a', color: 'var(--g-text-mid)', fontSize: 14 }}>No data loaded.</div>;
   }
 
   const helpers = { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, syncTeamNet, toggleRotaDay, removeClinician, updateClinicianField, dataVersion, setDataVersion, setData };
@@ -1077,14 +1077,14 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                 flexWrap: 'wrap',
                 lineHeight: 1.5,
               }}>
-                <div style={{ fontSize: 13, color: '#cbd5e1', flex: '1 1 280px', minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: 'var(--g-text-soft)', flex: '1 1 280px', minWidth: 0 }}>
                   <strong className="text-amber-400">Review your team</strong>
                   {' · '}{needCount} clinician{needCount === 1 ? '' : 's'} need{needCount === 1 ? 's' : ''} a role and initials. Quick setup is one row each, saves automatically.
                 </div>
                 <a
                   href={`/v4/practice/${slug}?tab=clinicians`}
                   style={{
-                    fontSize: 12, fontWeight: 500, color: 'white',
+                    fontSize: 12, fontWeight: 500, color: 'var(--g-text-max)',
                     background: '#d97706',
                     padding: '8px 14px', borderRadius: 'var(--r-sm)',
                     textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
@@ -1126,13 +1126,13 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
             {canEditPracticeData(data) && (
               <>
                 {' · '}
-                <a href={`/v4/practice/${data._v4?.practiceSlug || practiceId}`} style={{ color: '#94a3b8', textDecoration: 'underline' }}>Manage practice</a>
+                <a href={`/v4/practice/${data._v4?.practiceSlug || practiceId}`} style={{ color: 'var(--g-text-mid)', textDecoration: 'underline' }}>Manage practice</a>
               </>
             )}
             {isPlatformAdmin(data) && (
               <>
                 {' · '}
-                <a href="/v4/admin" style={{ color: '#22d3ee', textDecoration: 'underline' }}>Platform admin</a>
+                <a href="/v4/admin" style={{ color: 'var(--c-cyan-3)', textDecoration: 'underline' }}>Platform admin</a>
               </>
             )}
             {' · '}
@@ -1146,7 +1146,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                 style={{
                   background: 'transparent',
                   border: '1px solid rgba(148,163,184,0.3)',
-                  color: '#94a3b8',
+                  color: 'var(--g-text-mid)',
                   fontSize: 11,
                   padding: '2px 6px',
                   borderRadius: 'var(--r-sm)',
@@ -1154,18 +1154,18 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
                 }}
               >
                 {allPractices.map(p => (
-                  <option key={p.id} value={p.id} style={{ background: '#0f172a', color: '#e2e8f0' }}>
+                  <option key={p.id} value={p.id} style={{ background: '#0f172a', color: 'var(--g-text-hi)' }}>
                     {p.name} ({p.role})
                   </option>
                 ))}
               </select>
             ) : (
-              <a href="/v4/dashboard" style={{ color: '#94a3b8', textDecoration: 'underline' }}>Switch practice</a>
+              <a href="/v4/dashboard" style={{ color: 'var(--g-text-mid)', textDecoration: 'underline' }}>Switch practice</a>
             )}
             {' · '}
             <button
               onClick={async () => { await supabase.auth.signOut(); router.push('/v4/login'); }}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}
+              style={{ background: 'none', border: 'none', color: 'var(--g-text-mid)', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}
             >Sign out</button>
           </div>
         </footer>

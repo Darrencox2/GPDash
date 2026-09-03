@@ -148,7 +148,7 @@ export default function NhsDataUploader() {
             border: '1px solid rgba(239,68,68,0.3)',
             borderRadius: 'var(--r-sm)',
             fontSize: 12,
-            color: '#fca5a5',
+            color: 'var(--c-red)',
           }}>{error}</div>
         )}
 
@@ -159,7 +159,7 @@ export default function NhsDataUploader() {
             border: '1px solid rgba(16,185,129,0.3)',
             borderRadius: 'var(--r-sm)',
             fontSize: 12,
-            color: '#6ee7b7',
+            color: 'var(--c-mint)',
             lineHeight: 1.5,
           }}>
             ✓ Uploaded {result.practicesUpserted.toLocaleString()} practices for
@@ -176,7 +176,7 @@ export default function NhsDataUploader() {
             padding: '10px 16px',
             background: uploading ? 'rgba(34,211,238,0.05)' : 'rgba(34,211,238,0.15)',
             border: '1px solid rgba(34,211,238,0.4)',
-            color: '#22d3ee',
+            color: 'var(--c-cyan-3)',
             borderRadius: 'var(--r-md)',
             fontSize: 13,
             fontWeight: 500,
@@ -197,7 +197,7 @@ const input = {
   background: 'rgba(0,0,0,0.3)',
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 'var(--r-sm)',
-  color: '#e2e8f0',
+  color: 'var(--g-text-hi)',
   fontSize: 13,
   fontFamily: 'inherit',
   outline: 'none',

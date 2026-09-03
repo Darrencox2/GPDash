@@ -73,7 +73,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
           style={{
             padding: '8px 14px',
             background: disabledReason ? 'rgba(255,255,255,0.04)' : '#7c3aed',
-            color: disabledReason ? '#64748b' : 'white',
+            color: disabledReason ? '#64748b' : 'var(--g-text-max)',
             border: 'none',
             borderRadius: 'var(--r-md)',
             fontSize: 13,
@@ -126,7 +126,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
               your admin account afterwards.
             </p>
 
-            <label style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>
+            <label style={{ fontSize: 11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>
               Reason (required — recorded in audit log)
             </label>
             <textarea
@@ -141,7 +141,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 'var(--r-sm)',
-                color: '#e2e8f0',
+                color: 'var(--g-text-hi)',
                 fontSize: 13,
                 fontFamily: 'inherit',
                 resize: 'vertical',
@@ -155,7 +155,7 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
                 padding: '8px 12px',
                 background: 'rgba(239,68,68,0.12)',
                 border: '1px solid rgba(239,68,68,0.3)',
-                color: '#fca5a5',
+                color: 'var(--c-red)',
                 fontSize: 12,
                 borderRadius: 'var(--r-sm)',
                 marginBottom: 12,
@@ -185,5 +185,5 @@ export default function ImpersonateButton({ user, currentUserIsTarget }) {
   );
 }
 
-const btnSubtle = { padding: '8px 14px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+const btnSubtle = { padding: '8px 14px', background: 'rgba(255,255,255,0.06)', color: 'var(--g-text-soft)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 const btnDanger = { padding: '8px 14px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };

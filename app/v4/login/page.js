@@ -141,12 +141,12 @@ function LoginPageInner() {
             type="button" onClick={resendConfirmation} disabled={confirmBusy || !email}
             style={{ display: 'block', width: '100%', marginBottom: 12, padding: '9px 12px', fontSize: 13,
               background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.45)',
-              color: '#a5b4fc', borderRadius: 8, cursor: confirmBusy ? 'default' : 'pointer', opacity: email ? 1 : 0.5 }}
+              color: 'var(--accent-pale)', borderRadius: 8, cursor: confirmBusy ? 'default' : 'pointer', opacity: email ? 1 : 0.5 }}
           >
             {confirmBusy ? 'Sending…' : 'Send me a new confirmation email'}
           </button>
         )}
-        {confirmSent && <div style={{ ...f.errorBox, background: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.45)', color: '#6ee7b7' }}>{confirmSent}</div>}
+        {confirmSent && <div style={{ ...f.errorBox, background: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.45)', color: 'var(--c-mint)' }}>{confirmSent}</div>}
 
         <div style={f.field}>
           <label style={f.label}>Email</label>

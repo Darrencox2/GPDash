@@ -51,10 +51,10 @@ const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 // rendered as text directly on the dark card — the pale variants, because a
 // fill dark enough for white text is far too dark to read as type.
 const VB = {
-  over:  { bg:'#2563eb', text:'#fff', fg:'#93c5fd' },
-  good:  { bg:'#047857', text:'#fff', fg:'#6ee7b7' },
-  tight: { bg:'#b45309', text:'#fff', fg:'#fcd34d' },
-  short: { bg:'#dc2626', text:'#fff', fg:'#fca5a5', deficit: true },
+  over:  { bg:'#2563eb', text:'#fff', fg:'var(--c-blue)' },
+  good:  { bg:'#047857', text:'#fff', fg:'var(--c-mint)' },
+  tight: { bg:'#b45309', text:'#fff', fg:'var(--c-amber)' },
+  short: { bg:'#dc2626', text:'#fff', fg:'var(--c-red)', deficit: true },
   none:  { bg:'var(--g-text-faint)', text:'var(--g-text-mid)', fg:'var(--meta)' },
 };
 function vBand(s,t) { if(t<=0)return VB.none; const p=(s/t)*100; return p>=120?VB.over:p>=90?VB.good:p>=80?VB.tight:VB.short; }
@@ -148,7 +148,7 @@ function PredictionBand({ day, convRate }) {
           <span className="text-[11px] text-slate-400 uppercase tracking-wider">Drivers:</span>
           {topFactors.map((tf, i) => {
             const sign = tf.effect > 0 ? '+' : '';
-            const colour = tf.effect > 0 ? '#fbbf24' : '#34d399';
+            const colour = tf.effect > 0 ? 'var(--c-amber-2)' : 'var(--c-green-2)';
             return (
               <span key={i} className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border)' }}>
                 <span className="text-slate-400">{tf.label}</span>
@@ -635,12 +635,12 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   style={{
                     background: showStaffing ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)',
                     border: `1px solid ${showStaffing ? '#6366f180' : 'rgba(255,255,255,0.12)'}`,
-                    color: showStaffing ? 'var(--accent-text)' : '#94a3b8',
+                    color: showStaffing ? 'var(--accent-text)' : 'var(--g-text-mid)',
                   }}>
                   Site staffing
                   {staffingWarnDays > 0 && (
                     <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[11px] font-bold"
-                      style={{background:'#f59e0b30', border:'1px solid #f59e0b60', color:'#fbbf24'}}
+                      style={{background:'#f59e0b30', border:'1px solid #f59e0b60', color:'var(--c-amber-2)'}}
                       title={`${staffingWarnDays} day${staffingWarnDays === 1 ? '' : 's'} in the next 6 weeks below a staffing minimum`}>
                       {staffingWarnDays} short
                     </span>
@@ -651,7 +651,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                 <button onClick={() => setStaffingPanelOpen((v) => !v)}
                   title="Set the minimum clinician count per site"
                   className="px-2 py-1 rounded-md text-[11px] font-semibold"
-                  style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', color:'#94a3b8'}}>
+                  style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', color:'var(--g-text-mid)'}}>
                   Minimums
                 </button>
               )}
@@ -671,7 +671,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         : (capacityStaffing.thresholds?.[row.key] ?? '');
                       return (
                         <div key={row.key} className="flex items-center gap-2">
-                          <span className="flex-1 text-caption truncate" style={{ color: row.key === '__total' ? 'var(--accent-text)' : '#cbd5e1', fontWeight: row.key === '__total' ? 600 : 400 }}>{row.label}</span>
+                          <span className="flex-1 text-caption truncate" style={{ color: row.key === '__total' ? 'var(--accent-text)' : 'var(--g-text-soft)', fontWeight: row.key === '__total' ? 600 : 400 }}>{row.label}</span>
                           <select value={String(cur)}
                             onChange={(e) => {
                               const v = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
@@ -684,7 +684,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                               }
                             }}
                             className="rounded-md px-1.5 py-1 text-caption"
-                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#e2e8f0' }}>
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--g-text-hi)' }}>
                             <option value="">No minimum</option>
                             {Array.from({ length: 15 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
                           </select>
@@ -698,7 +698,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       const groups = Array.isArray(capacityStaffing.groups) && capacityStaffing.groups.length ? capacityStaffing.groups : ['gp'];
                       const on = groups.includes(g);
                       return (
-                        <label key={g} className="flex items-center gap-2 cursor-pointer text-caption" style={{ color: '#cbd5e1' }}>
+                        <label key={g} className="flex items-center gap-2 cursor-pointer text-caption" style={{ color: 'var(--g-text-soft)' }}>
                           <input type="checkbox" checked={on}
                             onChange={() => {
                               const next = on ? groups.filter((x) => x !== g) : [...groups, g];
@@ -997,10 +997,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{background: isActive ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.07)', border: `1px solid ${isActive ? 'rgba(239,68,68,0.45)' : 'rgba(239,68,68,0.35)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(239,68,68,0.18)'}}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: '#fca5a5'}}>Urgent below target &rarr;</div>
+                    <div className="text-xs font-semibold" style={{color: 'var(--c-red)'}}>Urgent below target &rarr;</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{shortDays.length} day{shortDays.length===1?'':'s'} flagged</div>
                   </div>
                   <span className="text-base font-bold text-red-400 font-mono-data">{shortDays.length}</span>
@@ -1015,10 +1015,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{background: isActive ? 'rgba(245,158,11,0.15)' : 'var(--g-tile-2)', border: `1px solid ${isActive ? 'rgba(245,158,11,0.45)' : 'var(--g-border-2)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(245,158,11,0.18)'}}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: isActive ? '#fcd34d' : 'var(--g-text-hi)'}}>Highest demand days</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? 'var(--c-amber)' : 'var(--g-text-hi)'}}>Highest demand days</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">Top {Math.min(topDemand.length,5)} predicted-busiest</div>
                   </div>
                   <span className="text-base font-bold text-amber-400 font-mono-data">{topDemand.length}</span>
@@ -1040,10 +1040,10 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     cursor: disabled ? 'not-allowed' : 'pointer'
                   }}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(167,139,250,0.18)'}}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--duty-fg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{color: isActive ? '#c4b5fd' : 'var(--g-text-hi)'}}>Routine by week</div>
+                    <div className="text-xs font-semibold" style={{color: isActive ? 'var(--duty-fg)' : 'var(--g-text-hi)'}}>Routine by week</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{disabled ? 'No target set' : `vs ${rTarget}/wk target`}</div>
                   </div>
                   <span className="text-base font-bold text-purple-300 font-mono-data">{disabled ? '—' : weeks.filter(w=>w.wR>0).length}</span>
@@ -1077,13 +1077,13 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                   className="px-3 py-3 rounded-lg flex items-center gap-3 transition-colors text-left"
                   style={{background: isActive ? 'rgba(99,102,241,0.15)' : 'var(--g-tile-2)', border: `1px solid ${isActive ? 'rgba(99,102,241,0.45)' : 'var(--g-border-2)'}`}}>
                   <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style={{background:'rgba(99,102,241,0.18)'}}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-pale)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold" style={{color: isActive ? 'var(--accent-text)' : 'var(--g-text-hi)'}}>Patterns</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{patterns.length===0?'Nothing flagged':highCount>0?`${highCount} high · ${patterns.length-highCount} other`:`${patterns.length} insight${patterns.length===1?'':'s'}`}</div>
                   </div>
-                  <span className="text-base font-bold font-mono-data" style={{color:highCount>0?'#fca5a5':'var(--accent-text)'}}>{patterns.length}</span>
+                  <span className="text-base font-bold font-mono-data" style={{color:highCount>0?'var(--c-red)':'var(--accent-text)'}}>{patterns.length}</span>
                 </button>
               );
             })()}
@@ -1150,7 +1150,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{background:'var(--g-tile)',border:'1px solid var(--g-tile)'}}>
                         <span className="text-xs font-semibold text-slate-300 w-12 flex-shrink-0">Wk {weeks.indexOf(w)+1}</span>
                         <div className="flex items-center gap-1.5"><span className="text-sm font-bold text-slate-200">{w.wU}</span><span className="text-[11px] text-slate-400">urg</span></div>
-                        <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'#a78bfa'}}>{w.wR}</span><span className="text-[11px] text-slate-400">rout</span></div>
+                        <div className="flex items-center gap-1.5"><span className="text-sm font-bold" style={{color:'var(--c-violet)'}}>{w.wR}</span><span className="text-[11px] text-slate-400">rout</span></div>
                         {delta!==0 && <span className={`text-xs font-bold ml-auto ${delta>0?'text-emerald-500':'text-red-500'}`}>{delta>0?'↑':'↓'}{Math.abs(delta)} urg</span>}
                       </div>
                     );})}</div>
@@ -1163,7 +1163,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                     </div>
                   : <div className="grid grid-cols-1 gap-3">
                       {patterns.map((p, i) => {
-                        const sevColour = p.severity === 'high' ? '#ef4444' : p.severity === 'medium' ? '#f59e0b' : 'var(--g-text-mid)';
+                        const sevColour = p.severity === 'high' ? 'var(--state-short)' : p.severity === 'medium' ? 'var(--state-tight)' : 'var(--g-text-mid)';
                         const sevBg = p.severity === 'high' ? 'rgba(239,68,68,0.06)' : p.severity === 'medium' ? 'rgba(245,158,11,0.06)' : 'rgba(148,163,184,0.04)';
                         const sevBorder = p.severity === 'high' ? 'rgba(239,68,68,0.2)' : p.severity === 'medium' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.15)';
                         const sevLabel = p.severity === 'high' ? 'HIGH' : p.severity === 'medium' ? 'MEDIUM' : 'INFO';
@@ -1230,7 +1230,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       {detailDay && (
         <div ref={drawerRef} className="hidden lg:flex fixed top-0 right-0 bottom-0 z-40 flex-col animate-in slide-in-from-right" style={{width:'440px',background:'linear-gradient(180deg, var(--g-ink-2) 0%, var(--g-ink) 100%)',borderLeft:'1px solid var(--g-line)',boxShadow:'-12px 0 32px rgba(0,0,0,0.5)'}}>
           <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10 flex-shrink-0">
-            <span className="text-sm font-semibold text-white font-heading">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</span>
+            <span className="text-sm font-semibold text-ink-max font-heading">{detailDay.dayName} {detailDay.dayNum} {detailDay.monthStr}</span>
             <button onClick={closeDay} className="ml-auto text-slate-400 hover:text-white" style={{background:'none',border:'none',cursor:'pointer',padding:'4px 8px'}} aria-label="Close">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
@@ -1282,7 +1282,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               </div>
               {detailDay.amDuty && (
                 <div className="flex items-center gap-1.5 px-2 py-1.5 rounded mb-2" style={{background:'rgba(239,68,68,0.12)',border:'1px solid rgba(239,68,68,0.25)'}}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#fca5a5" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--c-red)" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
                   <span className="text-[11px] font-semibold text-red-300">{(teamClin.find(tc=>matchesStaffMember(detailDay.amDuty.name,tc))?.name)||detailDay.amDuty.name} (duty)</span>
                 </div>
               )}
@@ -1306,7 +1306,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
               </div>
               {detailDay.pmDuty && (
                 <div className="flex items-center gap-1.5 px-2 py-1.5 rounded mb-2" style={{background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.25)'}}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="#93c5fd" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--c-blue)" stroke="none"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
                   <span className="text-[11px] font-semibold text-blue-300">{(teamClin.find(tc=>matchesStaffMember(detailDay.pmDuty.name,tc))?.name)||detailDay.pmDuty.name} (duty)</span>
                 </div>
               )}
@@ -1415,7 +1415,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                       <div className="p-3 space-y-2">
                         {/* AM urgent */}
                         {(() => {
-                          const amCol = detailDay.amT > 0 ? (detailDay.amS >= detailDay.amT ? '#34d399' : detailDay.amS >= detailDay.amT * 0.8 ? '#fbbf24' : '#f87171') : 'var(--g-text-mid)';
+                          const amCol = detailDay.amT > 0 ? (detailDay.amS >= detailDay.amT ? 'var(--c-green-2)' : detailDay.amS >= detailDay.amT * 0.8 ? 'var(--c-amber-2)' : 'var(--c-red-2)') : 'var(--g-text-mid)';
                           return (
                             <div className="rounded-md p-2.5" style={{background: 'var(--g-tile)'}}>
                               <div className="flex items-center justify-between mb-1">
@@ -1431,7 +1431,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
                         })()}
                         {/* PM urgent */}
                         {(() => {
-                          const pmCol = detailDay.pmT > 0 ? (detailDay.pmS >= detailDay.pmT ? '#34d399' : detailDay.pmS >= detailDay.pmT * 0.8 ? '#fbbf24' : '#f87171') : 'var(--g-text-mid)';
+                          const pmCol = detailDay.pmT > 0 ? (detailDay.pmS >= detailDay.pmT ? 'var(--c-green-2)' : detailDay.pmS >= detailDay.pmT * 0.8 ? 'var(--c-amber-2)' : 'var(--c-red-2)') : 'var(--g-text-mid)';
                           return (
                             <div className="rounded-md p-2.5" style={{background: 'var(--g-tile)'}}>
                               <div className="flex items-center justify-between mb-1">
@@ -1501,7 +1501,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         {mobileTab === 'short' && (
           <div className="rounded-xl overflow-hidden" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}>
             <div className="px-4 py-2.5" style={{background:"rgba(239,68,68,0.15)",borderBottom:"1px solid rgba(239,68,68,0.1)"}}>
-              <span className="text-xs font-semibold text-white">Urgent capacity below target</span>
+              <span className="text-xs font-semibold text-ink-max">Urgent capacity below target</span>
             </div>
             <div className="p-3 space-y-1.5">
               {shortDays.length === 0 && <p className="text-sm text-slate-400 text-center py-3">All days meeting target</p>}
@@ -1525,7 +1525,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         {mobileTab === 'demand' && (
           <div className="rounded-xl overflow-hidden" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}>
             <div className="px-4 py-2.5" style={{background:"rgba(245,158,11,0.15)",borderBottom:"1px solid rgba(245,158,11,0.1)"}}>
-              <span className="text-xs font-semibold text-white">Highest demand days</span>
+              <span className="text-xs font-semibold text-ink-max">Highest demand days</span>
             </div>
             <div className="p-3 space-y-1.5">
               {topDemand.length === 0 && <p className="text-sm text-slate-400 text-center py-3">No demand data</p>}
@@ -1546,7 +1546,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         {mobileTab === 'routine' && rTarget > 0 && (
           <div className="rounded-xl overflow-hidden" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}>
             <div className="px-4 py-2.5" style={{background:"rgba(124,58,237,0.15)",borderBottom:"1px solid rgba(124,58,237,0.1)"}}>
-              <span className="text-xs font-semibold text-white">Weekly routine capacity</span>
+              <span className="text-xs font-semibold text-ink-max">Weekly routine capacity</span>
             </div>
             <div className="p-3 space-y-1.5">
               {weeks.filter(w => w.wR > 0).map((w, i) => {
@@ -1569,7 +1569,7 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
         {mobileTab === 'trend' && (
           <div className="rounded-xl overflow-hidden" style={{background:"var(--g-panel-2)",border:"1px solid var(--g-border)"}}>
             <div className="px-4 py-2.5" style={{background:"var(--g-panel-2)",borderBottom:"1px solid var(--g-tile)"}}>
-              <span className="text-xs font-semibold text-white">Week-on-week</span>
+              <span className="text-xs font-semibold text-ink-max">Week-on-week</span>
             </div>
             <div className="p-3 space-y-1.5">
               {weeks.filter(w => w.wU > 0).map((w, i, arr) => {
@@ -1597,8 +1597,8 @@ export default function HuddleForward({ data, saveData, huddleData, setActiveSec
       {staffTip && (
         <div className="fixed z-50 pointer-events-none" style={{ left: staffTip.x, top: staffTip.y - 8, transform: 'translate(-50%, -100%)' }}>
           <div className="rounded-xl p-3 shadow-2xl text-left" style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.16)', minWidth: 200, maxWidth: 260 }}>
-            <div className="text-caption font-semibold" style={{ color: staffTip.entry.isTotal ? 'var(--accent-text)' : '#e2e8f0' }}>{staffTip.entry.site.name}</div>
-            <div className="text-caption mt-0.5" style={{ color: staffTip.entry.below ? '#fbbf24' : '#94a3b8' }}>
+            <div className="text-caption font-semibold" style={{ color: staffTip.entry.isTotal ? 'var(--accent-text)' : 'var(--g-text-hi)' }}>{staffTip.entry.site.name}</div>
+            <div className="text-caption mt-0.5" style={{ color: staffTip.entry.below ? 'var(--c-amber-2)' : 'var(--g-text-mid)' }}>
               {staffTip.entry.below
                 ? `Below minimum: ${staffTip.entry.counted.length} counted, minimum ${staffTip.entry.threshold}`
                 : staffTip.entry.threshold != null

@@ -551,7 +551,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
           {canEdit && (
             <button onClick={() => fileRef.current?.click()}
-              className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-white transition-colors"
+              className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-ink-max transition-colors"
               /* Not red. Red is the delete colour everywhere else in the app,
                  and this is a routine upload — it was the single loudest
                  element on the screen while the genuinely irreversible
@@ -598,7 +598,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         <div className="glass rounded-xl overflow-hidden">
           <div className="py-16 px-6 text-center">
             <div className="mx-auto mb-4" style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--g-text-faint)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 <path d="M9 22V12h6v10" />
               </svg>
@@ -661,7 +661,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         const predAvgDay = Math.round(predBaseline + predDowEffect);
         const predDiff = predTotal - predAvgDay;
         const predLabel = predDiff > 3 ? 'Higher than a normal ' + todayDayName : predDiff < -3 ? 'Lower than a normal ' + todayDayName : 'Typical for a ' + todayDayName;
-        const predColour = predDiff > 3 ? '#f59e0b' : predDiff < -3 ? '#10b981' : '#94a3b8';
+        const predColour = predDiff > 3 ? 'var(--state-tight)' : predDiff < -3 ? 'var(--state-ok)' : 'var(--g-text-mid)';
         const displayFactors = [];
         if (pred?.factors) {
           const f = pred.factors;
@@ -710,7 +710,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 has content; the moment a notice exists it gets the panel. */}
             <div className={`glass rounded-xl overflow-hidden flex flex-col lg:order-2 panefx-cyan ${huddleMessages.length === 0 ? 'self-start w-full' : ''}`}>
               <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom: huddleMessages.length > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--g-text-mid)" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
                 {huddleMessages.length > 0
                   ? <span className="text-xs text-slate-400 ml-auto">{huddleMessages.length} today</span>
@@ -802,7 +802,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
                     <div className="text-sm text-slate-400 mb-1">Urgent available</div>
-                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:band.colour}}>{urgAvail}</div>
+                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:band.ink}}>{urgAvail}</div>
                     <div className="text-sm text-slate-400 mt-1">appointments today</div>
                   </div>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
@@ -833,7 +833,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   border: '1px solid rgba(245,158,11,0.25)',
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" strokeWidth="2" className="flex-shrink-0 mt-0.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-amber)" strokeWidth="2" className="flex-shrink-0 mt-0.5">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="12" y1="8" x2="12" y2="12"/>
                   <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -875,7 +875,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     {displayFactors.filter(f => f.impact !== 0).map((f, i) => (
                       <div key={i} className="flex justify-between text-sm">
                         <span className="text-slate-400">{f.label}</span>
-                        <span className="font-bold font-mono-data" style={{color: f.impact > 0 ? '#ef4444' : f.impact < 0 ? '#10b981' : '#475569'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
+                        <span className="font-bold font-mono-data" style={{color: f.impact > 0 ? 'var(--state-short)' : f.impact < 0 ? 'var(--state-ok)' : 'var(--g-text-faint)'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
                       </div>
                     ))}
                     <div className="flex justify-between text-sm pt-1.5 mt-1.5" style={{borderTop:'1px solid var(--border)'}}>
@@ -964,7 +964,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               return (
                 <div className="flex-1 p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="font-mono-data text-4xl md:text-6xl font-bold leading-none" style={{ color: band.colour }}>{slots}</span>
+                    <span className="font-mono-data text-4xl md:text-6xl font-bold leading-none" style={{ color: band.ink }}>{slots}</span>
                     <div className="flex-1">
                       <div className="relative">
                         <div className="h-2.5 rounded-full relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
@@ -977,7 +977,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       </div>
                       <div className="flex items-center justify-between mt-1.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{background:`${band.colour}20`,color:band.colour}}>{band.label} · {Math.round(band.pct)}%</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{background:`${band.colour}20`,color:band.ink}}>{band.label} · {Math.round(band.pct)}%</span>
                           <span className="text-sm text-slate-400">{avail} available{booked > 0 ? <span> · {booked} booked</span> : ''}{added > 0 ? <span style={{color:'var(--c-indigo)'}}> · +{added} since 8am</span> : ''}</span>
                         </div>
                         {target > 0 && <span className="text-sm text-slate-400">target {target}</span>}
@@ -1011,12 +1011,12 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       })()}
                     >
                       <div className="flex items-center gap-2.5 px-3 py-2.5">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fbbf24" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--c-amber-2)" className="flex-shrink-0"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"/></svg>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-white truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
+                          <div className="text-sm font-semibold text-ink-max truncate">{dutyDocDisplay.title ? `${dutyDocDisplay.title} ` : ''}{dutyDocDisplay.name}</div>
                           <div className="text-xs" style={{ color: 'var(--meta)' }}>Duty · {dutyDocDisplay.location || '?'}</div>
                         </div>
-                        <span className="font-mono-data text-xs font-bold flex-shrink-0" style={{ color: dutyDocDisplay.total > 0 ? '#fff' : 'var(--meta)', letterSpacing: dutyDocDisplay.total > 0 ? 0 : 0.4 }}>
+                        <span className="font-mono-data text-xs font-bold flex-shrink-0" style={{ color: dutyDocDisplay.total > 0 ? 'var(--g-text-max)' : 'var(--meta)', letterSpacing: dutyDocDisplay.total > 0 ? 0 : 0.4 }}>
                           {dutyDocDisplay.total > 0 ? dutyDocDisplay.total : 'triage'}
                         </span>
                       </div>
@@ -1090,7 +1090,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="font-mono-data text-sm font-bold" style={{color: band.colour}}>{c.total}</span>
+                            <span className="font-mono-data text-sm font-bold" style={{color: band.ink}}>{c.total}</span>
                             {locPill && <div className="w-5 h-5 rounded flex items-center justify-center text-xs font-bold text-white" style={{background:locPill}}>{c.location.charAt(0)}</div>}
                           </div>
                         </button>
@@ -1203,7 +1203,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               const booked = slice.reduce((s, d) => s + (d.booked || 0), 0);
               const total = avail + booked;
               const pct = total > 0 ? (avail / total) * 100 : 0;
-              const colour = pct > 50 ? '#10b981' : pct >= 20 ? '#f59e0b' : '#ef4444';
+              const colour = pct > 50 ? 'var(--state-ok)' : pct >= 20 ? 'var(--state-tight)' : 'var(--state-short)';
               return { label, avail, booked, total, pct, colour };
             });
 
@@ -1292,7 +1292,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             <div className="glass rounded-xl p-6">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{background:'rgba(139,92,246,0.15)',border:'1px solid rgba(139,92,246,0.25)'}}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-violet)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-heading text-base font-medium text-slate-200 mb-1">Capacity cards</h3>

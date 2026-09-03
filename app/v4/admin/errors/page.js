@@ -13,11 +13,11 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Errors · GPDash admin' };
 
 const SOURCE_STYLE = {
-  boundary:  { bg: 'rgba(239,68,68,0.14)',  bd: 'rgba(239,68,68,0.38)',  fg: '#fca5a5', label: 'Section crash' },
-  unhandled: { bg: 'rgba(245,158,11,0.14)', bd: 'rgba(245,158,11,0.38)', fg: '#fcd34d', label: 'Unhandled' },
-  client:    { bg: 'rgba(148,163,184,0.12)',bd: 'rgba(148,163,184,0.3)', fg: '#94a3b8', label: 'Reported' },
-  csp:       { bg: 'rgba(103,232,249,0.12)',bd: 'rgba(103,232,249,0.32)', fg: '#67e8f9', label: 'CSP blocked' },
-  ratelimit: { bg: 'rgba(251,191,36,0.14)', bd: 'rgba(251,191,36,0.34)', fg: '#fcd34d', label: 'Rate limit off' },
+  boundary:  { bg: 'rgba(239,68,68,0.14)',  bd: 'rgba(239,68,68,0.38)',  fg: 'var(--c-red)', label: 'Section crash' },
+  unhandled: { bg: 'rgba(245,158,11,0.14)', bd: 'rgba(245,158,11,0.38)', fg: 'var(--c-amber)', label: 'Unhandled' },
+  client:    { bg: 'rgba(148,163,184,0.12)',bd: 'rgba(148,163,184,0.3)', fg: 'var(--g-text-mid)', label: 'Reported' },
+  csp:       { bg: 'rgba(103,232,249,0.12)',bd: 'rgba(103,232,249,0.32)', fg: 'var(--c-cyan)', label: 'CSP blocked' },
+  ratelimit: { bg: 'rgba(251,191,36,0.14)', bd: 'rgba(251,191,36,0.34)', fg: 'var(--c-amber)', label: 'Rate limit off' },
 };
 
 function timeAgo(iso) {
@@ -45,7 +45,7 @@ export default async function AdminErrorsPage() {
     <div style={{ minHeight: '100vh' }}>
       <AdminNav active="errors" />
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px 64px' }}>
-        <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 600, color: '#f1f5f9', margin: '0 0 6px' }}>
+        <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 600, color: 'var(--g-text-pale)', margin: '0 0 6px' }}>
           Errors
         </h1>
         <p style={{ fontSize: 14, color: 'var(--meta)', margin: '0 0 24px' }}>
@@ -53,14 +53,14 @@ export default async function AdminErrorsPage() {
         </p>
 
         {error && (
-          <div style={{ padding: 14, borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 13 }}>
+          <div style={{ padding: 14, borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', fontSize: 13 }}>
             Could not load errors: {error.message}
           </div>
         )}
 
         {!error && (!errors || errors.length === 0) && (
           <div style={{ padding: 28, textAlign: 'center', borderRadius: 'var(--r-lg)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ fontSize: 15, color: '#e2e8f0', marginBottom: 4 }}>No crashes reported</div>
+            <div style={{ fontSize: 15, color: 'var(--g-text-hi)', marginBottom: 4 }}>No crashes reported</div>
             <div style={{ fontSize: 13, color: 'var(--meta)' }}>Which is the result you want. Reports appear here within seconds of happening.</div>
           </div>
         )}
@@ -74,15 +74,15 @@ export default async function AdminErrorsPage() {
                   <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', background: s.bg, border: `1px solid ${s.bd}`, color: s.fg }}>
                     {s.label}
                   </span>
-                  {e.path && <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: '#cbd5e1' }}>{e.path}</code>}
+                  {e.path && <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: 'var(--g-text-soft)' }}>{e.path}</code>}
                   {e.app_version && <span style={{ fontSize: 12, color: 'var(--meta)' }}>{e.app_version}</span>}
                   <span style={{ fontSize: 12, color: 'var(--meta)', marginLeft: 'auto' }}>{timeAgo(e.created_at)}</span>
                 </div>
-                <div style={{ fontSize: 14, color: '#f1f5f9', marginBottom: 8, wordBreak: 'break-word' }}>{e.message}</div>
+                <div style={{ fontSize: 14, color: 'var(--g-text-pale)', marginBottom: 8, wordBreak: 'break-word' }}>{e.message}</div>
                 {(e.stack || e.component_stack) && (
                   <details>
                     <summary style={{ fontSize: 12, color: 'var(--link)', cursor: 'pointer' }}>Stack</summary>
-                    <pre style={{ fontSize: 11, color: '#cbd5e1', whiteSpace: 'pre-wrap', marginTop: 8, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 'var(--r-md)', overflowX: 'auto' }}>
+                    <pre style={{ fontSize: 11, color: 'var(--g-text-soft)', whiteSpace: 'pre-wrap', marginTop: 8, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 'var(--r-md)', overflowX: 'auto' }}>
                       {[e.stack, e.component_stack].filter(Boolean).join('\n\n')}
                     </pre>
                   </details>

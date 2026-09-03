@@ -134,10 +134,10 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
           <div className="flex items-center gap-2 mt-2">
             <div
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm"
-              style={{ background: 'rgba(34,211,238,0.12)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.2)' }}
+              style={{ background: 'rgba(34,211,238,0.12)', color: 'var(--c-cyan)', border: '1px solid rgba(34,211,238,0.2)' }}
             >
               <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>{selectedCount}</span>
-              <span style={{ color: '#67e8f988' }}>of</span>
+              <span style={{ color: 'var(--c-cyan)', opacity: 0.53 }}>of</span>
               <span style={{ fontFamily: "var(--font-mono)" }}>{totalCount}</span>
               <span>selected</span>
             </div>
@@ -174,7 +174,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                 value={cardSettings.card.title}
                 onChange={e => cardSettings.onChange({ title: e.target.value })}
                 className="w-full mt-1 px-2.5 py-1.5 rounded-lg text-base focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
-                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: '#e2e8f0' }}
+                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--g-text-hi)' }}
               />
             </div>
 
@@ -265,7 +265,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
             style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(245,158,11,0.04)' }}
           >
             <div className="flex items-center gap-2 mb-2">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--c-amber-2)" strokeWidth="2">
                 <path d="M12 2l2.39 7.36H22l-6.19 4.5L18.2 21 12 16.5 5.8 21l2.39-7.14L2 9.36h7.61L12 2z" />
               </svg>
               <span className="text-sm font-medium text-amber-300 uppercase tracking-wider">
@@ -287,7 +287,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                 style={{
                   background: 'rgba(239,68,68,0.10)',
                   border: '1px solid rgba(239,68,68,0.30)',
-                  color: '#fca5a5',
+                  color: 'var(--c-red)',
                 }}
               >
                 <div className="font-semibold mb-1" style={{ color: '#fecaca' }}>
@@ -315,7 +315,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                     className="flex items-center gap-2 text-sm cursor-pointer rounded-md px-2 py-1.5 transition-colors"
                     style={{
                       background: selected ? 'rgba(245,158,11,0.12)' : 'transparent',
-                      color: selected ? '#fde68a' : (stale ? '#64748b' : '#94a3b8'),
+                      color: selected ? 'var(--c-sand)' : (stale ? '#64748b' : 'var(--g-text-mid)'),
                     }}
                   >
                     <input
@@ -332,7 +332,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                     {stale && (
                       <span
                         className="text-xs px-1 py-0.5 rounded uppercase tracking-wider flex-shrink-0"
-                        style={{ background: 'rgba(100,116,139,0.20)', color: '#94a3b8' }}
+                        style={{ background: 'rgba(100,116,139,0.20)', color: 'var(--g-text-mid)' }}
                         title="This slot type isn't in your current CSV data. Selecting it has no effect."
                       >
                         stale
@@ -370,7 +370,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search slot types"
                 className="w-full pl-8 pr-2 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
-                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: '#e2e8f0' }}
+                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--g-text-hi)' }}
               />
             </div>
           </div>
@@ -392,7 +392,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
                   className="flex items-center gap-2.5 text-base cursor-pointer rounded-lg px-2.5 py-2 transition-colors"
                   style={{
                     background: checked ? 'rgba(34,211,238,0.08)' : 'transparent',
-                    color: checked ? '#e0f2fe' : '#cbd5e1',
+                    color: checked ? '#e0f2fe' : 'var(--g-text-soft)',
                   }}
                   onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
                   onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent'; }}
@@ -425,7 +425,7 @@ export function SlotFilterPanel({ overrides, setOverrides, knownSlotTypes, activ
           <button
             onClick={() => setShow(false)}
             className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-            style={{ background: 'rgba(34,211,238,0.15)', border: '1px solid rgba(34,211,238,0.3)', color: '#67e8f9' }}
+            style={{ background: 'rgba(34,211,238,0.15)', border: '1px solid rgba(34,211,238,0.3)', color: 'var(--c-cyan)' }}
           >
             Done
           </button>

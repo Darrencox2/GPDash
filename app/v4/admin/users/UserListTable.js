@@ -102,12 +102,12 @@ export default function UserListTable({ users }) {
       {/* Stats row */}
       <div className="flex gap-3.5 flex-wrap mt-[18px] mb-[18px]">
         <Stat label="Total"           value={stats.total} />
-        <Stat label="Active (30d)"    value={stats.active} colour="#34d399" />
-        <Stat label="Never signed in" value={stats.never} colour="#94a3b8" />
-        <Stat label="Email unconfirmed" value={stats.unconfirmed} colour="#fbbf24" />
-        <Stat label="Platform admins" value={stats.admins} colour="#67e8f9" />
-        <Stat label="Suspended"       value={stats.suspended} colour="#fbbf24" />
-        <Stat label="Orphans"         value={stats.orphans} colour="#fbbf24" tooltip="Users with no practice memberships who aren't platform admins — they signed up but never finished onboarding (or were removed from every practice)." />
+        <Stat label="Active (30d)"    value={stats.active} colour="var(--c-green-2)" />
+        <Stat label="Never signed in" value={stats.never} colour="var(--g-text-mid)" />
+        <Stat label="Email unconfirmed" value={stats.unconfirmed} colour="var(--c-amber-2)" />
+        <Stat label="Platform admins" value={stats.admins} colour="var(--c-cyan)" />
+        <Stat label="Suspended"       value={stats.suspended} colour="var(--c-amber-2)" />
+        <Stat label="Orphans"         value={stats.orphans} colour="var(--c-amber-2)" tooltip="Users with no practice memberships who aren't platform admins — they signed up but never finished onboarding (or were removed from every practice)." />
       </div>
 
       {/* Filter chips */}
@@ -120,7 +120,7 @@ export default function UserListTable({ users }) {
               padding: '6px 14px',
               fontSize: 13,
               fontWeight: 500,
-              color: filter === f.id ? 'white' : '#cbd5e1',
+              color: filter === f.id ? 'var(--g-text-max)' : 'var(--g-text-soft)',
               background: filter === f.id ? 'rgba(34,211,238,0.18)' : 'rgba(255,255,255,0.04)',
               border: filter === f.id ? '1px solid rgba(34,211,238,0.4)' : '1px solid rgba(255,255,255,0.08)',
               borderRadius: 'var(--r-pill)',
@@ -148,7 +148,7 @@ export default function UserListTable({ users }) {
           </thead>
           <tbody>
             {visible.length === 0 && (
-              <tr><td colSpan={7} style={{ ...td, textAlign: 'center', padding: 36, color: '#94a3b8' }}>
+              <tr><td colSpan={7} style={{ ...td, textAlign: 'center', padding: 36, color: 'var(--g-text-mid)' }}>
                 No users match this filter.
               </td></tr>
             )}
@@ -179,31 +179,31 @@ function UserRow({ user: u }) {
         : undefined,
       opacity: suspended ? 0.85 : 1,
     }}>
-      <td style={{ ...td, color: '#e2e8f0' }}>
+      <td style={{ ...td, color: 'var(--g-text-hi)' }}>
         {u.email}
         {!u.email_confirmed_at && (
-          <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--r-pill)' }}>
+          <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'rgba(245,158,11,0.15)', color: 'var(--c-amber)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--r-pill)' }}>
             unconfirmed
           </span>
         )}
       </td>
-      <td style={{ ...td, color: '#cbd5e1' }}>{u.name || '—'}</td>
+      <td style={{ ...td, color: 'var(--g-text-soft)' }}>{u.name || '—'}</td>
       <td style={td}>
         {suspended ? (
-          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(245,158,11,0.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 'var(--r-pill)', fontWeight: 600 }}>Suspended</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(245,158,11,0.18)', color: 'var(--c-amber-2)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 'var(--r-pill)', fontWeight: 600 }}>Suspended</span>
         ) : u.is_platform_admin ? (
-          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(34,211,238,0.15)', color: '#67e8f9', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 'var(--r-pill)', fontWeight: 600 }}>Platform admin</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(34,211,238,0.15)', color: 'var(--c-cyan)', border: '1px solid rgba(34,211,238,0.3)', borderRadius: 'var(--r-pill)', fontWeight: 600 }}>Platform admin</span>
         ) : orphan ? (
-          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(251,191,36,0.12)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 'var(--r-pill)' }} title="No practice memberships — never finished onboarding">Orphan</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'rgba(251,191,36,0.12)', color: 'var(--c-amber)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 'var(--r-pill)' }} title="No practice memberships — never finished onboarding">Orphan</span>
         ) : (
           <span className="text-slate-400 text-body-sm">—</span>
         )}
       </td>
-      <td style={{ ...td, textAlign: 'right', color: '#e2e8f0' }}>{u.membership_count}</td>
-      <td style={{ ...td, color: '#94a3b8', fontSize: 13 }}>
+      <td style={{ ...td, textAlign: 'right', color: 'var(--g-text-hi)' }}>{u.membership_count}</td>
+      <td style={{ ...td, color: 'var(--g-text-mid)', fontSize: 13 }}>
         {new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
       </td>
-      <td style={{ ...td, color: '#94a3b8', fontSize: 13 }}>
+      <td style={{ ...td, color: 'var(--g-text-mid)', fontSize: 13 }}>
         {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'never'}
       </td>
       <td style={{ ...td, textAlign: 'right' }}>
@@ -211,7 +211,7 @@ function UserRow({ user: u }) {
           padding: '6px 12px',
           fontSize: 13,
           fontWeight: 600,
-          color: 'white',
+          color: 'var(--g-text-max)',
           background: '#0891b2',
           border: '1px solid #0891b2',
           borderRadius: 'var(--r-sm)',
@@ -238,8 +238,8 @@ function Stat({ label, value, colour, tooltip }) {
         cursor: tooltip ? 'help' : 'default',
       }}
     >
-      <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 600, color: colour || '#e2e8f0', fontFamily: "var(--font-heading)", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 600, color: colour || 'var(--g-text-hi)', fontFamily: "var(--font-heading)", lineHeight: 1 }}>{value}</div>
     </div>
   );
 }
@@ -254,17 +254,17 @@ function SortableTh({ col, label, sortKey, sortDir, onClick, align }) {
         textAlign: align || 'left',
         cursor: 'pointer',
         userSelect: 'none',
-        color: active ? '#e2e8f0' : '#94a3b8',
+        color: active ? 'var(--g-text-hi)' : 'var(--g-text-mid)',
       }}
     >
       {label}
-      <span style={{ marginLeft: 6, fontSize:11, color: active ? '#22d3ee' : 'var(--meta)' }}>
+      <span style={{ marginLeft: 6, fontSize:11, color: active ? 'var(--c-cyan-3)' : 'var(--meta)' }}>
         {active ? (sortDir === 'asc' ? '▲' : '▼') : '◇'}
       </span>
     </th>
   );
 }
 
-const th = { padding: '12px 16px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, color: '#94a3b8' };
+const th = { padding: '12px 16px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--g-text-mid)' };
 const td = { padding: '12px 16px', fontSize: 14 };
 

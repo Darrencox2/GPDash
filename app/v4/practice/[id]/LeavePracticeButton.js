@@ -46,7 +46,7 @@ export default function LeavePracticeButton({ practiceId, practiceName, myRole, 
         style={{
           padding: '4px 10px',
           fontSize: 11,
-          color: isLastOwner ? 'var(--g-text-mid)' : '#fbbf24',
+          color: isLastOwner ? 'var(--g-text-mid)' : 'var(--c-amber-2)',
           background: isLastOwner ? 'rgba(148,163,184,0.06)' : 'rgba(245,158,11,0.08)',
           border: `1px solid ${isLastOwner ? 'rgba(148,163,184,0.15)' : 'rgba(245,158,11,0.25)'}`,
           borderRadius: 'var(--r-sm)',
@@ -57,7 +57,7 @@ export default function LeavePracticeButton({ practiceId, practiceName, myRole, 
         {busy ? '…' : 'Leave'}
       </button>
       {error && (
-        <div style={{ fontSize:11, color: '#fca5a5', maxWidth: 200, textAlign: 'right' }}>{error}</div>
+        <div style={{ fontSize:11, color: 'var(--c-red)', maxWidth: 200, textAlign: 'right' }}>{error}</div>
       )}
     </div>
   );

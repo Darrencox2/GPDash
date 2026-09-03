@@ -16,7 +16,7 @@ const BTN = {
   borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
 };
 const H1 = { margin: '0 0 12px', fontSize: 22, fontWeight: 600, color: '#0f172a', lineHeight: 1.3 };
-const P = { margin: '0 0 16px', fontSize: 14, lineHeight: 1.65, color: '#475569' };
+const P = { margin: '0 0 16px', fontSize: 14, lineHeight: 1.65, color: 'var(--g-text-faint)' };
 const SMALL = { margin: '16px 0 0', fontSize: 12.5, lineHeight: 1.6, color: '#64748b' };
 
 export default function UnsubscribeForm({ token, email, practiceName, reportNames, cadence, alreadyOff }) {
@@ -78,7 +78,7 @@ export default function UnsubscribeForm({ token, email, practiceName, reportName
           </p>
         )}
         {paused && (
-          <p style={{ ...P, padding: '11px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, color: '#475569' }}>
+          <p style={{ ...P, padding: '11px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, color: 'var(--g-text-faint)' }}>
             You were the last person on that schedule, so it has been switched off.
           </p>
         )}
@@ -110,7 +110,7 @@ export default function UnsubscribeForm({ token, email, practiceName, reportName
           {state === 'working' ? 'Working…' : 'Stop sending this'}
         </button>
         <button onClick={() => post('practice')} disabled={state === 'working'}
-          style={{ ...BTN, background: '#fff', color: '#334155', border: '1px solid #cbd5e1', opacity: state === 'working' ? 0.6 : 1 }}>
+          style={{ ...BTN, background: '#fff', color: 'var(--g-text-mute)', border: '1px solid #cbd5e1', opacity: state === 'working' ? 0.6 : 1 }}>
           Stop all reports from {practiceName}
         </button>
       </div>

@@ -70,7 +70,7 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
   return (
     <div>
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14, marginBottom: 12 }}>
           {error}
         </div>
       )}
@@ -110,7 +110,7 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
             padding: '8px 16px',
             background: url && !syncing ? 'rgba(34,211,238,0.15)' : 'var(--g-tile)',
             border: `1px solid ${url && !syncing ? 'rgba(34,211,238,0.4)' : 'var(--g-line)'}`,
-            color: url && !syncing ? '#22d3ee' : 'var(--g-text-mid)',
+            color: url && !syncing ? 'var(--c-cyan-3)' : 'var(--g-text-mid)',
             borderRadius: 'var(--r-md)',
             fontSize: 14,
             fontWeight: 500,
@@ -136,7 +136,7 @@ export default function TeamNetUrlEditor({ practiceId, initialUrl, lastSyncTime,
           padding: 10,
           background: syncStatus.startsWith('Sync failed') ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
           border: `1px solid ${syncStatus.startsWith('Sync failed') ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
-          color: syncStatus.startsWith('Sync failed') ? '#fca5a5' : '#34d399',
+          color: syncStatus.startsWith('Sync failed') ? 'var(--c-red)' : 'var(--c-green-2)',
           borderRadius: 'var(--r-sm)',
           fontSize: 14,
         }}>

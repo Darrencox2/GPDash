@@ -14,7 +14,7 @@ export default function GoodbyePage() {
       className="min-h-screen flex items-center justify-center px-6"
       style={{
         background: 'linear-gradient(180deg, #0b1224 0%, #111c33 100%)',
-        color: '#e2e8f0',
+        color: 'var(--g-text-hi)',
       }}
     >
       <div className="w-full max-w-md text-center">
@@ -23,13 +23,13 @@ export default function GoodbyePage() {
             className="w-16 h-16 rounded-full flex items-center justify-center"
             style={{ background: 'rgba(34,211,238,0.10)', border: '1px solid rgba(34,211,238,0.30)' }}
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" strokeWidth="2">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--c-cyan)" strokeWidth="2">
               <path d="M20 6L9 17l-5-5" />
             </svg>
           </div>
         </div>
 
-        <h1 className="text-2xl font-medium mb-3" style={{ color: '#f1f5f9' }}>
+        <h1 className="text-2xl font-medium mb-3" style={{ color: 'var(--g-text-pale)' }}>
           Your account has been deleted
         </h1>
 

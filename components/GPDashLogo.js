@@ -32,7 +32,7 @@ export default function GPDashLogo({ size = 'sidebar', className = '' }) {
       <GridIcon size={iconSize} />
       <div className="flex items-baseline" style={{lineHeight:1}}>
         <span style={{fontFamily:"var(--font-mono)",fontSize,fontWeight:400,color:'#10b981',opacity:0.4}}>{'['}</span>
-        <span style={{fontFamily:"var(--font-mono)",fontSize,fontWeight:700,color:'var(--g-text-hi)'}}>GP</span>
+        <span style={{fontFamily:"var(--font-mono)",fontSize,fontWeight:700,color:'var(--sb-text-hi)'}}>GP</span>
         <span style={{fontFamily:"var(--font-mono)",fontSize,fontWeight:400,color:'#10b981',opacity:0.4}}>{']'}</span>
         <span style={{fontFamily:"var(--font-heading)",fontSize:fontSize+1,fontWeight:200,color:'#10b981',letterSpacing:'3px',marginLeft:2}}>DASH</span>
       </div>

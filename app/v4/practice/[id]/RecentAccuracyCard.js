@@ -69,7 +69,7 @@ export default function RecentAccuracyCard({
 
   if (err) {
     return (
-      <div style={{ padding: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-md)', fontSize: 12, color: '#fca5a5' }}>
+      <div style={{ padding: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--c-red)' }}>
         Couldn&apos;t load recent demand history: {err}
       </div>
     );

@@ -45,9 +45,9 @@ export default function PendingInvitesCard({ invites, canManage }) {
 }
 
 const EMAIL_STATUS = {
-  sent:    { label: 'Emailed',      colour: '#34d399', border: 'rgba(52,211,153,0.4)',  bg: 'rgba(16,185,129,0.12)' },
-  failed:  { label: 'Email failed', colour: '#fca5a5', border: 'rgba(239,68,68,0.45)',  bg: 'rgba(239,68,68,0.12)' },
-  pending: { label: 'Sending…',     colour: '#fbbf24', border: 'rgba(245,158,11,0.4)', bg: 'rgba(245,158,11,0.10)' },
+  sent:    { label: 'Emailed',      colour: 'var(--c-green-2)', border: 'rgba(52,211,153,0.4)',  bg: 'rgba(16,185,129,0.12)' },
+  failed:  { label: 'Email failed', colour: 'var(--c-red)', border: 'rgba(239,68,68,0.45)',  bg: 'rgba(239,68,68,0.12)' },
+  pending: { label: 'Sending…',     colour: 'var(--c-amber-2)', border: 'rgba(245,158,11,0.4)', bg: 'rgba(245,158,11,0.10)' },
 };
 
 function EmailStatusPill({ status, sentAt, error }) {
@@ -126,7 +126,7 @@ function InviteRow({ invite: inv, canManage }) {
             )}
           </div>
           {inv.email_status === 'failed' && (
-            <div className="text-caption mt-1" style={{ color: '#fca5a5' }}>
+            <div className="text-caption mt-1" style={{ color: 'var(--c-red)' }}>
               The email did not go out{inv.email_error ? `: ${inv.email_error}` : ''}. Copy the link below and send it to them yourself.
             </div>
           )}
@@ -139,7 +139,7 @@ function InviteRow({ invite: inv, canManage }) {
               style={{
                 padding: '5px 10px',
                 fontSize: 11,
-                color: copied ? '#34d399' : 'var(--g-text-hi)',
+                color: copied ? 'var(--c-green-2)' : 'var(--g-text-hi)',
                 background: 'var(--g-tile)',
                 border: '1px solid var(--g-border-2)',
                 borderRadius: 'var(--r-sm)',
@@ -156,7 +156,7 @@ function InviteRow({ invite: inv, canManage }) {
               style={{
                 padding: '5px 10px',
                 fontSize: 11,
-                color: '#fca5a5',
+                color: 'var(--c-red)',
                 background: 'rgba(239,68,68,0.08)',
                 border: '1px solid rgba(239,68,68,0.2)',
                 borderRadius: 'var(--r-sm)',
@@ -170,7 +170,7 @@ function InviteRow({ invite: inv, canManage }) {
         </div>
       </div>
       {error && (
-        <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5', padding: '5px 8px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)' }}>
+        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--c-red)', padding: '5px 8px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r-sm)' }}>
           {error}
         </div>
       )}

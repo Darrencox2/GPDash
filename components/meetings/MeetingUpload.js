@@ -169,7 +169,7 @@ export default function MeetingUpload({ data, onFiled }) {
       </div>
 
       {globalError && (
-        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', fontSize: 13 }}>{globalError}</div>
+        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--c-red)', fontSize: 13 }}>{globalError}</div>
       )}
 
       {rows.length === 0 && (
@@ -217,9 +217,9 @@ function UploadRow({ row, onFile, onRetry, onChange }) {
 
       {status === 'review' && result && (
         <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--g-border)' }}>
-          {error && <div style={{ margin: '10px 0', padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: '#fca5a5', fontSize: 13 }}>{error}</div>}
+          {error && <div style={{ margin: '10px 0', padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(239,68,68,0.1)', color: 'var(--c-red)', fontSize: 13 }}>{error}</div>}
           {result.confidence === 'low' && (
-            <div style={{ margin: '12px 0 0', padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#fcd34d', fontSize: 13 }}>
+            <div style={{ margin: '12px 0 0', padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: 'var(--c-amber)', fontSize: 13 }}>
               Low confidence on the date — please check it carefully before filing.
             </div>
           )}

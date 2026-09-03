@@ -5,9 +5,9 @@ import { APP_VERSION } from '@/lib/version';
 import { ARCHIVE_COUNT } from '@/lib/changelog-meta';
 
 const TYPE_STYLES = {
-  feature: { label: 'New', bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
-  improvement: { label: 'Improved', bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
-  fix: { label: 'Fixed', bg: 'rgba(245,158,11,0.15)', color: '#fbbf24' },
+  feature: { label: 'New', bg: 'rgba(16,185,129,0.15)', color: 'var(--c-green-2)' },
+  improvement: { label: 'Improved', bg: 'rgba(59,130,246,0.15)', color: 'var(--c-blue-2)' },
+  fix: { label: 'Fixed', bg: 'rgba(245,158,11,0.15)', color: 'var(--c-amber-2)' },
 };
 
 export default function Changelog() {
@@ -60,7 +60,7 @@ export default function Changelog() {
               >
                 <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-slate-900 flex flex-col items-center justify-center">
                   <span className="text-xs text-slate-400 font-medium leading-none">v</span>
-                  <span className="text-lg font-bold text-white leading-tight" style={{fontFamily:"var(--font-mono)"}}>{release.version}</span>
+                  <span className="text-lg font-bold text-ink-max leading-tight" style={{fontFamily:"var(--font-mono)"}}>{release.version}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

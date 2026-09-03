@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export default async function NhsDataAdminPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  if (!supabase) return <div className="p-8 text-white">Configuration error.</div>;
+  if (!supabase) return <div className="p-8 text-ink-max">Configuration error.</div>;
 
   await requireAdmin(supabase, { returnTo: '/v4/admin/nhs-data' });
 
@@ -38,17 +38,17 @@ export default async function NhsDataAdminPage() {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-      color: '#e2e8f0',
+      color: 'var(--g-text-hi)',
       padding: '32px 32px 64px',
     }}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <AdminNav active="nhs-data" />
 
         <div style={{ marginBottom: 26 }}>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'white', marginBottom: 8, letterSpacing: -0.3 }}>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 600, color: 'var(--g-text-max)', marginBottom: 8, letterSpacing: -0.3 }}>
             NHS Online Consultation submissions data
           </h2>
-          <p style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6, maxWidth: 720 }}>
+          <p style={{ color: 'var(--g-text-soft)', fontSize: 14, lineHeight: 1.6, maxWidth: 720 }}>
             Source dataset used to pre-seed demand predictions for new
             practices and to power PCN / national benchmarking. NHS England
             publishes a fresh month roughly 6 weeks after the month ends.
@@ -68,7 +68,7 @@ export default async function NhsDataAdminPage() {
           borderRadius: 'var(--r-lg)',
           marginBottom: 18,
         }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginBottom: 14, fontFamily: "var(--font-heading)" }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--g-text-hi)', marginBottom: 14, fontFamily: "var(--font-heading)" }}>
             Months currently in the database
           </div>
           {months.length === 0 ? (
@@ -83,7 +83,7 @@ export default async function NhsDataAdminPage() {
                   borderRadius: 'var(--r-sm)',
                   fontSize: 13,
                 }}>
-                  <div style={{ fontFamily: "var(--font-mono)", color: '#e2e8f0' }}>
+                  <div style={{ fontFamily: "var(--font-mono)", color: 'var(--g-text-hi)' }}>
                     {formatMonthYear(m.month)}
                   </div>
                   <div className="flex gap-4 text-slate-400">
@@ -163,7 +163,7 @@ function FreshnessReminder({ months }) {
       border: '1px solid rgba(245, 158, 11, 0.25)',
       borderRadius: 'var(--r-md)',
       fontSize: 13,
-      color: '#fcd34d',
+      color: 'var(--c-amber)',
       lineHeight: 1.6,
       marginBottom: 18,
     }}>

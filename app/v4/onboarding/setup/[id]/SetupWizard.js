@@ -465,7 +465,7 @@ export default function SetupWizard({
             </div>
             <h1 style={{
               fontFamily: "var(--font-heading)",
-              fontSize: 30, fontWeight: 600, color: 'white',
+              fontSize: 30, fontWeight: 600, color: 'var(--g-text-max)',
               lineHeight: 1.2, marginBottom: 14,
             }}>
               Let's set up <strong className="text-cyan-300">{practice.name || 'your practice'}</strong>
@@ -484,10 +484,10 @@ export default function SetupWizard({
               borderRadius: 'var(--r-md)',
             }}>
               <div>
-                <div style={{ fontSize:11, color: '#fbbf24', letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>
+                <div style={{ fontSize:11, color: 'var(--c-amber-2)', letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>
                   REQUIRED
                 </div>
-                <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: '#cbd5e1', lineHeight: 1.7 }}>
+                <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: 'var(--g-text-soft)', lineHeight: 1.7 }}>
                   <li>Practice details</li>
                   <li>EMIS appointment CSV</li>
                 </ul>
@@ -496,7 +496,7 @@ export default function SetupWizard({
                 <div style={{ fontSize:11, color: 'var(--meta)', letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>
                   OPTIONAL (DO LATER IF YOU PREFER)
                 </div>
-                <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: '#94a3b8', lineHeight: 1.7 }}>
+                <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: 'var(--g-text-mid)', lineHeight: 1.7 }}>
                   <li>TeamNet sync · slot types · clinicians</li>
                   <li>Sites · demand history · team invites</li>
                 </ul>
@@ -573,7 +573,7 @@ export default function SetupWizard({
               borderRadius: 'var(--r-sm)',
               background: 'rgba(16,185,129,0.2)',
               border: '1px solid rgba(16,185,129,0.4)',
-              color: '#6ee7b7',
+              color: 'var(--c-mint)',
               fontSize: 12, fontWeight: 600,
               cursor: navigating ? 'wait' : 'pointer',
               fontFamily: 'inherit',
@@ -784,14 +784,14 @@ export default function SetupWizard({
 
       {/* Surface what's still required when the user is on the last step */}
       {currentStep === STEPS.length - 1 && !canComplete && (
-        <div style={{ maxWidth: 720, margin: '12px auto 0', textAlign: 'center', fontSize: 12, color: '#fbbf24' }}>
+        <div style={{ maxWidth: 720, margin: '12px auto 0', textAlign: 'center', fontSize: 12, color: 'var(--c-amber-2)' }}>
           Still to do:{' '}
           {requiredIncomplete.map((s, i) => (
             <span key={s.id}>
               {i > 0 && ', '}
               <button
                 onClick={() => goToStep(STEPS.findIndex(x => x.id === s.id))}
-                style={{ background: 'transparent', border: 'none', color: '#fbbf24', cursor: 'pointer', textDecoration: 'underline', padding: 0, font: 'inherit' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--c-amber-2)', cursor: 'pointer', textDecoration: 'underline', padding: 0, font: 'inherit' }}
               >
                 {s.title}
               </button>
@@ -801,7 +801,7 @@ export default function SetupWizard({
       )}
 
       {globalError && (
-        <div style={{ maxWidth: 720, margin: '12px auto 0', padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--r-sm)', color: '#fca5a5', fontSize: 13, textAlign: 'center' }}>
+        <div style={{ maxWidth: 720, margin: '12px auto 0', padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--r-sm)', color: 'var(--c-red)', fontSize: 13, textAlign: 'center' }}>
           {globalError}
         </div>
       )}
@@ -836,7 +836,7 @@ export default function SetupWizard({
             </svg>
           </div>
           <div style={{
-            fontSize: 32, fontWeight: 600, color: 'white',
+            fontSize: 32, fontWeight: 600, color: 'var(--g-text-max)',
             fontFamily: "var(--font-heading)", marginBottom: 8,
             animation: 'wizardCelebrateLift 0.5s ease-out 0.25s both',
             textAlign: 'center', padding: '0 24px',
@@ -844,7 +844,7 @@ export default function SetupWizard({
             You're all set up!
           </div>
           <div style={{
-            fontSize: 14, color: '#94a3b8',
+            fontSize: 14, color: 'var(--g-text-mid)',
             animation: 'wizardCelebrateLift 0.5s ease-out 0.4s both',
             textAlign: 'center', padding: '0 24px',
           }}>
@@ -909,17 +909,17 @@ function GlobalSaveIndicator({ inFlight, lastSavedAt, error }) {
   if (inFlight) {
     bg = 'rgba(8,145,178,0.12)';
     border = 'rgba(8,145,178,0.35)';
-    color = '#67e8f9';
+    color = 'var(--c-cyan)';
     text = 'Saving…';
   } else if (error) {
     bg = 'rgba(239,68,68,0.10)';
     border = 'rgba(239,68,68,0.35)';
-    color = '#fca5a5';
+    color = 'var(--c-red)';
     text = 'Save error';
   } else {
     bg = 'rgba(16,185,129,0.10)';
     border = 'rgba(16,185,129,0.35)';
-    color = '#6ee7b7';
+    color = 'var(--c-mint)';
     text = '✓ Saved';
   }
 
@@ -955,7 +955,7 @@ function GlobalSaveIndicator({ inFlight, lastSavedAt, error }) {
 const pageStyle = {
   minHeight: '100vh',
   background: 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)',
-  color: '#e2e8f0',
+  color: 'var(--g-text-hi)',
   padding: '32px 24px 64px',
   fontFamily: 'inherit',
   position: 'relative',
@@ -995,8 +995,8 @@ const footerStyle = {
   position: 'relative', zIndex: 1,
 };
 const btnPrimary = { padding: '11px 20px', background: '#0891b2', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' };
-const btnSubtle = { padding: '11px 16px', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' };
-const btnGhost = { padding: '11px 16px', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' };
+const btnSubtle = { padding: '11px 16px', background: 'rgba(255,255,255,0.05)', color: 'var(--g-text-soft)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' };
+const btnGhost = { padding: '11px 16px', background: 'transparent', color: 'var(--g-text-mid)', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' };
 
 // Step icons — one SVG per step id. Replaces the bare step number on
 // the progress dots so the 8 dots are visually distinguishable at a
@@ -1040,7 +1040,7 @@ function ProgressDots({ steps, currentStep, stepDone, onStepClick }) {
         const isPast = i < currentStep;
         const fill = isDone ? '#10b981' : (isCurrent ? 'transparent' : 'transparent');
         const border = isDone ? '#10b981' : (isCurrent ? '#0891b2' : 'rgba(255,255,255,0.15)');
-        const textColor = isDone || isCurrent ? '#e2e8f0' : '#475569';
+        const textColor = isDone || isCurrent ? 'var(--g-text-hi)' : 'var(--g-text-faint)';
         return (
           <div key={step.id} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : 'none' }}>
             <button
@@ -1090,7 +1090,7 @@ function CheckIcon() {
 function StepHeader({ step, index, done, liveSubtitle }) {
   // Eyebrow colour matches the card's top-border treatment so the
   // status reads consistently — emerald when done, cyan otherwise.
-  const eyebrowColor = done ? '#10b981' : '#0891b2';
+  const eyebrowColor = done ? 'var(--state-ok)' : '#0891b2';
   return (
     <div>
       <div style={{ fontSize: 11, fontWeight: 600, color: eyebrowColor, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1103,7 +1103,7 @@ function StepHeader({ step, index, done, liveSubtitle }) {
             background: 'rgba(16,185,129,0.15)',
             border: '1px solid rgba(16,185,129,0.35)',
             borderRadius: 'var(--r-sm)',
-            color: '#6ee7b7', fontSize:11, letterSpacing: 1,
+            color: 'var(--c-mint)', fontSize:11, letterSpacing: 1,
           }}>
             ✓ Done
           </span>
@@ -1115,16 +1115,16 @@ function StepHeader({ step, index, done, liveSubtitle }) {
             background: 'rgba(245,158,11,0.12)',
             border: '1px solid rgba(245,158,11,0.35)',
             borderRadius: 'var(--r-sm)',
-            color: '#fbbf24', fontSize:11, letterSpacing: 1,
+            color: 'var(--c-amber-2)', fontSize:11, letterSpacing: 1,
           }}>
             ! Required
           </span>
         )}
       </div>
-      <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 32, fontWeight: 600, color: 'white', lineHeight: 1.15, marginBottom: 8 }}>
+      <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 32, fontWeight: 600, color: 'var(--g-text-max)', lineHeight: 1.15, marginBottom: 8 }}>
         {step.title}
       </h1>
-      <p style={{ fontSize: 15, color: '#94a3b8', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 15, color: 'var(--g-text-mid)', lineHeight: 1.5 }}>
         {liveSubtitle || step.subtitle}
       </p>
     </div>
@@ -1222,8 +1222,8 @@ function DetailsStep({ practiceId, practiceOdsCode, postcode, setPostcode, listS
       </div>
 
       {practiceOdsCode && (
-        <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 'var(--r-md)', fontSize: 12, color: '#94a3b8' }}>
-          ODS code: <span style={{ color: '#cbd5e1', fontFamily: "var(--font-mono)" }}>{practiceOdsCode}</span>
+        <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--g-text-mid)' }}>
+          ODS code: <span style={{ color: 'var(--g-text-soft)', fontFamily: "var(--font-mono)" }}>{practiceOdsCode}</span>
         </div>
       )}
 
@@ -1407,7 +1407,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           {/* Format check — shown as soon as the user types anything */}
           {urlState && (
             <span style={{
-              color: urlState.kind === 'looks-good' ? '#10b981'
+              color: urlState.kind === 'looks-good' ? 'var(--state-ok)'
                 : urlState.kind === 'unusual-host' ? '#fbbf24'
                 : '#fca5a5',
             }}>
@@ -1418,7 +1418,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           )}
           {/* Save state — separate from format check so the user sees both */}
           <span style={{
-            color: saving ? '#94a3b8' : (savedAt ? '#10b981' : 'var(--meta)'),
+            color: saving ? 'var(--g-text-mid)' : (savedAt ? 'var(--state-ok)' : 'var(--meta)'),
           }}>
             {saving ? 'Saving…' : (savedAt ? '· ✓ Saved' : (urlState ? '· Auto-saves' : 'Auto-saves as you type'))}
           </span>
@@ -1442,7 +1442,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
             padding: '8px 14px',
             background: (teamnetUrl && !syncing) ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
             border: `1px solid ${(teamnetUrl && !syncing) ? 'rgba(34,211,238,0.4)' : 'rgba(255,255,255,0.1)'}`,
-            color: (teamnetUrl && !syncing) ? '#67e8f9' : 'var(--meta)',
+            color: (teamnetUrl && !syncing) ? 'var(--c-cyan)' : 'var(--meta)',
             borderRadius: 'var(--r-md)',
             fontSize: 13, fontWeight: 500,
             cursor: (teamnetUrl && !syncing) ? 'pointer' : 'not-allowed',
@@ -1460,7 +1460,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           padding: 10,
           background: syncStatus.ok ? 'rgba(16,185,129,0.10)' : 'rgba(239,68,68,0.10)',
           border: `1px solid ${syncStatus.ok ? 'rgba(16,185,129,0.30)' : 'rgba(239,68,68,0.30)'}`,
-          color: syncStatus.ok ? '#34d399' : '#fca5a5',
+          color: syncStatus.ok ? 'var(--c-green-2)' : 'var(--c-red)',
           borderRadius: 'var(--r-md)',
           fontSize: 13,
         }}>
@@ -1486,7 +1486,7 @@ function TeamNetStep({ practiceId, teamnetUrl, setTeamnetUrl }) {
           background: 'rgba(8,145,178,0.06)',
           border: '1px solid rgba(8,145,178,0.15)',
           borderRadius: 'var(--r-md)',
-          fontSize: 13, color: '#cbd5e1', lineHeight: 1.7,
+          fontSize: 13, color: 'var(--g-text-soft)', lineHeight: 1.7,
         }}>
           <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <li>Open <strong>TeamNet</strong> and go to <strong>Diary</strong>.</li>
@@ -1782,7 +1782,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
         background: 'rgba(34,211,238,0.05)',
         border: '1px solid rgba(34,211,238,0.15)',
         borderRadius: 'var(--r-md)',
-        fontSize: 12, color: '#cbd5e1', lineHeight: 1.5,
+        fontSize: 12, color: 'var(--g-text-soft)', lineHeight: 1.5,
       }}>
         <strong className="text-cyan-300">One report does it all.</strong> This is the
         same CSV you'll upload every day going forward — saved as a report definition in
@@ -1867,7 +1867,7 @@ function EmisStep({ practiceId, hasClinicians, setHasClinicians, setClinicianCou
             borderRadius: 'var(--r-md)',
           }}>
             <div style={{
-              fontSize: 12, color: '#10b981', fontWeight: 700,
+              fontSize: 12, color: 'var(--state-ok)', fontWeight: 700,
               letterSpacing: 1, marginBottom: 10,
             }}>
               ✓ IMPORT COMPLETE
@@ -1916,7 +1916,7 @@ function UploadFirstPrompt({ message }) {
       background: 'rgba(245,158,11,0.06)',
       border: '1px solid rgba(245,158,11,0.2)',
       borderRadius: 'var(--r-md)',
-      color: '#cbd5e1',
+      color: 'var(--g-text-soft)',
       fontSize: 13, lineHeight: 1.6,
       display: 'flex', flexDirection: 'column', gap: 6,
     }}>
@@ -2071,7 +2071,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
   return (
     <div style={{ padding: 16, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 'var(--r-md)' }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: '#fdba74', marginBottom: 4 }}>Expected urgent capacity (optional)</div>
-      <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.55, margin: '0 0 12px' }}>
+      <p style={{ fontSize: 13, color: 'var(--g-text-mid)', lineHeight: 1.55, margin: '0 0 12px' }}>
         How many urgent slots you aim to offer per session. Used by Capacity Planning and as a
         fallback for the Today gauge. You can autofill a starting point from your appointment data,
         set it by hand, or skip and do it later from the Demand tab.
@@ -2100,14 +2100,14 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
               <tbody>
                 {['am', 'pm'].map(session => (
                   <tr key={session} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '8px 4px', fontSize: 13, fontWeight: 500, color: session === 'am' ? '#fbbf24' : '#60a5fa' }}>{session === 'am' ? 'Morning' : 'Afternoon'}</td>
+                    <td style={{ padding: '8px 4px', fontSize: 13, fontWeight: 500, color: session === 'am' ? 'var(--c-amber-2)' : 'var(--c-blue-2)' }}>{session === 'am' ? 'Morning' : 'Afternoon'}</td>
                     {DAYS.map(d => (
                       <td key={d} style={{ textAlign: 'center', padding: '4px' }}>
                         {mode === 'manual' ? (
                           <input type="number" min={0} max={999} value={expected[d]?.[session] ?? ''} onChange={e => updateCell(d, session, e.target.value)} placeholder="–"
-                            style={{ width: 56, padding: '6px 4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--r-sm)', color: '#e2e8f0', fontSize: 13, textAlign: 'center', fontFamily: "var(--font-mono)" }} />
+                            style={{ width: 56, padding: '6px 4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--r-sm)', color: 'var(--g-text-hi)', fontSize: 13, textAlign: 'center', fontFamily: "var(--font-mono)" }} />
                         ) : (
-                          <span style={{ fontFamily: "var(--font-mono)", color: '#e2e8f0' }}>{expected[d]?.[session] ?? 0}</span>
+                          <span style={{ fontFamily: "var(--font-mono)", color: 'var(--g-text-hi)' }}>{expected[d]?.[session] ?? 0}</span>
                         )}
                       </td>
                     ))}
@@ -2123,7 +2123,7 @@ function UrgentCapacitySection({ practiceId, parsedCsv, slotFilters, onSet }) {
                   <button type="button" onClick={startManual} style={pillButton('#6366f1')}>Edit</button>
                   <button type="button" onClick={autofill} disabled={!hasUrgent} style={{ ...pillButton('#f97316'), opacity: hasUrgent ? 1 : 0.4, cursor: hasUrgent ? 'pointer' : 'not-allowed' }}>Re-autofill</button>
                 </>}
-            <span style={{ fontSize: 11, color: savedAt ? '#10b981' : 'var(--meta)' }}>{saving ? 'Saving…' : (savedAt ? '✓ Saved' : '')}</span>
+            <span style={{ fontSize: 11, color: savedAt ? 'var(--state-ok)' : 'var(--meta)' }}>{saving ? 'Saving…' : (savedAt ? '✓ Saved' : '')}</span>
           </div>
         </div>
       )}
@@ -2340,7 +2340,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
         background: 'rgba(34,211,238,0.05)',
         border: '1px solid rgba(34,211,238,0.15)',
         borderRadius: 'var(--r-md)',
-        fontSize: 13, color: '#cbd5e1', lineHeight: 1.55,
+        fontSize: 13, color: 'var(--g-text-soft)', lineHeight: 1.55,
       }}>
         <p style={{ margin: 0 }}>
           <strong className="text-cyan-300">We've taken a first pass at categorising these</strong> based
@@ -2364,7 +2364,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           doesn't belong as a per-row toggle on every slot type. Pick from
           the dropdown; selected slots show as removable chips. */}
       <div style={{ padding: 14, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 'var(--r-md)' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#c4b5fd', marginBottom: 4 }}>Duty doctor slot(s)</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--duty-fg)', marginBottom: 4 }}>Duty doctor slot(s)</div>
         <div className="text-meta text-slate-400 mb-2.5 leading-normal">
           Which slot type(s) are your duty / on-call doctor slots? Usually just 1–2. The huddle and
           Today views highlight these separately.
@@ -2373,13 +2373,13 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           {(slotFilters.dutyDoctorSlot || []).map(slot => (
             <span key={slot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'rgba(139,92,246,0.18)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 'var(--r-pill)', fontSize: 12, color: '#ddd6fe', fontFamily: "var(--font-mono)" }}>
               {slot}
-              <button type="button" onClick={() => toggleDuty(slot)} title="Remove" style={{ background: 'none', border: 'none', color: '#c4b5fd', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+              <button type="button" onClick={() => toggleDuty(slot)} title="Remove" style={{ background: 'none', border: 'none', color: 'var(--duty-fg)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
             </span>
           ))}
           <select
             value=""
             onChange={(e) => { if (e.target.value) toggleDuty(e.target.value); }}
-            style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 'var(--r-md)', color: '#e2e8f0', fontSize: 12, cursor: 'pointer', maxWidth: 320 }}
+            style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: 'var(--r-md)', color: 'var(--g-text-hi)', fontSize: 12, cursor: 'pointer', maxWidth: 320 }}
           >
             <option value="">+ Add a duty slot…</option>
             {slotTypes.filter(s => !(slotFilters.dutyDoctorSlot || []).includes(s)).map(s => (
@@ -2390,11 +2390,11 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
       </div>
 
       <div className="flex items-center gap-2.5 flex-wrap text-meta">
-        <SummaryPill colour="#10b981" label="Routine" count={summary.routine} />
+        <SummaryPill colour="var(--state-ok)" label="Routine" count={summary.routine} />
         <SummaryPill colour="#f97316" label="Urgent" count={summary.urgent} />
-        <SummaryPill colour="#475569" label="Other" count={summary.other} />
+        <SummaryPill colour="var(--g-text-faint)" label="Other" count={summary.other} />
         <SummaryPill colour="#8b5cf6" label="Duty doctor" count={summary.duty} />
-        <span style={{ marginLeft: 'auto', fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : 'var(--meta)') }}>
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: saving ? 'var(--g-text-mid)' : (savedAt ? 'var(--state-ok)' : 'var(--meta)') }}>
           {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves on change')}
         </span>
       </div>
@@ -2406,10 +2406,10 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           border: '1px solid rgba(168,85,247,0.25)',
           borderRadius: 'var(--r-md)',
           display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-          fontSize: 12, color: '#cbd5e1',
+          fontSize: 12, color: 'var(--g-text-soft)',
         }}>
           <span>
-            <strong style={{ color: '#c4b5fd' }}>Suggestions available</strong> — we have
+            <strong style={{ color: 'var(--duty-fg)' }}>Suggestions available</strong> — we have
             guessed categories based on slot names. Apply them all in one go or click
             through individually.
           </span>
@@ -2431,7 +2431,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
           gridTemplateColumns: '1fr 300px',
           padding: '8px 14px',
           background: 'rgba(255,255,255,0.03)',
-          fontSize: 11, fontWeight: 600, color: '#94a3b8',
+          fontSize: 11, fontWeight: 600, color: 'var(--g-text-mid)',
           textTransform: 'uppercase', letterSpacing: 0.4,
         }}>
           <div>Slot type</div>
@@ -2462,7 +2462,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
               }}
             >
               <div>
-                <div style={{ fontSize: 13, color: '#cbd5e1', fontFamily: "var(--font-mono)", display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 13, color: 'var(--g-text-soft)', fontFamily: "var(--font-mono)", display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   {slot}
                   {/* Auto-applied tag: subtle confidence indicator
                       sitting next to the slot name. High confidence
@@ -2474,7 +2474,7 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
                       fontSize:11, padding: '1px 7px', borderRadius: 'var(--r-pill)',
                       background: 'rgba(16,185,129,0.12)',
                       border: '1px solid rgba(16,185,129,0.3)',
-                      color: '#6ee7b7', letterSpacing: 0.4, fontFamily: 'inherit',
+                      color: 'var(--c-mint)', letterSpacing: 0.4, fontFamily: 'inherit',
                     }}>✓ AUTO</span>
                   )}
                   {isAutoApplied && confidence === 'medium' && cat !== 'other' && (
@@ -2482,13 +2482,13 @@ function SlotTypesStep({ practiceId, parsedCsv, slotFilters, setSlotFilters }) {
                       fontSize:11, padding: '1px 7px', borderRadius: 'var(--r-pill)',
                       background: 'rgba(251,191,36,0.10)',
                       border: '1px solid rgba(251,191,36,0.3)',
-                      color: '#fbbf24', letterSpacing: 0.4, fontFamily: 'inherit',
+                      color: 'var(--c-amber-2)', letterSpacing: 0.4, fontFamily: 'inherit',
                     }}>~ CHECK</span>
                   )}
                 </div>
                 {showCategorySuggestion && (
-                  <div style={{ marginTop: 2, fontSize: 11, color: '#a78bfa' }}>
-                    Suggested: <strong style={{ color: suggested === 'urgent' ? '#fdba74' : '#cbd5e1' }}>{suggested}</strong>
+                  <div style={{ marginTop: 2, fontSize: 11, color: 'var(--c-violet)' }}>
+                    Suggested: <strong style={{ color: suggested === 'urgent' ? '#fdba74' : 'var(--g-text-soft)' }}>{suggested}</strong>
                     {confidence === 'medium' && <span className="text-slate-400"> (medium confidence)</span>}
                   </div>
                 )}
@@ -2540,9 +2540,9 @@ function pillButton(colour) {
 
 function SlotCategoryPicker({ value, onChange }) {
   const options = [
-    { id: 'routine', label: 'Routine', colour: '#10b981' },
+    { id: 'routine', label: 'Routine', colour: 'var(--state-ok)' },
     { id: 'urgent',  label: 'Urgent',  colour: '#f97316' },
-    { id: 'other',   label: 'Other',   colour: '#475569' },
+    { id: 'other',   label: 'Other',   colour: 'var(--g-text-faint)' },
   ];
   return (
     <div style={{
@@ -2563,7 +2563,7 @@ function SlotCategoryPicker({ value, onChange }) {
               padding: '5px 10px',
               fontSize: 11, fontWeight: 500,
               background: active ? o.colour : 'transparent',
-              color: active ? 'white' : '#94a3b8',
+              color: active ? 'var(--g-text-max)' : 'var(--g-text-mid)',
               border: 'none', borderRadius: 'var(--r-sm)',
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -2613,7 +2613,7 @@ function ReviewStep({ steps, stepDone, canComplete, requiredIncomplete, goToStep
       <div className="flex flex-col gap-2">
         {rows.map(({ s, i, done }) => {
           const state = done ? 'done' : (s.required ? 'todo' : 'optional');
-          const colour = state === 'done' ? '#10b981' : state === 'todo' ? '#f59e0b' : '#64748b';
+          const colour = state === 'done' ? 'var(--state-ok)' : state === 'todo' ? 'var(--state-tight)' : '#64748b';
           const label = state === 'done' ? 'Done' : state === 'todo' ? 'Needs attention' : 'Skipped (optional)';
           return (
             <div key={s.id} style={{
@@ -2898,7 +2898,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
       </p>
 
       <div className="flex items-center justify-end">
-        <span style={{ fontSize: 11, color: saving ? '#94a3b8' : (savedAt ? '#10b981' : 'var(--meta)') }}>
+        <span style={{ fontSize: 11, color: saving ? 'var(--g-text-mid)' : (savedAt ? 'var(--state-ok)' : 'var(--meta)') }}>
           {saving ? 'Saving…' : (savedAt ? '✓ Saved' : 'Auto-saves on change')}
         </span>
       </div>
@@ -2939,7 +2939,7 @@ function SitesStep({ practiceId, parsedCsv, sites, setSites }) {
                 padding: '4px 8px', fontSize: 11,
                 background: 'transparent',
                 border: '1px solid rgba(255,255,255,0.08)',
-                color: '#94a3b8', borderRadius: 'var(--r-sm)',
+                color: 'var(--g-text-mid)', borderRadius: 'var(--r-sm)',
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
             >×</button>
@@ -3064,7 +3064,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
           </div>
           {totalSpanDays > 0 && (
             <div>
-              <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: 0.5, fontWeight: 600, marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: 'var(--g-text-mid)', letterSpacing: 0.5, fontWeight: 600, marginBottom: 8 }}>
                 MODEL FEATURES UNLOCKED
               </div>
               <div className="flex flex-col gap-1.5">
@@ -3152,7 +3152,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
               <li>Click <strong>Export</strong> and save the CSV.</li>
               <li>Drop it onto the upload area above.</li>
             </ol>
-            <p style={{ margin: '10px 0 0', color: '#94a3b8', fontSize: 12 }}>
+            <p style={{ margin: '10px 0 0', color: 'var(--g-text-mid)', fontSize: 12 }}>
               The file is UTF-16 tab-separated — that's normal, our parser handles it.
             </p>
           </div>
@@ -3167,10 +3167,10 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
             <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <li>In Anima, go to <strong>Admin → Audit results</strong>.</li>
               <li>Filter by <strong>Event: patientReviewSubmit</strong> over the date range you want.</li>
-              <li>Click <strong>Export</strong> — the file is named <span style={{ fontFamily: "var(--font-mono)", color: '#94a3b8' }}>ExportedAuditResults_*.csv</span>.</li>
+              <li>Click <strong>Export</strong> — the file is named <span style={{ fontFamily: "var(--font-mono)", color: 'var(--g-text-mid)' }}>ExportedAuditResults_*.csv</span>.</li>
               <li>Drop it onto the upload area above.</li>
             </ol>
-            <p style={{ margin: '10px 0 0', color: '#94a3b8', fontSize: 12 }}>
+            <p style={{ margin: '10px 0 0', color: 'var(--g-text-mid)', fontSize: 12 }}>
               Both direct patient submissions and staff-proxy entries (receptionist phone-ins)
               count toward your demand total — same as AskMyGP.
             </p>
@@ -3190,7 +3190,7 @@ function DemandStep({ practiceId, practiceSlug, hasDemandData, setHasDemandData,
 const howToBody = {
   padding: '12px 16px 16px',
   background: 'rgba(0,0,0,0.15)',
-  fontSize: 13, color: '#cbd5e1', lineHeight: 1.55,
+  fontSize: 13, color: 'var(--g-text-soft)', lineHeight: 1.55,
 };
 function HowToHeader({ title, open, onClick }) {
   return (
@@ -3203,13 +3203,13 @@ function HowToHeader({ title, open, onClick }) {
         background: open ? 'rgba(34,211,238,0.06)' : 'rgba(255,255,255,0.02)',
         border: 'none',
         borderTop: '1px solid rgba(255,255,255,0.04)',
-        color: '#cbd5e1', fontSize: 13, fontWeight: 500,
+        color: 'var(--g-text-soft)', fontSize: 13, fontWeight: 500,
         cursor: 'pointer', textAlign: 'left',
         fontFamily: 'inherit',
       }}
     >
       <span style={{
-        display: 'inline-block', width: 10, color: '#67e8f9',
+        display: 'inline-block', width: 10, color: 'var(--c-cyan)',
         transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
         transition: 'transform 0.15s',
       }}>▶</span>
@@ -3328,7 +3328,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
         }}>
           {parsed.validEmails.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
+              <div style={{ fontSize: 11, color: 'var(--state-ok)', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
                 ✓ {parsed.validEmails.length} VALID EMAIL{parsed.validEmails.length === 1 ? '' : 'S'}
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -3338,7 +3338,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
                     borderRadius: 'var(--r-pill)',
                     background: 'rgba(16,185,129,0.15)',
                     border: '1px solid rgba(16,185,129,0.3)',
-                    color: '#6ee7b7',
+                    color: 'var(--c-mint)',
                     fontSize: 12,
                   }}>{e}</span>
                 ))}
@@ -3347,7 +3347,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
           )}
           {parsed.duplicates.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
+              <div style={{ fontSize: 11, color: 'var(--g-text-mid)', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
                 {parsed.duplicates.length} DUPLICATE{parsed.duplicates.length === 1 ? '' : 'S'} (will skip)
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -3357,7 +3357,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
                     borderRadius: 'var(--r-pill)',
                     background: 'rgba(255,255,255,0.05)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#94a3b8',
+                    color: 'var(--g-text-mid)',
                     fontSize: 12,
                     textDecoration: 'line-through',
                   }}>{e}</span>
@@ -3367,7 +3367,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
           )}
           {parsed.invalid.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
+              <div style={{ fontSize: 11, color: 'var(--c-amber-2)', fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>
                 ⚠ {parsed.invalid.length} NOT RECOGNISED — CHECK FORMAT
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -3380,7 +3380,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
                       borderRadius: 'var(--r-pill)',
                       background: 'rgba(251,191,36,0.1)',
                       border: '1px solid rgba(251,191,36,0.3)',
-                      color: '#fbbf24',
+                      color: 'var(--c-amber-2)',
                       fontSize: 12,
                       cursor: 'help',
                     }}
@@ -3418,7 +3418,7 @@ function InvitesStep({ practiceId, hasInvites, setHasInvites, setDirty }) {
           background: 'rgba(16,185,129,0.08)',
           border: '1px solid rgba(16,185,129,0.25)',
           borderRadius: 'var(--r-md)',
-          fontSize: 13, color: '#6ee7b7',
+          fontSize: 13, color: 'var(--c-mint)',
         }}>
           {result.created > 0 && <>✓ Sent {result.created} invite{result.created === 1 ? '' : 's'}. </>}
           {result.skipped > 0 && <span className="text-slate-400">{result.skipped} skipped (already invited or members).</span>}
@@ -3460,11 +3460,11 @@ function FeatureRow({ on, label, hint }) {
         ) : null}
       </div>
       <div className="flex-1 min-w-0">
-        <div style={{ fontSize: 13, color: on ? '#e2e8f0' : '#94a3b8', fontWeight: 500 }}>
+        <div style={{ fontSize: 13, color: on ? 'var(--g-text-hi)' : 'var(--g-text-mid)', fontWeight: 500 }}>
           {label}
         </div>
         {hint && (
-          <div style={{ fontSize: 11, color: on ? '#94a3b8' : 'var(--meta)', marginTop: 1 }}>
+          <div style={{ fontSize: 11, color: on ? 'var(--g-text-mid)' : 'var(--meta)', marginTop: 1 }}>
             {hint}
           </div>
         )}
@@ -3534,7 +3534,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
           gap: 14,
         }}>
           <div className="flex-1 min-w-0">
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--g-text-hi)' }}>
               {buddyCoverPublic ? 'Public access enabled' : 'Public access disabled'}
             </div>
             <div className="text-body-sm text-slate-400 mt-1 leading-normal">
@@ -3580,7 +3580,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
             border: '1px solid rgba(20,184,166,0.20)',
             borderRadius: 'var(--r-md)',
           }}>
-            <div style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>
+            <div style={{ color: 'var(--g-text-mid)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>
               Your public URL
             </div>
             <a
@@ -3588,7 +3588,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                color: '#67e8f9',
+                color: 'var(--c-cyan)',
                 textDecoration: 'underline',
                 wordBreak: 'break-all',
                 fontFamily: 'ui-monospace, Menlo, monospace',
@@ -3607,7 +3607,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
         border: '1px solid rgba(251,191,36,0.22)',
         borderRadius: 'var(--r-md)',
         fontSize: 13,
-        color: '#fde68a',
+        color: 'var(--c-sand)',
         lineHeight: 1.65,
       }}>
         <strong className="text-amber-300">What becomes visible when enabled:</strong>{' '}
@@ -3622,7 +3622,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
         border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 'var(--r-md)',
         fontSize: 13,
-        color: '#cbd5e1',
+        color: 'var(--g-text-soft)',
         lineHeight: 1.65,
       }}>
         <strong className="text-slate-200">Why turn this on?</strong>{' '}
@@ -3637,7 +3637,7 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
           padding: '10px 14px',
           background: 'rgba(239,68,68,0.10)',
           border: '1px solid rgba(239,68,68,0.30)',
-          color: '#fca5a5',
+          color: 'var(--c-red)',
           borderRadius: 'var(--r-md)',
           fontSize: 13,
         }}>
@@ -3656,16 +3656,16 @@ function PublicBuddyStep({ practiceId, practiceSlug, buddyCoverPublic, setBuddyC
 function SummaryStat({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: '#6ee7b7', fontFamily: "var(--font-heading)", lineHeight: 1 }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--c-mint)', fontFamily: "var(--font-heading)", lineHeight: 1 }}>
         {value}
       </div>
-      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, letterSpacing: 0.3 }}>
+      <div style={{ fontSize: 11, color: 'var(--g-text-mid)', marginTop: 4, letterSpacing: 0.3 }}>
         {label}
       </div>
     </div>
   );
 }
-const fieldHelp = { fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, margin: 0 };
+const fieldHelp = { fontSize: 14, color: 'var(--g-text-soft)', lineHeight: 1.6, margin: 0 };
 const inputStyle = {
   width: '100%',
   padding: '11px 14px',
@@ -3673,9 +3673,9 @@ const inputStyle = {
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 'var(--r-md)',
   fontSize: 14,
-  color: '#e2e8f0',
+  color: 'var(--g-text-hi)',
   fontFamily: 'inherit',
   outline: 'none',
   boxSizing: 'border-box',
 };
-const errorText = { marginTop: 8, fontSize: 12, color: '#fca5a5' };
+const errorText = { marginTop: 8, fontSize: 12, color: 'var(--c-red)' };

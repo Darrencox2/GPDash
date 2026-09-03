@@ -61,7 +61,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14 }}>
+        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--c-red)', padding: 12, borderRadius: 'var(--r-md)', fontSize: 14 }}>
           {error}
         </div>
       )}
@@ -131,7 +131,7 @@ export default function CapacityTargetsEditor({ practiceId, initialHuddleSetting
             <tbody>
               {['am', 'pm'].map(session => (
                 <tr key={session} style={{ borderTop: '1px solid var(--g-tile)' }}>
-                  <td style={{ padding: '10px 4px', fontSize: 13, fontWeight: 500, color: session === 'am' ? '#fbbf24' : '#60a5fa' }}>
+                  <td style={{ padding: '10px 4px', fontSize: 13, fontWeight: 500, color: session === 'am' ? 'var(--c-amber-2)' : 'var(--c-blue-2)' }}>
                     {session === 'am' ? 'Morning' : 'Afternoon'}
                   </td>
                   {DAYS.map(d => (

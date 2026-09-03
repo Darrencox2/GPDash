@@ -32,11 +32,13 @@ const SESSION_LABEL = { am: 'AM', pm: 'PM' };
 const DEFAULT_THRESHOLDS = { over: 12, tight: 20, short: 28, apptsPerSession: 14 };
 const ANOM_LABEL = { off_contract: 'Off contract', missing: 'Contracted but not allocated', unassigned_activity: 'Activity unassigned', total: 'Sessions ≠ contract' };
 
+// `text` is drawn as type on the tint, so it takes the theme token; `solid`
+// and `tint` are fills and stay concrete.
 const RC = {
-  blue:  { solid: '#0ea5e9', tint: 'rgba(14,165,233,0.16)', text: '#7dd3fc', label: 'Overstaffed' },
-  green: { solid: '#10b981', tint: 'rgba(16,185,129,0.16)', text: '#6ee7b7', label: 'Good' },
-  amber: { solid: '#f59e0b', tint: 'rgba(245,158,11,0.16)', text: '#fcd34d', label: 'Tight' },
-  red:   { solid: '#ef4444', tint: 'rgba(239,68,68,0.18)', text: '#fca5a5', label: 'Short' },
+  blue:  { solid: '#0ea5e9', tint: 'rgba(14,165,233,0.16)', text: 'var(--c-sky)', label: 'Overstaffed' },
+  green: { solid: '#10b981', tint: 'rgba(16,185,129,0.16)', text: 'var(--c-mint)', label: 'Good' },
+  amber: { solid: '#f59e0b', tint: 'rgba(245,158,11,0.16)', text: 'var(--c-amber)', label: 'Tight' },
+  red:   { solid: '#ef4444', tint: 'rgba(239,68,68,0.18)', text: 'var(--c-red)', label: 'Short' },
 };
 function ratioColour(general, demandHalf, th) {
   if (general <= 0) return RC.red;
@@ -542,7 +544,7 @@ export default function WorkforcePlanner({ data, toast }) {
         </div>
         {!onCurrent && (
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "var(--font-mono)", color: totalDelta < 0 ? '#f87171' : totalDelta > 0 ? '#38bdf8' : 'var(--text-3)' }}>
+            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "var(--font-mono)", color: totalDelta < 0 ? 'var(--c-red-2)' : totalDelta > 0 ? 'var(--c-sky-2)' : 'var(--text-3)' }}>
               {totalDelta > 0 ? '+' : ''}{totalDelta} vs Current
             </div>
             <div style={{ fontSize: 12, color: 'var(--meta)', marginTop: 2 }}>Current has {currentTotal} · this scenario has {totalCount}</div>
@@ -553,7 +555,7 @@ export default function WorkforcePlanner({ data, toast }) {
       {/* Banners */}
       <div className="flex gap-2.5 flex-wrap">
         <div style={{ ...S.card, padding: '10px 14px', flex: '1 1 320px', borderColor: anomCount ? 'rgba(245,158,11,0.5)' : 'rgba(16,185,129,0.5)', background: anomCount ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)' }}>
-          <span style={{ fontSize: 15, color: anomCount ? '#fbbf24' : '#34d399', fontWeight: 500 }}>{anomCount ? `⚠ ${anomCount} anomal${anomCount === 1 ? 'y' : 'ies'} vs contracted pattern` : '✓ Allocation matches the contracted pattern'}</span>
+          <span style={{ fontSize: 15, color: anomCount ? 'var(--c-amber-2)' : 'var(--c-green-2)', fontWeight: 500 }}>{anomCount ? `⚠ ${anomCount} anomal${anomCount === 1 ? 'y' : 'ies'} vs contracted pattern` : '✓ Allocation matches the contracted pattern'}</span>
         </div>
         {diverged > 0 && (
           <div style={{ ...S.card, padding: '10px 14px', flex: '1 1 240px', borderColor: 'rgba(129,140,248,0.5)', background: 'rgba(99,102,241,0.08)' }}>
@@ -570,7 +572,7 @@ export default function WorkforcePlanner({ data, toast }) {
         </div>
         <span style={{ fontSize: 12, color: 'var(--meta)' }}>only activities alternate — staff work the same each week</span>
         <button onClick={() => setHolidayOn(v => !v)} title={`Reduce each session by ${holidayAllowance} to model maximum staff on holiday`}
-          style={{ ...S.btnGhost, marginLeft: 'auto', background: holidayOn ? 'rgba(245,158,11,0.2)' : 'var(--surface-2)', border: `1px solid ${holidayOn ? '#f59e0b' : 'var(--border-2)'}`, color: holidayOn ? '#fcd34d' : 'var(--text-1)' }}>
+          style={{ ...S.btnGhost, marginLeft: 'auto', background: holidayOn ? 'rgba(245,158,11,0.2)' : 'var(--surface-2)', border: `1px solid ${holidayOn ? '#f59e0b' : 'var(--border-2)'}`, color: holidayOn ? 'var(--c-amber)' : 'var(--text-1)' }}>
           {holidayOn ? `✓ Holiday cover (−${holidayAllowance}/session)` : 'Holiday cover'}
         </button>
         {expandedClin && byId[expandedClin] && (
@@ -601,7 +603,7 @@ export default function WorkforcePlanner({ data, toast }) {
                       background: over ? 'rgba(99,102,241,0.14)' : 'var(--surface)',
                       border: `1px solid ${over ? 'var(--accent-2)' : anomN ? 'rgba(239,68,68,0.45)' : 'var(--border)'}`, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', background: rc.tint, borderBottom: `2px solid ${rc.solid}` }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: rc.text }}>{rc.label}{anomN ? <span style={{ color: '#ef4444', marginLeft: 5 }}>⚠{anomN}</span> : null}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: rc.text }}>{rc.label}{anomN ? <span style={{ color: 'var(--state-short)', marginLeft: 5 }}>⚠{anomN}</span> : null}</span>
                       <button onClick={() => addActivity(day, session)} title="Add activity" style={{ background: 'none', border: 'none', color: rc.text, cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>+</button>
                     </div>
                     <div className="p-2 flex flex-col gap-1.5 flex-1">
@@ -613,8 +615,8 @@ export default function WorkforcePlanner({ data, toast }) {
                             style={{ borderRadius: 'var(--r-md)', padding: '6px 8px', cursor: 'pointer', border: aover ? '1px solid var(--accent-2)' : `1px solid ${assigned ? 'rgba(56,189,248,0.35)' : 'rgba(245,158,11,0.3)'}`,
                               background: assigned ? 'rgba(56,189,248,0.16)' : 'rgba(245,158,11,0.14)' }}>
                             <div className="flex justify-between items-center gap-1.5">
-                              <span style={{ fontSize: 13, color: assigned ? '#7dd3fc' : '#fcd34d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label || 'Activity'}</span>
-                              <span style={{ fontSize:11, color: assigned ? '#7dd3fc' : '#fcd34d', flexShrink: 0 }}>{durLbl}{(a.week || 'all') !== 'all' ? ` · Wk ${(a.week || 'all').toUpperCase()}` : ''}</span>
+                              <span style={{ fontSize: 13, color: assigned ? 'var(--c-sky)' : 'var(--c-amber)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label || 'Activity'}</span>
+                              <span style={{ fontSize:11, color: assigned ? 'var(--c-sky)' : 'var(--c-amber)', flexShrink: 0 }}>{durLbl}{(a.week || 'all') !== 'all' ? ` · Wk ${(a.week || 'all').toUpperCase()}` : ''}</span>
                             </div>
                             <div style={{ marginTop: 5 }} onPointerDown={e => e.stopPropagation()}>
                               {assigned ? <Chip clinId={assigned} day={day} session={session} activityId={a.id} /> : <span className="text-meta text-amber-400">Drop a clinician</span>}
@@ -687,11 +689,11 @@ export default function WorkforcePlanner({ data, toast }) {
                     <div key={c.id} style={{ borderRadius: 'var(--r-md)', background: open ? 'var(--surface)' : 'transparent' }}>
                       <div className="flex items-center gap-2 px-1.5 py-1">
                         <span onPointerDown={startDrag({ clinId: c.id, fromDay: null, fromSession: null, fromActivityId: null })} title="Drag onto the grid" style={{ touchAction: 'none', cursor: 'grab', width: 24, height: 24, borderRadius: 'var(--r-pill)', background: c._added ? 'transparent' : 'var(--accent)', border: c._added ? '1px dashed var(--accent-2)' : 'none', color: c._added ? 'var(--accent-text)' : '#fff', fontSize:11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: dutySet.has(c.id) ? '0 0 0 2px rgba(248,113,113,0.6)' : 'none' }}>{initials(c.name)}</span>
-                        <span role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 14, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize:11, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: '#fbbf24', fontSize:11, marginLeft: 5 }}>edited</span>}</span>
+                        <span role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={() => setExpandedClin(open ? null : c.id)} style={{ flex: 1, fontSize: 14, color: 'var(--text-1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}{c._added && <span style={{ color: 'var(--accent-2)', fontSize:11, marginLeft: 5 }}>new</span>}{contractEdited(c.id) && <span style={{ color: 'var(--c-amber-2)', fontSize:11, marginLeft: 5 }}>edited</span>}</span>
                         <button onClick={() => toggleDuty(c.id)} title={dutySet.has(c.id) ? 'Duty-capable — click to unset' : 'Mark as duty-capable'}
                           style={{ width: 22, height: 22, borderRadius: 'var(--r-pill)', cursor: 'pointer', fontSize:11, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
-                            background: dutySet.has(c.id) ? 'rgba(248,113,113,0.18)' : 'transparent', border: `1px solid ${dutySet.has(c.id) ? 'rgba(248,113,113,0.7)' : 'var(--border-2)'}`, color: dutySet.has(c.id) ? '#fca5a5' : 'var(--meta)' }}>D</button>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: mismatch ? '#f87171' : 'var(--text-3)' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
+                            background: dutySet.has(c.id) ? 'rgba(248,113,113,0.18)' : 'transparent', border: `1px solid ${dutySet.has(c.id) ? 'rgba(248,113,113,0.7)' : 'var(--border-2)'}`, color: dutySet.has(c.id) ? 'var(--c-red)' : 'var(--meta)' }}>D</button>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: mismatch ? 'var(--c-red-2)' : 'var(--text-3)' }}>{allocated}{!additiveIds.has(c.id) ? `/${contracted}` : ''}</span>
                         {c._added ? <button onClick={() => deleteAdded(c.id)} title="Delete" style={S.xBtn}>×</button> : <button onClick={() => removeReal(c.id)} title="Mark as leaving" style={S.xBtn}>×</button>}
                       </div>
                       {open && (
@@ -727,7 +729,7 @@ export default function WorkforcePlanner({ data, toast }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {anomalies.items.map((it, i) => (
                     <div key={i} style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.4 }}>
-                      <span style={{ color: it.type === 'unassigned_activity' ? '#fbbf24' : '#f87171' }}>•</span>{' '}
+                      <span style={{ color: it.type === 'unassigned_activity' ? 'var(--c-amber-2)' : 'var(--c-red-2)' }}>•</span>{' '}
                       {it.type === 'unassigned_activity' ? <>{ANOM_LABEL[it.type]}: {it.label || 'Activity'} ({WF_DAY_NAMES[it.day].slice(0, 3)} {SESSION_LABEL[it.session]}{it.week !== 'all' ? ` Wk ${it.week.toUpperCase()}` : ''})</>
                         : it.type === 'total' ? <>{byId[it.clinicianId]?.name}: {ANOM_LABEL[it.type]} ({it.allocated} vs {it.contracted})</>
                           : <>{byId[it.clinicianId]?.name}: {ANOM_LABEL[it.type]} ({WF_DAY_NAMES[it.day].slice(0, 3)} {SESSION_LABEL[it.session]})</>}
@@ -818,7 +820,7 @@ export default function WorkforcePlanner({ data, toast }) {
             <p style={S.modalLabel}>Repeats</p>
             <Segmented options={[['all', 'Every week'], ['a', 'Week A'], ['b', 'Week B']]} value={a.week} onChange={v => updateActivity(a.id, { week: v })} />
             <div className="flex justify-between mt-4">
-              <button onClick={() => deleteActivity(a.id)} style={{ ...S.btnGhost, color: '#f87171', borderColor: 'rgba(239,68,68,0.4)' }}>Delete</button>
+              <button onClick={() => deleteActivity(a.id)} style={{ ...S.btnGhost, color: 'var(--c-red-2)', borderColor: 'rgba(239,68,68,0.4)' }}>Delete</button>
               <button onClick={() => setEditingId(null)} style={{ ...S.btnGhost, background: 'var(--accent)', border: 'none', color: '#fff' }}>Done</button>
             </div>
           </Modal>

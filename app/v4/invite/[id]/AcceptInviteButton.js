@@ -38,7 +38,7 @@ export default function AcceptInviteButton({ inviteId, practiceSlug }) {
           border: '1px solid rgba(239,68,68,0.3)',
           borderRadius: 'var(--r-md)',
           fontSize: 13,
-          color: '#fca5a5',
+          color: 'var(--c-red)',
         }}>{error}</div>
       )}
       <button
@@ -47,7 +47,7 @@ export default function AcceptInviteButton({ inviteId, practiceSlug }) {
         style={{
           padding: '10px 18px',
           background: '#0891b2',
-          color: 'white',
+          color: 'var(--g-text-max)',
           border: 'none',
           borderRadius: 'var(--r-md)',
           fontSize: 14,

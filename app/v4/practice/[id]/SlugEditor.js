@@ -146,7 +146,7 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
           style={{
             padding: '6px 14px',
             background: !saveBlocked ? '#0891b2' : 'var(--g-border)',
-            color: !saveBlocked ? 'white' : 'var(--g-text-mid)',
+            color: !saveBlocked ? 'var(--g-text-max)' : 'var(--g-text-mid)',
             border: 'none',
             borderRadius: 'var(--r-sm)',
             fontSize: 12,
@@ -163,7 +163,7 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
         <div style={{
           fontSize: 11,
           marginTop: 6,
-          color: avail.state === 'available' ? '#34d399'
+          color: avail.state === 'available' ? 'var(--c-green-2)'
             : avail.state === 'taken' ? '#fca5a5'
             : avail.state === 'checking' ? 'var(--g-text-mid)'
             : 'var(--g-text-mid)',
@@ -179,7 +179,7 @@ export default function SlugEditor({ practiceId, currentSlug, canEdit }) {
         <div style={{
           fontSize: 11,
           marginTop: 6,
-          color: status.kind === 'error' ? '#fca5a5' : status.kind === 'saved' ? '#34d399' : 'var(--g-text-mid)',
+          color: status.kind === 'error' ? 'var(--c-red)' : status.kind === 'saved' ? 'var(--c-green-2)' : 'var(--g-text-mid)',
         }}>{status.message}</div>
       )}
       <div className="text-caption text-mid mt-1.5 leading-normal">
