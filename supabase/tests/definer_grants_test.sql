@@ -70,7 +70,11 @@ definer_views as (
   join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relkind = 'v'
     and not coalesce((
-      select option_value = 'true'
+      -- Postgres stores whatever boolean spelling the ALTER used, and
+      -- `set (security_invoker = on)` is recorded literally as "on". An
+      -- equality test against 'true' reports a correctly-configured view as
+      -- failing, which is what this check did on its first run.
+      select option_value in ('on', 'true', '1', 'yes')
       from pg_options_to_table(c.reloptions)
       where option_name = 'security_invoker'
     ), false)
