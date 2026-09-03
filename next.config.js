@@ -177,15 +177,42 @@ const securityHeaders = [
   },
 ];
 
+// ─── The one intentional cross-origin embed ───────────────────────────
+// /signature.png is Darren's email-signature card. It is loaded by mail
+// clients from an origin that is by definition not ours, so the blanket
+// CORP: same-origin above would let a browser-based client refuse to
+// render it. This asset — and only this asset — opts out.
+//
+// Emitting CORP twice for one response is worse than either value alone
+// (browsers see a duplicate header and block), so the blanket rule below
+// excludes this path rather than relying on override precedence, which
+// Next does not document.
+const signatureHeaders = [
+  ...securityHeaders.filter((h) => h.key !== 'Cross-Origin-Resource-Policy'),
+  {
+    key: 'Cross-Origin-Resource-Policy',
+    value: 'cross-origin',
+  },
+  {
+    // Immutable content at a stable URL — let mail proxies cache it hard.
+    key: 'Cache-Control',
+    value: 'public, max-age=31536000, immutable',
+  },
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
     return [
       {
-        // Apply to every route — pages, API endpoints, static assets.
+        source: '/signature.png',
+        headers: signatureHeaders,
+      },
+      {
+        // Apply to every other route — pages, API endpoints, static assets.
         // Headers like CSP have no effect on JSON responses but the others
         // (HSTS, X-Content-Type-Options) still apply usefully.
-        source: '/(.*)',
+        source: '/((?!signature\\.png$).*)',
         headers: securityHeaders,
       },
     ];
