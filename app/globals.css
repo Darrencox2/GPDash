@@ -149,6 +149,7 @@
     --c-red-2: #f87171; --c-amber-2: #fbbf24; --c-green-2: #34d399; --c-mint: #6ee7b7;
     --c-violet: #a78bfa; --c-sand: #fde68a; --c-blue-2: #60a5fa;
     --c-cyan-3: #22d3ee; --c-sky: #7dd3fc; --c-sky-2: #38bdf8; --c-purple-2: #c084fc;
+    --c-teal: #5eead4; --c-pink-2: #f9a8d4; --c-gold: #fde047;
     --g-text-max: #ffffff;
     --c-cyan-2: #a5f3fc; --accent-pale: #a5b4fc;
     /* Sidebar inks. Deliberately theme-INDEPENDENT: the rail stays dark in
@@ -219,6 +220,7 @@
     --c-red-2: #c92020; --c-amber-2: #8a5406; --c-green-2: #047857; --c-mint: #0f766e;
     --c-violet: #6d28d9; --c-sand: #92400e; --c-blue-2: #1d4ed8;
     --c-cyan-3: #0e7490; --c-sky: #0369a1; --c-sky-2: #0369a1; --c-purple-2: #7c3aed;
+    --c-teal: #0f766e; --c-pink-2: #be185d; --c-gold: #854d0e;
     --g-text-max: #131a26;
     --c-cyan-2: #0e7490; --accent-pale: #4338ca;
     /* tight was #d97706 at 3.19:1 on a white card, under the 4.5:1 floor.
@@ -252,7 +254,7 @@
     --link: #4338ca; --link-hover: #3730a3; --meta: #5c6577;
     --duty-bg: rgba(124,58,237,0.09); --duty-bd: rgba(124,58,237,0.32); --duty-fg: #6d28d9;
     --ev-join: #047857; --ev-return: #0f766e; --ev-leave: #b91c1c;
-    --ev-away: #b45309; --ev-change: #4338ca;
+    --ev-away: #8a5406; --ev-change: #4338ca;
   }
 }
 

@@ -49,7 +49,7 @@ function ChipGroup({ options, selected, onChange, allLabel = 'Any', allowAll = t
     <div className="flex items-center gap-1 flex-wrap">
       {allowAll && (
         <button onClick={() => onChange([])} className="text-xs px-2 py-1 rounded-md"
-          style={{ background: none ? 'rgba(99,102,241,0.25)' : 'var(--g-tile)', border: `1px solid ${none ? 'rgba(99,102,241,0.5)' : 'var(--g-border-2)'}`, color: none ? '#c7d2fe' : 'var(--g-text-mid)' }}>{allLabel}</button>
+          style={{ background: none ? 'rgba(99,102,241,0.25)' : 'var(--g-tile)', border: `1px solid ${none ? 'rgba(99,102,241,0.5)' : 'var(--g-border-2)'}`, color: none ? 'var(--accent-text)' : 'var(--g-text-mid)' }}>{allLabel}</button>
       )}
       {options.map(o => {
         const on = (selected || []).includes(o.id);
@@ -84,7 +84,7 @@ function StepSection({ n, title, children, right }) {
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center text-[11px] font-bold rounded-full" style={{ width: 17, height: 17, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{n}</span>
+          <span className="flex items-center justify-center text-[11px] font-bold rounded-full" style={{ width: 17, height: 17, background: 'rgba(99,102,241,0.25)', color: 'var(--accent-text)' }}>{n}</span>
           <span className="text-sm font-semibold text-slate-200">{title}</span>
         </div>
         {right}
@@ -100,7 +100,7 @@ function Collapsible({ title, badge, defaultOpen = false, children }) {
     <div>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 text-sm font-semibold text-slate-300" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
         <span className="text-slate-400">{open ? '▾' : '▸'}</span><span>{title}</span>
-        {badge ? <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>{badge}</span> : null}
+        {badge ? <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.25)', color: 'var(--accent-text)' }}>{badge}</span> : null}
       </button>
       {open && <div className="mt-2 pl-[18px] space-y-2.5">{children}</div>}
     </div>
@@ -335,10 +335,10 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
     // Per-group accent colours (Design A): a left bar + coloured heading,
     // cards otherwise calm and dark. Cycles if more groups are added.
     const GROUP_ACCENTS = [
-      { bar: '#6366f1', head: '#a5b4fc', ring: 'rgba(99,102,241,0.55)' },  // indigo
-      { bar: '#14b8a6', head: '#5eead4', ring: 'rgba(20,184,166,0.55)' },  // teal
-      { bar: '#f59e0b', head: '#fcd34d', ring: 'rgba(245,158,11,0.55)' },  // amber
-      { bar: '#ec4899', head: '#f9a8d4', ring: 'rgba(236,72,153,0.55)' },  // pink
+      { bar: '#6366f1', head: 'var(--accent-pale)', ring: 'rgba(99,102,241,0.55)' },  // indigo
+      { bar: '#14b8a6', head: 'var(--c-teal)', ring: 'rgba(20,184,166,0.55)' },  // teal
+      { bar: '#f59e0b', head: 'var(--c-amber)', ring: 'rgba(245,158,11,0.55)' },  // amber
+      { bar: '#ec4899', head: 'var(--c-pink-2)', ring: 'rgba(236,72,153,0.55)' },  // pink
     ];
     const star = (ref) => (
       <button onClick={(e) => { e.stopPropagation(); toggleFav(ref); }}
@@ -357,8 +357,8 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
         {body}{extra}
       </div>
     );
-    const gold = { bar: '#eab308', head: '#fde047', ring: 'rgba(234,179,8,0.55)' };
-    const emerald = { bar: '#10b981', head: '#6ee7b7', ring: 'rgba(16,185,129,0.55)' };
+    const gold = { bar: '#eab308', head: 'var(--c-gold)', ring: 'rgba(234,179,8,0.55)' };
+    const emerald = { bar: '#10b981', head: 'var(--c-mint)', ring: 'rgba(16,185,129,0.55)' };
     // Resolve favourited refs back to a preset or saved report (skipping any
     // that no longer exist, e.g. a deleted saved report).
     const favResolved = Array.from(favourites).map(ref => {
@@ -444,7 +444,7 @@ export default function WorkloadReportBuilder({ data, huddleData }) {
             style={{ background: 'rgba(99,102,241,0.1)', border: '1px dashed rgba(99,102,241,0.4)' }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.18)'}
             onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.1)'}>
-            <span className="flex items-center justify-center rounded-lg text-lg font-bold" style={{ width: 34, height: 34, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe' }}>+</span>
+            <span className="flex items-center justify-center rounded-lg text-lg font-bold" style={{ width: 34, height: 34, background: 'rgba(99,102,241,0.25)', color: 'var(--accent-text)' }}>+</span>
             <span className="text-left"><span className="block text-sm font-semibold text-indigo-200">Build from scratch</span><span className="block text-xs text-slate-400">Start with a blank report and configure everything yourself.</span></span>
           </button>
         </div>
