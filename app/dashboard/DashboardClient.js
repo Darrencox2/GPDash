@@ -327,6 +327,8 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   // fetch it immediately after first paint. Sections that need it show a
   // skeleton until it lands.
   const [huddleLoading, setHuddleLoading] = useState(() => !!initialData && !initialData?.huddleCsvData);
+  // A refused save is a state, not an event: it stays until the user acts on it.
+  const [saveConflict, setSaveConflict] = useState(null);
   useEffect(() => {
     // Run whenever the server-rendered payload carried no CSV blob - do NOT
     // gate on the huddleCsvDeferred flag (an adapter whitelist silently
@@ -673,7 +675,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
         // happened, adopt their version, and let a deliberate repeat go
         // through.
         if (result.currentVersion != null) practiceVersionRef.current = result.currentVersion;
-        toast(result.error || 'Someone else saved first — reload before changing this again.', 'error', 12000);
+        setSaveConflict(result.error || 'Someone else saved a change to this practice while you were editing. Reload to pick up their version, then make your change again.');
       } else if (!res.ok) {
         toast(result.error || 'Save failed', 'error');
       } else if (result.errors?.length) {
@@ -687,7 +689,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       toast('Save failed', 'error');
       resolves.forEach(r => r({ error: err.message }));
     }
-  }, [practiceId, supabase, toast]);
+  }, [practiceId, supabase, toast, setSaveConflict]);
 
   const saveData = useCallback((newData, showIndicator = true) => {
     // Pre-process: assign UUIDs to any new clinicians (v3 components use Date.now())
@@ -1051,9 +1053,17 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--app-bg)' }}>
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} data={data} />
       <CommandPalette data={data} activeSection={activeSection} onSection={setActiveSection} onDate={paletteDate} onWeek={paletteWeek} onClinician={paletteClinician} />
-      <main className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)' }}>
+      <main id="main-content" tabIndex={-1} className="flex-1 min-h-screen min-w-0" style={{ background: 'var(--app-bg)' }}>
+        {saveConflict && (
+          <div role="alert" className="px-4 py-2.5 text-sm flex items-center gap-3 flex-wrap" style={{ background: 'rgba(220,38,38,0.12)', borderBottom: '1px solid rgba(220,38,38,0.35)', color: 'var(--c-red-2)' }}>
+            <span className="flex-1 min-w-0">{saveConflict}</span>
+            <button type="button" onClick={() => window.location.reload()} className="px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0" style={{ background: 'rgba(220,38,38,0.2)', border: '1px solid rgba(220,38,38,0.4)', color: 'var(--c-red-2)' }}>Reload</button>
+            <button type="button" onClick={() => setSaveConflict(null)} aria-label="Dismiss this message" className="rounded flex items-center justify-center flex-shrink-0" style={{ minWidth: 24, minHeight: 24, color: 'var(--c-red-2)' }}>✕</button>
+          </div>
+        )}
         {isOffline && (
           <div role="status" className="px-4 py-2 text-sm flex items-center gap-3 flex-wrap" style={{ background: 'rgba(245,158,11,0.12)', borderBottom: '1px solid rgba(245,158,11,0.35)', color: 'var(--c-amber)' }}>
             <span className="font-semibold">You are offline.</span>

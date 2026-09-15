@@ -553,7 +553,7 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                   <rect x={gcx-38} y={gcy-38} width="76" height="36" rx="8" fill={C.panelStrong} stroke={C.border} strokeWidth="0.5"/>
                   <text x={gcx} y={gcy-16} textAnchor="middle" fill="white" style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:700}}>{cPct}%</text>
                   <text x={gcx} y={gcy-2} textAnchor="middle" fill={endC} style={{fontFamily:"var(--font-heading)",fontSize:11,fontWeight:500}}>{gBand.label}</text>
-                  <text x={gcx} y={gcy+14} textAnchor="middle" fill="var(--g-text-faint)" style={{fontSize:11}}>{urgentTotal} / {totalTarget} target</text>
+                  <text x={gcx} y={gcy+14} textAnchor="middle" fill="var(--g-text-faint)" style={{fontSize:11}}>{urgentTotal} / {totalTarget} expected</text>
                 </svg>;
               })()}
               </div>
@@ -571,13 +571,13 @@ export default function HuddleFullscreen({ data, huddleData, viewingDate: viewin
                 </div>
                 <div style={{background:C.tile,border:'1px solid rgba(255,255,255,0.06)',borderRadius:'clamp(11px,0.8vh,12px)',padding:'clamp(11px,0.8vh,14px) clamp(11px,1vw,14px)'}}>
                   <div className="text-slate-400" style={{fontSize:'clamp(11px,1vh,13px)'}}>Routine 28 days</div>
-                  <div style={{fontFamily:"var(--font-mono)",fontWeight:700,color:C.green,fontSize:'clamp(20px,3.5vh,44px)',lineHeight:1}}>{routineDays.filter(d=>d.available!==null&&!d.isWeekend).reduce((s,d)=>s+(d.available||0)+(d.embargoed||0),0)}</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontWeight:700,color:C.green,fontSize:'clamp(20px,3.5vh,44px)',lineHeight:1}}>{routineDays.slice(0,28).filter(d=>d.available!==null&&!d.isWeekend).reduce((s,d)=>s+(d.available||0)+(d.embargoed||0),0)}</div>
                   <div className="text-slate-400" style={{fontSize:'clamp(11px,0.9vh,11px)'}}>available</div>
                 </div>
                 <div style={{background:C.tile,border:'1px solid rgba(255,255,255,0.06)',borderRadius:'clamp(11px,0.8vh,12px)',padding:'clamp(11px,0.8vh,14px) clamp(11px,1vw,14px)'}}>
                   <div className="text-slate-400" style={{fontSize:'clamp(11px,1vh,13px)'}}>Clinicians today</div>
                   <div style={{fontFamily:"var(--font-mono)",fontWeight:700,color:C.text,fontSize:'clamp(20px,3.5vh,44px)',lineHeight:1}}>{categories.inPractice.length}</div>
-                  <div className="text-slate-400" style={{fontSize:'clamp(11px,0.9vh,11px)'}}>of {visibleStaff.length} active</div>
+                  <div className="text-slate-400" style={{fontSize:'clamp(11px,0.9vh,11px)'}}>of {visibleStaff.length} active · in the practice</div>
                 </div>
               </div>
             </div>

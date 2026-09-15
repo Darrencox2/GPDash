@@ -7,7 +7,7 @@ import { canEditPracticeData } from '@/lib/permissions';
 import { createClient } from '@/utils/supabase/client';
 import { ClinicianDayPanel } from './HuddleShared';
 import SidePanel from './SidePanel';
-import { onKeyActivate } from '@/lib/a11y';
+import { onKeyActivate, badgeColors } from '@/lib/a11y';
 
 const ROLE_COLOURS = {
   'GP Partner': 'bg-blue-50 border-blue-200 text-blue-800',
@@ -31,6 +31,10 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
   const roleColMap = { gp: '#3b82f6', nursing: '#10b981', allied: '#a855f7' };
   const roleCol = roleColMap[person.group] || '#64748b';
   const badgeCol = isAbsent ? '#ef4444' : isDayOff ? '#f59e0b' : roleCol;
+  // Initials on a role colour, and the site letters below, were both white on
+  // whatever hue the palette handed over: 1.98:1 on Banwell lime, 2.15:1 on
+  // amber. badgeColors keeps the hue and picks the ink that reads on it.
+  const avatar = badgeColors(badgeCol);
 
   // Location
   const amLoc = sessionLoc?.am;
@@ -52,34 +56,42 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
   const hasActions = canMarkOff || !!onHide;
 
   return (
+    <div className="relative group">
+    {hasActions && (
+      /* Focus-within as well as hover: these were hover-only, so on a phone
+         they did not exist at all and by keyboard they could not be reached.
+         Minimum 24x24 per WCAG 2.2 AA target size; the X was 11x20. */
+      <div className="absolute top-1 right-1 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+        {canMarkOff && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onMarkOffToday(); }}
+            title={`Mark ${displayName} off today`}
+            aria-label={`Mark ${displayName} off today`}
+            className="text-sm px-2 rounded text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors"
+            style={{ fontWeight: 500, minHeight: 24 }}
+          >
+            Off today
+          </button>
+        )}
+        {onHide && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); onHide(); }}
+            title={`Hide ${displayName} from Who's In`}
+            aria-label={`Hide ${displayName} from Who's In`}
+            className="text-sm text-slate-400 hover:text-red-400 hover:bg-white/5 rounded transition-colors flex items-center justify-center"
+            style={{ minWidth: 24, minHeight: 24 }}>✕</button>
+        )}
+      </div>
+    )}
     <button
       type="button"
       onClick={isClickable ? onClick : undefined}
       disabled={!isClickable}
-      className={`glass-inner rounded-lg transition-all group relative px-3 py-2 flex items-center justify-between text-left w-full ${isClickable ? 'cursor-pointer hover:bg-white/5' : 'cursor-default'}`}
+      className={`glass-inner rounded-lg transition-all px-3 py-2 flex items-center justify-between text-left w-full ${isClickable ? 'cursor-pointer hover:bg-white/5' : 'cursor-default'}`}
     >
-      <div className="absolute top-1 right-1 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {canMarkOff && (
-          <span
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onMarkOffToday(); }}
-            role="button"
-            title="Mark off today"
-            className="text-sm px-1.5 py-0.5 rounded text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors cursor-pointer"
-            style={{ fontWeight: 500 }}
-          >
-            Off today
-          </span>
-        )}
-        {onHide && (
-          <span role="button" tabIndex={0} onKeyDown={onKeyActivate} onClick={(e) => { e.stopPropagation(); e.preventDefault(); onHide(); }}
-            role="button"
-            title="Hide from Who's In"
-            className="text-sm text-slate-400 hover:text-red-400 transition-colors cursor-pointer">✕</span>
-        )}
-      </div>
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold text-ink-max flex-shrink-0"
-          style={{ fontFamily: "var(--font-heading)", background: badgeCol, boxShadow: `0 0 6px ${badgeCol}30` }}>
+        <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold flex-shrink-0"
+          style={{ fontFamily: "var(--font-heading)", background: avatar.background, color: avatar.color, boxShadow: `0 0 6px ${badgeCol}30` }}>
           {person.initials || '?'}
         </div>
         <div className="min-w-0">
@@ -90,12 +102,17 @@ function PersonCard({ person, status, reason, onClick, onHide, onMarkOffToday, l
         </div>
       </div>
       {hasLoc && (
-        <div className={`flex flex-col gap-px flex-shrink-0 ${hasActions ? 'transition-opacity group-hover:opacity-0' : ''}`}>
-          <div className="rounded-t-sm flex items-center justify-center text-xs font-bold text-white" style={{ width: 22, height: 13, background: aC }}>{aLoc?.charAt(0) || '?'}</div>
-          <div className="rounded-b-sm flex items-center justify-center text-xs font-bold text-white" style={{ width: 22, height: 13, background: isSplit ? pC : aC }}>{pLoc?.charAt(0) || aLoc?.charAt(0) || '?'}</div>
+        <div className={`flex flex-col gap-px flex-shrink-0 ${hasActions ? 'transition-opacity group-hover:opacity-0 group-focus-within:opacity-0' : ''}`}>
+          {/* Dark ink on the site hue, not white. White on Banwell lime was
+              1.98:1 and on amber 2.15:1 at 12px/700 - the badge is how the
+              board says which building a colleague is in. The hue is the
+              brand and does not move; only the ink does. */}
+          <div className="rounded-t-sm flex items-center justify-center text-xs font-bold" style={{ width: 22, height: 13, ...badgeColors(aC) }}>{aLoc?.charAt(0) || '?'}</div>
+          <div className="rounded-b-sm flex items-center justify-center text-xs font-bold" style={{ width: 22, height: 13, ...badgeColors(isSplit ? pC : aC) }}>{pLoc?.charAt(0) || aLoc?.charAt(0) || '?'}</div>
         </div>
       )}
     </button>
+    </div>
   );
 }
 
@@ -401,7 +418,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
       <div className="glass-header hdr-violet px-4 py-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-heading text-base font-medium text-slate-200">{isViewingToday ? "Who's in today" : `Who's in — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</span>
+            <h2 className="font-heading text-base font-medium text-slate-200">{isViewingToday ? "Who's in today" : `Who's in — ${vd.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`}</h2>
             <span className="text-sm text-slate-400">{categories.inPractice.length} in · {categories.leaveAbsent.length + categories.dayOff.length} off</span>
             {/* The rule for reading every badge below. It lived at the very
                 bottom of the card, after the entire staff list — you had to
@@ -478,7 +495,7 @@ export default function WhosInOut({ data, saveData, huddleData, onNavigate, view
           <div className="flex items-center justify-center flex-wrap gap-x-3 gap-y-1 pt-2 text-sm">
             {sites.map(s => (
               <span key={s.name} className="flex items-center gap-1">
-                <span className="rounded-sm flex items-center justify-center text-[11px] font-bold text-white" style={{width:14,height:14,background:s.colour||'#64748b'}}>{(s.name || '?').charAt(0).toUpperCase()}</span>
+                <span className="rounded-sm flex items-center justify-center text-[11px] font-bold" style={{width:14,height:14,...badgeColors(s.colour||'#64748b')}}>{(s.name || '?').charAt(0).toUpperCase()}</span>
                 <span className="text-slate-400">{s.name}</span>
               </span>
             ))}

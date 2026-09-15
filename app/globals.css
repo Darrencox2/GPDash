@@ -156,7 +156,7 @@
        both themes, so it must not read the flipping text tokens. */
     --sb-bg: linear-gradient(to bottom, #0f172a, #0f172a, #1e293b);
     --sb-border: rgba(255,255,255,0.05); --sb-divider: #1e293b;
-    --sb-text-hi: #e2e8f0; --sb-text-mid: #94a3b8; --sb-text-faint: #475569;
+    --sb-text-hi: #e2e8f0; --sb-text-mid: #94a3b8; --sb-text-faint: #8494ab;
     --sb-tile: #1b2538; --sb-accent: #6366f1;
     --sb-accent-soft: rgba(99,102,241,0.18); --sb-accent-text: #c7d2fe;
     --g-surface: #0f172a; --g-surface-2: #1b2538; --g-field: #0c1322;
@@ -325,6 +325,32 @@
   .animate-progress { animation: progress-slide 1.2s ease-in-out infinite; }
   @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
   .animate-slide-in-right { animation: slide-in-right 0.2s ease-out; }
+  /* Skip link. Visible only once focused, so it costs nothing on screen and
+     gives a keyboard user a way past eleven nav rows on every section change. */
+  .skip-link {
+    position: absolute; left: 8px; top: -100px; z-index: 100;
+    padding: 10px 16px; border-radius: var(--r-md);
+    background: var(--surface-3); color: var(--text-1);
+    border: 1px solid var(--border); font-size: 14px; font-weight: 500;
+    transition: top 0.15s ease-out;
+  }
+  .skip-link:focus { top: 8px; outline: 2px solid var(--sb-accent); outline-offset: 2px; }
+
+  /* Reduced motion. Every keyframe above, the transition-all on each nav row
+     and person card, and the gauge sweep all ran unconditionally - and
+     .animate-progress is an infinite loop. For a motion-sensitive user every
+     navigation was a page-wide slide. Animations collapse to a single frame
+     rather than being removed, so anything that depends on an animation
+     ending still gets its event. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   .drop-zone { @apply border-2 border-dashed border-slate-300 rounded-xl transition-all duration-200; }
   .drop-zone.active { @apply border-teal-400 bg-teal-50/50; }
 

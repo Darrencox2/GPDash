@@ -329,7 +329,7 @@ export function SevenDayStrip({ huddleData, huddleSettings, overrides, accent = 
                 <div className="mt-0.5 text-center" style={{whiteSpace:'nowrap'}}>
                   {dayCount <= 14 ? (
                     <>
-                      <div className="text-xs leading-tight" style={{color:isToday?'var(--g-text-hi)':'var(--g-text-faint)',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+                      <div className="text-xs leading-tight" style={{color:isToday?'var(--g-text-hi)':'var(--meta)',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
                       <div className="text-[11px] leading-tight" style={{color:isToday?'var(--g-text-mid)':'var(--meta)'}}>{d.dayNum}</div>
                     </>
                   ) : (
@@ -615,7 +615,7 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
               const pct = (flexBefore / totalFlex) * 100;
               return <div key={`t${ti}`} className="absolute top-0 bottom-0 z-[1] pointer-events-none" style={{ left: `${pct}%` }}>
                 <div className="absolute top-0 bottom-0 w-px" style={{ background: 'var(--g-text-faint)', opacity: 0.6 }} />
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-xs font-semibold text-slate-400 whitespace-nowrap" style={{background:'var(--g-nodata)',border:'1px solid var(--g-divider)'}}>{t}d</div>
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-xs font-semibold whitespace-nowrap" style={{background:'var(--g-nodata)',border:'1px solid var(--g-divider)',color:'var(--g-text-hi)'}}>{t}d</div>
               </div>;
             })}
           </>;
@@ -677,8 +677,8 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
           if (d.isWeekend) return <div key={i} className="flex-[0.3]" />;
           const isToday = i === 0;
           return <div key={i} className={`flex-1 text-center ${d.isMonday && i > 0 ? 'ml-1 pl-1' : ''}`}>
-            <div className="text-xs leading-tight" style={{color:isToday?'var(--g-text-hi)':'var(--g-text-faint)',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
-            <div className="text-[11px] leading-tight" style={{color:isToday?'var(--g-text-mid)':'var(--g-text-mute)'}}>{d.dayNum}</div>
+            <div className="text-xs leading-tight" style={{color:isToday?'var(--g-text-hi)':'var(--meta)',fontWeight:isToday?700:400}}>{d.dayName?.charAt(0)}</div>
+            <div className="text-[11px] leading-tight" style={{color:isToday?'var(--g-text-mid)':'var(--meta)'}}>{d.dayNum}</div>
           </div>;
         })}
       </div>
@@ -693,13 +693,22 @@ export function TwentyEightDayChart({ huddleData, huddleSettings, overrides, tea
 }
 
 // Shared speedometer gauge — half-arc with smooth gradient
-export function SpeedometerGauge({ percentage, width = 300, height = 165, viewBox = "0 0 300 145", slots, target, className = "" }) {
-  const stops = [{pos:0,col:[239,68,68]},{pos:0.25,col:[245,158,11]},{pos:0.5,col:[16,185,129]},{pos:0.75,col:[16,185,129]},{pos:1.0,col:[59,130,246]}];
+export function SpeedometerGauge({ percentage, width = 300, height = 165, viewBox = "0 0 300 145", slots, target, className = "", bandPercentage }) {
+  // The band thresholds are getBand's, not a second set. They used to be their
+  // own scale - Good from 80% here, Tight from 80% there - so one ratio had two
+  // names depending on which control drew it, and the dial read Good directly
+  // above a bar reading Tight on the same number. frac = (pct - 50) / 100, so
+  // 80% is 0.30, 90% is 0.40 and 120% is 0.70.
+  const stops = [{pos:0,col:[239,68,68]},{pos:0.30,col:[245,158,11]},{pos:0.40,col:[16,185,129]},{pos:0.70,col:[16,185,129]},{pos:1.0,col:[59,130,246]}];
   const interpColor = (t) => { t = Math.max(0,Math.min(1,t)); for(let i=0;i<stops.length-1;i++){if(t>=stops[i].pos&&t<=stops[i+1].pos){const l=(t-stops[i].pos)/(stops[i+1].pos-stops[i].pos);const a=stops[i].col,b=stops[i+1].col;return `rgb(${Math.round(a[0]+(b[0]-a[0])*l)},${Math.round(a[1]+(b[1]-a[1])*l)},${Math.round(a[2]+(b[2]-a[2])*l)})`;}} return 'rgb(59,130,246)'; };
-  const bands = [{min:0,max:0.2,label:'Short'},{min:0.2,max:0.3,label:'Tight'},{min:0.3,max:0.7,label:'Good'},{min:0.7,max:1,label:'Over'}];
+  const bands = [{min:0,max:0.30,label:'Short'},{min:0.30,max:0.40,label:'Tight'},{min:0.40,max:0.70,label:'Good'},{min:0.70,max:1,label:'Over'}];
   const fillFrac = Math.max(0, Math.min(1, (percentage - 50) / 100));
-  const band = bands.find(z => fillFrac >= z.min && fillFrac < z.max) || bands[bands.length-1];
-  const endCol = interpColor(fillFrac);
+  // The needle sits at the overall ratio, but the colour and the word come from
+  // bandPercentage when it is given - the worst session inside the average. A
+  // headline greener than its own detail is the reading that gets acted on.
+  const bandFrac = bandPercentage === undefined ? fillFrac : Math.max(0, Math.min(1, (bandPercentage - 50) / 100));
+  const band = bands.find(z => bandFrac >= z.min && bandFrac < z.max) || bands[bands.length-1];
+  const endCol = interpColor(bandFrac);
 
   // Parse viewBox to get dimensions
   const vb = viewBox.split(' ').map(Number);

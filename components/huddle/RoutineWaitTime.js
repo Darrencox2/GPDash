@@ -76,7 +76,7 @@ export default function RoutineWaitTime({ data, huddleData, routineOverrides }) 
       <div className="px-4 py-2.5 glass-header hdr-blue">
         <div className="flex items-center justify-between">
           <div>
-            <div className="font-heading text-base font-medium text-slate-200">Routine GP wait times</div>
+            <h2 className="font-heading text-base font-medium text-slate-200">Routine GP wait times</h2>
             <div className="text-sm text-slate-400">Working days until next available routine GP appointments</div>
           </div>
         </div>

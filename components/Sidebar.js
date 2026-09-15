@@ -255,6 +255,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               if (!sidebarOpen) {
                 return (
                   <button key={item.id} onClick={() => handleItemClick(item)}
+                    aria-current={isActive ? 'page' : undefined}
                     className="w-full flex justify-center py-2 rounded-lg mb-0.5 transition-colors hover:bg-white/5"
                     style={activeStyle} title={item.label}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill={iconInk} style={{opacity: isActive ? 1 : 0.7}}>
@@ -269,6 +270,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
               return (
                 <div key={item.id}>
                   <button onClick={() => handleItemClick(item)}
+                    aria-current={isActive && kids.length === 0 ? 'page' : undefined}
                     className="w-full flex items-center gap-2.5 rounded-lg mb-0.5 transition-colors hover:bg-white/5"
                     style={{...activeStyle, padding: '8px 10px'}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill={iconInk} style={{opacity: isActive ? 1 : 0.7, flexShrink: 0}}>
@@ -281,6 +283,7 @@ export default function Sidebar({ activeSection, setActiveSection, sidebarOpen, 
                     const kidActive = activeSection === child.id;
                     return (
                       <button key={child.id} onClick={() => handleItemClick(child)}
+                        aria-current={kidActive ? 'page' : undefined}
                         className="w-full flex items-center rounded-lg mb-0.5 transition-colors hover:bg-white/5"
                         style={{
                           padding: '5px 10px 5px 41px',

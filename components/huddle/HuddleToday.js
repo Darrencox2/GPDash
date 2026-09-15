@@ -13,7 +13,7 @@ import { canEditPracticeData } from '@/lib/permissions';
 import { inferWeeklyRota } from '@/lib/auto-rota';
 import NhsBenchmarkRibbon from './NhsBenchmarkRibbon';
 import RoutineWaitTime from './RoutineWaitTime';
-import { onKeyActivate } from '@/lib/a11y';
+import { onKeyActivate, badgeColors } from '@/lib/a11y';
 
 // ── Colour palette for capacity cards ─────────────────────────────
 const CARD_COLOURS = [
@@ -563,13 +563,13 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
           {canEdit && (
             <button onClick={() => fileRef.current?.click()}
-              className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium text-ink-max transition-colors"
+              className="h-8 w-8 sm:w-auto sm:px-3 rounded-lg flex items-center justify-center sm:gap-1.5 text-xs font-medium transition-colors"
               /* Not red. Red is the delete colour everywhere else in the app,
                  and this is a routine upload — it was the single loudest
                  element on the screen while the genuinely irreversible
                  controls were quieter. Amber when action is due (no CSV
                  today), green once done. */
-              style={{ background: isUploadedToday ? 'rgba(16,185,129,0.92)' : 'rgba(180,83,9,0.95)', border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.35)'}` }}
+              style={{ ...badgeColors(isUploadedToday ? '#10b981' : '#b45309'), border: `1px solid ${isUploadedToday ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.35)'}` }}
               title={data?.huddleCsvUploadedAt ? `Uploaded ${new Date(data.huddleCsvUploadedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : 'No CSV uploaded'}>
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
               <span className="hidden sm:inline">{isUploadedToday ? 'CSV uploaded' : 'Upload CSV'}</span>
@@ -829,7 +829,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                           style={{ cursor: 'pointer' }}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{fontFamily:"var(--font-heading)",background: band.colour, boxShadow:`0 0 6px ${band.colour}30`}}>{c.initials}</div>
+                            <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0" style={{fontFamily:"var(--font-heading)", ...badgeColors(band.colour), boxShadow:`0 0 6px ${band.colour}30`}}>{c.initials}</div>
                             <div className="min-w-0">
                               <span className="text-sm text-slate-200 truncate">{c.title ? `${c.title} ` : ''}{c.displayName}</span>
                               {c.role && <div className="text-xs text-slate-400">{c.role}</div>}
@@ -837,7 +837,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="font-mono-data text-sm font-bold" style={{color: band.ink}}>{c.total}</span>
-                            {locPill && <div className="w-5 h-5 rounded flex items-center justify-center text-xs font-bold text-white" style={{background:locPill}}>{c.location.charAt(0)}</div>}
+                            {locPill && <div className="w-5 h-5 rounded flex items-center justify-center text-xs font-bold" style={badgeColors(locPill)}>{c.location.charAt(0)}</div>}
                           </div>
                         </button>
                       );
@@ -852,7 +852,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               <div className="rounded-xl overflow-hidden glass">
                 <div className="glass-header hdr-cyan px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-heading text-base font-medium text-slate-200">Urgent on the day</span>
+                    <h2 className="font-heading text-base font-medium text-slate-200">Urgent on the day</h2>
                     <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} activeSlotTypes={activeSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} readOnly={!canEdit} />
                   </div>
                 </div>
@@ -869,7 +869,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
                   <div className="rounded-xl overflow-hidden glass">
                     <div className="glass-header hdr-amber px-4 py-2.5 rounded-t-xl">
-                      <span className="font-heading text-sm font-medium text-slate-400">Morning</span>
+                      <h3 className="font-heading text-sm font-medium text-slate-400">Morning</h3>
                     </div>
                     <div>
                       <SessionPanel label="Morning" slots={urgentAm} avail={availAm} booked={bookedAm} added={addedAm} target={expectedAm} band={amBand} isShort={false} sessionData={capacity.am} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutyDocDiag={hasDutySlot ? getDutyDoctorDiagnostic(huddleData, displayDate, 'am', dutyDoctorSlot, teamClinicians) : null} dutySlotNames={Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])} />
@@ -877,7 +877,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                   </div>
                   <div className="rounded-xl overflow-hidden glass">
                     <div className="glass-header hdr-teal px-4 py-2.5 rounded-t-xl">
-                      <span className="font-heading text-sm font-medium text-slate-400">Afternoon</span>
+                      <h3 className="font-heading text-sm font-medium text-slate-400">Afternoon</h3>
                     </div>
                     <div>
                       <SessionPanel label="Afternoon" slots={urgentPm} avail={availPm} booked={bookedPm} added={addedPm} target={expectedPm} band={pmBand} isShort={pmBand.colour === '#ef4444' || pmBand.colour === '#f59e0b'} sessionData={capacity.pm} dutyDoc={hasDutySlot ? getDutyDoctor(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} dutyDocDiag={hasDutySlot ? getDutyDoctorDiagnostic(huddleData, displayDate, 'pm', dutyDoctorSlot, teamClinicians) : null} dutySlotNames={Array.isArray(dutyDoctorSlot) ? dutyDoctorSlot : (dutyDoctorSlot ? [dutyDoctorSlot] : [])} />
@@ -948,6 +948,18 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         const targetSource = demandDrivenTarget > 0 ? 'demand' : (staticTarget > 0 ? 'static' : 'none');
         const coveragePct = targetTotal > 0 ? Math.round((urgTotal / targetTotal) * 100) : 0;
         const band = getBand(urgTotal, targetTotal);
+        // The dial averages the two sessions, so a comfortable morning can hide
+        // a short afternoon. It keeps the average as its number and takes its
+        // colour and its word from the worse of the two, measured against the
+        // same per-session targets the bars in Urgent on the day use.
+        const amTargetToday = hs.expectedCapacity?.[todayDayName]?.am || 0;
+        const pmTargetToday = hs.expectedCapacity?.[todayDayName]?.pm || 0;
+        const amSlotsToday = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0);
+        const pmSlotsToday = (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0);
+        const sessionPcts = [];
+        if (amTargetToday > 0) sessionPcts.push((amSlotsToday / amTargetToday) * 100);
+        if (pmTargetToday > 0) sessionPcts.push((pmSlotsToday / pmTargetToday) * 100);
+        const worstSessionPct = sessionPcts.length ? Math.round(Math.min(...sessionPcts)) : coveragePct;
         const pred = viewingPrediction;
         const predTotal = pred?.predicted || 0;
         const predBaseline = pred?.factors?.baseline || 0;
@@ -1004,11 +1016,25 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 mobile stack all agree. No order-* overrides. */}
             <div className={`glass rounded-xl p-5 panefx-violet ${hasNotices ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
               <div className="flex flex-col lg:flex-row gap-5 items-stretch">
-                <div className="flex-shrink-0 flex items-center justify-center">
+                <div className="flex-shrink-0 flex flex-col items-center justify-center gap-1">
                   {/* slots/target text removed from under the needle: the raw count
                       lives in the tile beside it, and the target is on the
                       session bars below. The gauge's one job is the ratio. */}
-                  <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[180px]" width={null} viewBox="0 0 300 145" />
+                  <SpeedometerGauge percentage={coveragePct} bandPercentage={worstSessionPct} className="w-full max-w-[180px]" width={null} viewBox="0 0 300 145" />
+                  {/* The needle used to carry no caption at all, so the largest
+                      number on the page did not say what it was a ratio of, and
+                      the wall board showed a different percentage for the same
+                      morning because it divides by a different target. */}
+                  {targetTotal > 0 && (
+                    <div className="text-center leading-tight">
+                      <div className="text-sm" style={{color:'var(--g-text-mid)'}}>
+                        <span className="font-mono-data font-semibold">{urgTotal}</span> of <span className="font-mono-data font-semibold">{targetTotal}</span> urgent slots
+                      </div>
+                      <div className="text-xs" style={{color:'var(--meta)'}}>
+                        {targetSource === 'demand' ? 'target from predicted demand' : 'target from expected capacity'}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className={`flex-1 min-w-0 grid grid-cols-2 gap-3 ${hasNotices ? '' : 'lg:grid-cols-4'}`}>
                   <div className="glass-inner rounded-xl p-4 flex flex-col justify-center relative">
@@ -1043,7 +1069,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                       <span className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{inCount}</span>
                       
                     </div>
-                    <div className="text-sm text-slate-400 mt-1">of {visibleClinicians.length} active</div>
+                    <div className="text-sm text-slate-400 mt-1">of {visibleClinicians.length} active · with slots today</div>
                   </div>
                 </div>
               </div>
@@ -1102,7 +1128,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                     {displayFactors.filter(f => f.impact !== 0).map((f, i) => (
                       <div key={i} className="flex justify-between text-sm">
                         <span className="text-slate-400">{f.label}</span>
-                        <span className="font-bold font-mono-data" style={{color: f.impact > 0 ? 'var(--state-short)' : f.impact < 0 ? 'var(--state-ok)' : 'var(--g-text-faint)'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
+                        <span className="font-bold font-mono-data" style={{color: f.impact > 0 ? 'var(--c-red-2)' : f.impact < 0 ? 'var(--c-green-2)' : 'var(--meta)'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
                       </div>
                     ))}
                     <div className="flex justify-between text-sm pt-1.5 mt-1.5" style={{borderTop:'1px solid var(--border)'}}>
@@ -1123,7 +1149,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             <div className={`glass rounded-xl overflow-hidden flex panefx-cyan ${hasNotices ? 'flex-col' : 'flex-col sm:flex-row sm:items-center lg:col-span-4'}`}>
               <div className="px-4 py-2.5 flex items-center gap-2 flex-shrink-0" style={{borderBottom: hasNotices ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--g-text-mid)" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
+                <h2 className="font-heading text-sm font-medium text-slate-300">Noticeboard</h2>
                 {huddleMessages.length > 0
                   ? <span className="text-xs text-slate-400 ml-auto">{huddleMessages.length} today</span>
                   : <span className="text-xs text-slate-400 ml-auto">no notices</span>}
@@ -1222,7 +1248,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                 <div className="glass-header hdr-green px-4 py-2.5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-heading text-base font-medium text-slate-200">Routine Capacity</div>
+                      <h2 className="font-heading text-base font-medium text-slate-200">Routine Capacity</h2>
                       <div className="text-[13px] text-slate-400">30-day availability overview</div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1390,7 +1416,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
                         )}
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:accentBar,boxShadow:`0 0 8px ${accentBar}88`}} />
                         <div className="min-w-0">
-                          <div className="font-heading text-base font-medium text-slate-200 truncate">{card.title}</div>
+                          <h3 className="font-heading text-base font-medium text-slate-200 truncate">{card.title}</h3>
                           <div className="text-xs text-slate-400">Next {cardDays} days</div>
                         </div>
                       </div>

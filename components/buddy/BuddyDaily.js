@@ -907,7 +907,12 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
               </div>
             </div>
             <div className="px-5 pb-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {/* Three columns cut every name in the grid to about five
+                  characters - Alexa..., Alice..., Darr... - on a page whose
+                  whole job is saying who is covering whom, in a practice where
+                  two clinicians share initials. Three only from 1400px up,
+                  where the cards are actually wide enough for a name. */}
+              <div className="grid grid-cols-1 md:grid-cols-2 min-[1400px]:grid-cols-3 gap-2">
               {cliniciansList.map(c => {
                 const status = getClinicianStatus(c.id, selectedDay);
                 const lta = c.longTermAbsent;

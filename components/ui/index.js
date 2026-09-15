@@ -33,7 +33,7 @@ export function ToastProvider({ children }) {
   // Portal straight onto document.body so toasts can never be clipped
   // by an ancestor's overflow/transform/backdrop-filter.
   const toastLayer = (
-    <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 2147483647, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none', maxWidth: 'min(420px, calc(100vw - 32px))' }}>
+    <div role="status" aria-live="polite" aria-atomic="false" style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 2147483647, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none', maxWidth: 'min(420px, calc(100vw - 32px))' }}>
       {toasts.map(t => (
         <div key={t.id} className="pointer-events-auto px-4 py-2.5 shadow-lg text-sm font-medium animate-slide-up" style={{
           borderRadius: 'var(--r-md)', wordBreak: 'break-word', color: 'var(--g-text-max)',
