@@ -637,272 +637,6 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
         </div>
       ) : (
         <div className="space-y-4">
-      {/* NHS demand benchmarks ribbon — sits just above the urgent
-          on-the-day gauge so it provides external context before users
-          look at today's numbers. Stays quiet if practice ODS isn't in
-          the latest NHS data. */}
-      <NhsBenchmarkRibbon
-        odsCode={data?._v4?.practiceOds}
-        listSize={data?._v4?.practiceListSize}
-      />
-
-      {/* ═══ SUMMARY GAUGE BAR ═══ */}
-      {capacity && (() => {
-        const urgTotal = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0) + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0);
-        const urgAvail = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0);
-        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-        const todayDayName = dayNames[viewingDate.getDay()];
-        // Gauge target = predicted demand × urgent conversion ratio when both
-        // are available (live, demand-driven). Falls back to the static
-        // expected-capacity table (kept for capacity planning use) when
-        // there's no prediction for the day. The conversion rate lives in
-        // huddleSettings.demandCapacity.conversionRate (0..1, default 0.25)
-        // and is editable in Practice → Demand model.
-        const convRate = hs?.demandCapacity?.conversionRate ?? 0.25;
-        const predictedToday = viewingPrediction?.predicted || 0;
-        const demandDrivenTarget = predictedToday > 0 ? Math.round(predictedToday * convRate) : 0;
-        const staticTarget = (hs.expectedCapacity?.[todayDayName]?.am || 0) + (hs.expectedCapacity?.[todayDayName]?.pm || 0);
-        const targetTotal = demandDrivenTarget > 0 ? demandDrivenTarget : staticTarget;
-        const targetSource = demandDrivenTarget > 0 ? 'demand' : (staticTarget > 0 ? 'static' : 'none');
-        const coveragePct = targetTotal > 0 ? Math.round((urgTotal / targetTotal) * 100) : 0;
-        const band = getBand(urgTotal, targetTotal);
-        const pred = viewingPrediction;
-        const predTotal = pred?.predicted || 0;
-        const predBaseline = pred?.factors?.baseline || 0;
-        const predDowEffect = pred?.factors?.dayOfWeek?.effect || 0;
-        const predAvgDay = Math.round(predBaseline + predDowEffect);
-        const predDiff = predTotal - predAvgDay;
-        const predLabel = predDiff > 3 ? 'Higher than a normal ' + todayDayName : predDiff < -3 ? 'Lower than a normal ' + todayDayName : 'Typical for a ' + todayDayName;
-        const predColour = predDiff > 3 ? 'var(--state-tight)' : predDiff < -3 ? 'var(--state-ok)' : 'var(--g-text-mid)';
-        const displayFactors = [];
-        if (pred?.factors) {
-          const f = pred.factors;
-          if (f.schoolHoliday) displayFactors.push({ label: 'School holiday', impact: f.schoolHoliday });
-          if (f.firstWeekBack) displayFactors.push({ label: 'First week back', impact: f.firstWeekBack });
-          if (f.firstDayBack) displayFactors.push({ label: 'First day back', impact: f.firstDayBack });
-          if (f.secondDayBack) displayFactors.push({ label: 'Second day back', impact: f.secondDayBack });
-          if (f.nearBankHoliday) displayFactors.push({ label: `Near bank holiday (${f.nearBankHoliday.daysAway}d)`, impact: f.nearBankHoliday.effect });
-          if (f.christmasPeriod) displayFactors.push({ label: 'Christmas period', impact: f.christmasPeriod });
-          if (f.endOfMonth) displayFactors.push({ label: 'End of month', impact: f.endOfMonth });
-          if (f.shortWeek) displayFactors.push({ label: `Short week (${f.shortWeek.workingDays}d)`, impact: f.shortWeek.effect });
-          if (f.month) displayFactors.push({ label: `Month effect`, impact: f.month.effect });
-          if (f.trend && Math.abs(f.trend.effect) >= 0.5) displayFactors.push({ label: 'Long-term trend', impact: Math.round(f.trend.effect) });
-        }
-        // Routine 28-day totals
-        const routineDays28 = getNDayAvailability(huddleData, hs, 28, effectiveRoutineOverrides);
-        const routine28 = routineDays28.filter(d => d.available !== null && !d.isWeekend);
-        const routineAvail = routine28.reduce((s, d) => s + (d.available || 0), 0);
-        const routineEmb = routine28.reduce((s, d) => s + (d.embargoed || 0), 0);
-        // Clinicians: use CSV data when available, else working patterns
-        const dateKey = toLocalIso(viewingDate);
-        const viewingDateStr2 = toHuddleDateStr(viewingDate);
-        const csvClinicians = huddleData?.dates?.includes(viewingDateStr2) ? getCliniciansForDate(huddleData, viewingDateStr2) : [];
-        const plannedAbsences = (Array.isArray(data.plannedAbsences) ? data.plannedAbsences : []).filter(a => dateKey >= a.startDate && dateKey <= a.endDate);
-        const absentIds = new Set(plannedAbsences.map(a => a.clinicianId));
-        const visibleClinicians = teamClinicians.filter(c => c.status !== 'left' && c.status !== 'administrative' && c.showWhosIn !== false && !c.longTermAbsent);
-        let inCount, offCount;
-        if (csvClinicians.length > 0) {
-          // Count unique clinicians in CSV that match our staff register
-          const matchedIds = new Set();
-          visibleClinicians.forEach(c => { if (csvClinicians.some(csvName => matchesStaffMember(csvName, c))) matchedIds.add(c.id); });
-          inCount = matchedIds.size;
-          offCount = visibleClinicians.length - inCount;
-        } else {
-          const scheduledToday = visibleClinicians.filter(c => c.workingPattern?.[todayDayName]);
-          inCount = scheduledToday.filter(c => !absentIds.has(c.id)).length;
-          offCount = visibleClinicians.length - inCount;
-        }
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {/* NOTICEBOARD — message-thread style (Option B from the design pass).
-                Avatars use a deterministic colour per author so the same
-                person always looks the same. No more random rainbow rotation. */}
-            {/* Empty most days — and a full column saying "no notices" is
-                prime space spent on nothing. Collapsed to one line until it
-                has content; the moment a notice exists it gets the panel. */}
-            <div className={`glass rounded-xl overflow-hidden flex flex-col lg:order-2 panefx-cyan ${huddleMessages.length === 0 ? 'self-start w-full' : ''}`}>
-              <div className="px-4 py-2.5 flex items-center gap-2" style={{borderBottom: huddleMessages.length > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--g-text-mid)" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
-                {huddleMessages.length > 0
-                  ? <span className="text-xs text-slate-400 ml-auto">{huddleMessages.length} today</span>
-                  : <span className="text-xs text-slate-400 ml-auto">no notices</span>}
-              </div>
-              <div className="flex-1 overflow-y-auto" style={{maxHeight:'420px'}}>
-                {huddleMessages.map((msg, i) => {
-                  // Deterministic palette — hash the author name into one of 5
-                  // muted accent colours so the same person is always shown
-                  // with the same avatar tint.
-                  const palette = [
-                    { bg: 'rgba(59,130,246,0.18)', fg: 'var(--c-blue)' },   // blue
-                    { bg: 'rgba(16,185,129,0.18)', fg: 'var(--c-green)' },   // green
-                    { bg: 'rgba(168,85,247,0.18)', fg: 'var(--c-purple)' },   // purple
-                    { bg: 'rgba(245,158,11,0.18)', fg: 'var(--c-amber)' },   // amber
-                    { bg: 'rgba(236,72,153,0.18)', fg: 'var(--c-pink)' },   // pink
-                  ];
-                  const authorKey = msg.author || 'anon';
-                  let h = 0; for (let k = 0; k < authorKey.length; k++) h = (h * 31 + authorKey.charCodeAt(k)) | 0;
-                  const c = palette[Math.abs(h) % palette.length];
-                  const initials = msg.author
-                    ? msg.author.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2)
-                    : '?';
-                  const time = msg.addedAt ? new Date(msg.addedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-                  return (
-                    <div key={msg.id || i} className="px-4 py-2.5 flex gap-2.5 items-start group hover:bg-white/[0.02] transition-colors">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium flex-shrink-0" style={{ background: c.bg, color: c.fg }}>{initials}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2 mb-0.5">
-                          <span className="text-xs font-medium text-slate-200">{msg.author || 'Anonymous'}</span>
-                          {time && <span className="text-[11px] text-slate-400">{time}</span>}
-                        </div>
-                        <div className="text-xs text-slate-300 leading-relaxed break-words">{msg.text}</div>
-                      </div>
-                      {canEdit && (
-                        <button onClick={() => removeMessage(i)} className="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs leading-none mt-1" title="Delete notice">✕</button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {canEdit && (
-                <div className="p-3 flex gap-2" style={{borderTop:'1px solid rgba(255,255,255,0.04)'}}>
-                  <input
-                    type="text"
-                    value={newMsg}
-                    onChange={e => setNewMsg(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') addMessage(); }}
-                    placeholder="Add a notice…"
-                    className="flex-1 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500"
-                    style={{background:'var(--surface-2)',border:'1px solid var(--border)',color:'var(--text-1)'}}
-                  />
-                  <button
-                    onClick={addMessage}
-                    disabled={!newMsg.trim()}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{background:'rgba(34,211,238,0.15)',border:'1px solid rgba(34,211,238,0.3)',color:'var(--c-cyan)'}}
-                  >
-                    Post
-                  </button>
-                </div>
-              )}
-            </div>
-            {/* SUMMARY — spans first 3 cols */}
-            <div className="glass rounded-xl p-5 lg:col-span-3 lg:order-1 panefx-violet">
-              <div className="flex flex-col lg:flex-row gap-5 items-stretch">
-                <div className="flex-shrink-0 flex items-center justify-center">
-                  {/* slots/target text removed from under the needle: the raw count
-                      lives in the tile beside it, and the target is on the
-                      session bars below. The gauge's one job is the ratio. */}
-                  <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[300px]" width={null} viewBox="0 0 300 145" />
-                </div>
-                <div className="flex-1 min-w-0 grid grid-cols-2 gap-3">
-                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center relative">
-                    <div className="text-sm text-slate-400 mb-1 flex items-center gap-1.5">
-                      Predicted demand
-                      {pred?.usingFallback && (
-                        <span
-                          title="Estimated from list size — calibrate by uploading an AskMyGP CSV in Practice → Demand model"
-                          className="text-[11px] font-medium px-1.5 py-0.5 rounded"
-                          style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--c-amber)', border: '1px solid rgba(245,158,11,0.3)' }}
-                        >
-                          est
-                        </span>
-                      )}
-                    </div>
-                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{predTotal || '—'}</div>
-                    <div className="text-sm text-slate-400 mt-1">requests today</div>
-                  </div>
-                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                    <div className="text-sm text-slate-400 mb-1">Urgent available</div>
-                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:band.ink}}>{urgAvail}</div>
-                    <div className="text-sm text-slate-400 mt-1">appointments today</div>
-                  </div>
-                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                    <div className="text-sm text-slate-400 mb-1">Routine 28 days</div>
-                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{routineAvail + routineEmb}</div>
-                    <div className="text-sm text-slate-400 mt-1">{routineEmb > 0 ? `${routineAvail} avail · ${routineEmb} emb` : 'available'}</div>
-                  </div>
-                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
-                    <div className="text-sm text-slate-400 mb-1">Clinicians today</div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{inCount}</span>
-                      
-                    </div>
-                    <div className="text-sm text-slate-400 mt-1">of {visibleClinicians.length} active</div>
-                  </div>
-                </div>
-              </div>
-            {/* Fallback warning banner — shown when no per-practice
-                demand_settings is in place. The prediction is being
-                derived from list-size-scaled generic baselines rather
-                than the practice's own data. Hides automatically once
-                an NHS auto-seed or CSV calibration has been run. */}
-            {pred?.usingFallback && data?._v4?.practiceSlug && (
-              <div
-                className="rounded-lg p-3 mt-3 flex items-start gap-2.5"
-                style={{
-                  background: 'rgba(245,158,11,0.08)',
-                  border: '1px solid rgba(245,158,11,0.25)',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-amber)" strokeWidth="2" className="flex-shrink-0 mt-0.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium mb-0.5" style={{color:'var(--c-amber)'}}>Demand prediction is an estimate</div>
-                  <div className="text-xs leading-relaxed" style={{color:'var(--c-amber)', opacity:0.85}}>
-                    Today's prediction uses national-average submission rates scaled to your list size of {(data._v4.practiceListSize || 0).toLocaleString()}.
-                    For a tailored prediction reflecting your practice's actual demand pattern, upload an AskMyGP CSV (12+ weeks recommended) in{' '}
-                    <a
-                      href={`/v4/practice/${data._v4.practiceSlug}?tab=demand`}
-                      className="underline transition-colors"
-                    >
-                      Practice → Demand model
-                    </a>.
-                  </div>
-                </div>
-              </div>
-            )}
-            {predTotal > 0 && (
-              /* Was a full card: icon row + a paragraph + the details toggle,
-                 ~120px for one sentence. Same content on one line now — the
-                 approved compaction is height, not information. */
-              <div className="glass-inner rounded-xl px-4 py-2.5 mt-3">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={predColour} strokeWidth="2" className="flex-shrink-0"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                  <span className="text-sm font-semibold" style={{color:predColour}}>{predLabel}</span>
-                  <span className="text-sm text-slate-400">
-                    avg {todayDayName.slice(0,3)} {predAvgDay}{displayFactors.filter(f => f.impact !== 0).slice(0, 2).map(f => ` · ${f.label} ${f.impact > 0 ? '+' : ''}${f.impact}`).join('')}
-                  </span>
-                </div>
-                <details className="mt-1">
-                  <summary className="text-sm text-slate-400 cursor-pointer hover:text-slate-300 flex items-center gap-1">
-                    Demand factors
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                  </summary>
-                  <div className="mt-2 space-y-1.5">
-                    <div className="flex justify-between text-sm"><span className="text-slate-400">Base {todayDayName} avg</span><span className="font-bold text-slate-300 font-mono-data">{predAvgDay}</span></div>
-                    {displayFactors.filter(f => f.impact !== 0).map((f, i) => (
-                      <div key={i} className="flex justify-between text-sm">
-                        <span className="text-slate-400">{f.label}</span>
-                        <span className="font-bold font-mono-data" style={{color: f.impact > 0 ? 'var(--state-short)' : f.impact < 0 ? 'var(--state-ok)' : 'var(--g-text-faint)'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between text-sm pt-1.5 mt-1.5" style={{borderTop:'1px solid var(--border)'}}>
-                      <span className="text-slate-300 font-medium">Predicted total</span>
-                      <span className="font-bold text-amber-400 font-mono-data">{predTotal}</span>
-                    </div>
-                  </div>
-                </details>
-              </div>
-            )}
-            </div>
-          </div>
-        );
-      })()}
-
       {/* ═══ URGENT ON THE DAY ═══ */}
           {(() => {
             const urgentAm = capacity.am.total + (capacity.am.embargoed || 0) + (capacity.am.booked || 0);
@@ -1117,7 +851,7 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             return (
               <div className="rounded-xl overflow-hidden glass">
                 <div className="glass-header hdr-cyan px-4 py-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center justify-between gap-3">
                     <span className="font-heading text-base font-medium text-slate-200">Urgent on the day</span>
                     <SlotFilter overrides={urgentOverrides} setOverrides={setUrgentOverrides} knownSlotTypes={knownSlotTypes} activeSlotTypes={activeSlotTypes} title="Urgent Slot Filter" dutyDoctorSlot={dutyDoctorSlot} setDutyDoctorSlot={setDutyDoctorSlot} readOnly={!canEdit} />
                   </div>
@@ -1193,6 +927,270 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
               </div>
             );
           })()}
+
+      {/* ═══ SUMMARY GAUGE BAR ═══ */}
+      {capacity && (() => {
+        const urgTotal = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.am.booked || 0) + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0) + (capacity.pm.booked || 0);
+        const urgAvail = (capacity.am.total || 0) + (capacity.am.embargoed || 0) + (capacity.pm.total || 0) + (capacity.pm.embargoed || 0);
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const todayDayName = dayNames[viewingDate.getDay()];
+        // Gauge target = predicted demand × urgent conversion ratio when both
+        // are available (live, demand-driven). Falls back to the static
+        // expected-capacity table (kept for capacity planning use) when
+        // there's no prediction for the day. The conversion rate lives in
+        // huddleSettings.demandCapacity.conversionRate (0..1, default 0.25)
+        // and is editable in Practice → Demand model.
+        const convRate = hs?.demandCapacity?.conversionRate ?? 0.25;
+        const predictedToday = viewingPrediction?.predicted || 0;
+        const demandDrivenTarget = predictedToday > 0 ? Math.round(predictedToday * convRate) : 0;
+        const staticTarget = (hs.expectedCapacity?.[todayDayName]?.am || 0) + (hs.expectedCapacity?.[todayDayName]?.pm || 0);
+        const targetTotal = demandDrivenTarget > 0 ? demandDrivenTarget : staticTarget;
+        const targetSource = demandDrivenTarget > 0 ? 'demand' : (staticTarget > 0 ? 'static' : 'none');
+        const coveragePct = targetTotal > 0 ? Math.round((urgTotal / targetTotal) * 100) : 0;
+        const band = getBand(urgTotal, targetTotal);
+        const pred = viewingPrediction;
+        const predTotal = pred?.predicted || 0;
+        const predBaseline = pred?.factors?.baseline || 0;
+        const predDowEffect = pred?.factors?.dayOfWeek?.effect || 0;
+        const predAvgDay = Math.round(predBaseline + predDowEffect);
+        const predDiff = predTotal - predAvgDay;
+        const predLabel = predDiff > 3 ? 'Higher than a normal ' + todayDayName : predDiff < -3 ? 'Lower than a normal ' + todayDayName : 'Typical for a ' + todayDayName;
+        const predColour = predDiff > 3 ? 'var(--state-tight)' : predDiff < -3 ? 'var(--state-ok)' : 'var(--g-text-mid)';
+        const displayFactors = [];
+        if (pred?.factors) {
+          const f = pred.factors;
+          if (f.schoolHoliday) displayFactors.push({ label: 'School holiday', impact: f.schoolHoliday });
+          if (f.firstWeekBack) displayFactors.push({ label: 'First week back', impact: f.firstWeekBack });
+          if (f.firstDayBack) displayFactors.push({ label: 'First day back', impact: f.firstDayBack });
+          if (f.secondDayBack) displayFactors.push({ label: 'Second day back', impact: f.secondDayBack });
+          if (f.nearBankHoliday) displayFactors.push({ label: `Near bank holiday (${f.nearBankHoliday.daysAway}d)`, impact: f.nearBankHoliday.effect });
+          if (f.christmasPeriod) displayFactors.push({ label: 'Christmas period', impact: f.christmasPeriod });
+          if (f.endOfMonth) displayFactors.push({ label: 'End of month', impact: f.endOfMonth });
+          if (f.shortWeek) displayFactors.push({ label: `Short week (${f.shortWeek.workingDays}d)`, impact: f.shortWeek.effect });
+          if (f.month) displayFactors.push({ label: `Month effect`, impact: f.month.effect });
+          if (f.trend && Math.abs(f.trend.effect) >= 0.5) displayFactors.push({ label: 'Long-term trend', impact: Math.round(f.trend.effect) });
+        }
+        // Routine 28-day totals
+        const routineDays28 = getNDayAvailability(huddleData, hs, 28, effectiveRoutineOverrides);
+        const routine28 = routineDays28.filter(d => d.available !== null && !d.isWeekend);
+        const routineAvail = routine28.reduce((s, d) => s + (d.available || 0), 0);
+        const routineEmb = routine28.reduce((s, d) => s + (d.embargoed || 0), 0);
+        // Clinicians: use CSV data when available, else working patterns
+        const dateKey = toLocalIso(viewingDate);
+        const viewingDateStr2 = toHuddleDateStr(viewingDate);
+        const csvClinicians = huddleData?.dates?.includes(viewingDateStr2) ? getCliniciansForDate(huddleData, viewingDateStr2) : [];
+        const plannedAbsences = (Array.isArray(data.plannedAbsences) ? data.plannedAbsences : []).filter(a => dateKey >= a.startDate && dateKey <= a.endDate);
+        const absentIds = new Set(plannedAbsences.map(a => a.clinicianId));
+        const visibleClinicians = teamClinicians.filter(c => c.status !== 'left' && c.status !== 'administrative' && c.showWhosIn !== false && !c.longTermAbsent);
+        let inCount, offCount;
+        if (csvClinicians.length > 0) {
+          // Count unique clinicians in CSV that match our staff register
+          const matchedIds = new Set();
+          visibleClinicians.forEach(c => { if (csvClinicians.some(csvName => matchesStaffMember(csvName, c))) matchedIds.add(c.id); });
+          inCount = matchedIds.size;
+          offCount = visibleClinicians.length - inCount;
+        } else {
+          const scheduledToday = visibleClinicians.filter(c => c.workingPattern?.[todayDayName]);
+          inCount = scheduledToday.filter(c => !absentIds.has(c.id)).length;
+          offCount = visibleClinicians.length - inCount;
+        }
+        // Empty most days. With no notices the board gives its column back to
+        // the summary, which then runs its four tiles in one row instead of a
+        // 2x2 block - the single biggest saving of fold height on this page.
+        const hasNotices = huddleMessages.length > 0;
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            {/* SUMMARY — first in the DOM so reading order, tab order and the
+                mobile stack all agree. No order-* overrides. */}
+            <div className={`glass rounded-xl p-5 panefx-violet ${hasNotices ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
+              <div className="flex flex-col lg:flex-row gap-5 items-stretch">
+                <div className="flex-shrink-0 flex items-center justify-center">
+                  {/* slots/target text removed from under the needle: the raw count
+                      lives in the tile beside it, and the target is on the
+                      session bars below. The gauge's one job is the ratio. */}
+                  <SpeedometerGauge percentage={coveragePct} className="w-full max-w-[180px]" width={null} viewBox="0 0 300 145" />
+                </div>
+                <div className={`flex-1 min-w-0 grid grid-cols-2 gap-3 ${hasNotices ? '' : 'lg:grid-cols-4'}`}>
+                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center relative">
+                    <div className="text-sm text-slate-400 mb-1 flex items-center gap-1.5">
+                      Predicted demand
+                      {pred?.usingFallback && (
+                        <span
+                          title="Estimated from list size — calibrate by uploading an AskMyGP CSV in Practice → Demand model"
+                          className="text-[11px] font-medium px-1.5 py-0.5 rounded"
+                          style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--c-amber)', border: '1px solid rgba(245,158,11,0.3)' }}
+                        >
+                          est
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{predTotal || '—'}</div>
+                    <div className="text-sm text-slate-400 mt-1">requests today</div>
+                  </div>
+                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
+                    <div className="text-sm text-slate-400 mb-1">Urgent available</div>
+                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:band.ink}}>{urgAvail}</div>
+                    <div className="text-sm text-slate-400 mt-1">appointments today</div>
+                  </div>
+                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
+                    <div className="text-sm text-slate-400 mb-1">Routine 28 days</div>
+                    <div className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{routineAvail + routineEmb}</div>
+                    <div className="text-sm text-slate-400 mt-1">{routineEmb > 0 ? `${routineAvail} avail · ${routineEmb} emb` : 'available'}</div>
+                  </div>
+                  <div className="glass-inner rounded-xl p-4 flex flex-col justify-center">
+                    <div className="text-sm text-slate-400 mb-1">Clinicians today</div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono-data text-3xl lg:text-5xl font-bold leading-none" style={{color:'var(--g-text-hi)'}}>{inCount}</span>
+                      
+                    </div>
+                    <div className="text-sm text-slate-400 mt-1">of {visibleClinicians.length} active</div>
+                  </div>
+                </div>
+              </div>
+            {/* Fallback warning banner — shown when no per-practice
+                demand_settings is in place. The prediction is being
+                derived from list-size-scaled generic baselines rather
+                than the practice's own data. Hides automatically once
+                an NHS auto-seed or CSV calibration has been run. */}
+            {pred?.usingFallback && data?._v4?.practiceSlug && (
+              <div
+                className="rounded-lg p-3 mt-3 flex items-start gap-2.5"
+                style={{
+                  background: 'rgba(245,158,11,0.08)',
+                  border: '1px solid rgba(245,158,11,0.25)',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-amber)" strokeWidth="2" className="flex-shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium mb-0.5" style={{color:'var(--c-amber)'}}>Demand prediction is an estimate</div>
+                  <div className="text-xs leading-relaxed" style={{color:'var(--c-amber)', opacity:0.85}}>
+                    Today's prediction uses national-average submission rates scaled to your list size of {(data._v4.practiceListSize || 0).toLocaleString()}.
+                    For a tailored prediction reflecting your practice's actual demand pattern, upload an AskMyGP CSV (12+ weeks recommended) in{' '}
+                    <a
+                      href={`/v4/practice/${data._v4.practiceSlug}?tab=demand`}
+                      className="underline transition-colors"
+                    >
+                      Practice → Demand model
+                    </a>.
+                  </div>
+                </div>
+              </div>
+            )}
+            {predTotal > 0 && (
+              /* Was a full card: icon row + a paragraph + the details toggle,
+                 ~120px for one sentence. Same content on one line now — the
+                 approved compaction is height, not information. */
+              <div className="glass-inner rounded-xl px-4 py-2.5 mt-3">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={predColour} strokeWidth="2" className="flex-shrink-0"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                  <span className="text-sm font-semibold" style={{color:predColour}}>{predLabel}</span>
+                  <span className="text-sm text-slate-400">
+                    avg {todayDayName.slice(0,3)} {predAvgDay}{displayFactors.filter(f => f.impact !== 0).slice(0, 2).map(f => ` · ${f.label} ${f.impact > 0 ? '+' : ''}${f.impact}`).join('')}
+                  </span>
+                </div>
+                <details className="mt-1">
+                  <summary className="text-sm text-slate-400 cursor-pointer hover:text-slate-300 flex items-center gap-1">
+                    Demand factors
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+                  </summary>
+                  <div className="mt-2 space-y-1.5">
+                    <div className="flex justify-between text-sm"><span className="text-slate-400">Base {todayDayName} avg</span><span className="font-bold text-slate-300 font-mono-data">{predAvgDay}</span></div>
+                    {displayFactors.filter(f => f.impact !== 0).map((f, i) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span className="text-slate-400">{f.label}</span>
+                        <span className="font-bold font-mono-data" style={{color: f.impact > 0 ? 'var(--state-short)' : f.impact < 0 ? 'var(--state-ok)' : 'var(--g-text-faint)'}}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between text-sm pt-1.5 mt-1.5" style={{borderTop:'1px solid var(--border)'}}>
+                      <span className="text-slate-300 font-medium">Predicted total</span>
+                      <span className="font-bold text-amber-400 font-mono-data">{predTotal}</span>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            )}
+            </div>
+            {/* NOTICEBOARD — message-thread style (Option B from the design pass).
+                Avatars use a deterministic colour per author so the same
+                person always looks the same. No more random rainbow rotation. */}
+            {/* Empty most days — and a full column saying "no notices" is
+                prime space spent on nothing. Collapsed to one line until it
+                has content; the moment a notice exists it gets the panel. */}
+            <div className={`glass rounded-xl overflow-hidden flex panefx-cyan ${hasNotices ? 'flex-col' : 'flex-col sm:flex-row sm:items-center lg:col-span-4'}`}>
+              <div className="px-4 py-2.5 flex items-center gap-2 flex-shrink-0" style={{borderBottom: hasNotices ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--g-text-mid)" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <span className="font-heading text-sm font-medium text-slate-300">Noticeboard</span>
+                {huddleMessages.length > 0
+                  ? <span className="text-xs text-slate-400 ml-auto">{huddleMessages.length} today</span>
+                  : <span className="text-xs text-slate-400 ml-auto">no notices</span>}
+              </div>
+              {hasNotices && (
+              <div className="flex-1 overflow-y-auto" style={{maxHeight:'420px'}}>
+                {huddleMessages.map((msg, i) => {
+                  // Deterministic palette — hash the author name into one of 5
+                  // muted accent colours so the same person is always shown
+                  // with the same avatar tint.
+                  const palette = [
+                    { bg: 'rgba(59,130,246,0.18)', fg: 'var(--c-blue)' },   // blue
+                    { bg: 'rgba(16,185,129,0.18)', fg: 'var(--c-green)' },   // green
+                    { bg: 'rgba(168,85,247,0.18)', fg: 'var(--c-purple)' },   // purple
+                    { bg: 'rgba(245,158,11,0.18)', fg: 'var(--c-amber)' },   // amber
+                    { bg: 'rgba(236,72,153,0.18)', fg: 'var(--c-pink)' },   // pink
+                  ];
+                  const authorKey = msg.author || 'anon';
+                  let h = 0; for (let k = 0; k < authorKey.length; k++) h = (h * 31 + authorKey.charCodeAt(k)) | 0;
+                  const c = palette[Math.abs(h) % palette.length];
+                  const initials = msg.author
+                    ? msg.author.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2)
+                    : '?';
+                  const time = msg.addedAt ? new Date(msg.addedAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+                  return (
+                    <div key={msg.id || i} className="px-4 py-2.5 flex gap-2.5 items-start group hover:bg-white/[0.02] transition-colors">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium flex-shrink-0" style={{ background: c.bg, color: c.fg }}>{initials}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 mb-0.5">
+                          <span className="text-xs font-medium text-slate-200">{msg.author || 'Anonymous'}</span>
+                          {time && <span className="text-[11px] text-slate-400">{time}</span>}
+                        </div>
+                        <div className="text-xs text-slate-300 leading-relaxed break-words">{msg.text}</div>
+                      </div>
+                      {canEdit && (
+                        <button onClick={() => removeMessage(i)} className="text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-xs leading-none mt-1" title="Delete notice">✕</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              )}
+              {canEdit && (
+                <div className={`p-3 flex gap-2 ${hasNotices ? '' : 'sm:flex-1 sm:ml-auto sm:max-w-md'}`} style={{borderTop: hasNotices ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
+                  <input
+                    type="text"
+                    value={newMsg}
+                    onChange={e => setNewMsg(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addMessage(); }}
+                    placeholder="Add a notice…"
+                    className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    style={{background:'var(--surface-2)',border:'1px solid var(--border)',color:'var(--text-1)'}}
+                  />
+                  <button
+                    onClick={addMessage}
+                    disabled={!newMsg.trim()}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{background:'rgba(34,211,238,0.15)',border:'1px solid rgba(34,211,238,0.3)',color:'var(--c-cyan)'}}
+                  >
+                    Post
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* WHO'S IN / OUT */}
       <WhosInOut data={data} saveData={saveData} huddleData={huddleData} onNavigate={setActiveSection} viewingDate={viewingDate} />
@@ -1450,6 +1448,14 @@ export default function HuddleToday({ data, saveData, toast, huddleData, setHudd
             ))}
           </div>
           )}
+
+      {/* NHS demand benchmarks ribbon — a monthly strategic read, not a morning
+          one, so it closes the page rather than opening it. Stays quiet if
+          the practice ODS is not in the latest NHS data. */}
+      <NhsBenchmarkRibbon
+        odsCode={data?._v4?.practiceOds}
+        listSize={data?._v4?.practiceListSize}
+      />
 
         </div>
       )}

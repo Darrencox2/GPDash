@@ -1495,17 +1495,34 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
   // how CSS zoom maps between those spaces (Safari drifts, worst at the right
   // edge). Measure where the tip ACTUALLY rendered and nudge by the real
   // overflow; converges in 1-3 passes regardless of engine.
+  //
+  // The nudge and the entrance animation have to live on SEPARATE elements,
+  // and this is why: a running CSS animation that sets `transform` beats an
+  // inline transform in the cascade. While shtIn ran it silently discarded
+  // translateX(nudgeX), so every pass measured the same un-nudged rect and
+  // computed the same delta. A layout-effect loop does not let the clock
+  // advance, so the animation never finished and the clamp never converged -
+  // nudgeX escalated until React gave up with "maximum update depth
+  // exceeded" (#185) and the error boundary replaced the board. So the nudge
+  // goes on an outer wrapper and shtIn on the card inside it, and shtIn
+  // stays opacity + translateY only: an X term would revive the loop.
   const tipRef = useRef(null);
   const [nudgeX, setNudgeX] = useState(0);
-  useLayoutEffect(() => { setNudgeX(0); }, [hovered?.id]);
+  // Belt and braces for the same failure. However an engine maps zoom, give
+  // up after a few passes rather than let the clamp escalate: a tooltip
+  // sitting slightly off is a blemish, a section replaced by an error page
+  // is an outage.
+  const passes = useRef(0);
+  useLayoutEffect(() => { passes.current = 0; setNudgeX(0); }, [hovered?.id]);
   useLayoutEffect(() => {
     const el = tipRef.current; if (!el) return;
+    if (passes.current >= 4) return;
     const vw = window.visualViewport?.width || window.innerWidth;
     const r = el.getBoundingClientRect();
     let delta = 0;
     if (r.right > vw - 10) delta = (vw - 10) - r.right;
     else if (r.left < 10) delta = 10 - r.left;
-    if (Math.abs(delta) > 2) setNudgeX((n) => n + delta);
+    if (Math.abs(delta) > 2) { passes.current += 1; setNudgeX((n) => n + delta); }
   }, [hovered, nudgeX]);
 
   const [mounted, setMounted] = useState(false);
@@ -1526,14 +1543,22 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
   const bottom = below ? null : window.innerHeight - rect.top + gap;
 
   const tip = (
+    // Outer wrapper: position and the self-correcting nudge, never animated.
     <div
-      ref={tipRef}
       style={{
         transform: `translateX(${nudgeX}px)`,
         position: 'fixed', zIndex: 1300, width: W, maxWidth: 'calc(100vw - 20px)',
         left, ...(below ? { top } : { bottom }),
+        pointerEvents: 'none',
+      }}
+    >
+    {/* Inner card: the entrance animation, measured for the clamp. shtIn
+        moves it in Y only, so the horizontal rect stays truthful. */}
+    <div
+      ref={tipRef}
+      style={{
         background: 'var(--surface-solid)', border: '1px solid var(--g-line)',
-        borderRadius: 'var(--r-lg)', padding: '13px 15px', pointerEvents: 'none',
+        borderRadius: 'var(--r-lg)', padding: '13px 15px',
         boxShadow: '0 20px 50px -14px rgba(0,0,0,0.7)',
         animation: 'shtIn 0.16s ease-out',
       }}
@@ -1549,6 +1574,7 @@ function StatusHoverTooltip({ hovered, explainStatus, getClinicianById }) {
         <div key={i} style={{ fontSize: 13, color: i === 0 ? 'var(--g-text-hi)' : 'var(--g-text-mid)', lineHeight: 1.5, marginTop: i === 0 ? 0 : 6 }}>{l}</div>
       ))}
       <div style={{ fontSize: 11, color: 'var(--meta)', marginTop: 9 }}>{c.role}{c.initials ? ` · ${c.initials}` : ''}</div>
+    </div>
     </div>
   );
   return createPortal(tip, document.body);
