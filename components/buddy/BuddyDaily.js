@@ -56,6 +56,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const [expandedLeave, setExpandedLeave] = useState({});
   const canEdit = canEditPracticeData(data);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, dataVersion, setDataVersion, setData } = helpers;
 
   // Lazy supabase client for the manual override audit-log insert.
@@ -1031,6 +1032,15 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                 <p className="text-xs text-slate-400 mt-0.5">Workload balanced across present clinicians</p>
               </div>
               <div className="flex items-center gap-2">
+                {helpers?.reloadData && (
+                  <button
+                    onClick={async () => { setRefreshing(true); try { await helpers.reloadData(); } finally { setRefreshing(false); } }}
+                    disabled={refreshing}
+                    title="Load the latest saved staff, absences and cover, and rebuild the next 4 weeks if anything changed"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5"
+                    style={{ background: 'var(--g-tile)', border: '1px solid var(--g-border-2)', color: 'var(--g-text-hi)', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'wait' : 'pointer' }}
+                  >{refreshing ? 'Refreshing...' : '↻ Refresh'}</button>
+                )}
                 {canEdit && hasAllocations && <button onClick={handleCopyDay} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5" style={{background:'rgba(16,185,129,0.12)',border:'1px solid rgba(16,185,129,0.45)',color:'var(--link)'}}>Copy Day</button>}
                 {/* Cover regenerates itself whenever anything that affects
                     it moves, and the window is filled on load - so there is

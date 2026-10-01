@@ -578,7 +578,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   // instead of 5. Save still happens within ~300ms of the last click.
   const pendingSaveRef = useRef({ timer: null, latestData: null, showIndicator: false, pendingResolves: [] });
 
-  const flushSave = useCallback(async () => {
+  const flushSaveOnce = useCallback(async () => {
     const pending = pendingSaveRef.current;
     if (!pending.latestData) return;
     const dataToSend = pending.latestData;
@@ -690,6 +690,25 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
       resolves.forEach(r => r({ error: err.message }));
     }
   }, [practiceId, supabase, toast, setSaveConflict]);
+
+  // One save in flight at a time. Each structural save sends the lock
+  // version from the save before it, and only learns the next one from the
+  // response - so a second flush that started while the first was still on
+  // the wire (a slow diff save, then a click 250ms later, or the automatic
+  // cover fill landing on top of the wind-down sweep) sent a version this
+  // same browser had just used up, and was refused as "someone else saved".
+  // Waiting for the previous save also lets the later edits coalesce.
+  const saveInFlightRef = useRef(null);
+  const flushSave = useCallback(async () => {
+    while (saveInFlightRef.current) {
+      try { await saveInFlightRef.current; } catch { /* its own error path reported it */ }
+    }
+    const run = flushSaveOnce();
+    saveInFlightRef.current = run;
+    try { await run; } finally {
+      if (saveInFlightRef.current === run) saveInFlightRef.current = null;
+    }
+  }, [flushSaveOnce]);
 
   const saveData = useCallback((newData, showIndicator = true) => {
     // Pre-process: assign UUIDs to any new clinicians (v3 components use Date.now())
@@ -976,11 +995,18 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  const windDownSweepDone = useRef(false);
+  // Two passes. A finished leaver needs nothing from EMIS, so that half runs
+  // as soon as the practice data is here; it used to wait for the huddle
+  // CSV too, and on a load without one the leaver was never flipped at all.
+  // The long-term-sick "back" check does need EMIS, so it runs again once
+  // the CSV arrives.
+  const windDownSweepDone = useRef({ base: false, huddle: false });
   useEffect(() => {
-    if (windDownSweepDone.current) return;
-    if (!data || !huddleData || !canEditPracticeData(data)) return;
-    windDownSweepDone.current = true;
+    if (!data || !canEditPracticeData(data)) return;
+    const done = windDownSweepDone.current;
+    if (huddleData ? done.huddle : done.base) return;
+    done.base = true;
+    if (huddleData) done.huddle = true;
     try {
       const res = sweepWindDowns(data, huddleData, { getDateKeyForDay });
       if (res.changed) {
@@ -1038,6 +1064,45 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
   const removeClinician = async (id) => { if (!(await confirmDialog({ message: 'Remove this clinician?', danger: true }))) return; const newClinicians = ensureArray(data.clinicians).filter(c => c.id !== id); const newRota = { ...data.weeklyRota }; DAYS.forEach(day => { newRota[day] = ensureArray(newRota[day]).filter(cid => cid !== id); }); saveData({ ...data, clinicians: newClinicians, weeklyRota: newRota }); };
   const updateClinicianField = (id, field, value) => { const newClinicians = ensureArray(data.clinicians).map(c => { if (c.id !== id) return c; let pv = value; if (field === 'sessions') pv = parseInt(value) || 6; if (field === 'primaryBuddy' || field === 'secondaryBuddy') pv = value ? (/^\d+$/.test(String(value)) ? parseInt(value) : value) : null; return { ...c, [field]: pv }; }); saveData({ ...data, clinicians: newClinicians }); };
 
+  // Refresh without a page reload. A tab left open keeps the copy it loaded,
+  // so a change made elsewhere (a status set in Practice settings, another
+  // person's edit) never reached it - and its next structural save was then
+  // refused as a conflict. This lands anything still queued, re-reads the
+  // practice, adopts the new lock version, and lets the on-load cover fill
+  // and wind-down sweep run again against the fresh copy.
+  const reloadData = async () => {
+    if (!practiceId) return { error: 'No practice' };
+    const pending = pendingSaveRef.current;
+    if (pending.timer) { clearTimeout(pending.timer); pending.timer = null; }
+    if (pending.latestData || saveInFlightRef.current) {
+      try { await flushSave(); } catch { /* reported by the save itself */ }
+    }
+    try {
+      const res = await fetch(`/api/v4/data?practice=${encodeURIComponent(practiceId)}`, { cache: 'no-store' });
+      noteResponse(res);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(json.error || `Refresh failed (${res.status})`, 'error', 5000);
+        return { error: json.error || res.status };
+      }
+      practiceVersionRef.current = json._v4?.dataVersion ?? null;
+      if (json.huddleCsvData) {
+        setHuddleData(json.huddleCsvData);
+        lastSentCsvRef.current = json.huddleCsvData;
+      }
+      coverFpRef.current = null;
+      windDownSweepDone.current = { base: false, huddle: false };
+      setData(normalizeData(json));
+      setDataVersion(v => v + 1);
+      setSaveConflict(null);
+      toast('Refreshed - showing the latest saved data', 'success', 2500);
+      return { ok: true };
+    } catch (e) {
+      toast(`Refresh failed: ${e?.message || 'network error'}`, 'error', 5000);
+      return { error: e?.message };
+    }
+  };
+
   // Loading state
   if (loading && !data) {
     return <div className="min-h-screen flex items-center justify-center" style={{ background: '#f1f5f9' }}><PageSkeleton /></div>;
@@ -1046,7 +1111,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
     return <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f172a', color: 'var(--g-text-mid)', fontSize: 14 }}>No data loaded.</div>;
   }
 
-  const helpers = { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, syncTeamNet, toggleRotaDay, removeClinician, updateClinicianField, dataVersion, setDataVersion, setData };
+  const helpers = { ensureArray, getDateKey, getDateKeyForDay, getTodayKey, isPastDate, isToday, isClosedDay, getClosedReason, toggleClosedDay, hasPlannedAbsence, getPlannedAbsenceReason, getPresentClinicians, getAbsentClinicians, getDayOffClinicians, getClinicianStatus, togglePresence, getCurrentAllocations, getClinicianById, getWeekAbsences, syncTeamNet, toggleRotaDay, removeClinician, updateClinicianField, dataVersion, setDataVersion, setData, reloadData };
 
   // password is empty in v4 — components that look at it will get '' (BuddyDaily uses it for sync-teamnet which we've stubbed)
   const password = '';
@@ -1060,7 +1125,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
         {saveConflict && (
           <div role="alert" className="px-4 py-2.5 text-sm flex items-center gap-3 flex-wrap" style={{ background: 'rgba(220,38,38,0.12)', borderBottom: '1px solid rgba(220,38,38,0.35)', color: 'var(--c-red-2)' }}>
             <span className="flex-1 min-w-0">{saveConflict}</span>
-            <button type="button" onClick={() => window.location.reload()} className="px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0" style={{ background: 'rgba(220,38,38,0.2)', border: '1px solid rgba(220,38,38,0.4)', color: 'var(--c-red-2)' }}>Reload</button>
+            <button type="button" onClick={() => { reloadData(); }} className="px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0" style={{ background: 'rgba(220,38,38,0.2)', border: '1px solid rgba(220,38,38,0.4)', color: 'var(--c-red-2)' }}>Reload</button>
             <button type="button" onClick={() => setSaveConflict(null)} aria-label="Dismiss this message" className="rounded flex items-center justify-center flex-shrink-0" style={{ minWidth: 24, minHeight: 24, color: 'var(--c-red-2)' }}>✕</button>
           </div>
         )}

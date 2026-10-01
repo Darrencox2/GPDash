@@ -651,6 +651,7 @@ export async function POST(request) {
   // markers), and every transition already flows through this route.
   if (Array.isArray(newData.clinicians) && Array.isArray(oldData.clinicians)) {
     const oldById = Object.fromEntries(oldData.clinicians.map((c) => [c.id, c]));
+    const rawStatusById = Object.fromEntries((v4Data?.clinicians || []).map((c) => [c.id, c.status]));
     for (const nc of newData.clinicians) {
       const oc = oldById[nc.id];
       if (!oc) continue;
@@ -666,7 +667,11 @@ export async function POST(request) {
         && JSON.stringify(nc.windDown || null) !== JSON.stringify(oc.windDown || null)) {
         fields.wind_down = nc.windDown || null;
       }
-      if (nc.status && nc.status !== oc.status && ['active', 'left', 'administrative'].includes(nc.status)) {
+      // Compare with the STORED status, not the adapted one: the adapter
+      // reads a finished leaver wind-down as 'left' before the row says so,
+      // and diffing against that would never write the flip.
+      const storedStatus = rawStatusById[nc.id] ?? oc.status;
+      if (nc.status && nc.status !== storedStatus && ['active', 'left', 'administrative'].includes(nc.status)) {
         fields.status = nc.status;
       }
       if (Object.keys(fields).length) {
