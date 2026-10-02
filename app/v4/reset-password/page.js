@@ -108,6 +108,14 @@ function ResetPasswordPageInner() {
           other scanned mailboxes the link is often used up by the virus scanner - the code
           always works.)
         </div>
+        {/* Three resets were requested for one address before any account
+            existed for it (29 Sep 2026). Nothing can ever arrive in that
+            case and the screen above cannot say so without revealing
+            which addresses are registered, so say it in general terms. */}
+        <div style={{ ...f.footerLink, marginTop: 0, marginBottom: 16, textAlign: 'left', fontSize: 12, lineHeight: 1.55 }}>
+          Never created a GPDash account? Then no email will come, because there is no password to
+          reset. <Link href={`/v4/signup?email=${encodeURIComponent(email)}`} style={f.link}>Create an account</Link> instead.
+        </div>
         {error && <div style={f.errorBox}>{error}</div>}
         <form onSubmit={handleVerifyCode}>
           <div style={f.field}>

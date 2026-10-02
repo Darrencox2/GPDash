@@ -129,8 +129,11 @@ Supabase exposes these inside templates (Go-template syntax):
                 </tr>
               </table>
 
-              <p style="margin:24px 0 12px;font-size:13px;color:#64748b;">
-                Or click the link below to verify automatically:
+              <p style="margin:24px 0 12px;font-size:13px;line-height:1.6;color:#64748b;">
+                Prefer a link? It only works in the same browser you signed up
+                in, and on NHS mail it is often opened by the virus scanner
+                before you see it. If it says the link could not be used, the
+                code above still works.
               </p>
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
@@ -174,7 +177,7 @@ Supabase exposes these inside templates (Go-template syntax):
 
 ## 2. Reset Password
 
-**Subject**: `Reset your GPDash password`
+**Subject**: `Your GPDash password reset code`
 
 ```html
 <!DOCTYPE html>
@@ -226,42 +229,60 @@ Supabase exposes these inside templates (Go-template syntax):
                 Reset your password
               </h1>
               <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#475569;">
-                Click the button below to choose a new password for your
-                GPDash account.
+                Go back to the GPDash reset screen and enter this code to
+                choose a new password.
               </p>
 
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+              <!-- Code box: the primary route. Codes cannot be used up by a
+                   mail scanner, which is what kept killing the link on
+                   NHS mailboxes. -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="border-radius:8px;background:#0891b2;">
+                  <td align="center" style="padding:18px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;">
+                    <div style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:30px;font-weight:600;color:#0f172a;letter-spacing:0.3em;">
+                      {{ .Token }}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#64748b;">
+                The code expires in 1&nbsp;hour. If you closed the reset
+                screen, open gpdash.net, choose Forgot password, enter your
+                email and you will be asked for the code.
+              </p>
+
+              <!-- Divider -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;">
+                <tr>
+                  <td style="border-top:1px solid #f1f5f9;font-size:0;line-height:0;">&nbsp;</td>
+                </tr>
+              </table>
+
+              <p style="margin:24px 0 12px;font-size:13px;line-height:1.6;color:#64748b;">
+                Prefer a link? It only works in the same browser you asked for
+                the reset in, and on NHS mail it is often opened by the virus
+                scanner before you see it. If it says the link has expired,
+                the code above still works.
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="border-radius:8px;background:#e2e8f0;">
                     <a href="{{ .ConfirmationURL }}"
-                       style="display:inline-block;padding:12px 24px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">
-                      Reset password
+                       style="display:inline-block;padding:10px 20px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;font-weight:600;color:#0f172a;text-decoration:none;border-radius:8px;">
+                      Reset in browser
                     </a>
                   </td>
                 </tr>
               </table>
-
-              <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">
-                Or use this 6-digit code on the reset screen:
-              </p>
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;">
-                <tr>
-                  <td style="padding:10px 16px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:18px;font-weight:600;color:#0f172a;letter-spacing:0.2em;">
-                    {{ .Token }}
-                  </td>
-                </tr>
-              </table>
-
-              <p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:#94a3b8;">
-                The link and code expire in 1&nbsp;hour.
-              </p>
             </td>
           </tr>
 
           <tr>
             <td style="padding:18px 32px;background:#f8fafc;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8;line-height:1.5;">
               Didn't request a password reset? You can safely ignore this email
-              — your password won't change unless you click the link above.
+              — your password won't change unless someone enters the code or
+              uses the link above.
             </td>
           </tr>
         </table>

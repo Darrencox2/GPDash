@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { mapAuthError } from '@/lib/friendly-errors';
-import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist } from '../../_lib/auth-ui';
+import { AuthCard, formStyles as f, isPasswordValid, PasswordChecklist, PASSWORD_RULE_TEXT } from '../../_lib/auth-ui';
 
 export default function ResetPasswordUpdatePage() {
   const router = useRouter();
@@ -108,7 +108,7 @@ export default function ResetPasswordUpdatePage() {
       return;
     }
     if (!isPasswordValid(password)) {
-      setError('Password must be at least 8 characters and include a letter and a digit.');
+      setError(PASSWORD_RULE_TEXT + '.');
       return;
     }
     if (password !== confirmPassword) {
