@@ -17,6 +17,7 @@ GP practice dashboard for Winscombe & Banwell Family Practice. Next.js + Supabas
 - Prefer targeted edits to regenerating whole files.
 
 ## Hands off / decided
+- **Never send email from Darren's personal Gmail account**, for any reason. Emails to users go out as GPDash (noreply@gpdash.net via Resend) or Darren sends them himself. If a message is needed, draft it in chat for Darren to send. Never put a password or code in any email.
 - `getDutyDoctor` in `lib/huddle.js` must remain unchanged (a prior "fix" was explicitly reverted).
 - Session-time definitions are intentionally unconsolidated (audit exists; five definitions, three philosophies). Do not consolidate without explicit instruction.
 - Capacity is slot-derived, not rota-derived: the measure is GPs actually offering bookable appointments; presence without bookable slots counts for nothing.
