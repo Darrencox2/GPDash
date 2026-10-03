@@ -85,7 +85,12 @@ export default async function InviteAcceptPage({ params }) {
       </p>
 
       {!user ? (
-        <SignInPrompt invitedEmail={invitedEmail} inviteId={inviteId} />
+        <SignInPrompt
+          invitedEmail={invitedEmail}
+          inviteId={inviteId}
+          hasAccount={!!summary.has_account}
+          accountConfirmed={!!summary.account_confirmed}
+        />
       ) : !emailsMatch ? (
         <WrongAccountMessage callerEmail={callerEmail} invitedEmail={invitedEmail} />
       ) : (
@@ -102,34 +107,69 @@ export default async function InviteAcceptPage({ params }) {
   );
 }
 
-function SignInPrompt({ invitedEmail, inviteId }) {
+function SignInPrompt({ invitedEmail, inviteId, hasAccount, accountConfirmed }) {
   // After sign-in/sign-up, send the user back to this same page so the
   // accept button takes over.
   const next = encodeURIComponent(`/v4/invite/${inviteId}`);
+  const em = encodeURIComponent(invitedEmail);
+  const loginHref = `/v4/login?email=${em}&next=${next}`;
+  const signupHref = `/v4/signup?email=${em}&next=${next}`;
+  const resetHref = `/v4/reset-password?email=${em}`;
+
+  // Lead with the door that fits. Offering Sign in and Create an account
+  // as equals sent a brand-new invitee through two failed sign-ins and
+  // three password resets for an account that did not exist yet, none of
+  // which could produce an email. The summary now says whether an
+  // account exists for this address, so the page can be definite.
+  const primary = { ...btn, background: '#0891b2', color: 'white' };
+  const secondary = { ...btn, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--g-text-soft)' };
+
+  if (!hasAccount) {
+    return (
+      <div>
+        <p className="text-body-sm text-slate-400 mb-4 leading-body">
+          There is no GPDash account yet for <strong className="text-slate-300">{invitedEmail}</strong>.
+          Create one with that address and you will be brought straight back here to accept.
+        </p>
+        <div className="flex gap-2 flex-wrap items-center">
+          <Link href={signupHref} style={primary}>Create an account</Link>
+          <span className="text-caption text-slate-500">
+            Already have one? <Link href={loginHref} className="text-cyan-400">Sign in</Link>
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!accountConfirmed) {
+    return (
+      <div>
+        <p className="text-body-sm text-slate-400 mb-4 leading-body">
+          An account for <strong className="text-slate-300">{invitedEmail}</strong> was started but the
+          email address was never confirmed. Sign in and the login page will offer to send a fresh
+          confirmation code.
+        </p>
+        <div className="flex gap-2 flex-wrap items-center">
+          <Link href={loginHref} style={primary}>Sign in</Link>
+          <Link href={resetHref} style={secondary}>Forgot password</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <p className="text-body-sm text-slate-400 mb-4 leading-body">
         To accept, sign in with the email this invite was sent to:
         {' '}<strong className="text-slate-300">{invitedEmail}</strong>
       </p>
-      <div className="flex gap-2 flex-wrap">
-        <Link
-          href={`/v4/login?email=${encodeURIComponent(invitedEmail)}&next=${next}`}
-          style={{ ...btn, background: '#0891b2', color: 'white' }}
-        >
-          Sign in
-        </Link>
-        <Link
-          href={`/v4/signup?email=${encodeURIComponent(invitedEmail)}&next=${next}`}
-          style={{ ...btn, background: 'rgba(255,255,255,0.06)', color: 'var(--g-text-soft)', border: '1px solid rgba(255,255,255,0.1)' }}
-        >
-          Create an account
-        </Link>
+      <div className="flex gap-2 flex-wrap items-center">
+        <Link href={loginHref} style={primary}>Sign in</Link>
+        <Link href={resetHref} style={secondary}>Forgot password</Link>
       </div>
     </div>
   );
 }
-
 function WrongAccountMessage({ callerEmail, invitedEmail }) {
   return (
     <div style={{

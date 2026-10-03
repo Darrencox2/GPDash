@@ -138,6 +138,44 @@ function SignupPageInner() {
     setStage('verify');
   };
 
+  // The account may already be confirmed without the user knowing. NHS
+  // mail scanners and other devices open the emailed link, which confirms
+  // the address but leaves this tab on the code screen. Supabase then
+  // treats every Resend as a no-op (200, no email, to avoid revealing
+  // which addresses exist), so the user waits for a code that cannot
+  // come. Seen in the auth logs for a real user on 29 Sep 2026: link
+  // opened elsewhere 27 seconds after signup, Resend returned 200 and
+  // sent nothing, user gave up. We hold the password, so the honest
+  // check is to try signing in: success means confirmed, done.
+  const tryPasswordSignIn = async () => {
+    if (!supabase || !email || !password) return false;
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+    if (err || !data?.session) return false;
+    supabase.rpc('log_auth_event', { event_type: 'signup', email, details: { via: 'already_confirmed' } }).then(null, () => {});
+    router.push(next);
+    router.refresh();
+    return true;
+  };
+
+  // When the user comes back to this tab (from their mail client, most
+  // likely) check whether the link they or a scanner opened has already
+  // confirmed the account, and if so skip the code altogether.
+  useEffect(() => {
+    if (stage !== 'verify') return;
+    let busy = false;
+    const onFocus = async () => {
+      if (busy || document.visibilityState !== 'visible') return;
+      busy = true;
+      try { await tryPasswordSignIn(); } finally { busy = false; }
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [stage, email, password]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleVerify = async (e) => {
     e.preventDefault();
     setError('');
@@ -152,8 +190,11 @@ function SignupPageInner() {
       token,
       type: 'signup',
     });
-    setVerifyLoading(false);
     if (err) {
+      // A stale code is often stale because the account was confirmed by
+      // the link in the meantime. If the password now works, go in.
+      if (await tryPasswordSignIn()) return;
+      setVerifyLoading(false);
       // The default Supabase message for stale codes is "Token has
       // expired or is invalid" which is technically correct but
       // misleading — the most common cause isn't expiry but rather
@@ -169,6 +210,7 @@ function SignupPageInner() {
       }
       return;
     }
+    setVerifyLoading(false);
     if (data?.session) {
       // Audit: account creation complete. Logs after the session is
       // active so auth.uid() resolves to the new user.
@@ -202,6 +244,9 @@ function SignupPageInner() {
     setError('');
     setResendBusy(true);
     setResentAt(null);
+    // Already confirmed? Then Supabase would accept the resend and send
+    // nothing. Sign in instead of promising an email that will not come.
+    if (await tryPasswordSignIn()) return;
     const { error: err } = await supabase.auth.resend({
       type: 'signup',
       email,
