@@ -1,6 +1,6 @@
 // Unit tests for lib/staff-plan.js — the timeline maths under Staff Changes.
 import { test, expect } from '@playwright/test';
-import { monthKey, addMonths, aprilStart, monthRange, derivePeople, sessionsByMonth, totalsByMonth, per1000ByMonth, planSummary, suggestedEventsFromWindDowns, monthEndDate, capacityTimeline, absenceCode, monthFraction, listSizeLookup, changeDeltas, signedSessions } from '../../lib/staff-plan.js';
+import { monthKey, addMonths, aprilStart, monthRange, derivePeople, sessionsByMonth, totalsByMonth, per1000ByMonth, planSummary, suggestedEventsFromWindDowns, monthEndDate, capacityTimeline, absenceCode, monthFraction, listSizeLookup, changeDeltas, signedSessions, startingSessions, sessionsOn, stampFromSessions } from '../../lib/staff-plan.js';
 
 const P = { id: 'a', name: 'Dr A', sessions: 6, kind: 'real' };
 const MONTHS = monthRange('2026-04', 13);
@@ -319,5 +319,104 @@ test.describe('changeDeltas — the grid says what moved', () => {
     expect(signedSessions(-1.5)).toBe('\u22121.5');
     expect(signedSessions(0)).toBe('\u00b10');
     expect(signedSessions(null)).toBe('');
+  });
+});
+
+// ─── Today is the anchor ───────────────────────────────────────────────────
+// The rota figure is what someone works TODAY. A change that has already
+// happened is already in it, so the walk has to start from what the change
+// recorded as its "from" - or the past is drawn at today's number and the
+// change reads as nothing.
+test.describe('the rota figure is anchored at today, not at the window start', () => {
+  const J = { id: 'j', name: 'Justin', initials: 'JG', sessions: 6, group: 'gp', kind: 'real' };
+  const TODAY = '2026-10-09';
+
+  test('a past change from 4 to 6 draws 4 before it and 6 after', () => {
+    const evs = [{ id: 'c', personRef: 'j', type: 'change', month: '2026-06', startDate: '2026-06-01', sessions: 6, fromSessions: 4 }];
+    expect(startingSessions(J, evs, TODAY)).toBe(4);
+    const s = sessionsByMonth(J, evs, MONTHS, { today: TODAY });
+    expect([s['2026-04'], s['2026-05'], s['2026-06'], s['2026-10'], s['2027-04']]).toEqual([4, 4, 6, 6, 6]);
+    expect(changeDeltas([J], evs, { today: TODAY }).c).toBe(2);
+    const t = capacityTimeline([J], evs, MONTHS, { today: TODAY });
+    expect(t.steps.map((x) => [x.date, x.value])).toEqual([['2026-04-01', 4], ['2026-06-01', 6]]);
+    expect(t.marks[0]).toMatchObject({ tag: 'JG', delta: 2 });
+  });
+
+  test('a future change still walks forward from the rota figure', () => {
+    const evs = [{ id: 'c', personRef: 'j', type: 'change', month: '2026-12', startDate: '2026-12-01', sessions: 4 }];
+    const s = sessionsByMonth(J, evs, MONTHS, { today: TODAY });
+    expect([s['2026-11'], s['2026-12']]).toEqual([6, 4]);
+    expect(changeDeltas([J], evs, { today: TODAY }).c).toBe(-2);
+  });
+
+  test('once the rota has caught up with that change, the step is kept', () => {
+    // January: the working pattern now says 4, and the change carries from 6.
+    const later = { ...J, sessions: 4 };
+    const evs = [{ id: 'c', personRef: 'j', type: 'change', month: '2026-12', startDate: '2026-12-01', sessions: 4, fromSessions: 6 }];
+    const s = sessionsByMonth(later, evs, MONTHS, { today: '2027-01-15' });
+    expect([s['2026-04'], s['2026-11'], s['2026-12'], s['2027-01']]).toEqual([6, 6, 4, 4]);
+    expect(changeDeltas([later], evs, { today: '2027-01-15' }).c).toBe(-2);
+  });
+
+  test('a past change recorded without a from changes nothing, as before', () => {
+    const later = { ...J, sessions: 4 };
+    const evs = [{ id: 'c', personRef: 'j', type: 'change', month: '2026-12', startDate: '2026-12-01', sessions: 4 }];
+    const s = sessionsByMonth(later, evs, MONTHS, { today: '2027-01-15' });
+    expect([s['2026-04'], s['2027-01']]).toEqual([4, 4]);
+    expect(changeDeltas([later], evs, { today: '2027-01-15' }).c).toBe(0);
+  });
+
+  test('several past changes chain back to the earliest from', () => {
+    const now = { ...J, sessions: 5 };
+    const evs = [
+      { id: 'a', personRef: 'j', type: 'change', month: '2026-06', startDate: '2026-06-01', sessions: 6, fromSessions: 4 },
+      { id: 'b', personRef: 'j', type: 'change', month: '2026-09', startDate: '2026-09-01', sessions: 5, fromSessions: 6 },
+    ];
+    expect(startingSessions(now, evs, TODAY)).toBe(4);
+    const d = changeDeltas([now], evs, { today: TODAY });
+    expect([d.a, d.b]).toEqual([2, -1]);
+  });
+
+  test('a change dated today counts as already in the rota', () => {
+    const evs = [{ id: 'c', personRef: 'j', type: 'change', month: '2026-10', startDate: TODAY, sessions: 6, fromSessions: 4 }];
+    expect(startingSessions(J, evs, TODAY)).toBe(4);
+    expect(startingSessions(J, evs, '2026-10-08')).toBe(6);   // yesterday it was still to come
+  });
+
+  test('a recorded join still means nothing before it', () => {
+    const evs = [
+      { id: 'jn', personRef: 'j', type: 'join', month: '2026-05', startDate: '2026-05-01', sessions: 4 },
+      { id: 'c', personRef: 'j', type: 'change', month: '2026-08', startDate: '2026-08-01', sessions: 6, fromSessions: 4 },
+    ];
+    expect(startingSessions(J, evs, TODAY)).toBe(0);
+    const s = sessionsByMonth(J, evs, MONTHS, { today: TODAY });
+    expect([s['2026-04'], s['2026-05'], s['2026-08']]).toEqual([0, 4, 6]);
+  });
+
+  test('sessionsOn says what a change on a date would change from', () => {
+    const evs = [{ id: 'c', personRef: 'j', type: 'change', month: '2026-06', startDate: '2026-06-01', sessions: 6, fromSessions: 4 }];
+    expect(sessionsOn(J, evs, '2026-05-15', { today: TODAY })).toBe(4);
+    expect(sessionsOn(J, evs, '2026-06-01', { today: TODAY })).toBe(6);
+    expect(sessionsOn(J, [], '2026-05-15', { today: TODAY })).toBe(6);
+    const planned = { id: 'p', name: 'Posy', sessions: 0, group: 'gp', kind: 'planned' };
+    expect(sessionsOn(planned, [{ id: 'jn', personRef: 'p', type: 'join', month: '2026-09', startDate: '2026-09-07', sessions: 2 }], '2026-10-01', { today: TODAY })).toBe(2);
+  });
+
+  test('stampFromSessions fills the from on future changes only, and never overwrites', () => {
+    const evs = [
+      { id: 'past', personRef: 'j', type: 'change', month: '2026-06', startDate: '2026-06-01', sessions: 6 },
+      { id: 'future', personRef: 'j', type: 'change', month: '2026-12', startDate: '2026-12-01', sessions: 4 },
+      { id: 'later', personRef: 'j', type: 'change', month: '2027-03', startDate: '2027-03-01', sessions: 5 },
+      { id: 'kept', personRef: 'j', type: 'change', month: '2027-06', startDate: '2027-06-01', sessions: 8, fromSessions: 1 },
+      { id: 'leave', personRef: 'j', type: 'leave', month: '2027-09', startDate: '2027-09-01' },
+    ];
+    const out = stampFromSessions([J], evs, TODAY);
+    const by = Object.fromEntries(out.map((e) => [e.id, e.fromSessions]));
+    expect(by.past).toBeUndefined();   // already happened: no guessing
+    expect(by.future).toBe(6);         // from the rota today
+    expect(by.later).toBe(4);          // from the change before it
+    expect(by.kept).toBe(1);           // a typed from stands
+    expect(by.leave).toBeUndefined();  // only changes carry one
+    expect(out[0]).toBe(evs[0]);       // untouched events are the same objects
   });
 });

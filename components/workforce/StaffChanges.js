@@ -16,7 +16,7 @@ import {
   monthKey, monthLabel, addMonths, aprilStart, monthRange,
   derivePeople, totalsByMonth, per1000ByMonth, planSummary,
   suggestedEventsFromWindDowns, eventTransitionKey, monthEndDate, capacityTimeline, listSizeLookup,
-  changeDeltas, signedSessions,
+  changeDeltas, signedSessions, sessionsOn, stampFromSessions,
 } from '@/lib/staff-plan';
 import CapacityChart, { EVENT_TONE, GRID_COLS } from '@/components/workforce/CapacityChart';
 
@@ -58,7 +58,7 @@ export function eventTitle(e) {
     case 'join': return e.sessions != null ? `Joins on ${e.sessions} sessions a week from ${from}` : `Joins on their rota sessions from ${from}`;
     case 'leave': return `Leaves ${e.startDate ? 'on ' : 'in '}${e.startDate ? fmtDate(e.endDate || e.startDate) : monthWord(e.month)}`;
     case 'temp_leave': return `${(e.reason || 'away').charAt(0).toUpperCase()}${(e.reason || 'away').slice(1)} from ${from} to ${to}`;
-    case 'change': return `Sessions change to ${e.sessions} a week from ${from}`;
+    case 'change': return `Sessions change ${e.fromSessions != null ? `from ${e.fromSessions} ` : ''}to ${e.sessions} a week from ${from}`;
     default: return e.type;
   }
 }
@@ -67,6 +67,9 @@ const EV_STYLE = EVENT_TONE;
 export default function StaffChanges({ data, saveData }) {
   const canEdit = canEditPracticeData(data);
   const todayMk = monthKey(new Date());
+  // The rota figure on each row is TODAY's; the walks need to know where
+  // today falls to tell a change that has happened from one still to come.
+  const today = toLocalIso(new Date());
   const [viewStart, setViewStart] = useState(() => aprilStart());
   const [per1000, setPer1000] = useState(false);
   const [chartView, setChartView] = useState('level');
@@ -126,14 +129,14 @@ export default function StaffChanges({ data, saveData }) {
     [allPeople, roles]
   );
 
-  const { perPerson, totals } = useMemo(() => totalsByMonth(people, plan.events, months), [people, plan.events, months]);
+  const { perPerson, totals } = useMemo(() => totalsByMonth(people, plan.events, months, { today }), [people, plan.events, months, today]);
   const perK = useMemo(() => per1000ByMonth(totals, months, listSizeByMonth, data?._v4?.practiceListSize), [totals, months, listSizeByMonth, data?._v4?.practiceListSize]);
   const summary = useMemo(() => planSummary(totals, months, todayMk), [totals, months, todayMk]);
   // The chart walks the same events by DATE rather than by month, so a leave
   // starting on the 28th only drops the line on the 28th.
-  const timeline = useMemo(() => capacityTimeline(people, plan.events, months), [people, plan.events, months]);
+  const timeline = useMemo(() => capacityTimeline(people, plan.events, months, { today }), [people, plan.events, months, today]);
   // Signed change per event, so a square can say "+2" rather than "6".
-  const deltas = useMemo(() => changeDeltas(people, plan.events), [people, plan.events]);
+  const deltas = useMemo(() => changeDeltas(people, plan.events, { today }), [people, plan.events, today]);
   // The published sizes are sparse; the nearest earlier one carries forward,
   // and the registered size is the final fallback.
   const listSizeAt = useMemo(
@@ -148,8 +151,12 @@ export default function StaffChanges({ data, saveData }) {
   const nameOfRef = (ref) => allPeople.find(p => p.id === ref)?.name
     || (Array.isArray(data?.clinicians) ? data.clinicians : Object.values(data?.clinicians || {})).find(c => c.id === ref)?.name
     || ref;
+  // Every write of the plan backfills the "from" on future changes that
+  // lack one (recorded before it existed), so the step they describe
+  // survives the rota catching up with them.
+  const withFrom = (events) => stampFromSessions(allPeople, events, today);
   const savePlan = (next, auditLine = null) => {
-    let payload = { ...data, staffPlan: { ...next, savedAt: new Date().toISOString() } };
+    let payload = { ...data, staffPlan: { ...next, events: withFrom(next.events || []), savedAt: new Date().toISOString() } };
     if (auditLine) payload = logEvent(payload, 'staff', auditLine);
     saveData(payload);
   };
@@ -164,7 +171,7 @@ export default function StaffChanges({ data, saveData }) {
       ...(ev.type === 'temp_leave' || ev.type === 'leave' ? { endDate } : {}),
       by: whoAmI, at: new Date().toISOString(),
     };
-    let payload = { ...data, staffPlan: { ...plan, events: [...(plan.events || []), event], savedAt: new Date().toISOString() } };
+    let payload = { ...data, staffPlan: { ...plan, events: withFrom([...(plan.events || []), event]), savedAt: new Date().toISOString() } };
 
     // Real person going away or leaving? Route through the same transition
     // the buddy board uses, so wind-down + absence + audit stay in step.
@@ -205,7 +212,7 @@ export default function StaffChanges({ data, saveData }) {
   const removeEvent = (id) => {
     const ev = (plan.events || []).find(e => e.id === id);
     if (!ev) return;
-    let payload = { ...data, staffPlan: { ...plan, events: (plan.events || []).filter(e => e.id !== id), savedAt: new Date().toISOString() } };
+    let payload = { ...data, staffPlan: { ...plan, events: withFrom((plan.events || []).filter(e => e.id !== id)), savedAt: new Date().toISOString() } };
     // The absence must not merely share the start day - it must look like
     // the cover this event created, or a holiday booked from the same date
     // would be deleted alongside it.
@@ -493,7 +500,8 @@ export default function StaffChanges({ data, saveData }) {
                     ) : (
                       <span className="text-xs truncate" style={{ color: 'var(--g-text-hi)', fontStyle: p.kind === 'planned' ? 'italic' : 'normal' }}>{p.name}</span>
                     )}
-                    <span className="ml-auto text-[11px]" style={{ fontFamily: 'var(--font-mono)', color: 'var(--meta)' }}>{p.kind === 'planned' ? '—' : p.sessions}</span>
+                    <span className="ml-auto text-[11px]" title={p.kind === 'planned' ? undefined : `${p.sessions} sessions a week on the rota today`}
+                      style={{ fontFamily: 'var(--font-mono)', color: 'var(--meta)' }}>{p.kind === 'planned' ? '—' : p.sessions}</span>
                   </div>
                   {months.map(mk => {
                     const evs = cellEvents(p.id, mk);
@@ -625,7 +633,13 @@ export default function StaffChanges({ data, saveData }) {
       {/* cell editor */}
       {editor && (
         <CellEditor editor={editor} onClose={() => setEditor(null)} onAdd={addEvent} onRemove={removeEvent}
-          existing={cellEvents(editor.personRef, editor.month).filter(e => e.month === editor.month)} months={months} />
+          existing={cellEvents(editor.personRef, editor.month).filter(e => e.month === editor.month)} months={months} today={today}
+          sessionsBefore={(date) => {
+            // What a change on this date would change FROM. Only a real
+            // person has a level to change from; a planned one starts at 0.
+            const p = allPeople.find(x => x.id === editor.personRef);
+            return p && p.kind === 'real' ? sessionsOn(p, plan.events, date, { today }) : null;
+          }} />
       )}
       {/* edit a planned person, or retire them into the real clinician */}
       {plannedEdit && (
@@ -716,14 +730,22 @@ function PlannedPersonEditor({ edit, onChange, roleOptions, candidates, onSave, 
   );
 }
 
-function CellEditor({ editor, onClose, onAdd, onRemove, existing }) {
+function CellEditor({ editor, onClose, onAdd, onRemove, existing, today, sessionsBefore }) {
   const [mode, setMode] = useState(null);
-  const [sessions, setSessions] = useState(4);
   const [reason, setReason] = useState('maternity');
   // Exact dates, not just the month. The buddy board covers people day by
   // day, so "October" is not enough to know who needs cover on the 3rd.
   const firstOfMonth = `${editor.month}-01`;
   const [startDate, setStartDate] = useState(firstOfMonth);
+  // A change is "from X to Y". X defaults to what they are on at that date
+  // and follows the date until it is typed over: the rota already shows the
+  // new number for a change in the past, so the default is only a guess
+  // there, and the typed value is what puts the step back on the chart.
+  const suggestedFrom = sessionsBefore ? sessionsBefore(startDate) : null;
+  const [fromTyped, setFromTyped] = useState(null);
+  const fromSessions = fromTyped ?? suggestedFrom;
+  const [sessions, setSessions] = useState(() => (sessionsBefore && sessionsBefore(firstOfMonth)) || 4);
+  const inThePast = !!today && startDate <= today;
   const [endDate, setEndDate] = useState(monthEndDate(addMonths(editor.month, 2)));
   const base = { personRef: editor.personRef, month: editor.month };
   const pretty = `${monthLabel(editor.month)} ${editor.month.slice(0, 4)}`;
@@ -773,8 +795,16 @@ function CellEditor({ editor, onClose, onAdd, onRemove, existing }) {
           <div className="flex flex-col gap-2.5">
             {(mode === 'join' || mode === 'change') && (
               <div className="flex items-center gap-2 flex-wrap">
-                <label className="text-sm" style={{ color: 'var(--g-text-hi)' }}>{mode === 'join' ? 'Joins on' : 'New total'}</label>
-                <input type="number" min="0.5" max="12" step="0.5" value={sessions}
+                <label className="text-sm" style={{ color: 'var(--g-text-hi)' }}>{mode === 'join' ? 'Joins on' : (suggestedFrom != null ? 'From' : 'New total')}</label>
+                {mode === 'change' && suggestedFrom != null && (
+                  <>
+                    <input type="number" min="0" max="12" step="0.5" value={fromSessions} aria-label="Sessions a week before the change"
+                      onChange={e => setFromTyped(parseFloat(e.target.value) || 0)}
+                      className="w-16 text-center" style={dateInput} />
+                    <span className="text-sm" style={{ color: 'var(--meta)' }}>to</span>
+                  </>
+                )}
+                <input type="number" min="0.5" max="12" step="0.5" value={sessions} aria-label={mode === 'join' ? 'Sessions a week' : 'Sessions a week after the change'}
                   onChange={e => setSessions(parseFloat(e.target.value) || 0)}
                   className="w-16 text-center" style={dateInput} />
                 <span className="text-sm" style={{ color: 'var(--meta)' }}>sessions/wk from</span>
@@ -807,7 +837,9 @@ function CellEditor({ editor, onClose, onAdd, onRemove, existing }) {
             <p className="text-[11px]" style={{ color: 'var(--meta)' }}>
               {mode === 'leave' || mode === 'temp_leave'
                 ? 'These exact dates are pushed to the buddy board, so cover is arranged for the right days.'
-                : 'Sessions step from this date; the graph and totals follow.'}
+                : mode === 'change' && inThePast && suggestedFrom != null
+                  ? 'This date has passed, so the rota already shows the new number. Check the from figure: it is what draws the step on the chart and in the months before.'
+                  : 'Sessions step from this date; the graph and totals follow.'}
             </p>
 
             <div className="flex gap-2 justify-end">
@@ -820,6 +852,8 @@ function CellEditor({ editor, onClose, onAdd, onRemove, existing }) {
                     onAdd({ ...base, month, toMonth: monthKey(endDate), type: 'temp_leave', reason, startDate, endDate });
                   } else if (mode === 'leave') {
                     onAdd({ ...base, month, type: 'leave', startDate, endDate: startDate });
+                  } else if (mode === 'change') {
+                    onAdd({ ...base, month, type: 'change', sessions, startDate, ...(fromSessions != null ? { fromSessions } : {}) });
                   } else {
                     onAdd({ ...base, month, type: mode, sessions, startDate });
                   }
