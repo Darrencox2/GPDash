@@ -1,5 +1,5 @@
 'use client';
-import { DAYS, formatWeekRange, getWeekStart, groupAllocationsByCovering } from '@/lib/data';
+import { DAYS, formatWeekRange, getWeekStart, groupAllocationsByCovering, isCpdOn } from '@/lib/data';
 
 export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, helpers }) {
   const { ensureArray, getDateKeyForDay, isClosedDay, getClosedReason, toggleClosedDay, getClinicianById, getWeekAbsences } = helpers;
@@ -31,7 +31,7 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
               const rows = (e.presentIds || []).map(id => { const c = getClinicianById(id); const t = g[id] || { absent: [], dayOff: [] }; return { clinician: c, tasks: t, canCover: c?.canProvideCover !== false, hasAllocs: t.absent.length > 0 || t.dayOff.length > 0 }; }).filter(r => r.clinician);
               rows.sort((a, b) => { if (a.canCover && !b.canCover) return -1; if (!a.canCover && b.canCover) return 1; if (a.canCover && b.canCover) { if (a.hasAllocs && !b.hasAllocs) return -1; if (!a.hasAllocs && b.hasAllocs) return 1; } return 0; });
               if (rows.length === 0) { s += `No clinicians present\n\n`; return; }
-              rows.forEach(({ clinician, tasks }) => { const f = tasks.absent.length > 0 ? tasks.absent.map(i => getClinicianById(i)?.initials || '??').join(', ') : '-'; const v = tasks.dayOff.length > 0 ? tasks.dayOff.map(i => getClinicianById(i)?.initials || '??').join(', ') : '-'; s += `${clinician.initials}: File ${f} / View ${v}\n`; });
+              rows.forEach(({ clinician, tasks }) => { const f = tasks.absent.length > 0 ? tasks.absent.map(i => getClinicianById(i)?.initials || '??').join(', ') : '-'; const v = tasks.dayOff.length > 0 ? tasks.dayOff.map(i => (getClinicianById(i)?.initials || '??') + (isCpdOn(data, i, dk) ? ' (CPD)' : '')).join(', ') : '-'; s += `${clinician.initials}: File ${f} / View ${v}\n`; });
               s += '\n';
             });
             navigator.clipboard.writeText(s.trim());
@@ -77,7 +77,7 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
                         {hasTasks ? (
                           <div className="flex flex-wrap gap-1">
                             {t.absent.map(i => { const x = getClinicianById(i); const isOv = ovIds.includes(i); return x ? <span key={i} className="status-tag absent text-xs" style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px'} : undefined}>{x.initials}</span> : null; })}
-                            {t.dayOff.map(i => { const x = getClinicianById(i); const isOv = ovIds.includes(i); return x ? <span key={i} className="status-tag dayoff text-xs" style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px'} : undefined}>{x.initials}</span> : null; })}
+                            {t.dayOff.map(i => { const x = getClinicianById(i); const isOv = ovIds.includes(i); return x ? <span key={i} className="status-tag dayoff text-xs" style={isOv ? {outline:'2px solid #f59e0b',outlineOffset:'1px'} : undefined}>{x.initials}{isCpdOn(data, i, dk) && <span style={{fontSize:'0.7em',fontWeight:600,opacity:0.75,marginLeft:3}}>CPD</span>}</span> : null; })}
                           </div>
                         ) : <span className="text-xs text-slate-300">—</span>}
                       </div>

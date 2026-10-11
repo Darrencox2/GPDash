@@ -2,7 +2,7 @@
 import { confirmDialog, promptDialog } from '@/components/ui';
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence, getScheduledSessions } from '@/lib/data';
+import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence, isCpdOn, getScheduledSessions } from '@/lib/data';
 import { getCliniciansForDate, parseHuddleDateStr, getSlotRowsForClinicianDate } from '@/lib/huddle';
 import { getEffectivePattern, patternDayLabel } from '@/lib/session-patterns';
 import { STATUS_TRANSITIONS, applyTransition, undoTransition, adjustTransition, getWindDownAlerts } from '@/lib/status-transitions';
@@ -194,12 +194,13 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
   const [hovered, setHovered] = useState(null); // { id, rect }
   const explainStatus = (c) => {
     const dateKey = getDateKey();
-    const status = getClinicianStatus(c.id, selectedDay); // present | absent | dayOff
+    const status = getClinicianStatus(c.id, selectedDay); // present | absent | dayoff
     const dayRota = data?.weeklyRota?.[selectedDay] || [];
     const scheduled = (Array.isArray(dayRota) ? dayRota : Object.values(dayRota)).includes(c.id);
     const planned = hasPlannedAbsence(c.id, dateKey);
     const reason = planned ? getPlannedAbsenceReason(c.id, dateKey) : null;
     const isOverridden = overriddenIds.has(c.id) && currentAlloc?.hasOverride;
+    const cpd = !isOverridden && (computeDayStatus(data, dateKey, selectedDay).cpd || []).includes(c.id);
     const lines = [];
 
     if (c.longTermAbsent) {
@@ -208,7 +209,11 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       lines.push(isOverridden
         ? `Manually set to present for today — this overrides the usual ${selectedDay} pattern.`
         : `Works ${selectedDay}s in the working-days grid, and has no leave recorded for today.`);
-    } else if (status === 'dayOff') {
+    } else if (cpd && status === 'dayoff') {
+      lines.push('On CPD today - treated like a day off, so cover only views results.');
+    } else if (cpd && status === 'absent') {
+      lines.push('On CPD today and on leave the next day they are in, so cover files and actions their results.');
+    } else if (status === 'dayOff' || status === 'dayoff') {
       lines.push(`Does not work ${selectedDay}s in the working-days grid, so today is a normal day off — no cover needed.`);
     } else if (status === 'absent') {
       if (isOverridden) {
@@ -277,7 +282,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         const padded = initials.length < 4 ? initials + ' '.repeat(4 - initials.length) : initials;
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => (getClinicianById(id)?.initials || '??') + (isCpdOn(data, id, dateKey) ? ' (CPD)' : '')).join(' '));
         s += `  ${padded}\t${parts.join('  |  ')}\n`;
       });
     } else {
@@ -341,7 +346,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         const padded = initials.length < 4 ? initials + ' '.repeat(4 - initials.length) : initials;
         const parts = [];
         if (tasks.absent.length > 0) parts.push('File: ' + tasks.absent.map(id => getClinicianById(id)?.initials || '??').join(' '));
-        if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => getClinicianById(id)?.initials || '??').join(' '));
+        if (tasks.dayOff.length > 0) parts.push('View: ' + tasks.dayOff.map(id => (getClinicianById(id)?.initials || '??') + (isCpdOn(data, id, dk) ? ' (CPD)' : '')).join(' '));
         s += `  ${padded}\t${parts.join('  |  ')}\n`;
       });
       s += '\n';
@@ -820,7 +825,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                           <span className="flex-shrink-0" style={{fontSize:9,color:'var(--meta)',fontFamily:"var(--font-mono)",letterSpacing:'0.02em'}}>covers</span>
                           <div className="flex gap-1 flex-wrap flex-1 min-w-0">
                             {t.absent.map(id => { const x = getClinicianById(id); return x ? <span key={id} title={`${x.name} — absent`} className="rounded font-bold text-white flex-shrink-0" style={{background:CHIP.absent.bg,border:`1px solid ${CHIP.absent.bd}`,fontSize:'clamp(11px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
-                            {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} title={`${x.name} — day off`} className="rounded font-bold flex-shrink-0" style={{background:CHIP.dayOff.bg,border:`1px solid ${CHIP.dayOff.bd}`,color:CHIP.dayOff.fg,fontSize:'clamp(11px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}</span> : null; })}
+                            {t.dayOff.map(id => { const x = getClinicianById(id); return x ? <span key={id} title={`${x.name} — ${isCpdOn(data, id, dk) ? 'CPD' : 'day off'}`} className="rounded font-bold flex-shrink-0" style={{background:CHIP.dayOff.bg,border:`1px solid ${CHIP.dayOff.bd}`,color:CHIP.dayOff.fg,fontSize:'clamp(11px,1.1vw,13px)',padding:'1px 5px'}}>{x.initials}{isCpdOn(data, id, dk) && <span style={{fontSize:'0.7em',fontWeight:600,opacity:0.75,marginLeft:3}}>CPD</span>}</span> : null; })}
                           </div>
                         </div>
                       ))}
@@ -1156,6 +1161,7 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
                                 }}
                               >
                                 {x.initials}
+                                {type === 'dayOff' && isCpdOn(data, id, getDateKey()) && <span style={{fontSize:'0.7em',fontWeight:600,opacity:0.75,marginLeft:3}}>CPD</span>}
                                 {ov && (
                                   <span style={{
                                     position: 'absolute', top: -4, right: -4,

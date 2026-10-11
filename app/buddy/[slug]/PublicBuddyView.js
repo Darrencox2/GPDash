@@ -9,7 +9,7 @@
 // thing on v4.
 
 import { useState, useEffect, useMemo } from 'react';
-import { DAYS, groupAllocationsByCovering, toLocalIso, computeDayStatus } from '@/lib/data';
+import { DAYS, groupAllocationsByCovering, toLocalIso, computeDayStatus, isCpdOn } from '@/lib/data';
 import { APP_VERSION } from '@/lib/version';
 import { ClosedDayIcon } from '@/components/ui/ClosedDay';
 
@@ -263,7 +263,7 @@ function BuddyCoverView({ data, practiceName, lastRefresh, onRefresh }) {
                         {tasks.dayOff.length > 0 ? (
                           <div className="flex flex-wrap gap-1.5">{tasks.dayOff.map(id => {
                             const x = getClinicianById(id);
-                            return x ? <span key={id} className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white" style={{ padding: '4px 10px', background: '#f59e0b', minWidth: 36 }}>{x.initials}</span> : null;
+                            return x ? <span key={id} className="inline-flex items-center justify-center rounded-md text-sm font-bold text-white" style={{ padding: '4px 10px', background: '#f59e0b', minWidth: 36 }}>{x.initials}{isCpdOn(data, id, dateKey) && <span style={{fontSize:'0.7em',fontWeight:600,opacity:0.75,marginLeft:3}}>CPD</span>}</span> : null;
                           })}</div>
                         ) : <span className="text-slate-400">—</span>}
                       </td>

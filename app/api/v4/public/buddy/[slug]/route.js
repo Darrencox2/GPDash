@@ -16,6 +16,7 @@ import { createAdminClient } from '@/utils/supabase/admin';
 import { loadPracticeData, adaptToV3Shape } from '@/lib/v4-data';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { serverError } from '@/lib/api-helpers';
+import { isCpdAbsence } from '@/lib/data';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -141,12 +142,15 @@ export async function GET(request, ctx) {
       // Dates and half-day session only. The reason ("Long term absence",
       // maternity...) is health information about named staff; the public
       // view computes cover from the dates and never shows a reason.
+      // The one exception is a bare CPD flag: CPD is cover-relevant (a
+      // day off, not leave) and is work, not health information.
       plannedAbsences: (v3Shape.plannedAbsences || []).map(a => ({
         id: a.id,
         clinicianId: a.clinicianId,
         startDate: a.startDate,
         endDate: a.endDate,
         ...(a.session ? { session: a.session } : {}),
+        ...(isCpdAbsence(a) ? { cpd: true } : {}),
       })),
       settings: v3Shape.settings,        // buddy weights
       closedDays: v3Shape.closedDays,
