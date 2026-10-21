@@ -1,5 +1,5 @@
 'use client';
-import { DAYS, formatWeekRange, getWeekStart, groupAllocationsByCovering, isCpdOn } from '@/lib/data';
+import { DAYS, addWeeks, formatWeekRange, getWeekStart, groupAllocationsByCovering, isCpdOn } from '@/lib/data';
 
 export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, helpers }) {
   const { ensureArray, getDateKeyForDay, isClosedDay, getClosedReason, toggleClosedDay, getClinicianById, getWeekAbsences } = helpers;
@@ -10,9 +10,9 @@ export default function BuddyWeek({ data, selectedWeek, setSelectedWeek, toast, 
       <div className="card p-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">◀ Prev</button>
+            <button onClick={() => setSelectedWeek(addWeeks(selectedWeek, -1))} className="btn-secondary py-1.5 px-3 text-sm">◀ Prev</button>
             <div className="text-sm font-medium text-slate-900 min-w-[180px] text-center">{formatWeekRange(selectedWeek)}</div>
-            <button onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 24 * 60 * 60 * 1000))} className="btn-secondary py-1.5 px-3 text-sm">Next ▶</button>
+            <button onClick={() => setSelectedWeek(addWeeks(selectedWeek, 1))} className="btn-secondary py-1.5 px-3 text-sm">Next ▶</button>
             <button onClick={() => setSelectedWeek(getWeekStart(new Date()))} className="ml-2 px-4 py-1.5 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 shadow-md">Today</button>
           </div>
           <button onClick={() => {

@@ -2,7 +2,7 @@
 import { confirmDialog, promptDialog } from '@/components/ui';
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { DAYS, getWeekStart, getActiveWeekStart, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence, isCpdOn, getScheduledSessions } from '@/lib/data';
+import { DAYS, getWeekStart, getActiveWeekStart, addWeeks, formatWeekRange, formatDate, getCurrentDay, generateBuddyAllocations, groupAllocationsByCovering, DEFAULT_SETTINGS, toLocalIso, toHuddleDateStr, matchesStaffMember, computeDayStatus, logEvent, findCoveringAbsence, isCpdOn, getScheduledSessions } from '@/lib/data';
 import { getCliniciansForDate, parseHuddleDateStr, getSlotRowsForClinicianDate } from '@/lib/huddle';
 import { getEffectivePattern, patternDayLabel } from '@/lib/session-patterns';
 import { STATUS_TRANSITIONS, applyTransition, undoTransition, adjustTransition, getWindDownAlerts } from '@/lib/status-transitions';
@@ -554,8 +554,8 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
       const t = e.target;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
-      if (e.key === '[') { e.preventDefault(); setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000)); }
-      else if (e.key === ']') { e.preventDefault(); setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000)); }
+      if (e.key === '[') { e.preventDefault(); setSelectedWeek(addWeeks(selectedWeek, -1)); }
+      else if (e.key === ']') { e.preventDefault(); setSelectedWeek(addWeeks(selectedWeek, 1)); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -721,9 +721,9 @@ export default function BuddyDaily({ data, saveData, password, toast, selectedWe
         {/* Arrows used to sit at the board's far corners, a full width
             apart from the date they change. Grouped now, snap-back beside. */}
         <div className="flex items-center justify-center gap-2.5 px-4 py-2.5 relative" style={{background:'var(--g-panel-2)',borderBottom:'1px solid var(--g-tile)'}}>
-          <button aria-label="Previous week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() - 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-ink-max/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
+          <button aria-label="Previous week" onClick={() => setSelectedWeek(addWeeks(selectedWeek, -1))} className="px-2.5 py-1 rounded-lg text-sm text-ink-max/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>◀</button>
           <div className="text-sm font-semibold text-ink-max shrink-0" style={{width:190,textAlign:'center'}}>{formatWeekRange(selectedWeek)}</div>
-          <button aria-label="Next week" onClick={() => setSelectedWeek(new Date(selectedWeek.getTime() + 7 * 86400000))} className="px-2.5 py-1 rounded-lg text-sm text-ink-max/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
+          <button aria-label="Next week" onClick={() => setSelectedWeek(addWeeks(selectedWeek, 1))} className="px-2.5 py-1 rounded-lg text-sm text-ink-max/80 hover:text-white hover:bg-white/10 shrink-0" style={{border:'1px solid var(--g-label-faint)'}}>▶</button>
           {/* The arrows must not move. They used to shift sideways as the
               "This week" link appeared and the date text changed width, so a
               second click landed somewhere else - clicking three times to skip
