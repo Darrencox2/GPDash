@@ -64,6 +64,15 @@ Set these in `.env.local` for local dev and in the Vercel project for deploys:
 
 `NODE_ENV` and `VERCEL_REGION` are provided by the platform.
 
+### Agent tooling (MCP)
+
+`.mcp.json` registers the [Firecrawl](https://www.firecrawl.dev) MCP server, which gives
+Claude Code and other MCP clients live web scrape, search, map and crawl tools. It runs on
+demand via `npx -y firecrawl-mcp` — nothing to install — and reads `FIRECRAWL_API_KEY` from
+the environment, so put the key in `.env.local` (or export it in your shell) and approve the
+server when your MCP client prompts. It is developer tooling only: no app code imports it and
+it is not needed for `npm run build` or for deploys.
+
 ---
 
 ## Project layout
