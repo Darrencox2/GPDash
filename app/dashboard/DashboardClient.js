@@ -34,6 +34,7 @@ import { DashboardCompletenessStrip } from '@/app/v4/_lib/SectionStatus';
 import { reportError } from '@/lib/report-error';
 import { noteAction, getTrail, isStaleBuildError, buildErrorReport } from '@/lib/error-context';
 import MorningBriefing from '@/components/huddle/MorningBriefing';
+import WeekInReview from '@/components/huddle/WeekInReview';
 import StaffChanges from '@/components/workforce/StaffChanges';
 
 // Shows the REAL error on screen when a section crashes, instead of
@@ -1208,9 +1209,10 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           })()}
           <Suspense fallback={<div className="text-sm text-slate-400 py-12 text-center">Loading…</div>}>
           {activeSection === 'buddy-cover' && <BuddyDaily data={data} saveData={saveData} password={password} toast={toast} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} selectedDay={selectedDay} setSelectedDay={setSelectedDay} syncStatus={syncStatus} setSyncStatus={setSyncStatus} isGenerating={isGenerating} setIsGenerating={setIsGenerating} helpers={helpers} huddleData={huddleData} setActiveSection={setActiveSection} onRevertChange={revertChange} />}
-          {huddleLoading && ['huddle-today','huddle-rota','huddle-forward','huddle-forward-week','reporting'].includes(activeSection) && <PageSkeleton />}
+          {huddleLoading && ['huddle-today','huddle-rota','huddle-forward','huddle-forward-week','week-review','reporting'].includes(activeSection) && <PageSkeleton />}
           {activeSection === 'staff-changes' && <StaffChanges data={data} saveData={saveData} />}
           {activeSection === 'briefing' && <MorningBriefing data={data} huddleData={huddleData} huddleMessages={huddleMessages} />}
+          {activeSection === 'week-review' && !huddleLoading && <WeekInReview data={data} saveData={saveData} huddleData={huddleData} toast={toast} setActiveSection={setActiveSection} />}
           {activeSection === 'huddle-today' && !huddleLoading && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} requestedDate={reqDate} />}
           {activeSection === 'huddle-rota' && !huddleLoading && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} requestedInitials={reqRota} />}
           {activeSection === 'meetings' && <Meetings data={data} />}

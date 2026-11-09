@@ -22,6 +22,7 @@ import { renderToString } from 'react-dom/server';
 import { buildFixture } from '@/tests/render/fixture';
 import HuddleToday from '@/components/huddle/HuddleToday';
 import MorningBriefing from '@/components/huddle/MorningBriefing';
+import WeekInReview from '@/components/huddle/WeekInReview';
 import HuddleForward from '@/components/huddle/HuddleForward';
 import CapacityWeek from '@/components/huddle/CapacityWeek';
 import MyRota from '@/components/huddle/MyRota';
@@ -55,6 +56,7 @@ const common = { data: f.data, saveData: noop, toast: noop, huddleData: f.huddle
 const SECTIONS = [
   ['Today', HuddleToday, { ...common, setHuddleData: noop, huddleMessages: [], setHuddleMessages: noop }, 'Urgent'],
   ['Morning briefing', MorningBriefing, { data: f.data, huddleData: f.huddleData, huddleMessages: [] }, 'Duty doctor'],
+  ['Week in review', WeekInReview, { ...common }, 'Week in review'],
   ['Capacity planning · monthly', HuddleForward, { ...common, view: 'month' }, 'Capacity planning'],
   ['Capacity planning · weekly', HuddleForward, { ...common, view: 'week' }, 'Capacity planning'],
   ['Week view', CapacityWeek, { data: f.data, hs: f.data.huddleSettings, huddleData: f.huddleData, sites: f.sites, capacityStaffing: f.data.huddleSettings.capacityStaffing, teamClin: f.teamClin }, 'Winscombe'],
