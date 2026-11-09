@@ -1212,7 +1212,7 @@ function DashboardContent({ initialData, initialPracticeId, serverTimings, secti
           {huddleLoading && ['huddle-today','huddle-rota','huddle-forward','huddle-forward-week','week-review','reporting'].includes(activeSection) && <PageSkeleton />}
           {activeSection === 'staff-changes' && <StaffChanges data={data} saveData={saveData} />}
           {activeSection === 'briefing' && <MorningBriefing data={data} huddleData={huddleData} huddleMessages={huddleMessages} />}
-          {activeSection === 'week-review' && !huddleLoading && <WeekInReview data={data} saveData={saveData} huddleData={huddleData} toast={toast} setActiveSection={setActiveSection} />}
+          {activeSection === 'week-review' && !huddleLoading && <WeekInReview data={data} saveData={saveData} huddleData={huddleData} toast={toast} setActiveSection={setActiveSection} onOpenDate={paletteDate} onOpenWeek={paletteWeek} onOpenClinician={paletteClinician} />}
           {activeSection === 'huddle-today' && !huddleLoading && <HuddleToday data={data} saveData={saveData} toast={toast} huddleData={huddleData} setHuddleData={setHuddleData} huddleMessages={huddleMessages} setHuddleMessages={setHuddleMessages} setActiveSection={setActiveSection} requestedDate={reqDate} />}
           {activeSection === 'huddle-rota' && !huddleLoading && <MyRota data={data} saveData={saveData} huddleData={huddleData} setActiveSection={setActiveSection} requestedInitials={reqRota} />}
           {activeSection === 'meetings' && <Meetings data={data} />}
